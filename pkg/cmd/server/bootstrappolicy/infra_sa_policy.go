@@ -330,16 +330,25 @@ func init() {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
+				// ScheduledJobController.SyncAll
+				// ScheduledJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("jobs", "scheduledjobs"),
 				},
-				// JobController.syncJob() -> updateJobStatus()
+				// JobController.syncJob
+				// ScheduledJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("jobs/status", "scheduledjobs/status"),
+				},
+				// ScheduledJobController.SyncOne
+				{
+					APIGroups: []string{extensions.GroupName, batch.GroupName},
+					Verbs:     sets.NewString("create", "update", "delete"),
+					Resources: sets.NewString("jobs"),
 				},
 				// JobController.podController.ListWatch
 				{
@@ -574,10 +583,16 @@ func init() {
 					Resources: sets.NewString("events"),
 				},
 				// PersistentVolumeBinder.findProvisionablePlugin()
+				// Glusterfs provisioner
 				{
 					APIGroups: []string{storage.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("list", "watch", "get"),
 					Resources: sets.NewString("storageclasses"),
+				},
+				// Gluster provisioner
+				{
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("services", "endpoints"),
 				},
 			},
 		},

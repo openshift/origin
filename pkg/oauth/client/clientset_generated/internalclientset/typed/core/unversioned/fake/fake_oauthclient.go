@@ -88,3 +88,14 @@ func (c *FakeOAuthClients) Watch(opts pkg_api.ListOptions) (watch.Interface, err
 		InvokesWatch(core.NewWatchAction(oauthclientsResource, c.ns, opts))
 
 }
+
+// Patch applies the patch and returns the patched oAuthClient.
+func (c *FakeOAuthClients) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.OAuthClient, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewPatchSubresourceAction(oauthclientsResource, c.ns, name, data, subresources...), &api.OAuthClient{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.OAuthClient), err
+}

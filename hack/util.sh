@@ -2,222 +2,6 @@
 
 # Provides simple utility functions
 
-# configure_os_server will create and write OS master certificates, node configurations, and OpenShift configurations.
-# It is recommended to run the following environment setup functions before configuring the OpenShift server:
-#  - os::util::environment::setup_all_server_vars
-#  - os::util::environment::use_sudo -- if your script should be using root privileges
-#
-# Globals:
-#  - ALL_IP_ADDRESSES
-#  - PUBLIC_MASTER_HOST
-#  - MASTER_CONFIG_DIR
-#  - MASTER_ADDR
-#  - API_SCHEME
-#  - PUBLIC_MASTER_HOST
-#  - API_PORT
-#  - KUBELET_SCHEME
-#  - KUBELET_BIND_HOST
-#  - KUBELET_PORT
-#  - NODE_CONFIG_DIR
-#  - KUBELET_HOST
-#  - API_BIND_HOST
-#  - VOLUME_DIR
-#  - ETCD_DATA_DIR
-#  - USE_IMAGES
-#  - USE_SUDO
-# Arguments:
-#  None
-# Returns:
-#  - export ADMIN_KUBECONFIG
-#  - export CLUSTER_ADMIN_CONTEXT
-function configure_os_server() {
-	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
-	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
-		ALL_IP_ADDRESSES="$(openshift start --print-ip)"
-		SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
-                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},kubernetes.default.svc.cluster.local,kubernetes.default.svc,kubernetes.default,kubernetes"
-                SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},openshift.default.svc.cluster.local,openshift.default.svc,openshift.default,openshift"
-
-		while read -r IP_ADDRESS
-		do
-			SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-		done <<< "${ALL_IP_ADDRESSES}"
-
-		export ALL_IP_ADDRESSES
-		export SERVER_HOSTNAME_LIST
-	fi
-
-	echo "[INFO] Creating certificates for the OpenShift server"
-	openshift admin ca create-master-certs \
-	--overwrite=false \
-	--cert-dir="${MASTER_CONFIG_DIR}" \
-	--hostnames="${SERVER_HOSTNAME_LIST}" \
-	--master="${MASTER_ADDR}" \
-	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-	echo "[INFO] Creating OpenShift node config"
-	openshift admin create-node-config \
-	--listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}" \
-	--node-dir="${NODE_CONFIG_DIR}" \
-	--node="${KUBELET_HOST}" \
-	--hostnames="${KUBELET_HOST}" \
-	--master="${MASTER_ADDR}" \
-	--node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-	--certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-	--signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-	oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-	echo "[INFO] Creating OpenShift config"
-	openshift start \
-	--write-config=${SERVER_CONFIG_DIR} \
-	--create-certs=false \
-	--dns="tcp://${API_HOST}:53" \
-	--listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
-	--master="${MASTER_ADDR}" \
-	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
-	--hostname="${KUBELET_HOST}" \
-	--volume-dir="${VOLUME_DIR}" \
-	--etcd-dir="${ETCD_DATA_DIR}" \
-	--images="${USE_IMAGES}"
-
-
-	cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
-	openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
-	openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
-	openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
-	openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
-	openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
-	openshift ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-	local sudo="${USE_SUDO:+sudo}"
-	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
-	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
-}
-readonly -f configure_os_server
-
-# start_os_server starts the OpenShift server, exports the PID of the OpenShift server and waits until openshift server endpoints are available
-# It is advised to use this function after a successful run of 'configure_os_server'
-#
-# Globals:
-#  - USE_SUDO
-#  - LOG_DIR
-#  - ARTIFACT_DIR
-#  - VOLUME_DIR
-#  - SERVER_CONFIG_DIR
-#  - USE_IMAGES
-#  - MASTER_ADDR
-#  - MASTER_CONFIG_DIR
-#  - NODE_CONFIG_DIR
-#  - API_SCHEME
-#  - API_HOST
-#  - API_PORT
-#  - KUBELET_SCHEME
-#  - KUBELET_HOST
-#  - KUBELET_PORT
-# Arguments:
-#  None
-# Returns:
-#  - export OS_PID
-function start_os_server() {
-	local sudo="${USE_SUDO:+sudo}"
-
-	local use_latest_images
-	if [[ -n "${USE_LATEST_IMAGES:-}" ]]; then
-		use_latest_images="true"
-	else
-		use_latest_images="false"
-	fi
-
-	echo "[INFO] `openshift version`"
-	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-	echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
-	echo "[INFO] Using images:              ${USE_IMAGES}"
-	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
-
-	mkdir -p ${LOG_DIR}
-
-	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
-	ps -ef | grep openshift
-	echo "[INFO] Starting OpenShift server"
-	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-	 --loglevel=4 --logspec='*importer=5' \
-	 --latest-images="${use_latest_images}" \
-	&>"${LOG_DIR}/openshift.log" &
-	export OS_PID=$!
-
-	echo "[INFO] OpenShift server start at: "
-	date
-
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 120
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
-
-	echo "[INFO] OpenShift server health checks done at: "
-	date
-}
-readonly -f start_os_server
-
-# start_os_master starts the OpenShift master, exports the PID of the OpenShift master and waits until OpenShift master endpoints are available
-# It is advised to use this function after a successful run of 'configure_os_server'
-#
-# Globals:
-#  - USE_SUDO
-#  - LOG_DIR
-#  - ARTIFACT_DIR
-#  - SERVER_CONFIG_DIR
-#  - USE_IMAGES
-#  - MASTER_ADDR
-#  - MASTER_CONFIG_DIR
-#  - API_SCHEME
-#  - API_HOST
-#  - API_PORT
-# Arguments:
-#  None
-# Returns:
-#  - export OS_PID
-function start_os_master() {
-	local sudo="${USE_SUDO:+sudo}"
-
-	echo "[INFO] `openshift version`"
-	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
-	echo "[INFO] Using images:              ${USE_IMAGES}"
-	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
-
-	mkdir -p ${LOG_DIR}
-
-	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
-	ps -ef | grep openshift
-	echo "[INFO] Starting OpenShift server"
-	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
-	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-	 --loglevel=4 --logspec='*importer=5' \
-	&>"${LOG_DIR}/openshift.log" &
-	export OS_PID=$!
-
-	echo "[INFO] OpenShift server start at: "
-	date
-
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 160
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 160
-
-	echo "[INFO] OpenShift server health checks done at: "
-	date
-}
-readonly -f start_os_master
-
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.
 function ensure_iptables_or_die() {
@@ -240,27 +24,6 @@ function ensure_iptables_or_die() {
 	set -e
 }
 readonly -f ensure_iptables_or_die
-
-# tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
-function tryuntil() {
-	timeout=$(($(date +%s) + 90))
-	echo "++ Retrying until success or timeout: ${@}"
-	while [ 1 ]; do
-		if eval "${@}" >/dev/null 2>&1; then
-			return 0
-		fi
-		if [[ $(date +%s) -gt $timeout ]]; then
-			# run it one more time so we can display the output
-			# for debugging, since above we /dev/null the output
-			if eval "${@}"; then
-				return 0
-			fi
-			echo "++ timed out"
-			return 1
-		fi
-	done
-}
-readonly -f tryuntil
 
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
@@ -322,15 +85,15 @@ function wait_for_url_timed() {
 	expire=$(($(time_now) + $max_wait))
 	set +e
 	while [[ $(time_now) -lt $expire ]]; do
-	out=$(curl --max-time 2 -fs $url 2>/dev/null)
-	if [ $? -eq 0 ]; then
-		set -e
-		echo ${prefix}${out}
-		ENDTIME=$(date +%s)
-		echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
-		return 0
-	fi
-	sleep $wait
+		out=$(curl --max-time 2 -fs $url 2>/dev/null)
+		if [ $? -eq 0 ]; then
+			set -e
+			echo ${prefix}${out}
+			ENDTIME=$(date +%s)
+			echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
+			return 0
+		fi
+		sleep $wait
 	done
 	echo "ERROR: gave up waiting for $url"
 	set -e
@@ -348,10 +111,10 @@ function wait_for_file() {
 	wait=${2:-0.2}
 	times=${3:-10}
 	for i in $(seq 1 $times); do
-	if [ -f "${file}" ]; then
-		return 0
-	fi
-	sleep $wait
+		if [ -f "${file}" ]; then
+			return 0
+		fi
+		sleep $wait
 	done
 	echo "ERROR: gave up waiting for file ${file}"
 	return 1
@@ -384,8 +147,8 @@ function wait_for_url() {
 		fi
 		sleep $wait
 	done
-	echo "ERROR: gave up waiting for ${url}"
-	echo $(${cmd})
+	echo "ERROR: gave up waiting for ${url}" 1>&2
+	${cmd} 1>&2
 	set -e
 	return 1
 }
@@ -407,22 +170,22 @@ function set_curl_args() {
 	clientcert_args="${CURL_EXTRA:-} "
 
 	if [ -n "${CURL_CERT}" ]; then
-	 if [ -n "${CURL_KEY}" ]; then
-	 if [[ `curl -V` == *"SecureTransport"* ]]; then
-		 # Convert to a p12 cert for SecureTransport
-		 export CURL_CERT_DIR=$(dirname "${CURL_CERT}")
-		 export CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
-		 export CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
-		 if [ ! -f "${CURL_CERT_P12}" ]; then
-		 wait_for_file "${CURL_CERT}" $wait $times
-		 wait_for_file "${CURL_KEY}" $wait $times
-		 openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
-		 fi
-		 clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD} ${CURL_EXTRA:-}"
-	 else
-		 clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY} ${CURL_EXTRA:-}"
-	 fi
-	 fi
+		if [ -n "${CURL_KEY}" ]; then
+			if [[ `curl -V` == *"SecureTransport"* ]]; then
+					# Convert to a p12 cert for SecureTransport
+					export CURL_CERT_DIR=$(dirname "${CURL_CERT}")
+					export CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
+					export CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
+					if [ ! -f "${CURL_CERT_P12}" ]; then
+					wait_for_file "${CURL_CERT}" $wait $times
+					wait_for_file "${CURL_KEY}" $wait $times
+					openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
+					fi
+					clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD} ${CURL_EXTRA:-}"
+			else
+				clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY} ${CURL_EXTRA:-}"
+			fi
+		fi
 	fi
 	export CURL_ARGS="${clientcert_args}"
 }
@@ -440,14 +203,14 @@ function validate_response() {
 
 	set +e
 	for i in $(seq 1 $times); do
-	response=`curl $url`
-	echo $response | grep -q "$expected_response"
-	if [ $? -eq 0 ]; then
-		echo "[INFO] Response is valid."
-		set -e
-		return 0
-	fi
-	sleep $wait
+		response=`curl $url`
+		echo $response | grep -q "$expected_response"
+		if [ $? -eq 0 ]; then
+			echo "[INFO] Response is valid."
+			set -e
+			return 0
+		fi
+		sleep $wait
 	done
 
 	echo "[INFO] Response is invalid: $response"
@@ -525,13 +288,13 @@ function delete_empty_logs() {
 }
 readonly -f delete_empty_logs
 
-# truncate_large_logs truncates large logs so we only download the last 20MB
+# truncate_large_logs truncates large logs so we only download the last 50MB
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +50M \))
 	for file in ${large_files}; do
 		mv "${file}" "${file}.tmp"
-		echo "LOGFILE TOO LONG $(du -h "${file}"), LAST 50M OF LOGFILE:" > "${file}"
+		echo "LOGFILE TOO LONG ($(du -h "${file}.tmp")), PREVIOUS BYTES TRUNCATED. LAST 50M OF LOGFILE:" > "${file}"
 		tail -c 50M "${file}.tmp" >> "${file}"
 		rm "${file}.tmp"
 	done
@@ -559,7 +322,7 @@ function cleanup_openshift() {
 	set +e
 	dump_container_logs
 
- 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
+	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
 	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
@@ -616,7 +379,7 @@ function create_gitconfig() {
 function create_valid_file() {
 	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
 	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
-	touch ${FILE_DIR}/${1}
+	echo test_data >${FILE_DIR}/${1}
 	echo ${FILE_DIR}/${1}
 }
 
@@ -624,26 +387,26 @@ function create_valid_file() {
 function install_router() {
 	echo "[INFO] Installing the router"
 	oadm policy add-scc-to-user privileged -z router --config="${ADMIN_KUBECONFIG}"
-        # Create a TLS certificate for the router
-        if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
-            echo "[INFO] Generating router TLS certificate"
-            oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
-                 --signer-key=${MASTER_CONFIG_DIR}/ca.key \
-                 --signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
-                 --hostnames="*.${API_HOST}.xip.io" \
-                 --cert=${MASTER_CONFIG_DIR}/router.crt --key=${MASTER_CONFIG_DIR}/router.key
-            cat ${MASTER_CONFIG_DIR}/router.crt ${MASTER_CONFIG_DIR}/router.key \
-                ${MASTER_CONFIG_DIR}/ca.crt > ${MASTER_CONFIG_DIR}/router.pem
-            ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
-        fi
-        openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
+	# Create a TLS certificate for the router
+	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
+		echo "[INFO] Generating router TLS certificate"
+		oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
+			--signer-key=${MASTER_CONFIG_DIR}/ca.key \
+			--signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
+			--hostnames="*.${API_HOST}.xip.io" \
+			--cert=${MASTER_CONFIG_DIR}/router.crt --key=${MASTER_CONFIG_DIR}/router.key
+		cat ${MASTER_CONFIG_DIR}/router.crt ${MASTER_CONFIG_DIR}/router.key \
+			${MASTER_CONFIG_DIR}/ca.crt > ${MASTER_CONFIG_DIR}/router.pem
+		ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
+	fi
+	openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
 
-        # Set the SYN eater to make router reloads more robust
-        if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
-            # Rewrite the DC for the router to add the environment variable into the pod definition
-            echo "[INFO] Changing the router DC to drop SYN packets during a reload"
-            oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
-        fi
+	# Set the SYN eater to make router reloads more robust
+	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
+		# Rewrite the DC for the router to add the environment variable into the pod definition
+		echo "[INFO] Changing the router DC to drop SYN packets during a reload"
+		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
+	fi
 }
 readonly -f create_gitconfig
 
@@ -660,11 +423,11 @@ function install_registry() {
 readonly -f install_registry
 
 function wait_for_registry() {
-	local generation=$(oc get dc/docker-registry -o jsonpath='{.metadata.generation}')
+	local generation="$(oc get dc/docker-registry -o 'jsonpath={.metadata.generation}')"
 	local onereplicajs='{.status.observedGeneration},{.status.replicas},{.status.updatedReplicas},{.status.availableReplicas}'
-	wait_for_command "oc get dc/docker-registry -o jsonpath='$onereplicajs' --config='${ADMIN_KUBECONFIG}' | grep '^$generation,1,1,1$'"  $((5*TIME_MIN))
+	wait_for_command "oc get dc/docker-registry -o 'jsonpath=${onereplicajs}' --config='${ADMIN_KUBECONFIG}' | grep '^${generation},1,1,1$'"  "$((5*TIME_MIN))"
 	local readyjs='{.items[*].status.conditions[?(@.type=="Ready")].status}'
-	wait_for_command "oc get pod -l deploymentconfig=docker-registry -o jsonpath='$readyjs' --config='${ADMIN_KUBECONFIG}' | grep -qi true" $TIME_MIN
+	wait_for_command "oc get pod -l deploymentconfig=docker-registry -o 'jsonpath=${readyjs}' --config='${ADMIN_KUBECONFIG}' | grep -qi true" "${TIME_MIN}"
 }
 readonly -f wait_for_registry
 
@@ -700,20 +463,20 @@ readonly -f os::build:wait_for_end
 SELINUX_DISABLED=0
 
 function enable-selinux() {
-  if [ "${SELINUX_DISABLED}" = "1" ]; then
-    os::log::info "Re-enabling selinux enforcement"
-    sudo setenforce 1
-    SELINUX_DISABLED=0
-  fi
+	if [ "${SELINUX_DISABLED}" = "1" ]; then
+		os::log::info "Re-enabling selinux enforcement"
+		sudo setenforce 1
+		SELINUX_DISABLED=0
+	fi
 }
 readonly -f enable-selinux
 
 function disable-selinux() {
-  if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
-    os::log::info "Temporarily disabling selinux enforcement"
-    sudo setenforce 0
-    SELINUX_DISABLED=1
-  fi
+	if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
+		os::log::info "Temporarily disabling selinux enforcement"
+		sudo setenforce 0
+		SELINUX_DISABLED=1
+	fi
 }
 readonly -f disable-selinux
 
@@ -722,25 +485,25 @@ readonly -f disable-selinux
 ######
 
 function os::log::with-severity() {
-  local msg=$1
-  local severity=$2
+	local msg=$1
+	local severity=$2
 
-  echo "[$2] ${1}"
+	echo "[$2] ${1}"
 }
 readonly -f os::log::with-severity
 
 function os::log::info() {
-  os::log::with-severity "${1}" "INFO"
+	os::log::with-severity "${1}" "INFO"
 }
 readonly -f os::log::info
 
 function os::log::warn() {
-  os::log::with-severity "${1}" "WARNING"
+	os::log::with-severity "${1}" "WARNING" 1>&2
 }
 readonly -f os::log::warn
 
 function os::log::error() {
-  os::log::with-severity "${1}" "ERROR"
+	os::log::with-severity "${1}" "ERROR" 1>&2
 }
 readonly -f os::log::error
 
@@ -763,44 +526,6 @@ readonly -f find_files
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
 function os::util::host_platform() {
-  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
+	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 readonly -f os::util::host_platform
-
-function os::util::sed() {
-  if LANG=C sed --help 2>&1 | grep -qs "GNU sed"; then
-  	sed -i'' "$@"
-  else
-  	sed -i '' "$@"
-  fi
-}
-readonly -f os::util::sed
-
-function os::util::base64decode() {
-  if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-  	base64 -D $@
-  else
-  	base64 -d $@
-  fi
-}
-readonly -f os::util::base64decode
-
-function os::util::get_object_assert() {
-  local object=$1
-  local request=$2
-  local expected=$3
-
-  res=$(eval oc get $object -o go-template=\"$request\")
-
-  if [[ "$res" =~ ^$expected$ ]]; then
-      echo "Successful get $object $request: $res"
-      return 0
-  else
-      echo "FAIL!"
-      echo "Get $object $request"
-      echo "  Expected: $expected"
-      echo "  Got:      $res"
-      return 1
-  fi
-}
-readonly -f os::util::get_object_assert

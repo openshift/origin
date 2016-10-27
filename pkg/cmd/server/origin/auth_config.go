@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
+	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
@@ -28,6 +29,9 @@ type AuthConfig struct {
 
 	// KubeClient is kubeclient with enough permission for the auth API
 	KubeClient kclient.Interface
+
+	// OpenShiftClient is osclient with enough permission for the auth API
+	OpenShiftClient osclient.Interface
 
 	// RESTOptionsGetter provides storage and RESTOption lookup
 	RESTOptionsGetter restoptions.Getter
@@ -47,7 +51,7 @@ type AuthConfig struct {
 
 func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 	options := masterConfig.Options
-	kubeClient := masterConfig.KubeClient()
+	osClient, kubeClient := masterConfig.OAuthServerClients()
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper
@@ -62,11 +66,9 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 	}
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	// TODO: allow configuring this
-	// TODO: remove hard-coding of development UI server
 	assetPublicURLs := []string{}
 	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
-		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
+		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL}
 	}
 
 	userStorage, err := useretcd.NewREST(masterConfig.RESTOptionsGetter)
@@ -85,6 +87,8 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 		Options: *options.OAuthConfig,
 
 		KubeClient: kubeClient,
+
+		OpenShiftClient: osClient,
 
 		AssetPublicAddresses: assetPublicURLs,
 		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,

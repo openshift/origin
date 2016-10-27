@@ -43,6 +43,10 @@ func init() {
 	if err := RegisterEnsureNode(&buildapi.Build{}, buildgraph.EnsureBuildNode); err != nil {
 		panic(err)
 	}
+	if err := RegisterEnsureNode(&routeapi.Route{}, routegraph.EnsureRouteNode); err != nil {
+		panic(err)
+	}
+
 	if err := RegisterEnsureNode(&kapi.Pod{}, kubegraph.EnsurePodNode); err != nil {
 		panic(err)
 	}
@@ -58,11 +62,10 @@ func init() {
 	if err := RegisterEnsureNode(&kapi.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&autoscaling.HorizontalPodAutoscaler{}, kubegraph.EnsureHorizontalPodAutoscalerNode); err != nil {
+	if err := RegisterEnsureNode(&kapi.PersistentVolumeClaim{}, kubegraph.EnsurePersistentVolumeClaimNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&routeapi.Route{}, routegraph.EnsureRouteNode); err != nil {
-		panic(err)
+	if err := RegisterEnsureNode(&autoscaling.HorizontalPodAutoscaler{}, kubegraph.EnsureHorizontalPodAutoscalerNode); err != nil {
 	}
 }
 

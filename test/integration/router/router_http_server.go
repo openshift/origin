@@ -36,6 +36,8 @@ func GetDefaultLocalAddress() string {
 func NewTestHttpService() *TestHttpService {
 	endpointChannel := make(chan string)
 	routeChannel := make(chan string)
+	nodeChannel := make(chan string)
+	svcChannel := make(chan string)
 
 	addr := GetDefaultLocalAddress()
 
@@ -55,6 +57,8 @@ func NewTestHttpService() *TestHttpService {
 		PodHttpsCaCert:       []byte(ExampleCACert),
 		EndpointChannel:      endpointChannel,
 		RouteChannel:         routeChannel,
+		NodeChannel:          nodeChannel,
+		SvcChannel:           svcChannel,
 	}
 }
 
@@ -77,6 +81,8 @@ type TestHttpService struct {
 	PodTestPath          string
 	EndpointChannel      chan string
 	RouteChannel         chan string
+	NodeChannel          chan string
+	SvcChannel           chan string
 
 	listeners []net.Listener
 }
@@ -129,6 +135,30 @@ func (s *TestHttpService) handleHelloPodSecure(w http.ResponseWriter, r *http.Re
 // handleHelloPodTestSecure handles calls to PodHttpsAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, HelloPodPathSecure)
+}
+
+// handleSvcList handles calls to /api/v1beta1/services and always returns empty data
+func (s *TestHttpService) handleSvcList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, "{}")
+}
+
+// handleSvcWatch handles calls to /api/v1beta1/watch/services and uses the svc channel to simulate watch events
+func (s *TestHttpService) handleSvcWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, <-s.SvcChannel)
+}
+
+// handleNodeList handles calls to /api/v1beta1/nodes and always returns empty data
+func (s *TestHttpService) handleNodeList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, "{}")
+}
+
+// handleNodeWatch handles calls to /api/v1beta1/watch/nodes and uses the node channel to simulate watch events
+func (s *TestHttpService) handleNodeWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, <-s.NodeChannel)
 }
 
 // handleRouteWatch handles calls to /osapi/v1beta1/watch/routes and uses the route channel to simulate watch events
@@ -208,6 +238,10 @@ func (s *TestHttpService) startMaster() error {
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/routes", version), s.handleRouteList)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/namespaces/", version), s.handleRouteCalls)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/watch/routes", version), s.handleRouteWatch)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/nodes", version), s.handleNodeList)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/nodes", version), s.handleNodeWatch)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/services", version), s.handleSvcList)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/services", version), s.handleSvcWatch)
 	}
 
 	if err := s.startServing(s.MasterHttpAddr, http.Handler(masterServer)); err != nil {

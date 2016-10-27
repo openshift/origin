@@ -227,6 +227,9 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	}
 
 	if err := g.updateImageTriggers(ctx, bc, request.From, request.TriggeredByImage); err != nil {
+		if _, ok := err.(errors.APIStatus); ok {
+			return nil, err
+		}
 		return nil, errors.NewInternalError(err)
 	}
 
@@ -402,6 +405,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				Resources:                 bcCopy.Spec.Resources,
 				PostCommit:                bcCopy.Spec.PostCommit,
 				CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+				NodeSelector:              bcCopy.Spec.NodeSelector,
 			},
 		},
 		ObjectMeta: kapi.ObjectMeta{
@@ -573,10 +577,8 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 	case "ImageStreamImage":
 		imageStreamImage, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
-			glog.V(2).Infof("Error ImageStreamReference %s in namespace %s: %v", from.Name, namespace, err)
-			if errors.IsNotFound(err) {
-				return "", err
-			}
+			err = resolveError(from.Kind, namespace, from.Name, err)
+			glog.V(2).Info(err)
 			return "", err
 		}
 		image := imageStreamImage.Image
@@ -585,10 +587,8 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 	case "ImageStreamTag":
 		imageStreamTag, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
-			glog.V(2).Infof("Error resolving ImageStreamTag reference %s in namespace %s: %v", from.Name, namespace, err)
-			if errors.IsNotFound(err) {
-				return "", err
-			}
+			err = resolveError(from.Kind, namespace, from.Name, err)
+			glog.V(2).Info(err)
 			return "", err
 		}
 		image := imageStreamTag.Image
@@ -614,10 +614,8 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 	case "ImageStreamImage":
 		imageStreamImage, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
-			glog.V(2).Infof("Error ImageStreamReference %s in namespace %s: %v", from.Name, namespace, err)
-			if errors.IsNotFound(err) {
-				return "", err
-			}
+			err = resolveError(from.Kind, namespace, from.Name, err)
+			glog.V(2).Info(err)
 			return "", err
 		}
 		image := imageStreamImage.Image
@@ -627,10 +625,8 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 		name := strings.Split(from.Name, ":")[0]
 		is, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
 		if err != nil {
-			glog.V(2).Infof("Error getting ImageStream %s/%s: %v", namespace, name, err)
-			if errors.IsNotFound(err) {
-				return "", err
-			}
+			err = resolveError("ImageStream", namespace, from.Name, err)
+			glog.V(2).Info(err)
 			return "", err
 		}
 		image, err := imageapi.DockerImageReferenceForStream(is)
@@ -672,6 +668,24 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 	}
 	glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	return nil
+}
+
+func resolveError(kind string, namespace string, name string, err error) error {
+	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
+	return &errors.StatusError{unversioned.Status{
+		Status:  unversioned.StatusFailure,
+		Code:    errors.StatusUnprocessableEntity,
+		Reason:  unversioned.StatusReasonInvalid,
+		Message: msg,
+		Details: &unversioned.StatusDetails{
+			Kind: kind,
+			Name: name,
+			Causes: []unversioned.StatusCause{{
+				Field:   "from",
+				Message: msg,
+			}},
+		},
+	}}
 }
 
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
@@ -732,6 +746,15 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 		// builds without a buildconfig don't have build numbers.
 		delete(newBuild.Annotations, buildapi.BuildNumberAnnotation)
 	}
+
+	// if they exist, Jenkins reporting annotations must be removed when cloning.
+	delete(newBuild.Annotations, buildapi.BuildJenkinsStatusJSONAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsLogURLAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsBuildURIAnnotation)
+
+	// remove the BuildPodNameAnnotation for good measure.
+	delete(newBuild.Annotations, buildapi.BuildPodNameAnnotation)
+
 	return newBuild
 }
 

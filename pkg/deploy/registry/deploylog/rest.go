@@ -28,7 +28,7 @@ import (
 
 const (
 	// defaultTimeout is the default time to wait for the logs of a deployment.
-	defaultTimeout time.Duration = 20 * time.Second
+	defaultTimeout time.Duration = 60 * time.Second
 	// defaultInterval is the default interval for polling a not found deployment.
 	defaultInterval time.Duration = 1 * time.Second
 )
@@ -162,7 +162,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		if !ok {
 			return nil, errors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
-		if deployutil.DeploymentStatusFor(latest) == deployapi.DeploymentStatusComplete {
+		if deployutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
 			if err != nil {
 				return nil, err

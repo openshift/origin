@@ -74,8 +74,9 @@ type store struct {
 	// the main revision of the last compaction
 	compactMainRev int64
 
-	tx    backend.BatchTx
-	txnID int64 // tracks the current txnID to verify txn operations
+	tx        backend.BatchTx
+	txnID     int64 // tracks the current txnID to verify txn operations
+	txnModify bool
 
 	// bytesBuf8 is a byte slice of length 8
 	// to avoid a repetitive allocation in saveIndex.
@@ -180,7 +181,6 @@ func (s *store) TxnBegin() int64 {
 	s.currentRev.sub = 0
 	s.tx = s.b.BatchTx()
 	s.tx.Lock()
-	s.saveIndex()
 
 	s.txnID = rand.Int63()
 	return s.txnID
@@ -202,6 +202,14 @@ func (s *store) txnEnd(txnID int64) error {
 	if txnID != s.txnID {
 		return ErrTxnIDMismatch
 	}
+
+	// only update index if the txn modifies the mvcc state.
+	// read only txn might execute with one write txn concurrently,
+	// it should not write its index to mvcc.
+	if s.txnModify {
+		s.saveIndex()
+	}
+	s.txnModify = false
 
 	s.tx.Unlock()
 	if s.currentRev.sub != 0 {
@@ -315,10 +323,9 @@ func (s *store) Compact(rev int64) (<-chan struct{}, error) {
 }
 
 func (s *store) Hash() (uint32, int64, error) {
-	s.b.ForceCommit()
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.b.ForceCommit()
 
 	// ignore hash consistent index field for now.
 	// consistent index might be changed due to v2 internal sync, which
@@ -406,6 +413,13 @@ func (s *store) restore() error {
 
 		// update revision
 		s.currentRev = rev
+	}
+
+	// keys in the range [compacted revision -N, compaction] might all be deleted due to compaction.
+	// the correct revision should be set to compaction revision in the case, not the largest revision
+	// we have seen.
+	if s.currentRev.main < s.compactMainRev {
+		s.currentRev.main = s.compactMainRev
 	}
 
 	for key, lid := range keyToLease {
@@ -502,23 +516,18 @@ func (s *store) rangeKeys(key, end []byte, limit, rangeRev int64, countOnly bool
 }
 
 func (s *store) put(key, value []byte, leaseID lease.LeaseID) {
+	s.txnModify = true
+
 	rev := s.currentRev.main + 1
 	c := rev
 	oldLease := lease.NoLease
 
 	// if the key exists before, use its previous created and
 	// get its previous leaseID
-	grev, created, ver, err := s.kvindex.Get(key, rev)
+	_, created, ver, err := s.kvindex.Get(key, rev)
 	if err == nil {
 		c = created.main
-		ibytes := newRevBytes()
-		revToBytes(grev, ibytes)
-		_, vs := s.tx.UnsafeRange(keyBucketName, ibytes, nil, 0)
-		var kv mvccpb.KeyValue
-		if err = kv.Unmarshal(vs[0]); err != nil {
-			plog.Fatalf("cannot unmarshal value: %v", err)
-		}
-		oldLease = lease.LeaseID(kv.Lease)
+		oldLease = s.le.GetLease(lease.LeaseItem{Key: string(key)})
 	}
 
 	ibytes := newRevBytes()
@@ -568,6 +577,8 @@ func (s *store) put(key, value []byte, leaseID lease.LeaseID) {
 }
 
 func (s *store) deleteRange(key, end []byte) int64 {
+	s.txnModify = true
+
 	rrev := s.currentRev.main
 	if s.currentRev.sub > 0 {
 		rrev += 1
@@ -608,17 +619,11 @@ func (s *store) delete(key []byte, rev revision) {
 	s.changes = append(s.changes, kv)
 	s.currentRev.sub += 1
 
-	ibytes = newRevBytes()
-	revToBytes(rev, ibytes)
-	_, vs := s.tx.UnsafeRange(keyBucketName, ibytes, nil, 0)
+	item := lease.LeaseItem{Key: string(key)}
+	leaseID := s.le.GetLease(item)
 
-	kv.Reset()
-	if err = kv.Unmarshal(vs[0]); err != nil {
-		plog.Fatalf("cannot unmarshal value: %v", err)
-	}
-
-	if lease.LeaseID(kv.Lease) != lease.NoLease {
-		err = s.le.Detach(lease.LeaseID(kv.Lease), []lease.LeaseItem{{Key: string(kv.Key)}})
+	if leaseID != lease.NoLease {
+		err = s.le.Detach(leaseID, []lease.LeaseItem{item})
 		if err != nil {
 			plog.Errorf("cannot detach %v", err)
 		}

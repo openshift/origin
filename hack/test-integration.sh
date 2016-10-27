@@ -31,11 +31,11 @@ verbose="${VERBOSE:-}"
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
   echo "WARNING: Skipping build due to OPENSHIFT_SKIP_BUILD"
 else
-	CGO_ENABLED=0 "${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test" -a -installsuffix=cgo
+	CGO_ENABLED=0 "${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test" -installsuffix=cgo
 fi
 testexec="$(pwd)/$(os::build::find-binary "${name}.test")"
 
-os::log::start_system_logger
+os::log::system::start
 
 function exectest() {
 	echo "Running $1..."

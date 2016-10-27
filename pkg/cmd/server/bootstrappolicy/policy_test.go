@@ -106,6 +106,7 @@ func TestCovers(t *testing.T) {
 	var systemMaster *authorizationapi.ClusterRole
 	var systemDiscovery *authorizationapi.ClusterRole
 	var clusterAdmin *authorizationapi.ClusterRole
+	var storageAdmin *authorizationapi.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]
@@ -128,6 +129,8 @@ func TestCovers(t *testing.T) {
 			systemDiscovery = &role
 		case bootstrappolicy.ClusterAdminRoleName:
 			clusterAdmin = &role
+		case bootstrappolicy.StorageAdminRoleName:
+			storageAdmin = &role
 		}
 	}
 
@@ -141,6 +144,9 @@ func TestCovers(t *testing.T) {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 	if covers, miss := rulevalidation.Covers(admin.Rules, registryAdmin.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(clusterAdmin.Rules, storageAdmin.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryEditor.Rules); !covers {

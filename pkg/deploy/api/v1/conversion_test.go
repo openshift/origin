@@ -65,7 +65,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(-25),
+				MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 				Pre: &LifecycleHook{
 					FailurePolicy: LifecycleHookFailurePolicyIgnore,
 				},
@@ -77,7 +77,6 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(-25),
 				MaxSurge:            intstr.FromInt(0),
 				MaxUnavailable:      intstr.FromString("25%"),
 				Pre: &newer.LifecycleHook{
@@ -93,13 +92,12 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(25),
+				MaxSurge:            newIntOrString(intstr.FromString("25%")),
 			},
 			out: &newer.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(25),
 				MaxSurge:            intstr.FromString("25%"),
 				MaxUnavailable:      intstr.FromInt(0),
 			},
@@ -120,9 +118,24 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				MaxUnavailable:      intstr.FromInt(20),
 			},
 		},
+		{
+			in: &RollingDeploymentStrategyParams{
+				UpdatePeriodSeconds: newInt64(5),
+				IntervalSeconds:     newInt64(6),
+				TimeoutSeconds:      newInt64(7),
+			},
+			out: &newer.RollingDeploymentStrategyParams{
+				UpdatePeriodSeconds: newInt64(5),
+				IntervalSeconds:     newInt64(6),
+				TimeoutSeconds:      newInt64(7),
+				MaxSurge:            intstr.FromString("25%"),
+				MaxUnavailable:      intstr.FromString("25%"),
+			},
+		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		t.Logf("running test case #%d", i)
 		out := &newer.RollingDeploymentStrategyParams{}
 		if err := kapi.Scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -143,7 +156,6 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(-25),
 				MaxSurge:            intstr.FromInt(0),
 				MaxUnavailable:      intstr.FromString("25%"),
 			},
@@ -151,7 +163,6 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(-25),
 				MaxSurge:            newIntOrString(intstr.FromInt(0)),
 				MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 			},
@@ -161,7 +172,6 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(25),
 				MaxSurge:            intstr.FromString("25%"),
 				MaxUnavailable:      intstr.FromInt(0),
 			},
@@ -169,7 +179,6 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
-				UpdatePercent:       newInt32(25),
 				MaxSurge:            newIntOrString(intstr.FromString("25%")),
 				MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 			},

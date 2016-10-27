@@ -208,7 +208,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 		clientNode = serverNode
 	}
 
-	podName := api.SimpleNameGenerator.GenerateName(fmt.Sprintf("service-"))
+	podName := api.SimpleNameGenerator.GenerateName("service-")
 	defer serverFramework.Client.Pods(serverFramework.Namespace.Name).Delete(podName, nil)
 	defer serverFramework.Client.Services(serverFramework.Namespace.Name).Delete(podName)
 	ip := launchWebserverService(serverFramework, podName, serverNode.Name)

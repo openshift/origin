@@ -425,12 +425,12 @@ refactorings, architectural changes or behavior changes introduced in Kubernetes
 It is helpful to look at the Kubernetes commit history to be aware of the major topics. Although it
 can potentially break or change any part of Origin, the most affected parts are usually:
 
-1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start.go
+1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start
 2. https://github.com/openshift/origin/blob/master/pkg/cmd/server/kubernetes/master.go
 3. https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
-4. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cmd/factory.go
+4. https://github.com/openshift/origin/blob/master/pkg/cmd/util/clientcmd/factory.go
 5. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cli.go
-6. https://github.com/openshift/origin/blob/master/pkg/api/meta/multimapper.go
+6. https://github.com/openshift/origin/blob/master/pkg/api/meta/meta.go
 
 Place all your changes in a commit called "Refactor to match changes upstream".
 
@@ -499,7 +499,7 @@ OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://s
 
     $ openshift start --cors-allowed-origins=.*
 
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly).
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly). Additionally, you can download swagger-ui from http://swagger.io/swagger-ui/ and use it to point to your local swagger API endpoint.
 
 Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
@@ -512,7 +512,7 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
   * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.  Contains samples for the entire run at the native sampling resolution (100hz). Note: CPU profiling for Go does not currently work on Mac OS X - the stats are not correctly sampled
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
   * `block` -  will start a block wait time analysis and write `./block.pprof`
-  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser). This supports `OPENSHIFT_PROFILE_PORT=` to change default port `6060`.
+  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser). This supports `OPENSHIFT_PROFILE_HOST=` and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port `6060`.
 
 In order to start the server in CPU profiling mode, run:
 

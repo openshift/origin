@@ -10,4 +10,9 @@ type ClientConfig struct {
 	ErrorsInStatusCode       bool
 	SendClientSecretInParams bool
 	UseGetAccessRequest      bool
+
+	// PKCE / RFC7636 fields
+	CodeChallenge       string
+	CodeChallengeMethod string
+	CodeVerifier        string
 }

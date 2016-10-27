@@ -12,26 +12,30 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-const (
-	ImageStreamRecommendedName = "imagestream"
+const ImageStreamRecommendedName = "imagestream"
 
-	imageStreamLong = `
-Create a new image stream
+var (
+	imageStreamLong = templates.LongDesc(`
+		Create a new image stream
 
-Image streams allow you to track, tag, and import images from other registries. They also define an
-access controlled destination that you can push images to.`
+		Image streams allow you to track, tag, and import images from other registries. They also define an
+		access controlled destination that you can push images to.`)
 
-	imageStreamExample = `  # Create a new image stream
-  %[1]s mysql`
+	imageStreamExample = templates.Examples(`
+		# Create a new image stream
+  	%[1]s mysql`)
 )
 
 type CreateImageStreamOptions struct {
 	IS     *imageapi.ImageStream
 	Client client.ImageStreamsNamespacer
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -56,7 +60,8 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 		Aliases: []string{"is"},
 	}
 
-	cmdutil.AddOutputFlagsForMutation(cmd)
+	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -65,6 +70,8 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		ObjectMeta: kapi.ObjectMeta{},
 		Spec:       imageapi.ImageStreamSpec{},
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {
 	case 0:
@@ -117,13 +124,18 @@ func (o *CreateImageStreamOptions) Validate() error {
 }
 
 func (o *CreateImageStreamOptions) Run() error {
-	actualObj, err := o.Client.ImageStreams(o.IS.Namespace).Create(o.IS)
-	if err != nil {
-		return err
+	actualObj := o.IS
+
+	var err error
+	if !o.DryRun {
+		actualObj, err = o.Client.ImageStreams(o.IS.Namespace).Create(o.IS)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, "created")
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, o.DryRun, "created")
 		return nil
 	}
 

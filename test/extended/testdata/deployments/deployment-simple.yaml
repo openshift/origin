@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-simple
+spec:
+  replicas: 2
+  selector:
+    name: deployment-simple
+  strategy:
+    type: Rolling
+    rollingParams:
+      #TODO: add a hook for testing
+      #pre:
+      #  failurePolicy: Abort
+      #  execNewPod:
+      #    containerName: myapp
+      #    command:
+      #    - /bin/echo
+      #    - test pre hook executed
+  template:
+    metadata:
+      labels:
+        name: deployment-simple
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+        readinessProbe:
+          exec:
+            command:
+            - uptime
+  triggers:
+  - type: ConfigChange

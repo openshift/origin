@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -33,7 +32,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 		}
 	}
 
-	// by default amdins and editors can clone builds
+	// by default admins and editors can clone builds
 	for _, strategy := range buildStrategyTypes() {
 		for clientType, client := range clients {
 			if _, err := cloneBuild(t, client.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); err != nil {
@@ -179,29 +178,17 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		t.Fatalf(err.Error())
 	}
 
-	// Create builder image stream and tag
-	imageStream := &imageapi.ImageStream{}
-	imageStream.Name = "builderimage"
-	_, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream)
-	if err != nil {
-		t.Fatalf("Couldn't create ImageStream: %v", err)
-	}
-	// Create image stream mapping
-	imageStreamMapping := &imageapi.ImageStreamMapping{}
-	imageStreamMapping.Name = "builderimage"
-	imageStreamMapping.Tag = "latest"
-	imageStreamMapping.Image.Name = "image-id"
-	imageStreamMapping.Image.DockerImageReference = "test/builderimage:latest"
-	err = clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
-	if err != nil {
-		t.Fatalf("Couldn't create ImageStreamMapping: %v", err)
-	}
-
-	template, err := testutil.GetTemplateFixture("../../examples/jenkins/jenkins-ephemeral-template.json")
+	// we need a template that doesn't create service accounts or rolebindings so editors can create
+	// pipeline buildconfig's successfully, so we're not using the standard jenkins template.
+	// but we do need a template that creates a service named jenkins.
+	template, err := testutil.GetTemplateFixture("../../examples/jenkins/master-slave/jenkins-master-template.json")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	template.Name = "jenkins"
+
+	// pipeline defaults expect to find a template named jenkins-ephemeral
+	// in the openshift namespace.
+	template.Name = "jenkins-ephemeral"
 	template.Namespace = "openshift"
 
 	_, err = clusterAdminClient.Templates("openshift").Create(template)
@@ -247,10 +234,12 @@ func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
 		buildStrategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 	case "custom":
 		buildStrategy.CustomStrategy = &buildapi.CustomBuildStrategy{}
-		buildStrategy.CustomStrategy.From.Name = "builderimage:latest"
+		buildStrategy.CustomStrategy.From.Kind = "DockerImage"
+		buildStrategy.CustomStrategy.From.Name = "test/builderimage:latest"
 	case "source":
 		buildStrategy.SourceStrategy = &buildapi.SourceBuildStrategy{}
-		buildStrategy.SourceStrategy.From.Name = "builderimage:latest"
+		buildStrategy.SourceStrategy.From.Kind = "DockerImage"
+		buildStrategy.SourceStrategy.From.Name = "test/builderimage:latest"
 	case "jenkinspipeline":
 		buildStrategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
 	default:

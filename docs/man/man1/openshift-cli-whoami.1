@@ -16,18 +16,20 @@ openshift cli whoami \- Return information about the current session
 Show information about the current session
 
 .PP
-The default options for this command will return the currently authenticated user name
-or an empty string.  Other flags support returning the currently used token or the
-user context.
+The default options for this command will return the currently authenticated user name or an empty string.  Other flags support returning the currently used token or the user context.
 
 
 .SH OPTIONS
 .PP
-\fB\-c\fP, \fB\-\-context\fP=false
+\fB\-c\fP, \fB\-\-show\-context\fP=false
     Print the current user context name
 
 .PP
-\fB\-t\fP, \fB\-\-token\fP=false
+\fB\-\-show\-server\fP=false
+    Print the current server's REST API URL
+
+.PP
+\fB\-t\fP, \fB\-\-show\-token\fP=false
     Print the token the current session is using. This will return an error if you are using a different form of authentication.
 
 
@@ -79,6 +81,10 @@ user context.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

@@ -111,6 +111,8 @@ type MasterConfig struct {
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
+	// RequestInfoResolver is responsible for reading request attributes
+	RequestInfoResolver *apiserver.RequestInfoResolver
 
 	AdmissionControl admission.Interface
 
@@ -328,7 +330,7 @@ var (
 		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
-		"openshift.io/OwnerReference",
+		"OwnerReferencesPermissionEnforcement",
 		quotaadmission.PluginName,
 	}
 
@@ -346,14 +348,12 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"BuildDefaults",
-		"BuildOverrides",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
-		"openshift.io/OwnerReference",
+		"OwnerReferencesPermissionEnforcement",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -382,14 +382,12 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"BuildDefaults",
-		"BuildOverrides",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
-		"openshift.io/OwnerReference",
+		"OwnerReferencesPermissionEnforcement",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -819,6 +817,12 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
 
+// OAuthServerClients returns the openshift and kubernetes OAuth server client objects
+// The returned clients are privileged
+func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
 // PolicyClient returns the policy client object
 // It must have the following capabilities:
 //  list, watch all policyBindings in all namespaces
@@ -898,9 +902,9 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentConfigScaleClient returns the client used by the Scale subresource registry
-func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
-	return c.PrivilegedLoopbackKubernetesClient
+// DeploymentConfigInstantiateClients returns the clients used by the instantiate endpoint.
+func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentControllerClients returns the deployment controller client objects
@@ -922,13 +926,8 @@ func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *k
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// DeploymentTriggerControllerClients returns the deploymentConfig trigger controller client objects
-func (c *MasterConfig) DeploymentTriggerControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
-}
-
-// DeploymentImageChangeTriggerControllerClient returns the deploymentConfig image change controller client object
-func (c *MasterConfig) DeploymentImageChangeTriggerControllerClient() *osclient.Client {
+// DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object
+func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 

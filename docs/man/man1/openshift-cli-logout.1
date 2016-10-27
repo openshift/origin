@@ -16,14 +16,10 @@ openshift cli logout \- End the current server session
 Log out of the active session out by clearing saved tokens
 
 .PP
-An authentication token is stored in the config file after login \- this command will delete
-that token on the server, and then remove the token from the configuration file.
+An authentication token is stored in the config file after login \- this command will delete that token on the server, and then remove the token from the configuration file.
 
 .PP
-If you are using an alternative authentication method like Kerberos or client certificates,
-your ticket or client certificate will not be removed from the current system since these
-are typically managed by other programs. Instead, you can delete your config file to remove
-the local copy of that certificate or the record of your server login.
+If you are using an alternative authentication method like Kerberos or client certificates, your ticket or client certificate will not be removed from the current system since these are typically managed by other programs. Instead, you can delete your config file to remove the local copy of that certificate or the record of your server login.
 
 .PP
 After logging out, if you want to log back into the server use 'openshift cli login'.
@@ -83,6 +79,10 @@ After logging out, if you want to log back into the server use 'openshift cli lo
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -100,7 +100,6 @@ After logging out, if you want to log back into the server use 'openshift cli lo
 .RS
 
 .nf
-
   # Logout
   openshift cli logout
 

@@ -80,6 +80,10 @@ Add a role to users or serviceaccounts for the current project
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -99,7 +103,7 @@ Add a role to users or serviceaccounts for the current project
 .nf
   # Add the 'view' role to user1 for the current project
   oc adm policy add\-role\-to\-user view user1
-
+  
   # Add the 'edit' role to serviceaccount1 for the current project
   oc adm policy add\-role\-to\-user edit \-z serviceaccount1
 

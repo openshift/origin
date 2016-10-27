@@ -8,6 +8,7 @@ trap os::test::junit::reconcile_output EXIT
   oc delete project/example project/ui-test-project project/recreated-project
   oc delete sa/router -n default
   oc delete node/fake-node
+  oc delete groups/shortoutputgroup
   oc delete groups/group1
   oc delete groups/cascaded-group
   oc delete groups/orphaned-group
@@ -71,7 +72,10 @@ status:
 ' | oc create -f -"
 
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'
-os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'Sched'
+os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'SchedulingDisabled'
+os::cmd::expect_success_and_not_text 'oc get node -o yaml' 'unschedulable: true'
+os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=false' 'SchedulingDisabled'
+os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 
@@ -107,7 +111,11 @@ echo "certs: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/groups"
-os::cmd::expect_success 'oadm groups new group1 foo bar'
+os::cmd::expect_success_and_text 'oadm groups new shortoutputgroup -o name' 'group/shortoutputgroup'
+os::cmd::expect_failure_and_text 'oadm groups new shortoutputgroup' 'Error from server: groups "shortoutputgroup" already exists'
+os::cmd::expect_failure_and_text 'oadm groups new errorgroup -o blah' 'error: output format "blah" not recognized'
+os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups "errorgroup" not found'
+os::cmd::expect_success_and_text 'oadm groups new group1 foo bar' 'group1.*foo, bar'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
 os::cmd::expect_success 'oadm groups add-users group1 baz'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
@@ -408,8 +416,8 @@ os::test::junit::declare_suite_start "cmd/admin/user-group-cascade"
 os::cmd::expect_success 'oc login -u cascaded-user -p pw'
 os::cmd::expect_success 'oc login -u orphaned-user -p pw'
 os::cmd::expect_success 'oc login -u system:admin'
-os::cmd::expect_success 'oadm groups new cascaded-group cascaded-user orphaned-user'
-os::cmd::expect_success 'oadm groups new orphaned-group cascaded-user orphaned-user'
+os::cmd::expect_success_and_text 'oadm groups new cascaded-group cascaded-user orphaned-user' 'cascaded-group.*cascaded-user, orphaned-user'
+os::cmd::expect_success_and_text 'oadm groups new orphaned-group cascaded-user orphaned-user' 'orphaned-group.*cascaded-user, orphaned-user'
 # Add roles, sccs to users/groups
 os::cmd::expect_success 'oadm policy add-scc-to-user           restricted    cascaded-user  orphaned-user'
 os::cmd::expect_success 'oadm policy add-scc-to-group          restricted    cascaded-group orphaned-group'

@@ -321,12 +321,8 @@ type writer struct {
 
 // Cancel removes any written content from this FileWriter.
 func (w *writer) Cancel() error {
-	err := w.checkClosed()
-	if err != nil {
-		return err
-	}
 	w.closed = true
-	err = storageDeleteObject(cloud.NewContext(dummyProjectID, w.client), w.bucket, w.name)
+	err := storageDeleteObject(cloud.NewContext(dummyProjectID, w.client), w.bucket, w.name)
 	if err != nil {
 		if status, ok := err.(*googleapi.Error); ok {
 			if status.Code == http.StatusNotFound {
@@ -493,9 +489,6 @@ func (w *writer) Write(p []byte) (int, error) {
 
 // Size returns the number of bytes written to this FileWriter.
 func (w *writer) Size() int64 {
-	if !w.closed {
-		return w.offset + int64(w.buffSize)
-	}
 	return w.size
 }
 

@@ -52,6 +52,7 @@ func TestPresent(t *testing.T) {
 
 func TestSetup(t *testing.T) {
 	secretDir := secretDir(t, "one", "two", "three")
+	defer os.RemoveAll(secretDir)
 	env, _, err := scmAuths().Setup(secretDir)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

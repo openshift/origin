@@ -16,13 +16,10 @@ oc process \- Process a template into list of resources
 Process template into a list of resources specified in filename or stdin
 
 .PP
-Templates allow parameterization of resources prior to being sent to the server for creation or
-update. Templates have "parameters", which may either be generated on creation or set by the user,
-as well as metadata describing the template.
+Templates allow parameterization of resources prior to being sent to the server for creation or update. Templates have "parameters", which may either be generated on creation or set by the user, as well as metadata describing the template.
 
 .PP
-The output of the process command is always a list of one or more resources. You may pipe the
-output to the create command over STDIN (using the '\-f \-' option) or redirect it to a file.
+The output of the process command is always a list of one or more resources. You may pipe the output to the create command over STDIN (using the '\-f \-' option) or redirect it to a file.
 
 
 .SH OPTIONS
@@ -114,6 +111,10 @@ output to the create command over STDIN (using the '\-f \-' option) or redirect 
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -133,19 +134,19 @@ output to the create command over STDIN (using the '\-f \-' option) or redirect 
 .nf
   # Convert template.json file into resource list and pass to create
   oc process \-f template.json | oc create \-f \-
-
+  
   # Process template while passing a user\-defined label
   oc process \-f template.json \-l name=mytemplate
-
+  
   # Convert stored template into resource list
   oc process foo
-
+  
   # Convert stored template into resource list by setting/overriding parameter values
   oc process foo PARM1=VALUE1 PARM2=VALUE2
-
+  
   # Convert template stored in different namespace into a resource list
   oc process openshift//foo
-
+  
   # Convert template.json into resource list
   cat template.json | oc process \-f \-
 

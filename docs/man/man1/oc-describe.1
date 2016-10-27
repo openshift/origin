@@ -16,8 +16,7 @@ oc describe \- Show details of a specific resource or group of resources
 Show details of a specific resource
 
 .PP
-This command joins many API calls together to form a detailed description of a
-given resource.
+This command joins many API calls together to form a detailed description of a given resource.
 
 
 .SH OPTIONS
@@ -100,6 +99,10 @@ given resource.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -119,7 +122,7 @@ given resource.
 .nf
   # Provide details about the ruby\-22\-centos7 image repository
   oc describe imageRepository ruby\-22\-centos7
-
+  
   # Provide details about the ruby\-sample\-build build configuration
   oc describe bc ruby\-sample\-build
 

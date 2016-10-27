@@ -2,15 +2,16 @@ package selfsubjectrulesreview
 
 import (
 	"fmt"
-	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -38,53 +39,28 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if len(namespace) == 0 {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
 	}
-	user, exists := kapi.UserFrom(ctx)
+	callingUser, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("user missing from context"))
 	}
 
-	errors := []error{}
-
-	rules := []authorizationapi.PolicyRule{}
-	namespaceRules, err := r.ruleResolver.GetEffectivePolicyRules(ctx)
-	if err != nil {
-		errors = append(errors, err)
+	// copy the user to avoid mutating the original extra map
+	userToCheck := &user.DefaultInfo{
+		Name:   callingUser.GetName(),
+		Groups: callingUser.GetGroups(),
+		Extra:  map[string][]string{},
 	}
-	for _, rule := range namespaceRules {
-		rules = append(rules, rulevalidation.BreakdownRule(rule)...)
-	}
-	if len(namespace) != 0 {
-		masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
-		clusterRules, err := r.ruleResolver.GetEffectivePolicyRules(masterContext)
-		if err != nil {
-			errors = append(errors, err)
-		}
-		for _, rule := range clusterRules {
-			rules = append(rules, rulevalidation.BreakdownRule(rule)...)
-		}
-	}
-
 	switch {
 	case rulesReview.Spec.Scopes == nil:
-		if scopes, _ := user.GetExtra()[authorizationapi.ScopesKey]; len(scopes) > 0 {
-			rules, err = r.filterRulesByScopes(rules, scopes, namespace)
-			if err != nil {
-				return nil, kapierrors.NewInternalError(err)
-			}
+		for k, v := range callingUser.GetExtra() {
+			userToCheck.Extra[k] = v
 		}
 
 	case len(rulesReview.Spec.Scopes) > 0:
-		rules, err = r.filterRulesByScopes(rules, rulesReview.Spec.Scopes, namespace)
-		if err != nil {
-			return nil, kapierrors.NewInternalError(err)
-		}
-
+		userToCheck.Extra[authorizationapi.ScopesKey] = rulesReview.Spec.Scopes
 	}
 
-	if compactedRules, err := rulevalidation.CompactRules(rules); err == nil {
-		rules = compactedRules
-	}
-	sort.Sort(authorizationapi.SortableRuleSlice(rules))
+	rules, errors := subjectrulesreview.GetEffectivePolicyRules(kapi.WithUser(ctx, userToCheck), r.ruleResolver, r.clusterPolicyGetter)
 
 	ret := &authorizationapi.SelfSubjectRulesReview{
 		Status: authorizationapi.SubjectRulesReviewStatus{

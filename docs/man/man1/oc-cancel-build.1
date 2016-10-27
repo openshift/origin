@@ -16,8 +16,7 @@ oc cancel\-build \- Cancel running, pending, or new builds
 Cancel running, pending, or new builds
 
 .PP
-This command requests a graceful shutdown of the build. There may be a delay between requesting
-the build and the time the build is terminated.
+This command requests a graceful shutdown of the build. There may be a delay between requesting the build and the time the build is terminated.
 
 
 .SH OPTIONS
@@ -88,6 +87,10 @@ the build and the time the build is terminated.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -107,16 +110,16 @@ the build and the time the build is terminated.
 .nf
   # Cancel the build with the given name
   oc cancel\-build ruby\-build\-2
-
+  
   # Cancel the named build and print the build logs
   oc cancel\-build ruby\-build\-2 \-\-dump\-logs
-
+  
   # Cancel the named build and create a new one with the same parameters
   oc cancel\-build ruby\-build\-2 \-\-restart
-
+  
   # Cancel multiple builds
   oc cancel\-build ruby\-build\-1 ruby\-build\-2 ruby\-build\-3
-
+  
   # Cancel all builds created from 'ruby\-build' build configuration that are in 'new' state
   oc cancel\-build bc/ruby\-build \-\-state=new
 

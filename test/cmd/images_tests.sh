@@ -68,7 +68,7 @@ os::cmd::expect_failure_and_text "oc run vulnerable --image=${repository}:new --
 # test image stream tag operations
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '2'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'ImageStreamTag'
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '10.0'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '10.1'
 os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo}' 'bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.annotations.foo}' 'bar'
@@ -128,16 +128,15 @@ os::cmd::expect_success_and_text 'oc import-image mysql:latest' "sha256:"
 os::cmd::expect_success_and_text 'oc import-image mysql:external --from=docker.io/mysql' "sha256:"
 os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.kind}}'" 'DockerImage'
 os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.name}}'" 'docker.io/mysql'
-os::cmd::expect_success 'oc delete is/mysql'
 # import creates new image stream with single tag
-os::cmd::expect_failure_and_text 'oc import-image mysql:latest --from=docker.io/mysql:latest' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql:latest --from=docker.io/mysql:latest --confirm' 'sha256:'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(len .spec.tags)}}'" '1'
-os::cmd::expect_success 'oc delete is/mysql'
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-single:latest --from=docker.io/mysql:latest' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-single:latest --from=docker.io/mysql:latest --confirm' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len .spec.tags)}}'" '1'
+os::cmd::expect_success 'oc delete is/mysql-new-single'
 # import creates new image stream with all tags
-os::cmd::expect_failure_and_text 'oc import-image mysql --from=mysql --all' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql --from=mysql --all --confirm' 'sha256:'
-name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=mysql --all' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm' 'sha256:'
+name=$(oc get istag/mysql-new-all:latest --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
 os::test::junit::declare_suite_end
 
@@ -178,11 +177,11 @@ os::cmd::try_until_success 'oc get istag/mysql:5.5'
 # default behavior is to copy the current image, but since this is an external image we preserve the dockerImageReference
 os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^mysql@sha256:'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^openshift/mysql-55-centos7@sha256:'
 # aliases set the spec tag to be a reference to the originating stream
 os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest --alias'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^mysql@sha256:'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^openshift/mysql-55-centos7@sha256:'
 # when copying a tag that points to the internal registry, update the docker image reference
 os::cmd::expect_success "oc tag test:new newrepo:direct"
 os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
@@ -197,7 +196,7 @@ os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec
 os::cmd::expect_success 'oc new-project test-cmd-images-2'
 os::cmd::expect_success "oc tag $project/mysql:5.5 newrepo:latest"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'mysql@sha256:'
+os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'openshift/mysql-55-centos7@sha256:'
 # tag accross projects without specifying the source's project
 os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mysql:tag1'" "mysql:tag1 set to"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"

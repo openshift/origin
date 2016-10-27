@@ -4,16 +4,20 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/MakeNowJust/heredoc"
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
+	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -23,9 +27,12 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/apiserver/audit"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	"k8s.io/kubernetes/pkg/genericapiserver/openapi"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
@@ -49,6 +56,7 @@ import (
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
+	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/importer"
@@ -64,6 +72,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/discovery"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -94,6 +103,7 @@ import (
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -111,8 +121,13 @@ import (
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
 const (
@@ -123,6 +138,10 @@ const (
 	OpenShiftAPIV1           = "v1"
 	OpenShiftAPIPrefixV1     = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	swaggerAPIPrefix         = "/swaggerapi/"
+	// Discovery endpoint for OAuth 2.0 Authorization Server Metadata
+	// See IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	oauthMetadataEndpoint = "/.well-known/oauth-authorization-server"
 )
 
 var (
@@ -169,7 +188,22 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	handler = c.authorizationFilter(handler)
 	handler = c.impersonationFilter(handler)
 	// audit handler must comes before the impersonationFilter to read the original user
-	handler = c.auditHandler(handler)
+	if c.Options.AuditConfig.Enabled {
+		attributeGetter := apiserver.NewRequestAttributeGetter(c.getRequestContextMapper(), c.getRequestInfoResolver())
+		var writer io.Writer
+		if len(c.Options.AuditConfig.AuditFilePath) > 0 {
+			writer = &lumberjack.Logger{
+				Filename:   c.Options.AuditConfig.AuditFilePath,
+				MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
+				MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
+				MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+			}
+		} else {
+			// backwards compatible writer to regular log
+			writer = cmdutil.NewGLogWriterV(0)
+		}
+		handler = audit.WithAudit(handler, attributeGetter, writer)
+	}
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
 	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
@@ -204,6 +238,94 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	swagger.LogInfo = func(format string, v ...interface{}) {}
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
+
+	openAPIConfig := openapi.Config{
+		SwaggerConfig:  &swaggerConfig,
+		IgnorePrefixes: []string{"/swaggerapi"},
+		Info: &spec.Info{
+			InfoProps: spec.InfoProps{
+				Title:   "OpenShift API (with Kubernetes)",
+				Version: version.Get().String(),
+				License: &spec.License{
+					Name: "Apache 2.0 (ASL2.0)",
+					URL:  "http://www.apache.org/licenses/LICENSE-2.0",
+				},
+				Description: heredoc.Doc(`
+					OpenShift provides builds, application lifecycle, image content management,
+					and administrative policy on top of Kubernetes. The API allows consistent
+					management of those objects.
+
+					All API operations are authenticated via an Authorization	bearer token that
+					is provided for service accounts as a generated secret (in JWT form) or via
+					the native OAuth endpoint located at /oauth/authorize. Core infrastructure
+					components may use client certificates that require no authentication.
+
+					All API operations return a 'resourceVersion' string that represents the
+					version of the object in the underlying storage. The standard LIST operation
+					performs a snapshot read of the underlying objects, returning a resourceVersion
+					representing a consistent version of the listed objects. The WATCH operation
+					allows all updates to a set of objects after the provided resourceVersion to
+					be observed by a client. By listing and beginning a watch from the returned
+					resourceVersion, clients may observe a consistent view of the state of one
+					or more objects. Note that WATCH always returns the update after the provided
+					resourceVersion. Watch may be extended a limited time in the past - using
+					etcd 2 the watch window is 1000 events (which on a large cluster may only
+					be a few tens of seconds) so clients must explicitly handle the "watch
+					to old error" by re-listing.
+
+					Objects are divided into two rough categories - those that have a lifecycle
+					and must reflect the state of the cluster, and those that have no state.
+					Objects with lifecycle typically have three main sections:
+
+					* 'metadata' common to all objects
+					* a 'spec' that represents the desired state
+					* a 'status' that represents how much of the desired state is reflected on
+					  the cluster at the current time
+
+					Objects that have no state have 'metadata' but may lack a 'spec' or 'status'
+					section.
+
+					Objects are divided into those that are namespace scoped (only exist inside
+					of a namespace) and those that are cluster scoped (exist outside of
+					a namespace). A namespace scoped resource will be deleted when the namespace
+					is deleted and cannot be created if the namespace has not yet been created
+					or is in the process of deletion. Cluster scoped resources are typically
+					only accessible to admins - resources like nodes, persistent volumes, and
+					cluster policy.
+
+					All objects have a schema that is a combination of the 'kind' and
+					'apiVersion' fields. This schema is additive only for any given version -
+					no backwards incompatible changes are allowed without incrementing the
+					apiVersion. The server will return and accept a number of standard
+					responses that share a common schema - for instance, the common
+					error type is 'unversioned.Status' (described below) and will be returned
+					on any error from the API server.
+
+					The API is available in multiple serialization formats - the default is
+					JSON (Accept: application/json and Content-Type: application/json) but
+					clients may also use YAML (application/yaml) or the native Protobuf
+					schema (application/vnd.kubernetes.protobuf). Note that the format
+					of the WATCH API call is slightly different - for JSON it returns newline
+					delimited objects while for Protobuf it returns length-delimited frames
+					(4 bytes in network-order) that contain a 'versioned.Watch' Protobuf
+					object.
+
+					See the OpenShift documentation at https://docs.openshift.org for more
+					information.
+				`),
+			},
+		},
+		DefaultResponse: &spec.Response{
+			ResponseProps: spec.ResponseProps{
+				Description: "Default Response.",
+			},
+		},
+	}
+	err := openapi.RegisterOpenAPIService(&openAPIConfig, open)
+	if err != nil {
+		glog.Fatalf("Failed to generate open api spec: %v", err)
+	}
+	extra = append(extra, fmt.Sprintf("Started OpenAPI Schema at %%s%s", openapi.OpenAPIServePath))
 
 	handler = open
 
@@ -347,35 +469,68 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 	initVersionRoute(container, "/version/openshift")
 
+	// Set up OAuth metadata only if we are configured to use OAuth
+	if c.Options.OAuthConfig != nil {
+		initOAuthAuthorizationServerMetadataRoute(container, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+	}
+
 	return messages, nil
 }
 
-// initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
+// initVersionRoute initializes an HTTP endpoint for the server's version information.
 func initVersionRoute(container *restful.Container, path string) {
+	// Build version info once
+	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
+	if err != nil {
+		glog.Errorf("Unable to initialize version route: %v", err)
+		return
+	}
+
 	// Set up a service to return the git code version.
 	versionWS := new(restful.WebService)
 	versionWS.Path(path)
 	versionWS.Doc("git code version from which this is built")
 	versionWS.Route(
-		versionWS.GET("/").To(handleVersion).
+		versionWS.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
+			writeJSON(resp, versionInfo)
+		}).
 			Doc("get the code version").
 			Operation("getCodeVersion").
-			Produces(restful.MIME_JSON).
-			Consumes(restful.MIME_JSON))
+			Produces(restful.MIME_JSON))
 
 	container.Add(versionWS)
 }
 
-// handleVersion writes the server's version information.
-func handleVersion(req *restful.Request, resp *restful.Response) {
-	output, err := json.MarshalIndent(version.Get(), "", "  ")
-	if err != nil {
-		http.Error(resp.ResponseWriter, err.Error(), http.StatusInternalServerError)
-		return
-	}
+func writeJSON(resp *restful.Response, json []byte) {
 	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
 	resp.ResponseWriter.WriteHeader(http.StatusOK)
-	resp.ResponseWriter.Write(output)
+	resp.ResponseWriter.Write(json)
+}
+
+// initOAuthAuthorizationServerMetadataRoute initializes an HTTP endpoint for OAuth 2.0 Authorization Server Metadata discovery
+// https://tools.ietf.org/id/draft-ietf-oauth-discovery-04.html#rfc.section.2
+// masterPublicURL should be internally and externally routable to allow all users to discover this information
+func initOAuthAuthorizationServerMetadataRoute(container *restful.Container, path, masterPublicURL string) {
+	// Build OAuth metadata once
+	metadata, err := json.MarshalIndent(discovery.Get(masterPublicURL, OpenShiftOAuthAuthorizeURL(masterPublicURL), OpenShiftOAuthTokenURL(masterPublicURL)), "", "  ")
+	if err != nil {
+		glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
+		return
+	}
+
+	// Set up a service to return the OAuth metadata.
+	oauthWS := new(restful.WebService)
+	oauthWS.Path(path)
+	oauthWS.Doc("OAuth 2.0 Authorization Server Metadata")
+	oauthWS.Route(
+		oauthWS.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
+			writeJSON(resp, metadata)
+		}).
+			Doc("get the server's OAuth 2.0 Authorization Server Metadata").
+			Operation("getOAuthAuthorizationServerMetadata").
+			Produces(restful.MIME_JSON))
+
+	container.Add(oauthWS)
 }
 
 func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
@@ -402,7 +557,17 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter, c.DeploymentConfigScaleClient())
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter)
+
+	dcInstantiateOriginClient, dcInstantiateKubeClient := c.DeploymentConfigInstantiateClients()
+	dcInstantiateStorage := deployconfiginstantiate.NewREST(
+		*deployConfigStorage.Store,
+		dcInstantiateOriginClient,
+		dcInstantiateKubeClient,
+		c.ExternalVersionCodec,
+		c.AdmissionControl,
+	)
+
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
@@ -445,11 +610,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
+	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver)
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver, nil, authorizationapi.Resource("role"))
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver, nil, authorizationapi.Resource("rolebinding"))
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -457,6 +623,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer)
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
+
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -539,7 +709,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		saAccountGrantMethod = oauthapi.GrantHandlerType(c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod)
 	}
 
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry, saAccountGrantMethod)
+	osClient, kubeClient := c.OAuthServerClients()
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(kubeClient, kubeClient, osClient, clientRegistry, saAccountGrantMethod)
 	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
@@ -561,11 +732,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":          deployConfigStorage,
-		"deploymentConfigs/scale":    deployConfigScaleStorage,
-		"deploymentConfigs/status":   deployConfigStatusStorage,
-		"deploymentConfigs/rollback": deployConfigRollbackStorage,
-		"deploymentConfigs/log":      deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs":             deployConfigStorage,
+		"deploymentConfigs/scale":       deployConfigScaleStorage,
+		"deploymentConfigs/status":      deployConfigStatusStorage,
+		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs/instantiate": dcInstantiateStorage,
 
 		// TODO: Deprecate these
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
@@ -600,6 +772,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
 		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
+		"subjectRulesReviews":        subjectRulesReviewStorage,
+
+		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
+		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
+		"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,
@@ -683,8 +860,7 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Produces(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initializes an HTTP endpoint for health checking.
-// OpenShift is deemed healthy if the API server can respond with an OK messages
+// initMetricsRoute initializes an HTTP endpoint for metrics.
 func initMetricsRoute(root *restful.WebService, path string) {
 	h := prometheus.Handler()
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
@@ -755,6 +931,23 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
+}
+
+// getRequestInfoResolver returns a request resolver.
+func (c *MasterConfig) getRequestInfoResolver() *apiserver.RequestInfoResolver {
+	if c.RequestInfoResolver == nil {
+		c.RequestInfoResolver = &apiserver.RequestInfoResolver{
+			APIPrefixes: sets.NewString(strings.Trim(LegacyOpenShiftAPIPrefix, "/"),
+				strings.Trim(OpenShiftAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIGroupPrefix, "/")), // all possible API prefixes
+			GrouplessAPIPrefixes: sets.NewString(strings.Trim(LegacyOpenShiftAPIPrefix, "/"),
+				strings.Trim(OpenShiftAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIPrefix, "/"),
+			), // APIPrefixes that won't have groups (legacy)
+		}
+	}
+	return c.RequestInfoResolver
 }
 
 // RouteAllocator returns a route allocation controller.

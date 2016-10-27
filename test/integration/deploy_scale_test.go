@@ -47,13 +47,14 @@ func TestDeployScale(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
+	generation := dc.Generation
 
 	condition := func() (bool, error) {
 		config, err := osClient.DeploymentConfigs(namespace).Get(dc.Name)
 		if err != nil {
 			return false, nil
 		}
-		return deployutil.HasSynced(config), nil
+		return deployutil.HasSynced(config, generation), nil
 	}
 	if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition); err != nil {
 		t.Fatalf("Deployment config never synced: %v", err)

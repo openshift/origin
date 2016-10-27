@@ -86,6 +86,9 @@ func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) Validatio
 		}
 	}
 
+	if len(redirectingIdentityProviders) == 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("identityProviders"), "login", "no identity providers are configured to handle logins"))
+	}
 	if len(challengeRedirectingIdentityProviders) > 1 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("identityProviders"), "challenge", fmt.Sprintf("only one identity provider can redirect clients requesting an authentication challenge, found: %v", strings.Join(challengeRedirectingIdentityProviders, ", "))))
 	}
@@ -243,13 +246,11 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 		validationResults.AddErrors(field.Required(fieldPath.Child("provider", "headers"), ""))
 	}
 	if identityProvider.UseAsChallenger && len(provider.ChallengeURL) == 0 {
-		err := field.Required(fieldPath.Child("provider", "challengeURL"), "")
-		err.Detail = "challengeURL is required if challenge=true"
+		err := field.Required(fieldPath.Child("provider", "challengeURL"), "challengeURL is required if challenge is true")
 		validationResults.AddErrors(err)
 	}
 	if identityProvider.UseAsLogin && len(provider.LoginURL) == 0 {
-		err := field.Required(fieldPath.Child("provider", "loginURL"), "")
-		err.Detail = "loginURL is required if login=true"
+		err := field.Required(fieldPath.Child("provider", "loginURL"), "loginURL is required if login=true")
 		validationResults.AddErrors(err)
 	}
 

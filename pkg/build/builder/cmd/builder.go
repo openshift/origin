@@ -92,11 +92,14 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 	return cfg, nil
 }
 
-func (c *builderConfig) setupGitEnvironment() ([]string, error) {
+func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
+	var sourceSecretDir string
+	var errSecret error
+
 	// For now, we only handle git. If not specified, we're done
 	gitSource := c.build.Spec.Source.Git
 	if gitSource == nil {
-		return []string{}, nil
+		return "", []string{}, nil
 	}
 
 	sourceSecret := c.build.Spec.Source.SourceSecret
@@ -107,19 +110,18 @@ func (c *builderConfig) setupGitEnvironment() ([]string, error) {
 		//   it accepts
 		sourceURL, err := git.ParseRepository(gitSource.URI)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
+			return "", nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
 		}
 		scmAuths := scmauth.GitAuths(sourceURL)
 
 		// TODO: remove when not necessary to fix up the secret dir permission
-		sourceSecretDir, err := fixSecretPermissions(c.sourceSecretDir)
-		if err != nil {
-			return nil, fmt.Errorf("cannot fix source secret permissions: %v", err)
+		sourceSecretDir, errSecret = fixSecretPermissions(c.sourceSecretDir)
+		if errSecret != nil {
+			return sourceSecretDir, nil, fmt.Errorf("cannot fix source secret permissions: %v", errSecret)
 		}
-
 		secretsEnv, overrideURL, err := scmAuths.Setup(sourceSecretDir)
 		if err != nil {
-			return nil, fmt.Errorf("cannot setup source secret: %v", err)
+			return sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
 		}
 		if overrideURL != nil {
 			c.build.Annotations[bld.OriginalSourceURLAnnotationKey] = gitSource.URI
@@ -135,15 +137,20 @@ func (c *builderConfig) setupGitEnvironment() ([]string, error) {
 		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", *gitSource.HTTPSProxy))
 		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", *gitSource.HTTPSProxy))
 	}
-	return bld.MergeEnv(os.Environ(), gitEnv), nil
+	if gitSource.NoProxy != nil && len(*gitSource.NoProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("NO_PROXY=%s", *gitSource.NoProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("no_proxy=%s", *gitSource.NoProxy))
+	}
+	return sourceSecretDir, bld.MergeEnv(os.Environ(), gitEnv), nil
 }
 
 // execute is responsible for running a build
 func (c *builderConfig) execute(b builder) error {
-	gitEnv, err := c.setupGitEnvironment()
+	secretTmpDir, gitEnv, err := c.setupGitEnvironment()
 	if err != nil {
 		return err
 	}
+
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
 	cgLimits, err := bld.GetCGroupLimits()
@@ -160,6 +167,7 @@ func (c *builderConfig) execute(b builder) error {
 		fmt.Fprintf(c.out, "Build complete, no image push requested\n")
 	}
 
+	os.RemoveAll(secretTmpDir)
 	return nil
 }
 

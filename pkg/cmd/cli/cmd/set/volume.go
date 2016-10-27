@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,68 +24,73 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
-	volumeLong = `
-Update volumes on a pod template
+	volumePrefix    = "volume-"
+	storageAnnClass = "volume.beta.kubernetes.io/storage-class"
+)
 
-This command can add, update or remove volumes from containers for any object
-that has a pod template (deployment configs, replication controllers, or pods).
-You can list volumes in pod or any object that has a pod template. You can
-specify a single object or multiple, and alter volumes on all containers or
-just those that match a given name.
+var (
+	volumeLong = templates.LongDesc(`
+		Update volumes on a pod template
 
-If you alter a volume setting on a deployment config, a deployment will be
-triggered. Changing a replication controller will not affect running pods, and
-you cannot change a pod's volumes once it has been created.
+		This command can add, update or remove volumes from containers for any object
+		that has a pod template (deployment configs, replication controllers, or pods).
+		You can list volumes in pod or any object that has a pod template. You can
+		specify a single object or multiple, and alter volumes on all containers or
+		just those that match a given name.
 
-Volume types include:
+		If you alter a volume setting on a deployment config, a deployment will be
+		triggered. Changing a replication controller will not affect running pods, and
+		you cannot change a pod's volumes once it has been created.
 
-* emptydir (empty directory) *default*
-    A directory allocated when the pod is created on a local host, is removed when
-    the pod is deleted and is not copied across servers
-* hostdir (host directory)
-    A directory with specific path on any host (requires elevated privileges)
-* persistentvolumeclaim or pvc (persistent volume claim)
-    Link the volume directory in the container to a persistent volume claim you have
-    allocated by name - a persistent volume claim is a request to allocate storage.
-    Note that if your claim hasn't been bound, your pods will not start.
-* secret (mounted secret)
-    Secret volumes mount a named secret to the provided directory.
+		Volume types include:
 
-For descriptions on other volume types, see https://docs.openshift.com`
+		* emptydir (empty directory) *default*: A directory allocated when the pod is
+		  created on a local host, is removed when the pod is deleted and is not copied
+			across servers
+		* hostdir (host directory): A directory with specific path on any host
+		 (requires elevated privileges)
+		* persistentvolumeclaim or pvc (persistent volume claim): Link the volume
+		  directory in the container to a persistent volume claim you have allocated by
+			name - a persistent volume claim is a request to allocate storage. Note that
+			if your claim hasn't been bound, your pods will not start.
+		* secret (mounted secret): Secret volumes mount a named secret to the provided
+		  directory.
 
-	volumeExample = `  # List volumes defined on all deployment configs in the current project
-  %[1]s volume dc --all
+		For descriptions on other volume types, see https://docs.openshift.com`)
 
-  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
-  # /var/lib/registry
-  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
+	volumeExample = templates.Examples(`
+		# List volumes defined on all deployment configs in the current project
+	  %[1]s volume dc --all
 
-  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
-  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+	  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+	  # /var/lib/registry
+	  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
 
-  # Remove volume 'v1' from deployment config 'registry'
-  %[1]s volume dc/registry --remove --name=v1
+	  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+	  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
-  # Create a new persistent volume claim that overwrites an existing volume 'v1'
-  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+	  # Remove volume 'v1' from deployment config 'registry'
+	  %[1]s volume dc/registry --remove --name=v1
 
-  # Change the mount point for volume 'v1' to /data
-  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
+	  # Create a new persistent volume claim that overwrites an existing volume 'v1'
+	  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
-  # Modify the deployment config by removing volume mount "v1" from container "c1"
-  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  %[1]s volume dc/registry --remove --name=v1 --containers=c1
+	  # Change the mount point for volume 'v1' to /data
+	  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
 
-  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
-  # Ceph, Gluster, NFS, ISCSI, ...)
-  %[1]s volume dc/registry --add -m /repo --source=<json-string>`
+	  # Modify the deployment config by removing volume mount "v1" from container "c1"
+	  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+	  %[1]s volume dc/registry --remove --name=v1 --containers=c1
 
-	volumePrefix = "volume-"
+	  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+	  # Ceph, Gluster, NFS, ISCSI, ...)
+	  %[1]s volume dc/registry --add -m /repo --source=<json-string>`)
 )
 
 type VolumeOptions struct {
@@ -97,6 +103,7 @@ type VolumeOptions struct {
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kclient.PersistentVolumeClaimsNamespacer
+	Encoder                runtime.Encoder
 
 	// Resource selection
 	Selector  string
@@ -132,6 +139,7 @@ type AddVolumeOptions struct {
 	ClaimName   string
 	ClaimSize   string
 	ClaimMode   string
+	ClaimClass  string
 
 	TypeChanged bool
 }
@@ -182,6 +190,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
 	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
 	cmd.Flags().StringVar(&addOpts.ClaimName, "claim-name", "", "Persistent volume claim name. Must be provided for persistentVolumeClaim volume type")
+	cmd.Flags().StringVar(&addOpts.ClaimClass, "claim-class", "", "StorageClass to use for the persistent volume claim")
 	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
@@ -310,6 +319,15 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 				return err
 			}
 		}
+		if len(a.ClaimClass) > 0 {
+			selectedLowerType := strings.ToLower(a.Type)
+			if selectedLowerType != "persistentvolumeclaim" && selectedLowerType != "pvc" {
+				return errors.New("must provide --type as persistentVolumeClaim")
+			}
+			if len(a.ClaimSize) == 0 {
+				return errors.New("must provide --claim-size to create new pvc with claim-class")
+			}
+		}
 	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ConfigMapName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
 		return errors.New("--type|--path|--configmap-name|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation")
 	}
@@ -345,6 +363,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Typer = typer
 	v.RESTClientFactory = f.Factory.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
+	v.Encoder = f.JSONEncoder()
 
 	// In case of volume source ignore the default volume type
 	if len(v.AddOpts.Source) > 0 {
@@ -391,6 +410,14 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		return err
 	}
 
+	if v.List {
+		listingErrors := v.printVolumes(infos)
+		if len(listingErrors) > 0 {
+			return cmdutil.ErrExit
+		}
+		return nil
+	}
+
 	updateInfos := []*resource.Info{}
 	// if a claim should be created, generate the info we'll add to the flow
 	if v.Add && v.AddOpts.CreateClaim {
@@ -413,43 +440,12 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		updateInfos = append(updateInfos, info)
 	}
 
-	skipped := 0
-	for _, info := range infos {
-		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
-			var e error
-			switch {
-			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singular)
-			case v.Remove:
-				e = v.removeVolumeFromSpec(spec, info)
-			case v.List:
-				e = v.listVolumeForSpec(spec, info)
-			}
-			return e
-		})
-		if !ok {
-			skipped++
-			continue
-		}
-		if err != nil {
-			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
-			continue
-		}
-		updateInfos = append(updateInfos, info)
-	}
-	if singular && skipped == len(infos) {
-		return fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
-	}
-	updatePodSpecFailed := len(updateInfos) != len(infos)
+	patches, patchError := v.getVolumeUpdatePatches(infos, singular)
 
-	if v.List {
-		if updatePodSpecFailed {
-			return cmdutil.ErrExit
-		}
-		return nil
+	if patchError != nil {
+		return patchError
 	}
 
-	// TODO: replace with a strategic merge patch
 	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion, kapi.Codecs.LegacyCodec(v.OutputVersion))
 	if err != nil {
 		return err
@@ -479,10 +475,63 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		info.Refresh(obj, true)
 		fmt.Fprintf(v.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
-	if failed || updatePodSpecFailed {
+	for _, patch := range patches {
+		info := patch.Info
+		if patch.Err != nil {
+			failed = true
+			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			continue
+		}
+
+		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
+			fmt.Fprintf(v.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			continue
+		}
+
+		glog.V(4).Infof("Calculated patch %s", patch.Patch)
+
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patch.Patch)
+		if err != nil {
+			handlePodUpdateError(v.Err, err, "volume")
+			failed = true
+			continue
+		}
+
+		info.Refresh(obj, true)
+		kcmdutil.PrintSuccess(v.Mapper, false, v.Out, info.Mapping.Resource, info.Name, false, "updated")
+	}
+	if failed {
 		return cmdutil.ErrExit
 	}
 	return nil
+}
+
+func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular bool) ([]*Patch, error) {
+	skipped := 0
+	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
+		transformed := false
+		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+			var e error
+			switch {
+			case v.Add:
+				e = v.addVolumeToSpec(spec, info, singular)
+				transformed = true
+			case v.Remove:
+				e = v.removeVolumeFromSpec(spec, info)
+				transformed = true
+			}
+			return e
+		})
+		if !ok {
+			skipped++
+		}
+		return transformed, err
+	})
+	if singular && skipped == len(infos) {
+		patchError := fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+		return patches, patchError
+	}
+	return patches, nil
 }
 
 func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
@@ -513,8 +562,22 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 	return nil
 }
 
+func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
+	listingErrors := []error{}
+	for _, info := range infos {
+		_, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+			return v.listVolumeForSpec(spec, info)
+		})
+		if err != nil {
+			listingErrors = append(listingErrors, err)
+			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+		}
+	}
+	return listingErrors
+}
+
 func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
-	return &kapi.PersistentVolumeClaim{
+	pvc := &kapi.PersistentVolumeClaim{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: v.ClaimName,
 		},
@@ -527,6 +590,12 @@ func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
 			},
 		},
 	}
+	if len(v.ClaimClass) > 0 {
+		pvc.Annotations = map[string]string{
+			storageAnnClass: v.ClaimClass,
+		}
+	}
+	return pvc
 }
 
 func (v *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {

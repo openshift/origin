@@ -13,8 +13,11 @@ import (
 
 var glog = utilglog.StderrLog
 
+// DockerIgnorer ignores files based on the contents of the .s2iignore file
 type DockerIgnorer struct{}
 
+// Ignore removes files from the workspace based on the contents of the
+// .s2iignore file
 func (b *DockerIgnorer) Ignore(config *api.Config) error {
 	/*
 		 so, to duplicate the .dockerignore capabilities (https://docs.docker.com/reference/builder/#dockerignore-file)
@@ -82,7 +85,7 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 			filespec = strings.Replace(filespec, "!", "", 1)
 
 			// iterate through and determine ones to leave in
-			dontDel := make([]string, 0)
+			dontDel := []string{}
 			for candidate := range filesToDel {
 				compare := filepath.Join(workingDir, filespec)
 				glog.V(5).Infof("For %s  and %s see if it matches the spec  %s which means that we leave in\n", filespec, candidate, compare)

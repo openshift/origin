@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/client/record"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -44,6 +46,7 @@ func TestHandleBuildConfig(t *testing.T) {
 		}
 		controller := &BuildConfigController{
 			BuildConfigInstantiator: instantiator,
+			Recorder:                &record.FakeRecorder{},
 		}
 		err := controller.HandleBuildConfig(tc.bc)
 		if err != nil {

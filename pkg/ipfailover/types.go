@@ -21,6 +21,10 @@ const (
 	// DefaultSelector is the default resource selector.
 	DefaultSelector = "ipfailover=<name>"
 
+	// DefaultIptablesChain is the default iptables chain on which to add
+	// a rule that accesses 224.0.0.18 (if none exists).
+	DefaultIptablesChain = "INPUT"
+
 	// DefaultInterface is the default network interface.
 	DefaultInterface = "eth0"
 )
@@ -39,6 +43,7 @@ type IPFailoverConfigCmdOptions struct {
 
 	//  Failover options.
 	VirtualIPs       string
+	IptablesChain    string
 	NetworkInterface string
 	WatchPort        int
 	VRRPIDOffset     int

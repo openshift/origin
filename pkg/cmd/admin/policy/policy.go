@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/uuid"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -21,16 +20,15 @@ import (
 
 const PolicyRecommendedName = "policy"
 
-const policyLong = `
-Manage policy on the cluster
+var policyLong = templates.LongDesc(`
+	Manage policy on the cluster
 
-These commands allow you to assign and manage the roles and policies that apply to users. The reconcile
-commands allow you to reset and upgrade your system policies to the latest default policies.
+	These commands allow you to assign and manage the roles and policies that apply to users. The reconcile
+	commands allow you to reset and upgrade your system policies to the latest default policies.
 
-To see more information on roles and policies, use the 'get' and 'describe' commands on the following
-resources: 'clusterroles', 'clusterpolicy', 'clusterrolebindings', 'roles', 'policy', 'rolebindings',
-and 'scc'.
-`
+	To see more information on roles and policies, use the 'get' and 'describe' commands on the following
+	resources: 'clusterroles', 'clusterpolicy', 'clusterrolebindings', 'roles', 'policy', 'rolebindings',
+	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
 func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
@@ -96,14 +94,6 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
 	return cmds
-}
-
-func getFlagString(cmd *cobra.Command, flag string) string {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
-	return f.Value.String()
 }
 
 func getUniqueName(basename string, existingNames *sets.String) string {

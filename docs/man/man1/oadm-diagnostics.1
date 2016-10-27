@@ -13,48 +13,35 @@ oadm diagnostics \- Diagnose common cluster problems
 
 .SH DESCRIPTION
 .PP
-This utility helps troubleshoot and diagnose known problems. It runs
-diagnostics using a client and/or the state of a running master /
-node host.
+This utility helps troubleshoot and diagnose known problems. It runs diagnostics using a client and/or the state of a running master / node host.
 
 .PP
-.RS
-
-.nf
 oadm diagnostics
 
-.fi
-.RE
+.PP
+If run without flags, it will check for standard config files for client, master, and node, and if found, use them for diagnostics. You may also specify config files explicitly with flags, in which case you will receive an error if they are not found. For example:
 
 .PP
-If run without flags, it will check for standard config files for
-client, master, and node, and if found, use them for diagnostics.
-You may also specify config files explicitly with flags, in which case
-you will receive an error if they are not found. For example:
-
-.PP
-.RS
-
-.nf
 oadm diagnostics \-\-master\-config=/etc/origin/master/master\-config.yaml
-
-.fi
-.RE
 .IP 
 
 .IP
-\(bu If master/node config files are not found and the \-\-host flag is not
-present, host diagnostics are skipped.
+\(bu If master/node config files are not found and the \-\-host flag is not present, host diagnostics are skipped.
+.br
 .IP
-\(bu If the client has cluster\-admin access, this access enables cluster
-diagnostics to run which regular users cannot.
+\(bu If the client has cluster\-admin access, this access enables cluster diagnostics to run which regular users cannot.
+.br
 .IP
-\(bu If a client config file is not found, client and cluster diagnostics
-are skipped.
+\(bu If a client config file is not found, client and cluster diagnostics are skipped.
+.br
 .PP
 Diagnostics may be individually run by passing diagnostic name as arguments.
-The available diagnostic names are:
-AnalyzeLogs ClusterRegistry ClusterRoleBindings ClusterRoles ClusterRouter ConfigContexts DiagnosticPod MasterConfigCheck MasterNode MetricsApiProxy NodeConfigCheck NodeDefinitions ServiceExternalIPs UnitStatus
+
+.PP
+oadm diagnostics <DiagnosticName>
+
+.PP
+The available diagnostic names are: AggregatedLogging, AnalyzeLogs, ClusterRegistry, ClusterRoleBindings, ClusterRoles, ClusterRouter, ConfigContexts, DiagnosticPod, MasterConfigCheck, MasterNode, MetricsApiProxy, NetworkCheck, NodeConfigCheck, NodeDefinitions, ServiceExternalIPs, UnitStatus.
 
 
 .SH OPTIONS
@@ -97,6 +84,10 @@ AnalyzeLogs ClusterRegistry ClusterRoleBindings ClusterRoles ClusterRouter Confi
 .PP
 \fB\-\-master\-config\fP=""
     Path to master config file (implies \-\-host)
+
+.PP
+\fB\-\-network\-logdir\fP="/tmp/openshift/"
+    Path to store network diagnostic results
 
 .PP
 \fB\-\-node\-config\fP=""
@@ -151,6 +142,10 @@ AnalyzeLogs ClusterRegistry ClusterRoleBindings ClusterRoles ClusterRouter Confi
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

@@ -73,6 +73,10 @@ These commands help you make changes to existing application resources.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -87,7 +91,7 @@ These commands help you make changes to existing application resources.
 
 .SH SEE ALSO
 .PP
-\fBoc(1)\fP, \fBoc\-set\-build\-hook(1)\fP, \fBoc\-set\-deployment\-hook(1)\fP, \fBoc\-set\-env(1)\fP, \fBoc\-set\-probe(1)\fP, \fBoc\-set\-route\-backends(1)\fP, \fBoc\-set\-triggers(1)\fP, \fBoc\-set\-volumes(1)\fP,
+\fBoc(1)\fP, \fBoc\-set\-build\-hook(1)\fP, \fBoc\-set\-build\-secret(1)\fP, \fBoc\-set\-deployment\-hook(1)\fP, \fBoc\-set\-env(1)\fP, \fBoc\-set\-image(1)\fP, \fBoc\-set\-probe(1)\fP, \fBoc\-set\-resources(1)\fP, \fBoc\-set\-route\-backends(1)\fP, \fBoc\-set\-triggers(1)\fP, \fBoc\-set\-volumes(1)\fP,
 
 
 .SH HISTORY

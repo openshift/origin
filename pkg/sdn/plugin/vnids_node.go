@@ -2,20 +2,19 @@ package plugin
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
@@ -79,17 +78,22 @@ func (vmap *nodeVNIDMap) GetVNID(name string) (uint32, error) {
 // So, use this method to alleviate this problem. This method will
 // retry vnid lookup before giving up.
 func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
-	// Try few times up to 2 seconds
-	retries := 20
-	retryInterval := 100 * time.Millisecond
-	for i := 0; i < retries; i++ {
-		if id, err := vmap.GetVNID(name); err == nil {
-			return id, nil
-		}
-		time.Sleep(retryInterval)
+	var id uint32
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    5,
 	}
-
-	return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		var err error
+		id, err = vmap.GetVNID(name)
+		return err == nil, nil
+	})
+	if err == nil {
+		return id, nil
+	} else {
+		return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	}
 }
 
 func (vmap *nodeVNIDMap) setVNID(name string, id uint32) {
@@ -119,13 +123,13 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	return id, nil
 }
 
-func (vmap *nodeVNIDMap) populateVNIDs(registry *Registry) error {
-	nets, err := registry.GetNetNamespaces()
+func (vmap *nodeVNIDMap) populateVNIDs(osClient *osclient.Client) error {
+	nets, err := osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, net := range nets {
+	for _, net := range nets.Items {
 		vmap.setVNID(net.Name, net.NetID)
 	}
 	return nil
@@ -135,7 +139,7 @@ func (vmap *nodeVNIDMap) populateVNIDs(registry *Registry) error {
 
 func (node *OsdnNode) VnidStartNode() error {
 	// Populate vnid map synchronously so that existing services can fetch vnid
-	err := node.vnids.populateVNIDs(node.registry)
+	err := node.vnids.populateVNIDs(node.osClient)
 	if err != nil {
 		return err
 	}
@@ -154,7 +158,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 	if err != nil {
 		return err
 	}
-	services, err := node.registry.GetServicesForNamespace(namespace)
+	services, err := node.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -163,14 +167,18 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 
 	// Update OF rules for the existing/old pods in the namespace
 	for _, pod := range pods {
-		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
+		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.ContainerID{ID: getPodContainerID(&pod)})
 		if err != nil {
 			errList = append(errList, err)
 		}
 	}
 
 	// Update OF rules for the old services in the namespace
-	for _, svc := range services {
+	for _, svc := range services.Items {
+		if !kapi.IsServiceIPSet(&svc) {
+			continue
+		}
+
 		if err = node.DeleteServiceRules(&svc); err != nil {
 			log.Error(err)
 		}
@@ -188,42 +196,34 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 }
 
 func (node *OsdnNode) watchNetNamespaces() {
-	eventQueue := node.registry.RunEventQueue(NetNamespaces)
+	RunEventQueue(node.osClient, NetNamespaces, func(delta cache.Delta) error {
+		netns := delta.Object.(*osapi.NetNamespace)
 
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for network namespaces: %v", err))
-			return
-		}
-		netns := obj.(*osapi.NetNamespace)
-
-		log.V(5).Infof("Watch %s event for NetNamespace %q", strings.Title(string(eventType)), netns.ObjectMeta.Name)
-		switch eventType {
-		case watch.Added, watch.Modified:
+		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
 			// Skip this event if the old and new network ids are same
-			var oldNetID uint32
-			oldNetID, err = node.vnids.GetVNID(netns.NetName)
+			oldNetID, err := node.vnids.GetVNID(netns.NetName)
 			if (err == nil) && (oldNetID == netns.NetID) {
-				continue
+				break
 			}
 			node.vnids.setVNID(netns.NetName, netns.NetID)
 
 			err = node.updatePodNetwork(netns.NetName, oldNetID, netns.NetID)
 			if err != nil {
-				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 				node.vnids.setVNID(netns.NetName, oldNetID)
-				continue
+				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
-		case watch.Deleted:
+		case cache.Deleted:
 			// updatePodNetwork needs vnid, so unset vnid after this call
-			err = node.updatePodNetwork(netns.NetName, netns.NetID, osapi.GlobalVNID)
+			err := node.updatePodNetwork(netns.NetName, netns.NetID, osapi.GlobalVNID)
 			if err != nil {
-				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
+				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
 			node.vnids.unsetVNID(netns.NetName)
 		}
-	}
+		return nil
+	})
 }
 
 func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
@@ -241,52 +241,42 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	eventQueue := node.registry.RunEventQueue(Services)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for services: %v", err))
-			return
-		}
-		serv := obj.(*kapi.Service)
+	RunEventQueue(node.kClient, Services, func(delta cache.Delta) error {
+		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services
 		if !kapi.IsServiceIPSet(serv) {
-			continue
+			return nil
 		}
 
-		log.V(5).Infof("Watch %s event for Service %q", strings.Title(string(eventType)), serv.ObjectMeta.Name)
-		switch eventType {
-		case watch.Added, watch.Modified:
+		log.V(5).Infof("Watch %s event for Service %q", delta.Type, serv.ObjectMeta.Name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
 			oldsvc, exists := services[string(serv.UID)]
 			if exists {
 				if !isServiceChanged(oldsvc, serv) {
-					continue
+					break
 				}
-				if err = node.DeleteServiceRules(oldsvc); err != nil {
+				if err := node.DeleteServiceRules(oldsvc); err != nil {
 					log.Error(err)
 				}
 			}
 
-			var netid uint32
-			netid, err = node.vnids.WaitAndGetVNID(serv.Namespace)
+			netid, err := node.vnids.WaitAndGetVNID(serv.Namespace)
 			if err != nil {
-				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
-				continue
+				return fmt.Errorf("skipped adding service rules for serviceEvent: %v, Error: %v", delta.Type, err)
 			}
 
 			if err = node.AddServiceRules(serv, netid); err != nil {
-				log.Error(err)
-				continue
+				return err
 			}
 			services[string(serv.UID)] = serv
-		case watch.Deleted:
+		case cache.Deleted:
 			delete(services, string(serv.UID))
-
-			if err = node.DeleteServiceRules(serv); err != nil {
-				log.Error(err)
+			if err := node.DeleteServiceRules(serv); err != nil {
+				return err
 			}
 		}
-	}
+		return nil
+	})
 }

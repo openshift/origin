@@ -1,64 +1,98 @@
 package etcdserver
 
 import (
-	"fmt"
+	"net/url"
+	"strings"
+	"time"
 
+	"github.com/coreos/etcd/embed"
+	"github.com/coreos/etcd/pkg/osutil"
+	"github.com/coreos/etcd/pkg/types"
 	"github.com/golang/glog"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
+const defaultName = "openshift.local"
+
 // RunEtcd starts an etcd server and runs it forever
 func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
-	cfg := &config{
-		name: defaultName,
-		dir:  etcdServerConfig.StorageDir,
+	cfg := embed.NewConfig()
+	cfg.Debug = true
+	cfg.Name = defaultName
+	cfg.Dir = etcdServerConfig.StorageDir
 
-		TickMs:       100,
-		ElectionMs:   1000,
-		maxSnapFiles: 5,
-		maxWalFiles:  5,
-
-		initialClusterToken: "etcd-cluster",
+	clientTLS := configapi.UseTLS(etcdServerConfig.ServingInfo)
+	if clientTLS {
+		cfg.ClientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
+		cfg.ClientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
+		cfg.ClientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+		cfg.ClientTLSInfo.ClientCertAuth = len(cfg.ClientTLSInfo.CAFile) > 0
 	}
-	var err error
-	if configapi.UseTLS(etcdServerConfig.ServingInfo) {
-		cfg.clientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
-		cfg.clientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
-		cfg.clientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
-	}
-	if cfg.lcurls, err = urlsFromStrings(etcdServerConfig.ServingInfo.BindAddress, cfg.clientTLSInfo); err != nil {
-		glog.Fatalf("Unable to build etcd client URLs: %v", err)
-	}
-
-	if configapi.UseTLS(etcdServerConfig.PeerServingInfo) {
-		cfg.peerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
-		cfg.peerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
-		cfg.peerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
-	}
-	if cfg.lpurls, err = urlsFromStrings(etcdServerConfig.PeerServingInfo.BindAddress, cfg.peerTLSInfo); err != nil {
+	u, err := types.NewURLs(addressToURLs(etcdServerConfig.ServingInfo.BindAddress, clientTLS))
+	if err != nil {
 		glog.Fatalf("Unable to build etcd peer URLs: %v", err)
 	}
+	cfg.LCUrls = []url.URL(u)
 
-	if cfg.acurls, err = urlsFromStrings(etcdServerConfig.Address, cfg.clientTLSInfo); err != nil {
+	peerTLS := configapi.UseTLS(etcdServerConfig.PeerServingInfo)
+	if peerTLS {
+		cfg.PeerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
+		cfg.PeerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
+		cfg.PeerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+		cfg.PeerTLSInfo.ClientCertAuth = len(cfg.PeerTLSInfo.CAFile) > 0
+	}
+	u, err = types.NewURLs(addressToURLs(etcdServerConfig.PeerServingInfo.BindAddress, peerTLS))
+	if err != nil {
+		glog.Fatalf("Unable to build etcd peer URLs: %v", err)
+	}
+	cfg.LPUrls = []url.URL(u)
+
+	u, err = types.NewURLs(addressToURLs(etcdServerConfig.Address, clientTLS))
+	if err != nil {
 		glog.Fatalf("Unable to build etcd announce client URLs: %v", err)
 	}
-	if cfg.apurls, err = urlsFromStrings(etcdServerConfig.PeerAddress, cfg.peerTLSInfo); err != nil {
+	cfg.ACUrls = []url.URL(u)
+
+	u, err = types.NewURLs(addressToURLs(etcdServerConfig.PeerAddress, peerTLS))
+	if err != nil {
 		glog.Fatalf("Unable to build etcd announce peer URLs: %v", err)
 	}
+	cfg.APUrls = []url.URL(u)
 
-	if err := cfg.resolveUrls(); err != nil {
-		glog.Fatalf("Unable to resolve etcd URLs: %v", err)
-	}
+	cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
 
-	cfg.initialCluster = fmt.Sprintf("%s=%s", cfg.name, cfg.apurls[0].String())
+	osutil.HandleInterrupts()
 
-	stopped, err := startEtcd(cfg)
+	e, err := embed.StartEtcd(cfg)
 	if err != nil {
 		glog.Fatalf("Unable to start etcd: %v", err)
 	}
+
 	go func() {
-		glog.Infof("Started etcd at %s", etcdServerConfig.Address)
-		<-stopped
+		defer e.Close()
+
+		select {
+		case <-e.Server.ReadyNotify():
+			glog.Infof("Started etcd at %s", etcdServerConfig.Address)
+		case <-time.After(60 * time.Second):
+			glog.Warning("etcd took too long to start, stopped")
+			e.Server.Stop() // trigger a shutdown
+		}
+		glog.Fatalf("etcd has returned an error: %v", <-e.Err())
 	}()
+}
+
+// addressToURLs turns a host:port comma delimited list into an array valid
+// URL strings with the appropriate prefix for the TLS mode.
+func addressToURLs(addr string, isTLS bool) []string {
+	addrs := strings.Split(addr, ",")
+	for i := range addrs {
+		if isTLS {
+			addrs[i] = "https://" + addrs[i]
+		} else {
+			addrs[i] = "http://" + addrs[i]
+		}
+	}
+	return addrs
 }

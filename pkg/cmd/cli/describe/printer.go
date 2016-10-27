@@ -581,7 +581,12 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 		port = "<all>"
 	}
 
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy)
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy); err != nil {
+		return err
+	}
+
+	err := appendItemLabels(route.Labels, w, opts.ColumnLabels, opts.ShowLabels)
+
 	return err
 }
 

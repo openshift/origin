@@ -8,30 +8,20 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-// ImageChangeControllerFatalError represents a fatal error while handling an image change
-type ImageChangeControllerFatalError struct {
-	Reason string
-	Err    error
-}
-
-func (e ImageChangeControllerFatalError) Error() string {
-	return fmt.Sprintf("fatal error handling ImageStream change: %s, root error was: %s", e.Reason, e.Err.Error())
-}
 
 // ImageChangeController watches for changes to ImageRepositories and triggers
 // builds when a new version of a tag referenced by a BuildConfig
 // is available.
 type ImageChangeController struct {
-	BuildConfigStore        cache.Store
+	BuildConfigIndex        oscache.StoreToBuildConfigLister
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 }
 
@@ -42,9 +32,9 @@ func getImageStreamNameFromReference(ref *kapi.ObjectReference) string {
 	return strings.Split(name, "@")[0]
 }
 
-// HandleImageRepo processes the next ImageStream event.
-func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
-	glog.V(4).Infof("Build image change controller detected ImageStream change %s", repo.Status.DockerImageRepository)
+// HandleImageStream processes the next ImageStream event.
+func (c *ImageChangeController) HandleImageStream(stream *imageapi.ImageStream) error {
+	glog.V(4).Infof("Build image change controller detected ImageStream change %s", stream.Status.DockerImageRepository)
 
 	// Loop through all build configurations and record if there was an error
 	// instead of breaking the loop. The error will be returned in the end, so the
@@ -53,17 +43,18 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 	// in a no-op for them.
 	hasError := false
 
-	// TODO: this is inefficient
-	for _, bc := range c.BuildConfigStore.List() {
-		config := bc.(*buildapi.BuildConfig)
-
+	bcs, err := c.BuildConfigIndex.GetConfigsForImageStreamTrigger(stream.Namespace, stream.Name)
+	if err != nil {
+		return err
+	}
+	for _, config := range bcs {
 		var (
 			from           *kapi.ObjectReference
 			shouldBuild    = false
 			triggeredImage = ""
 			latest         *imageapi.TagEvent
 		)
-		// For every ImageChange trigger find the latest tagged image from the image repository and
+		// For every ImageChange trigger find the latest tagged image from the image stream and
 		// invoke a build using that image id. A new build is triggered only if the latest tagged image id or pull spec
 		// differs from the last triggered build recorded on the build config for that trigger
 		for _, trigger := range config.Spec.Triggers {
@@ -90,21 +81,21 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				fromNamespace = config.Namespace
 			}
 
-			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
+			// only trigger a build if this image stream matches the name and namespace of the stream ref in the build trigger
 			// also do not trigger if the imagerepo does not have a valid DockerImageRepository value for us to pull
 			// the image from
-			if len(repo.Status.DockerImageRepository) == 0 || fromStreamName != repo.Name || fromNamespace != repo.Namespace {
+			if len(stream.Status.DockerImageRepository) == 0 || fromStreamName != stream.Name || fromNamespace != stream.Namespace {
 				continue
 			}
 
 			// This split is safe because ImageStreamTag names always have the form
 			// name:tag.
-			latest = imageapi.LatestTaggedImage(repo, tag)
+			latest = imageapi.LatestTaggedImage(stream, tag)
 			if latest == nil {
-				glog.V(4).Infof("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
+				glog.V(4).Infof("unable to find tagged image: no image recorded for %s/%s:%s", stream.Namespace, stream.Name, tag)
 				continue
 			}
-			glog.V(4).Infof("Found ImageStream %s/%s with tag %s", repo.Namespace, repo.Name, tag)
+			glog.V(4).Infof("Found ImageStream %s/%s with tag %s", stream.Namespace, stream.Name, tag)
 
 			// (must be different) to trigger a build
 			last := trigger.ImageChange.LastTriggeredImageID
@@ -155,7 +146,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 		}
 	}
 	if hasError {
-		return fmt.Errorf("an error occurred processing 1 or more build configurations; the image change trigger for image stream %s will be retried", repo.Status.DockerImageRepository)
+		return fmt.Errorf("an error occurred processing 1 or more build configurations; the image change trigger for image stream %s will be retried", stream.Status.DockerImageRepository)
 	}
 	return nil
 }

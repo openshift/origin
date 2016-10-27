@@ -19,10 +19,7 @@ Start an F5 route synchronizer
 This command launches a process that will synchronize an F5 to the route configuration of your master.
 
 .PP
-You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has
-access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all
-namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note
-that you must have a cluster\-wide administrative role to view all namespaces.
+You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note that you must have a cluster\-wide administrative role to view all namespaces.
 
 
 .SH OPTIONS
@@ -75,6 +72,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
     Skip strict certificate verification
 
 .PP
+\fB\-\-f5\-internal\-address\fP=""
+    The F5 BIG\-IP internal interface's IP address
+
+.PP
 \fB\-\-f5\-partition\-path\fP="/Common"
     The F5 BIG\-IP partition path to use
 
@@ -89,6 +90,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 .PP
 \fB\-\-f5\-username\fP=""
     The username for F5 BIG\-IP's management utility
+
+.PP
+\fB\-\-f5\-vxlan\-gateway\-cidr\fP=""
+    The F5 BIG\-IP gateway\-ip\-address/cidr\-mask for setting up the VxLAN
 
 .PP
 \fB\-\-fields\fP=""
@@ -139,6 +144,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 .PP
 \fB\-\-project\-labels\fP=""
     A label selector to apply to projects to watch; if '*' watches all projects the client can access
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-resync\-interval\fP=0

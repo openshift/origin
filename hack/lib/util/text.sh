@@ -55,7 +55,7 @@ readonly -f os::text::yellow
 # terminal and leaves the cursor on that line to allow for overwriting that text
 # if it is called in a TTY
 function os::text::clear_last_line() {
-	if [[ -t 1 ]]; then 
+	if [[ -t 1 ]]; then
 		tput cuu 1
 		tput el
 	fi

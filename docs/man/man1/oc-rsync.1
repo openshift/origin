@@ -16,16 +16,11 @@ oc rsync \- Copy files between local filesystem and a pod
 Copy local files to or from a pod container
 
 .PP
-This command will copy local files to or from a remote container.
-It only copies the changed files using the rsync command from your OS.
-To ensure optimum performance, install rsync locally. In UNIX systems,
-use your package manager. In Windows, install cwRsync from
-
+This command will copy local files to or from a remote container. It only copies the changed files using the rsync command from your OS. To ensure optimum performance, install rsync locally. In UNIX systems, use your package manager. In Windows, install cwRsync from 
 \[la]https://www.itefix.net/cwrsync\[ra].
 
 .PP
-If no container is specified, the first container of the pod is used
-for the copy.
+If no container is specified, the first container of the pod is used for the copy.
 
 
 .SH OPTIONS
@@ -120,6 +115,10 @@ for the copy.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -137,10 +136,9 @@ for the copy.
 .RS
 
 .nf
-
   # Synchronize a local directory with a pod directory
   oc rsync ./local/dir/ POD:/remote/dir
-
+  
   # Synchronize a pod directory with a local directory
   oc rsync POD:/remote/dir/ ./local/dir
 

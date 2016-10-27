@@ -1,0 +1,325 @@
+apiVersion: "v1"
+kind: "List"
+items:
+-
+  apiVersion: "v1"
+  kind: "Template"
+  metadata:
+    name: logging-deployer-account-template
+    annotations:
+      description: "Template for creating the deployer account and roles needed for the aggregated logging deployer. Create as cluster-admin."
+      tags: "infrastructure"
+  objects:
+  -
+    apiVersion: v1
+    kind: ServiceAccount
+    name: logging-deployer
+    metadata:
+      name: logging-deployer
+      labels:
+        logging-infra: deployer
+        provider: openshift
+        component: deployer
+  -
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: aggregated-logging-kibana
+  -
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: aggregated-logging-elasticsearch
+  -
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: aggregated-logging-fluentd
+  -
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: aggregated-logging-curator
+  - apiVersion: v1
+    kind: ClusterRole
+    metadata:
+      name: oauth-editor
+    rules:
+    - resources:
+      - oauthclients
+      verbs:
+      - create
+      - delete
+  - apiVersion: v1
+    kind: ClusterRole
+    metadata:
+      name: daemonset-admin
+    rules:
+    - resources:
+      - daemonsets
+      apiGroups:
+      - extensions
+      verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+      - update
+  -
+    apiVersion: v1
+    kind: RoleBinding
+    metadata:
+      name: logging-deployer-edit-role
+    roleRef:
+      kind: ClusterRole
+      name: edit
+    subjects:
+    - kind: ServiceAccount
+      name: logging-deployer
+  -
+    apiVersion: v1
+    kind: RoleBinding
+    metadata:
+      name: logging-deployer-dsadmin-role
+    roleRef:
+      kind: ClusterRole
+      name: daemonset-admin
+    subjects:
+    - kind: ServiceAccount
+      name: logging-deployer
+-
+  apiVersion: "v1"
+  kind: "Template"
+  metadata:
+    name: logging-deployer-template
+    annotations:
+      description: "Template for running the aggregated logging deployer in a pod. Requires empowered 'logging-deployer' service account."
+      tags: "infrastructure"
+  labels:
+    logging-infra: deployer
+    provider: openshift
+  objects:
+  -
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      generateName: logging-deployer-
+    spec:
+      containers:
+      - image: ${IMAGE_PREFIX}logging-deployment:${IMAGE_VERSION}
+        imagePullPolicy: Always
+        name: deployer
+        volumeMounts:
+        - name: empty
+          mountPath: /etc/deploy
+        env:
+          - name: PROJECT
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: IMAGE_PREFIX
+            value: ${IMAGE_PREFIX}
+          - name: IMAGE_VERSION
+            value: ${IMAGE_VERSION}
+          - name: IMAGE_PULL_SECRET
+            value: ${IMAGE_PULL_SECRET}
+          - name: INSECURE_REGISTRY
+            value: ${INSECURE_REGISTRY}
+          - name: ENABLE_OPS_CLUSTER
+            value: ${ENABLE_OPS_CLUSTER}
+          - name: KIBANA_HOSTNAME
+            value: ${KIBANA_HOSTNAME}
+          - name: KIBANA_OPS_HOSTNAME
+            value: ${KIBANA_OPS_HOSTNAME}
+          - name: PUBLIC_MASTER_URL
+            value: ${PUBLIC_MASTER_URL}
+          - name: MASTER_URL
+            value: ${MASTER_URL}
+          - name: ES_INSTANCE_RAM
+            value: ${ES_INSTANCE_RAM}
+          - name: ES_PVC_SIZE
+            value: ${ES_PVC_SIZE}
+          - name: ES_PVC_PREFIX
+            value: ${ES_PVC_PREFIX}
+          - name: ES_PVC_DYNAMIC
+            value: ${ES_PVC_DYNAMIC}
+          - name: ES_CLUSTER_SIZE
+            value: ${ES_CLUSTER_SIZE}
+          - name: ES_NODE_QUORUM
+            value: ${ES_NODE_QUORUM}
+          - name: ES_RECOVER_AFTER_NODES
+            value: ${ES_RECOVER_AFTER_NODES}
+          - name: ES_RECOVER_EXPECTED_NODES
+            value: ${ES_RECOVER_EXPECTED_NODES}
+          - name: ES_RECOVER_AFTER_TIME
+            value: ${ES_RECOVER_AFTER_TIME}
+          - name: ES_OPS_INSTANCE_RAM
+            value: ${ES_OPS_INSTANCE_RAM}
+          - name: ES_OPS_PVC_SIZE
+            value: ${ES_OPS_PVC_SIZE}
+          - name: ES_OPS_PVC_PREFIX
+            value: ${ES_OPS_PVC_PREFIX}
+          - name: ES_OPS_PVC_DYNAMIC
+            value: ${ES_OPS_PVC_DYNAMIC}
+          - name: ES_OPS_CLUSTER_SIZE
+            value: ${ES_OPS_CLUSTER_SIZE}
+          - name: ES_OPS_NODE_QUORUM
+            value: ${ES_OPS_NODE_QUORUM}
+          - name: ES_OPS_RECOVER_AFTER_NODES
+            value: ${ES_OPS_RECOVER_AFTER_NODES}
+          - name: ES_OPS_RECOVER_EXPECTED_NODES
+            value: ${ES_OPS_RECOVER_EXPECTED_NODES}
+          - name: ES_OPS_RECOVER_AFTER_TIME
+            value: ${ES_OPS_RECOVER_AFTER_TIME}
+          - name: FLUENTD_NODESELECTOR
+            value: ${FLUENTD_NODESELECTOR}
+          - name: ES_NODESELECTOR
+            value: ${ES_NODESELECTOR}
+          - name: ES_OPS_NODESELECTOR
+            value: ${ES_OPS_NODESELECTOR}
+          - name: KIBANA_NODESELECTOR
+            value: ${KIBANA_NODESELECTOR}
+          - name: KIBANA_OPS_NODESELECTOR
+            value: ${KIBANA_OPS_NODESELECTOR}
+          - name: CURATOR_NODESELECTOR
+            value: ${CURATOR_NODESELECTOR}
+          - name: CURATOR_OPS_NODESELECTOR
+            value: ${CURATOR_OPS_NODESELECTOR}
+          - name: MODE
+            value: ${MODE}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      serviceAccount: logging-deployer
+      volumes:
+      - name: empty
+        emptyDir: {}
+  parameters:
+  -
+    description: "The mode that the deployer runs in."
+    name: MODE
+    value: "install"
+  -
+    description: 'Specify prefix for logging components; e.g. for "openshift/origin-logging-deployer:v1.1", set prefix "openshift/origin-"'
+    name: IMAGE_PREFIX
+    value: "docker.io/openshift/origin-"
+  -
+    description: 'Specify version for logging components; e.g. for "openshift/origin-logging-deployer:v1.1", set version "v1.1"'
+    name: IMAGE_VERSION
+    value: "latest"
+  -
+    description: "(Deprecated) Specify the name of an existing pull secret to be used for pulling component images from an authenticated registry."
+    name: IMAGE_PULL_SECRET
+  -
+    description: "(Deprecated) Allow the registry for logging component images to be non-secure (not secured with a certificate signed by a known CA)"
+    name: INSECURE_REGISTRY
+    value: "false"
+  -
+    description: "(Deprecated) If true, set up to use a second ES cluster for ops logs."
+    name: ENABLE_OPS_CLUSTER
+    value: "false"
+  -
+    description: "(Deprecated) External hostname where clients will reach kibana"
+    name: KIBANA_HOSTNAME
+    value: "kibana.example.com"
+  -
+    description: "(Deprecated) External hostname at which admins will visit the ops Kibana."
+    name: KIBANA_OPS_HOSTNAME
+    value: kibana-ops.example.com
+  -
+    description: "(Deprecated) External URL for the master, for OAuth purposes"
+    name: PUBLIC_MASTER_URL
+    value: "https://localhost:8443"
+  -
+    description: "(Deprecated) Internal URL for the master, for authentication retrieval"
+    name: MASTER_URL
+    value: "https://kubernetes.default.svc.cluster.local"
+  -
+    description: "(Deprecated) How many instances of ElasticSearch to deploy."
+    name: ES_CLUSTER_SIZE
+    value: "1"
+  -
+    description: "(Deprecated) Amount of RAM to reserve per ElasticSearch instance."
+    name: ES_INSTANCE_RAM
+    value: "8G"
+  -
+    description: "(Deprecated) Size of the PersistentVolumeClaim to create per ElasticSearch instance, e.g. 100G. If empty, no PVCs will be created and emptyDir volumes are used instead."
+    name: ES_PVC_SIZE
+  -
+    description: "(Deprecated) Prefix for the names of PersistentVolumeClaims to be created; a number will be appended per instance. If they don't already exist, they will be created with size ES_PVC_SIZE."
+    name: ES_PVC_PREFIX
+    value: "logging-es-"
+  -
+    description: '(Deprecated) Set to "true" to request dynamic provisioning (if enabled for your cluster) of a PersistentVolume for the ES PVC. '
+    name: ES_PVC_DYNAMIC
+  -
+    description: "(Deprecated) Number of nodes required to elect a master (ES minimum_master_nodes). By default, derived from ES_CLUSTER_SIZE / 2 + 1."
+    name: ES_NODE_QUORUM
+  -
+    description: "(Deprecated) Number of nodes required to be present before the cluster will recover from a full restart. By default, one fewer than ES_CLUSTER_SIZE."
+    name: ES_RECOVER_AFTER_NODES
+  -
+    description: "(Deprecated) Number of nodes desired to be present before the cluster will recover from a full restart. By default, ES_CLUSTER_SIZE."
+    name: ES_RECOVER_EXPECTED_NODES
+  -
+    description: "(Deprecated) Timeout for *expected* nodes to be present when cluster is recovering from a full restart."
+    name: ES_RECOVER_AFTER_TIME
+    value: "5m"
+  -
+    description: "(Deprecated) How many ops instances of ElasticSearch to deploy. By default, ES_CLUSTER_SIZE."
+    name: ES_OPS_CLUSTER_SIZE
+  -
+    description: "(Deprecated) Amount of RAM to reserve per ops ElasticSearch instance."
+    name: ES_OPS_INSTANCE_RAM
+    value: "8G"
+  -
+    description: "(Deprecated) Size of the PersistentVolumeClaim to create per ElasticSearch ops instance, e.g. 100G. If empty, no PVCs will be created and emptyDir volumes are used instead."
+    name: ES_OPS_PVC_SIZE
+  -
+    description: "(Deprecated) Prefix for the names of PersistentVolumeClaims to be created; a number will be appended per instance. If they don't already exist, they will be created with size ES_OPS_PVC_SIZE."
+    name: ES_OPS_PVC_PREFIX
+    value: "logging-es-ops-"
+  -
+    description: '(Deprecated) Set to "true" to request dynamic provisioning (if enabled for your cluster) of a PersistentVolume for the ES ops PVC. '
+    name: ES_OPS_PVC_DYNAMIC
+  -
+    description: "(Deprecated) Number of ops nodes required to elect a master (ES minimum_master_nodes). By default, derived from ES_CLUSTER_SIZE / 2 + 1."
+    name: ES_OPS_NODE_QUORUM
+  -
+    description: "(Deprecated) Number of ops nodes required to be present before the cluster will recover from a full restart. By default, one fewer than ES_OPS_CLUSTER_SIZE."
+    name: ES_OPS_RECOVER_AFTER_NODES
+  -
+    description: "(Deprecated) Number of ops nodes desired to be present before the cluster will recover from a full restart. By default, ES_OPS_CLUSTER_SIZE."
+    name: ES_OPS_RECOVER_EXPECTED_NODES
+  -
+    description: "(Deprecated) Timeout for *expected* ops nodes to be present when cluster is recovering from a full restart."
+    name: ES_OPS_RECOVER_AFTER_TIME
+    value: "5m"
+  -
+    description: "(Deprecated) The nodeSelector used for the Fluentd DaemonSet."
+    name: FLUENTD_NODESELECTOR
+    value: "logging-infra-fluentd=true"
+  -
+    description: "(Deprecated) Node selector Elasticsearch cluster (label=value)."
+    name: ES_NODESELECTOR
+    value: ""
+  -
+    description: "(Deprecated) Node selector Elasticsearch operations cluster (label=value)."
+    name: ES_OPS_NODESELECTOR
+    value: ""
+  -
+    description: "(Deprecated) Node selector Kibana cluster (label=value)."
+    name: KIBANA_NODESELECTOR
+    value: ""
+  -
+    description: "(Deprecated) Node selector Kibana operations cluster (label=value)."
+    name: KIBANA_OPS_NODESELECTOR
+    value: ""
+  -
+    description: "(Deprecated) Node selector Curator (label=value)."
+    name: CURATOR_NODESELECTOR
+    value: ""
+  -
+    description: "(Deprecated) Node selector operations Curator (label=value)."
+    name: CURATOR_OPS_NODESELECTOR
+    value: ""

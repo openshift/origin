@@ -171,8 +171,11 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 		return false, nil
 	}
 
-	status := rc.Annotations[deployapi.DeploymentStatusAnnotation]
-	if deployapi.DeploymentStatus(status) != deployapi.DeploymentStatusComplete {
+	if !deployutil.IsCompleteDeployment(&rc) {
+		return false, nil
+	}
+	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
+	if cond == nil || cond.Reason != deployutil.NewRcAvailableReason {
 		return false, nil
 	}
 	expectedReplicas := dc.Spec.Replicas
@@ -186,7 +189,24 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 		e2e.Logf("POSSIBLE_ANOMALY: deployment is complete but doesn't have expected status replicas: %d %d", rc.Status.Replicas, expectedReplicas)
 		return false, nil
 	}
+	e2e.Logf("Latest rollout of dc/%s (rc/%s) is complete.", dc.Name, rc.Name)
 	return true, nil
+}
+
+func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
+	if len(rcs) == 0 {
+		return false, nil
+	}
+	rc := rcs[len(rcs)-1]
+	version := deployutil.DeploymentVersionFor(&rc)
+	if version != dc.Status.LatestVersion {
+		return false, nil
+	}
+	if !deployutil.IsFailedDeployment(&rc) {
+		return false, nil
+	}
+	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
+	return cond != nil && cond.Reason == deployutil.TimedOutReason, nil
 }
 
 func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
@@ -262,7 +282,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
-	return wait.Poll(200*time.Millisecond, timeout, func() (bool, error) {
+	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
 		dc, rcs, pods, err := deploymentInfo(oc, name)
 		if err != nil {
 			return false, err
@@ -271,6 +291,24 @@ func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, 
 			return false, err
 		}
 		return fn(dc, rcs, pods)
+	})
+}
+
+func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) error {
+	dc, rcs, pods, err := deploymentInfo(oc, name)
+	if err != nil {
+		return err
+	}
+	if err := checkDeploymentInvariants(dc, rcs, pods); err != nil {
+		return err
+	}
+	generation := dc.Generation
+	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
+		config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+		if err != nil {
+			return false, err
+		}
+		return deployutil.HasSynced(config, generation), nil
 	})
 }
 
@@ -321,12 +359,8 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 				return
 			}
 			e2e.Logf("\n%s\n", out)
-			out, _ = oc.Run("logs").Args("pod/" + pod.Name).Output()
+			out, _ = oc.Run("logs").Args("pod/"+pod.Name, "--timestamps=true").Output()
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
-}
-
-func checkDeploymentConfigHasSynced(dc *deployapi.DeploymentConfig, _ []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
-	return deployutil.HasSynced(dc), nil
 }

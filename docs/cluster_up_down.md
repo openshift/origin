@@ -12,6 +12,10 @@
 - [Routing](#routing)
 - [Specifying Images to Use](#specifying-images-to-use)
 
+## Pre-requisites
+
+NOTE - this command was released with the 1.3+ version of oc client tools, so you must be using version 1.3+ or above for this command to work.
+
 ## Overview
 
 The `oc cluster up` command starts a local OpenShift all-in-one cluster with a configured registry, router, image streams, and default templates.

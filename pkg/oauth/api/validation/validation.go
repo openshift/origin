@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -16,6 +17,15 @@ import (
 )
 
 const MinTokenLength = 32
+
+// PKCE [RFC7636] code challenge methods supported
+// https://tools.ietf.org/html/rfc7636#section-4.3
+const (
+	codeChallengeMethodPlain  = "plain"
+	codeChallengeMethodSHA256 = "S256"
+)
+
+var CodeChallengeMethodsSupported = []string{codeChallengeMethodPlain, codeChallengeMethodSHA256}
 
 func ValidateTokenName(name string, prefix bool) []string {
 	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
@@ -74,6 +84,8 @@ func ValidateAccessTokenUpdate(newToken, oldToken *api.OAuthAccessToken) field.E
 	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
 }
 
+var codeChallengeRegex = regexp.MustCompile("^[a-zA-Z0-9._~-]{43,128}$")
+
 func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
@@ -85,6 +97,24 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 	}
 	if ok, msg := ValidateRedirectURI(authorizeToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), authorizeToken.RedirectURI, msg))
+	}
+
+	if len(authorizeToken.CodeChallenge) > 0 || len(authorizeToken.CodeChallengeMethod) > 0 {
+		switch {
+		case len(authorizeToken.CodeChallenge) == 0:
+			allErrs = append(allErrs, field.Required(field.NewPath("codeChallenge"), "required if codeChallengeMethod is specified"))
+		case !codeChallengeRegex.MatchString(authorizeToken.CodeChallenge):
+			allErrs = append(allErrs, field.Invalid(field.NewPath("codeChallenge"), authorizeToken.CodeChallenge, "must be 43-128 characters [a-zA-Z0-9.~_-]"))
+		}
+
+		switch authorizeToken.CodeChallengeMethod {
+		case "":
+			allErrs = append(allErrs, field.Required(field.NewPath("codeChallengeMethod"), "required if codeChallenge is specified"))
+		case codeChallengeMethodPlain, codeChallengeMethodSHA256:
+			// no-op, good
+		default:
+			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, CodeChallengeMethodsSupported))
+		}
 	}
 
 	return allErrs
@@ -271,5 +301,31 @@ func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 		}
 	}
 
+	return allErrs
+}
+
+func ValidateOAuthRedirectReference(sref *api.OAuthRedirectReference) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&sref.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	return append(allErrs, validateRedirectReference(&sref.Reference)...)
+}
+
+func validateRedirectReference(ref *api.RedirectReference) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(ref.Name) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("name"), "may not be empty"))
+	} else {
+		for _, msg := range oapi.MinimalNameRequirements(ref.Name, false) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("name"), ref.Name, msg))
+		}
+	}
+	switch ref.Kind {
+	case "":
+		allErrs = append(allErrs, field.Required(field.NewPath("kind"), "may not be empty"))
+	case "Route":
+		// Valid, TODO add ingress once we support it and update error message
+	default:
+		allErrs = append(allErrs, field.Invalid(field.NewPath("kind"), ref.Kind, "must be Route"))
+	}
+	// TODO validate group once we start using it
 	return allErrs
 }

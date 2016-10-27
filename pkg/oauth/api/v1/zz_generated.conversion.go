@@ -38,6 +38,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList,
 		Convert_v1_OAuthClientList_To_api_OAuthClientList,
 		Convert_api_OAuthClientList_To_v1_OAuthClientList,
+		Convert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference,
+		Convert_api_OAuthRedirectReference_To_v1_OAuthRedirectReference,
+		Convert_v1_RedirectReference_To_api_RedirectReference,
+		Convert_api_RedirectReference_To_v1_RedirectReference,
 		Convert_v1_ScopeRestriction_To_api_ScopeRestriction,
 		Convert_api_ScopeRestriction_To_v1_ScopeRestriction,
 	)
@@ -160,6 +164,7 @@ func Convert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *api.OAuthAc
 }
 
 func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthorizeToken, out *api.OAuthAuthorizeToken, s conversion.Scope) error {
+	SetDefaults_OAuthAuthorizeToken(in)
 	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -173,6 +178,8 @@ func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuth
 	out.State = in.State
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
+	out.CodeChallenge = in.CodeChallenge
+	out.CodeChallengeMethod = in.CodeChallengeMethod
 	return nil
 }
 
@@ -194,6 +201,8 @@ func autoConvert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *api.OAuth
 	out.State = in.State
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
+	out.CodeChallenge = in.CodeChallenge
+	out.CodeChallengeMethod = in.CodeChallengeMethod
 	return nil
 }
 
@@ -445,6 +454,62 @@ func autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in *api.OAuthClientLi
 
 func Convert_api_OAuthClientList_To_v1_OAuthClientList(in *api.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
 	return autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in, out, s)
+}
+
+func autoConvert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference(in *OAuthRedirectReference, out *api.OAuthRedirectReference, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_RedirectReference_To_api_RedirectReference(&in.Reference, &out.Reference, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference(in *OAuthRedirectReference, out *api.OAuthRedirectReference, s conversion.Scope) error {
+	return autoConvert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference(in, out, s)
+}
+
+func autoConvert_api_OAuthRedirectReference_To_v1_OAuthRedirectReference(in *api.OAuthRedirectReference, out *OAuthRedirectReference, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_RedirectReference_To_v1_RedirectReference(&in.Reference, &out.Reference, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_OAuthRedirectReference_To_v1_OAuthRedirectReference(in *api.OAuthRedirectReference, out *OAuthRedirectReference, s conversion.Scope) error {
+	return autoConvert_api_OAuthRedirectReference_To_v1_OAuthRedirectReference(in, out, s)
+}
+
+func autoConvert_v1_RedirectReference_To_api_RedirectReference(in *RedirectReference, out *api.RedirectReference, s conversion.Scope) error {
+	out.Group = in.Group
+	out.Kind = in.Kind
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_v1_RedirectReference_To_api_RedirectReference(in *RedirectReference, out *api.RedirectReference, s conversion.Scope) error {
+	return autoConvert_v1_RedirectReference_To_api_RedirectReference(in, out, s)
+}
+
+func autoConvert_api_RedirectReference_To_v1_RedirectReference(in *api.RedirectReference, out *RedirectReference, s conversion.Scope) error {
+	out.Group = in.Group
+	out.Kind = in.Kind
+	out.Name = in.Name
+	return nil
+}
+
+func Convert_api_RedirectReference_To_v1_RedirectReference(in *api.RedirectReference, out *RedirectReference, s conversion.Scope) error {
+	return autoConvert_api_RedirectReference_To_v1_RedirectReference(in, out, s)
 }
 
 func autoConvert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, out *api.ScopeRestriction, s conversion.Scope) error {

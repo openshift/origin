@@ -53,13 +53,13 @@ Pre-requisites/Prep Time
         $ #  This will be a bit slow, but it should return a 503 HTTP code
         $ #  indicating that haproxy is serving on port 80.
         $ vagrant ssh minion-1
-        sudo docker ps  | grep "openshift/origin-haproxy-router"
-        curl -s -o /dev/null -w "%{http_code}\n"  http://localhost/
+        [minion-1@localhost ~]$ sudo docker ps  | grep "openshift/origin-haproxy-router"
+        [minion-1@localhost ~]$ curl -s -o /dev/null -w "%{http_code}\n"  http://localhost/
 
         $ #  Repeat on minion-2:
         $ vagrant ssh minion-2
-        sudo docker ps  | grep "openshift/origin-haproxy-router"
-        curl -s -o /dev/null -w "%{http_code}\n"  http://localhost/
+        [minion-2@localhost ~]$ sudo docker ps  | grep "openshift/origin-haproxy-router"
+        [minion-2@localhost ~]$ curl -s -o /dev/null -w "%{http_code}\n"  http://localhost/
 
 
 5. Create an user, project and app.

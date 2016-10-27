@@ -2,6 +2,9 @@ package docker
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -9,25 +12,32 @@ import (
 	"regexp"
 	"strings"
 
-	client "github.com/fsouza/go-dockerclient"
-
+	"github.com/docker/engine-api/client"
+	"github.com/openshift/origin/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
-// glog is a placeholder until the builders pass an output stream down
-// client facing libraries should not be using glog
-var glog = utilglog.StderrLog
+var (
+	// glog is a placeholder until the builders pass an output stream down
+	// client facing libraries should not be using glog
+	glog = utilglog.StderrLog
 
-// ImageReference points to a Docker image.
-type ImageReference struct {
-	Registry  string
-	Namespace string
-	Name      string
-	Tag       string
-	ID        string
+	// DefaultEntrypoint is the default entry point used when starting containers
+	DefaultEntrypoint = []string{"/usr/bin/env"}
+)
+
+// AuthConfigurations maps a registry name to an AuthConfig, as used for example
+// in the .dockercfg file
+type AuthConfigurations struct {
+	Configs map[string]api.AuthConfig
+}
+
+type dockerConfig struct {
+	Auth  string `json:"auth"`
+	Email string `json:"email"`
 }
 
 const (
@@ -38,29 +48,31 @@ const (
 
 // GetImageRegistryAuth retrieves the appropriate docker client authentication object for a given
 // image name and a given set of client authentication objects.
-func GetImageRegistryAuth(auths *client.AuthConfigurations, imageName string) client.AuthConfiguration {
+func GetImageRegistryAuth(auths *AuthConfigurations, imageName string) api.AuthConfig {
 	glog.V(5).Infof("Getting docker credentials for %s", imageName)
-	spec, err := ParseImageReference(imageName)
+	ref, err := reference.ParseNamedDockerImageReference(imageName)
 	if err != nil {
 		glog.V(0).Infof("error: Failed to parse docker reference %s", imageName)
-		return client.AuthConfiguration{}
+		return api.AuthConfig{}
 	}
 
-	if auth, ok := auths.Configs[spec.Registry]; ok {
-		glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, spec.Registry, imageName)
-		return auth
+	if ref.Registry != "" {
+		if auth, ok := auths.Configs[ref.Registry]; ok {
+			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, ref.Registry, imageName)
+			return auth
+		}
 	}
 	if auth, ok := auths.Configs[defaultRegistry]; ok {
 		glog.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
 		return auth
 	}
-	return client.AuthConfiguration{}
+	return api.AuthConfig{}
 }
 
 // LoadImageRegistryAuth loads and returns the set of client auth objects from a docker config
 // json file.
-func LoadImageRegistryAuth(dockerCfg io.Reader) *client.AuthConfigurations {
-	auths, err := client.NewAuthConfigurations(dockerCfg)
+func LoadImageRegistryAuth(dockerCfg io.Reader) *AuthConfigurations {
+	auths, err := NewAuthConfigurations(dockerCfg)
 	if err != nil {
 		glog.V(0).Infof("error: Unable to load docker config")
 		return nil
@@ -68,13 +80,78 @@ func LoadImageRegistryAuth(dockerCfg io.Reader) *client.AuthConfigurations {
 	return auths
 }
 
+// begin next 3 methods borrowed from go-dockerclient
+
+// NewAuthConfigurations finishes creating the auth config array s2i pulls
+// from any auth config file it is pointed to when started from the command line
+func NewAuthConfigurations(r io.Reader) (*AuthConfigurations, error) {
+	var auth *AuthConfigurations
+	confs, err := parseDockerConfig(r)
+	if err != nil {
+		return nil, err
+	}
+	auth, err = authConfigs(confs)
+	if err != nil {
+		return nil, err
+	}
+	return auth, nil
+}
+
+// parseDockerConfig does the json unmarshalling of the data we read from the file
+func parseDockerConfig(r io.Reader) (map[string]dockerConfig, error) {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r)
+	byteData := buf.Bytes()
+
+	confsWrapper := struct {
+		Auths map[string]dockerConfig `json:"auths"`
+	}{}
+	if err := json.Unmarshal(byteData, &confsWrapper); err == nil {
+		if len(confsWrapper.Auths) > 0 {
+			return confsWrapper.Auths, nil
+		}
+	}
+
+	var confs map[string]dockerConfig
+	if err := json.Unmarshal(byteData, &confs); err != nil {
+		return nil, err
+	}
+	return confs, nil
+}
+
+// authConfigs converts a dockerConfigs map to a AuthConfigurations object.
+func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
+	c := &AuthConfigurations{
+		Configs: make(map[string]api.AuthConfig),
+	}
+	for reg, conf := range confs {
+		data, err := base64.StdEncoding.DecodeString(conf.Auth)
+		if err != nil {
+			return nil, err
+		}
+		userpass := strings.SplitN(string(data), ":", 2)
+		if len(userpass) != 2 {
+			return nil, fmt.Errorf("cannot parse username/password from %s", userpass)
+		}
+		c.Configs[reg] = api.AuthConfig{
+			Email:         conf.Email,
+			Username:      userpass[0],
+			Password:      userpass[1],
+			ServerAddress: reg,
+		}
+	}
+	return c, nil
+}
+
+// end block of 3 methods borrowed from go-dockerclient
+
 // LoadAndGetImageRegistryAuth loads the set of client auth objects from a docker config file
 // and returns the appropriate client auth object for a given image name.
-func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.AuthConfiguration {
-	auths, err := client.NewAuthConfigurations(dockerCfg)
+func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) api.AuthConfig {
+	auths, err := NewAuthConfigurations(dockerCfg)
 	if err != nil {
 		glog.V(0).Infof("error: Unable to load docker config")
-		return client.AuthConfiguration{}
+		return api.AuthConfig{}
 	}
 	return GetImageRegistryAuth(auths, imageName)
 }
@@ -90,7 +167,7 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 			// we're ignoring ErrClosedPipe, as this is information
 			// the docker container ended streaming logs
 			if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
-				glog.V(0).Infof("error: Error reading docker stderr, %v", err)
+				glog.V(0).Infof("error: Error reading docker stderr, %#v", err)
 			}
 			break
 		}
@@ -98,54 +175,6 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 		if errOutput != nil && len(*errOutput) < maxErrorOutput {
 			*errOutput += text + "\n"
 		}
-	}
-}
-
-// ParseImageReference parses a Docker pull spec string into a ImageReference.
-// FIXME: This code was copied from OpenShift repository.
-func ParseImageReference(spec string) (ImageReference, error) {
-	var ref ImageReference
-
-	// TODO replace with docker version once docker/docker PR11109 is merged upstream
-	stream, tag, id := parseRepositoryTag(spec)
-
-	repoParts := strings.Split(stream, "/")
-	switch len(repoParts) {
-	case 2:
-		if strings.Contains(repoParts[0], ":") {
-			// registry/name
-			ref.Registry = repoParts[0]
-			ref.Namespace = "library"
-			ref.Name = repoParts[1]
-			ref.Tag = tag
-			ref.ID = id
-			return ref, nil
-		}
-		// namespace/name
-		ref.Namespace = repoParts[0]
-		ref.Name = repoParts[1]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	case 3:
-		// registry/namespace/name
-		ref.Registry = repoParts[0]
-		ref.Namespace = repoParts[1]
-		ref.Name = repoParts[2]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	case 1:
-		// name
-		if len(repoParts[0]) == 0 {
-			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
-		}
-		ref.Name = repoParts[0]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	default:
-		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
 }
 
@@ -180,7 +209,7 @@ func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullR
 	}
 
 	var (
-		image *client.Image
+		image *api.Image
 		err   error
 	)
 	switch policy {
@@ -260,7 +289,8 @@ func IsReachable(config *api.Config) bool {
 	if err != nil {
 		return false
 	}
-	return d.Ping() == nil
+	_, err = d.Version()
+	return err == nil
 }
 
 func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config, forcePull bool) (*PullResult, error) {
@@ -314,13 +344,14 @@ func GetRuntimeImage(config *api.Config, docker Docker) error {
 	return err
 }
 
+// GetDefaultDockerConfig checks relevant Docker environment variables to
+// provide defaults for our command line flags
 func GetDefaultDockerConfig() *api.DockerConfig {
 	cfg := &api.DockerConfig{}
 	if cfg.Endpoint = os.Getenv("DOCKER_HOST"); cfg.Endpoint == "" {
-		cfg.Endpoint = "unix:///var/run/docker.sock"
+		cfg.Endpoint = client.DefaultDockerHost
 	}
-	if os.Getenv("DOCKER_TLS_VERIFY") == "1" {
-		certPath := os.Getenv("DOCKER_CERT_PATH")
+	if certPath := os.Getenv("DOCKER_CERT_PATH"); certPath != "" {
 		cfg.CertFile = filepath.Join(certPath, "cert.pem")
 		cfg.KeyFile = filepath.Join(certPath, "key.pem")
 		cfg.CAFile = filepath.Join(certPath, "ca.pem")

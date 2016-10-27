@@ -390,5 +390,4 @@ func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
 			t.Errorf("Expected trigger to have ImageChange value")
 		}
 	}
-
 }

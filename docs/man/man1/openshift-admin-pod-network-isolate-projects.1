@@ -79,6 +79,10 @@ Allows projects to isolate their network from other projects when using the redh
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -96,11 +100,11 @@ Allows projects to isolate their network from other projects when using the redh
 .RS
 
 .nf
-	# Provide isolation for project p1
-	openshift admin pod\-network isolate\-projects <p1>
-
-	# Allow all projects with label name=top\-secret to have their own isolated project network
-	openshift admin pod\-network isolate\-projects \-\-selector='name=top\-secret'
+  # Provide isolation for project p1
+  openshift admin pod\-network isolate\-projects <p1>
+  
+  # Allow all projects with label name=top\-secret to have their own isolated project network
+  openshift admin pod\-network isolate\-projects \-\-selector='name=top\-secret'
 
 .fi
 .RE

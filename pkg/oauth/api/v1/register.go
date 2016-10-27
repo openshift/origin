@@ -11,7 +11,7 @@ const GroupName = ""
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
@@ -26,6 +26,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&OAuthClientList{},
 		&OAuthClientAuthorization{},
 		&OAuthClientAuthorizationList{},
+		&OAuthRedirectReference{},
 	)
 	return nil
 }
@@ -38,3 +39,4 @@ func (obj *OAuthAuthorizeTokenList) GetObjectKind() unversioned.ObjectKind      
 func (obj *OAuthAuthorizeToken) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *OAuthAccessTokenList) GetObjectKind() unversioned.ObjectKind         { return &obj.TypeMeta }
 func (obj *OAuthAccessToken) GetObjectKind() unversioned.ObjectKind             { return &obj.TypeMeta }
+func (obj *OAuthRedirectReference) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }

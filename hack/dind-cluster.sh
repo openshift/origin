@@ -1,11 +1,8 @@
 #!/bin/bash
 
-# WARNING: The script modifies the host on which it is run.  It loads
-# the openvwitch and br_netfilter modules and sets
-# net.bridge.bridge-nf-call-iptables=0.  Consider creating dind
-# clusters in a VM if this modification is undesirable:
-#
-#   OPENSHIFT_DIND_DEV_CLUSTER=1 vagrant up'
+# WARNING: The script modifies the host that docker is running on.  It
+# attempts to load the overlay and openvswitch modules. If this modification
+# is undesirable consider running docker in a VM.
 #
 # Overview
 # ========
@@ -19,7 +16,7 @@
 # Dependencies
 # ------------
 #
-# This script has been tested on Fedora 21, but should work on any
+# This script has been tested on Fedora 24, but should work on any
 # release.  Docker is assumed to be installed.  At this time,
 # boot2docker is not supported.
 #
@@ -34,20 +31,12 @@
 # -----------------------
 #
 # By default, a dind openshift cluster stores its configuration
-# (openshift.local.*) in /tmp/openshift-dind-cluster/openshift.  Since
-# configuration is stored in a different location than a
-# vagrant-deployed cluster (which stores configuration in the root of
-# the origin tree), vagrant and dind clusters can run simultaneously
-# without conflict.  It's also possible to run multiple dind clusters
-# simultaneously by overriding the instance prefix.  The following
-# command would ensure configuration was stored at
-# /tmp/openshift-dind/cluster/my-cluster:
+# (openshift.local.*) in /tmp/openshift-dind-cluster/openshift.  It's
+# possible to run multiple dind clusters simultaneously by overriding
+# the instance prefix.  The following command would ensure
+# configuration was stored at /tmp/openshift-dind/cluster/my-cluster:
 #
-#    OPENSHIFT_INSTANCE_PREFIX=my-cluster hack/dind-cluster.sh [command]
-#
-# It is also possible to specify an entirely different configuration path:
-#
-#    OPENSHIFT_CONFIG_ROOT=[path] hack/dind-cluster.sh [command]
+#    OPENSHIFT_CLUSTER_ID=my-cluster hack/dind-cluster.sh [command]
 #
 # Suggested Workflow
 # ------------------
@@ -55,10 +44,6 @@
 # When making changes to the deployment of a dind cluster or making
 # breaking golang changes, the 'restart' command will ensure that an
 # existing cluster is cleaned up before deploying a new cluster.
-#
-# When only making non-breaking changes to golang code, the 'redeploy'
-# command avoids restarting the cluster.  'redeploy' rebuilds the
-# openshift binaries and deploys them to the existing cluster.
 #
 # Running Tests
 # -------------
@@ -71,175 +56,59 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DIND_MANAGEMENT_SCRIPT=true
-
-source $(dirname "${BASH_SOURCE}")/../contrib/vagrant/provision-config.sh
-
-# Enable xtrace for container script invocations if it is enabled
-# for this script.
-BASH_CMD=
-if set +o | grep -q '\-o xtrace'; then
-  BASH_CMD="bash -x"
-fi
-
-DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
-
-# Override the default CONFIG_ROOT path with one that is
-# cluster-specific.
-TMPDIR="${TMPDIR:-"/tmp"}"
-CONFIG_ROOT=${OPENSHIFT_CONFIG_ROOT:-${TMPDIR}/openshift-dind-cluster/${INSTANCE_PREFIX}}
-
-DEPLOY_SSH=${OPENSHIFT_DEPLOY_SSH:-true}
-
-DEPLOYED_CONFIG_ROOT="/config"
-
-DEPLOYED_ROOT="/data/src/github.com/openshift/origin"
-
-SCRIPT_ROOT="${DEPLOYED_ROOT}/contrib/vagrant"
-
-function check-selinux() {
-  if [[ "$(getenforce)" = "Enforcing" ]]; then
-    >&2 echo "Error: This script is not compatible with SELinux enforcing mode."
-    exit 1
-  fi
-}
-
-DIND_IMAGE="openshift/dind"
-BUILD_IMAGES="${OPENSHIFT_DIND_BUILD_IMAGES:-1}"
-
-function build-image() {
-  local build_root=$1
-  local image_name=$2
-
-  pushd "${build_root}" > /dev/null
-    ${DOCKER_CMD} build -t "${image_name}" .
-  popd > /dev/null
-}
-
-function build-images() {
-  # Building images is done by default but can be disabled to allow
-  # separation of image build from cluster creation.
-  if [[ "${BUILD_IMAGES}" = "1" ]]; then
-    echo "Building container images"
-    build-image "${OS_ROOT}/images/dind" "${DIND_IMAGE}"
-  fi
-}
-
-function get-docker-ip() {
-  local cid=$1
-
-  ${DOCKER_CMD} inspect --format '{{ .NetworkSettings.IPAddress }}' "${cid}"
-}
-
-function docker-exec-script() {
-    local cid=$1
-    local cmd=$2
-
-    ${DOCKER_CMD} exec -t "${cid}" ${BASH_CMD} ${cmd}
-}
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+source "${OS_ROOT}/images/dind/node/openshift-dind-lib.sh"
 
 function start() {
+  local origin_root=$1
+  local config_root=$2
+  local deployed_config_root=$3
+  local cluster_id=$4
+  local network_plugin=$5
+  local wait_for_cluster=$6
+  local node_count=$7
+
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
 
-  echo "Configured network plugin: ${NETWORK_PLUGIN}"
+  echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}'"
 
-  # TODO(marun) - perform these operations in a container for boot2docker compat
-  echo "Ensuring compatible host configuration"
-  sudo modprobe openvswitch
-  sudo modprobe br_netfilter 2> /dev/null || true
-  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
-  # overlayfs, if available, will be faster than vfs
-  sudo modprobe overlay 2> /dev/null || true
-  mkdir -p "${CONFIG_ROOT}"
+  # Ensuring compatible host configuration
+  #
+  # Running in a container ensures that the docker host will be affected even
+  # if docker is running remotely.  The openshift/dind-node image was chosen
+  # due to its having sysctl installed.
+  ${DOCKER_CMD} run --privileged --net=host --rm -v /lib/modules:/lib/modules \
+                openshift/dind-node bash -e -c \
+                '/usr/sbin/modprobe openvswitch;
+                /usr/sbin/modprobe overlay 2> /dev/null || true;'
 
-  if [[ "${SKIP_BUILD}" = "true" ]]; then
-    echo "WARNING: Skipping image build due to OPENSHIFT_SKIP_BUILD=true"
-  else
-    build-images
-  fi
+  # Initialize the cluster config path
+  mkdir -p "${config_root}"
+  echo "OPENSHIFT_NETWORK_PLUGIN=${network_plugin}" > "${config_root}/network-plugin"
+  copy-runtime "${origin_root}" "${config_root}/"
 
-  ## Create containers
-  echo "Launching containers"
-  local root_volume="-v ${OS_ROOT}:${DEPLOYED_ROOT}"
-  local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
-  local volumes="${root_volume} ${config_volume}"
-  # systemd requires RTMIN+3 to shutdown properly
-  local stop="--stop-signal=$(kill -l RTMIN+3)"
-  local base_run_cmd="${DOCKER_CMD} run -dt ${stop} ${volumes}"
+  local volumes="-v ${config_root}:${deployed_config_root}"
+  local run_cmd="${DOCKER_CMD} run -dt ${volumes}  --privileged"
 
-  local master_cid="$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
-      --hostname="${MASTER_NAME}" "${DIND_IMAGE}")"
-  local master_ip="$(get-docker-ip "${master_cid}")"
-
-  local node_cids=()
-  local node_ips=()
+  # Create containers
+  ${run_cmd} --name="${MASTER_NAME}" --hostname="${MASTER_NAME}" "${MASTER_IMAGE}" > /dev/null
   for name in "${NODE_NAMES[@]}"; do
-    local cid="$(${base_run_cmd} --privileged --name="${name}" \
-        --hostname="${name}" "${DIND_IMAGE}")"
-    node_cids+=( "${cid}" )
-    node_ips+=( "$(get-docker-ip "${cid}")" )
-  done
-  node_ips="$(os::provision::join , ${node_ips[@]})"
-
-  ## Provision containers
-  local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
--n ${NETWORK_PLUGIN}"
-  if [[ "${SKIP_BUILD}" = "true" ]]; then
-      args="${args} -s"
-  fi
-
-  echo "Provisioning ${MASTER_NAME}"
-  local cmd="${SCRIPT_ROOT}/provision-master.sh ${args} -c \
-${DEPLOYED_CONFIG_ROOT}"
-  docker-exec-script "${master_cid}" "${cmd}"
-
-  if [[ "${DEPLOY_SSH}" = "true" ]]; then
-    ${DOCKER_CMD} exec -t "${master_cid}" ssh-keygen -N '' -q -f /root/.ssh/id_rsa
-    cmd="cat /root/.ssh/id_rsa.pub"
-    local public_key="$(${DOCKER_CMD} exec -t "${master_cid}" ${cmd})"
-    cmd="cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys"
-    ${DOCKER_CMD} exec -t "${master_cid}" ${cmd}
-    ${DOCKER_CMD} exec -t "${master_cid}" systemctl start sshd
-  fi
-
-  # Ensure that all users (e.g. outside the container) have read-write
-  # access to the openshift configuration.  Security shouldn't be a
-  # concern for dind since it should only be used for dev and test.
-  local openshift_config_path="${CONFIG_ROOT}/openshift.local.config"
-  find "${openshift_config_path}" -exec sudo chmod ga+rw {} \;
-  find "${openshift_config_path}" -type d -exec sudo chmod ga+x {} \;
-
-  for (( i=0; i < ${#node_cids[@]}; i++ )); do
-    local node_index=$((i + 1))
-    local cid="${node_cids[$i]}"
-    local name="${NODE_NAMES[$i]}"
-    echo "Provisioning ${name}"
-    cmd="${SCRIPT_ROOT}/provision-node.sh ${args} -i ${node_index} -c \
-${DEPLOYED_CONFIG_ROOT}"
-    docker-exec-script "${cid}" "${cmd}"
-
-    if [[ "${DEPLOY_SSH}" = "true" ]]; then
-      ${DOCKER_CMD} exec -t "${cid}" mkdir -p /root/.ssh
-      cmd="echo ${public_key} > /root/.ssh/authorized_keys"
-      ${DOCKER_CMD} exec -t "${cid}" bash -c "${cmd}"
-      ${DOCKER_CMD} exec -t "${cid}" systemctl start sshd
-    fi
+    ${run_cmd} --name="${name}" --hostname="${name}" "${NODE_IMAGE}" > /dev/null
   done
 
-  local rc_file="dind-${INSTANCE_PREFIX}.rc"
-  local admin_config="$(os::provision::get-admin-config ${CONFIG_ROOT})"
-  local bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
+  local rc_file="dind-${cluster_id}.rc"
+  local admin_config
+  admin_config="$(get-admin-config "${CONFIG_ROOT}")"
+  local bin_path
+  bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
   cat >"${rc_file}" <<EOF
 export KUBECONFIG=${admin_config}
 export PATH=\$PATH:${bin_path}
 EOF
 
-  # Disable the sdn node as late as possible to allow time for the
-  # node to register itself.
-  if [[ "${SDN_NODE}" = "true" ]]; then
-    os::provision::disable-node "${OS_ROOT}" "${CONFIG_ROOT}" \
-        "${SDN_NODE_NAME}"
+  if [[ -n "${wait_for_cluster}" ]]; then
+    wait-for-cluster "${config_root}" "${node_count}"
   fi
 
   if [[ "${KUBECONFIG:-}" != "${admin_config}"  ||
@@ -255,82 +124,120 @@ cluster's rc file to configure the bash environment:
 }
 
 function stop() {
-  echo "Cleaning up docker-in-docker containers"
+  local config_root=$1
+  local cluster_id=$2
 
-  local master_cid="$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")"
+  echo "Stopping dind cluster '${cluster_id}'"
+
+  local master_cid
+  master_cid="$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")"
   if [[ "${master_cid}" ]]; then
-    ${DOCKER_CMD} rm -f "${master_cid}"
+    ${DOCKER_CMD} rm -f "${master_cid}" > /dev/null
   fi
 
-  local node_cids="$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")"
+  local node_cids
+  node_cids="$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")"
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
-      ${DOCKER_CMD} rm -f "${cid}"
+      ${DOCKER_CMD} rm -f "${cid}" > /dev/null
     done
   fi
 
-  echo "Cleanup up configuration to avoid conflict with a future cluster"
+  # Cleaning up configuration to avoid conflict with a future cluster
   # The container will have created configuration as root
-  sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
+  sudo rm -rf "${config_root}"/openshift.local.etcd
+  sudo rm -rf "${config_root}"/openshift.local.config
 
   # Cleanup orphaned volumes
   #
   # See: https://github.com/jpetazzo/dind#important-warning-about-disk-usage
   #
-  echo "Cleaning up volumes used by docker-in-docker daemons"
-  local volume_ids=$(${DOCKER_CMD} volume ls -qf dangling=true)
-  if [[ "${volume_ids}" ]]; then
-    ${DOCKER_CMD} volume rm ${volume_ids}
-  fi
-}
-
-# Build and deploy openshift binaries to an existing cluster
-function redeploy() {
-  local node_service="openshift-node"
-
-  ${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c "\
-. ${SCRIPT_ROOT}/provision-util.sh ; \
-os::provision::build-origin ${DEPLOYED_ROOT} ${SKIP_BUILD}"
-
-  echo "Stopping ${MASTER_NAME} service(s)"
-  ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${MASTER_NAME}"
-  if [[ "${SDN_NODE}" = "true" ]]; then
-    ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl stop "${node_service}"
-  fi
-  echo "Updating ${MASTER_NAME} binaries"
-  ${DOCKER_CMD} exec -t "${MASTER_NAME}" bash -c \
-". ${SCRIPT_ROOT}/provision-util.sh ; \
-os::provision::install-cmds ${DEPLOYED_ROOT}"
-  echo "Starting ${MASTER_NAME} service(s)"
-  ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${MASTER_NAME}"
-  if [[ "${SDN_NODE}" = "true" ]]; then
-    ${DOCKER_CMD} exec -t "${MASTER_NAME}" systemctl start "${node_service}"
-  fi
-
-  for node_name in "${NODE_NAMES[@]}"; do
-    echo "Stopping ${node_name} service"
-    ${DOCKER_CMD} exec -t "${node_name}" systemctl stop "${node_service}"
-    echo "Updating ${node_name} binaries"
-    ${DOCKER_CMD} exec -t "${node_name}" bash -c "\
-. ${SCRIPT_ROOT}/provision-util.sh ; \
-os::provision::install-cmds ${DEPLOYED_ROOT}"
-    echo "Starting ${node_name} service"
-    ${DOCKER_CMD} exec -t "${node_name}" systemctl start "${node_service}"
+  for volume in $( ${DOCKER_CMD} volume ls -qf dangling=true ); do
+    ${DOCKER_CMD} volume rm "${volume}" > /dev/null
   done
 }
 
+function check-selinux() {
+  if [[ "$(getenforce)" = "Enforcing" ]]; then
+    >&2 echo "Error: This script is not compatible with SELinux enforcing mode."
+    exit 1
+  fi
+}
+
+function get-network-plugin() {
+  local plugin=$1
+
+  local subnet_plugin="redhat/openshift-ovs-subnet"
+  local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local default_plugin="${multitenant_plugin}"
+
+  if [[ "${plugin}" != "${subnet_plugin}" &&
+          "${plugin}" != "${multitenant_plugin}" &&
+          "${plugin}" != "cni" ]]; then
+    if [[ -n "${plugin}" ]]; then
+      >&2 echo "Invalid network plugin: ${plugin}"
+    fi
+    plugin="${default_plugin}"
+  fi
+  echo "${plugin}"
+}
+
+function get-docker-ip() {
+  local cid=$1
+
+  ${DOCKER_CMD} inspect --format '{{ .NetworkSettings.IPAddress }}' "${cid}"
+}
+
+function get-admin-config() {
+  local config_root=$1
+
+  echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
+}
+
+function copy-runtime() {
+  local origin_root=$1
+  local target=$2
+
+  cp "$(os::build::find-binary openshift)" "${target}"
+  cp "$(os::build::find-binary host-local)" "${target}"
+  cp "$(os::build::find-binary loopback)" "${target}"
+  cp "$(os::build::find-binary sdn-cni-plugin)" "${target}/openshift-sdn"
+  local osdn_plugin_path="${origin_root}/pkg/sdn/plugin"
+  cp "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target}"
+  cp "${osdn_plugin_path}/sdn-cni-plugin/80-openshift-sdn.conf" "${target}"
+}
+
+function wait-for-cluster() {
+  local config_root=$1
+  local expected_node_count=$2
+
+  # Increment the node count to ensure that the sdn node also reports readiness
+  (( expected_node_count++ ))
+
+  local kubeconfig
+  kubeconfig="$(get-admin-config "${config_root}")"
+  local oc
+  oc="$(os::build::find-binary oc)"
+
+  local msg="${expected_node_count} nodes to report readiness"
+  local condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
+  local timeout=120
+  os::util::wait-for-condition "${msg}" "${condition}" "${timeout}"
+}
+
 function nodes-are-ready() {
-  local oc="$(os::build::find-binary oc)"
-  local kc="$(os::provision::get-admin-config ${CONFIG_ROOT})"
+  local kubeconfig=$1
+  local oc=$2
+  local expected_node_count=$3
+
+  # TODO - do not count any node whose name matches the master node e.g. 'node-master'
   read -d '' template <<'EOF'
 {{range $item := .items}}
-  {{if not .spec.unschedulable}}
-    {{range .status.conditions}}
-      {{if eq .type "Ready"}}
-        {{if eq .status "True"}}
-          {{printf "%s\\n" $item.metadata.name}}
-        {{end}}
+  {{range .status.conditions}}
+    {{if eq .type "Ready"}}
+      {{if eq .status "True"}}
+        {{printf "%s\\n" $item.metadata.name}}
       {{end}}
     {{end}}
   {{end}}
@@ -338,42 +245,130 @@ function nodes-are-ready() {
 EOF
   # Remove formatting before use
   template="$(echo "${template}" | tr -d '\n' | sed -e 's/} \+/}/g')"
-  local count="$("${oc}" --config="${kc}" get nodes \
-                         --template "${template}" | wc -l)"
-  test "${count}" -ge "${NODE_COUNT}"
+  local count
+  count="$("${oc}" --config="${kubeconfig}" get nodes \
+                   --template "${template}" 2> /dev/null | \
+                   wc -l)"
+  test "${count}" -ge "${expected_node_count}"
 }
 
-function wait-for-cluster() {
-  local msg="nodes to register with the master"
-  local condition="nodes-are-ready"
-  os::provision::wait-for-condition "${msg}" "${condition}"
+function build-images() {
+  local origin_root=$1
+
+  echo "Building container images"
+  build-image "${origin_root}/images/dind/" "${BASE_IMAGE}"
+  build-image "${origin_root}/images/dind/node" "${NODE_IMAGE}"
+  build-image "${origin_root}/images/dind/master" "${MASTER_IMAGE}"
 }
+
+function build-image() {
+  local build_root=$1
+  local image_name=$2
+
+  pushd "${build_root}" > /dev/null
+    ${DOCKER_CMD} build -t "${image_name}" .
+  popd > /dev/null
+}
+
+DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
+
+CLUSTER_ID="${OPENSHIFT_CLUSTER_ID:-openshift}"
+
+TMPDIR="${TMPDIR:-"/tmp"}"
+CONFIG_ROOT="${OPENSHIFT_CONFIG_ROOT:-${TMPDIR}/openshift-dind-cluster/${CLUSTER_ID}}"
+DEPLOYED_CONFIG_ROOT="/data"
+
+MASTER_NAME="${CLUSTER_ID}-master"
+NODE_PREFIX="${CLUSTER_ID}-node-"
+NODE_COUNT=2
+NODE_NAMES=()
+for (( i=1; i<=NODE_COUNT; i++ )); do
+  NODE_NAMES+=( "${NODE_PREFIX}${i}" )
+done
+
+BASE_IMAGE="openshift/dind"
+NODE_IMAGE="openshift/dind-node"
+MASTER_IMAGE="openshift/dind-master"
 
 case "${1:-""}" in
   start)
-    start
+    BUILD=
+    BUILD_IMAGES=
+    WAIT_FOR_CLUSTER=1
+    NETWORK_PLUGIN=
+    REMOVE_EXISTING_CLUSTER=
+    OPTIND=2
+    while getopts ":bin:rs" opt; do
+      case $opt in
+        b)
+          BUILD=1
+          ;;
+        i)
+          BUILD_IMAGES=1
+          ;;
+        n)
+          NETWORK_PLUGIN="${OPTARG}"
+          ;;
+        r)
+          REMOVE_EXISTING_CLUSTER=1
+          ;;
+        s)
+          WAIT_FOR_CLUSTER=
+          ;;
+        \?)
+          echo "Invalid option: -${OPTARG}" >&2
+          exit 1
+          ;;
+        :)
+          echo "Option -${OPTARG} requires an argument." >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    if [[ -n "${REMOVE_EXISTING_CLUSTER}" ]]; then
+      stop "${CONFIG_ROOT}" "${CLUSTER_ID}"
+    fi
+
+    # Build origin if requested or required
+    if [[ -n "${BUILD}" || -z "$(os::build::find-binary oc)" ]]; then
+      "${OS_ROOT}/hack/build-go.sh"
+    fi
+
+    # Build images if requested or required
+    if [[ -n "${BUILD_IMAGES}" ||
+            -z "$(${DOCKER_CMD} images -q ${MASTER_IMAGE})" ]]; then
+      build-images "${OS_ROOT}"
+    fi
+
+    NETWORK_PLUGIN="$(get-network-plugin "${NETWORK_PLUGIN}")"
+    start "${OS_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
+          "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${WAIT_FOR_CLUSTER}" \
+          "${NODE_COUNT}" "${NODE_PREFIX}"
     ;;
   stop)
-    stop
-    ;;
-  restart)
-    stop
-    start
-    ;;
-  redeploy)
-    redeploy
+    stop "${CONFIG_ROOT}" "${CLUSTER_ID}"
     ;;
   wait-for-cluster)
-    wait-for-cluster
+    wait-for-cluster "${CONFIG_ROOT}" "${NODE_COUNT}"
     ;;
   build-images)
-    BUILD_IMAGES=1
-    build-images
-    ;;
-  config-host)
-    os::provision::set-os-env "${OS_ROOT}" "${CONFIG_ROOT}"
+    build-images "${OS_ROOT}"
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|redeploy|wait-for-cluster|build-images|config-host}"
+    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images}
+
+start accepts the following arguments:
+
+ -n [net plugin]   the name of the network plugin to deploy
+
+ -b                build origin before starting the cluster
+
+ -i                build container images before starting the cluster
+
+ -r                remove an existing cluster
+
+ -s                skip waiting for nodes to become ready
+"
     exit 2
 esac

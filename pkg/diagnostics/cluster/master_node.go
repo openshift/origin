@@ -14,15 +14,14 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 const masterNotRunningAsANode = `Unable to find a node matching the cluster server IP.
 This may indicate the master is not also running a node, and is unable
 to proxy to pods over the Open vSwitch SDN.
 `
-
-const ovsSubnetPluginName = "redhat/openshift-ovs-subnet"
-const ovsMultiTenantPluginName = "redhat/openshift-ovs-multitenant"
 
 // MasterNode is a Diagnostic for checking that the OpenShift master is also running as node.
 // This is currently required to have the master on the Open vSwitch SDN and able to communicate
@@ -62,18 +61,8 @@ func (d *MasterNode) CanRun() (bool, error) {
 			return false, types.DiagnosticError{ID: "DClu3008",
 				LogMessage: fmt.Sprintf("Master config provided but unable to parse: %s", masterErr), Cause: masterErr}
 		}
-		networkPluginName := masterCfg.NetworkConfig.NetworkPluginName
-
-		// Make sure this is an OVS network plugin:
-		ovsNetworkPlugins := [2]string{ovsSubnetPluginName, ovsMultiTenantPluginName}
-		usingOvsNetworkPlugin := false
-		for _, plugin := range ovsNetworkPlugins {
-			if plugin == networkPluginName {
-				usingOvsNetworkPlugin = true
-			}
-		}
-		if !usingOvsNetworkPlugin {
-			return false, errors.New(fmt.Sprintf("Network plugin does not require master to also run node: %s", networkPluginName))
+		if !sdnapi.IsOpenShiftNetworkPlugin(masterCfg.NetworkConfig.NetworkPluginName) {
+			return false, errors.New(fmt.Sprintf("Network plugin does not require master to also run node: %s", masterCfg.NetworkConfig.NetworkPluginName))
 		}
 	}
 

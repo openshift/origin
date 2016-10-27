@@ -3,7 +3,6 @@ package deploymentconfig
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"github.com/golang/glog"
 
@@ -77,6 +76,7 @@ type DeploymentConfigController struct {
 // Handle implements the loop that processes deployment configs. Since this controller started
 // using caches, the provided config MUST be deep-copied beforehand (see work() in factory.go).
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
+	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
 	// There's nothing to reconcile until the version is nonzero.
 	if config.Status.LatestVersion == 0 {
 		return c.updateStatus(config, []kapi.ReplicationController{})
@@ -109,35 +109,34 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			}
 			// Cancel running deployments.
 			awaitingCancellations = true
-			if !deployutil.IsDeploymentCancelled(&deployment) {
+			if deployutil.IsDeploymentCancelled(&deployment) {
+				continue
+			}
 
-				// Retry faster on conflicts
-				var updatedDeployment *kapi.ReplicationController
-				if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
-					rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
-					if kapierrors.IsNotFound(err) {
-						return nil
-					}
-					if err != nil {
-						return err
-					}
-					copied, err := deployutil.DeploymentDeepCopy(rc)
-					if err != nil {
-						return err
-					}
-					copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-					copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-					updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
-					return err
-				}); err != nil {
-					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
-				} else {
-					if updatedDeployment != nil {
-						// replace the current deployment with the updated copy so that a future update has a chance at working
-						existingDeployments[i] = *updatedDeployment
-						c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
-					}
+			// Retry faster on conflicts
+			var updatedDeployment *kapi.ReplicationController
+			if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				if kapierrors.IsNotFound(err) {
+					return nil
 				}
+				if err != nil {
+					return err
+				}
+				copied, err := deployutil.DeploymentDeepCopy(rc)
+				if err != nil {
+					return err
+				}
+				copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+				copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
+				updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
+				return err
+			}); err != nil {
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
+			} else if updatedDeployment != nil {
+				// replace the current deployment with the updated copy so that a future update has a chance at working
+				existingDeployments[i] = *updatedDeployment
+				c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
 			}
 		}
 	}
@@ -182,9 +181,13 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return c.updateStatus(config, existingDeployments)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
+		// We don't care about this error since we need to report the create failure.
+		cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.FailedRcCreateReason, err.Error())
+		_ = c.updateStatus(config, existingDeployments, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
+	msg := fmt.Sprintf("Created new replication controller %q for version %d", created.Name, config.Status.LatestVersion)
+	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", msg)
 
 	// As we've just created a new deployment, we need to make sure to clean
 	// up old deployments if we have reached our deployment history quota
@@ -193,7 +196,8 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
 	}
 
-	return c.updateStatus(config, existingDeployments)
+	cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
+	return c.updateStatus(config, existingDeployments, *cond)
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -202,90 +206,8 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 // successful deployment, not necessarily the latest in terms of the config
 // version. The active deployment replica count should follow the config, and
 // all other deployments should be scaled to zero.
-//
-// Previously, scaling behavior was that the config replica count was used
-// only for initial deployments and the active deployment had to be scaled up
-// directly. To continue supporting that old behavior we must detect when the
-// deployment has been directly manipulated, and if so, preserve the directly
-// updated value and sync the config with the deployment.
 func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []kapi.ReplicationController, config *deployapi.DeploymentConfig) error {
-	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
-	if !latestIsDeployed {
-		// We shouldn't be reconciling if the latest deployment hasn't been
-		// created; this is enforced on the calling side, but double checking
-		// can't hurt.
-		return c.updateStatus(config, existingDeployments)
-	}
-	activeDeployment := deployutil.ActiveDeployment(config, existingDeployments)
-	// Compute the replica count for the active deployment (even if the active
-	// deployment doesn't exist). The active replica count is the value that
-	// should be assigned to the config, to allow the replica propagation to
-	// flow downward from the config.
-	//
-	// By default we'll assume the config replicas should be used to update the
-	// active deployment except in special cases (like first sync or externally
-	// updated deployments.)
-	activeReplicas := config.Spec.Replicas
-	source := "the deploymentConfig itself (no change)"
-
-	activeDeploymentExists := activeDeployment != nil
-	activeDeploymentIsLatest := activeDeploymentExists && activeDeployment.Name == latestDeployment.Name
-	latestDesiredReplicas, latestHasDesiredReplicas := deployutil.DeploymentDesiredReplicas(latestDeployment)
-
-	switch {
-	case activeDeploymentExists && activeDeploymentIsLatest:
-		// The active/latest deployment follows the config unless this is its first
-		// sync or if an external change to the deployment replicas is detected.
-		lastActiveReplicas, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
-		if !hasLastActiveReplicas || lastActiveReplicas != activeDeployment.Spec.Replicas {
-			activeReplicas = activeDeployment.Spec.Replicas
-			source = fmt.Sprintf("the latest/active deployment %q which was scaled directly or has not previously been synced", deployutil.LabelForDeployment(activeDeployment))
-		}
-	case activeDeploymentExists && !activeDeploymentIsLatest:
-		// The active/non-latest deployment follows the config if it was
-		// previously synced; if this is the first sync, infer what the config
-		// value should be based on either the latest desired or whatever the
-		// deployment is currently scaled to.
-		_, hasLastActiveReplicas := deployutil.DeploymentReplicas(activeDeployment)
-		if hasLastActiveReplicas {
-			break
-		}
-		if latestHasDesiredReplicas {
-			activeReplicas = latestDesiredReplicas
-			source = fmt.Sprintf("the desired replicas of latest deployment %q which has not been previously synced", deployutil.LabelForDeployment(latestDeployment))
-		} else if activeDeployment.Spec.Replicas > 0 {
-			activeReplicas = activeDeployment.Spec.Replicas
-			source = fmt.Sprintf("the active deployment %q which has not been previously synced", deployutil.LabelForDeployment(activeDeployment))
-		}
-	case !activeDeploymentExists && latestHasDesiredReplicas:
-		// If there's no active deployment, use the latest desired, if available.
-		activeReplicas = latestDesiredReplicas
-		source = fmt.Sprintf("the desired replicas of latest deployment %q with no active deployment", deployutil.LabelForDeployment(latestDeployment))
-	}
-
-	// Bring the config in sync with the deployment. Once we know the config
-	// accurately represents the desired replica count of the active deployment,
-	// we can safely reconcile deployments.
-	//
-	// If the deployment config is test, never update the deployment config based
-	// on deployments, since test behavior overrides user scaling.
-	switch {
-	case config.Spec.Replicas == activeReplicas:
-	case config.Spec.Test:
-		glog.V(4).Infof("Detected changed replicas for test deploymentConfig %q, ignoring that change", deployutil.LabelForDeploymentConfig(config))
-	default:
-		copied, err := deployutil.DeploymentConfigDeepCopy(config)
-		if err != nil {
-			return err
-		}
-		oldReplicas := copied.Spec.Replicas
-		copied.Spec.Replicas = activeReplicas
-		config, err = c.dn.DeploymentConfigs(copied.Namespace).Update(copied)
-		if err != nil {
-			return err
-		}
-		glog.V(4).Infof("Synced deploymentConfig %q replicas from %d to %d based on %s", deployutil.LabelForDeploymentConfig(config), oldReplicas, activeReplicas, source)
-	}
+	activeDeployment := deployutil.ActiveDeployment(existingDeployments)
 
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
@@ -299,16 +221,16 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		oldReplicaCount := deployment.Spec.Replicas
 		newReplicaCount := int32(0)
 		if isActiveDeployment {
-			newReplicaCount = activeReplicas
+			newReplicaCount = config.Spec.Replicas
 		}
 		if config.Spec.Test {
 			glog.V(4).Infof("Deployment config %q is test and deployment %q will be scaled down", deployutil.LabelForDeploymentConfig(config), deployutil.LabelForDeployment(&deployment))
 			newReplicaCount = 0
 		}
-		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
+
 		// Only update if necessary.
 		var copied *kapi.ReplicationController
-		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
+		if newReplicaCount != oldReplicaCount {
 			if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
 				// refresh the replication controller version
 				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
@@ -321,22 +243,15 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 					return err
 				}
 				copied.Spec.Replicas = newReplicaCount
-				copied.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
-				_, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
+				copied, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 				return err
 			}); err != nil {
-				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
-					"Failed to scale deployment %q from %d to %d: %v", deployment.Name, oldReplicaCount, newReplicaCount, err)
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "ReplicationControllerScaleFailed",
+					"Failed to scale replication controler %q from %d to %d: %v", deployment.Name, oldReplicaCount, newReplicaCount, err)
 				return err
 			}
 
-			// Only report scaling events if we changed the replica count.
-			if oldReplicaCount != newReplicaCount {
-				c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentScaled",
-					"Scaled deployment %q from %d to %d", copied.Name, oldReplicaCount, newReplicaCount)
-			} else {
-				glog.V(4).Infof("Updated deployment %q replica annotation to match current replica count %d", deployutil.LabelForDeployment(copied), newReplicaCount)
-			}
+			c.recorder.Eventf(config, kapi.EventTypeNormal, "ReplicationControllerScaled", "Scaled replication controller %q from %d to %d", copied.Name, oldReplicaCount, newReplicaCount)
 			toAppend = *copied
 		}
 
@@ -345,15 +260,17 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 
 	// As the deployment configuration has changed, we need to make sure to clean
 	// up old deployments if we have now reached our deployment history quota
-	if err := c.cleanupOldDeployments(existingDeployments, config); err != nil {
-		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
+	if err := c.cleanupOldDeployments(updatedDeployments, config); err != nil {
+		c.recorder.Eventf(config, kapi.EventTypeWarning, "ReplicationControllerCleanupFailed", "Couldn't clean up replication controllers: %v", err)
 	}
 
 	return c.updateStatus(config, updatedDeployments)
 }
 
-func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig, deployments []kapi.ReplicationController) error {
-	newStatus, err := c.calculateStatus(*config, deployments)
+// Update the status of the provided deployment config. Additional conditions will override any other condition in the
+// deployment config status.
+func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig, deployments []kapi.ReplicationController, additional ...deployapi.DeploymentCondition) error {
+	newStatus, err := c.calculateStatus(*config, deployments, additional...)
 	if err != nil {
 		glog.V(2).Infof("Cannot calculate the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
 		return err
@@ -371,6 +288,7 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	}
 
 	copied.Status = newStatus
+	// TODO: Retry update conficts
 	if _, err := c.dn.DeploymentConfigs(copied.Namespace).UpdateStatus(copied); err != nil {
 		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(copied), err)
 		return err
@@ -379,8 +297,9 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	return nil
 }
 
-func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []kapi.ReplicationController) (deployapi.DeploymentConfigStatus, error) {
+func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []kapi.ReplicationController, additional ...deployapi.DeploymentCondition) (deployapi.DeploymentConfigStatus, error) {
 	selector := labels.Set(config.Spec.Selector).AsSelector()
+	// TODO: Replace with using rc.status.availableReplicas that comes with the next rebase.
 	pods, err := c.podStore.Pods(config.Namespace).List(selector)
 	if err != nil {
 		return config.Status, err
@@ -390,17 +309,16 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 	// UpdatedReplicas represents the replicas that use the deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
 	latestReplicas := int32(0)
-	for _, deployment := range deployments {
-		if deployment.Name == deployutil.LatestDeploymentNameForConfig(&config) {
-			updatedDeployment := []kapi.ReplicationController{deployment}
-			latestReplicas = deployutil.GetStatusReplicaCountForDeployments(updatedDeployment)
-			break
-		}
+	latestExists, latestRC := deployutil.LatestDeploymentInfo(&config, deployments)
+	if !latestExists {
+		latestRC = nil
+	} else {
+		latestReplicas = deployutil.GetStatusReplicaCountForDeployments([]kapi.ReplicationController{*latestRC})
 	}
 
 	total := deployutil.GetReplicaCountForDeployments(deployments)
 
-	return deployapi.DeploymentConfigStatus{
+	status := deployapi.DeploymentConfigStatus{
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
 		ObservedGeneration:  config.Generation,
@@ -408,7 +326,68 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
 		UnavailableReplicas: total - available,
-	}, nil
+		Conditions:          config.Status.Conditions,
+	}
+
+	isProgressing := deployutil.IsProgressing(config, status)
+	updateConditions(config, &status, latestRC, isProgressing)
+	for _, cond := range additional {
+		deployutil.SetDeploymentCondition(&status, cond)
+	}
+
+	return status, nil
+}
+
+func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController, isProgressing bool) {
+	// Availability condition.
+	if newStatus.AvailableReplicas >= config.Spec.Replicas-deployutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
+		minAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionTrue, "", "Deployment config has minimum availability.")
+		deployutil.SetDeploymentCondition(newStatus, *minAvailability)
+	} else {
+		noMinAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionFalse, "", "Deployment config does not have minimum availability.")
+		deployutil.SetDeploymentCondition(newStatus, *noMinAvailability)
+	}
+
+	// Condition about progress.
+	cond := deployutil.GetDeploymentCondition(*newStatus, deployapi.DeploymentProgressing)
+	if latestRC != nil {
+		switch deployutil.DeploymentStatusFor(latestRC) {
+		case deployapi.DeploymentStatusPending:
+			msg := fmt.Sprintf("Waiting on deployer pod for replication controller %q to be scheduled", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		case deployapi.DeploymentStatusRunning:
+			if isProgressing {
+				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
+				msg := fmt.Sprintf("Replication controller %q is progressing", latestRC.Name)
+				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
+				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
+				// of the last time the condition transitioned to a new status. We should probably change that.
+				deployutil.SetDeploymentCondition(newStatus, *condition)
+			}
+		case deployapi.DeploymentStatusFailed:
+			msg := fmt.Sprintf("Replication controller %q has failed progressing", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		case deployapi.DeploymentStatusComplete:
+			msg := fmt.Sprintf("Replication controller %q has completed progressing", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		}
+	}
+	// Pause / resume condition. Since we don't pause running deployments, let's use paused conditions only when a deployment
+	// actually terminates. For now it may be ok to override lack of progress in the conditions, later we may want to separate
+	// paused from the rest of the progressing conditions.
+	if latestRC == nil || deployutil.IsTerminatedDeployment(latestRC) {
+		pausedCondExists := cond != nil && cond.Reason == deployutil.PausedDeployReason
+		if config.Spec.Paused && !pausedCondExists {
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.PausedDeployReason, "Deployment config is paused")
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		} else if !config.Spec.Paused && pausedCondExists {
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.ResumedDeployReason, "Deployment config is resumed")
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		}
+	}
 }
 
 func (c *DeploymentConfigController) handleErr(err error, key interface{}) {

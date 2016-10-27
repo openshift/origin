@@ -16,9 +16,7 @@ openshift infra deploy \- Run the deployer
 Perform a deployment
 
 .PP
-This command launches a deployment as described by a deployment configuration. It accepts the name
-of a replication controller created by a deployment and runs that deployment to completion. You can
-use the \-\-until flag to run the deployment until you reach the specified condition.
+This command launches a deployment as described by a deployment configuration. It accepts the name of a replication controller created by a deployment and runs that deployment to completion. You can use the \-\-until flag to run the deployment until you reach the specified condition.
 
 .PP
 Available conditions:
@@ -26,27 +24,35 @@ Available conditions:
 
 .IP
 \(bu "start": after old deployments are scaled to zero
+.br
 .IP
 \(bu "pre": after the pre hook completes (even if no hook specified)
+.br
 .IP
 \(bu "mid": after the mid hook completes (even if no hook specified)
+.br
 .IP
 \(bu A percentage of the deployment, based on which strategy is in use
+.br
 .IP 
 
 .IP
 \(bu "0%"   Recreate after the previous deployment is scaled to zero
+.br
 .IP
 \(bu "N%"   Recreate after the acceptance check if this is not the first deployment
+.br
 .IP
 \(bu "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
+.br
 .IP
 \(bu "N%"   Rolling  the percentage of pods in the target deployment that are ready
+.br
 .IP
 \(bu "100%" All      after the deployment is at full scale, but before the post hook runs
+.br
 .PP
-Unrecognized conditions will be ignored and the deployment will run to completion. You can run this
-command multiple times when \-\-until is specified \- hooks will only be executed once.
+Unrecognized conditions will be ignored and the deployment will run to completion. You can run this command multiple times when \-\-until is specified \- hooks will only be executed once.
 
 
 .SH OPTIONS

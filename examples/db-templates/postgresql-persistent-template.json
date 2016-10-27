@@ -5,10 +5,15 @@
     "name": "postgresql-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "PostgreSQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "PostgreSQL (Persistent)",
+      "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.",
+  "labels": {
+    "template": "postgresql-persistent-template"
   },
   "objects": [
     {
@@ -76,7 +81,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.5",
+                "name": "postgresql:${POSTGRESQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -221,9 +226,13 @@
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
       "required": true
+    },
+    {
+      "name": "POSTGRESQL_VERSION",
+      "displayName": "Version of PostgreSQL Image",
+      "description": "Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).",
+      "value": "9.5",
+      "required": true
     }
-  ],
-  "labels": {
-    "template": "postgresql-persistent-template"
-  }
+  ]
 }

@@ -87,6 +87,9 @@ func (c *AccessRequest) GetTokenUrl() *url.URL {
 		// grant_type, code, redirect_uri
 		uq.Add("code", c.AuthorizeData.Code)
 		uq.Add("redirect_uri", c.client.config.RedirectUrl)
+		if c.client.config.CodeVerifier != "" {
+			uq.Add("code_verifier", c.client.config.CodeVerifier)
+		}
 
 	case CLIENT_CREDENTIALS:
 		// https://tools.ietf.org/html/rfc6749#section-4.4.2

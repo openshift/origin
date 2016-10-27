@@ -105,7 +105,11 @@ assetConfig:
     namedCertificates: null
     requestTimeoutSeconds: 0
 auditConfig:
+  auditFilePath: ""
   enabled: false
+  maximumFileRetentionDays: 0
+  maximumFileSizeMegabytes: 0
+  maximumRetainedFiles: 0
 controllerConfig:
   serviceServingCert:
     signer: null

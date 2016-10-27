@@ -14,7 +14,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "description": "Build and run Ruby applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby",
@@ -28,7 +29,8 @@
           {
             "name": "2.0",
             "annotations": {
-              "description": "Build and run Ruby 2.0 applications",
+              "openshift.io/display-name": "Ruby 2.0",
+              "description": "Build and run Ruby 2.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.0,ruby",
@@ -43,7 +45,8 @@
           {
             "name": "2.2",
             "annotations": {
-              "description": "Build and run Ruby 2.2 applications",
+              "openshift.io/display-name": "Ruby 2.2",
+              "description": "Build and run Ruby 2.2 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.2,ruby",
@@ -58,7 +61,8 @@
           {
             "name": "2.3",
             "annotations": {
-              "description": "Build and run Ruby 2.3 applications",
+              "openshift.io/display-name": "Ruby 2.3",
+              "description": "Build and run Ruby 2.3 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.3,ruby",
@@ -84,7 +88,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run NodeJS applications",
+              "openshift.io/display-name": "Node.js (Latest)",
+              "description": "Build and run Node.js applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs",
@@ -98,7 +103,8 @@
           {
             "name": "0.10",
             "annotations": {
-              "description": "Build and run NodeJS 0.10 applications",
+              "openshift.io/display-name": "Node.js 0.10",
+              "description": "Build and run Node.js 0.10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:0.10,nodejs:0.1,nodejs",
@@ -113,7 +119,8 @@
           {
             "name": "4",
             "annotations": {
-              "description": "Build and run NodeJS 4.x applications",
+              "openshift.io/display-name": "Node.js 4",
+              "description": "Build and run Node.js 4 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:4,nodejs",
@@ -139,7 +146,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications",
+              "openshift.io/display-name": "Perl (Latest)",
+              "description": "Build and run Perl applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl",
@@ -153,7 +161,8 @@
           {
             "name": "5.16",
             "annotations": {
-              "description": "Build and run Perl 5.16 applications",
+              "openshift.io/display-name": "Perl 5.16",
+              "description": "Build and run Perl 5.16 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.16,perl",
@@ -168,7 +177,8 @@
           {
             "name": "5.20",
             "annotations": {
-              "description": "Build and run Perl 5.20 applications",
+              "openshift.io/display-name": "Perl 5.20",
+              "description": "Build and run Perl 5.20 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.20,perl",
@@ -195,7 +205,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications",
+              "openshift.io/display-name": "PHP (Latest)",
+              "description": "Build and run PHP applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php",
@@ -209,7 +220,8 @@
           {
             "name": "5.5",
             "annotations": {
-              "description": "Build and run PHP 5.5 applications",
+              "openshift.io/display-name": "PHP 5.5",
+              "description": "Build and run PHP 5.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.5,php",
@@ -224,7 +236,8 @@
           {
             "name": "5.6",
             "annotations": {
-              "description": "Build and run PHP 5.6 applications",
+              "openshift.io/display-name": "PHP 5.6",
+              "description": "Build and run PHP 5.6 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.6,php",
@@ -250,7 +263,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications",
+              "openshift.io/display-name": "Python (Latest)",
+              "description": "Build and run Python applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -264,7 +278,8 @@
           {
             "name": "3.3",
             "annotations": {
-              "description": "Build and run Python 3.3 applications",
+              "openshift.io/display-name": "Python 3.3",
+              "description": "Build and run Python 3.3 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.3,python",
@@ -279,7 +294,8 @@
           {
             "name": "2.7",
             "annotations": {
-              "description": "Build and run Python 2.7 applications",
+              "openshift.io/display-name": "Python 2.7",
+              "description": "Build and run Python 2.7 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:2.7,python",
@@ -294,7 +310,8 @@
           {
             "name": "3.4",
             "annotations": {
-              "description": "Build and run Python 3.4 applications",
+              "openshift.io/display-name": "Python 3.4",
+              "description": "Build and run Python 3.4 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.4/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.4,python",
@@ -309,7 +326,8 @@
           {
             "name": "3.5",
             "annotations": {
-              "description": "Build and run Python 3.5 applications",
+              "openshift.io/display-name": "Python 3.5",
+              "description": "Build and run Python 3.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.5,python",
@@ -335,7 +353,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MySQL database",
+              "openshift.io/display-name": "MySQL (Latest)",
+              "description": "Provides a MySQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql"
             },
@@ -347,7 +366,8 @@
           {
             "name": "5.5",
             "annotations": {
-              "description": "Provides a MySQL v5.5 database",
+              "openshift.io/display-name": "MySQL 5.5",
+              "description": "Provides a MySQL 5.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.5"
@@ -360,7 +380,8 @@
           {
             "name": "5.6",
             "annotations": {
-              "description": "Provides a MySQL v5.6 database",
+              "openshift.io/display-name": "MySQL 5.6",
+              "description": "Provides a MySQL 5.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.6"
@@ -384,7 +405,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database",
+              "openshift.io/display-name": "MariaDB (Latest)",
+              "description": "Provides a MariaDB database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb"
             },
@@ -396,7 +418,8 @@
           {
             "name": "10.1",
             "annotations": {
-              "description": "Provides a MariaDB v10.1 database",
+              "openshift.io/display-name": "MariaDB 10.1",
+              "description": "Provides a MariaDB 10.1 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb",
               "version": "10.1"
@@ -420,7 +443,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a PostgreSQL database",
+              "openshift.io/display-name": "PostgreSQL (Latest)",
+              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -432,7 +456,8 @@
           {
             "name": "9.2",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.2 database",
+              "openshift.io/display-name": "PostgreSQL 9.2",
+              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -445,7 +470,8 @@
           {
             "name": "9.4",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.4 database",
+              "openshift.io/display-name": "PostgreSQL 9.4",
+              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -458,7 +484,8 @@
           {
             "name": "9.5",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.5 database",
+              "openshift.io/display-name": "PostgreSQL 9.5",
+              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -482,7 +509,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MongoDB database",
+              "openshift.io/display-name": "MongoDB (Latest)",
+              "description": "Provides a MongoDB database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb"
             },
@@ -494,7 +522,8 @@
           {
             "name": "2.4",
             "annotations": {
-              "description": "Provides a MongoDB v2.4 database",
+              "openshift.io/display-name": "MongoDB 2.4",
+              "description": "Provides a MongoDB 2.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.4"
@@ -507,7 +536,8 @@
           {
             "name": "2.6",
             "annotations": {
-              "description": "Provides a MongoDB v2.6 database",
+              "openshift.io/display-name": "MongoDB 2.6",
+              "description": "Provides a MongoDB 2.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.6"
@@ -520,7 +550,8 @@
           {
             "name": "3.2",
             "annotations": {
-              "description": "Provides a MongoDB v3.2 database",
+              "openshift.io/display-name": "MongoDB 3.2",
+              "description": "Provides a MongoDB 3.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "3.2"
@@ -544,7 +575,8 @@
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "description": "Provides a Jenkins server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins"
             },
@@ -556,7 +588,8 @@
           {
             "name": "1",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins 1.X",
+              "description": "Provides a Jenkins 1.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins",
               "version": "1.x"

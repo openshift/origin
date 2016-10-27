@@ -12,16 +12,16 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/openshift/origin"
+        "uri":"https://github.com/sclorg/s2i-ruby-container"
       },
-      "contextDir":"test/extended/testdata/test-build-app"
+      "contextDir":"2.3"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"openshift/base-centos7"
         }
       }
     },
@@ -29,7 +29,13 @@
       "to":{
         "kind":"ImageStreamTag",
         "name":"test:latest"
-      }
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        }
+      ]
     }
   }
 }

@@ -25,10 +25,10 @@ when that change will happen.
 Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` will be removed.
 At that time, the openshift docker registry image must be upgraded in order to continue functioning.
 
-1. The `deploymentConfig.rollingParams.updatePercent` field is deprecated in
-  favor of `deploymentConfig.rollingParams.maxUnavailable` and
-  `deploymentConfig.rollingParams.maxSurge`. The `updatePercent` field will be
-  removed  in Origin 1.1 (OSE 3.1).
+1. The `deploymentConfig.spec.strategy.rollingParams.updatePercent` field is deprecated in
+  favor of `deploymentConfig.spec.strategy.rollingParams.maxUnavailable` and
+  `deploymentConfig.spec.strategy.rollingParams.maxSurge`. The `updatePercent` field is
+  removed in Origin 1.4 (OSE 3.4).
 
 1. The `volume.metadata` field is deprecated as of Origin 1.0.6 in favor of `volume.downwardAPI`.
 
@@ -96,3 +96,11 @@ references:
 
 1.  `oc tag -d` now matches `oc delete imagestreamtag` behavior instead of removing the spec tag and leaving the status tag.
     The old behavior can be achieved using `oc edit` or if you just want to disabling scheduled imports, `oc tag --scheduled=false`
+
+
+## Origin 1.4.x / OSE 3.4.x
+
+1. The `deploymentConfig.spec.strategy.rollingParams.updatePercent` field is removed in
+  favor of `deploymentConfig.spec.strategy.rollingParams.maxUnavailable` and
+  `deploymentConfig.spec.strategy.rollingParams.maxSurge`.
+1. In Origin 1.3.x / OSE 3.3.x new DeploymentConfigs (latestVersion=0) with ImageChangeTriggers that use automatic=false will have their images resolved either on creation of the DeploymentConfig (assuming the image already exists in the cluster) or as soon as the image is imported. The behavior of automatic=false is restored back in Origin 1.4.x / OSE 3.4.x to not resolve images at all (as it is working in all releases prior to Origin 1.3.x / OSE 3.3.x)

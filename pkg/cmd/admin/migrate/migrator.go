@@ -289,7 +289,7 @@ func (o *ResourceVisitor) Visit(fn MigrateVisitFunc) error {
 
 	if summarize {
 		if dryRun {
-			fmt.Fprintf(out, "summary (DRY RUN): total=%d errors=%d ignored=%d unchanged=%d migrated=%d\n", t.found, t.errors, t.ignored, t.unchanged, t.found-t.errors-t.unchanged-t.ignored)
+			fmt.Fprintf(out, "summary (dry run): total=%d errors=%d ignored=%d unchanged=%d migrated=%d\n", t.found, t.errors, t.ignored, t.unchanged, t.found-t.errors-t.unchanged-t.ignored)
 		} else {
 			fmt.Fprintf(out, "summary: total=%d errors=%d ignored=%d unchanged=%d migrated=%d\n", t.found, t.errors, t.ignored, t.unchanged, t.found-t.errors-t.unchanged-t.ignored)
 		}
@@ -403,7 +403,7 @@ func (t *migrateTracker) attempt(info *resource.Info, retries int) {
 	case result == attemptResultSuccess:
 		if glog.V(1) {
 			if t.dryRun {
-				t.report("migrated (DRY RUN):", info, nil)
+				t.report("migrated (dry run):", info, nil)
 			} else {
 				t.report("migrated:", info, nil)
 			}

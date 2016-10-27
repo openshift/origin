@@ -21,7 +21,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.json -n openshift
 
-2. Login as a normal user (any username is fine)
+2. Login as a normal user (any user name is fine)
 
         $ oc login
 
@@ -29,21 +29,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
         $ oc new-project pipelineproject
 
-4. Run this command to instantiate a Jenkins server and service account in your project:
-
-    If your have persistent volumes available in your cluster:
-
-        $ oc new-app jenkins-persistent
-
-    Otherwise:
-
-        $ oc new-app jenkins-ephemeral
-
-    Make a note of the Jenkins password reported by new-app.
-
-    Note: eventually this will be done automatically when you create a pipeline buildconfig.
-
-5. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
+4. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
     If you used cluster up:
     
@@ -55,7 +41,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
-6. View/Manage Jenkins (optional)
+5. View/Manage Jenkins (optional)
 
     You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
     here are the steps to do so:
@@ -66,9 +52,14 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     and access the host for the Jenkins route.
 
-    If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+    If you do not have a router, or your host system does not support xip.io name resolution you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+    If you take this approach, run the following command before attempting to log into Jenkins:
 
-    Login with the user name is `admin` and the password as recorded earlier.
+        $ oc annotate sa/jenkins serviceaccounts.openshift.io/oauth-redirecturi.1=http://<jenkins_service_ip:jenkins_service_port>/securityRealm/finishLogin --overwrite
+    
+    Only include the port in the uri if it is not port 80.
+
+    Login with the user name used to create the "pipelineproject" and any non-empty password.
 
 6. Launch a new build
 

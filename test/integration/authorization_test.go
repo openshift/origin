@@ -156,7 +156,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 	// remove resources without read APIs
 	nonreadingResources := []unversioned.GroupResource{
 		buildapi.Resource("buildconfigs/instantiatebinary"), buildapi.Resource("buildconfigs/instantiate"), buildapi.Resource("builds/clone"),
-		deployapi.Resource("deploymentconfigrollbacks"), deployapi.Resource("generatedeploymentconfigs"), deployapi.Resource("deploymentconfigs/rollback"),
+		deployapi.Resource("deploymentconfigrollbacks"), deployapi.Resource("generatedeploymentconfigs"),
+		deployapi.Resource("deploymentconfigs/rollback"), deployapi.Resource("deploymentconfigs/instantiate"),
 		imageapi.Resource("imagestreamimports"), imageapi.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"), kapi.Resource("namespaces/finalize"),
@@ -282,8 +283,15 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// try to add Valerie to a non-existent role
-	if err := addValerie.AddRole(); !kapierror.IsNotFound(err) {
+	// try to add Valerie to a non-existent role, looping until it is true due to
+	// the policy cache taking time to react
+	if err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+		err := addValerie.AddRole()
+		if kapierror.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -314,6 +322,17 @@ func TestAuthorizationResolution(t *testing.T) {
 
 	buildListerClient, _, _, err := testutil.GetClientForUser(*clusterAdminConfig, "build-lister")
 	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// the authorization cache may not be up to date, retry
+	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
+		_, err := buildListerClient.Builds(kapi.NamespaceDefault).List(kapi.ListOptions{})
+		if kapierror.IsForbidden(err) {
+			return false, nil
+		}
+		return err == nil, err
+	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -729,7 +748,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -741,7 +760,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -753,7 +772,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -765,7 +784,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)

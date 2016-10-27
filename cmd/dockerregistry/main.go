@@ -59,9 +59,10 @@ func startProfiler() {
 	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
 		go func() {
 			runtime.SetBlockProfileRate(1)
-			profile_port := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
-			log.Infof(fmt.Sprintf("Starting profiling endpoint at http://127.0.0.1:%s/debug/pprof/", profile_port))
-			log.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", profile_port), nil))
+			profilePort := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
+			profileHost := cmdutil.Env("OPENSHIFT_PROFILE_HOST", "127.0.0.1")
+			log.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
+			log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
 		}()
 	}
 }

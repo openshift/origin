@@ -46,6 +46,19 @@ function setup_failover() {
     echo "ERROR: Module ip_vs is NOT available."
   fi
 
+  # When the DC supplies an (non null) iptables chain
+  # (OPENSHIFT_HA_IPTABLES_CHAIN) make sure the rule to pass keepalived
+  # multicast (224.0.0.18) is in the table.
+  chain="${OPENSHIFT_HA_IPTABLES_CHAIN:-""}"
+  if [[ -n ${chain} ]]; then
+    echo "  - check for iptables rule for keepalived multicast (224.0.0.18) ..."
+    if ! iptables -S | grep 224.0.0.18 > /dev/null 2>&1 ; then
+      # Add the rule to the beginning of the chain.
+      echo "  - adding iptables rule to $chain to access 224.0.0.18."
+      iptables -I ${chain} 1 -d 224.0.0.18/32 -j ACCEPT
+    fi
+  fi
+
   echo "  - Generating and writing config to $KEEPALIVED_CONFIG"
   generate_failover_config > "$KEEPALIVED_CONFIG"
 }

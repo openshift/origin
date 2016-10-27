@@ -8,8 +8,8 @@ import (
 )
 
 // ValidateConfig returns a list of error from validation.
-func ValidateConfig(config *api.Config) []ValidationError {
-	allErrs := []ValidationError{}
+func ValidateConfig(config *api.Config) []Error {
+	allErrs := []Error{}
 	if len(config.BuilderImage) == 0 {
 		allErrs = append(allErrs, NewFieldRequired("builderImage"))
 	}
@@ -23,6 +23,13 @@ func ValidateConfig(config *api.Config) []ValidationError {
 	}
 	if config.DockerNetworkMode != "" && !validateDockerNetworkMode(config.DockerNetworkMode) {
 		allErrs = append(allErrs, NewFieldInvalidValue("dockerNetworkMode"))
+	}
+	if config.Labels != nil {
+		for k := range config.Labels {
+			if len(k) == 0 {
+				allErrs = append(allErrs, NewFieldInvalidValue("labels"))
+			}
+		}
 	}
 	return allErrs
 }
@@ -41,40 +48,41 @@ func validateDockerNetworkMode(mode api.DockerNetworkMode) bool {
 }
 
 // NewFieldRequired returns a *ValidationError indicating "value required"
-func NewFieldRequired(field string) ValidationError {
-	return ValidationError{ValidationErrorTypeRequired, field}
+func NewFieldRequired(field string) Error {
+	return Error{ErrorTypeRequired, field}
 }
 
 // NewFieldInvalidValue returns a ValidationError indicating "invalid value"
-func NewFieldInvalidValue(field string) ValidationError {
-	return ValidationError{ValidationErrorInvalidValue, field}
+func NewFieldInvalidValue(field string) Error {
+	return Error{ErrorInvalidValue, field}
 }
 
-// ValidationErrorType is a machine readable value providing more detail about why
-// a field is invalid.
-type ValidationErrorType string
+// ErrorType is a machine readable value providing more detail about why a field
+// is invalid.
+type ErrorType string
 
 const (
-	// ValidationErrorTypeRequired is used to report required values that are not
-	// provided (e.g. empty strings, null values, or empty arrays).
-	ValidationErrorTypeRequired ValidationErrorType = "FieldValueRequired"
+	// ErrorTypeRequired is used to report required values that are not provided
+	// (e.g. empty strings, null values, or empty arrays).
+	ErrorTypeRequired ErrorType = "FieldValueRequired"
 
-	// ValidationErrorInvalidValue is used to report values that do not conform to
-	// the expected schema.
-	ValidationErrorInvalidValue ValidationErrorType = "InvalidValue"
+	// ErrorInvalidValue is used to report values that do not conform to the
+	// expected schema.
+	ErrorInvalidValue ErrorType = "InvalidValue"
 )
 
-// ValidationError is an implementation of the 'error' interface, which represents an error of validation.
-type ValidationError struct {
-	Type  ValidationErrorType
+// Error is an implementation of the 'error' interface, which represents an
+// error of validation.
+type Error struct {
+	Type  ErrorType
 	Field string
 }
 
-func (v ValidationError) Error() string {
+func (v Error) Error() string {
 	switch v.Type {
-	case ValidationErrorInvalidValue:
+	case ErrorInvalidValue:
 		return fmt.Sprintf("Invalid value specified for %q", v.Field)
-	case ValidationErrorTypeRequired:
+	case ErrorTypeRequired:
 		return fmt.Sprintf("Required value not specified for %q", v.Field)
 	default:
 		return fmt.Sprintf("%s: %s", v.Type, v.Field)

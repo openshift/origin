@@ -96,8 +96,8 @@ Common functions for extended tests are located in `./hack/util.sh`. Environment
 * `compile_extended()` perform the compilation of the Go tests into a test binary.
 * `test_privileges()` verify if you have permissions to start OpenShift server.
 * `os::util::environment::setup_all_server_vars()` setup all required environment variables related to OpenShift server.
-* `configure_os_server()` generates all configuration files for OpenShift server.
-* `start_os_server()` starts the OpenShift master and node.
+* `os::start::configure_server()` generates all configuration files for OpenShift server.
+* `os::start::server()` starts the OpenShift master and node.
 * `install_router_extended()` installs the OpenShift router service.
 * `install_registry_extended()` installs the OpenShift Docker registry service.
 * `create_image_streams_extended()` creates ImageStream(s) for all OpenShift images.

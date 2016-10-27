@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -29,28 +30,28 @@ import (
 	"github.com/openshift/origin/pkg/generate/appjson"
 )
 
-const (
-	appJSONLong = `
-Import app.json files as OpenShift objects
+const AppJSONV1GeneratorName = "app-json/v1"
 
-app.json defines the pattern of a simple, stateless web application that can be horizontally scaled.
-This command will transform a provided app.json object into its OpenShift equivalent.
-During transformation fields in the app.json syntax that are not relevant when running on top of
-a containerized platform will be ignored and a warning printed.
+var (
+	appJSONLong = templates.LongDesc(`
+		Import app.json files as OpenShift objects
 
-The command will create objects unless you pass the -o yaml or --as-template flags to generate a
-configuration file for later use.
+		app.json defines the pattern of a simple, stateless web application that can be horizontally scaled.
+		This command will transform a provided app.json object into its OpenShift equivalent.
+		During transformation fields in the app.json syntax that are not relevant when running on top of
+		a containerized platform will be ignored and a warning printed.
 
-Experimental: This command is under active development and may change without notice.`
+		The command will create objects unless you pass the -o yaml or --as-template flags to generate a
+		configuration file for later use.
 
-	appJSONExample = `  # Import a directory containing an app.json file
-  $ %[1]s app.json -f .
+		Experimental: This command is under active development and may change without notice.`)
 
-  # Turn an app.json file into a template
-  $ %[1]s app.json -f ./app.json -o yaml --as-template
-`
+	appJSONExample = templates.Examples(`
+		# Import a directory containing an app.json file
+	  $ %[1]s app.json -f .
 
-	AppJSONV1GeneratorName = "app-json/v1"
+	  # Turn an app.json file into a template
+	  $ %[1]s app.json -f ./app.json -o yaml --as-template`)
 )
 
 type AppJSONOptions struct {

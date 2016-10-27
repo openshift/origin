@@ -14,19 +14,21 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	buildLogsLong = `
-Retrieve logs for a build
+var (
+	buildLogsLong = templates.LongDesc(`
+		Retrieve logs for a build
 
-This command displays the log for the provided build. If the pod that ran the build has been deleted logs
-will no longer be available. If the build has not yet completed, the build logs will be streamed until the
-build completes or fails.`
+		This command displays the log for the provided build. If the pod that ran the build has been deleted logs
+		will no longer be available. If the build has not yet completed, the build logs will be streamed until the
+		build completes or fails.`)
 
-	buildLogsExample = `  # Stream logs from container
-  %[1]s build-logs 566bed879d2d`
+	buildLogsExample = templates.Examples(`
+		# Stream logs from container
+  	%[1]s build-logs 566bed879d2d`)
 )
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command
@@ -37,7 +39,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Short:      "Show logs from a build",
 		Long:       buildLogsLong,
 		Example:    fmt.Sprintf(buildLogsExample, fullName),
-		Deprecated: fmt.Sprintf("use \"oc %v build/<build-name>\" instead.", LogsRecommendedName),
+		Deprecated: fmt.Sprintf("use \"oc %v build/<build-name>\" instead.", LogsRecommendedCommandName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
 

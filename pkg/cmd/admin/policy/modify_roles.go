@@ -12,6 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -28,12 +29,13 @@ const (
 	RemoveClusterRoleFromUserRecommendedName  = "remove-cluster-role-from-user"
 )
 
-const (
-	addRoleToUserExample = `  # Add the 'view' role to user1 for the current project
-  %[1]s view user1
+var (
+	addRoleToUserExample = templates.Examples(`
+		# Add the 'view' role to user1 for the current project
+	  %[1]s view user1
 
-  # Add the 'edit' role to serviceaccount1 for the current project
-  %[1]s edit -z serviceaccount1`
+	  # Add the 'edit' role to serviceaccount1 for the current project
+	  %[1]s edit -z serviceaccount1`)
 )
 
 type RoleModificationOptions struct {

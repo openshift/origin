@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -39,29 +40,29 @@ type AllInOneOptions struct {
 	Output             io.Writer
 }
 
-const allInOneLong = `
-Start an all-in-one server
+var allInOneLong = templates.LongDesc(`
+	Start an all-in-one server
 
-This command helps you launch an all-in-one server, which allows you to run all of the
-components of an enterprise Kubernetes system on a server with Docker. Running:
+	This command helps you launch an all-in-one server, which allows you to run all of the
+	components of an enterprise Kubernetes system on a server with Docker. Running:
 
-  %[1]s start
+	    %[1]s start
 
-will start listening on all interfaces, launch an etcd server to store persistent
-data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "%[1]s start master" and
-"%[1]s start node".
+	will start listening on all interfaces, launch an etcd server to store persistent
+	data, and launch the Kubernetes system components. The server will run in the foreground until
+	you terminate the process.  This command delegates to "%[1]s start master" and
+	"%[1]s start node".
 
-Note: starting OpenShift without passing the --master address will attempt to find the IP
-address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell OpenShift what public address it will be via --master=<ip>.
+	Note: starting OpenShift without passing the --master address will attempt to find the IP
+	address that will be visible inside running Docker containers. This is not always successful,
+	so if you have problems tell OpenShift what public address it will be via --master=<ip>.
 
-You may also pass --etcd=<address> to connect to an external etcd server.
+	You may also pass --etcd=<address> to connect to an external etcd server.
 
-You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
+	You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`)
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
+func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: out, MasterOptions: &MasterOptions{Output: out}}
 	options.MasterOptions.DefaultsFromName(basename)
 
@@ -78,9 +79,9 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 			if err := options.StartAllInOne(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "error: Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "error: Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -108,10 +109,10 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster(basename, out)
-	startNode, _ := NewCommandStartNode(basename, out)
-	startNodeNetwork, _ := NewCommandStartNetwork(basename, out)
-	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out)
+	startMaster, _ := NewCommandStartMaster(basename, out, errout)
+	startNode, _ := NewCommandStartNode(basename, out, errout)
+	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
+	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)
@@ -288,9 +289,10 @@ func startProfiler() {
 	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
 		go func() {
 			runtime.SetBlockProfileRate(1)
-			profile_port := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
-			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://127.0.0.1:%s/debug/pprof/", profile_port))
-			glog.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", profile_port), nil))
+			profilePort := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
+			profileHost := cmdutil.Env("OPENSHIFT_PROFILE_HOST", "127.0.0.1")
+			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
+			glog.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
 		}()
 	}
 }

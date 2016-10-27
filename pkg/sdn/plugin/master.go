@@ -8,54 +8,91 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type OsdnMaster struct {
-	registry        *Registry
+	kClient         *kclient.Client
+	osClient        *osclient.Client
+	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 }
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclient.Client) error {
-	if !IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
+	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
 
 	log.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
-		registry: newRegistry(osClient, kClient),
+		kClient:  kClient,
+		osClient: osClient,
 	}
 
-	// Validate command-line/config parameters
-	ni, err := validateClusterNetwork(networkConfig.ClusterNetworkCIDR, networkConfig.HostSubnetLength, networkConfig.ServiceNetworkCIDR, networkConfig.NetworkPluginName)
+	var err error
+	master.networkInfo, err = parseNetworkInfo(networkConfig.ClusterNetworkCIDR, networkConfig.ServiceNetworkCIDR)
 	if err != nil {
 		return err
 	}
 
-	changed, net_err := master.isClusterNetworkChanged(ni)
-	if changed {
-		if err = master.validateNetworkConfig(ni); err != nil {
+	createConfig := false
+	updateConfig := false
+	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	if err == nil {
+		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
+			networkConfig.HostSubnetLength != cn.HostSubnetLength ||
+			master.networkInfo.ServiceNetwork.String() != cn.ServiceNetwork ||
+			networkConfig.NetworkPluginName != cn.PluginName {
+			updateConfig = true
+		}
+	} else {
+		cn = &osapi.ClusterNetwork{
+			TypeMeta:   kapiunversioned.TypeMeta{Kind: "ClusterNetwork"},
+			ObjectMeta: kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+		}
+		createConfig = true
+	}
+	if createConfig || updateConfig {
+		if err = master.validateNetworkConfig(); err != nil {
 			return err
 		}
-		if err = master.registry.UpdateClusterNetwork(ni); err != nil {
-			return err
+		size, len := master.networkInfo.ClusterNetwork.Mask.Size()
+		if networkConfig.HostSubnetLength < 1 || networkConfig.HostSubnetLength >= uint32(len-size) {
+			return fmt.Errorf("invalid HostSubnetLength %d for network %s (must be from 1 to %d)", networkConfig.HostSubnetLength, networkConfig.ClusterNetworkCIDR, len-size)
 		}
-	} else if net_err != nil {
-		if err = master.registry.CreateClusterNetwork(ni); err != nil {
-			return err
-		}
+		cn.Network = master.networkInfo.ClusterNetwork.String()
+		cn.HostSubnetLength = networkConfig.HostSubnetLength
+		cn.ServiceNetwork = master.networkInfo.ServiceNetwork.String()
+		cn.PluginName = networkConfig.NetworkPluginName
 	}
 
-	if err = master.SubnetStartMaster(ni.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
+	if createConfig {
+		cn, err := master.osClient.ClusterNetwork().Create(cn)
+		if err != nil {
+			return err
+		}
+		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(cn))
+	} else if updateConfig {
+		cn, err := master.osClient.ClusterNetwork().Update(cn)
+		if err != nil {
+			return err
+		}
+		log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(cn))
+	}
+
+	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
 		return err
 	}
 
-	if IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
+	if osapi.IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
 		master.vnids = newMasterVNIDMap()
 
 		if err = master.VnidStartMaster(); err != nil {
@@ -66,12 +103,13 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	return nil
 }
 
-func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
-	hostIPNets, err := netutils.GetHostIPNetworks([]string{TUN, LBR})
+func (master *OsdnMaster) validateNetworkConfig() error {
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
 	if err != nil {
 		return err
 	}
 
+	ni := master.networkInfo
 	errList := []error{}
 
 	// Ensure cluster and service network don't overlap with host networks
@@ -91,11 +129,11 @@ func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
 	}
 
 	// Ensure each host subnet is within the cluster network
-	subnets, err := master.registry.GetSubnets()
+	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
-	for _, sub := range subnets {
+	for _, sub := range subnets.Items {
 		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
 		if subnetIP == nil {
 			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
@@ -107,30 +145,15 @@ func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.registry.GetServices()
+	services, err := master.kClient.Services(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
-	for _, svc := range services {
+	for _, svc := range services.Items {
 		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
 			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}
 	}
 
 	return kerrors.NewAggregate(errList)
-}
-
-func (master *OsdnMaster) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool, error) {
-	oldNetwork, err := master.registry.GetNetworkInfo()
-	if err != nil {
-		return false, err
-	}
-
-	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
-		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
-		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
-		curNetwork.PluginName != oldNetwork.PluginName {
-		return true, nil
-	}
-	return false, nil
 }

@@ -31,10 +31,11 @@ func TestExport(t *testing.T) {
 			object: deploytest.OkDeploymentConfig(1),
 			expectedObj: &deployapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "config",
+					Name:       "config",
+					Generation: 1,
 				},
 				Spec:   deploytest.OkDeploymentConfigSpec(),
-				Status: deploytest.OkDeploymentConfigStatus(0),
+				Status: deployapi.DeploymentConfigStatus{},
 			},
 			expectedErr: nil,
 		},
@@ -147,13 +148,15 @@ func TestExport(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
+
 		if err := exporter.Export(test.object, test.exact); err != test.expectedErr {
-			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
+			t.Errorf("%s: error mismatch: expected %v, got %v", test.name, test.expectedErr, err)
 		}
 
 		if !reflect.DeepEqual(test.object, test.expectedObj) {
-			t.Errorf("object mismatch: expected \n%v\ngot \n%v\n", test.expectedObj, test.object)
+			t.Errorf("%s: object mismatch: expected \n%#v\ngot \n%#v\n", test.name, test.expectedObj, test.object)
 		}
 	}
 }

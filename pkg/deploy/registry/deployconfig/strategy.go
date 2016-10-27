@@ -38,6 +38,11 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+func (s strategy) Export(ctx kapi.Context, obj runtime.Object, exact bool) error {
+	s.PrepareForCreate(ctx, obj)
+	return nil
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)
@@ -67,6 +72,8 @@ func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	if newVersion == oldVersion+1 {
 		newDc.Status.LatestVersion = newVersion
 	}
+
+	// TODO: Disallow lastTriggeredImage updates from this update path.
 
 	// Any changes to the spec or labels, increment the generation number, any changes
 	// to the status should reflect the generation number of the corresponding object

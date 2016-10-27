@@ -1,10 +1,13 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/docker/docker/builder/dockerfile/parser"
@@ -38,7 +41,7 @@ func NewDockerfileFromFile(path string) (Dockerfile, error) {
 
 func NewDockerfile(contents string) (Dockerfile, error) {
 	if len(contents) == 0 {
-		return nil, fmt.Errorf("Dockerfile is empty")
+		return nil, errors.New("Dockerfile is empty")
 	}
 	node, err := parser.Parse(strings.NewReader(contents))
 	if err != nil {
@@ -101,6 +104,8 @@ type SourceRepository struct {
 	binary           bool
 
 	forceAddDockerfile bool
+
+	requiresAuth bool
 }
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
@@ -212,6 +217,9 @@ func (r *SourceRepository) Detect(d Detector, dockerStrategy bool) error {
 	if err != nil {
 		return err
 	}
+	if err = r.DetectAuth(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -239,15 +247,67 @@ func (r *SourceRepository) LocalPath() (string, error) {
 		if r.localDir, err = ioutil.TempDir("", "gen"); err != nil {
 			return "", err
 		}
-		localURL := r.url
-		ref := localURL.Fragment
-		localURL.Fragment = ""
+		localURL, ref := cloneURLAndRef(&r.url)
 		r.localDir, err = CloneAndCheckoutSources(gitRepo, localURL.String(), ref, r.localDir, r.contextDir)
 		if err != nil {
 			return "", err
 		}
 	}
 	return r.localDir, nil
+}
+
+func cloneURLAndRef(url *url.URL) (*url.URL, string) {
+	localURL := *url
+	ref := localURL.Fragment
+	localURL.Fragment = ""
+	return &localURL, ref
+}
+
+// DetectAuth returns an error if the source repository cannot be cloned
+// without the current user's environment. The following changes are made to the
+// environment:
+// 1) The HOME directory is set to a temporary dir to avoid loading any settings in .gitconfig
+// 2) The GIT_SSH variable is set to /dev/null so the regular SSH keys are not used
+//    (changing the HOME directory is not enough).
+// 3) GIT_CONFIG_NOSYSTEM prevents git from loading system-wide config
+// 4) GIT_ASKPASS to prevent git from prompting for a user/password
+func (r *SourceRepository) DetectAuth() error {
+	url, ok, err := r.RemoteURL()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil // No auth needed, we can't find a remote URL
+	}
+	tempHome, err := ioutil.TempDir("", "githome")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempHome)
+	tempSrc, err := ioutil.TempDir("", "gen")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempSrc)
+	env := []string{
+		fmt.Sprintf("HOME=%s", tempHome),
+		"GIT_SSH=/dev/null",
+		"GIT_CONFIG_NOSYSTEM=true",
+		"GIT_ASKPASS=true",
+	}
+	if runtime.GOOS == "windows" {
+		env = append(env,
+			fmt.Sprintf("ProgramData=%s", os.Getenv("ProgramData")),
+			fmt.Sprintf("SystemRoot=%s", os.Getenv("SystemRoot")),
+		)
+	}
+	gitRepo := git.NewRepositoryWithEnv(env)
+	localURL, ref := cloneURLAndRef(url)
+	_, err = CloneAndCheckoutSources(gitRepo, localURL.String(), ref, tempSrc, "")
+	if err != nil {
+		r.requiresAuth = true
+	}
+	return nil
 }
 
 // RemoteURL returns the remote URL of the source repository
@@ -428,7 +488,7 @@ type SourceRepositoryEnumerator struct {
 
 // ErrNoLanguageDetected is the error returned when no language can be detected by all
 // source code detectors.
-var ErrNoLanguageDetected = fmt.Errorf("No language matched the source repository")
+var ErrNoLanguageDetected = errors.New("No language matched the source repository")
 
 // Detect extracts source code information about the provided source repository
 func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*SourceRepositoryInfo, error) {
@@ -472,8 +532,9 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		IsDockerBuild: repo.IsDockerBuild(),
 	}
 	source := &SourceRef{
-		Binary:  repo.binary,
-		Secrets: repo.secrets,
+		Binary:       repo.binary,
+		Secrets:      repo.secrets,
+		RequiresAuth: repo.requiresAuth,
 	}
 
 	if repo.sourceImage != nil {
@@ -506,7 +567,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 	return strategy, source, nil
 }
 
-// CloneAndCheckoutSources clones the remote repository using either regulare
+// CloneAndCheckoutSources clones the remote repository using either regular
 // git clone operation or shallow git clone, based on the "ref" provided (you
 // cannot shallow clone using the 'ref').
 // This function will return the full path to the buildable sources, including
@@ -514,7 +575,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, contextDir string) (string, error) {
 	if len(ref) == 0 {
 		glog.V(5).Infof("No source ref specified, using shallow git clone")
-		if err := repo.CloneWithOptions(localDir, remote, git.CloneOptions{Recursive: true, Shallow: true}); err != nil {
+		if err := repo.CloneWithOptions(localDir, remote, git.Shallow, "--recursive"); err != nil {
 			return "", fmt.Errorf("shallow cloning repository %q to %q failed: %v", remote, localDir, err)
 		}
 	} else {

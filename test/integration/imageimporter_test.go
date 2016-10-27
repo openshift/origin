@@ -54,7 +54,7 @@ func TestImageStreamImport(t *testing.T) {
 		},
 		Spec: api.ImageStreamImportSpec{
 			Images: []api.ImageImportSpec{
-				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "a/a/a/a/a/redis:latest"}, To: &kapi.LocalObjectReference{Name: "tag"}},
+				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "///a/a/a/a/a/redis:latest"}, To: &kapi.LocalObjectReference{Name: "tag"}},
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis:latest"}},
 			},
 		},
@@ -182,7 +182,7 @@ func mockRegistryHandler(t *testing.T, requireAuth bool, count *int) http.Handle
 	})
 }
 
-func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
+func testImageStreamImportWithPath(t *testing.T, reponame string) {
 	imageDigest := "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d"
 	descriptors := map[string]int64{
 		"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4": 3000,
@@ -219,9 +219,9 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 		switch r.URL.Path {
 		case "/v2/":
 			w.Write([]byte(`{}`))
-		case "/v2/test/image/tags/list":
-			w.Write([]byte("{\"name\": \"test/image\", \"tags\": [\"testtag\"]}"))
-		case "/v2/test/image/manifests/testtag", "/v2/test/image/manifests/" + imageDigest:
+		case "/v2/" + reponame + "/tags/list":
+			w.Write([]byte("{\"name\": \"" + reponame + "\", \"tags\": [\"testtag\"]}"))
+		case "/v2/" + reponame + "/manifests/testtag", "/v2/" + reponame + "/manifests/" + imageDigest:
 			if r.Method == "HEAD" {
 				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(convertedManifest)))
 				w.Header().Set("Docker-Content-Digest", imageDigest)
@@ -230,9 +230,9 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 				w.Write([]byte(convertedManifest))
 			}
 		default:
-			if strings.HasPrefix(r.URL.Path, "/v2/test/image/blobs/") {
+			if strings.HasPrefix(r.URL.Path, "/v2/"+reponame+"/blobs/") {
 				for dgst, size := range descriptors {
-					if r.URL.Path != "/v2/test/image/blobs/"+dgst {
+					if r.URL.Path != "/v2/"+reponame+"/blobs/"+dgst {
 						continue
 					}
 					if r.Method == "HEAD" {
@@ -276,7 +276,7 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 			Import: true,
 			Images: []api.ImageImportSpec{
 				{
-					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image:testtag"},
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/" + reponame + ":testtag"},
 					To:           &kapi.LocalObjectReference{Name: "other"},
 					ImportPolicy: api.TagImportPolicy{Insecure: true},
 				},
@@ -314,6 +314,14 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 			t.Errorf("unexpected image size %d: %#v (expect %d)", i, image.Image.DockerImageMetadata.Size, imageSize)
 		}
 	}
+}
+
+func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
+	testImageStreamImportWithPath(t, "test/image")
+}
+
+func TestImageStreamImportOfMultiSegmentDockerReference(t *testing.T) {
+	testImageStreamImportWithPath(t, "test/foo/bar/image")
 }
 
 func TestImageStreamImportAuthenticated(t *testing.T) {

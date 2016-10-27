@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -23,7 +22,7 @@ const (
 	// We must avoid creating processing deployment configs until the deployment config and image
 	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
-	StoreSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 100 * time.Millisecond
 )
 
 // NewDeploymentController creates a new DeploymentController.
@@ -90,7 +89,7 @@ func (c *DeploymentController) waitForSyncedStores(ready chan<- struct{}, stopCh
 	for !c.rcStoreSynced() || !c.podStoreSynced() {
 		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployment controller workers")
 		select {
-		case <-time.After(StoreSyncedPollPeriod):
+		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
 			return
 		}
@@ -214,17 +213,4 @@ func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController
 	}
 
 	return obj.(*kapi.ReplicationController), nil
-}
-
-// TODO: Move this in the upstream pod lister
-func (c *DeploymentController) getPod(namespace, name string) (*kapi.Pod, error) {
-	key := namespace + "/" + name
-	obj, exists, err := c.podStore.Indexer.GetByKey(key)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, kerrors.NewNotFound(kapi.Resource("pod"), name)
-	}
-	return obj.(*kapi.Pod), nil
 }

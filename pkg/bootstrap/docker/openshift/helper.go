@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -33,10 +34,12 @@ const (
 	DefaultDNSPort         = 53
 	AlternateDNSPort       = 8053
 	cmdDetermineNodeHost   = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer     = "origin"
 )
 
 var (
 	openShiftContainerBinds = []string{
+		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
 		"/sys:/sys:ro",
 		"/var/lib/docker:/var/lib/docker",
@@ -63,6 +66,7 @@ type Helper struct {
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
 	ServerIP           string
+	RouterIP           string
 	DNSPort            int
 	UseSharedVolume    bool
 	SetPropagationMode bool
@@ -74,6 +78,7 @@ type StartOptions struct {
 	Environment        []string
 	LogLevel           int
 	MetricsHost        string
+	LoggingHost        string
 	PortForwarding     bool
 }
 
@@ -99,7 +104,7 @@ func (h *Helper) TestPorts(ports []int) error {
 		HostNetwork().
 		HostPid().
 		Entrypoint("/bin/bash").
-		Command("-c", "cat /proc/net/tcp /proc/net/tcp6").
+		Command("-c", "cat /proc/net/tcp && ( [ -e /proc/net/tcp6 ] && cat /proc/net/tcp6 || true)").
 		CombinedOutput()
 	if err != nil {
 		return errors.NewError("Cannot get TCP port information from Kubernetes host").WithCause(err)
@@ -289,7 +294,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.ServerIP, opt.MetricsHost)
+		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost, opt.LoggingHost)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -434,47 +439,79 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 		return "", err
 	}
 	glog.V(1).Infof("Copying from host directory %s to local directory %s", hostDir, tempDir)
-	if err = h.hostHelper.CopyFromHost(hostDir, tempDir); err != nil {
+	if err = h.hostHelper.DownloadDirFromContainer(hostDir, tempDir); err != nil {
 		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
 		}
 		return "", err
 	}
-	return filepath.Join(tempDir, filepath.Base(hostDir)), nil
+
+	return tempDir, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) error {
-	masterConfig := filepath.Join(configDir, "master", "master-config.yaml")
-	glog.V(1).Infof("Reading master config from %s", masterConfig)
-	cfg, err := configapilatest.ReadMasterConfig(masterConfig)
+func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
+	configPath := filepath.Join(configDir, "master", "master-config.yaml")
+	glog.V(1).Infof("Reading master config from %s", configPath)
+	cfg, err := configapilatest.ReadMasterConfig(configPath)
 	if err != nil {
 		glog.V(1).Infof("Could not read master config: %v", err)
+		return nil, "", err
+	}
+	return cfg, configPath, nil
+}
+
+func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, error) {
+	r, err := dockerhelper.StreamFileFromContainer(client, OpenShiftContainer, serverMasterConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	config := &configapi.MasterConfig{}
+	err = configapilatest.ReadYAMLInto(data, config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, loggingHost string) error {
+	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
+	if err != nil {
 		return err
 	}
 
 	if len(h.routingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = h.routingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", serverIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", routerIP)
 	}
 
 	if len(metricsHost) > 0 && cfg.AssetConfig != nil {
 		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", metricsHost)
 	}
 
+	if len(loggingHost) > 0 && cfg.AssetConfig != nil {
+		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", loggingHost)
+	}
+
 	cfgBytes, err := configapilatest.WriteYAML(cfg)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(masterConfig, cfgBytes, 0644)
+	err = ioutil.WriteFile(configPath, cfgBytes, 0644)
 	if err != nil {
 		return err
 	}
-	return h.hostHelper.CopyMasterConfigToHost(masterConfig, hostDir)
+	return h.hostHelper.UploadFileToContainer(configPath, serverMasterConfig)
 }
 
 func (h *Helper) getOpenShiftConfigFiles(hostname string) (string, string, error) {
-	return "/var/lib/origin/openshift.local.config/master/master-config.yaml",
+	return serverMasterConfig,
 		fmt.Sprintf("/var/lib/origin/openshift.local.config/node-%s/node-config.yaml", hostname),
 		nil
 }

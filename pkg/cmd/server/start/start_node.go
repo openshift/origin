@@ -19,10 +19,11 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -33,25 +34,27 @@ type NodeOptions struct {
 	Output     io.Writer
 }
 
-const nodeLong = `
-Start a node
+var nodeLong = templates.LongDesc(`
+	Start a node
 
-This command helps you launch a node.  Running
+	This command helps you launch a node.  Running
 
-  %[1]s start node --config=<node-config>
+	    %[1]s start node --config=<node-config>
 
-will start a node with given configuration file. The node will run in the
-foreground until you terminate the process.`
+	will start a node with given configuration file. The node will run in the
+	foreground until you terminate the process.`)
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
 		Short: "Launch a node",
 		Long:  fmt.Sprintf(nodeLong, basename),
-		Run:   options.Run,
+		Run: func(c *cobra.Command, args []string) {
+			options.Run(c, errout, args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -71,25 +74,27 @@ func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeO
 	return cmd, options
 }
 
-const networkLong = `
-Start node network components
+var networkLong = templates.LongDesc(`
+	Start node network components
 
-This command helps you launch node networking.  Running
+	This command helps you launch node networking.  Running
 
-  %[1]s start network --config=<node-config>
+	    %[1]s start network --config=<node-config>
 
-will start the network proxy and SDN plugins with given configuration file. The proxy will
-run in the foreground until you terminate the process.`
+	will start the network proxy and SDN plugins with given configuration file. The proxy will
+	run in the foreground until you terminate the process.`)
 
 // NewCommandStartNetwork provides a CLI handler for 'start network' command
-func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "network",
 		Short: "Launch node network",
 		Long:  fmt.Sprintf(networkLong, basename),
-		Run:   options.Run,
+		Run: func(c *cobra.Command, args []string) {
+			options.Run(c, errout, args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -107,7 +112,7 @@ func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *No
 	return cmd, options
 }
 
-func (options *NodeOptions) Run(c *cobra.Command, args []string) {
+func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []string) {
 	kcmdutil.CheckErr(options.Complete())
 	kcmdutil.CheckErr(options.Validate(args))
 
@@ -116,9 +121,9 @@ func (options *NodeOptions) Run(c *cobra.Command, args []string) {
 	if err := options.StartNode(); err != nil {
 		if kerrors.IsInvalid(err) {
 			if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-				fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+				fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 				for _, cause := range details.Causes {
-					fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+					fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 				}
 				os.Exit(255)
 			}
@@ -286,7 +291,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		return err
 	}
 
-	if sdnplugin.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
+	if sdnapi.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
 		// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,
 		// and Kubelet also can't start the PodSync loop until the SDN plugin has loaded.
 		if components.Enabled(ComponentKubelet) != components.Enabled(ComponentPlugins) {

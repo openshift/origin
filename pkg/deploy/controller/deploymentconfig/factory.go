@@ -23,7 +23,7 @@ const (
 	// We must avoid creating new replication controllers until the deployment config and replication
 	// controller stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
-	StoreSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 100 * time.Millisecond
 	// MaxRetries is the number of times a deployment config will be retried before it is dropped out
 	// of the queue.
 	MaxRetries = 5
@@ -99,7 +99,7 @@ func (c *DeploymentConfigController) waitForSyncedStores(ready chan<- struct{}, 
 	for !c.dcStoreSynced() || !c.rcStoreSynced() || !c.podStoreSynced() {
 		glog.V(4).Infof("Waiting for the dc, rc, and pod caches to sync before starting the deployment config controller workers")
 		select {
-		case <-time.After(StoreSyncedPollPeriod):
+		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
 			return
 		}

@@ -192,11 +192,13 @@ func ValidateImageStreamTagReference(tagRef api.TagReference, fldPath *field.Pat
 	var errs field.ErrorList
 	if tagRef.From != nil {
 		if len(tagRef.From.Name) == 0 {
-			errs = append(errs, field.Required(fldPath.Child("from", "name"), "name is required"))
+			errs = append(errs, field.Required(fldPath.Child("from", "name"), ""))
 		}
 		switch tagRef.From.Kind {
 		case "DockerImage":
-			if ref, err := api.ParseDockerImageReference(tagRef.From.Name); err == nil && tagRef.ImportPolicy.Scheduled && len(ref.ID) > 0 {
+			if ref, err := api.ParseDockerImageReference(tagRef.From.Name); err != nil && len(tagRef.From.Name) > 0 {
+				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, err.Error()))
+			} else if len(ref.ID) > 0 && tagRef.ImportPolicy.Scheduled {
 				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
 			}
 		case "ImageStreamImage", "ImageStreamTag":
@@ -324,7 +326,7 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 		switch from.Kind {
 		case "DockerImage":
 			if len(spec.From.Name) == 0 {
-				errs = append(errs, field.Required(repoPath.Child("from", "name"), ""))
+				errs = append(errs, field.Required(repoPath.Child("from", "name"), "Docker image references require a name"))
 			} else {
 				if ref, err := api.ParseDockerImageReference(from.Name); err != nil {
 					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))

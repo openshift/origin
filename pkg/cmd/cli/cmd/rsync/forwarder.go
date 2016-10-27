@@ -38,17 +38,15 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 		return err
 	}
 	// TODO: Make os.Stdout/Stderr configurable
-	// TODO: Accept a ready channel?
-	fw, err := portforward.New(dialer, ports, stopChan, nil, f.Out, f.ErrOut)
+	readyChan := make(chan struct{})
+	fw, err := portforward.New(dialer, ports, stopChan, readyChan, f.Out, f.ErrOut)
 	if err != nil {
 		return err
 	}
-	ready := make(chan struct{})
 	errChan := make(chan error)
-	fw.Ready = ready
 	go func() { errChan <- fw.ForwardPorts() }()
 	select {
-	case <-ready:
+	case <-readyChan:
 		return nil
 	case err = <-errChan:
 		return err

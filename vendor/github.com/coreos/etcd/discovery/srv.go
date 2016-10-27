@@ -33,9 +33,11 @@ var (
 // Also doesn't do any lookups for the token (though it could)
 // Also sees each entry as a separate instance.
 func SRVGetCluster(name, dns string, defaultToken string, apurls types.URLs) (string, string, error) {
-	stringParts := make([]string, 0)
+	var (
+		stringParts []string
+		tcpAPUrls   []string
+	)
 	tempName := int(0)
-	tcpAPUrls := make([]string, 0)
 
 	// First, resolve the apurls
 	for _, url := range apurls {
@@ -53,8 +55,8 @@ func SRVGetCluster(name, dns string, defaultToken string, apurls types.URLs) (st
 			return err
 		}
 		for _, srv := range addrs {
-			target := strings.TrimSuffix(srv.Target, ".")
-			host := net.JoinHostPort(target, fmt.Sprintf("%d", srv.Port))
+			port := fmt.Sprintf("%d", srv.Port)
+			host := net.JoinHostPort(srv.Target, port)
 			tcpAddr, err := resolveTCPAddr("tcp", host)
 			if err != nil {
 				plog.Warningf("couldn't resolve host %s during SRV discovery", host)
@@ -68,10 +70,13 @@ func SRVGetCluster(name, dns string, defaultToken string, apurls types.URLs) (st
 			}
 			if n == "" {
 				n = fmt.Sprintf("%d", tempName)
-				tempName += 1
+				tempName++
 			}
-			stringParts = append(stringParts, fmt.Sprintf("%s=%s%s", n, prefix, host))
-			plog.Noticef("got bootstrap from DNS for %s at %s%s", service, prefix, host)
+			// SRV records have a trailing dot but URL shouldn't.
+			shortHost := strings.TrimSuffix(srv.Target, ".")
+			urlHost := net.JoinHostPort(shortHost, port)
+			stringParts = append(stringParts, fmt.Sprintf("%s=%s%s", n, prefix, urlHost))
+			plog.Noticef("got bootstrap from DNS for %s at %s%s", service, prefix, urlHost)
 		}
 		return nil
 	}
@@ -81,12 +86,12 @@ func SRVGetCluster(name, dns string, defaultToken string, apurls types.URLs) (st
 	srvErr := make([]string, 2)
 	if err != nil {
 		srvErr[0] = fmt.Sprintf("error querying DNS SRV records for _etcd-server-ssl %s", err)
-		failCount += 1
+		failCount++
 	}
 	err = updateNodeMap("etcd-server", "http://")
 	if err != nil {
 		srvErr[1] = fmt.Sprintf("error querying DNS SRV records for _etcd-server %s", err)
-		failCount += 1
+		failCount++
 	}
 	if failCount == 2 {
 		plog.Warningf(srvErr[0])

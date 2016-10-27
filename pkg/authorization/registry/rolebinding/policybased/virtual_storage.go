@@ -24,19 +24,25 @@ import (
 type VirtualStorage struct {
 	BindingRegistry policybindingregistry.Registry
 
-	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	RuleResolver       rulevalidation.AuthorizationRuleResolver
+	CachedRuleResolver rulevalidation.AuthorizationRuleResolver
+
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
+	Resource       unversioned.GroupResource
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver) rolebindingregistry.Storage {
+func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) rolebindingregistry.Storage {
 	return &VirtualStorage{
 		BindingRegistry: bindingRegistry,
 
-		RuleResolver:   ruleResolver,
+		RuleResolver:       ruleResolver,
+		CachedRuleResolver: cachedRuleResolver,
+
 		CreateStrategy: rolebindingregistry.LocalStrategy,
 		UpdateStrategy: rolebindingregistry.LocalStrategy,
+		Resource:       resource,
 	}
 }
 
@@ -71,7 +77,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runt
 func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 	if kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+		return nil, kapierrors.NewNotFound(m.Resource, name)
 	}
 	if err != nil {
 		return nil, err
@@ -79,7 +85,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 
 	binding, exists := policyBinding.RoleBindings[name]
 	if !exists {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+		return nil, kapierrors.NewNotFound(m.Resource, name)
 	}
 	return binding, nil
 }
@@ -88,14 +94,14 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
 		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 		if kapierrors.IsNotFound(err) {
-			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+			return kapierrors.NewNotFound(m.Resource, name)
 		}
 		if err != nil {
 			return err
 		}
 
 		if _, exists := owningPolicyBinding.RoleBindings[name]; !exists {
-			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+			return kapierrors.NewNotFound(m.Resource, name)
 		}
 
 		delete(owningPolicyBinding.RoleBindings, name)
@@ -146,7 +152,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 		_, exists := policyBinding.RoleBindings[roleBinding.Name]
 		if exists {
-			return kapierrors.NewAlreadyExists(authorizationapi.Resource("rolebinding"), roleBinding.Name)
+			return kapierrors.NewAlreadyExists(m.Resource, roleBinding.Name)
 		}
 
 		roleBinding.ResourceVersion = policyBinding.ResourceVersion
@@ -200,7 +206,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInf
 		}
 		oldRoleBinding, exists = policyBinding.RoleBindings[roleBinding.Name]
 		if !exists {
-			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), roleBinding.Name)
+			return kapierrors.NewNotFound(m.Resource, roleBinding.Name)
 		}
 
 		if len(roleBinding.ResourceVersion) == 0 && m.UpdateStrategy.AllowUnconditionalUpdate() {
@@ -241,20 +247,30 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInf
 	}); err != nil {
 		if roleBindingConflicted {
 			// construct the typed conflict error
-			return nil, false, kapierrors.NewConflict(authorizationapi.Resource("rolebinding"), name, err)
+			return nil, false, kapierrors.NewConflict(m.Resource, name, err)
 		}
 		return nil, false, err
 	}
 	return updatedRoleBinding, false, nil
 }
 
+// roleForEscalationCheck tries to use the CachedRuleResolver if available to avoid expensive checks
+func (m *VirtualStorage) roleForEscalationCheck(binding authorizationinterfaces.RoleBinding) (authorizationinterfaces.Role, error) {
+	if m.CachedRuleResolver != nil {
+		if role, err := m.CachedRuleResolver.GetRole(binding); err == nil {
+			return role, nil
+		}
+	}
+	return m.RuleResolver.GetRole(binding)
+}
+
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	modifyingRole, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
+	modifyingRole, err := m.roleForEscalationCheck(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
 	if err != nil {
 		return err
 	}
 
-	return rulevalidation.ConfirmNoEscalation(ctx, authorizationapi.Resource("rolebinding"), roleBinding.Name, m.RuleResolver, modifyingRole)
+	return rulevalidation.ConfirmNoEscalation(ctx, m.Resource, roleBinding.Name, m.RuleResolver, m.CachedRuleResolver, modifyingRole)
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
@@ -320,5 +336,5 @@ func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bin
 		}
 	}
 
-	return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), bindingName)
+	return nil, kapierrors.NewNotFound(m.Resource, bindingName)
 }

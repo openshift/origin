@@ -13,17 +13,13 @@ openshift cli convert \- Convert config files between different API versions
 
 .SH DESCRIPTION
 .PP
-Convert config files between different API versions. Both YAML
-and JSON formats are accepted.
+Convert config files between different API versions. Both YAML and JSON formats are accepted.
 
 .PP
-The command takes filename, directory, or URL as input, and convert it into format
-of version specified by \-\-output\-version flag. If target version is not specified or
-not supported, convert to latest version.
+The command takes filename, directory, or URL as input, and convert it into format of version specified by \-\-output\-version flag. If target version is not specified or not supported, convert to latest version.
 
 .PP
-The default output will be printed to stdout in YAML format. One can use \-o option
-to change to output destination.
+The default output will be printed to stdout in YAML format. One can use \-o option to change to output destination.
 
 
 .SH OPTIONS
@@ -138,6 +134,10 @@ to change to output destination.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -157,14 +157,13 @@ to change to output destination.
 .nf
   # Convert 'pod.yaml' to latest version and print to stdout.
   openshift cli convert \-f pod.yaml
-
+  
   # Convert the live state of the resource specified by 'pod.yaml' to the latest version
   # and print to stdout in json format.
   openshift cli convert \-f pod.yaml \-\-local \-o json
-
+  
   # Convert all files under current directory to latest version and create them all.
   openshift cli convert \-f . | openshift cli create \-f \-
-
 
 .fi
 .RE

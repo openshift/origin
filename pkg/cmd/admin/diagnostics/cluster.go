@@ -14,13 +14,24 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	clustdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
+	agldiags "github.com/openshift/origin/pkg/diagnostics/cluster/aggregated_logging"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 var (
 	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = sets.NewString(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName, clustdiags.ClusterRolesName, clustdiags.ClusterRoleBindingsName, clustdiags.MasterNodeName, clustdiags.MetricsApiProxyName, clustdiags.ServiceExternalIPsName)
+	availableClusterDiagnostics = sets.NewString(
+		agldiags.AggregatedLoggingName,
+		clustdiags.ClusterRegistryName,
+		clustdiags.ClusterRouterName,
+		clustdiags.ClusterRolesName,
+		clustdiags.ClusterRoleBindingsName,
+		clustdiags.MasterNodeName,
+		clustdiags.MetricsApiProxyName,
+		clustdiags.NodeDefinitionsName,
+		clustdiags.ServiceExternalIPsName,
+	)
 )
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
@@ -46,6 +57,8 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	for _, diagnosticName := range requestedDiagnostics {
 		var d types.Diagnostic
 		switch diagnosticName {
+		case agldiags.AggregatedLoggingName:
+			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, clusterClient)
 		case clustdiags.NodeDefinitionsName:
 			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient, OsClient: clusterClient}
 		case clustdiags.MasterNodeName:

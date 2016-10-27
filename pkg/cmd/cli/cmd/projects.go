@@ -6,12 +6,14 @@ import (
 	"sort"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/api"
 
@@ -22,6 +24,7 @@ type ProjectsOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	Client       *client.Client
+	KubeClient   kclient.Interface
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -44,12 +47,12 @@ func (p SortByProjectName) Less(i, j int) bool {
 	return p[i].Name < p[j].Name
 }
 
-const (
-	projectsLong = `
-Display information about the current active project and existing projects on the server.
+var (
+	projectsLong = templates.LongDesc(`
+		Display information about the current active project and existing projects on the server.
 
-For advanced configuration, or to manage the contents of your config file, use the 'config'
-command.`
+		For advanced configuration, or to manage the contents of your config file, use the 'config'
+		command.`)
 )
 
 // NewCmdProjects implements the OpenShift cli rollback command
@@ -95,7 +98,7 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	o.Client, o.KubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -123,7 +126,7 @@ func (o ProjectsOptions) RunProjects() error {
 	client := o.Client
 
 	if len(currentProject) > 0 {
-		if _, currentProjectErr := client.Projects().Get(currentProject); currentProjectErr == nil {
+		if currentProjectErr := confirmProjectAccess(currentProject, o.Client, o.KubeClient); currentProjectErr == nil {
 			currentProjectExists = true
 		}
 	}
@@ -134,7 +137,7 @@ func (o ProjectsOptions) RunProjects() error {
 	}
 
 	var msg string
-	projects, err := getProjects(client)
+	projects, err := getProjects(client, o.KubeClient)
 	if err == nil {
 		switch len(projects) {
 		case 0:

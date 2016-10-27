@@ -18,6 +18,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 )
@@ -30,6 +31,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.ImageStreamImport{}),     // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
+	reflect.TypeOf(&deployapi.DeploymentRequest{}),    // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type
 	reflect.TypeOf(&deployapi.DeploymentLogOptions{}), // just a marker type
 
@@ -42,6 +44,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
 	reflect.TypeOf(&buildapi.BuildLog{}),
 	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),
 	reflect.TypeOf(&buildapi.BuildRequest{}),
@@ -49,6 +52,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
+	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started

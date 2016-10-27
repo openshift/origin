@@ -63,7 +63,7 @@ func (h *Helper) startSocatTunnel() error {
 	if err != nil {
 		glog.V(1).Infof("error: cannot kill socat: %v", err)
 	}
-	cmd := exec.Command("socat", "TCP-L:8443,reuseaddr,fork,backlog=20", "SYSTEM:\"docker exec -i origin socat - TCP\\:localhost\\:8443,nodelay\"")
+	cmd := exec.Command("socat", "TCP-L:8443,reuseaddr,fork,backlog=20,bind=127.0.0.1", "SYSTEM:\"docker exec -i origin socat - TCP\\:localhost\\:8443,nodelay\"")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	err = cmd.Start()
 	if err != nil {

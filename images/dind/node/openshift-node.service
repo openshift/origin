@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenShift Node
+Requires=network.target
+After=docker.target network.target
+
+[Service]
+ExecStartPre=/usr/local/bin/openshift-generate-node-config.sh
+ExecStart=/usr/local/bin/openshift start node --loglevel=5 \
+  --config=/var/lib/origin/openshift.local.config/node/node-config.yaml
+WorkingDirectory=/var/lib/origin
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

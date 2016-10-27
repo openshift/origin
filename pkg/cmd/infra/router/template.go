@@ -15,6 +15,7 @@ import (
 	ktypes "k8s.io/kubernetes/pkg/types"
 
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
@@ -23,25 +24,24 @@ import (
 	"github.com/openshift/origin/pkg/util/proc"
 )
 
-const (
-	routerLong = `
-Start a router
+// defaultReloadInterval is how often to do reloads in seconds.
+const defaultReloadInterval = 5
 
-This command launches a router connected to your cluster master. The router listens for routes and endpoints
-created by users and keeps a local router configuration up to date with those changes.
+var routerLong = templates.LongDesc(`
+	Start a router
 
-You may customize the router by providing your own --template and --reload scripts.
+	This command launches a router connected to your cluster master. The router listens for routes and endpoints
+	created by users and keeps a local router configuration up to date with those changes.
 
-The router must have a default certificate in pem format. You may provide it via --default-cert otherwise
-one is automatically created.
+	You may customize the router by providing your own --template and --reload scripts.
 
-You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
-access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
-namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
-that you must have a cluster-wide administrative role to view all namespaces.`
-	// defaultReloadInterval is how often to do reloads in seconds.
-	defaultReloadInterval = 5
-)
+	The router must have a default certificate in pem format. You may provide it via --default-cert otherwise
+	one is automatically created.
+
+	You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
+	access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
+	namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
+	that you must have a cluster-wide administrative role to view all namespaces.`)
 
 type TemplateRouterOptions struct {
 	Config *clientcmd.Config
@@ -85,7 +85,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
-	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router.")
+	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 }
 
 type RouterStats struct {
@@ -210,7 +210,7 @@ func (o *TemplateRouterOptions) Run() error {
 	plugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), controller.RejectionRecorder(statusPlugin))
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
-	controller := factory.Create(plugin)
+	controller := factory.Create(plugin, false)
 	controller.Run()
 
 	proc.StartReaper()

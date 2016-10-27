@@ -51,7 +51,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList) {
 		// schema v2 does not have that problem.
 		for i := len(image.DockerImageLayers) - 1; i >= 0; i-- {
 			layer := image.DockerImageLayers[i]
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.Name)
+			layerNode := imagegraph.EnsureImageComponentLayerNode(g, layer.Name)
 			edgeKind := ImageLayerEdgeKind
 			if !topLayerAdded && layer.Name != digest.DigestSha256EmptyTar && layer.Name != digestSHA256GzippedEmptyTar {
 				edgeKind = ImageTopLayerEdgeKind
@@ -138,7 +138,7 @@ func markParentsInGraph(g graph.Graph) {
 	for _, in := range imageNodes {
 		// find image's top layer, should be just one
 		for _, e := range g.OutboundEdges(in, ImageTopLayerEdgeKind) {
-			layerNode, _ := e.To().(*imagegraph.ImageLayerNode)
+			layerNode, _ := e.To().(*imagegraph.ImageComponentNode)
 			// find image's containing this layer but not being their top layer
 			for _, ed := range g.InboundEdges(layerNode, ImageLayerEdgeKind) {
 				childNode, _ := ed.From().(*imagegraph.ImageNode)

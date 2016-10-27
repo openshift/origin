@@ -8,6 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -19,25 +21,33 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
+type fakeControllerClient struct {
+	deployment *kapi.ReplicationController
+}
+
+func (c *fakeControllerClient) ReplicationControllers(ns string) kclient.ReplicationControllerInterface {
+	return ktestclient.NewSimpleFake(c.deployment).ReplicationControllers(ns)
+}
+
 func TestRecreate_initialDeployment(t *testing.T) {
 	var deployment *kapi.ReplicationController
 	scaler := &cmdtest.FakeScaler{}
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
 		scaler:            scaler,
+		eventClient:       ktestclient.NewSimpleFake(),
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
 	deployment, _ = deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+
+	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	err := strategy.Deploy(nil, deployment, 3)
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -59,15 +69,14 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
+		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -93,15 +102,14 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
+		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
@@ -127,15 +135,14 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
+		rcClient:          &fakeControllerClient{deployment: deployment},
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -161,14 +168,13 @@ func TestRecreate_deploymentMidHookFail(t *testing.T) {
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
+		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -194,14 +200,13 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
+		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -229,14 +234,13 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
-		out:          &bytes.Buffer{},
-		errOut:       &bytes.Buffer{},
-		decoder:      kapi.Codecs.UniversalDecoder(),
-		retryTimeout: 1 * time.Second,
-		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
+		out:               &bytes.Buffer{},
+		errOut:            &bytes.Buffer{},
+		decoder:           kapi.Codecs.UniversalDecoder(),
+		retryTimeout:      1 * time.Second,
+		retryPeriod:       1 * time.Millisecond,
+		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -263,13 +267,11 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:          &bytes.Buffer{},
 		errOut:       &bytes.Buffer{},
+		eventClient:  ktestclient.NewSimpleFake(),
 		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
-		scaler: scaler,
+		scaler:       scaler,
 	}
 
 	acceptorCalled := false
@@ -282,6 +284,8 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	strategy.rcClient = &fakeControllerClient{deployment: deployment}
+
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -312,10 +316,8 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return deployment, nil
-		},
-		scaler: scaler,
+		scaler:       scaler,
+		eventClient:  ktestclient.NewSimpleFake(),
 	}
 
 	acceptor := &testAcceptor{
@@ -326,6 +328,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err == nil {
 		t.Fatalf("expected a deployment failure")

@@ -28,16 +28,17 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
-const (
-	openshiftLong = `
-%[2]s
+var (
+	openshiftLong = templates.LongDesc(`
+		%[2]s
 
-The %[3]s helps you build, deploy, and manage your applications on top of
-Docker containers. To start an all-in-one server with the default configuration, run:
+		The %[3]s helps you build, deploy, and manage your applications on top of
+		Docker containers. To start an all-in-one server with the default configuration, run:
 
-  %[1]s start &`
+		    $ %[1]s start &`)
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -45,7 +46,7 @@ Docker containers. To start an all-in-one server with the default configuration,
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -100,7 +101,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
@@ -111,7 +112,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
@@ -134,6 +135,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		builder.NewCommandS2IBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
+		diagnostics.NewCommandNetworkPodDiagnostics("network-diagnostic-pod", out),
 	)
 	root.AddCommand(infra)
 
@@ -177,26 +179,26 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	return experimental
 }
 
-const (
-	completion_long = `Output shell completion code for the given shell (bash or zsh).
+var (
+	completion_long = templates.LongDesc(`
+		Output shell completion code for the given shell (bash or zsh).
 
-This command prints shell code which must be evaluation to provide interactive
-completion of kubectl commands.
-`
-	completion_example = `
-$ source <(kubectl completion bash)
+		This command prints shell code which must be evaluation to provide interactive
+		completion of kubectl commands.`)
 
-will load the kubectl completion code for bash. Note that this depends on the bash-completion
-framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+	completion_example = templates.Examples(`
+		$ source <(kubectl completion bash)
 
-$ brew install bash-completion
-$ source $(brew --prefix)/etc/bash_completion
-$ source <(kubectl completion bash)
+		will load the kubectl completion code for bash. Note that this depends on the bash-completion
+		framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
 
-If you use zsh, the following will load kubectl zsh completion:
+		$ brew install bash-completion
+		$ source $(brew --prefix)/etc/bash_completion
+		$ source <(kubectl completion bash)
 
-$ source <(kubectl completion zsh)
-`
+		If you use zsh, the following will load kubectl zsh completion:
+
+		$ source <(kubectl completion zsh)`)
 )
 
 func newCompletionCommand(name, fullName string) *cobra.Command {

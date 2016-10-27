@@ -8,7 +8,6 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 )
 
 const (
@@ -44,30 +43,12 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	}
 
 	// Add edit role to deployer service account
-	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(infraNamespace, osClient)
-	addEditRole := policy.RoleModificationOptions{
-		RoleName:            "edit",
-		RoleBindingAccessor: roleBindingAccessor,
-		Subjects: []kapi.ObjectReference{
-			{
-				Namespace: infraNamespace,
-				Name:      metricsDeployerSA,
-				Kind:      "ServiceAccount",
-			},
-		},
-	}
-	if err = addEditRole.AddRole(); err != nil {
+	if err = AddRoleToServiceAccount(osClient, "edit", metricsDeployerSA, infraNamespace); err != nil {
 		return errors.NewError("cannot add edit role to metrics deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add cluster reader role to heapster service account
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(osClient)
-	addClusterReaderRole := policy.RoleModificationOptions{
-		RoleName:            "cluster-reader",
-		RoleBindingAccessor: clusterRoleBindingAccessor,
-		Users:               []string{"system:serviceaccount:openshift-infra:heapster"},
-	}
-	if err = addClusterReaderRole.AddRole(); err != nil {
+	if err = AddClusterRole(osClient, "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
 		return errors.NewError("cannot add cluster reader role to heapster service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

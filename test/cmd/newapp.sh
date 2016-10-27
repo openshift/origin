@@ -56,6 +56,7 @@ os::cmd::expect_success 'oc new-app php mysql'
 os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
 os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
@@ -72,10 +73,10 @@ os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'AD
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=hello -o yaml' 'hello'
 
 # verify we can create from a template when some objects in the template declare an app label
-# the app label should still be applied to the other objects in the template.
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
-# verify the existing app label on an object is overridden by new-app
-os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
+# the app label will not be applied to any objects in the template.
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+# verify the existing app label on an object is not overridden by new-app
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
 
 # verify that a template can be passed in stdin
 os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
@@ -126,7 +127,10 @@ os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.1'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
 
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.4, 2.6, 3.2, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, latest"
@@ -136,7 +140,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.2, 9.4, 9.5, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.3, 3.4, 3.5, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.0, 2.2, 2.3, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 8.1, 9.0, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 8.1, 9.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
 os::cmd::expect_failure_and_text 'oc new-app -S foo-the-bar' 'no matches found'
@@ -234,9 +238,9 @@ os::cmd::expect_failure_and_text 'oc new-build mysql --source-image centos' 'err
 os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'error: --source-image must be specified when --source-image-path is specified.'
 
 # do not allow use of non-existent image (should fail)
-os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"
+os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"
 # allow use of non-existent image (should succeed)
-os::cmd::expect_success 'oc new-app openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images'
+os::cmd::expect_success 'oc new-app openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images'
 
 os::cmd::expect_success 'oc create -f test/testdata/installable-stream.yaml'
 

@@ -676,7 +676,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 		}
 
 		if cfg.TLSTermination == routeapi.TLSTerminationReencrypt && hasReencryptDestinationCACert(cfg) {
-			glog.V(4).Info("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
+			glog.V(4).Infof("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
 			return true
 		}
 

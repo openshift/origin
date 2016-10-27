@@ -365,21 +365,67 @@ func ParseSSH(source string) (*URLMods, error) {
 	return nil, fmt.Errorf("unable to parse ssh git clone specification:  %s", source)
 }
 
-// isValidGitRepository checks to see if there is a .git repository in the
+// followGitSubmodule looks at a .git /file/ and tries to retrieve from inside
+// it the gitdir value, which is supposed to indicate the location of the
+// corresponding .git /directory/.  Note: the gitdir value should point directly
+// to the corresponding .git directory even in the case of nested submodules.
+func followGitSubmodule(gitPath string) (string, error) {
+	f, err := os.Open(gitPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+	if sc.Scan() {
+		s := sc.Text()
+
+		if strings.HasPrefix(s, "gitdir: ") {
+			newGitPath := s[8:]
+
+			if !filepath.IsAbs(newGitPath) {
+				newGitPath = filepath.Join(filepath.Dir(gitPath), newGitPath)
+			}
+
+			fi, err := os.Stat(newGitPath)
+			if err != nil && !os.IsNotExist(err) {
+				return "", err
+			}
+			if os.IsNotExist(err) || !fi.IsDir() {
+				return "", fmt.Errorf("gitdir link in .git file %q is invalid", gitPath)
+			}
+			return newGitPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to parse .git file %q", gitPath)
+}
+
+// isValidGitRepository checks to see if there is a git repository in the
 // directory and if the repository is valid -- i.e. it has remotes or commits
 func isValidGitRepository(dir string) (bool, error) {
-	gitDir := filepath.Join(strings.TrimPrefix(dir, "file://"), ".git")
+	gitPath := filepath.Join(strings.TrimPrefix(dir, "file://"), ".git")
 
-	// Check to see if .git directory even exists
-	if !doesExist(gitDir) {
-		// The direcory is not a git repo, no error
+	fi, err := os.Stat(gitPath)
+	if os.IsNotExist(err) {
+		// The directory is not a git repo, no error
 		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	if !fi.IsDir() {
+		gitPath, err = followGitSubmodule(gitPath)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	// Search the content of the .git directory for content
 	directories := [2]string{
-		filepath.Join(gitDir, "objects"),
-		filepath.Join(gitDir, "refs"),
+		filepath.Join(gitPath, "objects"),
+		filepath.Join(gitPath, "refs"),
 	}
 
 	// For the directories we search, if the git repo has been used, there will
@@ -416,7 +462,7 @@ func isValidGitRepository(dir string) (bool, error) {
 // doesExist checks if the path exists, removing file:// if needed for OS FS check
 func doesExist(dir string) bool {
 	_, err := os.Stat(strings.TrimPrefix(dir, "file://"))
-	return !(err != nil && os.IsNotExist(err))
+	return err == nil
 }
 
 // hasGitBinary checks if the 'git' binary is available on the system
@@ -494,7 +540,7 @@ func (h *stiGit) SubmoduleUpdate(repo string, init, recursive bool) error {
 	return h.runner.RunWithOptions(opts, "git", updateArgs...)
 }
 
-// GetInfo retrieves the informations about the source code and commit
+// GetInfo retrieves the information about the source code and commit
 func (h *stiGit) GetInfo(repo string) *api.SourceInfo {
 	git := func(arg ...string) string {
 		command := exec.Command("git", arg...)

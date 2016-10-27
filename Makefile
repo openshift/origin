@@ -70,6 +70,8 @@ verify: build
 	hack/verify-generated-clientsets.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
+	hack/verify-cli-conventions.sh
+	PROTO_OPTIONAL=1 hack/verify-generated-protobuf.sh
 	hack/verify-generated-swagger-descriptions.sh
 	hack/verify-generated-swagger-spec.sh
 .PHONY: verify
@@ -85,6 +87,7 @@ update: build
 	hack/update-generated-clientsets.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
+	PROTO_OPTIONAL=1 hack/update-generated-protobuf.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
@@ -232,3 +235,41 @@ install-travis:
 	hack/install-tools.sh
 .PHONY: install-travis
 
+# Build RPMs only for the Linux AMD64 target
+#
+# Example:
+#   make build-rpms
+build-rpms:
+	OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+.PHONY: build-rpms
+
+# Build RPMs for all architectures
+#
+# Example:
+#   make build-rpms-redistributable
+build-rpms-redistributable:
+	hack/build-rpm-release.sh
+.PHONY: build-rpms-redistributable
+
+# Build a release of OpenShift using tito for linux/amd64 and the images that depend on it.
+#
+# Example:
+#   make release
+release-rpms: clean build-rpms
+	hack/build-images.sh
+	hack/extract-release.sh
+.PHONY: release
+
+# Vendor the Origin Web Console
+#
+# Args:
+#   GIT_REF:           specifies which branch / tag of the web console to vendor. If set, then any untracked/uncommitted changes
+#                      will cause the script to exit with an error. If not set then the current working state of the web console
+#                      directory will be used.
+#   CONSOLE_REPO_PATH: specifies a directory path to look for the web console repo.  If not set it is assumed to be
+#                      a sibling to this repository.
+# Example:
+#   make vendor-console
+vendor-console:
+	GIT_REF=$(GIT_REF) CONSOLE_REPO_PATH=$(CONSOLE_REPO_PATH) hack/vendor-console.sh
+.PHONY: vendor-console

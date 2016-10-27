@@ -89,7 +89,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 		return nil, err
 	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, c.OpenShiftClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
 
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
 	if err != nil {
@@ -240,7 +240,7 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
 }
 
-func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects bool) error {
+func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects, preserveExistingSecret bool) error {
 	ctx := kapi.NewContext()
 	_, err := clientRegistry.CreateClient(ctx, &client)
 	if err == nil || !kerrs.IsAlreadyExists(err) {
@@ -256,7 +256,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 		// Ensure the correct challenge setting
 		existing.RespondWithChallenges = client.RespondWithChallenges
 		// Preserve an existing client secret
-		if len(existing.Secret) == 0 {
+		if !preserveExistingSecret || len(existing.Secret) == 0 {
 			existing.Secret = client.Secret
 		}
 
@@ -290,12 +290,12 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 	{
 		webConsoleClient := oauthapi.OAuthClient{
 			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftWebConsoleClientID},
-			Secret:                uuid.New(),
+			Secret:                "",
 			RespondWithChallenges: false,
 			RedirectURIs:          assetPublicAddresses,
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
-		if err := ensureOAuthClient(webConsoleClient, clientRegistry, true); err != nil {
+		if err := ensureOAuthClient(webConsoleClient, clientRegistry, true, false); err != nil {
 			return err
 		}
 	}
@@ -308,7 +308,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
-		if err := ensureOAuthClient(browserClient, clientRegistry, true); err != nil {
+		if err := ensureOAuthClient(browserClient, clientRegistry, true, true); err != nil {
 			return err
 		}
 	}
@@ -316,12 +316,12 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 	{
 		cliClient := oauthapi.OAuthClient{
 			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
-			Secret:                uuid.New(),
+			Secret:                "",
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
-		if err := ensureOAuthClient(cliClient, clientRegistry, false); err != nil {
+		if err := ensureOAuthClient(cliClient, clientRegistry, false, false); err != nil {
 			return err
 		}
 	}

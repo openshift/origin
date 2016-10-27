@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -82,6 +83,23 @@ func TestDescribePodTolerations(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(out, "key1=value1") || !strings.Contains(out, "key2=value2") || !strings.Contains(out, "Tolerations:") {
+		t.Errorf("unexpected out: %s", out)
+	}
+}
+
+func TestDescribeNamespace(t *testing.T) {
+	fake := testclient.NewSimpleFake(&api.Namespace{
+		ObjectMeta: api.ObjectMeta{
+			Name: "myns",
+		},
+	})
+	c := &describeClient{T: t, Namespace: "", Interface: fake}
+	d := NamespaceDescriber{c}
+	out, err := d.Describe("", "myns", DescriberSettings{ShowEvents: true})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "myns") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -606,6 +624,31 @@ func TestDescribeCluster(t *testing.T) {
 	}
 }
 
+func TestDescribeStorageClass(t *testing.T) {
+	f := testclient.NewSimpleFake(&storage.StorageClass{
+		ObjectMeta: api.ObjectMeta{
+			Name:            "foo",
+			ResourceVersion: "4",
+			Annotations: map[string]string{
+				"name": "foo",
+			},
+		},
+		Provisioner: "my-provisioner",
+		Parameters: map[string]string{
+			"param1": "value1",
+			"param2": "value2",
+		},
+	})
+	s := StorageClassDescriber{f}
+	out, err := s.Describe("", "foo", DescriberSettings{ShowEvents: true})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "foo") {
+		t.Errorf("unexpected out: %s", out)
+	}
+}
+
 func TestDescribeEvents(t *testing.T) {
 
 	events := &api.EventList{
@@ -698,6 +741,14 @@ func TestDescribeEvents(t *testing.T) {
 		},
 		"Service": &ServiceDescriber{
 			testclient.NewSimpleFake(&api.Service{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "bar",
+					Namespace: "foo",
+				},
+			}, events),
+		},
+		"StorageClass": &StorageClassDescriber{
+			testclient.NewSimpleFake(&storage.StorageClass{
 				ObjectMeta: api.ObjectMeta{
 					Name:      "bar",
 					Namespace: "foo",

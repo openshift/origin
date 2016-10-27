@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	dockerClient "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -169,7 +168,7 @@ type DefaultScriptSourceManager struct {
 	ScriptsURL string
 	download   Downloader
 	docker     docker.Docker
-	dockerAuth dockerClient.AuthConfiguration
+	dockerAuth api.AuthConfig
 	sources    []ScriptHandler
 	fs         util.FileSystem
 }
@@ -183,7 +182,7 @@ func (m *DefaultScriptSourceManager) Add(s ScriptHandler) {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
+func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig) Installer {
 	m := DefaultScriptSourceManager{
 		Image:      image,
 		ScriptsURL: scriptsURL,
@@ -212,8 +211,8 @@ func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig,
 // InstallRequired Downloads and installs required scripts into dstDir, the result is a
 // map of scripts with detailed information about each of the scripts install process
 // with error if installing some of them failed
-func (i *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir string) ([]api.InstallResult, error) {
-	result := i.InstallOptional(scripts, dstDir)
+func (m *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir string) ([]api.InstallResult, error) {
+	result := m.InstallOptional(scripts, dstDir)
 	failedScripts := []string{}
 	var err error
 	for _, r := range result {
@@ -229,12 +228,12 @@ func (i *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir st
 
 // InstallOptional downloads and installs a set of scripts into dstDir, the result is a
 // map of scripts with detailed information about each of the scripts install process
-func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir string) []api.InstallResult {
+func (m *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir string) []api.InstallResult {
 	result := []api.InstallResult{}
 	for _, script := range scripts {
 		installed := false
 		failedSources := []string{}
-		for _, e := range i.sources {
+		for _, e := range m.sources {
 			detected := false
 			h := e.(ScriptHandler)
 			h.SetDestinationDir(dstDir)

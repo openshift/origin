@@ -67,10 +67,11 @@ os::cmd::expect_failure_and_text 'oadm ipfailover --dry-run' 'you must specify a
 os::cmd::expect_failure_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'error: ipfailover could not be created'
 os::cmd::expect_success 'oadm policy add-scc-to-user privileged -z ipfailover'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'Creating IP failover'
-os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'Success \(DRY RUN\)'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run' 'Success \(dry run\)'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml' 'name: ipfailover'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o name' 'deploymentconfig/ipfailover'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml' '1.2.3.4'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --iptables-chain="MY_CHAIN" --dry-run -o yaml' 'value: MY_CHAIN'
 os::cmd::expect_success 'oadm policy remove-scc-from-user privileged -z ipfailover'
 # TODO add tests for normal ipfailover creation
 # os::cmd::expect_success_and_text 'oadm ipfailover' 'deploymentconfig "ipfailover" created'

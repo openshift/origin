@@ -30,11 +30,11 @@ import (
 
 func init() {
 	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewJenkingsBootstrapper(c.Core()), nil
+		return NewJenkinsBootstrapper(c.Core()), nil
 	})
 }
 
-type jenkingsBootstrapper struct {
+type jenkinsBootstrapper struct {
 	*admission.Handler
 
 	privilegedRESTClientConfig restclient.Config
@@ -44,16 +44,16 @@ type jenkingsBootstrapper struct {
 	jenkinsConfig configapi.JenkinsPipelineConfig
 }
 
-// NewJenkingsBootstrapper returns an admission plugin that will create required jenkins resources as the user if they are needed.
-func NewJenkingsBootstrapper(serviceClient coreclient.ServicesGetter) admission.Interface {
-	return &jenkingsBootstrapper{
+// NewJenkinsBootstrapper returns an admission plugin that will create required jenkins resources as the user if they are needed.
+func NewJenkinsBootstrapper(serviceClient coreclient.ServicesGetter) admission.Interface {
+	return &jenkinsBootstrapper{
 		Handler:       admission.NewHandler(admission.Create),
 		serviceClient: serviceClient,
 	}
 }
 
-func (a *jenkingsBootstrapper) Admit(attributes admission.Attributes) error {
-	if a.jenkinsConfig.AutoProvisionEnabled == nil || !*a.jenkinsConfig.AutoProvisionEnabled {
+func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
+	if a.jenkinsConfig.AutoProvisionEnabled != nil && !*a.jenkinsConfig.AutoProvisionEnabled {
 		return nil
 	}
 	if len(attributes.GetSubresource()) != 0 {
@@ -143,14 +143,14 @@ func needsJenkinsTemplate(obj runtime.Object) bool {
 	}
 }
 
-func (a *jenkingsBootstrapper) SetJenkinsPipelineConfig(jenkinsConfig configapi.JenkinsPipelineConfig) {
+func (a *jenkinsBootstrapper) SetJenkinsPipelineConfig(jenkinsConfig configapi.JenkinsPipelineConfig) {
 	a.jenkinsConfig = jenkinsConfig
 }
 
-func (a *jenkingsBootstrapper) SetRESTClientConfig(restClientConfig restclient.Config) {
+func (a *jenkinsBootstrapper) SetRESTClientConfig(restClientConfig restclient.Config) {
 	a.privilegedRESTClientConfig = restClientConfig
 }
 
-func (a *jenkingsBootstrapper) SetOpenshiftClient(oclient client.Interface) {
+func (a *jenkinsBootstrapper) SetOpenshiftClient(oclient client.Interface) {
 	a.openshiftClient = oclient
 }

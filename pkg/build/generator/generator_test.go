@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -23,7 +24,7 @@ import (
 type FakeDockerCfg map[string]map[string]string
 
 const (
-	originalImage = "originalImage"
+	originalImage = "originalimage"
 	newImage      = originalImage + ":" + newTag
 
 	tagName          = "test"
@@ -440,6 +441,30 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
 	if err == nil {
 		t.Errorf("Expected an error and did not get one")
+	}
+}
+
+func TestInstantiateWithMissingImageStream(t *testing.T) {
+	g := mockBuildGenerator()
+	c := g.Client.(Client)
+	c.GetImageStreamTagFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreamtags"), "testRepo")
+	}
+	g.Client = c
+
+	_, err := g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	se, ok := err.(*errors.StatusError)
+
+	if !ok {
+		t.Errorf("Expected errors.StatusError, got %T", err)
+	}
+
+	if se.ErrStatus.Code != errors.StatusUnprocessableEntity {
+		t.Errorf("Expected status 422, got %d", se.ErrStatus.Code)
+	}
+
+	if !strings.Contains(se.ErrStatus.Message, "testns") {
+		t.Errorf("Error message does not contain namespace: %q", se.ErrStatus.Message)
 	}
 }
 
@@ -1037,6 +1062,12 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
+			Annotations: map[string]string{
+				buildapi.BuildJenkinsStatusJSONAnnotation: "foo",
+				buildapi.BuildJenkinsLogURLAnnotation:     "bar",
+				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
+				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
+			},
 		},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1058,6 +1089,18 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	}
 	if !reflect.DeepEqual(build.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
 		t.Errorf("Build labels does not match the original Build labels")
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsStatusJSONAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsStatusJSONAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsLogURLAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsBuildURIAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsBuildURIAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildPodNameAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildPodNameAnnotation)
 	}
 }
 

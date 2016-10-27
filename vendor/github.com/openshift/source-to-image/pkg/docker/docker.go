@@ -1,9 +1,14 @@
 package docker
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,7 +17,14 @@ import (
 	"syscall"
 	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
+	dockermessage "github.com/docker/docker/pkg/jsonmessage"
+	dockerstdcopy "github.com/docker/docker/pkg/stdcopy"
+	dockerapi "github.com/docker/engine-api/client"
+	dockertypes "github.com/docker/engine-api/types"
+	dockercontainer "github.com/docker/engine-api/types/container"
+	dockernetwork "github.com/docker/engine-api/types/network"
+	"github.com/docker/go-connections/tlsconfig"
+	"golang.org/x/net/context"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -53,7 +65,10 @@ const (
 
 	// DefaultDockerTimeout specifies a timeout for Docker API calls. When this
 	// timeout is reached, certain Docker API calls might error out.
-	DefaultDockerTimeout = 20 * time.Second
+	DefaultDockerTimeout = 2 * time.Minute
+
+	// DefaultShmSize is the default shared memory size to use (in bytes) if not specified.
+	DefaultShmSize = int64(1024 * 1024 * 64)
 )
 
 // containerNamePrefix prefixes the name of containers launched by S2I. We
@@ -75,7 +90,7 @@ func containerName(image string) string {
 	return fmt.Sprintf("%s_%s_%s", containerNamePrefix, image, uid)
 }
 
-// Docker is the interface between STI and the Docker client
+// Docker is the interface between STI and the docker engine-api.
 // It contains higher level operations called from the STI
 // build or usage commands
 type Docker interface {
@@ -90,9 +105,9 @@ type Docker interface {
 	GetImageWorkdir(name string) (string, error)
 	CommitContainer(opts CommitContainerOptions) (string, error)
 	RemoveImage(name string) error
-	CheckImage(name string) (*docker.Image, error)
-	PullImage(name string) (*docker.Image, error)
-	CheckAndPullImage(name string) (*docker.Image, error)
+	CheckImage(name string) (*api.Image, error)
+	PullImage(name string) (*api.Image, error)
+	CheckAndPullImage(name string) (*api.Image, error)
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
 	GetImageEntrypoint(name string) ([]string, error)
@@ -100,48 +115,58 @@ type Docker interface {
 	UploadToContainer(srcPath, destPath, container string) error
 	UploadToContainerWithCallback(srcPath, destPath, container string, walkFn filepath.WalkFunc, modifyInplace bool) error
 	DownloadFromContainer(containerPath string, w io.Writer, container string) error
-	Ping() error
+	Version() (dockertypes.Version, error)
 }
 
-// Client contains all methods called on the go Docker
-// client.
+// Client contains all methods used when interacting directly with docker engine-api
 type Client interface {
-	RemoveImage(name string) error
-	InspectImage(name string) (*docker.Image, error)
-	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
-	CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error)
-	AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error)
-	StartContainer(id string, hostConfig *docker.HostConfig) error
-	WaitContainer(id string) (int, error)
-	UploadToContainer(id string, opts docker.UploadToContainerOptions) error
-	DownloadFromContainer(id string, opts docker.DownloadFromContainerOptions) error
-	RemoveContainer(opts docker.RemoveContainerOptions) error
-	CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error)
-	CopyFromContainer(opts docker.CopyFromContainerOptions) error
-	BuildImage(opts docker.BuildImageOptions) error
-	InspectContainer(id string) (*docker.Container, error)
-	Ping() error
+	ContainerAttach(ctx context.Context, container string, options dockertypes.ContainerAttachOptions) (dockertypes.HijackedResponse, error)
+	ContainerCommit(ctx context.Context, container string, options dockertypes.ContainerCommitOptions) (dockertypes.ContainerCommitResponse, error)
+	ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockertypes.ContainerCreateResponse, error)
+	ContainerInspect(ctx context.Context, containerID string) (dockertypes.ContainerJSON, error)
+	ContainerRemove(ctx context.Context, containerID string, options dockertypes.ContainerRemoveOptions) error
+	ContainerStart(ctx context.Context, containerID string) error
+	ContainerWait(ctx context.Context, containerID string) (int, error)
+	CopyToContainer(ctx context.Context, container, path string, content io.Reader, opts dockertypes.CopyToContainerOptions) error
+	CopyFromContainer(ctx context.Context, container, srcPath string) (io.ReadCloser, dockertypes.ContainerPathStat, error)
+	ImageBuild(ctx context.Context, buildContext io.Reader, options dockertypes.ImageBuildOptions) (dockertypes.ImageBuildResponse, error)
+	ImageInspectWithRaw(ctx context.Context, imageID string, getSize bool) (dockertypes.ImageInspect, []byte, error)
+	ImagePull(ctx context.Context, ref string, options dockertypes.ImagePullOptions) (io.ReadCloser, error)
+	ImageRemove(ctx context.Context, imageID string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error)
+	ServerVersion(ctx context.Context) (dockertypes.Version, error)
 }
 
 type stiDocker struct {
 	client   Client
-	pullAuth docker.AuthConfiguration
+	pullAuth dockertypes.AuthConfig
 }
 
+func (d stiDocker) InspectImage(name string) (*dockertypes.ImageInspect, error) {
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	resp, _, err := d.client.ImageInspectWithRaw(ctx, name, true)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// PostExecutor is an interface which provides a PostExecute function
 type PostExecutor interface {
 	PostExecute(containerID, destination string) error
 }
 
+// PullResult is the result returned by the PullImage function
 type PullResult struct {
 	OnBuild bool
-	Image   *docker.Image
+	Image   *api.Image
 }
 
 // RunContainerOptions are options passed in to the RunContainer method
 type RunContainerOptions struct {
 	Image           string
 	PullImage       bool
-	PullAuth        docker.AuthConfiguration
+	PullAuth        api.AuthConfig
 	ExternalScripts bool
 	ScriptsURL      string
 	Destination     string
@@ -175,9 +200,9 @@ type RunContainerOptions struct {
 }
 
 // asDockerConfig converts a RunContainerOptions into a Config understood by the
-// go-dockerclient library.
-func (rco RunContainerOptions) asDockerConfig() docker.Config {
-	return docker.Config{
+// docker client
+func (rco RunContainerOptions) asDockerConfig() dockercontainer.Config {
+	return dockercontainer.Config{
 		Image:        getImageName(rco.Image),
 		User:         rco.User,
 		Env:          rco.Env,
@@ -189,30 +214,30 @@ func (rco RunContainerOptions) asDockerConfig() docker.Config {
 }
 
 // asDockerHostConfig converts a RunContainerOptions into a HostConfig
-// understood by the go-dockerclient library.
-func (rco RunContainerOptions) asDockerHostConfig() docker.HostConfig {
-	hostConfig := docker.HostConfig{
+// understood by the docker client
+func (rco RunContainerOptions) asDockerHostConfig() dockercontainer.HostConfig {
+	hostConfig := dockercontainer.HostConfig{
 		CapDrop:         rco.CapDrop,
 		PublishAllPorts: rco.TargetImage,
-		NetworkMode:     rco.NetworkMode,
+		NetworkMode:     dockercontainer.NetworkMode(rco.NetworkMode),
 		Binds:           rco.Binds,
 	}
 	if rco.CGroupLimits != nil {
-		hostConfig.Memory = rco.CGroupLimits.MemoryLimitBytes
-		hostConfig.MemorySwap = rco.CGroupLimits.MemorySwap
-		hostConfig.CPUShares = rco.CGroupLimits.CPUShares
-		hostConfig.CPUQuota = rco.CGroupLimits.CPUQuota
-		hostConfig.CPUPeriod = rco.CGroupLimits.CPUPeriod
+		hostConfig.Resources.Memory = rco.CGroupLimits.MemoryLimitBytes
+		hostConfig.Resources.MemorySwap = rco.CGroupLimits.MemorySwap
+		hostConfig.Resources.CPUShares = rco.CGroupLimits.CPUShares
+		hostConfig.Resources.CPUQuota = rco.CGroupLimits.CPUQuota
+		hostConfig.Resources.CPUPeriod = rco.CGroupLimits.CPUPeriod
 	}
 	return hostConfig
 }
 
 // asDockerCreateContainerOptions converts a RunContainerOptions into a
-// CreateContainerOptions understood by the go-dockerclient library.
-func (rco RunContainerOptions) asDockerCreateContainerOptions() docker.CreateContainerOptions {
+// ContainerCreateConfig understood by the docker client
+func (rco RunContainerOptions) asDockerCreateContainerOptions() dockertypes.ContainerCreateConfig {
 	config := rco.asDockerConfig()
 	hostConfig := rco.asDockerHostConfig()
-	return docker.CreateContainerOptions{
+	return dockertypes.ContainerCreateConfig{
 		Name:       containerName(rco.Image),
 		Config:     &config,
 		HostConfig: &hostConfig,
@@ -220,18 +245,12 @@ func (rco RunContainerOptions) asDockerCreateContainerOptions() docker.CreateCon
 }
 
 // asDockerAttachToContainerOptions converts a RunContainerOptions into a
-// AttachToContainerOptions understood by the go-dockerclient library.
-func (rco RunContainerOptions) asDockerAttachToContainerOptions() docker.AttachToContainerOptions {
-	return docker.AttachToContainerOptions{
-		InputStream:  rco.Stdin,
-		OutputStream: rco.Stdout,
-		ErrorStream:  rco.Stderr,
-
+// ContainerAttachOptions understood by the docker client
+func (rco RunContainerOptions) asDockerAttachToContainerOptions() dockertypes.ContainerAttachOptions {
+	return dockertypes.ContainerAttachOptions{
 		Stdin:  rco.Stdin != nil,
 		Stdout: rco.Stdout != nil,
 		Stderr: rco.Stderr != nil,
-
-		Logs:   rco.Stdout != nil,
 		Stream: rco.Stdout != nil,
 	}
 }
@@ -256,35 +275,58 @@ type BuildImageOptions struct {
 }
 
 // New creates a new implementation of the STI Docker interface
-func New(config *api.DockerConfig, auth docker.AuthConfiguration) (Docker, error) {
-	var client *docker.Client
-	var err error
+func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
+	var httpClient *http.Client
+
 	if config.CertFile != "" && config.KeyFile != "" && config.CAFile != "" {
-		client, err = docker.NewTLSClient(
-			config.Endpoint,
-			config.CertFile,
-			config.KeyFile,
-			config.CAFile)
-	} else {
-		client, err = docker.NewClient(config.Endpoint)
+		tlscOptions := tlsconfig.Options{
+			CAFile:             config.CAFile,
+			CertFile:           config.CertFile,
+			KeyFile:            config.KeyFile,
+			InsecureSkipVerify: os.Getenv("DOCKER_TLS_VERIFY") == "",
+		}
+		tlsc, err := tlsconfig.Client(tlscOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsc,
+			},
+		}
 	}
+
+	client, err := dockerapi.NewClient(config.Endpoint, os.Getenv("DOCKER_API_VERSION"), httpClient, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &stiDocker{
-		client:   client,
-		pullAuth: auth,
+		client: client,
+		pullAuth: dockertypes.AuthConfig{
+			Username:      auth.Username,
+			Password:      auth.Password,
+			Email:         auth.Email,
+			ServerAddress: auth.ServerAddress,
+		},
 	}, nil
+}
+
+func getDefaultContext() (context.Context, context.CancelFunc) {
+	// the intention is: all docker API calls with the exception of known long-
+	// running calls (ContainerWait, ImagePull, ImageBuild) must complete within a
+	// certain timeout otherwise we bail.
+	return context.WithTimeout(context.Background(), DefaultDockerTimeout)
 }
 
 // GetImageWorkdir returns the WORKDIR property for the given image name.
 // When the WORKDIR is not set or empty, return "/" instead.
 func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
-	image, err := d.client.InspectImage(name)
+	resp, err := d.InspectImage(name)
 	if err != nil {
 		return "", err
 	}
-	workdir := image.Config.WorkingDir
+	workdir := resp.Config.WorkingDir
 	if len(workdir) == 0 {
 		// This is a default destination used by UploadToContainer when the WORKDIR
 		// is not set or it is empty. To show user where the injections will end up,
@@ -296,7 +338,7 @@ func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
 
 // GetImageEntrypoint returns the ENTRYPOINT property for the given image name.
 func (d *stiDocker) GetImageEntrypoint(name string) ([]string, error) {
-	image, err := d.client.InspectImage(name)
+	image, err := d.InspectImage(name)
 	if err != nil {
 		return nil, err
 	}
@@ -358,48 +400,58 @@ func (d *stiDocker) UploadToContainerWithCallback(src, dest, container string, w
 		}()
 	}
 	glog.V(3).Infof("Uploading %q to %q ...", src, path)
-	opts := docker.UploadToContainerOptions{Path: path, InputStream: r}
-	return d.client.UploadToContainer(container, opts)
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	return d.client.CopyToContainer(ctx, container, path, r, dockertypes.CopyToContainerOptions{})
 }
 
 // DownloadFromContainer downloads file (or directory) from the container.
 func (d *stiDocker) DownloadFromContainer(containerPath string, w io.Writer, container string) error {
-	opts := docker.DownloadFromContainerOptions{Path: containerPath, OutputStream: w}
-	return d.client.DownloadFromContainer(container, opts)
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	readCloser, _, err := d.client.CopyFromContainer(ctx, container, containerPath)
+	if err != nil {
+		return err
+	}
+	defer readCloser.Close()
+	_, err = io.Copy(w, readCloser)
+	return err
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
 func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
-
-	if image != nil {
+	resp, err := d.InspectImage(name)
+	if resp != nil {
 		return true, nil
-	} else if err == docker.ErrNoSuchImage {
-		return false, nil
 	}
-	return false, err
+	if err != nil && !dockerapi.IsErrImageNotFound(err) {
+		return false, errors.NewInspectImageError(name, err)
+	}
+	return false, nil
 }
 
 // GetImageUser finds and retrieves the user associated with
 // an image if one has been specified
 func (d *stiDocker) GetImageUser(name string) (string, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
+	resp, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return "", errors.NewInspectImageError(name, err)
 	}
-	user := image.ContainerConfig.User
+	user := resp.ContainerConfig.User
 	if len(user) == 0 {
-		user = image.Config.User
+		user = resp.Config.User
 	}
 	return user, nil
 }
 
-// Ping determines if the Docker daemon is reachable
-func (d *stiDocker) Ping() error {
-	return d.client.Ping()
+// Version returns information of the docker client and server host
+func (d *stiDocker) Version() (dockertypes.Version, error) {
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	return d.client.ServerVersion(ctx)
 }
 
 // IsImageOnBuild provides information about whether the Docker image has
@@ -413,16 +465,17 @@ func (d *stiDocker) IsImageOnBuild(name string) bool {
 // for the given image
 func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
+	resp, err := d.InspectImage(name)
 	if err != nil {
-		return nil, err
+		glog.V(4).Infof("error inspecting image %s: %v", name, err)
+		return nil, errors.NewInspectImageError(name, err)
 	}
-	return image.Config.OnBuild, nil
+	return resp.Config.OnBuild, nil
 }
 
 // CheckAndPullImage pulls an image into the local registry if not present
 // and returns the image metadata
-func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
+func (d *stiDocker) CheckAndPullImage(name string) (*api.Image, error) {
 	name = getImageName(name)
 	displayName := name
 
@@ -439,7 +492,7 @@ func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 	}
 
 	image, err := d.CheckImage(name)
-	if err != nil && err.(errors.Error).Details != docker.ErrNoSuchImage {
+	if err != nil && !strings.Contains(err.(errors.Error).Details.Error(), "No such image") {
 		return nil, err
 	}
 	if image == nil {
@@ -452,59 +505,131 @@ func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 }
 
 // CheckImage checks image from the local registry.
-func (d *stiDocker) CheckImage(name string) (*docker.Image, error) {
+func (d *stiDocker) CheckImage(name string) (*api.Image, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
+	inspect, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
-	return image, nil
+	if inspect != nil {
+		image := &api.Image{}
+		updateImageWithInspect(image, inspect)
+		return image, nil
+	}
+
+	return nil, nil
+}
+
+func base64EncodeAuth(auth dockertypes.AuthConfig) (string, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(auth); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(buf.Bytes()), nil
 }
 
 // PullImage pulls an image into the local registry
-func (d *stiDocker) PullImage(name string) (*docker.Image, error) {
+func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 	name = getImageName(name)
-	glog.V(1).Infof("Pulling Docker image %s ...", name)
-	// TODO: Add authentication support
-	if err := d.client.PullImage(docker.PullImageOptions{Repository: name}, d.pullAuth); err != nil {
-		glog.V(3).Infof("An error was received from the PullImage call: %v", err)
+
+	// RegistryAuth is the base64 encoded credentials for the registry
+	base64Auth, err := base64EncodeAuth(d.pullAuth)
+	if err != nil {
 		return nil, errors.NewPullImageError(name, err)
 	}
-	image, err := d.client.InspectImage(name)
+
+	err = util.TimeoutAfter(DefaultDockerTimeout, fmt.Sprintf("pulling image %q", name), func(timer *time.Timer) error {
+		resp, pullErr := d.client.ImagePull(context.Background(), name, dockertypes.ImagePullOptions{RegistryAuth: base64Auth})
+		if pullErr != nil {
+			return pullErr
+		}
+		defer resp.Close()
+
+		decoder := json.NewDecoder(resp)
+		for {
+			if !timer.Stop() {
+				return &util.TimeoutError{}
+			}
+			timer.Reset(DefaultDockerTimeout)
+
+			var msg dockermessage.JSONMessage
+			pullErr = decoder.Decode(&msg)
+			if pullErr == io.EOF {
+				return nil
+			}
+			if pullErr != nil {
+				return pullErr
+			}
+
+			if msg.Error != nil {
+				return msg.Error
+			}
+			if msg.ProgressMessage != "" {
+				glog.V(4).Infof("pulling image %s: %s", name, msg.ProgressMessage)
+			}
+		}
+	})
 	if err != nil {
-		glog.V(4).Infof("error inspecting image %s: %v", name, err)
-		return nil, errors.NewInspectImageError(name, err)
+		return nil, errors.NewPullImageError(name, err)
 	}
-	return image, nil
+
+	inspectResp, err := d.InspectImage(name)
+	if err != nil {
+		return nil, errors.NewPullImageError(name, err)
+	}
+	if inspectResp != nil {
+		image := &api.Image{}
+		updateImageWithInspect(image, inspectResp)
+		return image, nil
+	}
+	return nil, nil
+}
+
+func updateImageWithInspect(image *api.Image, inspect *dockertypes.ImageInspect) {
+	image.ID = inspect.ID
+	if inspect.Config != nil {
+		image.Config = &api.ContainerConfig{
+			Labels: inspect.Config.Labels,
+			Env:    inspect.Config.Env,
+		}
+	}
+	if inspect.ContainerConfig != nil {
+		image.ContainerConfig = &api.ContainerConfig{
+			Labels: inspect.ContainerConfig.Labels,
+			Env:    inspect.ContainerConfig.Env,
+		}
+	}
 }
 
 // RemoveContainer removes a container and its associated volumes.
 func (d *stiDocker) RemoveContainer(id string) error {
-	opts := docker.RemoveContainerOptions{
-		ID:            id,
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	opts := dockertypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	return d.client.RemoveContainer(opts)
+	return d.client.ContainerRemove(ctx, id, opts)
 }
 
 // GetLabels retrieves the labels of the given image.
 func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
+	resp, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, errors.NewInspectImageError(name, err)
 	}
-	return image.Config.Labels, nil
-
+	return resp.Config.Labels, nil
 }
 
 // getImageName checks the image name and adds DefaultTag if none is specified
 func getImageName(name string) string {
-	_, tag := docker.ParseRepositoryTag(name)
-	if len(tag) == 0 {
+	_, tag, id := parseRepositoryTag(name)
+	if len(tag) == 0 && len(id) == 0 {
+		//_, tag, _ := parseRepositoryTag(name)
+		//if len(tag) == 0 {
 		return strings.Join([]string{name, DefaultTag}, ":")
 	}
 
@@ -512,19 +637,18 @@ func getImageName(name string) string {
 }
 
 // getLabel gets label's value from the image metadata
-func getLabel(image *docker.Image, name string) string {
+func getLabel(image *api.Image, name string) string {
 	if value, ok := image.Config.Labels[name]; ok {
 		return value
 	}
 	if value, ok := image.ContainerConfig.Labels[name]; ok {
 		return value
 	}
-
 	return ""
 }
 
 // getVariable gets environment variable's value from the image metadata
-func getVariable(image *docker.Image, name string) string {
+func getVariable(image *api.Image, name string) string {
 	envName := name + "="
 	env := append(image.ContainerConfig.Env, image.Config.Env...)
 	for _, v := range env {
@@ -563,7 +687,10 @@ func (d *stiDocker) GetAssembleInputFiles(image string) (string, error) {
 }
 
 // getScriptsURL finds a scripts url label in the image metadata
-func getScriptsURL(image *docker.Image) string {
+func getScriptsURL(image *api.Image) string {
+	if image == nil {
+		return ""
+	}
 	scriptsURL := getLabel(image, ScriptsURLLabel)
 
 	// For backward compatibility, support the old label schema
@@ -591,7 +718,7 @@ func getScriptsURL(image *docker.Image) string {
 }
 
 // getDestination finds a destination label in the image metadata
-func getDestination(image *docker.Image) string {
+func getDestination(image *api.Image) string {
 	if val := getLabel(image, DestinationLabel); len(val) != 0 {
 		return val
 	}
@@ -611,7 +738,7 @@ func getDestination(image *docker.Image) string {
 	return DefaultDestination
 }
 
-func constructCommand(opts RunContainerOptions, imageMetadata *docker.Image, tarDestination string) []string {
+func constructCommand(opts RunContainerOptions, imageMetadata *api.Image, tarDestination string) []string {
 	// base directory for all S2I commands
 	commandBaseDir := determineCommandBaseDir(opts, imageMetadata, tarDestination)
 
@@ -634,14 +761,14 @@ func constructCommand(opts RunContainerOptions, imageMetadata *docker.Image, tar
 	return []string{binaryToRun}
 }
 
-func determineTarDestinationDir(opts RunContainerOptions, imageMetadata *docker.Image) string {
+func determineTarDestinationDir(opts RunContainerOptions, imageMetadata *api.Image) string {
 	if len(opts.Destination) != 0 {
 		return opts.Destination
 	}
 	return getDestination(imageMetadata)
 }
 
-func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *docker.Image, tarDestination string) string {
+func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *api.Image, tarDestination string) string {
 	if opts.ExternalScripts {
 		// for external scripts we must always append 'scripts' because this is
 		// the default subdirectory inside tar for them
@@ -665,23 +792,80 @@ func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *docker.Ima
 }
 
 // dumpContainerInfo dumps information about a running container (port/IP/etc).
-func dumpContainerInfo(container *docker.Container, d *stiDocker, image string) {
-	cont, icerr := d.client.InspectContainer(container.ID)
-	liveports := "\n\nPort Bindings:  "
-	if icerr == nil {
-		// Ports is of the following type:  map[docker.Port][]docker.PortBinding
-		for port, bindings := range cont.NetworkSettings.Ports {
-			liveports = liveports + "\n  Container Port:  " + port.Port()
-			liveports = liveports + "\n        Protocol:  " + port.Proto()
-			liveports = liveports + "\n        Public Host / Port Mappings:"
-			for _, binding := range bindings {
-				liveports = liveports + "\n            IP: " + binding.HostIP + " Port: " + binding.HostPort
-			}
-		}
-		liveports = liveports + "\n"
+func dumpContainerInfo(container dockertypes.ContainerCreateResponse, d *stiDocker, image string) {
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+
+	containerJSON, err := d.client.ContainerInspect(ctx, container.ID)
+	if err != nil {
+		return
 	}
+
+	liveports := "\n\nPort Bindings:  "
+	for port, bindings := range containerJSON.NetworkSettings.NetworkSettingsBase.Ports {
+		liveports = liveports + "\n  Container Port:  " + string(port)
+		liveports = liveports + "\n        Public Host / Port Mappings:"
+		for _, binding := range bindings {
+			liveports = liveports + "\n            IP: " + binding.HostIP + " Port: " + binding.HostPort
+		}
+	}
+	liveports = liveports + "\n"
 	glog.V(0).Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's glog output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
 }
+
+// begin block copy of two methods from kube_docker_client.go
+// ... essentially, if that code could give us a way to inspect the error from engin-api's ContainerAttach call prior
+// to blocking on the IO, we could just leverage the kube_docker_client.go code entirely ... essentially a "non-blocking" attach like go-dockerclient provided
+
+// redirectResponseToOutputStream redirect the response stream to stdout and stderr. When tty is true, all stream will
+// only be redirected to stdout.
+func (d *stiDocker) redirectResponseToOutputStream(tty bool, outputStream, errorStream io.Writer, resp io.Reader) error {
+	if outputStream == nil {
+		outputStream = ioutil.Discard
+	}
+	if errorStream == nil {
+		errorStream = ioutil.Discard
+	}
+	var err error
+	if tty {
+		_, err = io.Copy(outputStream, resp)
+	} else {
+		_, err = dockerstdcopy.StdCopy(outputStream, errorStream, resp)
+	}
+	return err
+}
+
+// holdHijackedConnection hold the HijackedResponse, redirect the inputStream to the connection, and redirect the response
+// stream to stdout and stderr. NOTE: If needed, we could also add context in this function.
+func (d *stiDocker) holdHijackedConnection(tty bool, inputStream io.Reader, outputStream, errorStream io.Writer, resp dockertypes.HijackedResponse) error {
+	receiveStdout := make(chan error)
+	if outputStream != nil || errorStream != nil {
+		go func() {
+			receiveStdout <- d.redirectResponseToOutputStream(tty, outputStream, errorStream, resp.Reader)
+		}()
+	}
+
+	stdinDone := make(chan struct{})
+	go func() {
+		if inputStream != nil {
+			io.Copy(resp.Conn, inputStream)
+		}
+		resp.CloseWrite()
+		close(stdinDone)
+	}()
+
+	select {
+	case err := <-receiveStdout:
+		return err
+	case <-stdinDone:
+		if outputStream != nil || errorStream != nil {
+			return <-receiveStdout
+		}
+	}
+	return nil
+}
+
+// end block copy of two methods from kube_docker_client.go
 
 // RunContainer creates and starts a container using the image specified in opts
 // with the ability to stream input and/or output.
@@ -690,35 +874,33 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	// get info about the specified image
 	image := createOpts.Config.Image
-	var (
-		imageMetadata *docker.Image
-		err           error
-	)
-	if opts.PullImage {
-		imageMetadata, err = d.CheckAndPullImage(image)
-	} else {
-		imageMetadata, err = d.client.InspectImage(image)
-	}
-
-	// if the original image has no entrypoint, and the run invocation
-	// is trying to set an entrypoint, ignore it.  We only want to
-	// set the entrypoint if we need to override a default entrypoint
-	// in the image.  This allows us to still work with a minimal image
-	// that does not contain "/usr/bin/env" since we don't attempt to override
-	// the entrypoint.
-	if len(opts.Entrypoint) != 0 {
-		entrypoint, err := d.GetImageEntrypoint(image)
-		if err != nil {
-			return err
-		}
-		if len(entrypoint) == 0 {
-			opts.Entrypoint = nil
+	inspect, err := d.InspectImage(image)
+	imageMetadata := &api.Image{}
+	if err == nil {
+		updateImageWithInspect(imageMetadata, inspect)
+		if opts.PullImage {
+			_, err = d.CheckAndPullImage(image)
 		}
 	}
 
 	if err != nil {
 		glog.V(0).Infof("error: Unable to get image metadata for %s: %v", image, err)
 		return err
+	}
+
+	entrypoint, err := d.GetImageEntrypoint(image)
+	if err != nil {
+		return fmt.Errorf("Couldn't get entrypoint of %q image: %v", image, err)
+	}
+
+	// If the image has an entrypoint already defined,
+	// it will be overridden either by DefaultEntrypoint,
+	// or by the value in opts.Entrypoint.
+	// If the image does not have an entrypoint, but
+	// opts.Entrypoint is supplied, opts.Entrypoint will
+	// be respected.
+	if len(entrypoint) != 0 && len(opts.Entrypoint) == 0 {
+		opts.Entrypoint = DefaultEntrypoint
 	}
 
 	// tarDestination will be passed as location to PostExecute function
@@ -739,24 +921,23 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	// Create a new container.
 	glog.V(2).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, createOpts.Config, createOpts.HostConfig)
-	var container *docker.Container
-	if err = util.TimeoutAfter(DefaultDockerTimeout, "timeout after waiting %v for Docker to create container", func() error {
-		var createErr error
-		container, createErr = d.client.CreateContainer(createOpts)
-		return createErr
-	}); err != nil {
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	if createOpts.HostConfig != nil && createOpts.HostConfig.ShmSize <= 0 {
+		createOpts.HostConfig.ShmSize = DefaultShmSize
+	}
+	container, err := d.client.ContainerCreate(ctx, createOpts.Config, createOpts.HostConfig, createOpts.NetworkingConfig, createOpts.Name)
+	if err != nil {
 		return err
 	}
 
-	containerName := containerNameOrID(container)
-
 	// Container was created, so we defer its removal, and also remove it if we get a SIGINT/SIGTERM/SIGQUIT/SIGHUP.
 	removeContainer := func() {
-		glog.V(4).Infof("Removing container %q ...", containerName)
-		if err := d.RemoveContainer(container.ID); err != nil {
-			glog.V(0).Infof("warning: Failed to remove container %q: %v", containerName, err)
+		glog.V(4).Infof("Removing container %q ...", container.ID)
+		if removeErr := d.RemoveContainer(container.ID); removeErr != nil {
+			glog.V(0).Infof("warning: Failed to remove container %q: %v", container.ID, removeErr)
 		} else {
-			glog.V(4).Infof("Removed container %q", containerName)
+			glog.V(4).Infof("Removed container %q", container.ID)
 		}
 	}
 	dumpStack := func(signal os.Signal) {
@@ -768,20 +949,54 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		os.Exit(2)
 	}
 	return interrupt.New(dumpStack, removeContainer).Run(func() error {
-		// Attach to the container.
-		glog.V(2).Infof("Attaching to container %q ...", containerName)
-		attachOpts := opts.asDockerAttachToContainerOptions()
-		attachOpts.Container = container.ID
-		if _, err = d.client.AttachToContainerNonBlocking(attachOpts); err != nil {
-			glog.V(0).Infof("error: Unable to attach to container %q with options %+v: %v", containerName, attachOpts, err)
-			return err
+		// Attach to the container on go thread (different than with go-dockerclient, since it provided a non-blocking attach which we don't seem to have with k8s/engine-api)
+
+		// Attach to  the container on go thread to mimic blocking behavior we had with go-dockerclient (k8s wrapper blocks); then use borrowed code
+		// from k8s to dump logs via return
+		// still preserve the flow of attaching before starting to handle various timing issues encountered in the past, as well as allow for --run option
+		glog.V(2).Infof("Attaching to container %q ...", container.ID)
+		errorChannel := make(chan error)
+		timeoutTimer := time.NewTimer(DefaultDockerTimeout)
+		var attachLoggingError error
+		// unit tests found a DATA RACE on attachLoggingError; at first a simple mutex seemed sufficient, but a race condition in holdHijackedConnection manifested
+		// where <-receiveStdout would block even after the container had exitted, blocking the return with attachLoggingError; rather than trying to discern if the
+		// container exited in holdHijackedConnection, we'll using channel based signaling coupled with a time to avoid blocking forever
+		attachExit := make(chan bool, 1)
+		go func() {
+			ctx, cancel := getDefaultContext()
+			defer cancel()
+			resp, attachErr := d.client.ContainerAttach(ctx, container.ID, opts.asDockerAttachToContainerOptions())
+			errorChannel <- attachErr
+			if attachErr != nil {
+				glog.V(0).Infof("error: Unable to attach to container %q: %v", container.ID, attachErr)
+				return
+			}
+			defer resp.Close()
+			attachLoggingError = d.holdHijackedConnection(false, opts.Stdin, opts.Stdout, opts.Stderr, resp)
+			attachExit <- true
+		}()
+
+		// this error check should handle the result from the d.client.ContainerAttach call ... we progress to start when that occurs
+		select {
+		case err = <-errorChannel:
+			// in non-error scenarios, temporary tracing confirmed that
+			// unless the container starts, then exits, the attach blocks and
+			// never returns either a nil for success or whatever err it might
+			// return if the attach failed
+			if err != nil {
+				return err
+			}
+			break
+		case <-timeoutTimer.C:
+			return fmt.Errorf("timed out waiting to attach to container %s ", container.ID)
 		}
 
-		// Start the container.
-		glog.V(2).Infof("Starting container %q ...", containerName)
-		if err := util.TimeoutAfter(DefaultDockerTimeout, "timeout after waiting %v for Docker to start container", func() error {
-			return d.client.StartContainer(container.ID, nil)
-		}); err != nil {
+		// Start the container
+		glog.V(2).Infof("Starting container %q ...", container.ID)
+		ctx, cancel := getDefaultContext()
+		defer cancel()
+		err = d.client.ContainerStart(ctx, container.ID)
+		if err != nil {
 			return err
 		}
 
@@ -800,15 +1015,16 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			// the container exits normally).  dump port/etc information for the user.
 			dumpContainerInfo(container, d, image)
 		}
+
 		// Return an error if the exit code of the container is
 		// non-zero.
-		glog.V(4).Infof("Waiting for container %q to stop ...", containerName)
-		exitCode, err := d.client.WaitContainer(container.ID)
+		glog.V(4).Infof("Waiting for container %q to stop ...", container.ID)
+		exitCode, err := d.client.ContainerWait(context.Background(), container.ID)
 		if err != nil {
-			return fmt.Errorf("waiting for container %q to stop: %v", containerName, err)
+			return fmt.Errorf("waiting for container %q to stop: %v", container.ID, err)
 		}
 		if exitCode != 0 {
-			return errors.NewContainerError(container.Name, exitCode, "")
+			return errors.NewContainerError(container.ID, exitCode, "")
 		}
 
 		// FIXME: If Stdout or Stderr can be closed, close it to notify that
@@ -837,24 +1053,20 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			}
 		}
 
-		return nil
+		select {
+		case <-attachExit:
+			return attachLoggingError
+		case <-time.After(DefaultDockerTimeout):
+			return nil
+		}
 	})
 
-}
-
-// containerName returns the name of a container or its ID if the name is empty.
-// Useful for identifying a container in logs.
-func containerNameOrID(c *docker.Container) string {
-	if c.Name != "" {
-		return c.Name
-	}
-	return c.ID
 }
 
 // GetImageID retrieves the ID of the image identified by name
 func (d *stiDocker) GetImageID(name string) (string, error) {
 	name = getImageName(name)
-	image, err := d.client.InspectImage(name)
+	image, err := d.InspectImage(name)
 	if err != nil {
 		return "", err
 	}
@@ -864,54 +1076,62 @@ func (d *stiDocker) GetImageID(name string) (string, error) {
 // CommitContainer commits a container to an image with a specific tag.
 // The new image ID is returned
 func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error) {
-	repository, tag := docker.ParseRepositoryTag(opts.Repository)
-	dockerOpts := docker.CommitContainerOptions{
-		Container:  opts.ContainerID,
-		Repository: repository,
-		Tag:        tag,
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	dockerOpts := dockertypes.ContainerCommitOptions{
+		Reference: opts.Repository,
 	}
 	if opts.Command != nil || opts.Entrypoint != nil {
-		config := docker.Config{
+		config := dockercontainer.Config{
 			Cmd:        opts.Command,
 			Entrypoint: opts.Entrypoint,
 			Env:        opts.Env,
 			Labels:     opts.Labels,
 			User:       opts.User,
 		}
-		dockerOpts.Run = &config
+		dockerOpts.Config = &config
 		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, config)
 	}
 
-	image, err := d.client.CommitContainer(dockerOpts)
-	if err == nil && image != nil {
-		return image.ID, nil
+	resp, err := d.client.ContainerCommit(ctx, opts.ContainerID, dockerOpts)
+	if err == nil {
+		return resp.ID, nil
 	}
 	return "", err
 }
 
 // RemoveImage removes the image with specified ID
 func (d *stiDocker) RemoveImage(imageID string) error {
-	return d.client.RemoveImage(imageID)
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	_, err := d.client.ImageRemove(ctx, imageID, dockertypes.ImageRemoveOptions{})
+	return err
 }
 
 // BuildImage builds the image according to specified options
 func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
-	dockerOpts := docker.BuildImageOptions{
-		Name:                opts.Name,
-		NoCache:             true,
-		SuppressOutput:      false,
-		RmTmpContainer:      true,
-		ForceRmTmpContainer: true,
-		InputStream:         opts.Stdin,
-		OutputStream:        opts.Stdout,
+	dockerOpts := dockertypes.ImageBuildOptions{
+		Tags:           []string{opts.Name},
+		NoCache:        true,
+		SuppressOutput: false,
+		Remove:         true,
+		ForceRemove:    true,
 	}
 	if opts.CGroupLimits != nil {
 		dockerOpts.Memory = opts.CGroupLimits.MemoryLimitBytes
-		dockerOpts.Memswap = opts.CGroupLimits.MemorySwap
+		dockerOpts.MemorySwap = opts.CGroupLimits.MemorySwap
 		dockerOpts.CPUShares = opts.CGroupLimits.CPUShares
 		dockerOpts.CPUPeriod = opts.CGroupLimits.CPUPeriod
 		dockerOpts.CPUQuota = opts.CGroupLimits.CPUQuota
 	}
 	glog.V(2).Infof("Building container using config: %+v", dockerOpts)
-	return d.client.BuildImage(dockerOpts)
+	resp, err := d.client.ImageBuild(context.Background(), opts.Stdin, dockerOpts)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	// since can't pass in output stream to engine-api, need to copy contents of
+	// the output stream they create into our output stream
+	_, err = io.Copy(opts.Stdout, resp.Body)
+	return err
 }

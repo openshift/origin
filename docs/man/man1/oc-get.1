@@ -16,9 +16,7 @@ oc get \- Display one or many resources
 Display one or many resources
 
 .PP
-Possible resources include builds, buildConfigs, services, pods, etc.
-Some resources may omit advanced details that you can see with '\-o wide'.
-If you want an even more detailed view, use 'oc describe'.
+Possible resources include builds, buildConfigs, services, pods, etc. To see a list of common resources, use 'oc get'. Some resources may omit advanced details that you can see with '\-o wide'.  If you want an even more detailed view, use 'oc describe'.
 
 
 .SH OPTIONS
@@ -153,6 +151,10 @@ If you want an even more detailed view, use 'oc describe'.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -172,16 +174,16 @@ If you want an even more detailed view, use 'oc describe'.
 .nf
   # List all pods in ps output format.
   oc get pods
-
+  
   # List a single replication controller with specified ID in ps output format.
   oc get rc redis
-
+  
   # List all pods and show more details about them.
   oc get \-o wide pods
-
+  
   # List a single pod in JSON output format.
   oc get \-o json pod redis\-pod
-
+  
   # Return only the status value of the specified pod.
   oc get \-o template pod redis\-pod \-\-template={{.currentState.status}}
 

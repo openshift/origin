@@ -75,8 +75,12 @@ func (AssetExtensionsConfig) SwaggerDoc() map[string]string {
 }
 
 var map_AuditConfig = map[string]string{
-	"":        "AuditConfig holds configuration for the audit capabilities",
-	"enabled": "If this flag is set, basic audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+	"":                         "AuditConfig holds configuration for the audit capabilities",
+	"enabled":                  "If this flag is set, audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+	"auditFilePath":            "All requests coming to the apiserver will be logged to this file.",
+	"maximumFileRetentionDays": "Maximum number of days to retain old log files based on the timestamp encoded in their filename.",
+	"maximumRetainedFiles":     "Maximum number of old log files to retain.",
+	"maximumFileSizeMegabytes": "Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.",
 }
 
 func (AuditConfig) SwaggerDoc() map[string]string {
@@ -308,7 +312,7 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 
 var map_JenkinsPipelineConfig = map[string]string{
 	"": "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
-	"autoProvisionEnabled": "AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to false.",
+	"autoProvisionEnabled": "AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
 	"templateNamespace":    "TemplateNamespace contains the namespace name where the Jenkins template is stored",
 	"templateName":         "TemplateName is the name of the default Jenkins template",
 	"serviceName":          "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",

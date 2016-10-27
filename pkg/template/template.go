@@ -15,7 +15,11 @@ import (
 	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
-var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
+// match ${KEY}, KEY will be grouped
+var stringParameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+?)\}`)
+
+// match ${{KEY}} exact match only, KEY will be grouped
+var nonStringParameterExp = regexp.MustCompile(`^\$\{\{([a-zA-Z0-9\_]+)\}\}$`)
 
 // Processor process the Template into the List with substituted parameters
 type Processor struct {
@@ -46,7 +50,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 
 	// Perform parameter substitution on the template's user message. This can be used to
 	// instruct a user on next steps for the template.
-	template.Message = p.EvaluateParameterSubstitution(paramMap, template.Message)
+	template.Message, _ = p.EvaluateParameterSubstitution(paramMap, template.Message)
 
 	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
@@ -125,16 +129,36 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 }
 
 // EvaluateParameterSubstitution replaces escaped parameters in a string with values from the
-// provided map.
-func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string) string {
-	for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
+// provided map.  Returns the substituted value (if any substitution applied) and a boolean
+// indicating if the resulting value should be treated as a string(true) or a non-string
+// value(false) for purposes of json encoding.
+func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string) (string, bool) {
+	out := in
+	// First check if the value matches the "${{KEY}}" substitution syntax, which
+	// means replace and drop the quotes because the parameter value is to be used
+	// as a non-string value.  If we hit a match here, we're done because the
+	// "${{KEY}}" syntax is exact match only, it cannot be used in a value like
+	// "FOO_${{KEY}}_BAR", no substitution will be performed if it is used in that way.
+	for _, match := range nonStringParameterExp.FindAllStringSubmatch(in, -1) {
 		if len(match) > 1 {
 			if paramValue, found := params[match[1]]; found {
-				in = strings.Replace(in, match[0], paramValue.Value, 1)
+				out = strings.Replace(out, match[0], paramValue.Value, 1)
+				return out, false
 			}
 		}
 	}
-	return in
+
+	// If we didn't do a non-string substitution above, do normal string substitution
+	// on the value here if it contains a "${KEY}" reference.  This substitution does
+	// allow multiple matches and prefix/postfix, eg "FOO_${KEY1}_${KEY2}_BAR"
+	for _, match := range stringParameterExp.FindAllStringSubmatch(in, -1) {
+		if len(match) > 1 {
+			if paramValue, found := params[match[1]]; found {
+				out = strings.Replace(out, match[0], paramValue.Value, 1)
+			}
+		}
+	}
+	return out, true
 }
 
 // SubstituteParameters loops over all values defined in structured
@@ -144,7 +168,7 @@ func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Paramete
 //   - ${PARAMETER_NAME}
 //
 func (p *Processor) SubstituteParameters(params map[string]api.Parameter, item runtime.Object) (runtime.Object, error) {
-	stringreplace.VisitObjectStrings(item, func(in string) string {
+	stringreplace.VisitObjectStrings(item, func(in string) (string, bool) {
 		return p.EvaluateParameterSubstitution(params, in)
 	})
 	return item, nil

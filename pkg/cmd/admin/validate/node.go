@@ -13,21 +13,23 @@ import (
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 const (
-	ValidateNodeConfigRecommendedName = "node-config"
-
-	validateNodeConfigLong = `
-Validate the configuration file for a node.
-
-This command validates that a configuration file intended to be used for a node is valid.
-`
-
-	valiateNodeConfigExample = ` // Validate node configuration file
-  %s openshift.local.config/master/node-config.yaml`
-
+	ValidateNodeConfigRecommendedName    = "node-config"
 	validateNodeConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics NodeConfigCheck --node-config=path/to/config.yaml' instead.`
+)
+
+var (
+	validateNodeConfigLong = templates.LongDesc(`
+		Validate the configuration file for a node.
+
+		This command validates that a configuration file intended to be used for a node is valid.`)
+
+	validateNodeConfigExample = templates.Examples(`
+		# Validate node configuration file
+  	%s openshift.local.config/master/node-config.yaml`)
 )
 
 type ValidateNodeConfigOptions struct {
@@ -48,7 +50,7 @@ func NewCommandValidateNodeConfig(name, fullName string, out io.Writer) *cobra.C
 		Use:        fmt.Sprintf("%s SOURCE", name),
 		Short:      "Validate the configuration file for a node",
 		Long:       validateNodeConfigLong,
-		Example:    fmt.Sprintf(valiateNodeConfigExample, fullName),
+		Example:    fmt.Sprintf(validateNodeConfigExample, fullName),
 		Deprecated: validateNodeConfigDeprecationMessage,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args); err != nil {

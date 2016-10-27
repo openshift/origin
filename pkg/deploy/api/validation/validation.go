@@ -279,7 +279,7 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 
 	switch {
 	case hook.ExecNewPod != nil && len(hook.TagImages) > 0:
-		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' of 'tagImages' may be specified"))
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' or 'tagImages' may be specified"))
 	case hook.ExecNewPod != nil:
 		errs = append(errs, validateExecNewPod(hook.ExecNewPod, fldPath.Child("execNewPod"))...)
 	case len(hook.TagImages) > 0:
@@ -369,12 +369,6 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, po
 		errs = append(errs, field.Invalid(fldPath.Child("timeoutSeconds"), *params.TimeoutSeconds, "must be >0"))
 	}
 
-	if params.UpdatePercent != nil {
-		p := *params.UpdatePercent
-		if p == 0 || p < -100 || p > 100 {
-			errs = append(errs, field.Invalid(fldPath.Child("updatePercent"), *params.UpdatePercent, "must be between 1 and 100 or between -1 and -100 (inclusive)"))
-		}
-	}
 	// Most of this is lifted from the upstream experimental deployments API. We
 	// can't reuse it directly yet, but no use reinventing the logic, so copy-
 	// pasted and adapted here.
@@ -507,6 +501,31 @@ func IsValidPercent(percent string) bool {
 }
 
 const isNegativeErrorMsg string = `must be non-negative`
+
+func ValidateDeploymentRequest(req *deployapi.DeploymentRequest) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(req.Name) == 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), req.Name, "name of the deployment config is missing"))
+	} else if len(kvalidation.IsDNS1123Subdomain(req.Name)) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), req.Name, "name of the deployment config is invalid"))
+	}
+
+	return allErrs
+}
+
+func ValidateRequestForDeploymentConfig(req *deployapi.DeploymentRequest, config *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := ValidateDeploymentRequest(req)
+
+	if config.Spec.Paused {
+		// TODO: Enable deployment requests for paused deployment configs
+		// See https://github.com/openshift/origin/issues/9903
+		details := fmt.Sprintf("deployment config %q is paused - unpause to request a new deployment", config.Name)
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("paused"), config.Spec.Paused, details))
+	}
+
+	return allErrs
+}
 
 func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) field.ErrorList {
 	allErrs := field.ErrorList{}

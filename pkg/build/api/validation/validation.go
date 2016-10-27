@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/util/labelselector"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -29,6 +30,32 @@ func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 	allErrs = append(allErrs, validateCommonSpec(&build.Spec.CommonSpec, field.NewPath("spec"))...)
+
+	// Check that all source image references are of DockerImage kind.
+	strategyPath := field.NewPath("spec", "strategy")
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.SourceStrategy.From, strategyPath.Child("sourceStrategy").Child("from"))...)
+		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.SourceStrategy.RuntimeImage, strategyPath.Child("sourceStrategy").Child("runtimeImage"))...)
+	case build.Spec.Strategy.DockerStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.DockerStrategy.From, strategyPath.Child("dockerStrategy").Child("from"))...)
+	case build.Spec.Strategy.CustomStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.CustomStrategy.From, strategyPath.Child("customStrategy").Child("from"))...)
+	}
+
+	imagesPath := field.NewPath("spec", "source", "images")
+	for i, image := range build.Spec.Source.Images {
+		allErrs = append(allErrs, validateBuildImageReference(&image.From, imagesPath.Index(i).Child("from"))...)
+	}
+
+	return allErrs
+}
+
+func validateBuildImageReference(reference *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if reference != nil && reference.Kind != "DockerImage" {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("kind"), reference.Kind, "only DockerImage references are supported for Builds"))
+	}
 	return allErrs
 }
 
@@ -164,6 +191,7 @@ func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.Er
 	allErrs = append(allErrs, validateOutput(&spec.Output, fldPath.Child("output"))...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy, fldPath.Child("strategy"))...)
 	allErrs = append(allErrs, validatePostCommit(spec.PostCommit, fldPath.Child("postCommit"))...)
+	allErrs = append(allErrs, ValidateNodeSelector(spec.NodeSelector, fldPath.Child("nodeSelector"))...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 	return allErrs
@@ -422,6 +450,7 @@ func validateOutput(output *buildapi.BuildOutput, fldPath *field.Path) field.Err
 	}
 
 	allErrs = append(allErrs, validateSecretRef(output.PushSecret, fldPath.Child("pushSecret"))...)
+	allErrs = append(allErrs, ValidateImageLabels(output.ImageLabels, fldPath.Child("imageLabels"))...)
 
 	return allErrs
 }
@@ -669,4 +698,42 @@ func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath 
 		return append(allErrs, field.Invalid(fldPath, sourceStrategy.Incremental, "incremental cannot be set to true with extended builds"))
 	}
 	return
+}
+
+func ValidateImageLabels(labels []buildapi.ImageLabel, fldPath *field.Path) (allErrs field.ErrorList) {
+	for i, lbl := range labels {
+		idxPath := fldPath.Index(i)
+		if len(lbl.Name) == 0 {
+			allErrs = append(allErrs, field.Required(idxPath.Child("name"), ""))
+			continue
+		}
+		for _, msg := range kvalidation.IsConfigMapKey(lbl.Name) {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), lbl.Name, msg))
+		}
+	}
+
+	// find duplicates
+	seen := make(map[string]bool)
+	for i, lbl := range labels {
+		idxPath := fldPath.Index(i)
+		if seen[lbl.Name] {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), lbl.Name, "duplicate name"))
+			continue
+		}
+		seen[lbl.Name] = true
+	}
+
+	return
+}
+
+func ValidateNodeSelector(nodeSelector map[string]string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for k, v := range nodeSelector {
+		_, err := labelselector.Parse(fmt.Sprintf("%s=%s", k, v))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Key(k),
+				nodeSelector[k], "must be a valid node selector"))
+		}
+	}
+	return allErrs
 }

@@ -198,7 +198,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout, os.Stderr)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()
@@ -227,7 +227,7 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout, os.Stderr)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()

@@ -49,14 +49,14 @@ func testNewLocalPolicies() []authorizationapi.Policy {
 func makeLocalTestStorage() roleregistry.Storage {
 	policyRegistry := test.NewPolicyRegistry(testNewLocalPolicies(), nil)
 
-	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, &test.PolicyBindingRegistry{}, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}))
+	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, &test.PolicyBindingRegistry{}, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}), nil, authorizationapi.Resource("role"))
 }
 
 func makeClusterTestStorage() roleregistry.Storage {
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
 	policyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
 
-	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(nil, &test.PolicyBindingRegistry{}, clusterPolicyRegistry, &test.ClusterPolicyBindingRegistry{}))
+	return NewVirtualStorage(policyRegistry, rulevalidation.NewDefaultRuleResolver(nil, &test.PolicyBindingRegistry{}, clusterPolicyRegistry, &test.ClusterPolicyBindingRegistry{}), nil, authorizationapi.Resource("clusterrole"))
 }
 
 func TestCreateValidationError(t *testing.T) {

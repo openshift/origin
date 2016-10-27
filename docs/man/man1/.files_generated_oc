@@ -94,6 +94,7 @@ oc-autoscale.1
 oc-build-logs.1
 oc-cancel-build.1
 oc-cluster-down.1
+oc-cluster-status.1
 oc-cluster-up.1
 oc-cluster.1
 oc-completion.1
@@ -182,8 +183,10 @@ oc-proxy.1
 oc-replace.1
 oc-rollback.1
 oc-rollout-history.1
+oc-rollout-latest.1
 oc-rollout-pause.1
 oc-rollout-resume.1
+oc-rollout-status.1
 oc-rollout-undo.1
 oc-rollout.1
 oc-rsh.1
@@ -202,9 +205,12 @@ oc-serviceaccounts-get-token.1
 oc-serviceaccounts-new-token.1
 oc-serviceaccounts.1
 oc-set-build-hook.1
+oc-set-build-secret.1
 oc-set-deployment-hook.1
 oc-set-env.1
+oc-set-image.1
 oc-set-probe.1
+oc-set-resources.1
 oc-set-route-backends.1
 oc-set-triggers.1
 oc-set-volumes.1

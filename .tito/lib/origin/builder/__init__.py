@@ -61,6 +61,7 @@ class OriginBuilder(Builder):
             os_git_commit = run_command("bash -c '{0}'".format(cmd))
             cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_VERSION}'
             os_git_version = run_command("bash -c '{0}'".format(cmd))
+            os_git_version = os_git_version.replace('-dirty', '')
             cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MAJOR}'
             os_git_major = run_command("bash -c '{0}'".format(cmd))
             cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MINOR}'
@@ -79,17 +80,6 @@ class OriginBuilder(Builder):
                     )
             output = run_command(update_os_git_vars)
 
-            ## Fixup ldflags
-            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
-            ldflags = run_command("bash -c '{0}'".format(cmd))
-            print("LDFLAGS::{0}".format(ldflags))
-            update_ldflags = \
-                    "sed -i 's|^%global ldflags .*$|%global ldflags {0}|' {1}".format(
-                        ' '.join([ldflag.strip() for ldflag in ldflags.split()]),
-                        self.spec_file
-                    )
-            output = run_command(update_ldflags)
-
             # Add bundled deps for Fedora Guidelines as per:
             # https://fedoraproject.org/wiki/Packaging:Guidelines#Bundling_and_Duplication_of_system_libraries
             provides_list = []
@@ -105,12 +95,23 @@ class OriginBuilder(Builder):
                             bdep[1]
                         )
                     )
-            update_provides_list = \
-                "sed -i 's|^### AUTO-BUNDLED-GEN-ENTRY-POINT|{0}|' {1}".format(
-                    '\\n'.join(provides_list),
-                    self.spec_file
-                )
-            print(run_command(update_provides_list))
+
+            # Handle this in python because we have hit the upper bounds of line
+            # count for what we can pass into sed via subprocess because there
+            # are so many bundled libraries.
+            with open(self.spec_file, 'r') as spec_file_f:
+                spec_file_lines = spec_file_f.readlines()
+            with open(self.spec_file, 'w') as spec_file_f:
+                for line in spec_file_lines:
+                    if '### AUTO-BUNDLED-GEN-ENTRY-POINT' in line:
+                            spec_file_f.write(
+                                '\n'.join(
+                                    [provides.replace('"', '').replace("'", '')
+                                     for provides in provides_list]
+                                )
+                            )
+                    else:
+                        spec_file_f.write(line)
 
             self.build_version += ".git." + \
                 str(self.commit_count) + \

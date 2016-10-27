@@ -16,16 +16,17 @@ oc create user \- Manually create a user (only needed if automatic creation is d
 This command can be used to create a user object.
 
 .PP
-Typically, users are created automatically during login. If automatic
-creation is disabled (by using the "lookup" mapping method), users must
-be created manually.
+Typically, users are created automatically during login. If automatic creation is disabled (by using the "lookup" mapping method), users must be created manually.
 
 .PP
-Corresponding identity and useridentitymapping objects must also be created
-to allow logging in as the created user.
+Corresponding identity and useridentitymapping objects must also be created to allow logging in as the created user.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
 .PP
 \fB\-\-full\-name\fP=""
     Display name of the user
@@ -115,6 +116,10 @@ to allow logging in as the created user.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

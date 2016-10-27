@@ -17,7 +17,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/term"
+	kterm "k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
@@ -25,6 +25,7 @@ import (
 	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -86,11 +87,11 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
-		if term.IsTerminal(o.Reader) {
+		if kterm.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
 				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
-				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
+				o.Server = term.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
 			}
 		}
 	}
@@ -121,10 +122,10 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 		// certificate authority unknown, check or prompt if we want an insecure
 		// connection or if we already have a cluster stanza that tells us to
 		// connect to this particular server insecurely
-		case x509.UnknownAuthorityError:
+		case x509.UnknownAuthorityError, x509.HostnameError, x509.CertificateInvalidError:
 			if o.InsecureTLS ||
 				hasExistingInsecureCluster(*clientConfig, *o.StartingKubeConfig) ||
-				promptForInsecureTLS(o.Reader, o.Out) {
+				promptForInsecureTLS(o.Reader, o.Out, err) {
 				clientConfig.Insecure = true
 				clientConfig.CAFile = ""
 				clientConfig.CAData = nil
@@ -173,21 +174,19 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	// if a token were explicitly provided, try to use it
 	if o.tokenProvided() {
 		clientConfig.BearerToken = o.Token
-		if osClient, err := client.New(clientConfig); err == nil {
-			me, err := whoAmI(osClient)
-			if err == nil {
-				o.Username = me.Name
-				o.Config = clientConfig
+		if me, err := whoAmI(clientConfig); err == nil {
+			o.Username = me.Name
+			o.Config = clientConfig
 
-				fmt.Fprintf(o.Out, "Logged into %q as %q using the token provided.\n\n", o.Config.Host, o.Username)
-				return nil
+			fmt.Fprintf(o.Out, "Logged into %q as %q using the token provided.\n\n", o.Config.Host, o.Username)
+			return nil
+
+		} else {
+			if kerrors.IsUnauthorized(err) {
+				return fmt.Errorf("The token provided is invalid or expired.\n\n")
 			}
 
-			if !kerrors.IsUnauthorized(err) {
-				return err
-			}
-
-			return fmt.Errorf("The token provided is invalid or expired.\n\n")
+			return err
 		}
 	}
 
@@ -202,20 +201,18 @@ func (o *LoginOptions) gatherAuthInfo() error {
 			if matchingClusters.Has(context.Cluster) {
 				clientcmdConfig := kclientcmd.NewDefaultClientConfig(kubeconfig, &kclientcmd.ConfigOverrides{CurrentContext: key})
 				if kubeconfigClientConfig, err := clientcmdConfig.ClientConfig(); err == nil {
-					if osClient, err := client.New(kubeconfigClientConfig); err == nil {
-						if me, err := whoAmI(osClient); err == nil && (o.Username == me.Name) {
-							clientConfig.BearerToken = kubeconfigClientConfig.BearerToken
-							clientConfig.CertFile = kubeconfigClientConfig.CertFile
-							clientConfig.CertData = kubeconfigClientConfig.CertData
-							clientConfig.KeyFile = kubeconfigClientConfig.KeyFile
-							clientConfig.KeyData = kubeconfigClientConfig.KeyData
+					if me, err := whoAmI(kubeconfigClientConfig); err == nil && (o.Username == me.Name) {
+						clientConfig.BearerToken = kubeconfigClientConfig.BearerToken
+						clientConfig.CertFile = kubeconfigClientConfig.CertFile
+						clientConfig.CertData = kubeconfigClientConfig.CertData
+						clientConfig.KeyFile = kubeconfigClientConfig.KeyFile
+						clientConfig.KeyData = kubeconfigClientConfig.KeyData
 
-							o.Config = clientConfig
+						o.Config = clientConfig
 
-							fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
+						fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
 
-							return nil
-						}
+						return nil
 					}
 				}
 			}
@@ -234,12 +231,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	}
 	clientConfig.BearerToken = token
 
-	osClient, err := client.New(clientConfig)
-	if err != nil {
-		return err
-	}
-
-	me, err := whoAmI(osClient)
+	me, err := whoAmI(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -270,6 +262,12 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	}
 
 	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
+	// if we're running on kube (or likely kube), just set it to "default"
+	if kerrors.IsNotFound(err) {
+		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with '%s project <projectname>':\n\n", o.CommandName)
+		o.Project = "default"
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -389,12 +387,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 }
 
 func (o LoginOptions) whoAmI() (*api.User, error) {
-	client, err := client.New(o.Config)
-	if err != nil {
-		return nil, err
-	}
-
-	return whoAmI(client)
+	return whoAmI(o.Config)
 }
 
 func (o *LoginOptions) usernameProvided() bool {

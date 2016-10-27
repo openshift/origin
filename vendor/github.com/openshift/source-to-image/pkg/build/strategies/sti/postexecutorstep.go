@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
 type postExecutorStepContext struct {
@@ -55,9 +56,10 @@ func (step *storePreviousImageStep) execute(ctx *postExecutorStepContext) error 
 	if step.builder.incremental && step.builder.config.RemovePreviousImage {
 		glog.V(3).Info("Executing step: store previous image")
 		ctx.previousImageID = step.getPreviousImage()
-	} else {
-		glog.V(3).Info("Skipping step: store previous image")
+		return nil
 	}
+
+	glog.V(3).Info("Skipping step: store previous image")
 	return nil
 }
 
@@ -79,9 +81,10 @@ func (step *removePreviousImageStep) execute(ctx *postExecutorStepContext) error
 	if step.builder.incremental && step.builder.config.RemovePreviousImage {
 		glog.V(3).Info("Executing step: remove previous image")
 		step.removePreviousImage(ctx.previousImageID)
-	} else {
-		glog.V(3).Info("Skipping step: remove previous image")
+		return nil
 	}
+
+	glog.V(3).Info("Skipping step: remove previous image")
 	return nil
 }
 
@@ -128,6 +131,7 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 
 	ctx.imageID, err = commitContainer(step.docker, ctx.containerID, cmd, user, step.builder.config.Tag, step.builder.env, entrypoint, ctx.labels)
 	if err != nil {
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonCommitContainerFailed, utilstatus.ReasonMessageCommitContainerFailed)
 		return err
 	}
 
@@ -273,7 +277,6 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
-		Entrypoint:      DefaultEntrypoint,
 		PullImage:       false, // The PullImage is false because we've already pulled the image
 		CommandExplicit: []string{"/bin/sh", "-c", cmd},
 		Stdout:          outWriter,
@@ -331,7 +334,12 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	step.builder.postExecutorStage++
 
 	err = step.docker.RunContainer(opts)
+	// close so we avoid data race condition on errOutput
+	errReader.Close()
 	if e, ok := err.(errors.ContainerError); ok {
+		// even with deferred close above, close errReader now so we avoid data race condition on errOutput;
+		// closing will cause StreamContainerIO to exit, thus releasing the writer in the equation
+		errReader.Close()
 		return errors.NewContainerError(image, e.ErrorCode, errOutput)
 	}
 
@@ -379,10 +387,10 @@ func (step *invokeCallbackStep) execute(ctx *postExecutorStepContext) error {
 		glog.V(3).Info("Executing step: invoke callback url")
 		step.builder.result.Messages = step.callbackInvoker.ExecuteCallback(step.builder.config.CallbackURL,
 			step.builder.result.Success, ctx.labels, step.builder.result.Messages)
-	} else {
-		glog.V(3).Info("Skipping step: invoke callback url")
+		return nil
 	}
 
+	glog.V(3).Info("Skipping step: invoke callback url")
 	return nil
 }
 
@@ -415,18 +423,20 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 		glog.V(0).Infof("error: Unable to read existing labels from the base image %s", baseImage)
 	}
 
-	return mergeLabels(generatedLabels, existingLabels)
+	configLabels := builder.config.Labels
+
+	return mergeLabels(configLabels, generatedLabels, existingLabels)
 }
 
-func mergeLabels(newLabels, existingLabels map[string]string) map[string]string {
-	if existingLabels == nil {
-		return newLabels
-	}
+func mergeLabels(configLabels, generatedLabels, existingLabels map[string]string) map[string]string {
 	result := map[string]string{}
 	for k, v := range existingLabels {
 		result[k] = v
 	}
-	for k, v := range newLabels {
+	for k, v := range generatedLabels {
+		result[k] = v
+	}
+	for k, v := range configLabels {
 		result[k] = v
 	}
 	return result

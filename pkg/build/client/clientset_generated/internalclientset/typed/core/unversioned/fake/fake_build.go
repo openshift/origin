@@ -88,3 +88,14 @@ func (c *FakeBuilds) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		InvokesWatch(core.NewWatchAction(buildsResource, c.ns, opts))
 
 }
+
+// Patch applies the patch and returns the patched build.
+func (c *FakeBuilds) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewPatchSubresourceAction(buildsResource, c.ns, name, data, subresources...), &api.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.Build), err
+}

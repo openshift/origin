@@ -19,8 +19,7 @@ Manage nodes
 This command provides common operations on nodes for administrators.
 
 .PP
-schedulable: Marking node schedulable will allow pods to be schedulable on the node and
-         marking node unschedulable will block pods to be scheduled on the node.
+schedulable: Marking node schedulable will allow pods to be schedulable on the node and marking node unschedulable will block pods to be scheduled on the node.
 
 .PP
 evacuate: Migrate all/selected pod on the provided nodes.
@@ -149,6 +148,10 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -166,26 +169,26 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
 .RS
 
 .nf
-	# Block accepting any pods on given nodes
-	oc adm manage\-node <mynode> \-\-schedulable=false
-
-	# Mark selected nodes as schedulable
-	oc adm manage\-node \-\-selector="<env=dev>" \-\-schedulable=true
-
-	# Migrate selected pods
-	oc adm manage\-node <mynode> \-\-evacuate \-\-pod\-selector="<service=myapp>"
-
-	# Migrate selected pods, use a grace period of 60 seconds
-	oc adm manage\-node <mynode> \-\-evacuate \-\-grace\-period=60 \-\-pod\-selector="<service=myapp>"
-
-	# Migrate selected pods not backed by replication controller
-	oc adm manage\-node <mynode> \-\-evacuate \-\-force \-\-pod\-selector="<service=myapp>"
-
-	# Show pods that will be migrated
-	oc adm manage\-node <mynode> \-\-evacuate \-\-dry\-run \-\-pod\-selector="<service=myapp>"
-
-	# List all pods on given nodes
-	oc adm manage\-node <mynode1> <mynode2> \-\-list\-pods
+  # Block accepting any pods on given nodes
+  oc adm manage\-node <mynode> \-\-schedulable=false
+  
+  # Mark selected nodes as schedulable
+  oc adm manage\-node \-\-selector="<env=dev>" \-\-schedulable=true
+  
+  # Migrate selected pods
+  oc adm manage\-node <mynode> \-\-evacuate \-\-pod\-selector="<service=myapp>"
+  
+  # Migrate selected pods, use a grace period of 60 seconds
+  oc adm manage\-node <mynode> \-\-evacuate \-\-grace\-period=60 \-\-pod\-selector="<service=myapp>"
+  
+  # Migrate selected pods not backed by replication controller
+  oc adm manage\-node <mynode> \-\-evacuate \-\-force \-\-pod\-selector="<service=myapp>"
+  
+  # Show pods that will be migrated
+  oc adm manage\-node <mynode> \-\-evacuate \-\-dry\-run \-\-pod\-selector="<service=myapp>"
+  
+  # List all pods on given nodes
+  oc adm manage\-node <mynode1> <mynode2> \-\-list\-pods
 
 .fi
 .RE

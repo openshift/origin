@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,6 +22,9 @@ import (
 const (
 	// Default F5 partition path to use for syncing route config.
 	F5DefaultPartitionPath = "/Common"
+	F5VxLANTunnelName      = "vxlan5000"
+	F5VxLANProfileName     = "vxlan-ose"
+	HTTP_CONFLICT_CODE     = 409
 )
 
 // Error implements the error interface.
@@ -104,6 +108,21 @@ type f5LTMCfg struct {
 	// are normally used to create an access control boundary for
 	// F5 users and applications.
 	partitionPath string
+
+	// vxlanGateway is the ip address assigned to the local tunnel interface
+	// inside F5 box. This address is the one that the packets generated from F5
+	// will carry. The pods will return the packets to this address itself.
+	// It is important that the gateway be one of the ip addresses of the subnet
+	// that has been generated for F5.
+	vxlanGateway string
+
+	// internalAddress is the ip address of the vtep interface used to connect to
+	// VxLAN overlay. It is the hostIP address listed in the subnet generated for F5
+	internalAddress string
+
+	// setupOSDNVxLAN is the boolean that conveys if F5 needs to setup a VxLAN
+	// to hook up with openshift-sdn
+	setupOSDNVxLAN bool
 }
 
 const (
@@ -327,17 +346,21 @@ func newF5LTM(cfg f5LTMCfg) (*f5LTM, error) {
 
 	// Ensure path is rooted.
 	partitionPath = path.Join("/", partitionPath)
+	setupOSDNVxLAN := (len(cfg.vxlanGateway) != 0 && len(cfg.internalAddress) != 0)
 
 	router := &f5LTM{
 		f5LTMCfg: f5LTMCfg{
-			host:          cfg.host,
-			username:      cfg.username,
-			password:      cfg.password,
-			httpVserver:   cfg.httpVserver,
-			httpsVserver:  cfg.httpsVserver,
-			privkey:       privkeyFileName,
-			insecure:      cfg.insecure,
-			partitionPath: partitionPath,
+			host:            cfg.host,
+			username:        cfg.username,
+			password:        cfg.password,
+			httpVserver:     cfg.httpVserver,
+			httpsVserver:    cfg.httpsVserver,
+			privkey:         privkeyFileName,
+			insecure:        cfg.insecure,
+			partitionPath:   partitionPath,
+			vxlanGateway:    cfg.vxlanGateway,
+			internalAddress: cfg.internalAddress,
+			setupOSDNVxLAN:  setupOSDNVxLAN,
 		},
 		poolMembers: map[string]map[string]bool{},
 		routes:      map[string]map[string]bool{},
@@ -395,6 +418,7 @@ func (f5 *f5LTM) restRequest(verb string, url string, payload io.Reader,
 
 	client := &http.Client{Transport: tr}
 
+	glog.V(4).Infof("Request sent: %v\n", req)
 	resp, err := client.Do(req)
 	if err != nil {
 		errorResult.err = fmt.Errorf("client.Do failed: %v", err)
@@ -461,6 +485,68 @@ func (f5 *f5LTM) delete(url string, result interface{}) error {
 // Routines for controlling F5.
 //
 
+// ensureVxLANTunnel sets up the VxLAN tunnel profile and tunnel+selfIP
+func (f5 *f5LTM) ensureVxLANTunnel() error {
+	glog.V(4).Infof("Checking and installing VxLAN setup")
+
+	// create the profile
+	url := fmt.Sprintf("https://%s/mgmt/tm/net/tunnels/vxlan", f5.host)
+	profilePayload := f5CreateVxLANProfilePayload{
+		Name:         F5VxLANProfileName,
+		Partition:    f5.partitionPath,
+		FloodingType: "multipoint",
+		Port:         4789,
+	}
+	err := f5.post(url, profilePayload, nil)
+	if err != nil && err.(F5Error).httpStatusCode != HTTP_CONFLICT_CODE {
+		// error HTTP_CONFLICT_CODE is fine, it just means the tunnel profile already exists
+		glog.V(4).Infof("Error while creating vxlan tunnel - %v", err)
+		return err
+	}
+
+	// create the tunnel
+	url = fmt.Sprintf("https://%s/mgmt/tm/net/tunnels/tunnel", f5.host)
+	tunnelPayload := f5CreateVxLANTunnelPayload{
+		Name:         F5VxLANTunnelName,
+		Partition:    f5.partitionPath,
+		Key:          0,
+		LocalAddress: f5.internalAddress,
+		Mode:         "bidirectional",
+		Mtu:          "0",
+		Profile:      path.Join(f5.partitionPath, F5VxLANProfileName),
+		Tos:          "preserve",
+		Transparent:  "disabled",
+		UsePmtu:      "enabled",
+	}
+	err = f5.post(url, tunnelPayload, nil)
+	if err != nil && err.(F5Error).httpStatusCode != HTTP_CONFLICT_CODE {
+		// error HTTP_CONFLICT_CODE is fine, it just means the tunnel already exists
+		return err
+	}
+
+	selfUrl := fmt.Sprintf("https://%s/mgmt/tm/net/self", f5.host)
+	netSelfPayload := f5CreateNetSelfPayload{
+		Name:                  f5.vxlanGateway,
+		Partition:             f5.partitionPath,
+		Address:               f5.vxlanGateway,
+		AddressSource:         "from-user",
+		Floating:              "disabled",
+		InheritedTrafficGroup: "false",
+		TrafficGroup:          path.Join(f5.partitionPath, "traffic-group-local-only"),
+		Unit:                  0,
+		Vlan:                  path.Join(f5.partitionPath, F5VxLANTunnelName),
+		AllowService:          "all",
+	}
+	// create the net self IP
+	err = f5.post(selfUrl, netSelfPayload, nil)
+	if err != nil && err.(F5Error).httpStatusCode != HTTP_CONFLICT_CODE {
+		// error HTTP_CONFLICT_CODE is ok, netSelf already exists
+		return err
+	}
+
+	return nil
+}
+
 // ensurePolicyExists checks whether the specified policy exists and creates it
 // if not.
 func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
@@ -484,14 +570,28 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 
 	policiesUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/policy", f5.host)
 
-	policyPayload := f5Policy{
-		Name:     policyName,
-		Controls: []string{"forwarding"},
-		Requires: []string{"http"},
-		Strategy: "best-match",
+	if f5.setupOSDNVxLAN {
+		// if vxlan needs to be setup, it will only happen
+		// with ver12, for which we need to use a different payload
+		policyPayload := f5Ver12Policy{
+			Name:        policyName,
+			TmPartition: f5.partitionPath,
+			Controls:    []string{"forwarding"},
+			Requires:    []string{"http"},
+			Strategy:    "best-match",
+			Legacy:      true,
+		}
+		err = f5.post(policiesUrl, policyPayload, nil)
+	} else {
+		policyPayload := f5Policy{
+			Name:     policyName,
+			Controls: []string{"forwarding"},
+			Requires: []string{"http"},
+			Strategy: "best-match",
+		}
+		err = f5.post(policiesUrl, policyPayload, nil)
 	}
 
-	err = f5.post(policiesUrl, policyPayload, nil)
 	if err != nil {
 		return err
 	}
@@ -717,7 +817,7 @@ func (f5 *f5LTM) addPartitionPath(pathName string) (bool, error) {
 	payload := f5AddPartitionPathPayload{Name: pathName}
 	err := f5.post(uri, payload, nil)
 	if err != nil {
-		if err.(F5Error).httpStatusCode != 409 {
+		if err.(F5Error).httpStatusCode != HTTP_CONFLICT_CODE {
 			glog.Errorf("Error adding partition path %q error: %v", pathName, err)
 			return false, err
 		}
@@ -828,9 +928,75 @@ func (f5 *f5LTM) Initialize() error {
 		}
 	}
 
+	if f5.setupOSDNVxLAN {
+		err = f5.ensureVxLANTunnel()
+		if err != nil {
+			return err
+		}
+	}
+
 	glog.V(4).Infof("F5 initialization is complete.")
 
 	return nil
+}
+
+func checkIPAndGetMac(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		errStr := fmt.Sprintf("vtep IP '%s' is not a valid IP address", ipStr)
+		glog.Warning(errStr)
+		return "", fmt.Errorf(errStr)
+	}
+	ip4 := ip.To4()
+	if ip4 == nil {
+		errStr := fmt.Sprintf("vtep IP '%s' is not a valid IPv4 address", ipStr)
+		glog.Warning(errStr)
+		return "", fmt.Errorf(errStr)
+	}
+	macAddr := fmt.Sprintf("0a:0a:%02x:%02x:%02x:%02x", ip4[0], ip4[1], ip4[2], ip4[3])
+	return macAddr, nil
+}
+
+// AddVtep adds the Vtep IP to the VxLAN device's FDB
+func (f5 *f5LTM) AddVtep(ipStr string) error {
+	if !f5.setupOSDNVxLAN {
+		return nil
+	}
+	macAddr, err := checkIPAndGetMac(ipStr)
+	if err != nil {
+		return err
+	}
+
+	err = f5.ensurePartitionPathExists(f5.partitionPath)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://%s/mgmt/tm/net/fdb/tunnel/%s~%s/records", f5.host, strings.Replace(f5.partitionPath, "/", "~", -1), F5VxLANTunnelName)
+	payload := f5AddFDBRecordPayload{
+		Name:     macAddr,
+		Endpoint: ipStr,
+	}
+	return f5.post(url, payload, nil)
+}
+
+// RemoveVtep removes the Vtep IP from the VxLAN device's FDB
+func (f5 *f5LTM) RemoveVtep(ipStr string) error {
+	if !f5.setupOSDNVxLAN {
+		return nil
+	}
+	macAddr, err := checkIPAndGetMac(ipStr)
+	if err != nil {
+		return err
+	}
+
+	err = f5.ensurePartitionPathExists(f5.partitionPath)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://%s/mgmt/tm/net/fdb/tunnel/%s~%s/records/%s", f5.host, strings.Replace(f5.partitionPath, "/", "~", -1), F5VxLANTunnelName, macAddr)
+	return f5.delete(url, nil)
 }
 
 // CreatePool creates a pool named poolname on F5 BIG-IP.
@@ -1095,7 +1261,7 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 
 	err := f5.post(rulesUrl, rulesPayload, nil)
 	if err != nil {
-		if err.(F5Error).httpStatusCode == 409 {
+		if err.(F5Error).httpStatusCode == HTTP_CONFLICT_CODE {
 			glog.V(4).Infof("Warning: Rule %s already exists; continuing with"+
 				" initialization in case the existing rule is only partially"+
 				" initialized...", routename)

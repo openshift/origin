@@ -53,6 +53,7 @@ import (
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -61,12 +62,6 @@ import (
 // New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
-	// TODO refactor this upstream:
-	// DefaultCluster should not be a global
-	// A call to ClientConfig() should always return the best clientCfg possible
-	// even if an error was returned, and let the caller decide what to do
-	kclientcmd.DefaultCluster.Server = ""
-
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 	clientConfig := DefaultClientConfig(flags)
 	clientConfig = defaultingClientConfig{clientConfig}
@@ -167,6 +162,8 @@ type Factory struct {
 	*cmdutil.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
 	clients               *clientCache
+
+	ImageResolutionOptions FlagBinder
 }
 
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
@@ -193,9 +190,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	w := &Factory{
-		Factory:               cmdutil.NewFactory(clientConfig),
-		OpenShiftClientConfig: clientConfig,
-		clients:               clients,
+		Factory:                cmdutil.NewFactory(clientConfig),
+		OpenShiftClientConfig:  clientConfig,
+		clients:                clients,
+		ImageResolutionOptions: &imageResolutionOptions{},
 	}
 
 	w.Object = func(bool) (meta.RESTMapper, runtime.ObjectTyper) {
@@ -599,6 +597,22 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kResumeObjectFunc(object)
 		}
 	}
+	kResolveImageFunc := w.Factory.ResolveImage
+	w.Factory.ResolveImage = func(image string) (string, error) {
+		options := w.ImageResolutionOptions.(*imageResolutionOptions)
+		if imageutil.IsDocker(options.Source) {
+			return kResolveImageFunc(image)
+		}
+		oc, _, err := w.Clients()
+		if err != nil {
+			return "", err
+		}
+		namespace, _, err := w.DefaultNamespace()
+		if err != nil {
+			return "", err
+		}
+		return imageutil.ResolveImagePullSpec(oc, oc, options.Source, image, namespace)
+	}
 	kHistoryViewerFunc := w.Factory.HistoryViewer
 	w.Factory.HistoryViewer = func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
 		switch mapping.GroupVersionKind.GroupKind() {
@@ -623,8 +637,49 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kRollbackerFunc(mapping)
 	}
+	kStatusViewerFunc := w.Factory.StatusViewer
+	w.Factory.StatusViewer = func(mapping *meta.RESTMapping) (kubectl.StatusViewer, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigStatusViewer(oc), nil
+		}
+		return kStatusViewerFunc(mapping)
+	}
 
 	return w
+}
+
+// FlagBinder represents an interface that allows to bind extra flags into commands.
+type FlagBinder interface {
+	// Bound returns true if the flag is already bound to a command.
+	Bound() bool
+	// Bind allows to bind an extra flag to a command
+	Bind(*pflag.FlagSet)
+}
+
+// ImageResolutionOptions provides the "--source" flag to commands that deal with images
+// and need to provide extra capabilities for working with ImageStreamTags and
+// ImageStreamImages.
+type imageResolutionOptions struct {
+	bound  bool
+	Source string
+}
+
+func (o *imageResolutionOptions) Bound() bool {
+	return o.bound
+}
+
+func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
+	if o.Bound() {
+		return
+	}
+	f.StringVarP(&o.Source, "source", "", "istag", "The image source type; valid types are valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
+	o.bound = true
 }
 
 // useDiscoveryRESTMapper checks the server version to see if its recent enough to have

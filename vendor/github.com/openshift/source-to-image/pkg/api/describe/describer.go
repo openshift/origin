@@ -14,7 +14,7 @@ import (
 )
 
 // Config returns the Config object in nice readable, tabbed format.
-func DescribeConfig(config *api.Config) string {
+func Config(config *api.Config) string {
 	out, err := tabbedString(func(out io.Writer) error {
 		if len(config.DisplayName) > 0 {
 			fmt.Fprintf(out, "Application Name:\t%s\n", config.DisplayName)
@@ -36,6 +36,7 @@ func DescribeConfig(config *api.Config) string {
 		if len(config.EnvironmentFile) > 0 {
 			fmt.Fprintf(out, "Environment File:\t%s\n", config.EnvironmentFile)
 		}
+		printLabels(out, config.Labels)
 		fmt.Fprintf(out, "Incremental Build:\t%s\n", printBool(config.Incremental))
 		if config.Incremental {
 			fmt.Fprintf(out, "Incremental Image Pull User:\t%s\n", config.IncrementalAuthentication.Username)
@@ -139,6 +140,14 @@ func printEnv(out io.Writer, env api.EnvironmentList) {
 		result = append(result, strings.Join([]string{e.Name, e.Value}, "="))
 	}
 	fmt.Fprintf(out, "Environment:\t%s\n", strings.Join(result, ","))
+}
+
+func printLabels(out io.Writer, labels map[string]string) {
+	result := []string{}
+	for k, v := range labels {
+		result = append(result, fmt.Sprintf("%s=%q", k, v))
+	}
+	fmt.Fprintf(out, "Labels:\t%s\n", strings.Join(result, ","))
 }
 
 func printBool(b bool) string {

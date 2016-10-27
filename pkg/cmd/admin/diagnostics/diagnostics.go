@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -17,9 +18,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/log"
+	netutil "github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -39,6 +42,8 @@ type DiagnosticsOptions struct {
 	ImageTemplate variable.ImageTemplate
 	// When true, prevent diagnostics from changing API state (e.g. creating something)
 	PreventModification bool
+	// Path to store network diagnostic results
+	NetworkDiagLogDir string
 	// We need a factory for creating clients. Creating a factory
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
@@ -51,38 +56,40 @@ type DiagnosticsOptions struct {
 }
 
 const (
+	DiagnosticsRecommendedName = "diagnostics"
+
 	// Standard locations for the host config files OpenShift uses.
 	StandardMasterConfigPath string = "/etc/origin/master/master-config.yaml"
 	StandardNodeConfigPath   string = "/etc/origin/node/node-config.yaml"
 )
 
-const (
-	DiagnosticsRecommendedName = "diagnostics"
-	longDescription            = `
-This utility helps troubleshoot and diagnose known problems. It runs
-diagnostics using a client and/or the state of a running master /
-node host.
+var (
+	longDescription = templates.LongDesc(`
+		This utility helps troubleshoot and diagnose known problems. It runs
+		diagnostics using a client and/or the state of a running master /
+		node host.
 
-    %[1]s
+		    %[1]s
 
-If run without flags, it will check for standard config files for
-client, master, and node, and if found, use them for diagnostics.
-You may also specify config files explicitly with flags, in which case
-you will receive an error if they are not found. For example:
+		If run without flags, it will check for standard config files for
+		client, master, and node, and if found, use them for diagnostics.
+		You may also specify config files explicitly with flags, in which case
+		you will receive an error if they are not found. For example:
 
-    %[1]s --master-config=/etc/origin/master/master-config.yaml
+		    %[1]s --master-config=/etc/origin/master/master-config.yaml
 
-* If master/node config files are not found and the --host flag is not
-  present, host diagnostics are skipped.
-* If the client has cluster-admin access, this access enables cluster
-  diagnostics to run which regular users cannot.
-* If a client config file is not found, client and cluster diagnostics
-  are skipped.
+		* If master/node config files are not found and the --host flag is not
+		  present, host diagnostics are skipped.
+		* If the client has cluster-admin access, this access enables cluster
+		  diagnostics to run which regular users cannot.
+		* If a client config file is not found, client and cluster diagnostics
+		  are skipped.
 
-Diagnostics may be individually run by passing diagnostic name as arguments.
-The available diagnostic names are:
-%[2]s
-`
+		Diagnostics may be individually run by passing diagnostic name as arguments.
+
+		    %[1]s <DiagnosticName>
+
+		The available diagnostic names are: %[2]s.`)
 )
 
 // NewCmdDiagnostics is the base command for running any diagnostics.
@@ -96,7 +103,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Diagnose common cluster problems",
-		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), " ")),
+		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), ", ")),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(args))
 
@@ -125,6 +132,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	cmd.Flags().StringVar(&o.ImageTemplate.Format, options.FlagImageTemplateName, o.ImageTemplate.Format, "Image template for DiagnosticPod to use in creating a pod")
 	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "When expanding the image template, use latest version, not release version")
 	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "May be set to prevent diagnostics making any changes via the API")
+	cmd.Flags().StringVar(&o.NetworkDiagLogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results")
 	flagtypes.GLog(cmd.Flags())
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 
@@ -150,6 +158,17 @@ func (o *DiagnosticsOptions) Complete(args []string) error {
 		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
 			o.NodeConfigLocation = StandardNodeConfigPath
 		}
+	}
+
+	if len(o.NetworkDiagLogDir) != 0 {
+		logdir, err := filepath.Abs(o.NetworkDiagLogDir)
+		if err != nil {
+			return err
+		}
+		if path, err := os.Stat(o.NetworkDiagLogDir); err == nil && !path.Mode().IsDir() {
+			return fmt.Errorf("Network log path %q exists but is not a directory", o.NetworkDiagLogDir)
+		}
+		o.NetworkDiagLogDir = logdir
 	}
 
 	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)

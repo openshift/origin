@@ -154,7 +154,7 @@
       "type": "v1.AppliedClusterResourceQuotaList",
       "method": "GET",
       "summary": "list objects of kind AppliedClusterResourceQuota",
-      "nickname": "listNamespacedAppliedClusterResourceQuota",
+      "nickname": "listAppliedClusterResourceQuotaForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -439,7 +439,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of BuildConfig",
       "nickname": "watchNamespacedBuildConfigList",
@@ -505,7 +505,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -761,7 +761,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind BuildConfig",
       "nickname": "watchNamespacedBuildConfig",
@@ -835,7 +835,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -858,7 +858,7 @@
       "type": "v1.BuildConfigList",
       "method": "GET",
       "summary": "list or watch objects of kind BuildConfig",
-      "nickname": "listNamespacedBuildConfig",
+      "nickname": "listBuildConfigForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -929,7 +929,7 @@
       "type": "v1.BuildConfig",
       "method": "POST",
       "summary": "create a BuildConfig",
-      "nickname": "createNamespacedBuildConfig",
+      "nickname": "createBuildConfigForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -971,10 +971,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of BuildConfig",
-      "nickname": "watchNamespacedBuildConfigList",
+      "nickname": "watchBuildConfigListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1029,7 +1029,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1249,7 +1249,7 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to webhooks of Status",
-      "nickname": "connectPostNamespacedStatusWebhooks",
+      "nickname": "connectPostNamespacedStatusWebhooksWithPath",
       "parameters": [
        {
         "type": "string",
@@ -1509,7 +1509,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Build",
       "nickname": "watchNamespacedBuildList",
@@ -1575,7 +1575,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1831,7 +1831,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Build",
       "nickname": "watchNamespacedBuild",
@@ -1905,7 +1905,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1928,7 +1928,7 @@
       "type": "v1.BuildList",
       "method": "GET",
       "summary": "list or watch objects of kind Build",
-      "nickname": "listNamespacedBuild",
+      "nickname": "listBuildForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1999,7 +1999,7 @@
       "type": "v1.Build",
       "method": "POST",
       "summary": "create a Build",
-      "nickname": "createNamespacedBuild",
+      "nickname": "createBuildForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -2041,10 +2041,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Build",
-      "nickname": "watchNamespacedBuildList",
+      "nickname": "watchBuildListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -2099,7 +2099,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2561,7 +2561,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterNetwork",
       "nickname": "watchClusterNetworkList",
@@ -2619,7 +2619,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2843,7 +2843,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterNetwork",
       "nickname": "watchClusterNetwork",
@@ -2909,7 +2909,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3116,7 +3116,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicy",
       "nickname": "watchClusterPolicyList",
@@ -3174,7 +3174,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3398,7 +3398,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicy",
       "nickname": "watchClusterPolicy",
@@ -3464,7 +3464,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3671,7 +3671,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicyBinding",
       "nickname": "watchClusterPolicyBindingList",
@@ -3729,7 +3729,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3953,7 +3953,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicyBinding",
       "nickname": "watchClusterPolicyBinding",
@@ -4019,7 +4019,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -4226,7 +4226,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterResourceQuota",
       "nickname": "watchClusterResourceQuotaList",
@@ -4284,7 +4284,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -4508,7 +4508,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterResourceQuota",
       "nickname": "watchClusterResourceQuota",
@@ -4574,7 +4574,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -5399,7 +5399,7 @@
       "type": "v1.DeploymentConfigRollback",
       "method": "POST",
       "summary": "create a DeploymentConfigRollback",
-      "nickname": "createNamespacedDeploymentConfigRollback",
+      "nickname": "createDeploymentConfigRollbackForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -5652,7 +5652,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of DeploymentConfig",
       "nickname": "watchNamespacedDeploymentConfigList",
@@ -5718,7 +5718,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -5974,7 +5974,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind DeploymentConfig",
       "nickname": "watchNamespacedDeploymentConfig",
@@ -6048,7 +6048,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -6071,7 +6071,7 @@
       "type": "v1.DeploymentConfigList",
       "method": "GET",
       "summary": "list or watch objects of kind DeploymentConfig",
-      "nickname": "listNamespacedDeploymentConfig",
+      "nickname": "listDeploymentConfigForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6142,7 +6142,7 @@
       "type": "v1.DeploymentConfig",
       "method": "POST",
       "summary": "create a DeploymentConfig",
-      "nickname": "createNamespacedDeploymentConfig",
+      "nickname": "createDeploymentConfigForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6184,10 +6184,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of DeploymentConfig",
-      "nickname": "watchNamespacedDeploymentConfigList",
+      "nickname": "watchDeploymentConfigListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6242,7 +6242,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -6250,6 +6250,67 @@
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf",
        "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.DeploymentRequest",
+      "method": "POST",
+      "summary": "create instantiate of a DeploymentRequest",
+      "nickname": "createNamespacedDeploymentRequestInstantiate",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeploymentRequest",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the DeploymentRequest",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.DeploymentRequest"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -6893,7 +6954,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of EgressNetworkPolicy",
       "nickname": "watchNamespacedEgressNetworkPolicyList",
@@ -6959,7 +7020,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7215,7 +7276,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind EgressNetworkPolicy",
       "nickname": "watchNamespacedEgressNetworkPolicy",
@@ -7289,7 +7350,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7312,7 +7373,7 @@
       "type": "v1.EgressNetworkPolicyList",
       "method": "GET",
       "summary": "list or watch objects of kind EgressNetworkPolicy",
-      "nickname": "listNamespacedEgressNetworkPolicy",
+      "nickname": "listEgressNetworkPolicyForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -7383,7 +7444,7 @@
       "type": "v1.EgressNetworkPolicy",
       "method": "POST",
       "summary": "create a EgressNetworkPolicy",
-      "nickname": "createNamespacedEgressNetworkPolicy",
+      "nickname": "createEgressNetworkPolicyForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -7425,10 +7486,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of EgressNetworkPolicy",
-      "nickname": "watchNamespacedEgressNetworkPolicyList",
+      "nickname": "watchEgressNetworkPolicyListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -7483,7 +7544,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7743,7 +7804,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Group",
       "nickname": "watchGroupList",
@@ -7801,7 +7862,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -8025,7 +8086,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Group",
       "nickname": "watchGroup",
@@ -8091,7 +8152,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -8298,7 +8359,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of HostSubnet",
       "nickname": "watchHostSubnetList",
@@ -8356,7 +8417,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -8580,7 +8641,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind HostSubnet",
       "nickname": "watchHostSubnet",
@@ -8646,7 +8707,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -8853,7 +8914,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Identity",
       "nickname": "watchIdentityList",
@@ -8911,7 +8972,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -9135,7 +9196,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Identity",
       "nickname": "watchIdentity",
@@ -9201,7 +9262,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -9408,7 +9469,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Image",
       "nickname": "watchImageList",
@@ -9466,7 +9527,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -9690,7 +9751,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Image",
       "nickname": "watchImage",
@@ -9756,7 +9817,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -9975,7 +10036,7 @@
       "type": "v1.ImageStreamImport",
       "method": "POST",
       "summary": "create a ImageStreamImport",
-      "nickname": "createNamespacedImageStreamImport",
+      "nickname": "createImageStreamImportForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10073,7 +10134,7 @@
       "type": "v1.ImageStreamMapping",
       "method": "POST",
       "summary": "create a ImageStreamMapping",
-      "nickname": "createNamespacedImageStreamMapping",
+      "nickname": "createImageStreamMappingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10326,7 +10387,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ImageStream",
       "nickname": "watchNamespacedImageStreamList",
@@ -10392,7 +10453,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -10648,7 +10709,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ImageStream",
       "nickname": "watchNamespacedImageStream",
@@ -10722,7 +10783,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -10745,7 +10806,7 @@
       "type": "v1.ImageStreamList",
       "method": "GET",
       "summary": "list or watch objects of kind ImageStream",
-      "nickname": "listNamespacedImageStream",
+      "nickname": "listImageStreamForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10816,7 +10877,7 @@
       "type": "v1.ImageStream",
       "method": "POST",
       "summary": "create a ImageStream",
-      "nickname": "createNamespacedImageStream",
+      "nickname": "createImageStreamForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10858,10 +10919,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ImageStream",
-      "nickname": "watchNamespacedImageStreamList",
+      "nickname": "watchImageStreamListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10916,7 +10977,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -11437,7 +11498,7 @@
       "type": "v1.ImageStreamTagList",
       "method": "GET",
       "summary": "list objects of kind ImageStreamTag",
-      "nickname": "listNamespacedImageStreamTag",
+      "nickname": "listImageStreamTagForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11508,7 +11569,7 @@
       "type": "v1.ImageStreamTag",
       "method": "POST",
       "summary": "create a ImageStreamTag",
-      "nickname": "createNamespacedImageStreamTag",
+      "nickname": "createImageStreamTagForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11606,7 +11667,7 @@
       "type": "v1.LocalResourceAccessReview",
       "method": "POST",
       "summary": "create a LocalResourceAccessReview",
-      "nickname": "createNamespacedLocalResourceAccessReview",
+      "nickname": "createLocalResourceAccessReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11704,7 +11765,7 @@
       "type": "v1.LocalSubjectAccessReview",
       "method": "POST",
       "summary": "create a LocalSubjectAccessReview",
-      "nickname": "createNamespacedLocalSubjectAccessReview",
+      "nickname": "createLocalSubjectAccessReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11933,7 +11994,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of NetNamespace",
       "nickname": "watchNetNamespaceList",
@@ -11991,7 +12052,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12215,7 +12276,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind NetNamespace",
       "nickname": "watchNetNamespace",
@@ -12281,7 +12342,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12488,7 +12549,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthAccessToken",
       "nickname": "watchOAuthAccessTokenList",
@@ -12546,7 +12607,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12770,7 +12831,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthAccessToken",
       "nickname": "watchOAuthAccessToken",
@@ -12836,7 +12897,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13043,7 +13104,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthAuthorizeToken",
       "nickname": "watchOAuthAuthorizeTokenList",
@@ -13101,7 +13162,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13325,7 +13386,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthAuthorizeToken",
       "nickname": "watchOAuthAuthorizeToken",
@@ -13391,7 +13452,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13598,7 +13659,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClientAuthorization",
       "nickname": "watchOAuthClientAuthorizationList",
@@ -13656,7 +13717,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13880,7 +13941,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClientAuthorization",
       "nickname": "watchOAuthClientAuthorization",
@@ -13946,7 +14007,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14153,7 +14214,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClient",
       "nickname": "watchOAuthClientList",
@@ -14211,7 +14272,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14435,7 +14496,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClient",
       "nickname": "watchOAuthClient",
@@ -14501,7 +14562,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14509,6 +14570,300 @@
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf",
        "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicyreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicyReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicyReview",
+      "nickname": "createNamespacedPodSecurityPolicyReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicyReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicyReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podsecuritypolicyreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicyReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicyReview",
+      "nickname": "createPodSecurityPolicyReviewForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicyReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicyReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicyselfsubjectreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicySelfSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicySelfSubjectReview",
+      "nickname": "createNamespacedPodSecurityPolicySelfSubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicySelfSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicySelfSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podsecuritypolicyselfsubjectreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicySelfSubjectReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicySelfSubjectReview",
+      "nickname": "createPodSecurityPolicySelfSubjectReviewForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicySelfSubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicySelfSubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/podsecuritypolicysubjectreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicySubjectReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicySubjectReview",
+      "nickname": "createNamespacedPodSecurityPolicySubjectReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicySubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicySubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podsecuritypolicysubjectreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicySubjectReview",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicySubjectReview",
+      "nickname": "createPodSecurityPolicySubjectReviewForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicySubjectReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicySubjectReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14732,7 +15087,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Policy",
       "nickname": "watchNamespacedPolicyList",
@@ -14798,7 +15153,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15054,7 +15409,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Policy",
       "nickname": "watchNamespacedPolicy",
@@ -15128,7 +15483,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15151,7 +15506,7 @@
       "type": "v1.PolicyList",
       "method": "GET",
       "summary": "list or watch objects of kind Policy",
-      "nickname": "listNamespacedPolicy",
+      "nickname": "listPolicyForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -15222,7 +15577,7 @@
       "type": "v1.Policy",
       "method": "POST",
       "summary": "create a Policy",
-      "nickname": "createNamespacedPolicy",
+      "nickname": "createPolicyForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -15264,10 +15619,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Policy",
-      "nickname": "watchNamespacedPolicyList",
+      "nickname": "watchPolicyListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -15322,7 +15677,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15553,7 +15908,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PolicyBinding",
       "nickname": "watchNamespacedPolicyBindingList",
@@ -15619,7 +15974,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15875,7 +16230,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PolicyBinding",
       "nickname": "watchNamespacedPolicyBinding",
@@ -15949,7 +16304,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15972,7 +16327,7 @@
       "type": "v1.PolicyBindingList",
       "method": "GET",
       "summary": "list or watch objects of kind PolicyBinding",
-      "nickname": "listNamespacedPolicyBinding",
+      "nickname": "listPolicyBindingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16043,7 +16398,7 @@
       "type": "v1.PolicyBinding",
       "method": "POST",
       "summary": "create a PolicyBinding",
-      "nickname": "createNamespacedPolicyBinding",
+      "nickname": "createPolicyBindingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16085,10 +16440,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PolicyBinding",
-      "nickname": "watchNamespacedPolicyBindingList",
+      "nickname": "watchPolicyBindingListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16143,7 +16498,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -16219,7 +16574,7 @@
       "type": "v1.Template",
       "method": "POST",
       "summary": "create a Template",
-      "nickname": "createNamespacedTemplate",
+      "nickname": "createTemplateForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16493,7 +16848,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Project",
       "nickname": "watchProjectList",
@@ -16551,7 +16906,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -16751,7 +17106,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Project",
       "nickname": "watchProject",
@@ -16817,7 +17172,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -16893,7 +17248,7 @@
       "type": "v1.ResourceAccessReview",
       "method": "POST",
       "summary": "create a ResourceAccessReview",
-      "nickname": "createNamespacedResourceAccessReview",
+      "nickname": "createResourceAccessReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -17290,7 +17645,7 @@
       "type": "v1.RoleBindingList",
       "method": "GET",
       "summary": "list objects of kind RoleBinding",
-      "nickname": "listNamespacedRoleBinding",
+      "nickname": "listRoleBindingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -17361,7 +17716,7 @@
       "type": "v1.RoleBinding",
       "method": "POST",
       "summary": "create a RoleBinding",
-      "nickname": "createNamespacedRoleBinding",
+      "nickname": "createRoleBindingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -17758,7 +18113,7 @@
       "type": "v1.RoleList",
       "method": "GET",
       "summary": "list objects of kind Role",
-      "nickname": "listNamespacedRole",
+      "nickname": "listRoleForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -17829,7 +18184,7 @@
       "type": "v1.Role",
       "method": "POST",
       "summary": "create a Role",
-      "nickname": "createNamespacedRole",
+      "nickname": "createRoleForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18082,7 +18437,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Route",
       "nickname": "watchNamespacedRouteList",
@@ -18148,7 +18503,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -18404,7 +18759,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Route",
       "nickname": "watchNamespacedRoute",
@@ -18478,7 +18833,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -18501,7 +18856,7 @@
       "type": "v1.RouteList",
       "method": "GET",
       "summary": "list or watch objects of kind Route",
-      "nickname": "listNamespacedRoute",
+      "nickname": "listRouteForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18572,7 +18927,7 @@
       "type": "v1.Route",
       "method": "POST",
       "summary": "create a Route",
-      "nickname": "createNamespacedRoute",
+      "nickname": "createRouteForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18614,10 +18969,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Route",
-      "nickname": "watchNamespacedRouteList",
+      "nickname": "watchRouteListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18672,7 +19027,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -18809,7 +19164,7 @@
       "type": "v1.SelfSubjectRulesReview",
       "method": "POST",
       "summary": "create a SelfSubjectRulesReview",
-      "nickname": "createNamespacedSelfSubjectRulesReview",
+      "nickname": "createSelfSubjectRulesReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18907,7 +19262,7 @@
       "type": "v1.SubjectAccessReview",
       "method": "POST",
       "summary": "create a SubjectAccessReview",
-      "nickname": "createNamespacedSubjectAccessReview",
+      "nickname": "createSubjectAccessReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -18931,6 +19286,104 @@
         "code": 200,
         "message": "OK",
         "responseModel": "v1.SubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/subjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SubjectRulesReview",
+      "nickname": "createNamespacedSubjectRulesReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SubjectRulesReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/subjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SubjectRulesReview",
+      "nickname": "createSubjectRulesReviewForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SubjectRulesReview"
        }
       ],
       "produces": [
@@ -19160,7 +19613,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Template",
       "nickname": "watchNamespacedTemplateList",
@@ -19226,7 +19679,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -19482,7 +19935,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Template",
       "nickname": "watchNamespacedTemplate",
@@ -19556,7 +20009,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -19579,7 +20032,7 @@
       "type": "v1.TemplateList",
       "method": "GET",
       "summary": "list or watch objects of kind Template",
-      "nickname": "listNamespacedTemplate",
+      "nickname": "listTemplateForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -19650,7 +20103,7 @@
       "type": "v1.Template",
       "method": "POST",
       "summary": "create a Template",
-      "nickname": "createNamespacedTemplate",
+      "nickname": "createTemplateForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -19692,10 +20145,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Template",
-      "nickname": "watchNamespacedTemplateList",
+      "nickname": "watchTemplateListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -19750,7 +20203,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -20182,7 +20635,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of User",
       "nickname": "watchUserList",
@@ -20240,7 +20693,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -20464,7 +20917,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind User",
       "nickname": "watchUser",
@@ -20530,7 +20983,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -20930,7 +21383,7 @@
    },
    "v1.BuildConfig": {
     "id": "v1.BuildConfig",
-    "description": "BuildConfig is a template which can be used to create new builds.",
+    "description": "Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
     "required": [
      "spec",
      "status"
@@ -20963,7 +21416,8 @@
     "description": "BuildConfigSpec describes when and how builds are created",
     "required": [
      "triggers",
-     "strategy"
+     "strategy",
+     "nodeSelector"
     ],
     "properties": {
      "triggers": {
@@ -21009,6 +21463,10 @@
       "type": "integer",
       "format": "int64",
       "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
+     },
+     "nodeSelector": {
+      "type": "object",
+      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored."
      }
     }
    },
@@ -21178,12 +21636,16 @@
      "httpsProxy": {
       "type": "string",
       "description": "httpsProxy is a proxy used to reach the git repository over https"
+     },
+     "noProxy": {
+      "type": "string",
+      "description": "noProxy is the list of domains for which the proxy should not be used"
      }
     }
    },
    "v1.ImageSource": {
     "id": "v1.ImageSource",
-    "description": "ImageSource describes an image that is used as source for the build",
+    "description": "ImageSource is used to describe build source that will be extracted from an image. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. A list of paths to copy from the image and their respective destination within the build directory must be specified in the paths array.",
     "required": [
      "from",
      "paths"
@@ -21614,6 +22076,30 @@
      "pushSecret": {
       "$ref": "v1.LocalObjectReference",
       "description": "PushSecret is the name of a Secret that would be used for setting up the authentication for executing the Docker push to authentication enabled Docker Registry (or Docker Hub)."
+     },
+     "imageLabels": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ImageLabel"
+      },
+      "description": "imageLabels define a list of labels that are applied to the resulting image. If there are multiple labels with the same name then the last one in the list is used."
+     }
+    }
+   },
+   "v1.ImageLabel": {
+    "id": "v1.ImageLabel",
+    "description": "ImageLabel represents a label applied to the resulting image.",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "name defines the name of the label. It must have non-zero length."
+     },
+     "value": {
+      "type": "string",
+      "description": "value defines the literal value of the label."
      }
     }
    },
@@ -21756,9 +22242,20 @@
      }
     }
    },
-   "*versioned.Event": {
-    "id": "*versioned.Event",
-    "properties": {}
+   "versioned.Event": {
+    "id": "versioned.Event",
+    "required": [
+     "type",
+     "object"
+    ],
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "object": {
+      "type": "string"
+     }
+    }
    },
    "unversioned.Patch": {
     "id": "unversioned.Patch",
@@ -21985,6 +22482,7 @@
     "description": "BuildSpec has the information to represent a build and also additional information about a build",
     "required": [
      "strategy",
+     "nodeSelector",
      "triggeredBy"
     ],
     "properties": {
@@ -22020,6 +22518,10 @@
       "type": "integer",
       "format": "int64",
       "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
+     },
+     "nodeSelector": {
+      "type": "object",
+      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored."
      },
      "triggeredBy": {
       "type": "array",
@@ -22399,7 +22901,7 @@
    },
    "v1.ClusterRoleBinding": {
     "id": "v1.ClusterRoleBinding",
-    "description": "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+    "description": "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -22424,25 +22926,25 @@
       "items": {
        "type": "string"
       },
-      "description": "UserNames holds all the usernames directly bound to the role"
+      "description": "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details."
      },
      "groupNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "GroupNames holds all the groups directly bound to the role"
+      "description": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details."
      },
      "subjects": {
       "type": "array",
       "items": {
        "$ref": "v1.ObjectReference"
       },
-      "description": "Subjects hold object references to authorize with this rule"
+      "description": "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames."
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",
-      "description": "RoleRef can only reference the current namespace and the global namespace If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role"
+      "description": "RoleRef can only reference the current namespace and the global namespace. If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role."
      }
     }
    },
@@ -22658,7 +23160,7 @@
    },
    "v1.DeploymentConfig": {
     "id": "v1.DeploymentConfig",
-    "description": "DeploymentConfig represents a configuration for a single deployment (represented as a ReplicationController). It also contains details about changes which resulted in the current state of the DeploymentConfig. Each change to the DeploymentConfig which should result in a new deployment results in an increment of LatestVersion.",
+    "description": "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
     "required": [
      "spec",
      "status"
@@ -22750,7 +23252,7 @@
      },
      "customParams": {
       "$ref": "v1.CustomDeploymentStrategyParams",
-      "description": "CustomParams are the input to the Custom deployment strategy."
+      "description": "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment."
      },
      "recreateParams": {
       "$ref": "v1.RecreateDeploymentStrategyParams",
@@ -22762,7 +23264,7 @@
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "Resources contains resource requirements to execute the deployment and any hooks"
+      "description": "Resources contains resource requirements to execute the deployment and any hooks."
      },
      "labels": {
       "type": "object",
@@ -22925,18 +23427,13 @@
       "type": "string",
       "description": "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods."
      },
-     "updatePercent": {
-      "type": "integer",
-      "format": "int32",
-      "description": "UpdatePercent is the percentage of replicas to scale up or down each interval. If nil, one replica will be scaled up and down each interval. If negative, the scale order will be down/up instead of up/down. DEPRECATED: Use MaxUnavailable/MaxSurge instead."
-     },
      "pre": {
       "$ref": "v1.LifecycleHook",
       "description": "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported."
      },
      "post": {
       "$ref": "v1.LifecycleHook",
-      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. The LifecycleHookFailurePolicyAbort policy is NOT supported."
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported."
      }
     }
    },
@@ -22963,7 +23460,7 @@
     "properties": {
      "automatic": {
       "type": "boolean",
-      "description": "Automatic means that the detection of a new tag value should result in an image update inside the pod template. Deployment configs that haven't been deployed yet will always have their images updated. Deployment configs that have been deployed at least once, will have their images updated only if this is set to true."
+      "description": "Automatic means that the detection of a new tag value should result in an image update inside the pod template."
      },
      "containerNames": {
       "type": "array",
@@ -24263,6 +24760,13 @@
      "details": {
       "$ref": "v1.DeploymentDetails",
       "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger"
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.DeploymentCondition"
+      },
+      "description": "Conditions represents the latest available observations of a deployment config's current state."
      }
     }
    },
@@ -24313,6 +24817,67 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage."
+     }
+    }
+   },
+   "v1.DeploymentCondition": {
+    "id": "v1.DeploymentCondition",
+    "description": "DeploymentCondition describes the state of a deployment config at a certain point.",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of deployment condition."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the condition, one of True, False, Unknown."
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "description": "The last time the condition transitioned from one status to another."
+     },
+     "reason": {
+      "type": "string",
+      "description": "The reason for the condition's last transition."
+     },
+     "message": {
+      "type": "string",
+      "description": "A human readable message indicating details about the transition."
+     }
+    }
+   },
+   "v1.DeploymentRequest": {
+    "id": "v1.DeploymentRequest",
+    "description": "DeploymentRequest is a request to a deployment config for a new deployment.",
+    "required": [
+     "name",
+     "latest",
+     "force"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the deployment config for requesting a new deployment."
+     },
+     "latest": {
+      "type": "boolean",
+      "description": "Latest will update the deployment config with the latest state from all triggers."
+     },
+     "force": {
+      "type": "boolean",
+      "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error."
      }
     }
    },
@@ -24638,7 +25203,7 @@
    },
    "v1.Identity": {
     "id": "v1.Identity",
-    "description": "Identity records a successful authentication of a user with an identity provider",
+    "description": "Identity records a successful authentication of a user with an identity provider. The information about the source of authentication is stored on the identity, and the identity is then associated with a single user object. Multiple identities can reference a single user. Information retrieved from the authentication provider is stored in the extra field using a schema determined by the provider.",
     "required": [
      "providerName",
      "providerUserName",
@@ -24946,7 +25511,7 @@
    },
    "v1.ImageStreamImport": {
     "id": "v1.ImageStreamImport",
-    "description": "ImageStreamImport imports an image from remote repositories into OpenShift.",
+    "description": "The image stream import resource provides an easy way for a user to find and import Docker images from other Docker registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
     "required": [
      "spec",
      "status"
@@ -25842,6 +26407,14 @@
      "userUID": {
       "type": "string",
       "description": "UserUID is the unique UID associated with this token. UserUID and UserName must both match for this token to be valid."
+     },
+     "codeChallenge": {
+      "type": "string",
+      "description": "CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636"
+     },
+     "codeChallengeMethod": {
+      "type": "string",
+      "description": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636"
      }
     }
    },
@@ -26032,6 +26605,197 @@
      "allowEscalation": {
       "type": "boolean",
       "description": "AllowEscalation indicates whether you can request roles and their escalating resources"
+     }
+    }
+   },
+   "v1.PodSecurityPolicyReview": {
+    "id": "v1.PodSecurityPolicyReview",
+    "description": "PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "spec": {
+      "$ref": "v1.PodSecurityPolicyReviewSpec",
+      "description": "spec is the PodSecurityPolicy to check."
+     },
+     "status": {
+      "$ref": "v1.PodSecurityPolicyReviewStatus",
+      "description": "status represents the current information/status for the PodSecurityPolicyReview."
+     }
+    }
+   },
+   "v1.PodSecurityPolicyReviewSpec": {
+    "id": "v1.PodSecurityPolicyReviewSpec",
+    "description": "PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "template is the PodTemplateSpec to check. The template.spec.serviceAccountName field is used if serviceAccountNames is empty, unless the template.spec.serviceAccountName is empty, in which case \"default\" is used. If serviceAccountNames is specified, template.spec.serviceAccountName is ignored."
+     },
+     "serviceAccountNames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "serviceAccountNames is an optional set of ServiceAccounts to run the check with. If serviceAccountNames is empty, the template.spec.serviceAccountName is used, unless it's empty, in which case \"default\" is used instead. If serviceAccountNames is specified, template.spec.serviceAccountName is ignored."
+     }
+    }
+   },
+   "v1.PodSecurityPolicyReviewStatus": {
+    "id": "v1.PodSecurityPolicyReviewStatus",
+    "description": "PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.",
+    "required": [
+     "allowedServiceAccounts"
+    ],
+    "properties": {
+     "allowedServiceAccounts": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ServiceAccountPodSecurityPolicyReviewStatus"
+      },
+      "description": "allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodTemplateSpec."
+     }
+    }
+   },
+   "v1.ServiceAccountPodSecurityPolicyReviewStatus": {
+    "id": "v1.ServiceAccountPodSecurityPolicyReviewStatus",
+    "description": "ServiceAccountPodSecurityPolicyReviewStatus represents ServiceAccount name and related review status",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "allowedBy": {
+      "$ref": "v1.ObjectReference",
+      "description": "allowedBy is a reference to the rule that allows the PodTemplateSpec. A rule can be a SecurityContextConstraint or a PodSecurityPolicy A `nil`, indicates that it was denied."
+     },
+     "reason": {
+      "type": "string",
+      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available."
+     },
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "template is the PodTemplateSpec after the defaulting is applied."
+     },
+     "name": {
+      "type": "string",
+      "description": "name contains the allowed and the denied ServiceAccount name"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySelfSubjectReview": {
+    "id": "v1.PodSecurityPolicySelfSubjectReview",
+    "description": "PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "spec": {
+      "$ref": "v1.PodSecurityPolicySelfSubjectReviewSpec",
+      "description": "spec defines specification the PodSecurityPolicySelfSubjectReview."
+     },
+     "status": {
+      "$ref": "v1.PodSecurityPolicySubjectReviewStatus",
+      "description": "status represents the current information/status for the PodSecurityPolicySelfSubjectReview."
+     }
+    }
+   },
+   "v1.PodSecurityPolicySelfSubjectReviewSpec": {
+    "id": "v1.PodSecurityPolicySelfSubjectReviewSpec",
+    "description": "PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "template is the PodTemplateSpec to check."
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReviewStatus": {
+    "id": "v1.PodSecurityPolicySubjectReviewStatus",
+    "description": "PodSecurityPolicySubjectReviewStatus contains information/status for PodSecurityPolicySubjectReview.",
+    "properties": {
+     "allowedBy": {
+      "$ref": "v1.ObjectReference",
+      "description": "allowedBy is a reference to the rule that allows the PodTemplateSpec. A rule can be a SecurityContextConstraint or a PodSecurityPolicy A `nil`, indicates that it was denied."
+     },
+     "reason": {
+      "type": "string",
+      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available."
+     },
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "template is the PodTemplateSpec after the defaulting is applied."
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReview": {
+    "id": "v1.PodSecurityPolicySubjectReview",
+    "description": "PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "spec": {
+      "$ref": "v1.PodSecurityPolicySubjectReviewSpec",
+      "description": "spec defines specification for the PodSecurityPolicySubjectReview."
+     },
+     "status": {
+      "$ref": "v1.PodSecurityPolicySubjectReviewStatus",
+      "description": "status represents the current information/status for the PodSecurityPolicySubjectReview."
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReviewSpec": {
+    "id": "v1.PodSecurityPolicySubjectReviewSpec",
+    "description": "PodSecurityPolicySubjectReviewSpec defines specification for PodSecurityPolicySubjectReview",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "template is the PodTemplateSpec to check. If template.spec.serviceAccountName is empty it will not be defaulted. If its non-empty, it will be checked."
+     },
+     "user": {
+      "type": "string",
+      "description": "user is the user you're testing for. If you specify \"user\" but not \"group\", then is it interpreted as \"What if user were not a member of any groups. If user and groups are empty, then the check is performed using *only* the serviceAccountName in the template."
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "groups is the groups you're testing for."
      }
     }
    },
@@ -26228,7 +26992,7 @@
    },
    "v1.RoleBinding": {
     "id": "v1.RoleBinding",
-    "description": "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+    "description": "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -26253,25 +27017,25 @@
       "items": {
        "type": "string"
       },
-      "description": "UserNames holds all the usernames directly bound to the role"
+      "description": "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details."
      },
      "groupNames": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "GroupNames holds all the groups directly bound to the role"
+      "description": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details."
      },
      "subjects": {
       "type": "array",
       "items": {
        "$ref": "v1.ObjectReference"
       },
-      "description": "Subjects hold object references to authorize with this rule"
+      "description": "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames."
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",
-      "description": "RoleRef can only reference the current namespace and the global namespace If the RoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role"
+      "description": "RoleRef can only reference the current namespace and the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role."
      }
     }
    },
@@ -26416,7 +27180,7 @@
    },
    "v1.Project": {
     "id": "v1.Project",
-    "description": "Project is a logical top-level container for a set of origin resources",
+    "description": "Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members, a quota on the resources that the project may consume, and the security controls on the resources in the project. Within a project, members may have different roles - project administrators can set membership, editors can create and manage the resources, and viewers can see but not access running containers. In a normal cluster project administrators are not able to alter their quotas - that is restricted to cluster administrators.\n\nListing or watching projects will return only projects the user has the reader role on.\n\nAn OpenShift project is an alternative representation of a Kubernetes namespace. Projects are exposed as editable to end users while namespaces are not. Direct creation of a project is typically restricted to administrators, while end users should use the requestproject resource.",
     "properties": {
      "kind": {
       "type": "string",
@@ -26590,20 +27354,20 @@
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
-      "description": "Standard object's metadata."
+      "description": "Standard object metadata."
      },
      "items": {
       "type": "array",
       "items": {
        "$ref": "v1.Route"
       },
-      "description": "Items is a list of routes"
+      "description": "items is a list of routes"
      }
     }
    },
    "v1.Route": {
     "id": "v1.Route",
-    "description": "Route encapsulates the inputs needed to connect an alias to endpoints.",
+    "description": "A route allows developers to expose services through an HTTP(S) aware load balancing and proxy layer via a public DNS entry. The route may further specify TLS options and a certificate, or specify a public CNAME that the router should also accept for HTTP and HTTPS traffic. An administrator typically configures their router to be visible outside the cluster firewall, and may also add additional security, caching, or traffic controls on the service content. Routers usually talk directly to the service endpoints.\n\nOnce a route is created, the `host` field may not be changed. Generally, routers use the oldest route with a given host when resolving conflicts.\n\nRouters are subject to additional customization and may support additional controls via the annotations field.\n\nBecause administrators may configure multiple routers, the route status field is used to return information to clients about the names and states of the route under each router. If a client chooses a duplicate name, for instance, the route status conditions are used to indicate the route cannot be chosen.",
     "required": [
      "spec",
      "status"
@@ -26619,21 +27383,21 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
-      "description": "Standard object's metadata."
+      "description": "Standard object metadata."
      },
      "spec": {
       "$ref": "v1.RouteSpec",
-      "description": "Spec is the desired state of the route"
+      "description": "spec is the desired state of the route"
      },
      "status": {
       "$ref": "v1.RouteStatus",
-      "description": "Status is the current state of the route"
+      "description": "status is the current state of the route"
      }
     }
    },
    "v1.RouteSpec": {
     "id": "v1.RouteSpec",
-    "description": "RouteSpec describes the route the user wishes to exist.",
+    "description": "RouteSpec describes the hostname or path the route exposes, any security information, and one or more backends the route points to. Weights on each backend can define the balance of traffic sent to each backend - if all weights are zero the route will be considered to have no backends and return a standard 503 response.\n\nThe `tls` field is optional and allows specific certificates or behavior for the route. Routers typically configure a default certificate on a wildcard domain to terminate routes without explicit certificates, but custom hostnames usually must choose passthrough (send traffic directly to the backend via the TLS Server-Name- Indication field) or provide a certificate.",
     "required": [
      "host",
      "to"
@@ -26641,7 +27405,7 @@
     "properties": {
      "host": {
       "type": "string",
-      "description": "Host is an alias/DNS that points to the service. Optional Must follow DNS952 subdomain conventions."
+      "description": "host is an alias/DNS that points to the service. Optional. If not specified a route name will typically be automatically chosen. Must follow DNS952 subdomain conventions."
      },
      "path": {
       "type": "string",
@@ -26649,14 +27413,14 @@
      },
      "to": {
       "$ref": "v1.RouteTargetReference",
-      "description": "To is an object the route points to. Only the Service kind is allowed, and it will be defaulted to Service."
+      "description": "to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field is set to zero, no traffic will be sent to this service."
      },
      "alternateBackends": {
       "type": "array",
       "items": {
        "$ref": "v1.RouteTargetReference"
       },
-      "description": "AlternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference"
+      "description": "alternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference. If the weight field is zero, the backend is ignored."
      },
      "port": {
       "$ref": "v1.RoutePort",
@@ -26664,7 +27428,7 @@
      },
      "tls": {
       "$ref": "v1.TLSConfig",
-      "description": "TLS provides the ability to configure certificates and termination for the route"
+      "description": "The tls field provides the ability to configure certificates and termination for the route."
      }
     }
    },
@@ -26683,12 +27447,12 @@
      },
      "name": {
       "type": "string",
-      "description": "Name of the service/target that is being referred to. e.g. name of the service"
+      "description": "name of the service/target that is being referred to. e.g. name of the service"
      },
      "weight": {
       "type": "integer",
       "format": "int32",
-      "description": "Weight as an integer between 1 and 256 that specifies the target's relative weight against other target reference objects"
+      "description": "weight as an integer between 1 and 256 that specifies the target's relative weight against other target reference objects"
      }
     }
    },
@@ -26714,27 +27478,27 @@
     "properties": {
      "termination": {
       "type": "string",
-      "description": "Termination indicates termination type."
+      "description": "termination indicates termination type."
      },
      "certificate": {
       "type": "string",
-      "description": "Certificate provides certificate contents"
+      "description": "certificate provides certificate contents"
      },
      "key": {
       "type": "string",
-      "description": "Key provides key file contents"
+      "description": "key provides key file contents"
      },
      "caCertificate": {
       "type": "string",
-      "description": "CACertificate provides the cert authority certificate contents"
+      "description": "caCertificate provides the cert authority certificate contents"
      },
      "destinationCACertificate": {
       "type": "string",
-      "description": "DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
+      "description": "destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
      },
      "insecureEdgeTerminationPolicy": {
       "type": "string",
-      "description": "InsecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to an edge-terminated route:\n  disable, allow or redirect"
+      "description": "insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While each router may make its own decisions on which ports to expose, this is normally port 80.\n\n* Allow - traffic is sent to the server on the insecure port (default) * Disable - no traffic is allowed on the insecure port. * Redirect - clients are redirected to the secure port."
      }
     }
    },
@@ -26750,13 +27514,13 @@
       "items": {
        "$ref": "v1.RouteIngress"
       },
-      "description": "Ingress describes the places where the route may be exposed. The list of ingress points may contain duplicate Host or RouterName values. Routes are considered live once they are `Ready`"
+      "description": "ingress describes the places where the route may be exposed. The list of ingress points may contain duplicate Host or RouterName values. Routes are considered live once they are `Ready`"
      }
     }
    },
    "v1.RouteIngress": {
     "id": "v1.RouteIngress",
-    "description": "RouteIngress holds information about the places where a route is exposed",
+    "description": "RouteIngress holds information about the places where a route is exposed.",
     "properties": {
      "host": {
       "type": "string",
@@ -26777,7 +27541,7 @@
    },
    "v1.RouteIngressCondition": {
     "id": "v1.RouteIngressCondition",
-    "description": "RouteIngressCondition contains details for the current condition of this pod.",
+    "description": "RouteIngressCondition contains details for the current condition of this route on a particular router.",
     "required": [
      "type",
      "status"
@@ -26937,6 +27701,60 @@
      }
     }
    },
+   "v1.SubjectRulesReview": {
+    "id": "v1.SubjectRulesReview",
+    "description": "SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "spec": {
+      "$ref": "v1.SubjectRulesReviewSpec",
+      "description": "Spec adds information about how to conduct the check"
+     },
+     "status": {
+      "$ref": "v1.SubjectRulesReviewStatus",
+      "description": "Status is completed by the server to tell which permissions you have"
+     }
+    }
+   },
+   "v1.SubjectRulesReviewSpec": {
+    "id": "v1.SubjectRulesReviewSpec",
+    "description": "SubjectRulesReviewSpec adds information about how to conduct the check",
+    "required": [
+     "user",
+     "groups",
+     "scopes"
+    ],
+    "properties": {
+     "user": {
+      "type": "string",
+      "description": "User is optional.  At least one of User and Groups must be specified."
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified."
+     },
+     "scopes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\"."
+     }
+    }
+   },
    "v1.TemplateList": {
     "id": "v1.TemplateList",
     "description": "TemplateList is a list of Template objects.",
@@ -27021,7 +27839,7 @@
    },
    "v1.User": {
     "id": "v1.User",
-    "description": "User describes someone that makes requests to the API",
+    "description": "Upon log in, every user of the system receives a User and Identity resource. Administrators may directly manipulate the attributes of the users for their own tracking, or set groups via the API. The user name is unique and is chosen based on the value provided by the identity provider - if a user already exists with the incoming name, the user name may have a number appended to it depending on the configuration of the system.",
     "required": [
      "identities",
      "groups"

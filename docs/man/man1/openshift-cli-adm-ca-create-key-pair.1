@@ -19,14 +19,8 @@ Create an RSA key pair and generate PEM\-encoded public/private key files
 Example: Creating service account signing and authenticating key files:
 
 .PP
-.RS
-
-.nf
 CONFIG=openshift.local.config/master
-openshift cli adm ca create\-key\-pair \-\-public\-key=$CONFIG/serviceaccounts.public.key \-\-private\-key=$CONFIG/serviceaccounts.private.key
-
-.fi
-.RE
+  openshift cli adm ca create\-key\-pair \-\-public\-key=$CONFIG/serviceaccounts.public.key \-\-private\-key=$CONFIG/serviceaccounts.private.key
 
 
 .SH OPTIONS
@@ -95,6 +89,10 @@ openshift cli adm ca create\-key\-pair \-\-public\-key=$CONFIG/serviceaccounts.p
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

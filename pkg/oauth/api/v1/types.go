@@ -63,6 +63,12 @@ type OAuthAuthorizeToken struct {
 	// UserUID is the unique UID associated with this token. UserUID and UserName must both match
 	// for this token to be valid.
 	UserUID string `json:"userUID,omitempty" protobuf:"bytes,8,opt,name=userUID"`
+
+	// CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636
+	CodeChallenge string `json:"codeChallenge,omitempty" protobuf:"bytes,9,opt,name=codeChallenge"`
+
+	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
+	CodeChallengeMethod string `json:"codeChallengeMethod,omitempty" protobuf:"bytes,10,opt,name=codeChallengeMethod"`
 }
 
 // +genclient=true
@@ -84,7 +90,7 @@ type OAuthClient struct {
 	RespondWithChallenges bool `json:"respondWithChallenges,omitempty" protobuf:"varint,4,opt,name=respondWithChallenges"`
 
 	// RedirectURIs is the valid redirection URIs associated with a client
-	RedirectURIs []string `json:"redirectURIs,omitempty" protobuf:"bytes,5,rep,name=redirectURIs"`
+	RedirectURIs []string `json:"redirectURIs,omitempty" patchStrategy:"merge" protobuf:"bytes,5,rep,name=redirectURIs"`
 
 	// GrantMethod determines how to handle grants for this client. If no method is provided, the
 	// cluster default grant handling method will be used. Valid grant handling methods are:
@@ -183,4 +189,25 @@ type OAuthClientAuthorizationList struct {
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// OAuthRedirectReference is a reference to an OAuth redirect object.
+type OAuthRedirectReference struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// The reference to an redirect object in the current namespace.
+	Reference RedirectReference `json:"reference,omitempty" protobuf:"bytes,2,opt,name=reference"`
+}
+
+// RedirectReference specifies the target in the current namespace that resolves into redirect URIs.  Only the 'Route' kind is currently allowed.
+type RedirectReference struct {
+	// The group of the target that is being referred to.
+	Group string `json:"group" protobuf:"bytes,1,opt,name=group"`
+
+	// The kind of the target that is being referred to.  Currently, only 'Route' is allowed.
+	Kind string `json:"kind" protobuf:"bytes,2,opt,name=kind"`
+
+	// The name of the target that is being referred to. e.g. name of the Route.
+	Name string `json:"name" protobuf:"bytes,3,opt,name=name"`
 }

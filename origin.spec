@@ -29,11 +29,13 @@
 %global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR='' OS_GIT_TREE_STATE=''
 }
 
+%{!?make_redistributable:
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
 %endif
+}
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -183,9 +185,6 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 # Create extended.test
 %{os_git_vars} hack/build-go.sh test/extended/extended.test
 
-# Create/Update man pages
-%{os_git_vars} hack/update-generated-docs.sh
-
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
@@ -267,12 +266,18 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
 # Install sdn scripts
-install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
-install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd pkg/sdn/plugin/bin
-   install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
-   install -p -m 755 openshift-sdn-docker-setup.sh %{buildroot}%{_bindir}/openshift-sdn-docker-setup.sh
+install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
+pushd pkg/sdn/plugin/sdn-cni-plugin
+   install -p -m 0644 80-openshift-sdn.conf %{buildroot}%{_sysconfdir}/cni/net.d
 popd
+pushd pkg/sdn/plugin/bin
+   install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
+popd
+install -d -m 0755 %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/linux/amd64/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
+install -p -m 0755 _output/local/bin/linux/amd64/host-local %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/linux/amd64/loopback %{buildroot}/opt/cni/bin
+
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
@@ -415,12 +420,13 @@ fi
 %systemd_postun
 
 %files sdn-ovs
-%dir %{_unitdir}/docker.service.d/
 %dir %{_unitdir}/%{name}-node.service.d/
+%dir %{_sysconfdir}/cni/net.d
+%dir /opt/cni/bin
 %{_bindir}/openshift-sdn-ovs
-%{_bindir}/openshift-sdn-docker-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
-%{_unitdir}/docker.service.d/docker-sdn-ovs.conf
+%{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
+/opt/cni/bin/*
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by

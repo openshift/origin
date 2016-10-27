@@ -52,15 +52,17 @@ type MineOptions struct {
   mineLatest bool
 }
 
-const (
-  mineLong = `Some long description
-for my command.`
+var (
+  mineLong = templates.LongDesc(`
+    Some long description
+    for my command.`)
 
-  mineExample = `  # Run my command's first action
-  %[1]s first
+  mineExample = templates.Examples(`  
+    # Run my command's first action
+    %[1]s first
 
-  # Run my command's second action on latest stuff
-  %[1]s second --latest`
+    # Run my command's second action on latest stuff
+    %[1]s second --latest`)
 )
 
 // NewCmdMine implement the OpenShift cli mine command.
@@ -136,11 +138,12 @@ Example:
 ====
 [source,go,numbered,options="nowrap"]
 ----
-  deployExample = `  # Display the latest deployment for the 'database' deployment config
-  %[1]s database
+  deployExample = templates.Examples(`  
+    # Display the latest deployment for the 'database' deployment config
+    %[1]s database
 
-  # Start a new deployment based on the 'database' deployment config
-  %[1]s database --latest`
+    # Start a new deployment based on the 'database' deployment config
+    %[1]s database --latest`)
 ----
 ====
 
@@ -237,17 +240,19 @@ type DeployOptions struct {
   retryDeploy  bool
 }
 
-const (
+var (
   // 2.
-  deployLong = `Some long description 
-for the deploy command.` 
+  deployLong = templates.LongDesc(`
+    Some long description 
+    for the deploy command.`) 
 
   // 3.
-  deployExample = `  # Display the latest deployment for the 'database' DeploymentConfig
-  %[1]s database
+  deployExample = templates.Examples(`  
+    # Display the latest deployment for the 'database' DeploymentConfig
+    %[1]s database
 
-  # Start a new deployment based on the 'database' DeploymentConfig
-  %[1]s database --latest`
+    # Start a new deployment based on the 'database' DeploymentConfig
+    %[1]s database --latest`)
 )
 
 // 4.

@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestValidateBuildDefaultsConfig(t *testing.T) {
@@ -95,6 +96,84 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 			},
 			errExpected: true,
 			errField:    "env[0].valueFrom",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 6: label: empty name
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				ImageLabels: []buildapi.ImageLabel{
+					{
+						Name:  "",
+						Value: "empty",
+					},
+				},
+			},
+			errExpected: true,
+			errField:    "imageLabels[0].name",
+			errType:     field.ErrorTypeRequired,
+		},
+		// 7: label: bad name
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				ImageLabels: []buildapi.ImageLabel{
+					{
+						Name:  "\tč;",
+						Value: "????",
+					},
+				},
+			},
+			errExpected: true,
+			errField:    "imageLabels[0].name",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 8: duplicate label
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				ImageLabels: []buildapi.ImageLabel{
+					{
+						Name:  "name",
+						Value: "Jan",
+					},
+					{
+						Name:  "name",
+						Value: "Elvis",
+					},
+				},
+			},
+			errExpected: true,
+			errField:    "imageLabels[1].name",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 9: valid nodeselector
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				NodeSelector: map[string]string{"A": "B"},
+			},
+			errExpected: false,
+		},
+		// 10: invalid nodeselector
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				NodeSelector: map[string]string{"A@B!": "C"},
+			},
+			errExpected: true,
+			errField:    "nodeSelector[A@B!]",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 11: valid annotation
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				Annotations: map[string]string{"A": "B"},
+			},
+			errExpected: false,
+		},
+		// 12: invalid annotation
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				Annotations: map[string]string{"A B": "C"},
+			},
+			errExpected: true,
+			errField:    "annotations",
 			errType:     field.ErrorTypeInvalid,
 		},
 	}

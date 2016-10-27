@@ -16,9 +16,7 @@ oc \- Command line tools for managing applications
 OpenShift Client
 
 .PP
-This client helps you develop, build, deploy, and run your applications on any OpenShift or
-Kubernetes compatible platform. It also includes the administrative commands for managing a
-cluster under the 'adm' subcommand.
+This client helps you develop, build, deploy, and run your applications on any OpenShift or Kubernetes compatible platform. It also includes the administrative commands for managing a cluster under the 'adm' subcommand.
 
 
 .SH OPTIONS
@@ -73,6 +71,10 @@ cluster under the 'adm' subcommand.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

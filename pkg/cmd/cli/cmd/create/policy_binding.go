@@ -12,17 +12,18 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	PolicyBindingRecommendedName = "policybinding"
+const PolicyBindingRecommendedName = "policybinding"
 
-	policyBindingLong = `
-Create a policy binding that references the policy in the targetted namespace.`
+var (
+	policyBindingLong = templates.LongDesc(`Create a policy binding that references the policy in the targetted namespace.`)
 
-	policyBindingExample = `  # Create a policy binding in namespace "foo" that references the policy in namespace "bar"
-  %[1]s bar -n foo`
+	policyBindingExample = templates.Examples(`
+		# Create a policy binding in namespace "foo" that references the policy in namespace "bar"
+  	%[1]s bar -n foo`)
 )
 
 type CreatePolicyBindingOptions struct {
@@ -121,7 +122,7 @@ func (o *CreatePolicyBindingOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "policybinding", actualBinding.Name, "created")
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "policybinding", actualBinding.Name, false, "created")
 		return nil
 	}
 

@@ -91,7 +91,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 	if pushSecret != nil {
 		mountSecretVolume(pod, pushSecret.Name, DockerPushSecretMountPath, "push")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PUSH_DOCKERCFG_PATH", Value: DockerPushSecretMountPath},
+			{Name: dockercfg.PushAuthType, Value: DockerPushSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
 	}
@@ -99,7 +99,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 	if pullSecret != nil {
 		mountSecretVolume(pod, pullSecret.Name, DockerPullSecretMountPath, "pull")
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PULL_DOCKERCFG_PATH", Value: DockerPullSecretMountPath},
+			{Name: dockercfg.PullAuthType, Value: DockerPullSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
 	}
@@ -109,7 +109,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 			continue
 		}
 		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
-		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, "source-image")
+		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, fmt.Sprintf("%s%d", "source-image", i))
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
@@ -208,35 +208,30 @@ func mergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVa
 	// filter out all environment variables except trusted/well known
 	// values, because we do not want random environment variables being
 	// fed into the privileged STI container via the BuildConfig definition.
-	filteredSource := []kapi.EnvVar{}
-	for _, env := range source {
-		trusted := false
-		for _, acceptable := range whitelistEnvVarNames {
-			if env.Name == acceptable {
-				trusted = true
-				break
-			}
-		}
-		if !trusted {
-			continue
-		}
-		filteredSource = append(filteredSource, env)
-	}
-
 	type sourceMapItem struct {
 		index int
 		value string
 	}
-	// Convert source to Map for faster access
-	sourceMap := make(map[string]sourceMapItem)
-	for i, env := range filteredSource {
-		sourceMap[env.Name] = sourceMapItem{i, env.Value}
+
+	index := 0
+	filteredSourceMap := make(map[string]sourceMapItem)
+	filteredSource := []kapi.EnvVar{}
+	for _, env := range source {
+		for _, acceptable := range whitelistEnvVarNames {
+			if env.Name == acceptable {
+				filteredSource = append(filteredSource, env)
+				filteredSourceMap[env.Name] = sourceMapItem{index, env.Value}
+				index++
+				break
+			}
+		}
 	}
+
 	result := *output
 	for i, env := range result {
 		// If the value exists in output, override it and remove it
 		// from the source list
-		if v, found := sourceMap[env.Name]; found {
+		if v, found := filteredSourceMap[env.Name]; found {
 			result[i].Value = v.value
 			filteredSource = append(filteredSource[:v.index], filteredSource[v.index+1:]...)
 		}

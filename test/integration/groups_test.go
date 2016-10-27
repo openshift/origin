@@ -1,10 +1,12 @@
 package integration
 
 import (
+	"io"
 	"reflect"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
@@ -192,6 +194,9 @@ func TestGroupCommands(t *testing.T) {
 		GroupClient: clusterAdminClient.Groups(),
 		Group:       "group1",
 		Users:       []string{"first", "second", "third", "first"},
+		Printer: func(runtime.Object, io.Writer) error {
+			return nil
+		},
 	}
 	if err := newGroup.AddGroup(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

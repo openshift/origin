@@ -85,9 +85,16 @@ func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.Cluste
 func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&hs.ObjectMeta, false, oapi.MinimalNameRequirements, field.NewPath("metadata"))
 
-	_, _, err := net.ParseCIDR(hs.Subnet)
-	if err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
+	if hs.Subnet == "" {
+		// check if annotation exists, then let the Subnet field be empty
+		if _, ok := hs.Annotations[sdnapi.AssignHostSubnetAnnotation]; !ok {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "Field cannot be empty"))
+		}
+	} else {
+		_, _, err := net.ParseCIDR(hs.Subnet)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
+		}
 	}
 	if net.ParseIP(hs.HostIP) == nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("hostIP"), hs.HostIP, "invalid IP address"))

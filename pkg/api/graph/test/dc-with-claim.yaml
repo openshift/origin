@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: configclaim
+  spec:
+   accessModes:
+   - ReadWriteOnce
+   resources:
+    requests:
+      storage: 2Gi
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: broken
+  spec:
+    replicas: 1
+    strategy:
+      rollingParams:
+        maxSurge: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          deploymentconfig: broken
+      spec:
+        containers:
+        - image: library/ruby-hello-world:latest
+          name: ruby-hello-world
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+        volumes:
+        - name: pvname
+          persistentVolumeClaim:
+            claimName: configclaim

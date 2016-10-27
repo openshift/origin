@@ -18,7 +18,7 @@ type ClusterRoleBindingStorage struct {
 	roleBindingStorage rolebindingstorage.VirtualStorage
 }
 
-func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleBindingStorage {
+func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleBindingStorage {
 	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterPolicyBindingRegistry)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
@@ -32,9 +32,12 @@ func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Re
 		rolebindingstorage.VirtualStorage{
 			BindingRegistry: simulatedPolicyBindingRegistry,
 
-			RuleResolver:   ruleResolver,
+			RuleResolver:       ruleResolver,
+			CachedRuleResolver: cachedRuleResolver,
+
 			CreateStrategy: rolebindingregistry.ClusterStrategy,
 			UpdateStrategy: rolebindingregistry.ClusterStrategy,
+			Resource:       authorizationapi.Resource("clusterrolebinding"),
 		},
 	}
 }

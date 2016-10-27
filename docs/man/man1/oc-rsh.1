@@ -16,19 +16,10 @@ oc rsh \- Start a shell session in a pod
 Open a remote shell session to a container
 
 .PP
-This command will attempt to start a shell session in a pod for the specified resource.
-It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
-Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
-It will default to the first container if none is specified, and will attempt to use
-'/bin/sh' as the default shell. You may pass an optional command after the resource name,
-which will be executed instead of a login shell. A TTY will be automatically allocated
-if standard input is interactive \- use \-t and \-T to override. A TERM variable is sent
-to the environment where the shell (or command) will be executed. By default its value
-is the same as the TERM variable from the local environment; if not set, 'xterm' is used.
+This command will attempt to start a shell session in a pod for the specified resource. It works with pods, deployment configs, jobs, daemon sets, and replication controllers. Any of the aforementioned resources (apart from pods) will be resolved to a ready pod. It will default to the first container if none is specified, and will attempt to use '/bin/sh' as the default shell. You may pass any flags supported by this command before the resource name, and an optional command after the resource name, which will be executed instead of a login shell. A TTY will be automatically allocated if standard input is interactive \- use \-t and \-T to override. A TERM variable is sent to the environment where the shell (or command) will be executed. By default its value is the same as the TERM variable from the local environment; if not set, 'xterm' is used.
 
 .PP
-Note, some containers may not include a shell \- use 'oc exec' if you need to run commands
-directly.
+Note, some containers may not include a shell \- use 'oc exec' if you need to run commands directly.
 
 
 .SH OPTIONS
@@ -43,6 +34,10 @@ directly.
 .PP
 \fB\-\-shell\fP="/bin/sh"
     Path to the shell command
+
+.PP
+\fB\-\-timeout\fP=10
+    Request timeout for obtaining a pod from the server; defaults to 10 seconds
 
 .PP
 \fB\-t\fP, \fB\-\-tty\fP=false
@@ -103,6 +98,10 @@ directly.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -120,16 +119,15 @@ directly.
 .RS
 
 .nf
-
   # Open a shell session on the first container in pod 'foo'
   oc rsh foo
-
+  
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
   oc rsh foo cat /etc/resolv.conf
-
+  
   # See the configuration of your internal registry
   oc rsh dc/docker\-registry cat config.yml
-
+  
   # Open a shell session on the container named 'index' inside a pod of your job
   # oc rsh \-c index job/sheduled
 

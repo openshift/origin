@@ -36,18 +36,48 @@ import (
 // TODO: allow override
 func SecureTLSConfig(config *tls.Config) *tls.Config {
 	// Recommendations from https://wiki.mozilla.org/Security/Server_Side_TLS
-	// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-	config.MinVersion = tls.VersionTLS10
+	// Can't use SSLv3 because of POODLE and BEAST
+	// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
+	// Can't use TLSv1.1 because of RC4 cipher usage
+	config.MinVersion = tls.VersionTLS12
 	// In a legacy environment, allow cipher control to be disabled.
 	if len(os.Getenv("OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES")) == 0 {
 		config.PreferServerCipherSuites = true
 		config.CipherSuites = []uint16{
+			// Ciphers below are selected and ordered based on the recommended "Intermediate compatibility" suite
+			// Compare with available ciphers when bumping Go versions
+			//
+			// Available ciphers from last comparison (go 1.6):
+			// TLS_RSA_WITH_RC4_128_SHA - no
+			// TLS_RSA_WITH_3DES_EDE_CBC_SHA
+			// TLS_RSA_WITH_AES_128_CBC_SHA
+			// TLS_RSA_WITH_AES_256_CBC_SHA
+			// TLS_RSA_WITH_AES_128_GCM_SHA256
+			// TLS_RSA_WITH_AES_256_GCM_SHA384
+			// TLS_ECDHE_ECDSA_WITH_RC4_128_SHA - no
+			// TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+			// TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+			// TLS_ECDHE_RSA_WITH_RC4_128_SHA - no
+			// TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+			// TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+			// TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+			// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+			// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+			// TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+			// TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			// the next two are in the intermediate suite, but go1.6 http2 complains when they are included at the recommended index
+			// fixed in https://github.com/golang/go/commit/b5aae1a2845f157a2565b856fb2d7773a0f7af25 in go1.7
+			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,

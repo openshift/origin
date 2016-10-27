@@ -12,25 +12,27 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	IdentityRecommendedName = "identity"
+const IdentityRecommendedName = "identity"
 
-	identityLong = `
-This command can be used to create an identity object.
+var (
+	identityLong = templates.LongDesc(`
+		This command can be used to create an identity object.
 
-Typically, identities are created automatically during login. If automatic 
-creation is disabled (by using the "lookup" mapping method), identities must
-be created manually.
+		Typically, identities are created automatically during login. If automatic
+		creation is disabled (by using the "lookup" mapping method), identities must
+		be created manually.
 
-Corresponding user and useridentitymapping objects must also be created 
-to allow logging in with the created identity.`
+		Corresponding user and useridentitymapping objects must also be created
+		to allow logging in with the created identity.`)
 
-	identityExample = `  # Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
-  %[1]s acme_ldap:adamjones`
+	identityExample = templates.Examples(`
+		# Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
+  	%[1]s acme_ldap:adamjones`)
 )
 
 type CreateIdentityOptions struct {
@@ -38,6 +40,8 @@ type CreateIdentityOptions struct {
 	ProviderUserName string
 
 	IdentityClient client.IdentityInterface
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -60,6 +64,8 @@ func NewCmdCreateIdentity(name, fullName string, f *clientcmd.Factory, out io.Wr
 			cmdutil.CheckErr(o.Run())
 		},
 	}
+
+	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -78,6 +84,8 @@ func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f *clientcmd.Factor
 	default:
 		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {
@@ -123,13 +131,18 @@ func (o *CreateIdentityOptions) Run() error {
 	identity.ProviderName = o.ProviderName
 	identity.ProviderUserName = o.ProviderUserName
 
-	actualIdentity, err := o.IdentityClient.Create(identity)
-	if err != nil {
-		return err
+	actualIdentity := identity
+
+	var err error
+	if !o.DryRun {
+		actualIdentity, err = o.IdentityClient.Create(identity)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, "created")
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, o.DryRun, "created")
 		return nil
 	}
 

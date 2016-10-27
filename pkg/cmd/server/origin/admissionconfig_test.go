@@ -69,8 +69,6 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	overrideapi.PluginName,
 	serviceadmit.ExternalIPPluginName,
 	"SecurityContextConstraint",
-	"BuildDefaults",
-	"BuildOverrides",
 	"SCCExecRestrictions",
 )
 
@@ -85,6 +83,7 @@ var kubeAdmissionPlugins = sets.NewString(
 	"LimitPodHardAntiAffinityTopology",
 	"SCCExecRestrictions",
 	"PersistentVolumeLabel",
+	"OwnerReferencesPermissionEnforcement",
 )
 
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.

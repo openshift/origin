@@ -116,6 +116,10 @@ Run a proxy to the API server
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -135,11 +139,11 @@ Run a proxy to the API server
 .nf
   # Run a proxy to the api server on port 8011, serving static content from ./local/www/
   openshift cli proxy \-\-port=8011 \-\-www=./local/www/
-
+  
   # Run a proxy to the api server on an arbitrary local port.
   # The chosen port for the server will be output to stdout.
   openshift cli proxy \-\-port=0
-
+  
   # Run a proxy to the api server, changing the api prefix to my\-api
   # This makes e.g. the pods api available at localhost:8011/my\-api/api/v1/pods/
   openshift cli proxy \-\-api\-prefix=/my\-api

@@ -2,17 +2,13 @@ package host
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	tarhelper "github.com/openshift/source-to-image/pkg/tar"
 
+	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 )
@@ -76,16 +72,16 @@ func (h *HostHelper) EnsureVolumeShare() error {
 	return nil
 }
 
-func catHostFile(hostFile string) string {
-	file := path.Join("/rootfs", hostFile)
-	return fmt.Sprintf("cat %s", file)
+func (h *HostHelper) defaultBinds() []string {
+	return []string{fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", h.configDir)}
 }
 
-// CopyFromHost copies a set of files from the Docker host to the local file system
-func (h *HostHelper) CopyFromHost(sourceDir, destDir string) error {
+// DownloadDirFromContainer copies a set of files from the Docker host to the local file system
+func (h *HostHelper) DownloadDirFromContainer(sourceDir, destDir string) error {
 	container, err := h.runner().
 		Image(h.image).
-		Bind(fmt.Sprintf("%[1]s:%[1]s:ro", sourceDir)).
+		Bind(h.defaultBinds()...).
+		Entrypoint("/bin/true").
 		Create()
 	if err != nil {
 		return err
@@ -93,136 +89,32 @@ func (h *HostHelper) CopyFromHost(sourceDir, destDir string) error {
 	defer func() {
 		errors.LogError(h.client.RemoveContainer(docker.RemoveContainerOptions{ID: container}))
 	}()
-	localTarFile, err := ioutil.TempFile("", "local-copy-tar-")
+	err = dockerhelper.DownloadDirFromContainer(h.client, container, sourceDir, destDir)
 	if err != nil {
-		return err
+		glog.V(4).Infof("An error occurred downloading the directory: %v", err)
+	} else {
+		glog.V(4).Infof("Successfully downloaded directory.")
 	}
-	localTarClosed := false
-	defer func() {
-		if !localTarClosed {
-			errors.LogError(localTarFile.Close())
-		}
-		errors.LogError(os.Remove(localTarFile.Name()))
-	}()
-	glog.V(4).Infof("Downloading from host path %s to local tar file: %s", sourceDir, localTarFile.Name())
-	err = h.client.DownloadFromContainer(container, docker.DownloadFromContainerOptions{
-		Path:         sourceDir,
-		OutputStream: localTarFile,
-	})
-	if err != nil {
-		return err
-	}
-	if err = localTarFile.Close(); err != nil {
-		return err
-	}
-	localTarClosed = true
-	inputTar, err := os.Open(localTarFile.Name())
-	if err != nil {
-		return err
-	}
-	defer func() {
-		errors.LogError(inputTar.Close())
-	}()
-	tarHelper := tarhelper.New()
-	tarHelper.SetExclusionPattern(nil)
-	glog.V(4).Infof("Extracting temporary tar %s to directory %s", inputTar.Name(), destDir)
-	var tarLog io.Writer
-	if glog.V(5) {
-		tarLog = os.Stderr
-	}
-	return tarHelper.ExtractTarStreamWithLogging(destDir, inputTar, tarLog)
+	return err
 }
 
-// makeTempCopy creates a temporary directory and places a copy of the source file
-// in it. It returns the directory where the temporary copy was made.
-func makeTempCopy(file string) (string, error) {
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-	destPath := filepath.Join(tempDir, filepath.Base(file))
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		errors.LogError(destFile.Close())
-	}()
-	sourceFile, err := os.Open(file)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		errors.LogError(sourceFile.Close())
-	}()
-	_, err = io.Copy(destFile, sourceFile)
-	return tempDir, err
-}
-
-// CopyMasterConfigToHost copies a local file to the Docker host
-func (h *HostHelper) CopyMasterConfigToHost(sourceFile, destDir string) error {
-	localDir, err := makeTempCopy(sourceFile)
-	if err != nil {
-		return err
-	}
-	tarHelper := tarhelper.New()
-	tarHelper.SetExclusionPattern(nil)
-	var tarLog io.Writer
-	if glog.V(5) {
-		tarLog = os.Stderr
-	}
-	localTarFile, err := ioutil.TempFile("", "master-config")
-	if err != nil {
-		return err
-	}
-	localTarClosed := false
-	defer func() {
-		if !localTarClosed {
-			errors.LogError(localTarFile.Close())
-		}
-	}()
-	glog.V(4).Infof("Creating temporary tar %s to upload to %s", localTarFile.Name(), destDir)
-	err = tarHelper.CreateTarStreamWithLogging(localDir, false, localTarFile, tarLog)
-	if err != nil {
-		return err
-	}
-	err = localTarFile.Close()
-	if err != nil {
-		return err
-	}
-	localTarClosed = true
-	localTarInputClosed := false
-	localTarInput, err := os.Open(localTarFile.Name())
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if !localTarInputClosed {
-			localTarInput.Close()
-		}
-	}()
-	bind := fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", destDir)
+// UploadFileToContainer copies a local file to the Docker host
+func (h *HostHelper) UploadFileToContainer(src, dst string) error {
 	container, err := h.runner().
 		Image(h.image).
-		Bind(bind).Create()
-	_ = container
+		Bind(h.defaultBinds()...).
+		Entrypoint("/bin/true").
+		Create()
 	if err != nil {
 		return err
 	}
 	defer func() {
 		errors.LogError(h.client.RemoveContainer(docker.RemoveContainerOptions{ID: container}))
 	}()
-
-	glog.V(4).Infof("Uploading tar file %s to remote dir: %s", localTarFile.Name(), destDir)
-	err = h.client.UploadToContainer(container, docker.UploadToContainerOptions{
-		InputStream: localTarInput,
-		Path:        "/var/lib/origin/openshift.local.config/master",
-	})
+	err = dockerhelper.UploadFileToContainer(h.client, container, src, dst)
 	if err != nil {
 		glog.V(4).Infof("An error occurred uploading the file: %v", err)
 	} else {
-		// If the upload succeeded the local input stream will be closed automatically
-		localTarInputClosed = true
 		glog.V(4).Infof("Successfully uploaded file.")
 	}
 	return err

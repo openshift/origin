@@ -7,10 +7,14 @@ package v1
 
 var map_BuildDefaultsConfig = map[string]string{
 	"":              "BuildDefaultsConfig controls the default information for Builds",
-	"gitHTTPProxy":  "GitHTTPProxy is the location of the HTTPProxy for Git source",
-	"gitHTTPSProxy": "GitHTTPSProxy is the location of the HTTPSProxy for Git source",
-	"env":           "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
-	"sourceStrategyDefaults": "SourceStrategyDefaults are default values that apply to builds using the source strategy.",
+	"gitHTTPProxy":  "gitHTTPProxy is the location of the HTTPProxy for Git source",
+	"gitHTTPSProxy": "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
+	"gitNoProxy":    "gitNoProxy is the list of domains for which the proxy should not be used",
+	"env":           "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
+	"sourceStrategyDefaults": "sourceStrategyDefaults are default values that apply to builds using the source strategy.",
+	"imageLabels":            "imageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
+	"nodeSelector":           "nodeSelector is a selector which must be true for the build pod to fit on a node",
+	"annotations":            "annotations are annotations that will be added to the build pod",
 }
 
 func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
@@ -19,7 +23,7 @@ func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
 
 var map_SourceStrategyDefaultsConfig = map[string]string{
 	"":            "SourceStrategyDefaultsConfig contains values that apply to builds using the source strategy.",
-	"incremental": "Incremental indicates if s2i build strategies should perform an incremental build or not",
+	"incremental": "incremental indicates if s2i build strategies should perform an incremental build or not",
 }
 
 func (SourceStrategyDefaultsConfig) SwaggerDoc() map[string]string {

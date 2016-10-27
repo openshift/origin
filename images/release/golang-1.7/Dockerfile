@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-ENV VERSION=1.7 \
+ENV VERSION=1.7.1 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
@@ -15,7 +15,7 @@ ENV VERSION=1.7 \
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar" && \
+    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \

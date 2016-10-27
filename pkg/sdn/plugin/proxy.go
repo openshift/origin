@@ -9,15 +9,12 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/plugin/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 type proxyFirewallItem struct {
@@ -25,8 +22,10 @@ type proxyFirewallItem struct {
 	net    *net.IPNet
 }
 
-type ovsProxyPlugin struct {
-	registry             *Registry
+type OsdnProxy struct {
+	kClient              *kclient.Client
+	osClient             *osclient.Client
+	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
 	lock         sync.Mutex
@@ -35,31 +34,33 @@ type ovsProxyPlugin struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (api.FilteringEndpointsConfigHandler, error) {
-	if !IsOpenShiftMultitenantNetworkPlugin(pluginName) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (*OsdnProxy, error) {
+	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
-	return &ovsProxyPlugin{
-		registry: newRegistry(osClient, kClient),
+	return &OsdnProxy{
+		kClient:  kClient,
+		osClient: osClient,
 		firewall: make(map[string][]proxyFirewallItem),
 	}, nil
 }
 
-func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) error {
+func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
+	var err error
+	proxy.networkInfo, err = getNetworkInfo(proxy.osClient)
+	if err != nil {
+		return fmt.Errorf("could not get network info: %s", err)
+	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.registry.GetEgressNetworkPolicies()
+	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		if kapierrs.IsForbidden(err) {
-			// controller.go will log an error about this
-			return nil
-		}
-		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
+		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
 	}
-	for _, policy := range policies {
+	for _, policy := range policies.Items {
 		proxy.updateNetworkPolicy(policy)
 	}
 
@@ -67,17 +68,10 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 	return nil
 }
 
-func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
-	eventQueue := proxy.registry.RunEventQueue(EgressNetworkPolicies)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for EgressNetworkPolicy: %v", err))
-			return
-		}
-		policy := obj.(*osapi.EgressNetworkPolicy)
-		if eventType == watch.Deleted {
+func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
+	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
+		policy := delta.Object.(*osapi.EgressNetworkPolicy)
+		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil
 		}
 
@@ -89,10 +83,11 @@ func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
 				proxy.updateEndpoints()
 			}
 		}()
-	}
+		return nil
+	})
 }
 
-func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {
+func (proxy *OsdnProxy) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {
 	firewall := make([]proxyFirewallItem, len(policy.Spec.Egress))
 	for i, rule := range policy.Spec.Egress {
 		_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
@@ -111,7 +106,7 @@ func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolic
 	}
 }
 
-func (proxy *ovsProxyPlugin) firewallBlocksIP(namespace string, ip net.IP) bool {
+func (proxy *OsdnProxy) firewallBlocksIP(namespace string, ip net.IP) bool {
 	for _, item := range proxy.firewall[namespace] {
 		if item.net.Contains(ip) {
 			return item.policy == osapi.EgressNetworkPolicyRuleDeny
@@ -120,22 +115,16 @@ func (proxy *ovsProxyPlugin) firewallBlocksIP(namespace string, ip net.IP) bool 
 	return false
 }
 
-func (proxy *ovsProxyPlugin) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 	proxy.allEndpoints = allEndpoints
 	proxy.updateEndpoints()
 }
 
-func (proxy *ovsProxyPlugin) updateEndpoints() {
+func (proxy *OsdnProxy) updateEndpoints() {
 	if len(proxy.firewall) == 0 {
 		proxy.baseEndpointsHandler.OnEndpointsUpdate(proxy.allEndpoints)
-		return
-	}
-
-	ni, err := proxy.registry.GetNetworkInfo()
-	if err != nil {
-		glog.Warningf("Error fetching network information: %v", err)
 		return
 	}
 
@@ -147,7 +136,7 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if !ni.ClusterNetwork.Contains(IP) && !ni.ServiceNetwork.Contains(IP) {
+				if !proxy.networkInfo.ClusterNetwork.Contains(IP) && !proxy.networkInfo.ServiceNetwork.Contains(IP) {
 					if proxy.firewallBlocksIP(ns, IP) {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop
