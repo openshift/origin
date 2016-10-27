@@ -322,8 +322,8 @@ var (
 
 	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
 	KubeAdmissionPlugins = []string{
-		"RunOnceDuration",
 		lifecycle.PluginName,
+		"RunOnceDuration",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
@@ -350,6 +350,7 @@ var (
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
 	CombinedAdmissionControlPlugins = []string{
+		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
@@ -357,7 +358,6 @@ var (
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"RunOnceDuration",
-		lifecycle.PluginName,
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
