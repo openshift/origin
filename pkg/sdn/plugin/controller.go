@@ -308,14 +308,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		return false, err
 	}
 
-	// Clean up docker0 since docker won't
-	itx = ipcmd.NewTransaction(exec, "docker0")
-	itx.SetLink("down")
-	itx.IgnoreError()
-	itx.DeleteLink()
-	itx.IgnoreError()
-	_ = itx.EndTransaction()
-
 	sysctl := sysctl.New()
 
 	// Enable IP forwarding for ipv4 packets
