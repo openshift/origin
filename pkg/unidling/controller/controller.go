@@ -12,6 +12,8 @@ import (
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
@@ -326,7 +329,8 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 
 		scale.Spec.Replicas = scalableRef.Replicas
 
-		if err = scaleAnnotater.UpdateObjectScale(info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
+		updater := unidlingutil.NewScaleUpdater(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
+		if err = scaleAnnotater.UpdateObjectScale(updater, info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
 			if errors.IsNotFound(err) {
 				utilruntime.HandleError(fmt.Errorf("%s %q does not exist, removing from list of scalables while unidling service %s/%s: %v", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name, err))
 				delete(targetScalablesSet, scalableRef)

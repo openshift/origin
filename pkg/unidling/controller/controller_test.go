@@ -18,6 +18,9 @@ import (
 	ktestingcore "k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
+
+	// install the APIs we need for the codecs to run correctly in order to build patches
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type fakeResults struct {
@@ -129,6 +132,40 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		}
 
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), obj.Name)
+	})
+
+	fakeDeployClient.PrependReactor("patch", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
+		patchAction := action.(ktestingcore.PatchActionImpl)
+		var patch deployapi.DeploymentConfig
+		json.Unmarshal(patchAction.GetPatch(), &patch)
+
+		for _, scale := range scales {
+			if scale.Kind == "DeploymentConfig" && patchAction.GetName() == scale.Name {
+				newScale := scale
+				newScale.Spec.Replicas = patch.Spec.Replicas
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "DeploymentConfig"}] = newScale
+				return true, &deployapi.DeploymentConfig{}, nil
+			}
+		}
+
+		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), patchAction.GetName())
+	})
+
+	fakeClient.PrependReactor("patch", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
+		patchAction := action.(ktestingcore.PatchActionImpl)
+		var patch kapi.ReplicationController
+		json.Unmarshal(patchAction.GetPatch(), &patch)
+
+		for _, scale := range scales {
+			if scale.Kind == "ReplicationController" && patchAction.GetName() == scale.Name {
+				newScale := scale
+				newScale.Spec.Replicas = patch.Spec.Replicas
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "ReplicationController"}] = newScale
+				return true, &kapi.ReplicationController{}, nil
+			}
+		}
+
+		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), patchAction.GetName())
 	})
 
 	fakeClient.AddReactor("*", "endpoints", func(action ktestingcore.Action) (bool, runtime.Object, error) {
