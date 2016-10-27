@@ -73,7 +73,7 @@ func TestAdmissionExists(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, nil, kapi.Kind("Build").WithVersion("version"), "namespace", "name", kapi.Resource("builds").WithVersion("version"), "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, nil, kapi.Kind("Build").WithVersion("v1"), "namespace", "name", kapi.Resource("builds").WithVersion("v1"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -106,7 +106,7 @@ func TestSAR(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		err := handler.Admit(admission.NewAttributesRecord(nil, nil, kapi.Kind(v.kind).WithVersion("version"), "foo", "name", kapi.Resource(v.resource).WithVersion("version"), "", "CREATE", nil))
+		err := handler.Admit(admission.NewAttributesRecord(nil, nil, kapi.Kind(v.kind).WithVersion("v1"), "foo", "name", kapi.Resource(v.resource).WithVersion("v1"), "", "CREATE", nil))
 		if err != nil {
 			t.Errorf("Unexpected error for %s returned from admission handler: %v", k, err)
 		}
