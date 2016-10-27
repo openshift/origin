@@ -58,7 +58,7 @@ var (
 		initial templates, and a default project.
 
 		This command will attempt to use an existing connection to a Docker daemon. Before running
-		the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
+		the command, ensure that you can execure docker commands successfully (i.e. 'docker ps').
 
 		Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
 		driver when the --create-machine argument is specified. The machine will be named 'openshift'

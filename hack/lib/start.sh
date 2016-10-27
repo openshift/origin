@@ -216,8 +216,8 @@ readonly -f os::start::internal::patch_master_config
 #  - KUBELET_HOST
 #  - KUBELET_PORT
 # Arguments:
-#  1 - API server version (ie. "v1.2.0")
-#  2 - Controllers version (ie. "v1.2.0")
+#  1 - API server version (i.e. "v1.2.0")
+#  2 - Controllers version (i.e. "v1.2.0")
 #  3 - Skip node start ("1" to skip node start)
 # Returns:
 #  - export OS_PID
