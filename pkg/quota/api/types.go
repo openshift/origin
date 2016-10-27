@@ -159,7 +159,7 @@ func (o *orderedMap) Remove(key string) {
 // OrderedKeys returns back the ordered keys.  This can be used to build a stable serialization
 func (o *orderedMap) OrderedKeys() *list.List {
 	if o.orderedKeys == nil {
-		o.orderedKeys = list.New()
+		return list.New()
 	}
 	return o.orderedKeys
 }
