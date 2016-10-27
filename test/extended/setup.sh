@@ -96,7 +96,7 @@ function os::test::extended::setup () {
 			CONFIG_VERSION="${CONTROLLER_VERSION}"
 		fi
 		os::start::configure_server "${CONFIG_VERSION}"
-		#turn on audit logging for extended tests ... mimic what is done in util.sh configure_os_server, but don't
+		#turn on audit logging for extended tests ... mimic what is done in os::start::configure_server, but don't
 		# put change there - only want this for extended tests
 		os::log::info "Turn on audit logging"
 		cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"

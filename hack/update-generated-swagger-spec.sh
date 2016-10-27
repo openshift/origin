@@ -29,7 +29,7 @@ export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 os::util::environment::setup_all_server_vars "generate-swagger-spec/"
 reset_tmp_dir
-configure_os_server
+os::start::configure_server
 
 
 SWAGGER_SPEC_REL_DIR="${1:-}"
@@ -37,7 +37,7 @@ SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
 mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
 
 # Start openshift
-start_os_master
+os::start::master
 
 os::log::info "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 

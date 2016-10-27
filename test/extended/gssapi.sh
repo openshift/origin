@@ -72,7 +72,7 @@ function cleanup() {
 }
 trap "cleanup" EXIT
 
-configure_os_server
+os::start::configure_server
 
 # set up env vars
 cp -R test/extended/testdata/gssapi "${BASETMPDIR}"
@@ -85,7 +85,7 @@ backend='https://openshift.default.svc.cluster.local:443'
 oauth_patch="$(sed "s/HOST_NAME/${host}/" "${test_data_location}/config/oauth_config.json")"
 cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml"
 openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml" --patch="${oauth_patch}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-start_os_server
+os::start::server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
