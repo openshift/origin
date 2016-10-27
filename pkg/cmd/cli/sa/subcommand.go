@@ -12,12 +12,12 @@ import (
 
 const ServiceAccountsRecommendedName = "serviceaccounts"
 
-var serviceAccountsLong = templates.LongDesc(`Manage service accounts in your project.
+var serviceAccountsLong = templates.LongDesc(`Manage service accounts in your project
 
 Service accounts allow system components to access the API.`)
 
 const (
-	serviceAccountsShort = `Manage service accounts in your project.`
+	serviceAccountsShort = `Manage service accounts in your project`
 )
 
 func NewCmdServiceAccounts(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
