@@ -2,6 +2,7 @@ package api
 
 import (
 	"container/list"
+	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -113,6 +114,42 @@ func (o *ResourceQuotasStatusByNamespace) Remove(key string) {
 
 func (o *ResourceQuotasStatusByNamespace) OrderedKeys() *list.List {
 	return o.orderedMap.OrderedKeys()
+}
+
+// DeepCopy implements a custom copy to correctly handle unexported fields
+// Must match "func (t T) DeepCopy() T" for the deep copy generator to use it
+func (o ResourceQuotasStatusByNamespace) DeepCopy() ResourceQuotasStatusByNamespace {
+	out := ResourceQuotasStatusByNamespace{}
+	for e := o.OrderedKeys().Front(); e != nil; e = e.Next() {
+		namespace := e.Value.(string)
+		instatus, _ := o.Get(namespace)
+		if outstatus, err := kapi.Scheme.DeepCopy(instatus); err != nil {
+			panic(err) // should never happen
+		} else {
+			out.Insert(namespace, outstatus.(kapi.ResourceQuotaStatus))
+		}
+	}
+	return out
+}
+
+func init() {
+	// Tell the reflection package how to compare our unexported type
+	if err := kapi.Semantic.AddFuncs(
+		func(o1, o2 ResourceQuotasStatusByNamespace) bool {
+			return reflect.DeepEqual(o1.orderedMap, o2.orderedMap)
+		},
+		func(o1, o2 *ResourceQuotasStatusByNamespace) bool {
+			if o1 == nil && o2 == nil {
+				return true
+			}
+			if (o1 == nil) != (o2 == nil) {
+				return false
+			}
+			return reflect.DeepEqual(o1.orderedMap, o2.orderedMap)
+		},
+	); err != nil {
+		panic(err)
+	}
 }
 
 // orderedMap is a very simple ordering a map tracking insertion order.  It allows fast and stable serializations
