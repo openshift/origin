@@ -70,37 +70,6 @@ function wait_for_command() {
 }
 readonly -f wait_for_command
 
-# wait_for_url_timed attempts to access a url in order to
-# determine if it is available to service requests.
-#
-# $1 - The URL to check
-# $2 - Optional prefix to use when echoing a successful result
-# $3 - Optional maximum time to wait before giving up (Default: 10s)
-function wait_for_url_timed() {
-	STARTTIME=$(date +%s)
-	url=$1
-	prefix=${2:-}
-	max_wait=${3:-10*TIME_SEC}
-	wait=0.2
-	expire=$(($(time_now) + $max_wait))
-	set +e
-	while [[ $(time_now) -lt $expire ]]; do
-		out=$(curl --max-time 2 -fs $url 2>/dev/null)
-		if [ $? -eq 0 ]; then
-			set -e
-			echo ${prefix}${out}
-			ENDTIME=$(date +%s)
-			echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
-			return 0
-		fi
-		sleep $wait
-	done
-	echo "ERROR: gave up waiting for $url"
-	set -e
-	return 1
-}
-readonly -f wait_for_url_timed
-
 # wait_for_file returns 0 if a file exists, 1 if it does not exist
 #
 # $1 - The file to check for existence

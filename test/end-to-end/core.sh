@@ -28,10 +28,10 @@ function wait_for_app() {
   FRONTEND_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.clusterIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
-  wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
+  os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DB_IP}:5434'" "$((3*TIME_MIN))"
 
   echo "[INFO] Waiting for app to start..."
-  wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
+  os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${FRONTEND_IP}:5432'" "$((2*TIME_MIN))"
 
   echo "[INFO] Testing app"
   os::cmd::try_until_text "curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337" "Key created"
@@ -100,7 +100,7 @@ DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{
 os::cmd::expect_success_and_text "dig @${API_HOST} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/" "[INFO] Docker registry says: " $((2*TIME_MIN))
+os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_REGISTRY}/'" "$((2*TIME_MIN))"
 # ensure original healthz route works as well
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
@@ -426,7 +426,7 @@ os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
 # Port forwarding
 echo "[INFO] Validating port-forward"
 os::cmd::expect_success "oc port-forward -p ${frontend_pod} 10080:8080  &> '${LOG_DIR}/port-forward.log' &"
-wait_for_url_timed "http://localhost:10080" "[INFO] Frontend says: " $((10*TIME_SEC))
+os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://localhost:10080'" "$((10*TIME_SEC))"
 
 # Rsync
 echo "[INFO] Validating rsync"
@@ -456,7 +456,7 @@ os::cmd::try_until_text "oc get endpoints router --output-version=v1 --template=
 echo "[INFO] Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
-wait_for_url_timed "${healthz_uri}" "[INFO] Router health check says: " $((5*TIME_MIN))
+os::cmd::try_until_success "curl --max-time 2 --fail --silent '${healthz_uri}'" "$((5*TIME_MIN))"
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"
