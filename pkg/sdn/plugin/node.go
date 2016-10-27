@@ -207,6 +207,9 @@ func (node *OsdnNode) Start() error {
 	if err != nil {
 		return err
 	}
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+		return err
+	}
 
 	if networkChanged {
 		var pods []kapi.Pod
@@ -221,10 +224,6 @@ func (node *OsdnNode) Start() error {
 				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}
 		}
-	}
-
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
-		return err
 	}
 
 	node.markPodNetworkReady()
