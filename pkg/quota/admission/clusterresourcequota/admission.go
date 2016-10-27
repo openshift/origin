@@ -20,6 +20,7 @@ import (
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/controller/shared"
+	// quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
@@ -58,7 +59,7 @@ var _ oadmission.Validator = &clusterQuotaAdmission{}
 
 const (
 	timeToWaitForCacheSync = 10 * time.Second
-	numEvaluatorThreads    = 10
+	numEvaluatorThreads    = 1
 )
 
 // NewClusterResourceQuota configures an admission controller that can enforce clusterQuota constraints
@@ -66,7 +67,7 @@ const (
 // are persisted by the server this admission controller is intercepting
 func NewClusterResourceQuota() (admission.Interface, error) {
 	return &clusterQuotaAdmission{
-		Handler:     admission.NewHandler(admission.Create, admission.Update),
+		Handler:     admission.NewHandler(admission.Create),
 		lockFactory: NewDefaultLockFactory(),
 	}, nil
 }
@@ -168,3 +169,14 @@ type ByName []kapi.ResourceQuota
 func (v ByName) Len() int           { return len(v) }
 func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
 func (v ByName) Less(i, j int) bool { return v[i].Name < v[j].Name }
+
+// func checkTotals(clusterquota *quotaapi.ClusterResourceQuota) error {
+// 	namespaceTotal := kapi.ResourceList{}
+// 	for e := clusterquota.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
+// 		namespaceTotal = utilquota.Add(namespaceTotal, used.Used)
+// 		fldPath := field.NewPath("status", "namespaces").Key(namespace)
+// 	}
+// 	if !kapi.Semantic.DeepEqual(namespaceTotal, clusterquota.Status.Total.Used) {
+// 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "total"), clusterquota.Status, "must equal the sum of the namespace usage"))
+// 	}
+// }

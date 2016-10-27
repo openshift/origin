@@ -162,16 +162,3 @@ func DeepCopy_api_ClusterResourceQuotaStatus(in interface{}, out interface{}, c 
 		return nil
 	}
 }
-
-func DeepCopy_api_ResourceQuotasStatusByNamespace(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ResourceQuotasStatusByNamespace)
-		out := out.(*ResourceQuotasStatusByNamespace)
-		if newVal, err := c.DeepCopy(&in.orderedMap); err != nil {
-			return err
-		} else {
-			out.orderedMap = *newVal.(*orderedMap)
-		}
-		return nil
-	}
-}

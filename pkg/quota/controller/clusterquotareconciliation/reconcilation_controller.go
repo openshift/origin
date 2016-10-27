@@ -280,19 +280,22 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		}
 
 		// subtract old usage, add new usage
+		fmt.Printf("#### controller: \nminus %v\noriginal %v\nreplace %v\n", namespaceTotals.Used, quota.Status.Total.Used, recalculatedStatus.Used)
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
+		fmt.Printf("#### controller: \nresult %v\n", quota.Status.Total.Used)
 		quota.Status.Namespaces.Insert(namespaceName, recalculatedStatus)
 	}
 
 	quota.Status.Total.Hard = quota.Spec.Quota.Hard
 
 	// if there's no change, no update, return early.  NewAggregate returns nil on empty input
-	if kapi.Semantic.DeepEqual(quota, originalQuota) {
-		return kutilerrors.NewAggregate(reconcilationErrors), retryItems
-	}
+	// if kapi.Semantic.DeepEqual(quota, originalQuota) {
+	// 	return kutilerrors.NewAggregate(reconcilationErrors), retryItems
+	// }
 
 	if _, err := c.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(quota); err != nil {
+		fmt.Printf("#### controller err: \nresult %v\n", err, quota.Status)
 		return kutilerrors.NewAggregate(append(reconcilationErrors, err)), workItems
 	}
 

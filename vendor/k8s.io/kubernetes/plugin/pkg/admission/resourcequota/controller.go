@@ -17,6 +17,7 @@ limitations under the License.
 package resourcequota
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -27,7 +28,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/quota"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -246,7 +249,14 @@ func (e *quotaEvaluator) checkQuotas(quotas []api.ResourceQuota, admissionAttrib
 			continue
 		}
 
+		data := &bytes.Buffer{}
+		encoder := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
+		encoder.Encode(&newQuota, data)
+
 		if err := e.quotaAccessor.UpdateQuotaStatus(&newQuota); err != nil {
+			data := &bytes.Buffer{}
+			encoder := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
+			encoder.Encode(&newQuota, data)
 			updatedFailedQuotas = append(updatedFailedQuotas, newQuota)
 			lastErr = err
 		}
@@ -294,6 +304,10 @@ func (e *quotaEvaluator) checkQuotas(quotas []api.ResourceQuota, admissionAttrib
 	for _, newQuota := range newQuotas {
 		for _, oldQuota := range updatedFailedQuotas {
 			if newQuota.Name == oldQuota.Name {
+				data := &bytes.Buffer{}
+				encoder := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
+				encoder.Encode(&newQuota, data)
+				fmt.Printf("#### chekcing %v\n", string(data.Bytes()))
 				quotasToCheck = append(quotasToCheck, newQuota)
 				break
 			}
@@ -510,6 +524,7 @@ func (e *quotaEvaluator) getWork() (string, []*admissionWaiter, bool) {
 
 	if len(work) != 0 {
 		e.inProgress.Insert(ns)
+		fmt.Printf("#### got %v of work\n", len(work))
 		return ns, work, false
 	}
 
