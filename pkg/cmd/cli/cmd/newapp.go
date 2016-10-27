@@ -77,16 +77,13 @@ var (
 	  # Create a Ruby application based on the provided [image]~[source code] combination
 	  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
-<<<<<<< HEAD
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
   
   # Use the public Docker Hub MySQL image to create an app. On each container, set multiple environment variables present in a file containing key-value pairs.
   %[1]s new-app mysql --env-file=/path/to/env-file
-=======
 	  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
 	  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
->>>>>>> upstream/master
 
 	  # Use a MySQL image in a private registry to create an app and override application artifacts' names
 	  %[1]s %[2]s --docker-image=myregistry.com/mycompany/mysql --name=private

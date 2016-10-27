@@ -208,20 +208,16 @@ If you provide source code, a new build will be automatically triggered. You can
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   openshift cli new\-app . \-\-docker\-image=repo/langimage
-  
   # Create a Ruby application based on the provided [image]\~[source code] combination
   openshift cli new\-app centos/ruby\-22\-centos7\~https://github.com/openshift/ruby\-ex.git
   
-  <<<<<<< HEAD
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   openshift cli new\-app mysql MYSQL\_USER=user MYSQL\_PASSWORD=pass MYSQL\_DATABASE=testdb \-l db=mysql
   
   # Use the public Docker Hub MySQL image to create an app. On each container, set multiple environment variables present in a file containing key\-value pairs.
   openshift cli new\-app mysql \-\-env\-file=/path/to/env\-file
-  =======
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   openshift cli new\-app mysql MYSQL\_USER=user MYSQL\_PASSWORD=pass MYSQL\_DATABASE=testdb \-l db=mysql
-  >>>>>>> upstream/master
   
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   openshift cli new\-app \-\-docker\-image=myregistry.com/mycompany/mysql \-\-name=private
