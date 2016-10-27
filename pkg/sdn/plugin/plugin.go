@@ -8,6 +8,8 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	utilsets "k8s.io/kubernetes/pkg/util/sets"
+
+	"github.com/golang/glog"
 )
 
 // This kubelet network plugin shim only exists to grab the knetwork.Host
@@ -22,7 +24,13 @@ func (node *OsdnNode) Init(host knetwork.Host, hairpinMode componentconfig.Hairp
 	node.host = host
 	node.kubeletCniPlugin = plugins[0]
 
-	return node.kubeletCniPlugin.Init(host, hairpinMode, nonMasqueradeCIDR, mtu)
+	err := node.kubeletCniPlugin.Init(host, hairpinMode, nonMasqueradeCIDR, mtu)
+
+	// Let initial pod updates happen if they need to
+	glog.V(5).Infof("openshift-sdn CNI plugin initialized")
+	close(node.kubeletInitReady)
+
+	return err
 }
 
 func (node *OsdnNode) Name() string {
