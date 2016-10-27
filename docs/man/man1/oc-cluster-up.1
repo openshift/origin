@@ -16,7 +16,7 @@ oc cluster up \- Start OpenShift on Docker with reasonable defaults
 Starts an OpenShift cluster using Docker containers, provisioning a registry, router, initial templates, and a default project.
 
 .PP
-This command will attempt to use an existing connection to a Docker daemon. Before running the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
+This command will attempt to use an existing connection to a Docker daemon. Before running the command, ensure that you can execure docker commands successfully (i.e. 'docker ps').
 
 .PP
 Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox driver when the \-\-create\-machine argument is specified. The machine will be named 'openshift' by default. To name the machine differently, use the \-\-docker\-machine=NAME argument. If the \-\-docker\-machine=NAME argument is specified, but \-\-create\-machine is not, the command will attempt to find an existing docker machine with that name and start it if it's not running.
