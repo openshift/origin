@@ -17,10 +17,11 @@ func (Route) SwaggerDoc() map[string]string {
 }
 
 var map_RouteIngress = map[string]string{
-	"":           "RouteIngress holds information about the places where a route is exposed.",
-	"host":       "Host is the host string under which the route is exposed; this value is required",
-	"routerName": "Name is a name chosen by the router to identify itself; this value is required",
-	"conditions": "Conditions is the state of the route, may be empty.",
+	"":               "RouteIngress holds information about the places where a route is exposed.",
+	"host":           "Host is the host string under which the route is exposed; this value is required",
+	"routerName":     "Name is a name chosen by the router to identify itself; this value is required",
+	"conditions":     "Conditions is the state of the route, may be empty.",
+	"wildcardPolicy": "Wildcard policy is the wildcard policy that was allowed where this route is exposed.",
 }
 
 func (RouteIngress) SwaggerDoc() map[string]string {

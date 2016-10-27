@@ -27540,6 +27540,10 @@
        "$ref": "v1.RouteIngressCondition"
       },
       "description": "Conditions is the state of the route, may be empty."
+     },
+     "wildcardPolicy": {
+      "type": "string",
+      "description": "Wildcard policy is the wildcard policy that was allowed where this route is exposed."
      }
     }
    },

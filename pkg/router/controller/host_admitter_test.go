@@ -9,9 +9,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/client/testclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -31,32 +33,32 @@ func (r rejectionRecorder) RecordRouteRejection(route *routeapi.Route, reason, m
 	r.rejections[r.rejectionKey(route)] = reason
 }
 
-func wildcardAdmitter(route *routeapi.Route) (error, bool) {
+func wildcardAdmitter(route *routeapi.Route) error {
 	if len(route.Spec.Host) < 1 {
-		return nil, true
+		return nil
 	}
 
 	if strings.HasSuffix(route.Spec.Host, "."+BlockedTestDomain) {
-		return fmt.Errorf("host is not allowed"), false
+		return fmt.Errorf("host is not allowed")
 	}
 
-	return nil, true
+	return nil
 }
 
-func wildcardRejecter(route *routeapi.Route) (error, bool) {
+func wildcardRejecter(route *routeapi.Route) error {
 	if len(route.Spec.Host) < 1 {
-		return nil, true
+		return nil
 	}
 
 	if strings.HasSuffix(route.Spec.Host, "."+BlockedTestDomain) {
-		return fmt.Errorf("host is not allowed"), false
+		return fmt.Errorf("host is not allowed")
 	}
 
 	if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routeapi.WildcardPolicyNone {
-		return fmt.Errorf("wildcards not admitted test"), true
+		return fmt.Errorf("wildcards not admitted test")
 	}
 
-	return nil, true
+	return nil
 }
 
 func TestHostAdmit(t *testing.T) {
@@ -300,7 +302,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			name:      "diffnamespace",
 			namespace: "notowner",
 			host:      "www.namespace.test",
-			reason:    "SubdomainAlreadyClaimed",
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
@@ -308,7 +310,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "notowner",
 			host:      "www.namespace.test",
 			policy:    routeapi.WildcardPolicyNone,
-			reason:    "SubdomainAlreadyClaimed",
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
@@ -316,14 +318,15 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "notowner",
 			host:      "www.namespace.test",
 			policy:    routeapi.WildcardPolicySubdomain,
-			reason:    "SubdomainAlreadyClaimed",
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
 			name:      "diffns2",
 			namespace: "fortytwo",
 			host:      "www.namespace.test",
-			reason:    "SubdomainAlreadyClaimed",
+			policy:    routeapi.WildcardPolicyNone,
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(3 * time.Hour)},
@@ -331,7 +334,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
 			policy:    routeapi.WildcardPolicyNone,
-			reason:    "SubdomainAlreadyClaimed",
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(3 * time.Hour)},
@@ -339,7 +342,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
 			policy:    routeapi.WildcardPolicySubdomain,
-			reason:    "SubdomainAlreadyClaimed",
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			createdAt: unversioned.Time{Time: oldest.Add(4 * time.Hour)},
@@ -388,7 +391,6 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "yap",
 			host:      "vinyl.play",
 			policy:    routeapi.WildcardPolicyNone,
-			reason:    "SubdomainAlreadyClaimed",
 		},
 		{
 			name:      "level2sub",
@@ -478,7 +480,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	bouncedRoutes := []*routeapi.Route{ownerRoute, wildcardRoute}
 	for _, route := range bouncedRoutes {
 		k := recorder.rejectionKey(route)
-		if recorder.rejections[k] != "SubdomainAlreadyClaimed" {
+		if recorder.rejections[k] != "HostAlreadyClaimed" {
 			t.Fatalf("bounced route %s expected a subdomain already claimed error, got %s", k, recorder.rejections[k])
 		}
 	}
@@ -487,7 +489,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	p := &fakePlugin{}
 
-	admitAll := func(route *routeapi.Route) (error, bool) { return nil, true }
+	admitAll := func(route *routeapi.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, recorder)
 
@@ -572,7 +574,7 @@ func makeRoute(ns, name, host string, wildcard bool, creationTimestamp unversion
 func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 	p := &fakePlugin{}
 
-	admitAll := func(route *routeapi.Route) (error, bool) { return nil, true }
+	admitAll := func(route *routeapi.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, recorder)
 
@@ -617,7 +619,7 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 		{Route: makeRoute("ns8", "r1", "baz.domain1.com", true, makeTime(60*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`, `ns7/r2`)},
 		{Route: makeRoute("ns8", "r2", "baz.domain1.com", false, makeTime(61*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`)},
 
-		// namespace with older explicit host wins over specific and wildcard routes in other namespaces
+		// namespace with older explicit host and wildcard wins over specific and wildcard routes in other namespaces
 		{Route: makeRoute("ns9", "r1", "foo.domain2.com", false, makeTime(40*time.Second)), ErrIf: sets.NewString()},
 		{Route: makeRoute("ns10", "r1", "bar.domain2.com", true, makeTime(50*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
 		{Route: makeRoute("ns10", "r2", "bar.domain2.com", false, makeTime(51*time.Second)), ErrIf: sets.NewString()},
@@ -717,5 +719,81 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 
 	if len(errors) > 0 {
 		t.Errorf("Unexpected errors:\n%s", strings.Join(errors.List(), "\n"))
+	}
+}
+
+func TestStatusWildcardPolicyNoOp(t *testing.T) {
+	now := nowFn()
+	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	p := &fakePlugin{}
+	c := testclient.NewSimpleFake()
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, recorder)
+	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		Spec: routeapi.RouteSpec{
+			Host:           "wild.test.local",
+			WildcardPolicy: routeapi.WildcardPolicySubdomain,
+		},
+		Status: routeapi.RouteStatus{
+			Ingress: []routeapi.RouteIngress{
+				{
+					Host:       "wild.test.local",
+					RouterName: "wilder",
+					Conditions: []routeapi.RouteIngressCondition{
+						{
+							Type:               routeapi.RouteAdmitted,
+							Status:             kapi.ConditionTrue,
+							LastTransitionTime: &touched,
+						},
+					},
+					WildcardPolicy: routeapi.WildcardPolicySubdomain,
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(c.Actions()) > 0 {
+		t.Fatalf("unexpected actions: %#v", c.Actions())
+	}
+}
+
+func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
+	now := nowFn()
+	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	p := &fakePlugin{}
+	c := testclient.NewSimpleFake()
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	admitter := NewHostAdmitter(p, wildcardAdmitter, false, recorder)
+	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		Spec: routeapi.RouteSpec{
+			Host:           "wild.test.local",
+			WildcardPolicy: "nono",
+		},
+		Status: routeapi.RouteStatus{
+			Ingress: []routeapi.RouteIngress{
+				{
+					Host:       "wild.test.local",
+					RouterName: "wilder",
+					Conditions: []routeapi.RouteIngressCondition{
+						{
+							Type:               "RouteNotAdmitted",
+							Status:             kapi.ConditionTrue,
+							LastTransitionTime: &touched,
+						},
+					},
+					WildcardPolicy: routeapi.WildcardPolicyNone,
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(c.Actions()) > 0 {
+		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 }

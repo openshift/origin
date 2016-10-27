@@ -84,6 +84,7 @@ func Convert_api_Route_To_v1_Route(in *api.Route, out *Route, s conversion.Scope
 }
 
 func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.RouteIngress, s conversion.Scope) error {
+	SetDefaults_RouteIngress(in)
 	out.Host = in.Host
 	out.RouterName = in.RouterName
 	if in.Conditions != nil {
@@ -97,6 +98,7 @@ func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.
 	} else {
 		out.Conditions = nil
 	}
+	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 
@@ -118,6 +120,7 @@ func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *api.RouteIngress, out *
 	} else {
 		out.Conditions = nil
 	}
+	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 

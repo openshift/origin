@@ -127,6 +127,8 @@ type RouteIngress struct {
 	RouterName string `json:"routerName,omitempty" protobuf:"bytes,2,opt,name=routerName"`
 	// Conditions is the state of the route, may be empty.
 	Conditions []RouteIngressCondition `json:"conditions,omitempty" protobuf:"bytes,3,rep,name=conditions"`
+	// Wildcard policy is the wildcard policy that was allowed where this route is exposed.
+	WildcardPolicy WildcardPolicyType `json:"wildcardPolicy,omitempty" protobuf:"bytes,4,opt,name=wildcardPolicy"`
 }
 
 // RouteIngressConditionType is a valid value for RouteCondition

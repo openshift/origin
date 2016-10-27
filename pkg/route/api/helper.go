@@ -23,17 +23,11 @@ func RouteLessThan(route1, route2 *Route) bool {
 		return true
 	}
 
-	if route1.CreationTimestamp == route2.CreationTimestamp {
-		if route1.UID < route2.UID {
-			return true
-		}
-		if route1.Namespace < route2.Namespace {
-			return true
-		}
-		return route1.Name < route2.Name
+	if route2.CreationTimestamp.Before(route1.CreationTimestamp) {
+		return false
 	}
 
-	return false
+	return route1.UID < route2.UID
 }
 
 // GetDomainForHost returns the domain for the specified host.

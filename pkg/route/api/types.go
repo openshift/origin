@@ -81,6 +81,8 @@ type RouteIngress struct {
 	RouterName string
 	// Conditions is the state of the route, may be empty.
 	Conditions []RouteIngressCondition
+	// Wildcard policy is the wildcard policy that was allowed where this route is exposed.
+	WildcardPolicy WildcardPolicyType
 }
 
 // RouteIngressConditionType is a valid value for RouteCondition

@@ -124,16 +124,23 @@ func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {
 // based on blacklist & whitelist checks and wildcard routes policy setting.
 // Note: The blacklist settings trumps the whitelist ones.
 func (o *RouterSelection) RouteAdmissionFunc() controller.RouteAdmissionFunc {
-	return func(route *routeapi.Route) (error, bool) {
+	return func(route *routeapi.Route) error {
 		if err := o.AdmissionCheck(route); err != nil {
-			return err, false
+			return err
 		}
 
-		if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routeapi.WildcardPolicyNone && !o.AllowWildcardRoutes {
-			return fmt.Errorf("wildcard routes are not allowed"), true
+		switch route.Spec.WildcardPolicy {
+		case routeapi.WildcardPolicyNone:
+			return nil
+
+		case routeapi.WildcardPolicySubdomain:
+			if o.AllowWildcardRoutes {
+				return nil
+			}
+			return fmt.Errorf("wildcard routes are not allowed")
 		}
 
-		return nil, true
+		return fmt.Errorf("unknown wildcard policy %v", route.Spec.WildcardPolicy)
 	}
 }
 

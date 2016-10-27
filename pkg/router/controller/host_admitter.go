@@ -13,7 +13,7 @@ import (
 )
 
 // RouteAdmissionFunc determines whether or not to admit a route.
-type RouteAdmissionFunc func(*routeapi.Route) (error, bool)
+type RouteAdmissionFunc func(*routeapi.Route) error
 
 // RouteMap contains all routes associated with a key
 type RouteMap map[string][]*routeapi.Route
@@ -117,22 +117,10 @@ func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kap
 
 // HandleRoute processes watch events on the Route resource.
 func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	err, allow := p.admitter(route)
-	if !allow {
-		msg := "blocked by admitter"
-		if err != nil {
-			msg = err.Error()
-		}
-
-		glog.Errorf("Route %s not admitted: %s", routeNameKey(route), msg)
-		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", msg)
+	if err := p.admitter(route); err != nil {
+		glog.Errorf("Route %s not admitted: %s", routeNameKey(route), err.Error())
+		p.recordRejection(route, "RouteNotAdmitted", err.Error())
 		return err
-	}
-
-	if err != nil {
-		msg := err.Error()
-		glog.Warningf("Route %s admitted with warnings: %s", routeNameKey(route), msg)
-		p.recorder.RecordRouteRejection(route, "RouteAdmissionWarning", msg)
 	}
 
 	if p.restrictOwnership && len(route.Spec.Host) > 0 {
@@ -140,7 +128,6 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 		case watch.Added, watch.Modified:
 			if err := p.addRoute(route); err != nil {
 				glog.Errorf("Route %s not admitted: %s", routeNameKey(route), err.Error())
-				p.recorder.RecordRouteRejection(route, "SubdomainAlreadyClaimed", err.Error())
 				return err
 			}
 
@@ -165,14 +152,22 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
+// recordRejection records why the route was rejected.
+func (p *HostAdmitter) recordRejection(route *routeapi.Route, reason, message string) {
+	oldPolicy := route.Spec.WildcardPolicy
+	route.Spec.WildcardPolicy = routeapi.WildcardPolicyNone
+	p.recorder.RecordRouteRejection(route, reason, message)
+	route.Spec.WildcardPolicy = oldPolicy
+}
+
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)
 	displacedRoutes, err := p.displacedRoutes(route)
 	if err != nil {
-		err := fmt.Errorf("a route in another namespace holds host %s (%v)", route.Spec.Host, err)
-		p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
-		return err
+		msg := fmt.Sprintf("a route in another namespace holds host %s", route.Spec.Host)
+		p.recordRejection(route, "HostAlreadyClaimed", msg)
+		return fmt.Errorf("%s (%s)", msg, err)
 	}
 
 	// Remove displaced routes
@@ -183,8 +178,12 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 
 		msg := fmt.Sprintf("a route in another namespace holds host %s", displacedRoute.Spec.Host)
-		p.recorder.RecordRouteRejection(displacedRoute, "SubdomainAlreadyClaimed", msg)
+		p.recordRejection(displacedRoute, "HostAlreadyClaimed", msg)
 		p.plugin.HandleRoute(watch.Deleted, displacedRoute)
+	}
+
+	if len(route.Spec.WildcardPolicy) == 0 {
+		route.Spec.WildcardPolicy = routeapi.WildcardPolicyNone
 	}
 
 	// Add the new route
@@ -204,6 +203,13 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 		// ensure the route doesn't exist as a claimed host or blocked wildcard
 		p.claimedHosts.RemoveRoute(route.Spec.Host, route)
 		p.blockedWildcards.RemoveRoute(wildcardKey, route)
+	default:
+		p.claimedHosts.RemoveRoute(route.Spec.Host, route)
+		p.claimedWildcards.RemoveRoute(wildcardKey, route)
+		p.blockedWildcards.RemoveRoute(wildcardKey, route)
+		err := fmt.Errorf("unsupported wildcard policy %s", route.Spec.WildcardPolicy)
+		p.recordRejection(route, "RouteNotAdmitted", err.Error())
+		return err
 	}
 
 	return nil

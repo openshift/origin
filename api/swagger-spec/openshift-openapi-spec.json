@@ -51251,6 +51251,10 @@
      "routerName": {
       "description": "Name is a name chosen by the router to identify itself; this value is required",
       "type": "string"
+     },
+     "wildcardPolicy": {
+      "description": "Wildcard policy is the wildcard policy that was allowed where this route is exposed.",
+      "type": "string"
      }
     }
    },

@@ -177,17 +177,21 @@ func (o *F5RouterOptions) Validate() error {
 // F5RouteAdmitterFunc returns a func that checks if a route is a
 // wildcard route and currently denies it.
 func (o *F5RouterOptions) F5RouteAdmitterFunc() controller.RouteAdmissionFunc {
-	return func(route *routeapi.Route) (error, bool) {
+	return func(route *routeapi.Route) error {
 		if err := o.AdmissionCheck(route); err != nil {
-			return err, false
+			return err
 		}
 
-		if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routeapi.WildcardPolicyNone {
+		switch route.Spec.WildcardPolicy {
+		case routeapi.WildcardPolicyNone:
+			return nil
+
+		case routeapi.WildcardPolicySubdomain:
 			// TODO: F5 wildcard route support.
-			return fmt.Errorf("Wildcard routes are currently not supported by the F5 router"), true
+			return fmt.Errorf("Wildcard routes are currently not supported by the F5 router")
 		}
 
-		return nil, false
+		return fmt.Errorf("unknown wildcard policy %v", route.Spec.WildcardPolicy)
 	}
 }
 
