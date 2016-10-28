@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -20,6 +22,8 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	engineclient "github.com/docker/engine-api/client"
+	enginetypes "github.com/docker/engine-api/types"
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -177,6 +181,22 @@ func (c *AppConfig) ensureDockerSearch() {
 	}
 }
 
+// dockerInfo returns the information about Docker daemon
+// TODO: Remove this when we migrate new-app to use docker-engine client
+func dockerInfo() *enginetypes.Info {
+	client, err := engineclient.NewEnvClient()
+	if err != nil {
+		glog.V(4).Infof("docker-engine: unable to initialize client: %v", err)
+		return nil
+	}
+	info, err := client.Info(context.Background())
+	if err != nil {
+		glog.V(4).Infof("docker-engine: unable to get info %v", err)
+		return nil
+	}
+	return &info
+}
+
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespace string, dockerclient *docker.Client) {
 	c.OSClient = osclient
@@ -203,6 +223,17 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		ClientMapper: c.ClientMapper,
 		Namespace:    OriginNamespace,
 	}
+
+	// Discover the Docker registries in the order the local Docker daemon is
+	// configured with.
+	registries := []string{}
+	if info := dockerInfo(); info != nil {
+		if info.RegistryConfig != nil {
+			for name := range info.RegistryConfig.IndexConfigs {
+				registries = append(registries, name)
+			}
+		}
+	}
 	// the hierarchy of docker searching is:
 	// 1) if we have an openshift client - query docker registries via openshift,
 	// if we're unable to query via openshift, query the docker registries directly(fallback),
@@ -217,6 +248,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 			Client:        osclient.ImageStreams(OriginNamespace),
 			AllowInsecure: c.InsecureRegistry,
 			Fallback:      c.DockerRegistrySearcher(),
+			Registries:    registries,
 		},
 	}
 }

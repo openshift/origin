@@ -181,6 +181,7 @@ type ImageImportSearcher struct {
 	Client        client.ImageStreamInterface
 	AllowInsecure bool
 	Fallback      Searcher
+	Registries    []string
 }
 
 // Search invokes the new ImageStreamImport API to have the server look up Docker images for the user,
@@ -202,7 +203,15 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	result, err := s.Client.Import(isi)
 	if err != nil {
 		if err == client.ErrImageStreamImportUnsupported && s.Fallback != nil {
-			return s.Fallback.Search(precise, terms...)
+			extendedTerms := []string{}
+			for _, registryName := range s.Registries {
+				for _, imageName := range terms {
+					extendedTerms = append(extendedTerms, registryName+"/"+imageName)
+				}
+			}
+			extendedTerms = append(extendedTerms, terms...)
+			glog.V(5).Infof("falling back to the generic search (%q)", precise, strings.Join(extendedTerms, ","))
+			return s.Fallback.Search(precise, extendedTerms...)
 		}
 		return nil, []error{fmt.Errorf("can't lookup images: %v", err)}
 	}
