@@ -307,16 +307,16 @@ update_dockerfile() {
   find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
   do
     if [ "${update_version}" == "TRUE" ] ; then
-      sed -i -e "s/Version=\".*\"/Version=\"${version_version}\"/" ${line}
+      sed -i -e "s/version=\".*\"/version=\"${version_version}\"/" ${line}
       sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
-      sed -i -e "s/Release=\".*\"/Release=\"${release_version}\"/" ${line}
+      sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
     fi
     if [ "${bump_release}" == "TRUE" ] ; then
-      old_release_version=$(grep Release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
+      old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
       let new_release_version=$old_release_version+1
-      sed -i -e "s/Release=\".*\"/Release=\"${new_release_version}\"/" ${line}
+      sed -i -e "s/release=\".*\"/release=\"${new_release_version}\"/" ${line}
     fi
     if [ "${update_rhel}" == "TRUE" ] ; then
       sed -i -e "s/FROM rhel7.*/FROM ${rhel_version}/" ${line}
@@ -495,8 +495,8 @@ show_dockerfile_diffs() {
 
 show_yaml() {
   pushd "${workingdir}/${container}" >/dev/null
-  package_version=`grep Version= Dockerfile | cut -d'"' -f2`
-  package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+  package_version=`grep version= Dockerfile | cut -d'"' -f2`
+  package_release=`grep release= Dockerfile | cut -d'"' -f2`
   if ! [ "${NOTLATEST}" == "TRUE" ] ; then
     YAML_LATEST=",latest"
   fi
@@ -522,8 +522,8 @@ show_yaml() {
 
 add_errata_build() {
   pushd "${workingdir}/${container}" >/dev/null
-  package_version=`grep Version= Dockerfile | cut -d'"' -f2`
-  package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+  package_version=`grep version= Dockerfile | cut -d'"' -f2`
+  package_release=`grep release= Dockerfile | cut -d'"' -f2`
   echo "Adding ${container}-${package_version}-${package_release} to errata ${ERRATA_ID} ${ERRATA_PRODUCT_VERSION} ..."
   ${SCRIPT_HOME}/et_add_image ${ERRATA_ID} ${ERRATA_PRODUCT_VERSION} ${container}-${package_version}-${package_release}
   popd >/dev/null
@@ -546,10 +546,10 @@ start_push_image() {
   pushd "${workingdir}/${container}" >/dev/null
   package_name=`grep Name= Dockerfile | cut -d'"' -f2`
   if ! [ "${update_version}" == "TRUE" ] ; then
-    version_version=`grep Version= Dockerfile | cut -d'"' -f2`
+    version_version=`grep version= Dockerfile | cut -d'"' -f2`
   fi
   if ! [ "${update_release}" == "TRUE" ] ; then
-    release_version=`grep Release= Dockerfile | cut -d'"' -f2`
+    release_version=`grep release= Dockerfile | cut -d'"' -f2`
   fi
   START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
   echo "====================================================" >>  ${workingdir}/logs/push.image.log
