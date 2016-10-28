@@ -121,6 +121,7 @@ readonly -f os::util::environment::update_path_var
 #  - TMPDIR
 #  - LOG_DIR
 #  - ARTIFACT_DIR
+#  - USE_SUDO
 # Arguments:
 #  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
 # Returns:
@@ -148,7 +149,17 @@ function os::util::environment::setup_tmpdir_vars() {
     HOME="${FAKE_HOME_DIR}"
     export HOME
 
-    mkdir -p  "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"
+    # ensure that the directories are clean
+    for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
+        if [[ "${target}" == "${BASETMPDIR}"* ]]; then
+            ${USE_SUDO:+sudo} umount "${target}"
+        fi
+    done
+
+    for directory in "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"; do
+        rm -rf "${directory}"
+        mkdir -p "${directory}"
+    done
 }
 readonly -f os::util::environment::setup_tmpdir_vars
 

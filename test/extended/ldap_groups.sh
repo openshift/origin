@@ -22,14 +22,13 @@ trap "cleanup" EXIT
 echo "[INFO] Starting server"
 
 ensure_iptables_or_die
-os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 os::util::environment::use_sudo
-reset_tmp_dir
+os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 
 os::log::system::start
 
-configure_os_server
-start_os_server
+os::start::configure_server
+os::start::server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

@@ -42,7 +42,7 @@ const (
 )
 
 type PodConfig struct {
-	vnid             string
+	vnid             uint32
 	ingressBandwidth string
 	egressBandwidth  string
 	wantMacvlan      bool
@@ -86,14 +86,14 @@ func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 // Create and return a PodConfig describing which openshift-sdn specific pod attributes
 // to configure
 func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.Pod, error) {
-	config := &PodConfig{}
+	var err error
 
+	config := &PodConfig{}
 	if m.multitenant {
-		vnid, err := m.vnids.GetVNID(req.PodNamespace)
+		config.vnid, err = m.vnids.GetVNID(req.PodNamespace)
 		if err != nil {
 			return nil, nil, err
 		}
-		config.vnid = strconv.FormatUint(uint64(vnid), 10)
 	}
 
 	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
@@ -255,6 +255,10 @@ func getScriptError(output []byte) string {
 	return string(output)
 }
 
+func vnidToString(vnid uint32) string {
+	return strconv.FormatUint(uint64(vnid), 10)
+}
+
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.RunningPod, error) {
 	podConfig, pod, err := m.getPodConfig(req)
@@ -324,11 +328,12 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 	}
 
 	contVethMac := contVeth.Attrs().HardwareAddr.String()
-	out, err := exec.Command(sdnScript, setUpCmd, hostVeth.Attrs().Name, contVethMac, podIP.String(), podConfig.vnid, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
+	vnidStr := vnidToString(podConfig.vnid)
+	out, err := exec.Command(sdnScript, setUpCmd, hostVeth.Attrs().Name, contVethMac, podIP.String(), vnidStr, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
-		return nil, nil, fmt.Errorf("error running network setup script:\nhostVethName %s, contVethMac %s, podIP %s, podConfig %#v\n %s", hostVeth.Attrs().Name, contVethMac, podIP.String(), podConfig, out)
+		return nil, nil, fmt.Errorf("error running network setup script:\nhostVethName %s, contVethMac %s, podIP %s, podConfig %#v\n %s", hostVeth.Attrs().Name, contVethMac, podIP.String(), podConfig, getScriptError(out))
 	} else if err != nil {
 		return nil, nil, err
 	}
@@ -368,7 +373,8 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 		return err
 	}
 
-	out, err := exec.Command(sdnScript, updateCmd, hostVethName, contVethMac, podIP, podConfig.vnid, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
+	vnidStr := vnidToString(podConfig.vnid)
+	out, err := exec.Command(sdnScript, updateCmd, hostVethName, contVethMac, podIP, vnidStr, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {

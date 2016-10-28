@@ -101,9 +101,6 @@ func resetScheduledTags(stream *api.ImageStream) {
 	}
 }
 
-// retryCount is the number of times to retry on a conflict when updating an image stream
-const retryCount = 2
-
 // Next processes the given image stream, looking for streams that have DockerImageRepository
 // set but have not yet been marked as "ready". If transient errors occur, err is returned but
 // the image stream is not modified (so it will be tried again later). If a permanent

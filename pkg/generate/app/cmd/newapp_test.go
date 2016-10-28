@@ -506,3 +506,57 @@ func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
 		t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, expected)
 	}
 }
+
+func TestAllowedNonNumericExposedPorts(t *testing.T) {
+	tests := []struct {
+		strategy             string
+		allowNonNumericPorts bool
+	}{
+		{
+			strategy:             "",
+			allowNonNumericPorts: true,
+		},
+		{
+			strategy:             "source",
+			allowNonNumericPorts: false,
+		},
+	}
+
+	for _, test := range tests {
+		config := &AppConfig{}
+		config.Strategy = test.strategy
+		config.AllowNonNumericExposedPorts = test.allowNonNumericPorts
+
+		repo, err := app.NewSourceRepositoryForDockerfile("FROM centos\nARG PORT=80\nEXPOSE $PORT")
+		if err != nil {
+			t.Errorf("Unexpected error during setup: %v", err)
+			continue
+		}
+		repos := app.SourceRepositories{repo}
+
+		err = optionallyValidateExposedPorts(config, repos)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}
+}
+
+func TestDisallowedNonNumericExposedPorts(t *testing.T) {
+	config := &AppConfig{}
+	config.Strategy = "docker"
+	config.AllowNonNumericExposedPorts = false
+
+	repo, err := app.NewSourceRepositoryForDockerfile("FROM centos\nARG PORT=80\nEXPOSE 8080 $PORT")
+	if err != nil {
+		t.Fatalf("Unexpected error during setup: %v", err)
+	}
+	repos := app.SourceRepositories{repo}
+
+	err = optionallyValidateExposedPorts(config, repos)
+	if err == nil {
+		t.Error("Expected error wasn't returned")
+
+	} else if !strings.Contains(err.Error(), "invalid EXPOSE") || !strings.Contains(err.Error(), "must be numeric") {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}

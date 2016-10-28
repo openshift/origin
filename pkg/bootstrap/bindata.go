@@ -737,7 +737,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "1"
+              "name": "2"
             }
           },
           {
@@ -752,6 +752,20 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "openshift/jenkins-1-centos7:latest"
+            }
+          },
+          {
+            "name": "2",
+            "annotations": {
+              "openshift.io/display-name": "Jenkins 2.X",
+              "description": "Provides a Jenkins v2.x server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
+              "iconClass": "icon-jenkins",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "openshift/jenkins-2-centos7:latest"
             }
           }
         ]
@@ -1360,7 +1374,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "1"
+              "name": "2"
             }
           },
           {
@@ -1375,6 +1389,20 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
+            }
+          },
+          {
+            "name": "2",
+            "annotations": {
+              "openshift.io/display-name": "Jenkins 2.X",
+              "description": "Provides a Jenkins 2.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
+              "iconClass": "icon-jenkins",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:latest"
             }
           }
         ]
@@ -3931,7 +3959,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('nodejs') {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}' showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
+            "jenkinsfile": "node('nodejs') {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
           }
         }
       }

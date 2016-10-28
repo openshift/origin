@@ -83,20 +83,11 @@ const (
 	ReasonMessageInstallScriptsFailed api.StepFailureMessage = "Failed to install specified scripts"
 
 	// ReasonGenericS2IBuildFailed is the reason associated with a broad range of
-	// failure.
+	// failures.
 	ReasonGenericS2IBuildFailed api.StepFailureReason = "GenericS2IBuildFailed"
-	// ReasonMessageGenericS2iBuildFailed is the message with a broad range of
-	// failure.
+	// ReasonMessageGenericS2iBuildFailed is the message associated with a broad
+	// range of failures.
 	ReasonMessageGenericS2iBuildFailed api.StepFailureMessage = "Generic S2I Build failure - check S2I logs for details"
-
-	// ReasonUnmetS2IDependencies is the failure reason associated with a
-	// builder image that doesn't contain required dependencies for building the
-	// app.
-	ReasonUnmetS2IDependencies api.StepFailureReason = "UnmetBuilderImageDependencies"
-	// ReasonMessageUnmetS2IDependencies is the message associated with a
-	// builder image that doesn't contain required dependencies for building the
-	// app.
-	ReasonMessageUnmetS2IDependencies api.StepFailureMessage = "Builder image is missing mandatory dependencies (sh and tar)"
 
 	// ReasonTarSourceFailed is the failure reason associated with a failure to
 	// tar the current source.

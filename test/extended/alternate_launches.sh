@@ -6,7 +6,6 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 os::util::environment::setup_all_server_vars "test-extended-alternate-launches/"
-reset_tmp_dir
 
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
@@ -25,7 +24,7 @@ trap "cleanup" EXIT
 
 echo "[INFO] Starting server as distinct processes"
 ensure_iptables_or_die
-configure_os_server
+os::start::configure_server
 
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"

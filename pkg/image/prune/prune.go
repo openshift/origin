@@ -244,10 +244,16 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 // Also automatically remove any image layer that is no longer referenced by any
 // images.
 func NewPruner(options PrunerOptions) Pruner {
-	g := graph.New()
-
-	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%v, pruneOverSizeLimit=%v",
-		options.KeepYoungerThan, options.KeepTagRevisions, options.PruneOverSizeLimit)
+	keepTagRevisions := "<nil>"
+	if options.KeepTagRevisions != nil {
+		keepTagRevisions = fmt.Sprintf("%d", *options.KeepTagRevisions)
+	}
+	pruneOverSizeLimit := "<nil>"
+	if options.PruneOverSizeLimit != nil {
+		pruneOverSizeLimit = fmt.Sprintf("%v", *options.PruneOverSizeLimit)
+	}
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s",
+		options.KeepYoungerThan, keepTagRevisions, pruneOverSizeLimit)
 
 	algorithm := pruneAlgorithm{}
 	if options.KeepYoungerThan != nil {
@@ -261,6 +267,7 @@ func NewPruner(options PrunerOptions) Pruner {
 	}
 	algorithm.namespace = options.Namespace
 
+	g := graph.New()
 	addImagesToGraph(g, options.Images, algorithm)
 	addImageStreamsToGraph(g, options.Streams, options.LimitRanges, algorithm)
 	addPodsToGraph(g, options.Pods, algorithm)

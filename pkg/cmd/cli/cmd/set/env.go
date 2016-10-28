@@ -12,9 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fieldpath"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -101,8 +99,8 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file to use to edit the resource.")
 	cmd.Flags().Bool("overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
-	cmd.Flags().StringP("output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml.")
-	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
+
+	kcmdutil.AddPrinterFlags(cmd)
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -476,37 +474,8 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 		return nil
 	}
 
-	if len(outputFormat) != 0 {
-		outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-		if err != nil {
-			return err
-		}
-		objects, err := resource.AsVersionedObjects(infos, outputVersion, kapi.Codecs.LegacyCodec(outputVersion))
-		if err != nil {
-			return err
-		}
-		if len(objects) != len(infos) {
-			return fmt.Errorf("could not convert all objects to API version %q", outputVersion)
-		}
-		p, _, err := kubectl.GetPrinter(outputFormat, "", false)
-		if err != nil {
-			return err
-		}
-
-		resourceList := &kapi.List{
-			TypeMeta: unversioned.TypeMeta{
-				Kind:       "List",
-				APIVersion: outputVersion.Version,
-			},
-			ListMeta: unversioned.ListMeta{},
-			Items:    objects,
-		}
-
-		if err := p.PrintObj(resourceList, out); err != nil {
-			return err
-		}
-
-		return nil
+	if len(outputFormat) > 0 {
+		return f.PrintResourceInfos(cmd, infos, out)
 	}
 
 	objects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))

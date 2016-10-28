@@ -41,6 +41,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
+		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -302,6 +303,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("hello bar"))
 		})
 	})
+
 	g.Describe("with multiple image change triggers [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
@@ -584,7 +586,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
-			o.Expect(out).To(o.ContainSubstring("no such file or directory"))
+			o.Expect(out).To(o.ContainSubstring("pre hook logs"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
 		})
 	})
@@ -780,6 +782,46 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())
 			}
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Describe("ignores deployer and lets the config with a NewReplicationControllerCreated reason [Conformance]", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "database", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should let the deployment config with a NewReplicationControllerCreated reason", func() {
+			_, name, err := createFixture(oc, ignoresDeployersFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that the deployment config is bumped to the first version")
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+				dc, _, _, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+				return dc.Status.LatestVersion == 1, nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("deployment config %q never incremented to the first version", name)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that the deployment config has the desired condition and reason")
+			var conditions []deployapi.DeploymentCondition
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+				dc, _, _, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+				conditions = dc.Status.Conditions
+				cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
+				return cond != nil && cond.Reason == deployutil.NewReplicationControllerReason, nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("deployment config %q never updated its conditions: %#v", name, conditions)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 })

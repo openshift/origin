@@ -29,11 +29,16 @@
 %global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.15+b8694c9-80 OS_GIT_COMMIT=b8694c9 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
+%{!?make_redistributable:
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
 %endif
+}
+
+# by default build the test binaries for Origin
+%{!?build_tests: %global build_tests 1 }
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -97,12 +102,14 @@ Obsoletes:      openshift-master < %{package_refector_version}
 %description master
 %{summary}
 
+%if 0%{build_tests}
 %package tests
 Summary: %{product_name} Test Suite
 Requires:       %{name} = %{version}-%{release}
 
 %description tests
 %{summary}
+%endif
 
 %package node
 Summary:        %{product_name} Node
@@ -180,8 +187,10 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 # Create Binaries
 %{os_git_vars} hack/build-cross.sh
 
+%if 0%{build_tests}
 # Create extended.test
 %{os_git_vars} hack/build-go.sh test/extended/extended.test
+%endif
 
 %install
 
@@ -195,7 +204,9 @@ do
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
+%if 0%{build_tests}
 install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
+%endif
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -335,10 +346,11 @@ if [ -d "%{_sharedstatedir}/openshift" ]; then
   fi
 fi
 
+%if 0%{build_tests}
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
-
+%endif
 
 %files master
 %{_unitdir}/%{name}-master.service

@@ -120,14 +120,15 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
-	if !cmd.Flags().Lookup("keep-younger-than").Changed {
-		o.KeepYoungerThan = nil
-	}
-	if !cmd.Flags().Lookup("keep-tag-revisions").Changed {
-		o.KeepTagRevisions = nil
-	}
 	if !cmd.Flags().Lookup("prune-over-size-limit").Changed {
 		o.PruneOverSizeLimit = nil
+	} else {
+		if !cmd.Flags().Lookup("keep-younger-than").Changed {
+			o.KeepYoungerThan = nil
+		}
+		if !cmd.Flags().Lookup("keep-tag-revisions").Changed {
+			o.KeepTagRevisions = nil
+		}
 	}
 	o.Namespace = kapi.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {

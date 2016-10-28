@@ -23,14 +23,13 @@ trap "cleanup" EXIT
 
 echo "[INFO] Starting server"
 
-os::util::environment::setup_all_server_vars "test-extended/cmd/"
 os::util::environment::use_sudo
-reset_tmp_dir
+os::util::environment::setup_all_server_vars "test-extended/cmd/"
 
 os::log::system::start
 
-configure_os_server
-start_os_server
+os::start::configure_server
+os::start::server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
