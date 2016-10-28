@@ -44,7 +44,8 @@ var (
 		"/sys:/sys:ro",
 		"/var/lib/docker:/var/lib/docker",
 	}
-	BasePorts             = []int{80, 443, 4001, 7001, 8443, 10250}
+	BasePorts             = []int{4001, 7001, 8443, 10250}
+	RouterPorts           = []int{80, 443}
 	DefaultPorts          = append(BasePorts, DefaultDNSPort)
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
 	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
