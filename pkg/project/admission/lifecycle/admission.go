@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -47,10 +48,13 @@ var recommendedCreatableResources = map[unversioned.GroupResource]bool{
 var _ = oadmission.WantsProjectCache(&lifecycle{})
 var _ = oadmission.Validator(&lifecycle{})
 
-// Admit enforces that a namespace must exist in order to associate content with it.
-// Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
+// Admit enforces that a namespace must have the openshift finalizer associated with it in order to create origin API objects within it
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if len(a.GetNamespace()) == 0 {
+		return nil
+	}
+	// only pay attention to origin resources
+	if !latest.OriginKind(a.GetKind()) {
 		return nil
 	}
 	// always allow creatable resources through.  These requests should always be allowed.
