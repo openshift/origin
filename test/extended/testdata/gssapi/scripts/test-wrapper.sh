@@ -11,7 +11,6 @@ export TEST_NAME="test-extended/gssapiproxy-tests/$(uname -n)-${CLIENT}-${SERVER
 os::util::environment::setup_time_vars
 os::util::environment::setup_tmpdir_vars "${TEST_NAME}"
 export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-reset_tmp_dir
 
 # use a subshell and `if` statement to prevent `exit` calls from killing this script
 if ! ( './gssapi-tests.sh' ) 2>&1; then

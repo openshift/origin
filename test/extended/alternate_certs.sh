@@ -4,7 +4,6 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 os::util::environment::setup_all_server_vars "test-extended-alternate-certs/"
-reset_tmp_dir
 
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 

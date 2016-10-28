@@ -10,14 +10,13 @@ test_name="test-extended/${project_name}"
 
 os::build::setup_env
 
+os::util::environment::use_sudo
 os::util::environment::setup_time_vars
 os::util::environment::setup_all_server_vars "${test_name}"
-os::util::environment::use_sudo
 
 os::log::system::start
 
 ensure_iptables_or_die
-reset_tmp_dir
 
 # TODO(skuznets): Fix vagrant openshift so env vars can be passed to this script
 JUNIT_REPORT=true
