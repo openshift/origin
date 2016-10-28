@@ -31,7 +31,10 @@ a URL to access the management console for your cluster.
 ### Mac OS X
 
 1. Install [Docker Toolbox](https://www.docker.com/products/docker-toolbox) and ensure that it is functional.
-2. Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases/latest) and place it in your path.
+2. Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
+
+   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3.x or newer releases.
+
 3. Open Terminal and run
    ```
    $ oc cluster up --create-machine
@@ -81,7 +84,10 @@ Once the machine has been created, the `--create-machine` argument is no longer 
 ### Windows
 
 1. Install [Docker Toolbox](https://www.docker.com/products/docker-toolbox) and ensure that it is functional.
-2. Download the Windows `oc.exe` binary from [openshift-origin-client-tools-VERSION-windows.zip](https://github.com/openshift/origin/releases/latest) and place it in your path.
+2. Download the Windows `oc.exe` binary from [openshift-origin-client-tools-VERSION-windows.zip](https://github.com/openshift/origin/releases) and place it in your path.
+
+   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3.x or newer releases.
+
 3. Open a Command window as Administrator (for most drivers, docker-machine on Windows requires administrator privileges)
    and run:
 
@@ -138,9 +144,11 @@ Once the machine has been created, the `--create-machine` argument is no longer 
    After editing the config, restart the Docker daemon.
 
 3. Download the Linux `oc` binary from 
-   [openshift-origin-client-tools-VERSION-linux-64bit.tar.gz](https://github.com/openshift/origin/releases/latest) 
+   [openshift-origin-client-tools-VERSION-linux-64bit.tar.gz](https://github.com/openshift/origin/releases) 
    and place it in your path.
 
+   > Please be aware that the 'oc cluster' set of commands are only available in the 1.3.x or newer releases.
+ 
 4. Open a terminal with a user that has permission to run Docker commands and run:
    ```
    $ oc cluster up
