@@ -14,7 +14,9 @@ spec:
         execNewPod:
           containerName: myapp
           command:
-          - /bin/echo `date`; /bin/true
+          - /bin/bash
+          - -c
+          - '/bin/echo pre hook logs ; exit 1'
   template:
     metadata:
       labels:

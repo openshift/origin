@@ -21,19 +21,24 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b8694c9659e8b4336fcd96c4bd00e4539886acbc
+%global commit 9e8552928615d2208ec60f9be963ad89b8bfec7b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.15+b8694c9-80 OS_GIT_COMMIT=b8694c9 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.16+9e85529-69 OS_GIT_COMMIT=9e85529 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
+%{!?make_redistributable:
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
 %global make_redistributable 1
 %endif
+}
+
+# by default build the test binaries for Origin
+%{!?build_tests: %global build_tests 1 }
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -46,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.16
+Version:        3.4.0.17
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -97,12 +102,14 @@ Obsoletes:      openshift-master < %{package_refector_version}
 %description master
 %{summary}
 
+%if 0%{build_tests}
 %package tests
 Summary: %{product_name} Test Suite
 Requires:       %{name} = %{version}-%{release}
 
 %description tests
 %{summary}
+%endif
 
 %package node
 Summary:        %{product_name} Node
@@ -180,8 +187,10 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 # Create Binaries
 %{os_git_vars} hack/build-cross.sh
 
+%if 0%{build_tests}
 # Create extended.test
 %{os_git_vars} hack/build-go.sh test/extended/extended.test
+%endif
 
 %install
 
@@ -195,7 +204,9 @@ do
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
+%if 0%{build_tests}
 install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
+%endif
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -335,10 +346,11 @@ if [ -d "%{_sharedstatedir}/openshift" ]; then
   fi
 fi
 
+%if 0%{build_tests}
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
-
+%endif
 
 %files master
 %{_unitdir}/%{name}-master.service
@@ -480,6 +492,58 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Oct 28 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.17
+- Merge remote-tracking branch upstream/master, bump origin-web-console df20542
+  (tdawson@redhat.com)
+- Fix failing deployment hook fixture (ironcladlou@gmail.com)
+- Move namespace lifecycle plugin to the front of the admission chain
+  (jliggitt@redhat.com)
+- Only pay attention to origin types in project lifecycle admission
+  (jliggitt@redhat.com)
+- bump(origin-web-console): de8aca535f2762214184cd6bbc28d9948aac3a14
+  (noreply@redhat.com)
+- Fix deep copy for api.ResourceQuotasStatusByNamespace (jliggitt@redhat.com)
+- Fix mutation in OrderedKeys getter (jliggitt@redhat.com)
+- fix nil printer panic in oc set sub-cmds (jvallejo@redhat.com)
+- add jenkins v2 imagestreams (bparees@redhat.com)
+- Added comment to clarify that oc cluster did not work on releases before that
+  1.3 (jparrill@redhat.com)
+- Adding warning about port 8443 potentially being blocked by firewall rules on
+  oc cluster up Fixes issue #10807 (cdaley@redhat.com)
+- Replace uses of `wait_for_url_timed` with `os::cmd::try_until_success`
+  (skuznets@redhat.com)
+- Remove `reset_tmp_dir` function from Bash library (skuznets@redhat.com)
+- new-app: validate that Dockerfile from the repository has numeric EXPOSE
+  directive. (vsemushi@redhat.com)
+- deploy: set condition reason correctly for new RCs (mkargaki@redhat.com)
+- Use global LRU cache for layer sizes (agladkov@redhat.com)
+- UPSTREAM: 27714: Send recycle events from pod to pv. (jsafrane@redhat.com)
+- remove redundant variable 'retryCount' (miao.yanqiang@zte.com.cn)
+- ie. is not the correct abbreviation for ID EST (yu.peng36@zte.com.cn)
+- Display warning instead of error if ports 80/443 in use (cdaley@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  2dffea37104471547b865307415876cba2bdf1fc (ipalade@redhat.com)
+- test/integration: pass HostConfig at image creation time for router tests
+  (dcbw@redhat.com)
+- sdn: no longer kill docker0 (dcbw@redhat.com)
+- add `oc status` warning for missing liveness probe (jvallejo@redhat.com)
+- sdn: fix single-tenant pod setup (dcbw@redhat.com)
+- Update ose_images.sh - 2016-10-26 (tdawson@redhat.com)
+- Remove usage of deprecated utilities for starting a server
+  (skuznets@redhat.com)
+- Use `oc get --raw` instead of `curl` in Swagger verification/update scripts
+  (skuznets@redhat.com)
+- include timestamps in extended test build logs (bparees@redhat.com)
+- UPSTREAM: 34997: Fix kube vsphere.kerneltime (gethemant@gmail.com)
+- Quota test case is inaccurate (ccoleman@redhat.com)
+- fix broken sample pipeline job (bparees@redhat.com)
+- Allow users to pass in `make_redistributable` to the Origin spec file
+  (skuznets@redhat.com)
+- Make extended test build optional in origin.spec (skuznets@redhat.com)
+- Fix regression from #9481 about defaulting prune images arguments
+  (maszulik@redhat.com)
+- Remove node access from the system:router roles (ccoleman@redhat.com)
+
 * Wed Oct 26 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.16
 - Merge remote-tracking branch upstream/master, bump origin-web-console c0704ca
   (tdawson@redhat.com)

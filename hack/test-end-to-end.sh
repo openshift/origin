@@ -42,14 +42,13 @@ trap "cleanup" EXIT
 
 
 # Start All-in-one server and wait for health
-os::util::environment::setup_all_server_vars "test-end-to-end/"
 os::util::environment::use_sudo
-reset_tmp_dir
+os::util::environment::setup_all_server_vars "test-end-to-end/"
 
 os::log::system::start
 
-configure_os_server
-start_os_server
+os::start::configure_server
+os::start::server
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"

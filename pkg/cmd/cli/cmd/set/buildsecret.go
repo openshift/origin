@@ -66,7 +66,7 @@ type BuildSecretOptions struct {
 	Local       bool
 	Mapper      meta.RESTMapper
 
-	PrintObject func(runtime.Object) error
+	PrintObject func([]*resource.Info) error
 
 	Secret string
 	Push   bool
@@ -195,8 +195,10 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 
 	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 || o.Local {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
+	if len(output) > 0 || o.Local {
+		o.PrintObject = func(infos []*resource.Info) error {
+			return f.PrintResourceInfos(cmd, infos, o.Out)
+		}
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -239,11 +241,7 @@ func (o *BuildSecretOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
-		}
-		return o.PrintObject(object)
+		return o.PrintObject(infos)
 	}
 
 	errs := []error{}

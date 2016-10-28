@@ -74,7 +74,7 @@ type DeploymentHookOptions struct {
 	Local       bool
 	Mapper      meta.RESTMapper
 
-	PrintObject func(runtime.Object) error
+	PrintObject func([]*resource.Info) error
 
 	Pre    bool
 	Mid    bool
@@ -177,7 +177,9 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 || o.Local {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
+		o.PrintObject = func(infos []*resource.Info) error {
+			return f.PrintResourceInfos(cmd, infos, o.Out)
+		}
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -261,11 +263,7 @@ func (o *DeploymentHookOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
-		}
-		return o.PrintObject(object)
+		return o.PrintObject(infos)
 	}
 
 	failed := false

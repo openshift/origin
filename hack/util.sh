@@ -2,21 +2,6 @@
 
 # Provides simple utility functions
 
-function start_os_server() {
-        os::log::warn "start_os_server is deprecated, please use os::start::server"
-        os::start::server "$@"
-}
-
-function configure_os_server() {
-        os::log::warn "configure_os_server is deprecated, please use os::start::configure_server"
-        os::start::configure_server "$@"
-}
-
-function start_os_master() {
-        os::log::warn "start_os_master is deprecated, please use os::start::master"
-        os::start::master "$@"
-}
-
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.
 function ensure_iptables_or_die() {
@@ -84,37 +69,6 @@ function wait_for_command() {
 	return 1
 }
 readonly -f wait_for_command
-
-# wait_for_url_timed attempts to access a url in order to
-# determine if it is available to service requests.
-#
-# $1 - The URL to check
-# $2 - Optional prefix to use when echoing a successful result
-# $3 - Optional maximum time to wait before giving up (Default: 10s)
-function wait_for_url_timed() {
-	STARTTIME=$(date +%s)
-	url=$1
-	prefix=${2:-}
-	max_wait=${3:-10*TIME_SEC}
-	wait=0.2
-	expire=$(($(time_now) + $max_wait))
-	set +e
-	while [[ $(time_now) -lt $expire ]]; do
-		out=$(curl --max-time 2 -fs $url 2>/dev/null)
-		if [ $? -eq 0 ]; then
-			set -e
-			echo ${prefix}${out}
-			ENDTIME=$(date +%s)
-			echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
-			return 0
-		fi
-		sleep $wait
-	done
-	echo "ERROR: gave up waiting for $url"
-	set -e
-	return 1
-}
-readonly -f wait_for_url_timed
 
 # wait_for_file returns 0 if a file exists, 1 if it does not exist
 #
@@ -233,27 +187,6 @@ function validate_response() {
 	return 1
 }
 readonly -f validate_response
-
-# reset_tmp_dir will try to delete the testing directory.
-# If it fails will unmount all the mounts associated with
-# the test.
-#
-# $1 expression for which the mounts should be checked
-function reset_tmp_dir() {
-	local sudo="${USE_SUDO:+sudo}"
-
-	set +e
-	${sudo} rm -rf ${BASETMPDIR} &>/dev/null
-	if [[ $? != 0 ]]; then
-		echo "[INFO] Unmounting previously used volumes ..."
-		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r ${sudo} umount
-		${sudo} rm -rf ${BASETMPDIR}
-	fi
-
-	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
-	set -e
-}
-readonly -f reset_tmp_dir
 
 # kill_all_processes function will kill all
 # all processes created by the test script.

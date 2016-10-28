@@ -80,3 +80,23 @@ func TestUnmountableSecrets(t *testing.T) {
 		t.Errorf("expected %v, got %v", expectedSecret2, markers)
 	}
 }
+
+func TestMissingLivenessProbes(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/simple-deployment.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodEdges(g)
+
+	markers := FindMissingLivenessProbes(g, osgraph.DefaultNamer, "oc set probe")
+	if e, a := 1, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	actualDC := osgraph.GetTopLevelContainerNode(g, markers[0].Node)
+	expectedDC := g.Find(osgraph.UniqueName("DeploymentConfig|/simple-deployment"))
+	if e, a := expectedDC.ID(), actualDC.ID(); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}

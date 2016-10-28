@@ -1327,7 +1327,9 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 			VolumesFrom:  vols,
 		},
 		HostConfig: &dockerClient.HostConfig{
-			Binds: hostVols,
+			Binds:        hostVols,
+			NetworkMode:  "host",
+			PortBindings: portBindings,
 		},
 	}
 
@@ -1337,8 +1339,7 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		return "", err
 	}
 
-	dockerHostCfg := &dockerClient.HostConfig{NetworkMode: "host", PortBindings: portBindings}
-	err = dockerCli.StartContainer(container.ID, dockerHostCfg)
+	err = dockerCli.StartContainer(container.ID, nil)
 
 	if err != nil {
 		return "", err

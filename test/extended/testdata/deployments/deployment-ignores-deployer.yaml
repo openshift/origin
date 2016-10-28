@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    deploy.openshift.io/deployer-pod.ignore: "true"
+  name: database
+spec:
+  replicas: 1
+  selector:
+    name: database
+  template:
+    metadata:
+      labels:
+        name: database
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "10000"

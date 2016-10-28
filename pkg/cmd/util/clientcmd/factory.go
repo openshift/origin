@@ -17,6 +17,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -164,6 +165,8 @@ type Factory struct {
 	clients               *clientCache
 
 	ImageResolutionOptions FlagBinder
+
+	PrintResourceInfos func(*cobra.Command, []*resource.Info, io.Writer) error
 }
 
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
@@ -486,6 +489,42 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			}
 		}
 		return describe.NewHumanReadablePrinter(options), nil
+	}
+	// PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
+	// otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
+	w.PrintResourceInfos = func(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
+		printer, generic, err := cmdutil.PrinterForCommand(cmd)
+		if err != nil {
+			return nil
+		}
+		if !generic {
+			for _, info := range infos {
+				mapping := info.ResourceMapping()
+				printer, err := w.PrinterForMapping(cmd, mapping, false)
+				if err != nil {
+					return err
+				}
+				if err := printer.PrintObj(info.Object, out); err != nil {
+					return nil
+				}
+			}
+			return nil
+		}
+
+		clientConfig, err := w.ClientConfig()
+		if err != nil {
+			return err
+		}
+		outputVersion, err := cmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+		if err != nil {
+			return err
+		}
+		object, err := resource.AsVersionedObject(infos, len(infos) != 1, outputVersion, api.Codecs.LegacyCodec(outputVersion))
+		if err != nil {
+			return err
+		}
+		return printer.PrintObj(object, out)
+
 	}
 	kCanBeExposed := w.Factory.CanBeExposed
 	w.CanBeExposed = func(kind unversioned.GroupKind) error {

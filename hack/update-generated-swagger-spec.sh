@@ -28,17 +28,14 @@ export API_PORT=38443
 export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 os::util::environment::setup_all_server_vars "generate-swagger-spec/"
-reset_tmp_dir
-configure_os_server
-
+os::start::configure_server
 
 SWAGGER_SPEC_REL_DIR="${1:-}"
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
 mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
-SWAGGER_API_PATH="${MASTER_ADDR}/swaggerapi/"
 
 # Start openshift
-start_os_master
+os::start::master
 
 os::log::info "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 
@@ -46,17 +43,22 @@ endpoint_types=("oapi" "api")
 for type in "${endpoint_types[@]}"; do
     endpoints=("v1")
     for endpoint in "${endpoints[@]}"; do
-        os::log::info "Updating ${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json from ${SWAGGER_API_PATH}${type}/${endpoint}..."
-        curl -w "\n" "${SWAGGER_API_PATH}${type}/${endpoint}" > "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
+        generated_file="${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
+        os::log::info "Updating ${generated_file} from /swaggerapi/${type}/${endpoint}..."
+        oc get --raw "/swaggerapi/${type}/${endpoint}" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
-        os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
+        os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
+        printf '\n' >> "${generated_file}"
     done
 done
 
 # Swagger 2.0 / OpenAPI docs
-curl -w "\n" "${MASTER_ADDR}/swagger.json" > "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
-os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
-os::util::sed -r 's|"version": "[^\"]+"|"version": "latest"|g' "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
+generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
+oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
+
+os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
+os::util::sed -r 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
+printf '\n' >> "${generated_file}"
 
 # Copy all protobuf generated specs into the api/protobuf-spec directory
 proto_spec_out_dir="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/protobuf-spec"
