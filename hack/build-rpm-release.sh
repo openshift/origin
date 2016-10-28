@@ -3,7 +3,8 @@
 # This script generates release zips and RPMs into _output/releases.
 # tito and other build dependencies are required on the host. We will
 # be running `hack/build-cross.sh` under the covers, so we transitively
-# consume all of the relevant envars.
+# consume all of the relevant envars. We also consume:
+#  - BUILD_TESTS: whether or not to build a test RPM, off by default
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "build-rpm-release"
@@ -20,7 +21,7 @@ os::log::info 'Building Origin release RPMs with tito...'
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --test --no-cleanup \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' --define 'build_tests ${BUILD_TESTS:-0}'"
 
 os::log::info 'Unpacking tito artifacts for reuse...'
 output_directories=( $( find "${tito_tmp_dir}" -type d -name 'rpmbuild-origin*' ) )
