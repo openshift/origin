@@ -373,7 +373,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	fmt.Fprintf(out, "Waiting for API server to start listening\n")
 	masterHost := fmt.Sprintf("%s:8443", opt.ServerIP)
 	if err = cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
-		return "", ErrTimedOutWaitingForStart(h.containerName).WithDetails(h.OriginLog())
+		return "", errors.NewError("timed out waiting for OpenShift container %q \nWARNING: %s:8443 may be blocked by firewall rules", h.containerName, opt.ServerIP).WithSolution("Ensure that you can access %s from your machine", masterHost).WithDetails(h.OriginLog())
 	}
 	// Check for healthz endpoint to be ready
 	client, err := masterHTTPClient(configDir)
