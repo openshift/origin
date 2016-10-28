@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -31,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	outil "github.com/openshift/origin/pkg/util"
+	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 const (
@@ -90,8 +93,9 @@ type AppConfig struct {
 
 	SkipGeneration bool
 
-	AllowSecretUse bool
-	SecretAccessor app.SecretAccessor
+	AllowSecretUse              bool
+	AllowNonNumericExposedPorts bool
+	SecretAccessor              app.SecretAccessor
 
 	AsSearch bool
 	AsList   bool
@@ -615,6 +619,10 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 	}
 
+	if err := optionallyValidateExposedPorts(c, repositories); err != nil {
+		return nil, err
+	}
+
 	if len(c.To) > 0 {
 		if err := validateOutputImageReference(c.To); err != nil {
 			return nil, err
@@ -886,4 +894,34 @@ func (c *AppConfig) GetBuildEnvironment(environment app.Environment) app.Environ
 		return environment
 	}
 	return app.Environment{}
+}
+
+func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRepositories) error {
+	if config.AllowNonNumericExposedPorts {
+		return nil
+	}
+
+	if config.Strategy != "docker" {
+		return nil
+	}
+
+	for _, repo := range repositories {
+		if repoInfo := repo.Info(); repoInfo != nil && repoInfo.Dockerfile != nil {
+			node := repoInfo.Dockerfile.AST()
+			if err := exposedPortsAreNumeric(node); err != nil {
+				return fmt.Errorf("the Dockerfile has an invalid EXPOSE instruction: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func exposedPortsAreNumeric(node *dockerfileparser.Node) error {
+	for _, port := range dockerfileutil.LastExposedPorts(node) {
+		if _, err := strconv.ParseInt(port, 10, 32); err != nil {
+			return fmt.Errorf("could not parse %q: must be numeric", port)
+		}
+	}
+	return nil
 }

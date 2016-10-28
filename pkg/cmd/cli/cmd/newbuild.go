@@ -168,6 +168,7 @@ func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Fa
 	o.Action.Bulk.Retry = retryBuildConfig
 
 	o.Config.DryRun = o.Action.DryRun
+	o.Config.AllowNonNumericExposedPorts = true
 
 	o.BaseName = baseName
 	o.CommandPath = c.CommandPath()
