@@ -383,6 +383,9 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
 		},
+		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+			return kubeanalysis.FindMissingLivenessProbes(g, f, setProbeCommandName)
+		},
 		routeanalysis.FindPortMappingIssues,
 		routeanalysis.FindMissingTLSTerminationType,
 		routeanalysis.FindPathBasedPassthroughRoutes,

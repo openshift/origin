@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
@@ -73,6 +74,7 @@ func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.Deployme
 			}
 			if BelongsToDeploymentConfig(node.DeploymentConfig, rcNode.ReplicationController) {
 				g.AddEdge(node, rcNode, DeploymentEdgeKind)
+				g.AddEdge(rcNode, node, kubeedges.ManagedByControllerEdgeKind)
 			}
 		}
 	}
