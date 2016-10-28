@@ -297,12 +297,10 @@ function cleanup_openshift() {
 		set -u
 	fi
 
-	# TODO soltysh: restore the if back once #8399 is resolved
-	# if grep -q 'no Docker socket found' "${LOG_DIR}/openshift.log"; then
+	if grep -q 'no Docker socket found' "${LOG_DIR}/openshift.log"; then 
 		# the Docker daemon crashed, we need the logs
-	# journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
-	# fi
-	journalctl --unit docker.service --since -15minutes > "${LOG_DIR}/docker.log"
+		journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
+	fi
 
 	delete_empty_logs
 	truncate_large_logs
