@@ -625,7 +625,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.GroupCache, clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)

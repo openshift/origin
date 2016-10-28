@@ -15,20 +15,23 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher oscc.SCCMatcher
+	groupCache *usercache.GroupCache
 	client     clientset.Interface
 }
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {
-	return &REST{sccMatcher: m, client: c}
+func NewREST(m oscc.SCCMatcher, g *usercache.GroupCache, c clientset.Interface) *REST {
+	return &REST{sccMatcher: m, groupCache: g, client: c}
 }
 
 // New creates a new PodSecurityPolicySubjectReview object
@@ -42,22 +45,29 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySubjectReview: %#v", obj))
 	}
-
 	ns, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
-
 	if errs := securityvalidation.ValidatePodSecurityPolicySubjectReview(pspsr); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicySubjectReview"), "", errs)
 	}
+	groups := pspsr.Spec.Groups
 
-	userInfo := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: pspsr.Spec.Groups}
+	if len(groups) == 0 {
+		if actualGroups, err := r.groupCache.GroupsFor(pspsr.Spec.User); err == nil {
+			for _, group := range actualGroups {
+				groups = append(groups, group.Name)
+			}
+		}
+		groups = append(groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
+	}
+
+	userInfo := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: groups}
 	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
-
 	saName := pspsr.Spec.Template.Spec.ServiceAccountName
 	if len(saName) > 0 {
 		saUserInfo := serviceaccount.UserInfo(ns, saName, "")
