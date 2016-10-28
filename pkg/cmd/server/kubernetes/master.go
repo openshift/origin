@@ -450,9 +450,10 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client *client.Client) {
 	}
 	serviceController, err := servicecontroller.New(c.CloudProvider, clientadapter.FromUnversionedClient(client), c.ControllerManager.ClusterName)
 	if err != nil {
-		glog.Fatalf("Unable to start service controller: %v", err)
+		glog.Errorf("Unable to start service controller: %v", err)
+	} else {
+		serviceController.Run(int(c.ControllerManager.ConcurrentServiceSyncs))
 	}
-	serviceController.Run(int(c.ControllerManager.ConcurrentServiceSyncs))
 }
 
 // RunPetSetController starts the PetSet controller
