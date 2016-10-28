@@ -584,7 +584,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
-			o.Expect(out).To(o.ContainSubstring("no such file or directory"))
+			o.Expect(out).To(o.ContainSubstring("pre hook logs"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
 		})
 	})
