@@ -119,7 +119,7 @@ func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kap
 func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
 	if err := p.admitter(route); err != nil {
 		glog.Errorf("Route %s not admitted: %s", routeNameKey(route), err.Error())
-		p.recordRejection(route, "RouteNotAdmitted", err.Error())
+		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", err.Error())
 		return err
 	}
 
@@ -152,21 +152,13 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
-// recordRejection records why the route was rejected.
-func (p *HostAdmitter) recordRejection(route *routeapi.Route, reason, message string) {
-	oldPolicy := route.Spec.WildcardPolicy
-	route.Spec.WildcardPolicy = routeapi.WildcardPolicyNone
-	p.recorder.RecordRouteRejection(route, reason, message)
-	route.Spec.WildcardPolicy = oldPolicy
-}
-
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)
 	displacedRoutes, err := p.displacedRoutes(route)
 	if err != nil {
 		msg := fmt.Sprintf("a route in another namespace holds host %s", route.Spec.Host)
-		p.recordRejection(route, "HostAlreadyClaimed", msg)
+		p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", msg)
 		return fmt.Errorf("%s (%s)", msg, err)
 	}
 
@@ -178,7 +170,7 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 
 		msg := fmt.Sprintf("a route in another namespace holds host %s", displacedRoute.Spec.Host)
-		p.recordRejection(displacedRoute, "HostAlreadyClaimed", msg)
+		p.recorder.RecordRouteRejection(displacedRoute, "HostAlreadyClaimed", msg)
 		p.plugin.HandleRoute(watch.Deleted, displacedRoute)
 	}
 
@@ -208,7 +200,7 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 		p.claimedWildcards.RemoveRoute(wildcardKey, route)
 		p.blockedWildcards.RemoveRoute(wildcardKey, route)
 		err := fmt.Errorf("unsupported wildcard policy %s", route.Spec.WildcardPolicy)
-		p.recordRejection(route, "RouteNotAdmitted", err.Error())
+		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", err.Error())
 		return err
 	}
 
