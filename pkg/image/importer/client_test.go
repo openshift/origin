@@ -199,7 +199,7 @@ func TestDockerV1Fallback(t *testing.T) {
 	}
 
 	retriever := &mockRetriever{err: fmt.Errorf("does not support v2 API")}
-	im := NewImageStreamImporter(retriever, 5, nil)
+	im := NewImageStreamImporter(retriever, 5, nil, nil)
 	if err := im.Import(ctx, isi); err != nil {
 		t.Fatal(err)
 	}
