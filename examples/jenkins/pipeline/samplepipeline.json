@@ -10,7 +10,7 @@
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "The Jenkins server is not currently automatically instantiated for you.  Please instantiate one of the Jenkins templates to create a Jenkins server for managing your pipeline build configurations.",
+  "message": "A Jenkins server will be automatically instantiated in this project to manage the Pipeline BuildConfig created by this template.  You will be able to log in to it using your OpenShift user credentials.",
   "objects": [
     {
       "kind": "BuildConfig",
@@ -170,7 +170,7 @@
             {
               "type": "ImageChange",
               "imageChangeParams": {
-                "automatic": true,
+                "automatic": false,
                 "containerNames": [
                   "nodejs-mongodb-example"
                 ],
@@ -396,25 +396,10 @@
         "value": "nodejs-mongodb-example"
       },
       {
-        "name": "NAMESPACE",
-        "displayName": "Namespace",
-        "description": "The OpenShift Namespace where the ImageStream resides.",
-        "required": true,
-        "value": "openshift"
-      },
-      {
-        "name": "MEMORY_LIMIT",
-        "displayName": "Memory Limit",
-        "description": "Maximum amount of memory the Node.js container can use.",
-        "required": true,
-        "value": "512Mi"
-      },
-      {
-        "name": "MEMORY_MONGODB_LIMIT",
-        "displayName": "Memory Limit (MongoDB)",
-        "description": "Maximum amount of memory the MongoDB container can use.",
-        "required": true,
-        "value": "512Mi"
+        "name": "APPLICATION_DOMAIN",
+        "displayName": "Application Hostname",
+        "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
+        "value": ""
       },
       {
         "name": "SOURCE_REPOSITORY_URL",
@@ -424,40 +409,10 @@
         "value": "https://github.com/openshift/nodejs-ex.git"
       },
       {
-        "name": "SOURCE_REPOSITORY_REF",
-        "displayName": "Git Reference",
-        "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
-      },
-      {
-        "name": "CONTEXT_DIR",
-        "displayName": "Context Directory",
-        "description": "Set this to the relative path to your project if it is not in the root of your repository."
-      },
-      {
-        "name": "APPLICATION_DOMAIN",
-        "displayName": "Application Hostname",
-        "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
-        "value": ""
-      },
-      {
-        "name": "GITHUB_WEBHOOK_SECRET",
-        "displayName": "GitHub Webhook Secret",
-        "description": "A secret string used to configure the GitHub webhook.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{40}"
-      },
-      {
-        "name": "GENERIC_WEBHOOK_SECRET",
-        "displayName": "Generic Webhook Secret",
-        "description": "A secret string used to configure the Generic webhook.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{40}"
-      },
-      {
-        "name": "DATABASE_SERVICE_NAME",
-        "displayName": "Database Service Name",
+        "name": "DATABASE_NAME",
+        "displayName": "Database Name",
         "required": true,
-        "value": "mongodb"
+        "value": "sampledb"
       },
       {
         "name": "DATABASE_USER",
@@ -474,10 +429,24 @@
         "from": "[a-zA-Z0-9]{16}"
       },
       {
-        "name": "DATABASE_NAME",
-        "displayName": "Database Name",
+        "name": "MEMORY_LIMIT",
+        "displayName": "Memory Limit",
+        "description": "Maximum amount of memory the Node.js container can use.",
         "required": true,
-        "value": "sampledb"
+        "value": "512Mi"
+      },
+      {
+        "name": "MEMORY_MONGODB_LIMIT",
+        "displayName": "Memory Limit (MongoDB)",
+        "description": "Maximum amount of memory the MongoDB container can use.",
+        "required": true,
+        "value": "512Mi"
+      },
+      {
+        "name": "DATABASE_SERVICE_NAME",
+        "displayName": "Database Service Name",
+        "required": true,
+        "value": "mongodb"
       },
       {
         "name": "DATABASE_ADMIN_PASSWORD",
@@ -487,10 +456,41 @@
         "from": "[a-zA-Z0-9]{16}"
       },
       {
+        "name": "SOURCE_REPOSITORY_REF",
+        "displayName": "Git Reference",
+        "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+      },
+      {
+        "name": "CONTEXT_DIR",
+        "displayName": "Context Directory",
+        "description": "Set this to the relative path to your project if it is not in the root of your repository."
+      },
+      {
+        "name": "GITHUB_WEBHOOK_SECRET",
+        "displayName": "GitHub Webhook Secret",
+        "description": "A secret string used to configure the GitHub webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
+        "name": "GENERIC_WEBHOOK_SECRET",
+        "displayName": "Generic Webhook Secret",
+        "description": "A secret string used to configure the Generic webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
         "name": "NPM_MIRROR",
         "displayName": "Custom NPM Mirror URL",
         "description": "The custom NPM mirror URL",
         "value": ""
+      },
+      {
+        "name": "NAMESPACE",
+        "displayName": "Namespace",
+        "description": "The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.",
+        "required": true,
+        "value": "openshift"
       }
   ],
   "labels": {
