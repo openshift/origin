@@ -14,9 +14,10 @@ ENV VERSION=1.6.3 \
     TMPDIR=/openshifttmp
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
+ADD *.rpm /tmp/origin-rpm/
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq" && \
-    yum install -y $INSTALL_PKGS && \
+    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito" && \
+    yum install -y $INSTALL_PKGS /tmp/origin-rpm/*.rpm && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
     curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-4/protoc-3.0.0-beta-4-linux-x86_64.zip | bsdtar -C /usr/local -xf - && \
