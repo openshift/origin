@@ -160,34 +160,6 @@ function set_curl_args() {
 }
 readonly -f set_curl_args
 
-# Search for a regular expression in a HTTP response.
-#
-# $1 - a valid URL (e.g.: http://127.0.0.1:8080)
-# $2 - a regular expression or text
-function validate_response() {
-	url=$1
-	expected_response=$2
-	wait=${3:-0.2}
-	times=${4:-10}
-
-	set +e
-	for i in $(seq 1 $times); do
-		response=`curl $url`
-		echo $response | grep -q "$expected_response"
-		if [ $? -eq 0 ]; then
-			echo "[INFO] Response is valid."
-			set -e
-			return 0
-		fi
-		sleep $wait
-	done
-
-	echo "[INFO] Response is invalid: $response"
-	set -e
-	return 1
-}
-readonly -f validate_response
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {
