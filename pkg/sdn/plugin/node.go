@@ -22,7 +22,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
@@ -215,10 +214,9 @@ func (node *OsdnNode) Start() error {
 			return err
 		}
 		for _, p := range pods {
-			containerID := getPodContainerID(&p)
-			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.ContainerID{ID: containerID})
+			err = node.UpdatePod(p)
 			if err != nil {
-				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
+				log.Warningf("Could not update pod %q: %s", p.Name, err)
 			}
 		}
 	}
@@ -234,12 +232,12 @@ func (node *OsdnNode) Start() error {
 
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
 // See https://github.com/containernetworking/cni/issues/89
-func (node *OsdnNode) UpdatePod(namespace string, name string, id kubeletTypes.ContainerID) error {
+func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	req := &cniserver.PodRequest{
 		Command:      cniserver.CNI_UPDATE,
-		PodNamespace: namespace,
-		PodName:      name,
-		ContainerId:  id.String(),
+		PodNamespace: pod.Namespace,
+		PodName:      pod.Name,
+		ContainerId:  getPodContainerID(&pod),
 		// netns is read from docker if needed, since we don't get it from kubelet
 		Result: make(chan *cniserver.PodResult),
 	}
