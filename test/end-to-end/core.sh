@@ -472,14 +472,14 @@ echo "[INFO] Validating routed app response..."
 # will be reachable via the ip of its pod.
 router_ip=$(oc get pod "${router_pod}" --template='{{.status.podIP}}')
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-${router_ip}}"
-validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+os::cmd::try_until_text "curl -s -k --resolve 'www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST}' https://www.example.com" "Hello from OpenShift" "$((10*TIME_SEC))"
 # Validate that oc create route edge will create an edge terminated route.
 os::cmd::expect_success 'oc delete route/route-edge -n test'
 os::cmd::expect_success "oc create route edge --service=frontend --cert=${MASTER_CONFIG_DIR}/ca.crt \
                                               --key=${MASTER_CONFIG_DIR}/ca.key                     \
                                               --ca-cert=${MASTER_CONFIG_DIR}/ca.crt                 \
                                               --hostname=www.example.com -n test"
-validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+os::cmd::try_until_text "curl -s -k --resolve 'www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST}' https://www.example.com" "Hello from OpenShift" "$((10*TIME_SEC))"
 
 # Pod node selection
 echo "[INFO] Validating pod.spec.nodeSelector rejections"
