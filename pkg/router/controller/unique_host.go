@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/validation"
 	"github.com/openshift/origin/pkg/router"
 )
 
@@ -107,6 +109,20 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		return nil
 	}
 	route.Spec.Host = host
+
+	// Run time check to defend against older routes. Validate that the
+	// route host name conforms to DNS requirements.
+	if errs := validation.ValidateHostName(route); len(errs) > 0 {
+		glog.V(4).Infof("Route %s - invalid host name %s", routeName, host)
+		errMessages := make([]string, len(errs))
+		for i := 0; i < len(errs); i++ {
+			errMessages[i] = errs[i].Error()
+		}
+
+		err := fmt.Errorf("host name validation errors: %s", strings.Join(errMessages, ", "))
+		p.recorder.RecordRouteRejection(route, "InvalidHost", err.Error())
+		return err
+	}
 
 	// ensure hosts can only be claimed by one namespace at a time
 	// TODO: this could be abstracted above this layer?
