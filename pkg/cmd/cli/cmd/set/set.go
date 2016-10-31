@@ -39,7 +39,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 				NewCmdVolume(name, f, out, errout),
 				NewCmdProbe(name, f, out, errout),
 				NewCmdDeploymentHook(name, f, out, errout),
-				NewCmdImage(name, f, out),
+				NewCmdImage(name, f, out, errout),
 			},
 		},
 		{
@@ -86,8 +86,8 @@ Update existing container image(s) of resources.`)
 )
 
 // NewCmdImage is a wrapper for the Kubernetes CLI set image command
-func NewCmdImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := set.NewCmdImage(f.Factory, out)
+func NewCmdImage(fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
+	cmd := set.NewCmdImage(f.Factory, out, err)
 	cmd.Long = setImageLong
 	cmd.Example = fmt.Sprintf(setImageExample, fullName)
 
