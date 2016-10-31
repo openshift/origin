@@ -10,7 +10,6 @@ ipaddr=$4
 tenant_id=$5
 ingress_bw=$6
 egress_bw=$7
-macvlan=$8
 
 lockwrap() {
     (
@@ -81,24 +80,11 @@ del_ovs_flows() {
     fi
 }
 
-add_macvlan() {
-    default_dev=$(ip route show | sed -ne 's/^default .* dev \([^ ]*\) .*/\1/p')
-    if [ -z "$default_dev" ]; then
-	echo "Could not find default network interface"
-	exit 1
-    fi
-    ip link add link $default_dev name macvlan0 type macvlan mode private
-    ip link set macvlan0 netns $pid
-}
-
 run() {
     case "$action" in
 	setup)
 	    add_ovs_port
 	    add_ovs_flows
-	    if [ "$macvlan" = true ]; then
-		add_macvlan
-	    fi
 	    ;;
 
 	update)
