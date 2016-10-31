@@ -80,9 +80,6 @@ readonly -f os::util::environment::setup_time_vars
 #  - export API_HOST
 #  - export API_PORT
 #  - export API_SCHEME
-#  - export CURL_CA_BUNDLE
-#  - export CURL_CERT
-#  - export CURL_KEY
 #  - export SERVER_CONFIG_DIR
 #  - export MASTER_CONFIG_DIR
 #  - export NODE_CONFIG_DIR
@@ -235,9 +232,6 @@ readonly -f os::util::environment::setup_etcd_vars
 #  - export API_HOST
 #  - export API_PORT
 #  - export API_SCHEME
-#  - export CURL_CA_BUNDLE
-#  - export CURL_CERT
-#  - export CURL_KEY
 #  - export SERVER_CONFIG_DIR
 #  - export MASTER_CONFIG_DIR
 #  - export NODE_CONFIG_DIR
@@ -268,15 +262,6 @@ function os::util::environment::setup_server_vars() {
     export NODE_CONFIG_DIR
 
     mkdir -p "${SERVER_CONFIG_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}"
-
-    if [[ "${API_SCHEME}" == "https" ]]; then
-        CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-        export CURL_CA_BUNDLE
-        CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-        export CURL_CERT
-        CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-        export CURL_KEY
-    fi
 }
 readonly -f os::util::environment::setup_server_vars
 

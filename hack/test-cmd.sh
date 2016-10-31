@@ -11,9 +11,7 @@ function cleanup()
     out=$?
     set +e
 
-    echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-    set_curl_args 0 1
-    curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+    os::cleanup::dump_etcd
 
     pkill -P $$
     kill_all_processes
