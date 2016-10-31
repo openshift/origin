@@ -15,9 +15,10 @@
 // Package storage contains a Google Cloud Storage client.
 //
 // This package is experimental and may make backwards-incompatible changes.
-package storage
+package storage // import "cloud.google.com/go/storage"
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -37,8 +38,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"google.golang.org/cloud"
-	"google.golang.org/cloud/internal/transport"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
+	"google.golang.org/api/transport"
 
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
@@ -48,6 +50,9 @@ import (
 var (
 	ErrBucketNotExist = errors.New("storage: bucket doesn't exist")
 	ErrObjectNotExist = errors.New("storage: object doesn't exist")
+
+	// Done is returned by iterators in this package when they have no more items.
+	Done = iterator.Done
 )
 
 const userAgent = "gcloud-golang-storage/20151204"
@@ -68,50 +73,45 @@ const (
 
 // AdminClient is a client type for performing admin operations on a project's
 // buckets.
+//
+// Deprecated: Client has all of AdminClient's methods.
 type AdminClient struct {
-	hc        *http.Client
-	raw       *raw.Service
+	c         *Client
 	projectID string
 }
 
 // NewAdminClient creates a new AdminClient for a given project.
-func NewAdminClient(ctx context.Context, projectID string, opts ...cloud.ClientOption) (*AdminClient, error) {
+//
+// Deprecated: use NewClient instead.
+func NewAdminClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*AdminClient, error) {
 	c, err := NewClient(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &AdminClient{
-		hc:        c.hc,
-		raw:       c.raw,
+		c:         c,
 		projectID: projectID,
 	}, nil
 }
 
 // Close closes the AdminClient.
 func (c *AdminClient) Close() error {
-	c.hc = nil
-	return nil
+	return c.c.Close()
 }
 
 // Create creates a Bucket in the project.
 // If attrs is nil the API defaults will be used.
+//
+// Deprecated: use BucketHandle.Create instead.
 func (c *AdminClient) CreateBucket(ctx context.Context, bucketName string, attrs *BucketAttrs) error {
-	var bkt *raw.Bucket
-	if attrs != nil {
-		bkt = attrs.toRawBucket()
-	} else {
-		bkt = &raw.Bucket{}
-	}
-	bkt.Name = bucketName
-	req := c.raw.Buckets.Insert(c.projectID, bkt)
-	_, err := req.Context(ctx).Do()
-	return err
+	return c.c.Bucket(bucketName).Create(ctx, c.projectID, attrs)
 }
 
 // Delete deletes a Bucket in the project.
+//
+// Deprecated: use BucketHandle.Delete instead.
 func (c *AdminClient) DeleteBucket(ctx context.Context, bucketName string) error {
-	req := c.raw.Buckets.Delete(bucketName)
-	return req.Context(ctx).Do()
+	return c.c.Bucket(bucketName).Delete(ctx)
 }
 
 // Client is a client for interacting with Google Cloud Storage.
@@ -121,11 +121,11 @@ type Client struct {
 }
 
 // NewClient creates a new Google Cloud Storage client.
-// The default scope is ScopeFullControl. To use a different scope, like ScopeReadOnly, use cloud.WithScopes.
-func NewClient(ctx context.Context, opts ...cloud.ClientOption) (*Client, error) {
-	o := []cloud.ClientOption{
-		cloud.WithScopes(ScopeFullControl),
-		cloud.WithUserAgent(userAgent),
+// The default scope is ScopeFullControl. To use a different scope, like ScopeReadOnly, use option.WithScopes.
+func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
+	o := []option.ClientOption{
+		option.WithScopes(ScopeFullControl),
+		option.WithUserAgent(userAgent),
 	}
 	opts = append(o, opts...)
 	hc, _, err := transport.NewHTTPClient(ctx, opts...)
@@ -180,97 +180,6 @@ func (c *Client) Bucket(name string) *BucketHandle {
 	}
 }
 
-// ACL returns an ACLHandle, which provides access to the bucket's access control list.
-// This controls who can list, create or overwrite the objects in a bucket.
-// This call does not perform any network operations.
-func (c *BucketHandle) ACL() *ACLHandle {
-	return c.acl
-}
-
-// DefaultObjectACL returns an ACLHandle, which provides access to the bucket's default object ACLs.
-// These ACLs are applied to newly created objects in this bucket that do not have a defined ACL.
-// This call does not perform any network operations.
-func (c *BucketHandle) DefaultObjectACL() *ACLHandle {
-	return c.defaultObjectACL
-}
-
-// Object returns an ObjectHandle, which provides operations on the named object.
-// This call does not perform any network operations.
-//
-// name must consist entirely of valid UTF-8-encoded runes. The full specification
-// for valid object names can be found at:
-//   https://cloud.google.com/storage/docs/bucket-naming
-func (b *BucketHandle) Object(name string) *ObjectHandle {
-	return &ObjectHandle{
-		c:      b.c,
-		bucket: b.name,
-		object: name,
-		acl: &ACLHandle{
-			c:      b.c,
-			bucket: b.name,
-			object: name,
-		},
-	}
-}
-
-// TODO(jbd): Add storage.buckets.list.
-// TODO(jbd): Add storage.buckets.update.
-
-// TODO(jbd): Add storage.objects.watch.
-
-// Attrs returns the metadata for the bucket.
-func (b *BucketHandle) Attrs(ctx context.Context) (*BucketAttrs, error) {
-	resp, err := b.c.raw.Buckets.Get(b.name).Projection("full").Context(ctx).Do()
-	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
-		return nil, ErrBucketNotExist
-	}
-	if err != nil {
-		return nil, err
-	}
-	return newBucket(resp), nil
-}
-
-// List lists objects from the bucket. You can specify a query
-// to filter the results. If q is nil, no filtering is applied.
-func (b *BucketHandle) List(ctx context.Context, q *Query) (*ObjectList, error) {
-	req := b.c.raw.Objects.List(b.name)
-	req.Projection("full")
-	if q != nil {
-		req.Delimiter(q.Delimiter)
-		req.Prefix(q.Prefix)
-		req.Versions(q.Versions)
-		req.PageToken(q.Cursor)
-		if q.MaxResults > 0 {
-			req.MaxResults(int64(q.MaxResults))
-		}
-	}
-	resp, err := req.Context(ctx).Do()
-	if err != nil {
-		return nil, err
-	}
-	objects := &ObjectList{
-		Results:  make([]*ObjectAttrs, len(resp.Items)),
-		Prefixes: make([]string, len(resp.Prefixes)),
-	}
-	for i, item := range resp.Items {
-		objects.Results[i] = newObject(item)
-	}
-	for i, prefix := range resp.Prefixes {
-		objects.Prefixes[i] = prefix
-	}
-	if resp.NextPageToken != "" {
-		next := Query{}
-		if q != nil {
-			// keep the other filtering
-			// criteria if there is a query
-			next = *q
-		}
-		next.Cursor = resp.NextPageToken
-		objects.Next = &next
-	}
-	return objects, nil
-}
-
 // SignedURLOptions allows you to restrict the access to the signed URL.
 type SignedURLOptions struct {
 	// GoogleAccessID represents the authorizer of the signed URL generation.
@@ -290,8 +199,24 @@ type SignedURLOptions struct {
 	//    $ openssl pkcs12 -in key.p12 -passin pass:notasecret -out key.pem -nodes
 	//
 	// Provide the contents of the PEM file as a byte slice.
-	// Required.
+	// Exactly one of PrivateKey or SignBytes must be non-nil.
 	PrivateKey []byte
+
+	// SignBytes is a function for implementing custom signing.
+	// If your application is running on Google App Engine, you can use appengine's internal signing function:
+	//     ctx := appengine.NewContext(request)
+	//     acc, _ := appengine.ServiceAccount(ctx)
+	//     url, err := SignedURL("bucket", "object", &SignedURLOptions{
+	//     	GoogleAccessID: acc,
+	//     	SignBytes: func(b []byte) ([]byte, error) {
+	//     		_, signedBytes, err := appengine.SignBytes(ctx, b)
+	//     		return signedBytes, err
+	//     	},
+	//     	// etc.
+	//     })
+	//
+	// Exactly one of PrivateKey or SignBytes must be non-nil.
+	SignBytes func([]byte) ([]byte, error)
 
 	// Method is the HTTP method to be used with the signed URL.
 	// Signed URLs can be used with GET, HEAD, PUT, and DELETE requests.
@@ -328,8 +253,11 @@ func SignedURL(bucket, name string, opts *SignedURLOptions) (string, error) {
 	if opts == nil {
 		return "", errors.New("storage: missing required SignedURLOptions")
 	}
-	if opts.GoogleAccessID == "" || opts.PrivateKey == nil {
-		return "", errors.New("storage: missing required credentials to generate a signed URL")
+	if opts.GoogleAccessID == "" {
+		return "", errors.New("storage: missing required GoogleAccessID")
+	}
+	if (opts.PrivateKey == nil) == (opts.SignBytes == nil) {
+		return "", errors.New("storage: exactly one of PrivateKey or SignedBytes must be set")
 	}
 	if opts.Method == "" {
 		return "", errors.New("storage: missing required method option")
@@ -337,26 +265,39 @@ func SignedURL(bucket, name string, opts *SignedURLOptions) (string, error) {
 	if opts.Expires.IsZero() {
 		return "", errors.New("storage: missing required expires option")
 	}
-	key, err := parseKey(opts.PrivateKey)
-	if err != nil {
-		return "", err
+
+	signBytes := opts.SignBytes
+	if opts.PrivateKey != nil {
+		key, err := parseKey(opts.PrivateKey)
+		if err != nil {
+			return "", err
+		}
+		signBytes = func(b []byte) ([]byte, error) {
+			sum := sha256.Sum256(b)
+			return rsa.SignPKCS1v15(
+				rand.Reader,
+				key,
+				crypto.SHA256,
+				sum[:],
+			)
+		}
+	} else {
+		signBytes = opts.SignBytes
 	}
+
 	u := &url.URL{
 		Path: fmt.Sprintf("/%s/%s", bucket, name),
 	}
-	h := sha256.New()
-	fmt.Fprintf(h, "%s\n", opts.Method)
-	fmt.Fprintf(h, "%s\n", opts.MD5)
-	fmt.Fprintf(h, "%s\n", opts.ContentType)
-	fmt.Fprintf(h, "%d\n", opts.Expires.Unix())
-	fmt.Fprintf(h, "%s", strings.Join(opts.Headers, "\n"))
-	fmt.Fprintf(h, "%s", u.String())
-	b, err := rsa.SignPKCS1v15(
-		rand.Reader,
-		key,
-		crypto.SHA256,
-		h.Sum(nil),
-	)
+
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, "%s\n", opts.Method)
+	fmt.Fprintf(buf, "%s\n", opts.MD5)
+	fmt.Fprintf(buf, "%s\n", opts.ContentType)
+	fmt.Fprintf(buf, "%d\n", opts.Expires.Unix())
+	fmt.Fprintf(buf, "%s", strings.Join(opts.Headers, "\n"))
+	fmt.Fprintf(buf, "%s", u.String())
+
+	b, err := signBytes(buf.Bytes())
 	if err != nil {
 		return "", err
 	}
@@ -446,7 +387,16 @@ func (o *ObjectHandle) Delete(ctx context.Context) error {
 	if err := applyConds("Delete", o.conds, call); err != nil {
 		return err
 	}
-	return call.Do()
+	err := call.Do()
+	switch e := err.(type) {
+	case nil:
+		return nil
+	case *googleapi.Error:
+		if e.Code == http.StatusNotFound {
+			return ErrObjectNotExist
+		}
+	}
+	return err
 }
 
 // CopyTo copies the object to the given dst.
@@ -487,6 +437,52 @@ func (o *ObjectHandle) CopyTo(ctx context.Context, dst *ObjectHandle, attrs *Obj
 	return newObject(obj), nil
 }
 
+// ComposeFrom concatenates the provided slice of source objects into a new
+// object whose destination is the receiver. The provided attrs, if not nil,
+// are used to set the attributes on the newly-created object. All source
+// objects must reside within the same bucket as the destination.
+func (o *ObjectHandle) ComposeFrom(ctx context.Context, srcs []*ObjectHandle, attrs *ObjectAttrs) (*ObjectAttrs, error) {
+	if o.bucket == "" || o.object == "" {
+		return nil, errors.New("storage: the destination bucket and object names must be non-empty")
+	}
+	if len(srcs) == 0 {
+		return nil, errors.New("storage: at least one source object must be specified")
+	}
+
+	req := &raw.ComposeRequest{}
+	if attrs != nil {
+		req.Destination = attrs.toRawObject(o.bucket)
+		req.Destination.Name = o.object
+	}
+
+	for _, src := range srcs {
+		if src.bucket != o.bucket {
+			return nil, fmt.Errorf("storage: all source objects must be in bucket %q, found %q", o.bucket, src.bucket)
+		}
+		if src.object == "" {
+			return nil, errors.New("storage: all source object names must be non-empty")
+		}
+		srcObj := &raw.ComposeRequestSourceObjects{
+			Name: src.object,
+		}
+		if err := applyConds("ComposeFrom source", src.conds, composeSourceObj{srcObj}); err != nil {
+			return nil, err
+		}
+		req.SourceObjects = append(req.SourceObjects, srcObj)
+	}
+
+	call := o.c.raw.Objects.Compose(o.bucket, o.object, req).Context(ctx)
+	if err := applyConds("ComposeFrom destination", o.conds, call); err != nil {
+		return nil, err
+	}
+
+	obj, err := call.Do()
+	if err != nil {
+		return nil, err
+	}
+	return newObject(obj), nil
+}
+
 // NewReader creates a new Reader to read the contents of the
 // object.
 // ErrObjectNotExist will be returned if the object is not found.
@@ -520,7 +516,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 	if err := applyConds("NewReader", o.conds, objectsGetCall{req}); err != nil {
 		return nil, err
 	}
-	if length < 0 {
+	if length < 0 && offset > 0 {
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
 	} else if length > 0 {
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, offset+length-1))
@@ -534,8 +530,13 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		return nil, ErrObjectNotExist
 	}
 	if res.StatusCode < 200 || res.StatusCode > 299 {
+		body, _ := ioutil.ReadAll(res.Body)
 		res.Body.Close()
-		return nil, fmt.Errorf("storage: can't read object %v/%v, status code: %v", o.bucket, o.object, res.Status)
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+			Body:   string(body),
+		}
 	}
 	if offset > 0 && length != 0 && res.StatusCode != http.StatusPartialContent {
 		res.Body.Close()
@@ -547,9 +548,6 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		return nil, fmt.Errorf("storage: can't parse content length %q: %v", clHeader, err)
 	}
 	remain := res.ContentLength
-	if remain < 0 {
-		return nil, errors.New("storage: unknown content length")
-	}
 	body := res.Body
 	if length == 0 {
 		remain = 0
@@ -612,64 +610,6 @@ func parseKey(key []byte) (*rsa.PrivateKey, error) {
 	return parsed, nil
 }
 
-// BucketAttrs represents the metadata for a Google Cloud Storage bucket.
-type BucketAttrs struct {
-	// Name is the name of the bucket.
-	Name string
-
-	// ACL is the list of access control rules on the bucket.
-	ACL []ACLRule
-
-	// DefaultObjectACL is the list of access controls to
-	// apply to new objects when no object ACL is provided.
-	DefaultObjectACL []ACLRule
-
-	// Location is the location of the bucket. It defaults to "US".
-	Location string
-
-	// MetaGeneration is the metadata generation of the bucket.
-	MetaGeneration int64
-
-	// StorageClass is the storage class of the bucket. This defines
-	// how objects in the bucket are stored and determines the SLA
-	// and the cost of storage. Typical values are "STANDARD" and
-	// "DURABLE_REDUCED_AVAILABILITY". Defaults to "STANDARD".
-	StorageClass string
-
-	// Created is the creation time of the bucket.
-	Created time.Time
-}
-
-func newBucket(b *raw.Bucket) *BucketAttrs {
-	if b == nil {
-		return nil
-	}
-	bucket := &BucketAttrs{
-		Name:           b.Name,
-		Location:       b.Location,
-		MetaGeneration: b.Metageneration,
-		StorageClass:   b.StorageClass,
-		Created:        convertTime(b.TimeCreated),
-	}
-	acl := make([]ACLRule, len(b.Acl))
-	for i, rule := range b.Acl {
-		acl[i] = ACLRule{
-			Entity: ACLEntity(rule.Entity),
-			Role:   ACLRole(rule.Role),
-		}
-	}
-	bucket.ACL = acl
-	objACL := make([]ACLRule, len(b.DefaultObjectAcl))
-	for i, rule := range b.DefaultObjectAcl {
-		objACL[i] = ACLRule{
-			Entity: ACLEntity(rule.Entity),
-			Role:   ACLRole(rule.Role),
-		}
-	}
-	bucket.DefaultObjectACL = objACL
-	return bucket
-}
-
 func toRawObjectACL(oldACL []ACLRule) []*raw.ObjectAccessControl {
 	var acl []*raw.ObjectAccessControl
 	if len(oldACL) > 0 {
@@ -682,28 +622,6 @@ func toRawObjectACL(oldACL []ACLRule) []*raw.ObjectAccessControl {
 		}
 	}
 	return acl
-}
-
-// toRawBucket copies the editable attribute from b to the raw library's Bucket type.
-func (b *BucketAttrs) toRawBucket() *raw.Bucket {
-	var acl []*raw.BucketAccessControl
-	if len(b.ACL) > 0 {
-		acl = make([]*raw.BucketAccessControl, len(b.ACL))
-		for i, rule := range b.ACL {
-			acl[i] = &raw.BucketAccessControl{
-				Entity: string(rule.Entity),
-				Role:   string(rule.Role),
-			}
-		}
-	}
-	dACL := toRawObjectACL(b.DefaultObjectACL)
-	return &raw.Bucket{
-		Name:             b.Name,
-		DefaultObjectAcl: dACL,
-		Location:         b.Location,
-		StorageClass:     b.StorageClass,
-		Acl:              acl,
-	}
 }
 
 // toRawObject copies the editable attributes from o to the raw library's Object type.
@@ -803,6 +721,12 @@ type ObjectAttrs struct {
 	// For buckets with versioning enabled, changing an object's
 	// metadata does not change this property. This field is read-only.
 	Updated time.Time
+
+	// Prefix is set only for ObjectAttrs which represent synthetic "directory
+	// entries" when iterating over buckets using Query.Delimiter. See
+	// ObjectIterator.Next. When set, no other fields in ObjectAttrs will be
+	// populated.
+	Prefix string
 }
 
 // convertTime converts a time in RFC3339 format to time.Time.
@@ -882,29 +806,17 @@ type Query struct {
 	// Cursor is a previously-returned page token
 	// representing part of the larger set of results to view.
 	// Optional.
+	//
+	// Deprecated: Use ObjectIterator.PageInfo().Token instead.
 	Cursor string
 
 	// MaxResults is the maximum number of items plus prefixes
 	// to return. As duplicate prefixes are omitted,
 	// fewer total results may be returned than requested.
 	// The default page limit is used if it is negative or zero.
+	//
+	// Deprecated: Use ObjectIterator.PageInfo().MaxSize instead.
 	MaxResults int
-}
-
-// ObjectList represents a list of objects returned from a bucket List call.
-type ObjectList struct {
-	// Results represent a list of object results.
-	Results []*ObjectAttrs
-
-	// Next is the continuation query to retrieve more
-	// results with the same filtering criteria. If there
-	// are no more results to retrieve, it is nil.
-	Next *Query
-
-	// Prefixes represents prefixes of objects
-	// matching-but-not-listed up to and including
-	// the requested delimiter.
-	Prefixes []string
 }
 
 // contentTyper implements ContentTyper to enable an
@@ -1018,3 +930,23 @@ func (c objectsGetCall) IfMetagenerationMatch(gen int64) {
 func (c objectsGetCall) IfMetagenerationNotMatch(gen int64) {
 	appendParam(c.req, "ifMetagenerationNotMatch", fmt.Sprint(gen))
 }
+
+// composeSourceObj wraps a *raw.ComposeRequestSourceObjects, but adds the methods
+// that modifyCall searches for by name.
+type composeSourceObj struct {
+	src *raw.ComposeRequestSourceObjects
+}
+
+func (c composeSourceObj) Generation(gen int64) {
+	c.src.Generation = gen
+}
+
+func (c composeSourceObj) IfGenerationMatch(gen int64) {
+	// It's safe to overwrite ObjectPreconditions, since its only field is
+	// IfGenerationMatch.
+	c.src.ObjectPreconditions = &raw.ComposeRequestSourceObjectsObjectPreconditions{
+		IfGenerationMatch: gen,
+	}
+}
+
+// TODO(jbd): Add storage.objects.watch.
