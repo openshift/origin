@@ -39,6 +39,7 @@ var map_DeploymentCondition = map[string]string{
 	"":                   "DeploymentCondition describes the state of a deployment config at a certain point.",
 	"type":               "Type of deployment condition.",
 	"status":             "Status of the condition, one of True, False, Unknown.",
+	"lastUpdateTime":     "The last time this condition was updated.",
 	"lastTransitionTime": "The last time the condition transitioned from one status to another.",
 	"reason":             "The reason for the condition's last transition.",
 	"message":            "A human readable message indicating details about the transition.",

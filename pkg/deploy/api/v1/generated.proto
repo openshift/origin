@@ -51,6 +51,9 @@ message DeploymentCondition {
   // Status of the condition, one of True, False, Unknown.
   optional string status = 2;
 
+  // The last time this condition was updated.
+  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastUpdateTime = 6;
+
   // The last time the condition transitioned from one status to another.
   optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
 

@@ -105,6 +105,7 @@ func DeepCopy_api_DeploymentCondition(in interface{}, out interface{}, c *conver
 		out := out.(*DeploymentCondition)
 		out.Type = in.Type
 		out.Status = in.Status
+		out.LastUpdateTime = in.LastUpdateTime.DeepCopy()
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
 		out.Reason = in.Reason
 		out.Message = in.Message

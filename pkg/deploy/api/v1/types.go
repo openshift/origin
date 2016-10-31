@@ -343,7 +343,7 @@ type DeploymentCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// The last time this condition was updated.
-	LastUpdateTime unversioned.Time `json:"lastUpdateTime,omitempty"`
+	LastUpdateTime unversioned.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
 	// The last time the condition transitioned from one status to another.
 	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
