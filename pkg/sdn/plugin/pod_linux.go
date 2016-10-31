@@ -182,18 +182,25 @@ func addMacvlan(netns string) error {
 		return fmt.Errorf("failed to find default route interface")
 	}
 
-	return ns.WithNetNSPath(netns, func(ns.NetNS) error {
-		err := netlink.LinkAdd(&netlink.Macvlan{
-			LinkAttrs: netlink.LinkAttrs{
-				MTU:         defIface.Attrs().MTU,
-				Name:        "macvlan0",
-				ParentIndex: defIface.Attrs().Index,
-			},
-			Mode: netlink.MACVLAN_MODE_PRIVATE,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create macvlan interface: %v", err)
-		}
+	podNs, err := ns.GetNS(netns)
+	if err != nil {
+		return fmt.Errorf("could not open netns %q", netns)
+	}
+	defer podNs.Close()
+
+	err = netlink.LinkAdd(&netlink.Macvlan{
+		LinkAttrs: netlink.LinkAttrs{
+			MTU:         defIface.Attrs().MTU,
+			Name:        "macvlan0",
+			ParentIndex: defIface.Attrs().Index,
+			Namespace:   netlink.NsFd(podNs.Fd()),
+		},
+		Mode: netlink.MACVLAN_MODE_PRIVATE,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create macvlan interface: %v", err)
+	}
+	return podNs.Do(func(netns ns.NetNS) error {
 		l, err := netlink.LinkByName("macvlan0")
 		if err != nil {
 			return fmt.Errorf("failed to find macvlan interface: %v", err)
