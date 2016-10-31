@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -9,6 +10,8 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -156,4 +159,50 @@ func TestProxyConfig(t *testing.T) {
 		t.Logf("Difference %s", diff.ObjectReflectDiff(expectedDefaultConfig, actualDefaultConfig))
 	}
 
+}
+
+func TestBuildCloudProviderFake(t *testing.T) {
+	providerName := "fake"
+	cloudprovider.RegisterCloudProvider(providerName, func(config io.Reader) (cloudprovider.Interface, error) {
+		return &fake.FakeCloud{}, nil
+	})
+
+	server := kubeletoptions.NewKubeletServer()
+	server.CloudProvider = providerName
+
+	cloud, err := buildCloudProvider(server)
+	if err != nil {
+		t.Errorf("buildCloudProvider failed: %v", err)
+	}
+	if cloud == nil {
+		t.Errorf("buildCloudProvider returned nil cloud provider")
+	} else {
+		if cloud.ProviderName() != providerName {
+			t.Errorf("Invalid cloud provider returned, expected %q, got %q", providerName, cloud.ProviderName())
+		}
+	}
+}
+
+func TestBuildCloudProviderNone(t *testing.T) {
+	server := kubeletoptions.NewKubeletServer()
+	server.CloudProvider = ""
+	cloud, err := buildCloudProvider(server)
+	if err != nil {
+		t.Errorf("buildCloudProvider failed: %v", err)
+	}
+	if cloud != nil {
+		t.Errorf("buildCloudProvider returned cloud provider %q where nil was expected", cloud.ProviderName())
+	}
+}
+
+func TestBuildCloudProviderError(t *testing.T) {
+	server := kubeletoptions.NewKubeletServer()
+	server.CloudProvider = "unknown-provider-name"
+	cloud, err := buildCloudProvider(server)
+	if err == nil {
+		t.Errorf("buildCloudProvider returned no error when one was expected")
+	}
+	if cloud != nil {
+		t.Errorf("buildCloudProvider returned cloud provider %q where nil was expected", cloud.ProviderName())
+	}
 }
