@@ -141,7 +141,7 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 	return handler, nil
 }
 
-// Have to convert to arrays because go templates are limited and we need to be able to know
+// Have to convert to arrays because Go templates are limited and we need to be able to know
 // if we are on the last index for trailing commas in JSON
 func extensionPropertyArray(extensionProperties map[string]string) []assets.WebConsoleExtensionProperty {
 	extensionPropsArray := []assets.WebConsoleExtensionProperty{}
