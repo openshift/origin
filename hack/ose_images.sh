@@ -391,7 +391,8 @@ show_git_diffs() {
     else
       echo "  To view/modify changes, go to: ${workingdir}/${container}"
       echo "(c)ontinue [rhpkg commit], (i)gnore, (q)uit [exit script] : "
-      read choice < /dev/tty
+      read choice_raw < /dev/tty
+      choice=$(echo "${choice_raw}" | awk '{print $1}')
       case ${choice} in
         c | C | continue )
           mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff
@@ -428,7 +429,8 @@ backfill_dockerfile() {
     popd >/dev/null
   else
     echo "(c)ontinue [replace old Dockerfile.product], (i)gnore [leave old Dockerfile.product] : "
-    read choice < /dev/tty
+    read choice_raw < /dev/tty
+    choice=$(echo "${choice_raw}" | awk '{print $1}')
     case ${choice} in
       c | C | continue )
         cp -f Dockerfile ${workingdir}/${git_path}/Dockerfile.product
@@ -544,7 +546,7 @@ To login, visit https://api.qe.openshift.com/oauth/token/request then
 
 start_push_image() {
   pushd "${workingdir}/${container}" >/dev/null
-  package_name=`grep Name= Dockerfile | cut -d'"' -f2`
+  package_name=`grep " name=" Dockerfile | cut -d'"' -f2`
   if ! [ "${update_version}" == "TRUE" ] ; then
     version_version=`grep version= Dockerfile | cut -d'"' -f2`
   fi
