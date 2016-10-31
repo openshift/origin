@@ -2,10 +2,14 @@ package kubernetes
 
 import (
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -158,17 +162,19 @@ func TestProxyConfig(t *testing.T) {
 		t.Errorf("Default kube proxy config has changed. Adjust buildKubeProxyConfig() as needed to disable or make use of additions.")
 		t.Logf("Difference %s", diff.ObjectReflectDiff(expectedDefaultConfig, actualDefaultConfig))
 	}
+}
 
+var fakeCloudProviderName = "fake"
+
+func init() {
+	cloudprovider.RegisterCloudProvider(fakeCloudProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		return &fake.FakeCloud{}, nil
+	})
 }
 
 func TestBuildCloudProviderFake(t *testing.T) {
-	providerName := "fake"
-	cloudprovider.RegisterCloudProvider(providerName, func(config io.Reader) (cloudprovider.Interface, error) {
-		return &fake.FakeCloud{}, nil
-	})
-
 	server := kubeletoptions.NewKubeletServer()
-	server.CloudProvider = providerName
+	server.CloudProvider = fakeCloudProviderName
 
 	cloud, err := buildCloudProvider(server)
 	if err != nil {
@@ -177,8 +183,8 @@ func TestBuildCloudProviderFake(t *testing.T) {
 	if cloud == nil {
 		t.Errorf("buildCloudProvider returned nil cloud provider")
 	} else {
-		if cloud.ProviderName() != providerName {
-			t.Errorf("Invalid cloud provider returned, expected %q, got %q", providerName, cloud.ProviderName())
+		if cloud.ProviderName() != fakeCloudProviderName {
+			t.Errorf("Invalid cloud provider returned, expected %q, got %q", fakeCloudProviderName, cloud.ProviderName())
 		}
 	}
 }
@@ -204,5 +210,86 @@ func TestBuildCloudProviderError(t *testing.T) {
 	}
 	if cloud != nil {
 		t.Errorf("buildCloudProvider returned cloud provider %q where nil was expected", cloud.ProviderName())
+	}
+}
+
+var masterKubeConfigText = `apiVersion: v1
+clusters:
+- cluster:
+    server: http://localhost:8080
+  name: unit-test
+contexts:
+- context:
+    cluster: unit-test
+    user: ""
+  name: unit-test
+current-context: unit-test
+kind: Config
+preferences: {}
+users: []`
+
+func TestBuildKubernetesNodeConfig_CloudProvider(t *testing.T) {
+	tests := []struct {
+		name           string
+		cloudProvider  string
+		expectProvider bool
+	}{
+		{"no provider set", "", false},
+		{"fake provider", fakeCloudProviderName, true},
+	}
+
+	for _, test := range tests {
+		testDir, err := ioutil.TempDir("", "test-build-kube-node-config")
+		if err != nil {
+			t.Fatalf("%s: error creating test temp dir: %v", test.name, err)
+		}
+		defer os.RemoveAll(testDir)
+
+		err = ioutil.WriteFile(filepath.Join(testDir, "masterKubeConfig"), []byte(masterKubeConfigText), 0600)
+		if err != nil {
+			t.Fatalf("%s: error writing master kube config: %v", test.name, err)
+		}
+
+		enableProxy := false
+		enableDNS := false
+		options := configapi.NodeConfig{
+			// the following items are required just to have BuildKubernetesNodeConfig
+			// return without error
+			MasterKubeConfig: filepath.Join(testDir, "masterKubeConfig"),
+			ServingInfo: configapi.ServingInfo{
+				BindAddress: "0.0.0.0:12345",
+				ServerCert: configapi.CertInfo{
+					// fill in something here (even references to bogus files) to keep the
+					// kubelet code from trying to generate self signed certs in
+					// /var/run/kubernetes, which will get a permission denied error
+					CertFile: "foo",
+					KeyFile:  "bar",
+				},
+			},
+			IPTablesSyncPeriod: "15s",
+			AuthConfig: configapi.NodeAuthConfig{
+				AuthenticationCacheTTL: "60s",
+				AuthorizationCacheTTL:  "60s",
+			},
+
+			// actual test items
+			KubeletArguments: configapi.ExtendedArguments{
+				"cloud-provider": []string{test.cloudProvider},
+			},
+		}
+		nc, err := BuildKubernetesNodeConfig(options, enableProxy, enableDNS)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		if test.expectProvider {
+			if nc.KubeletDeps.Cloud == nil {
+				t.Errorf("%s: expected cloud provider to be set but it was nil", test.name)
+			} else if e, a := fakeCloudProviderName, nc.KubeletDeps.Cloud.ProviderName(); e != a {
+				t.Errorf("%s: expected cloud provider %q, got %q", test.name, e, a)
+			}
+		} else if nc.KubeletDeps.Cloud != nil {
+			t.Errorf("%s: expected no provider but got %q", test.name, nc.KubeletDeps.Cloud.ProviderName())
+		}
 	}
 }
