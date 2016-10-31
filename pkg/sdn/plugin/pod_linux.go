@@ -33,7 +33,6 @@ const (
 	sdnScript   = "openshift-sdn-ovs"
 	setUpCmd    = "setup"
 	tearDownCmd = "teardown"
-	statusCmd   = "status"
 	updateCmd   = "update"
 
 	AssignMacvlanAnnotation string = "pod.network.openshift.io/assign-macvlan"
