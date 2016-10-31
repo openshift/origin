@@ -35,7 +35,7 @@ var (
 func NewCmdRollout(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollout SUBCOMMAND",
-		Short: "rollout manages a deployment",
+		Short: "Manage a Kubernetes deployment or OpenShift deployment config",
 		Long:  rolloutLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
