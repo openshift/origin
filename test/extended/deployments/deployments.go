@@ -536,8 +536,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			g.By("verifying that we cannot start a new deployment")
+			g.By("verifying that we cannot start a new deployment via oc deploy")
 			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
+
+			g.By("verifying that we cannot start a new deployment via oc rollout")
+			out, err := oc.Run("rollout").Args("latest", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
