@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9e8552928615d2208ec60f9be963ad89b8bfec7b
+%global commit a2ed4ce669d97c9656f877e529ddc3c90b4c4475
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.16+9e85529-69 OS_GIT_COMMIT=9e85529 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.17+a2ed4ce-38 OS_GIT_COMMIT=a2ed4ce OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.17
+Version:        3.4.0.18
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -492,6 +492,45 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Oct 31 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.18
+- Merge remote-tracking branch upstream/master, bump origin-web-console 9f1003a
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e30aa32263beacd860469cc1bd825a16fe41060b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  12e11b40cc788780f93bde167ce0a7ff04b02d2d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d8dad85ae673fe5d7be2f5a393f2f67594ea0ad2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2ad1f38354a58596a048ebd8a369fd733b165126 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d618617a596a4cac65ca6781f7422aa138659d0e (dmcphers+openshiftbot@redhat.com)
+- reorder sample pipeline parameters for priority/importance
+  (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c3e34937c3e516d785299571ec20aa1afb3472df (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1ec5a2a739138f31d5a3f2e3cf9401e07f8cc3e1 (dmcphers+openshiftbot@redhat.com)
+- make service controller failure non-fatal (sjenning@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ea5fc5ee0f064cb717bfc93e6adbafa1833a4e13 (dmcphers+openshiftbot@redhat.com)
+- Give the release images a fake golang provides (ccoleman@redhat.com)
+- Update cluster up documentation (cewong@redhat.com)
+- Skip retrieving logs if journalctl is not available (maszulik@redhat.com)
+- Revert "Getting docker logs always to debug issue 8399" (maszulik@redhat.com)
+- Replace uses of `validate_reponse` with `os::cmd::try_until_text`
+  (skuznets@redhat.com)
+- UPSTREAM: 33024: Add "PrintErrorWithCauses" kcmdutil helper
+  (jvallejo@redhat.com)
+- Make status errors with  multiple causes cleaner (jvallejo@redhat.com)
+- Update ose_images.sh - 2016-10-28 (tdawson@redhat.com)
+- HACKING.md fix format (jay@apache.org)
+- Adds display name to image streams, updates PostgreSQL link
+  (jacoblucky@gmail.com)
+- Add some details to cherry picking for newcomers (jay@apache.org)
+- Expose test build option for RPM `make` targets (skuznets@redhat.com)
+- Add godoc to justify use of developmentRedirectURI (jvallejo@redhat.com)
+
 * Fri Oct 28 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.17
 - Merge remote-tracking branch upstream/master, bump origin-web-console df20542
   (tdawson@redhat.com)
