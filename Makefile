@@ -237,24 +237,33 @@ install-travis:
 
 # Build RPMs only for the Linux AMD64 target
 #
+# Args:
+#   BUILD_TESTS: whether or not to build a test RPM, off by default
+#
 # Example:
 #   make build-rpms
 build-rpms:
-	OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+	BUILD_TESTS=$(BUILD_TESTS) OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
 .PHONY: build-rpms
 
 # Build RPMs for all architectures
 #
+# Args:
+#   BUILD_TESTS: whether or not to build a test RPM, off by default
+#
 # Example:
 #   make build-rpms-redistributable
 build-rpms-redistributable:
-	hack/build-rpm-release.sh
+	BUILD_TESTS=$(BUILD_TESTS) hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
 
 # Build a release of OpenShift using tito for linux/amd64 and the images that depend on it.
 #
+# Args:
+#   BUILD_TESTS: whether or not to build a test RPM, off by default
+#
 # Example:
-#   make release
+#   make release-rpms BUILD_TESTS=1
 release-rpms: clean build-rpms
 	hack/build-images.sh
 	hack/extract-release.sh
