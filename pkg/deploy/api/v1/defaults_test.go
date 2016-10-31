@@ -232,6 +232,41 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 		},
+		{
+			original: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							MaxSurge:            newIntOrString(intstr.FromInt(0)),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{},
+					},
+				},
+			},
+			expected: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
+							MaxSurge:            newIntOrString(intstr.FromInt(0)),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{},
+					},
+				},
+			},
+		},
 	}
 
 	for i, test := range tests {
