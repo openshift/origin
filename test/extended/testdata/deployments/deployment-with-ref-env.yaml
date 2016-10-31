@@ -20,7 +20,7 @@ spec:
                 configMapKeyRef:
                   name: test
                   key: foo
-          command: ["/bin/bash", "-c", "echo hello ${HELLO}"]
+          command: ["/bin/bash", "-c", "echo hello ${HELLO} && exit 1"]
   template:
     metadata:
       labels:
@@ -28,6 +28,6 @@ spec:
     spec:
       containers:
       - image: "openshift/origin-base:latest"
-        args: [ "sleep 120" ]
+        command: [ "/bin/bash", "-c", "sleep infinity" ]
         imagePullPolicy: IfNotPresent
         name: myapp
