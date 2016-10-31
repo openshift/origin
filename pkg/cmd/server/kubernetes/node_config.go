@@ -17,9 +17,11 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	kubeletnetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -213,6 +215,13 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize cloud provider
+	cloud, err := buildCloudProvider(server)
+	if err != nil {
+		return nil, err
+	}
+	deps.Cloud = cloud
 
 	// Replace the kubelet-created CNI plugin with the SDN plugin
 	// Kubelet must be initialized with NetworkPluginName="cni" but
@@ -426,4 +435,18 @@ func validateNetworkPluginName(originClient *osclient.Client, pluginName string)
 		}
 	}
 	return nil
+}
+
+func buildCloudProvider(server *kubeletoptions.KubeletServer) (cloudprovider.Interface, error) {
+	if len(server.CloudProvider) == 0 || server.CloudProvider == v1alpha1.AutoDetectCloudProvider {
+		return nil, nil
+	}
+	cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	if cloud != nil {
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q", server.CloudProvider, server.CloudConfigFile)
+	}
+	return cloud, nil
 }
