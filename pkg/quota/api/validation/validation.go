@@ -1,6 +1,10 @@
 package validation
 
 import (
+	"fmt"
+	"os"
+	"runtime/debug"
+
 	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -42,7 +46,40 @@ func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) f
 		}
 	}
 
+	CheckTotals(clusterquota)
+
 	return allErrs
+}
+
+func CheckTotals(q *quotaapi.ClusterResourceQuota) {
+	namespaces := map[string]int{}
+	namespacesTotal := 0
+
+	for e := q.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
+		namespace := e.Value.(string)
+		used, _ := q.Status.Namespaces.Get(namespace)
+
+		s := used.Used["secrets"]
+		namespaces[namespace] = int(s.Value())
+		namespacesTotal = namespacesTotal + int(s.Value())
+	}
+
+	totalUse := q.Status.Total.Used["secrets"]
+	total := int(totalUse.Value())
+
+	if total != namespacesTotal {
+		// for i := 1; i < 5; i++ {
+		// 	_, file, line, _ := runtime.Caller(i)
+		// 	fmt.Printf("%s:%d\n", file, line)
+		// }
+		fmt.Printf("   !!! set total to %d when namespaces were %d (%v)\n", total, namespacesTotal, namespaces)
+		debug.PrintStack()
+		os.Exit(1)
+	} else {
+		// _, file, line, _ := runtime.Caller(1)
+		// fmt.Printf("%s:%d\n", file, line)
+		// fmt.Printf("   set total to %d when namespaces were %d (%v)\n", total, namespacesTotal, namespaces)
+	}
 }
 
 func ValidateClusterResourceQuotaUpdate(clusterquota, oldClusterResourceQuota *quotaapi.ClusterResourceQuota) field.ErrorList {
