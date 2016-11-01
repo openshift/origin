@@ -117,6 +117,15 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 
 		g.cacheSizes[resource] = size
 	}
+
+	// set some hardcoded defaults
+	// assuming each CRQ controls two resources for 100 projects, these are about 500k in memory each
+	// the default would take about 500MB of RAM, which doesn't sound too bad to me, but it is an awful lot
+	// to hold very little since these are updated a lot, but there are very few of them.
+	if _, ok := g.cacheSizes[unversioned.GroupResource{Resource: "clusterresourcequotas"}]; !ok {
+		g.cacheSizes[unversioned.GroupResource{Resource: "clusterresourcequotas"}] = 50
+	}
+
 	return kerrors.NewAggregate(errs)
 }
 
