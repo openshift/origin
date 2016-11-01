@@ -69,13 +69,11 @@ add_ovs_flows() {
 }
 
 del_ovs_flows() {
-    if [ "$ipaddr" != "" ]; then
+    if [ -n "$ipaddr" ]; then
         ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_dst=${ipaddr}"
         ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_src=${ipaddr}"
         ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
         ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_src=${ipaddr}"
-    else
-        echo "No ip address given for teardown of ${veth_host}, could have been called twice.  Skipping flow deletion"
     fi
 
     qos=$(ovs-vsctl get port ${veth_host} qos)
