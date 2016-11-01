@@ -15,12 +15,43 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
+// all build strategy types
+func buildStrategyTypes() []string {
+	return []string{"source", "docker", "custom", "jenkinspipeline"}
+}
+
+// build strategy types that are not granted by default to system:authenticated
+func buildStrategyTypesRestricted() []string {
+	return []string{"custom"}
+}
+
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	builds := map[string]*buildapi.Build{}
+
+	restrictedStrategies := make(map[string]int)
+	for key, val := range buildStrategyTypesRestricted() {
+		restrictedStrategies[val] = key
+	}
+
+	// ensure that restricted strategy types can not be created
+	for _, strategy := range buildStrategyTypes() {
+		for clientType, client := range clients {
+			var err error
+			builds[string(strategy)+clientType], err = createBuild(t, client.Builds(testutil.Namespace()), strategy)
+			_, restricted := restrictedStrategies[strategy]
+			if kapierror.IsForbidden(err) && !restricted {
+				t.Errorf("unexpected error for strategy %s and client %s: %v", strategy, clientType, err)
+			} else if !kapierror.IsForbidden(err) && restricted {
+				t.Errorf("expected forbidden for strategy %s and client %s: Got success instead ", strategy, clientType)
+			}
+		}
+	}
+
+	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
 
 	// Create builds to setup test
 	for _, strategy := range buildStrategyTypes() {
@@ -40,7 +71,6 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 			}
 		}
 	}
-
 	removeBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
 
 	// make sure builds are rejected
@@ -77,8 +107,28 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	buildConfigs := map[string]*buildapi.BuildConfig{}
+	restrictedStrategies := make(map[string]int)
+	for key, val := range buildStrategyTypesRestricted() {
+		restrictedStrategies[val] = key
+	}
 
-	// by default admins and editors can create all type of buildconfigs
+	// ensure that restricted strategy types can not be created
+	for _, strategy := range buildStrategyTypes() {
+		for clientType, client := range clients {
+			var err error
+			buildConfigs[string(strategy)+clientType], err = createBuildConfig(t, client.BuildConfigs(testutil.Namespace()), strategy)
+			_, restricted := restrictedStrategies[strategy]
+			if kapierror.IsForbidden(err) && !restricted {
+				t.Errorf("unexpected error for strategy %s and client %s: %v", strategy, clientType, err)
+			} else if !kapierror.IsForbidden(err) && restricted {
+				t.Errorf("expected forbidden for strategy %s and client %s: Got success instead ", strategy, clientType)
+			}
+		}
+	}
+
+	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+
+	// by default admins and editors can create source, docker, and jenkinspipline buildconfigs
 	for _, strategy := range buildStrategyTypes() {
 		for clientType, client := range clients {
 			var err error
@@ -125,10 +175,6 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 			}
 		}
 	}
-}
-
-func buildStrategyTypes() []string {
-	return []string{"source", "docker", "custom", "jenkinspipeline"}
 }
 
 func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
@@ -202,13 +248,13 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	// remove resources from role so that certain build strategies are forbidden
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
-		remove := &policy.RoleModificationOptions{
+		options := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
 			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
 			Groups:              []string{"system:authenticated"},
 		}
-		if err := remove.RemoveRole(); err != nil {
+		if err := options.RemoveRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
@@ -223,6 +269,25 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectA
 		t.Fatal(err)
 	}
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), false); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+	// grant resources to role so that restricted build strategies are available
+	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName} {
+		options := &policy.RoleModificationOptions{
+			RoleNamespace:       "",
+			RoleName:            role,
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			Groups:              []string{"system:authenticated"},
+		}
+		if err := options.AddRole(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
+	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 }
