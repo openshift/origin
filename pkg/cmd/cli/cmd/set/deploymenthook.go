@@ -123,7 +123,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 	cmd.Flags().BoolVar(&options.Mid, "mid", options.Mid, "Set or remove a mid deployment hook")
 	cmd.Flags().BoolVar(&options.Post, "post", options.Post, "Set or remove a post deployment hook")
 
-	cmd.Flags().StringSliceVarP(&options.Environment, "environment", "e", options.Environment, "Environment variables to use in the deployment hook pod")
+	cmd.Flags().StringArrayVarP(&options.Environment, "environment", "e", options.Environment, "Environment variable to use in the deployment hook pod")
 	cmd.Flags().StringSliceVarP(&options.Volumes, "volumes", "v", options.Volumes, "Volumes from the pod template to use in the deployment hook pod")
 
 	cmd.Flags().String("failure-policy", "ignore", "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
@@ -235,6 +235,9 @@ func (o *DeploymentHookOptions) Validate() error {
 	if len(o.Command) == 0 {
 		return fmt.Errorf("you must specify a command for the deployment hook")
 	}
+
+	cmdutil.WarnAboutCommaSeparation(o.Err, o.Environment, "--environment")
+
 	return nil
 }
 

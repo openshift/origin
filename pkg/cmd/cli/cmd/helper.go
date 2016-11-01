@@ -1,6 +1,11 @@
 package cmd
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+)
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the
 // value (resource name) itself. The valid syntax is:
@@ -19,4 +24,14 @@ func parseNamespaceResourceName(v, defaultNamespace string) (ns, resource, name 
 		return defaultNamespace, "", parts[0], true
 	}
 	return "", "", "", false
+}
+
+// TODO: GetFlagStringArray already exists in kubernetes master, remove this
+// after rebasing to version that has it
+func getFlagStringArray(cmd *cobra.Command, flag string) []string {
+	s, err := cmd.Flags().GetStringArray(flag)
+	if err != nil {
+		glog.Fatalf("error accessing flag %s for command %s: %v", flag, cmd.Name(), err)
+	}
+	return s
 }
