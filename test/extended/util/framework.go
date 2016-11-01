@@ -555,8 +555,14 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 }
 
 // WaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
+// Defaults to waiting for 60 seconds
 func WaitForAnImageStreamTag(oc *CLI, namespace, name, tag string) error {
-	waitTimeout := time.Second * 60
+	return TimedWaitForAnImageStreamTag(oc, namespace, name, tag, time.Second*60)
+}
+
+// TimedWaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
+// Gives up waiting after the specified waitTimeout
+func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTimeout time.Duration) error {
 	g.By(fmt.Sprintf("waiting for an is importer to import a tag %s into a stream %s", tag, name))
 	start := time.Now()
 	c := make(chan error)

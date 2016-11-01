@@ -33,6 +33,7 @@ function os::test::extended::setup () {
 	fi
 
 	os::util::environment::setup_time_vars
+	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	# ensure proper relative directories are set
 	GINKGO="$(os::build::find-binary ginkgo)"
@@ -58,7 +59,6 @@ function os::test::extended::setup () {
 		os::log::info "Starting server"
 
 		os::util::environment::use_sudo
-		os::util::environment::setup_all_server_vars "test-extended/core"
 		os::util::environment::setup_images_vars
 
 		local sudo=${USE_SUDO:+sudo}
