@@ -336,7 +336,7 @@ docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY
 echo "[INFO] Docker login successful"
 
 echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-docker tag -f centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
+docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
 echo "[INFO] Pushed ruby-22-centos7"
 
