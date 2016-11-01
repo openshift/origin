@@ -3,7 +3,6 @@ package validation
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -125,23 +125,29 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 	//       break, so disable the hostname validation for now.
 	// hostname := route.Spec.Host
 	hostname := ""
-	var certPool *x509.CertPool
+	var verifyOptions *x509.VerifyOptions
 
 	if len(tlsConfig.CACertificate) > 0 {
-		certPool = x509.NewCertPool()
-		if ok := certPool.AppendCertsFromPEM([]byte(tlsConfig.CACertificate)); !ok {
-			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), tlsConfig.CACertificate, "failed to parse CA certificate"))
+		certPool := x509.NewCertPool()
+		if certs, err := cmdutil.CertificatesFromPEM([]byte(tlsConfig.CACertificate)); err != nil {
+			errmsg := fmt.Sprintf("failed to parse CA certificate: %v", err)
+			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "<ca certificate data>", errmsg))
+		} else {
+			for _, cert := range certs {
+				certPool.AddCert(cert)
+			}
 		}
-	}
 
-	verifyOptions := &x509.VerifyOptions{
-		DNSName: hostname,
-		Roots:   certPool,
+		verifyOptions = &x509.VerifyOptions{
+			DNSName:       hostname,
+			Intermediates: certPool,
+			Roots:         certPool,
+		}
 	}
 
 	if len(tlsConfig.Certificate) > 0 {
 		if _, err := validateCertificatePEM(tlsConfig.Certificate, verifyOptions); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), tlsConfig.Certificate, err.Error()))
+			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "<certificate data>", err.Error()))
 		}
 
 		certKeyBytes := []byte{}
@@ -152,14 +158,14 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 		}
 
 		if _, err := tls.X509KeyPair(certKeyBytes, certKeyBytes); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("key"), tlsConfig.Key, err.Error()))
+			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "<key data>", err.Error()))
 		}
 	}
 
 	if len(tlsConfig.DestinationCACertificate) > 0 {
-		roots := x509.NewCertPool()
-		if ok := roots.AppendCertsFromPEM([]byte(tlsConfig.DestinationCACertificate)); !ok {
-			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), tlsConfig.DestinationCACertificate, "failed to parse destination CA certificate"))
+		if _, err := cmdutil.CertificatesFromPEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
+			errmsg := fmt.Sprintf("failed to parse destination CA certificate: %v", err)
+			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "<destination ca certificate data>", errmsg))
 		}
 	}
 
@@ -212,25 +218,25 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 	//passthrough term should not specify any cert
 	case routeapi.TLSTerminationPassthrough:
 		if len(tls.Certificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("certificate"), tls.Certificate, "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("certificate"), "<certificate data>", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.Key) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("key"), tls.Key, "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("key"), "<key data>", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.CACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("caCertificate"), tls.CACertificate, "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("caCertificate"), "<ca certificate data>", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.DestinationCACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), tls.DestinationCACertificate, "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "<destination ca certificate data>", "passthrough termination does not support certificates"))
 		}
 	// edge cert should only specify cert, key, and cacert but those certs
 	// may not be specified if the route is a wildcard route
 	case routeapi.TLSTerminationEdge:
 		if len(tls.DestinationCACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), tls.DestinationCACertificate, "edge termination does not support destination certificates"))
+			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "<destination ca certificate data>", "edge termination does not support destination certificates"))
 		}
 	default:
 		validValues := []string{string(routeapi.TLSTerminationEdge), string(routeapi.TLSTerminationPassthrough), string(routeapi.TLSTerminationReencrypt)}
@@ -276,35 +282,31 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *fie
 
 // validateCertificatePEM checks if a certificate PEM is valid and
 // optionally verifies the certificate using the options.
-func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) (*x509.Certificate, error) {
-	var data *pem.Block
-	for remaining := []byte(certPEM); len(remaining) > 0; {
-		block, rest := pem.Decode(remaining)
-		if block == nil {
-			return nil, fmt.Errorf("error decoding certificate data")
-		}
-		if block.Type == "CERTIFICATE" {
-			data = block
-			break
-		}
-		remaining = rest
+func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) ([]*x509.Certificate, error) {
+	certs, err := cmdutil.CertificatesFromPEM([]byte(certPEM))
+	if err != nil {
+		return nil, err
 	}
 
-	if data == nil || len(data.Bytes) < 1 {
+	if len(certs) < 1 {
 		return nil, fmt.Errorf("invalid/empty certificate data")
 	}
 
-	cert, err := x509.ParseCertificate(data.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing certificate: %s", err.Error())
-	}
-
 	if options != nil {
-		_, err = cert.Verify(*options)
+		// Ensure we don't report errors for expired certs or if
+		// the validity is in the future.
+		// Not that this can be for the actual certificate or any
+		// intermediates in the CA chain. This allows the router to
+		// still serve an expired/valid-in-the-future certificate
+		// and lets the client to control if it can tolerate that
+		// (just like for self-signed certs).
+		_, err = certs[0].Verify(*options)
 		if err != nil {
-			return cert, fmt.Errorf("error verifying certificate: %s", err.Error())
+			if invalidErr, ok := err.(x509.CertificateInvalidError); !ok || invalidErr.Reason != x509.Expired {
+				return certs, fmt.Errorf("error verifying certificate: %s", err.Error())
+			}
 		}
 	}
 
-	return cert, nil
+	return certs, nil
 }
