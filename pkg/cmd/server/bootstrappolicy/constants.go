@@ -84,6 +84,7 @@ const (
 	MasterRoleName            = "system:master"
 	NodeRoleName              = "system:node"
 	NodeProxierRoleName       = "system:node-proxier"
+	SDNIntegratedRouterRole   = "system:sdn-integrated-router"
 	SDNReaderRoleName         = "system:sdn-reader"
 	SDNManagerRoleName        = "system:sdn-manager"
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"

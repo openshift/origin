@@ -548,6 +548,14 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: SDNIntegratedRouterRole,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: RegistryRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
