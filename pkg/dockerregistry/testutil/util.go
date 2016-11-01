@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
+	"net/http"
 	"net/url"
 	"testing"
 	"time"
@@ -19,6 +20,8 @@ import (
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/reference"
 	distclient "github.com/docker/distribution/registry/client"
+	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/transport"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -61,7 +64,7 @@ func NewImageForManifest(repoName string, rawManifest string, managedByOpenShift
 }
 
 // UploadTestBlob generates a random tar file and uploads it to the given repository.
-func UploadTestBlob(serverURL *url.URL, repoName string) (distribution.Descriptor, []byte, error) {
+func UploadTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName string) (distribution.Descriptor, []byte, error) {
 	rs, ds, err := CreateRandomTarFile()
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
@@ -73,7 +76,22 @@ func UploadTestBlob(serverURL *url.URL, repoName string) (distribution.Descripto
 	if err != nil {
 		return distribution.Descriptor{}, nil, err
 	}
-	repo, err := distclient.NewRepository(ctx, ref, serverURL.String(), nil)
+
+	var rt http.RoundTripper
+	if creds != nil {
+		challengeManager := auth.NewSimpleChallengeManager()
+		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
+		if err != nil {
+			return distribution.Descriptor{}, nil, err
+		}
+		rt = transport.NewTransport(
+			nil,
+			auth.NewAuthorizer(
+				challengeManager,
+				auth.NewTokenHandler(nil, creds, repoName, "pull", "push"),
+				auth.NewBasicHandler(creds)))
+	}
+	repo, err := distclient.NewRepository(ctx, ref, serverURL.String(), rt)
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("failed to get repository %q: %v", repoName, err)
 	}
@@ -246,4 +264,51 @@ func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageRefere
 			},
 		},
 	}
+}
+
+type testCredentialStore struct {
+	username      string
+	password      string
+	refreshTokens map[string]string
+}
+
+var _ auth.CredentialStore = &testCredentialStore{}
+
+// NewBasicCredentialStore returns a test credential store for use with registry token handler and/or basic
+// handler.
+func NewBasicCredentialStore(username, password string) auth.CredentialStore {
+	return &testCredentialStore{
+		username: username,
+		password: password,
+	}
+}
+
+func (tcs *testCredentialStore) Basic(*url.URL) (string, string) {
+	return tcs.username, tcs.password
+}
+
+func (tcs *testCredentialStore) RefreshToken(u *url.URL, service string) string {
+	return tcs.refreshTokens[service]
+}
+
+func (tcs *testCredentialStore) SetRefreshToken(u *url.URL, service string, token string) {
+	if tcs.refreshTokens != nil {
+		tcs.refreshTokens[service] = token
+	}
+}
+
+// ping pings the provided endpoint to determine its required authorization challenges.
+// If a version header is provided, the versions will be returned.
+func ping(manager auth.ChallengeManager, endpoint, versionHeader string) ([]auth.APIVersion, error) {
+	resp, err := http.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if err := manager.AddResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return auth.APIVersions(resp, versionHeader), err
 }
