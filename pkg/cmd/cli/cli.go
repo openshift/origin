@@ -269,7 +269,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
+	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
