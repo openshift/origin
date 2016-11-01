@@ -3391,7 +3391,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "OPENSHIFT_ENABLE_OAUTH",
-                    "value": "true"
+                    "value": "${ENABLE_OAUTH}"
                   },
                   {
                     "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
@@ -3535,6 +3535,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "displayName": "Jenkins JNLP Service Name",
       "description": "The name of the service used for master/slave communication.",
       "value": "jenkins-jnlp"
+    },
+    {
+      "name": "ENABLE_OAUTH",
+      "displayName": "Enable OAuth in Jenkins",
+      "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
+      "value": "true"
     },
     {
       "name": "MEMORY_LIMIT",
@@ -3694,7 +3700,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "OPENSHIFT_ENABLE_OAUTH",
-                    "value": "true"
+                    "value": "${ENABLE_OAUTH}"
                   },
                   {
                     "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
@@ -3838,6 +3844,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "displayName": "Jenkins JNLP Service Name",
       "description": "The name of the service used for master/slave communication.",
       "value": "jenkins-jnlp"
+    },
+    {
+      "name": "ENABLE_OAUTH",
+      "displayName": "Enable OAuth in Jenkins",
+      "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
+      "value": "true"
     },
     {
       "name": "MEMORY_LIMIT",
