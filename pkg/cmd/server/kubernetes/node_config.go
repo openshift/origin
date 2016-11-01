@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"strconv"
@@ -104,9 +105,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
 	}
 
-	clientCAs, err := kcrypto.CertPoolFromFile(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
+	var clientCAs *x509.CertPool
+	if len(options.ServingInfo.ClientCA) > 0 {
+		clientCAs, err = kcrypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
@@ -269,10 +273,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		}
 		deps.TLSOptions = &kubeletserver.TLSOptions{
 			Config: crypto.SecureTLSConfig(&tls.Config{
-				// RequestClientCert lets us request certs, but allow requests without client certs
-				// Verification is done by the authn layer
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  clientCAs,
 				// Set SNI certificate func
 				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
 				// which we do not control when running with http.Server#ListenAndServeTLS
@@ -280,6 +280,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 			}),
 			CertFile: options.ServingInfo.ServerCert.CertFile,
 			KeyFile:  options.ServingInfo.ServerCert.KeyFile,
+		}
+		if clientCAs != nil {
+			// RequestClientCert lets us request certs, but allow requests without client certs
+			// Verification is done by the authn layer
+			deps.TLSOptions.Config.ClientAuth = tls.RequestClientCert
+			deps.TLSOptions.Config.ClientCAs = clientCAs
 		}
 	} else {
 		deps.TLSOptions = nil
