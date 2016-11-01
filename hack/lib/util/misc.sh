@@ -165,3 +165,48 @@ function os::util::base64decode() {
 	fi
 }
 readonly -f os::util::base64decode
+
+# os::util::curl_etcd sends a request to the backing etcd store for the master.
+# We use the administrative client cert and key for access and re-encode them
+# as necessary for OSX clients.
+#
+# Globals:
+#  MASTER_CONFIG_DIR
+#  API_SCHEME
+#  API_HOST
+#  ETCD_PORT
+# Arguments:
+#  - 1: etcd-relative URL to curl, with leading slash
+# Returns:
+#  None
+function os::util::curl_etcd() {
+	local url="$1"
+	local full_url="${API_SCHEME}://${API_HOST}:${ETCD_PORT}${url}"
+
+	local etcd_client_cert="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
+	local etcd_client_key="${MASTER_CONFIG_DIR}/master.etcd-client.key"
+	local ca_bundle="${MASTER_CONFIG_DIR}/ca-bundle.crt"
+
+	if curl -V | grep -q 'SecureTransport'; then
+		# on newer OSX `curl` implementations, SSL is not used and client certs
+		# and keys are expected to be encoded in P12 format instead of PEM format,
+		# so we need to convert the secrets that the server wrote if we haven't
+		# already done so
+		local etcd_client_cert_p12="${MASTER_CONFIG_DIR}/master.etcd-client.crt.p12"
+		local etcd_client_cert_p12_password="${CURL_CERT_P12_PASSWORD:-'password'}"
+		if [[ ! -f "${etcd_client_cert_p12}" ]]; then
+			openssl pkcs12 -export                        \
+			               -in "${etcd_client_cert}"      \
+			               -inkey "${etcd_client_key}"    \
+			               -out "${etcd_client_cert_p12}" \
+			               -password "pass:${etcd_client_cert_p12_password}"
+		fi
+
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
+	fi
+
+
+	curl --fail --silent --cacert "${ca_bundle}" \
+	     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
+}
