@@ -1910,6 +1910,11 @@ Create a new application
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   oc new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
   
+  # Use the public Docker Hub MySQL image to create an app. On each container, set multiple environment variables present in a file containing key-value pairs.
+  oc new-app mysql --env-file=/path/to/env-file
+  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  oc new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   oc new-app --docker-image=myregistry.com/mycompany/mysql --name=private
   

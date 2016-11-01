@@ -77,6 +77,11 @@ var (
 	  # Create a Ruby application based on the provided [image]~[source code] combination
 	  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
+  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  
+  # Use the public Docker Hub MySQL image to create an app. On each container, set multiple environment variables present in a file containing key-value pairs.
+  %[1]s new-app mysql --env-file=/path/to/env-file
 	  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
 	  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
@@ -169,6 +174,8 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 	cmd.Flags().StringSliceVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a list of key value pairs (e.g., -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key-value pairs of environment variables to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
+	cmd.Flags().StringVar(&config.EnvironmentFile, "env-file", "", "Specify a file containing key-value pairs of environment variables to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
+	cmd.MarkFlagFilename("env-file")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
