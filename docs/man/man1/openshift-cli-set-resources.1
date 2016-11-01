@@ -44,6 +44,10 @@ Possible resources include (case insensitive): "ReplicationController", "Deploym
     The resource requirement requests for this container.  For example, 'cpu=100m,memory=256Mi'.  Note that server side components may assign requests depending on the server configuration, such as limit ranges.
 
 .PP
+\fB\-\-local\fP=false
+    If true, set resources will NOT contact api\-server but run locally.
+
+.PP
 \fB\-\-no\-headers\fP=false
     When using the default or custom\-column output format, don't print headers.
 
