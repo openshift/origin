@@ -256,7 +256,7 @@ func (o *NewAppOptions) RunNewApp() error {
 
 	if len(result.Name) > 0 {
 		// only set the computed implicit "app" label on objects if no object we've produced
-		// already has the "app" label.
+		// already has the "app" label with a different value.
 		appLabel := map[string]string{"app": result.Name}
 		hasAppLabel, err := hasLabel(appLabel, result)
 		if err != nil {
@@ -531,7 +531,7 @@ func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) 
 		if err != nil {
 			return false, err
 		}
-		err = util.AddObjectLabelsWithFlags(objCopy.(runtime.Object), labels, util.ErrorOnExistingDstKey)
+		err = util.AddObjectLabelsWithFlags(objCopy.(runtime.Object), labels, util.ErrorOnDifferentDstKeyValue)
 		if err != nil {
 			return true, nil
 		}
