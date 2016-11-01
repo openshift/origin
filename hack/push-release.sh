@@ -66,7 +66,7 @@ if [[ "${tag}" == ":latest" ]]; then
   if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
     for image in "${base_images[@]}"; do
       if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-        docker tag -f "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
+        docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
       fi
       docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
     done
@@ -90,7 +90,7 @@ fi
 
 if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
   for image in "${images[@]}"; do
-    docker tag -f "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+    docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
   done
 fi
 
