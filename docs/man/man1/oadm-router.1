@@ -60,6 +60,10 @@ If a router does not exist with the given name, this command will create a deplo
     If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.
 
 .PP
+\fB\-\-external\-host\-internal\-ip\fP=""
+    If the underlying router implementation requires the use of a specific network interface to connect to the pod network, this is the IP address of that internal interface.
+
+.PP
 \fB\-\-external\-host\-partition\-path\fP=""
     If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.
 
@@ -74,6 +78,10 @@ If a router does not exist with the given name, this command will create a deplo
 .PP
 \fB\-\-external\-host\-username\fP=""
     If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.
+
+.PP
+\fB\-\-external\-host\-vxlan\-gw\fP=""
+    If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.
 
 .PP
 \fB\-\-force\-subdomain\fP=""

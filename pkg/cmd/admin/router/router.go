@@ -183,6 +183,14 @@ type RouterConfig struct {
 	// the external host.
 	ExternalHostPrivateKey string
 
+	// ExternalHostInternalIP specifies the IP address of the internal interface that is
+	// used by the external host to connect to the pod network
+	ExternalHostInternalIP string
+
+	// ExternalHostVxLANGateway specifies the gateway IP and mask (cidr) of the IP
+	// address to be used to connect to the pod network from the external host
+	ExternalHostVxLANGateway string
+
 	// ExternalHostInsecure specifies that the router should skip strict
 	// certificate verification when connecting to the external host.
 	ExternalHostInsecure bool
@@ -271,6 +279,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ExternalHostHttpVserver, "external-host-http-vserver", cfg.ExternalHostHttpVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTP connections.")
 	cmd.Flags().StringVar(&cfg.ExternalHostHttpsVserver, "external-host-https-vserver", cfg.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
+	cmd.Flags().StringVar(&cfg.ExternalHostInternalIP, "external-host-internal-ip", cfg.ExternalHostInternalIP, "If the underlying router implementation requires the use of a specific network interface to connect to the pod network, this is the IP address of that internal interface.")
+	cmd.Flags().StringVar(&cfg.ExternalHostVxLANGateway, "external-host-vxlan-gw", cfg.ExternalHostVxLANGateway, "If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 
@@ -631,22 +641,24 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	env := app.Environment{
-		"ROUTER_SUBDOMAIN":                    cfg.Subdomain,
-		"ROUTER_SERVICE_NAME":                 name,
-		"ROUTER_SERVICE_NAMESPACE":            namespace,
-		"ROUTER_SERVICE_HTTP_PORT":            "80",
-		"ROUTER_SERVICE_HTTPS_PORT":           "443",
-		"ROUTER_EXTERNAL_HOST_HOSTNAME":       cfg.ExternalHost,
-		"ROUTER_EXTERNAL_HOST_USERNAME":       cfg.ExternalHostUsername,
-		"ROUTER_EXTERNAL_HOST_PASSWORD":       cfg.ExternalHostPassword,
-		"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":   cfg.ExternalHostHttpVserver,
-		"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":  cfg.ExternalHostHttpsVserver,
-		"ROUTER_EXTERNAL_HOST_INSECURE":       strconv.FormatBool(cfg.ExternalHostInsecure),
-		"ROUTER_EXTERNAL_HOST_PARTITION_PATH": cfg.ExternalHostPartitionPath,
-		"ROUTER_EXTERNAL_HOST_PRIVKEY":        privkeyPath,
-		"STATS_PORT":                          strconv.Itoa(cfg.StatsPort),
-		"STATS_USERNAME":                      cfg.StatsUsername,
-		"STATS_PASSWORD":                      cfg.StatsPassword,
+		"ROUTER_SUBDOMAIN":                      cfg.Subdomain,
+		"ROUTER_SERVICE_NAME":                   name,
+		"ROUTER_SERVICE_NAMESPACE":              namespace,
+		"ROUTER_SERVICE_HTTP_PORT":              "80",
+		"ROUTER_SERVICE_HTTPS_PORT":             "443",
+		"ROUTER_EXTERNAL_HOST_HOSTNAME":         cfg.ExternalHost,
+		"ROUTER_EXTERNAL_HOST_USERNAME":         cfg.ExternalHostUsername,
+		"ROUTER_EXTERNAL_HOST_PASSWORD":         cfg.ExternalHostPassword,
+		"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":     cfg.ExternalHostHttpVserver,
+		"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":    cfg.ExternalHostHttpsVserver,
+		"ROUTER_EXTERNAL_HOST_INSECURE":         strconv.FormatBool(cfg.ExternalHostInsecure),
+		"ROUTER_EXTERNAL_HOST_PARTITION_PATH":   cfg.ExternalHostPartitionPath,
+		"ROUTER_EXTERNAL_HOST_PRIVKEY":          privkeyPath,
+		"ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS": cfg.ExternalHostInternalIP,
+		"ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR":    cfg.ExternalHostVxLANGateway,
+		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
+		"STATS_USERNAME":                        cfg.StatsUsername,
+		"STATS_PASSWORD":                        cfg.StatsPassword,
 	}
 	if len(cfg.ForceSubdomain) > 0 {
 		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
