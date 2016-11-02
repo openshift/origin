@@ -40,10 +40,6 @@ func FindCgroupMountpoint(subsystem string) (string, error) {
 		txt := scanner.Text()
 		fields := strings.Split(txt, " ")
 		for _, opt := range strings.Split(fields[len(fields)-1], ",") {
-			// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
-			if strings.Contains(fields[4], ",") {
-				continue
-			}
 			if opt == subsystem {
 				return fields[4], nil
 			}
@@ -71,10 +67,6 @@ func FindCgroupMountpointAndRoot(subsystem string) (string, string, error) {
 		txt := scanner.Text()
 		fields := strings.Split(txt, " ")
 		for _, opt := range strings.Split(fields[len(fields)-1], ",") {
-			// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
-			if strings.Contains(fields[4], ",") {
-				continue
-			}
 			if opt == subsystem {
 				return fields[4], fields[3], nil
 			}
@@ -107,12 +99,6 @@ func FindCgroupMountpointDir() (string, error) {
 	for scanner.Scan() {
 		text := scanner.Text()
 		fields := strings.Split(text, " ")
-
-		// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
-		if strings.Contains(fields[4], ",") {
-			continue
-		}
-
 		// Safe as mountinfo encodes mountpoints with spaces as \040.
 		index := strings.Index(text, " - ")
 		postSeparatorFields := strings.Fields(text[index+3:])
@@ -153,7 +139,7 @@ func (m Mount) GetThisCgroupDir(cgroups map[string]string) (string, error) {
 	return getControllerPath(m.Subsystems[0], cgroups)
 }
 
-func getCgroupMountsHelper(ss map[string]bool, mi io.Reader) ([]Mount, error) {
+func getCgroupMountsHelper(ss map[string]bool, mi io.Reader, all bool) ([]Mount, error) {
 	res := make([]Mount, 0, len(ss))
 	scanner := bufio.NewScanner(mi)
 	numFound := 0
@@ -167,10 +153,6 @@ func getCgroupMountsHelper(ss map[string]bool, mi io.Reader) ([]Mount, error) {
 			continue
 		}
 		fields := strings.Split(txt, " ")
-		// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
-		if strings.Contains(fields[4], ",") {
-			continue
-		}
 		m := Mount{
 			Mountpoint: fields[4],
 			Root:       fields[3],
@@ -184,7 +166,9 @@ func getCgroupMountsHelper(ss map[string]bool, mi io.Reader) ([]Mount, error) {
 			} else {
 				m.Subsystems = append(m.Subsystems, opt)
 			}
-			numFound++
+			if !all {
+				numFound++
+			}
 		}
 		res = append(res, m)
 	}
@@ -194,23 +178,25 @@ func getCgroupMountsHelper(ss map[string]bool, mi io.Reader) ([]Mount, error) {
 	return res, nil
 }
 
-func GetCgroupMounts() ([]Mount, error) {
+// GetCgroupMounts returns the mounts for the cgroup subsystems.
+// all indicates whether to return just the first instance or all the mounts.
+func GetCgroupMounts(all bool) ([]Mount, error) {
 	f, err := os.Open("/proc/self/mountinfo")
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	all, err := ParseCgroupFile("/proc/self/cgroup")
+	allSubsystems, err := ParseCgroupFile("/proc/self/cgroup")
 	if err != nil {
 		return nil, err
 	}
 
 	allMap := make(map[string]bool)
-	for s := range all {
+	for s := range allSubsystems {
 		allMap[s] = true
 	}
-	return getCgroupMountsHelper(allMap, f)
+	return getCgroupMountsHelper(allMap, f, all)
 }
 
 // GetAllSubsystems returns all the cgroup subsystems supported by the kernel
