@@ -132,6 +132,13 @@ func (d CheckServiceNetwork) checkConnection(pods []kapi.Pod, services []kapi.Se
 			}
 		}
 	}
+
+	if !sameNamespace {
+		d.res.Warn("DSvcNet1012", nil, fmt.Sprintf("Same Namespace: %s", warnMsg))
+	}
+	if !diffNamespace {
+		d.res.Warn("DSvcNet1013", nil, fmt.Sprintf("Different namespaces: %s", warnMsg))
+	}
 }
 
 func getAllServices(kubeClient *kclient.Client) ([]kapi.Service, error) {
