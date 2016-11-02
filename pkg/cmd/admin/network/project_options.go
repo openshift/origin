@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -84,7 +85,17 @@ func (p *ProjectOptions) Validate() error {
 		errList = append(errList, errors.New("must provide --selector=<project_selector> or projects"))
 	}
 
-	// TODO: Validate if the openshift master is running with mutitenant network plugin
+	clusterNetwork, err := p.Oclient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+	if err != nil {
+		if kapierrors.IsNotFound(err) {
+			errList = append(errList, errors.New("Managing pod network is only supported for openshift multitenant network plugin"))
+		} else {
+			errList = append(errList, errors.New("Failed to fetch current network plugin info"))
+		}
+	} else if !sdnapi.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
+		errList = append(errList, fmt.Errorf("Using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
+	}
+
 	return kerrors.NewAggregate(errList)
 }
 
