@@ -5711,6 +5711,10 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                   {
                     "name": "DJANGO_SECRET_KEY",
                     "value": "${DJANGO_SECRET_KEY}"
+                  },
+                  {
+                    "name": "ALLOWED_HOSTS",
+                    "value": "['*']"
                   }
                 ],
                 "resources": {
