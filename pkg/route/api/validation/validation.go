@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	kval "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/util/sets"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -35,6 +36,10 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
 			result = append(result, field.Invalid(specPath.Child("host"), route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
+	}
+
+	if err := validateWildcardPolicy(route.Spec.WildcardPolicy, specPath.Child("wildcardPolicy")); err != nil {
+		result = append(result, err)
 	}
 
 	if len(route.Spec.Path) > 0 && !strings.HasPrefix(route.Spec.Path, "/") {
@@ -90,6 +95,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
+	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.WildcardPolicy, older.Spec.WildcardPolicy, field.NewPath("spec", "wildcardPolicy"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }
@@ -307,4 +313,23 @@ func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) (*x509.
 	}
 
 	return cert, nil
+}
+
+var (
+	allowedWildcardPolicies    = []string{string(routeapi.WildcardPolicyNone), string(routeapi.WildcardPolicySubdomain)}
+	allowedWildcardPoliciesSet = sets.NewString(allowedWildcardPolicies...)
+)
+
+// validateWildcardPolicy tests that the wildcard policy is either empty or one of the supported types.
+func validateWildcardPolicy(policy routeapi.WildcardPolicyType, fldPath *field.Path) *field.Error {
+	if len(policy) == 0 {
+		return nil
+	}
+
+	// Check if policy is one of None or Subdomain.
+	if !allowedWildcardPoliciesSet.Has(string(policy)) {
+		return field.NotSupported(fldPath, policy, allowedWildcardPolicies)
+	}
+
+	return nil
 }
