@@ -98,6 +98,24 @@ func env(name, defaultValue string) string {
 	return defaultValue
 }
 
+func envIf(name, defaultValue, pattern string) string {
+	envValue := env(name, defaultValue)
+
+	if len(pattern) == 0 || matchPattern(pattern, envValue) {
+		return envValue
+	}
+	glog.V(4).Infof("Returning default value of %s for %s so the router can deploy", defaultValue, name)
+
+	return defaultValue //assumes default values are valid
+}
+
+func annotation(userValue, defaultValue, pattern string) string {
+	if len(pattern) > 0 && matchPattern(pattern, userValue) {
+		return userValue
+	}
+	return defaultValue
+}
+
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
@@ -107,6 +125,8 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
 		"isInteger":         isInteger,         //determines if a given variable is an integer
 		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
+		"envIf":             envIf,             //tries to get an enviroment variable and validate if it can't return default
+		"annotation":        annotation,        //tries to get an annotation and validate if it can't return default
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
