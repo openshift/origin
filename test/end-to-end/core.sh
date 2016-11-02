@@ -419,6 +419,8 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
 os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
+# Wait for the rollout to finish
+os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
 # Test retrieving application logs from dc
 os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production database'
 os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
