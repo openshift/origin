@@ -76,7 +76,7 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if !ok {
-		d.res.Warn("DNet2002", nil, fmt.Sprintf("Skipping network diagnostics check. Reason: Not using openshift network plugin."))
+		d.res.Warn("DNet2002", nil, "Skipping network diagnostics check. Reason: Not using openshift network plugin.")
 		return d.res
 	}
 
@@ -86,7 +86,7 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if len(d.nodes) == 0 {
-		d.res.Warn("DNet2004", nil, fmt.Sprint("Skipping network checks. Reason: No schedulable/ready nodes found."))
+		d.res.Warn("DNet2004", nil, "Skipping network checks. Reason: No schedulable/ready nodes found.")
 		return d.res
 	}
 
