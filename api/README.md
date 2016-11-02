@@ -25,4 +25,4 @@ From the openshift-docs source repo you can generate these directly in one step 
     $ cd ../openshift-docs
     $ rake import_api
 
-This will invoke update-swagger-docs.sh and import the API into rest_api/.  After importing you'll need to add the correct adoc metadata to the top of kubernetes_v1.adoc and openshift_v1.adoc (pulls to automate that welcome).
+This will invoke update-generated-swagger-docs.sh and import the API into rest_api/.  After importing you'll need to add the correct adoc metadata to the top of kubernetes_v1.adoc and openshift_v1.adoc (pulls to automate that welcome).
