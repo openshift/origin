@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -319,6 +320,49 @@ func TestDumpReaderToFile(t *testing.T) {
 	stringData := string(data)
 	if stringData != testString {
 		t.Fatalf("Wrong file content %s != %s", testString, stringData)
+	}
+}
+
+func TestChangeResourcePatch(t *testing.T) {
+	tests := []struct {
+		input    runtime.Object
+		expected string
+	}{
+		{
+			input: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+				},
+			},
+			expected: `{"metadata":{"annotations":{"kubernetes.io/change-cause":"changed by foo"}}}`,
+		},
+		{
+			input: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+					Annotations: map[string]string{
+						"kubernetes.io/change-cause": "changed by foo",
+					},
+				},
+			},
+			expected: "{}",
+		},
+	}
+	for _, test := range tests {
+		accessor, _ := meta.TypeAccessor(test.input)
+		info := resource.Info{
+			Object: test.input,
+			Mapping: &meta.RESTMapping{
+				GroupVersionKind: unversioned.FromAPIVersionAndKind(accessor.GetAPIVersion(), accessor.GetKind()),
+			},
+		}
+		result, err := ChangeResourcePatch(&info, "changed by foo")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if string(result) != test.expected {
+			t.Errorf("expected %q got %q", test.expected, string(result))
+		}
 	}
 }
 
