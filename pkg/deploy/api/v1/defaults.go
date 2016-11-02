@@ -71,6 +71,7 @@ func SetDefaults_RecreateDeploymentStrategyParams(obj *RecreateDeploymentStrateg
 		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
 	}
 }
+
 func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyParams) {
 	if obj.IntervalSeconds == nil {
 		obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
@@ -88,6 +89,18 @@ func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyP
 		maxUnavailable := intstr.FromString("25%")
 		obj.MaxUnavailable = &maxUnavailable
 
+		maxSurge := intstr.FromString("25%")
+		obj.MaxSurge = &maxSurge
+	}
+
+	if obj.MaxUnavailable == nil && obj.MaxSurge != nil &&
+		(*obj.MaxSurge == intstr.FromInt(0) || *obj.MaxSurge == intstr.FromString("0%")) {
+		maxUnavailable := intstr.FromString("25%")
+		obj.MaxUnavailable = &maxUnavailable
+	}
+
+	if obj.MaxSurge == nil && obj.MaxUnavailable != nil &&
+		(*obj.MaxUnavailable == intstr.FromInt(0) || *obj.MaxUnavailable == intstr.FromString("0%")) {
 		maxSurge := intstr.FromString("25%")
 		obj.MaxSurge = &maxSurge
 	}

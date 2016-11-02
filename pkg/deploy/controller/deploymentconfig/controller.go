@@ -351,7 +351,7 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 	if latestRC != nil {
 		switch deployutil.DeploymentStatusFor(latestRC) {
 		case deployapi.DeploymentStatusPending:
-			msg := fmt.Sprintf("Waiting on deployer pod for replication controller %q to be scheduled", latestRC.Name)
+			msg := fmt.Sprintf("Replication controller %q is waiting for pod %q to run", latestRC.Name, deployutil.DeployerPodNameForDeployment(latestRC.Name))
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusRunning:
