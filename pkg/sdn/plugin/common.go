@@ -14,14 +14,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/fields"
+	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 func getPodContainerID(pod *kapi.Pod) string {
 	if len(pod.Status.ContainerStatuses) > 0 {
-		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
-		if parts := strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://"); len(parts) > 1 {
-			return parts[1]
-		}
+		return kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
 	}
 	return ""
 }
