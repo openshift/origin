@@ -94,7 +94,11 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	req, _ := http.NewRequest("GET", p.userAPIURL, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", data.AccessToken))
 
-	res, err := http.DefaultClient.Do(req)
+	client := http.DefaultClient
+	if p.transport != nil {
+		client = &http.Client{Transport: p.transport}
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, false, err
 	}
