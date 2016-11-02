@@ -77,6 +77,10 @@ func SetDeploymentCondition(status *deployapi.DeploymentConfigStatus, condition 
 	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
 		return
 	}
+	// Preserve lastTransitionTime if we are not switching between statuses of a condition.
+	if currentCond != nil && currentCond.Status == condition.Status {
+		condition.LastTransitionTime = currentCond.LastTransitionTime
+	}
 	newConditions := filterOutCondition(status.Conditions, condition.Type)
 	status.Conditions = append(newConditions, condition)
 }

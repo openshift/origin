@@ -169,14 +169,25 @@ func (t *templater) optionsCmdFor(c *cobra.Command) string {
 	if !c.Runnable() {
 		return ""
 	}
-	rootCmdStructure := t.parents(c)
-	for i := len(rootCmdStructure) - 1; i >= 0; i-- {
-		cmd := rootCmdStructure[i]
-		if _, _, err := cmd.Find([]string{"options"}); err == nil {
-			return cmd.CommandPath() + " options"
+
+	parentCmdHasOptsArg := false
+	currentCmdHasOptsArg := false
+
+	if t.RootCmd.HasParent() {
+		if _, _, err := t.RootCmd.Parent().Find([]string{"options"}); err == nil {
+			parentCmdHasOptsArg = true
 		}
 	}
-	return ""
+
+	if _, _, err := t.RootCmd.Find([]string{"options"}); err == nil {
+		currentCmdHasOptsArg = true
+	}
+
+	if (parentCmdHasOptsArg && currentCmdHasOptsArg) || !t.RootCmd.HasParent() {
+		return t.RootCmd.CommandPath() + " options"
+	}
+
+	return t.RootCmd.Parent().CommandPath() + " options"
 }
 
 func (t *templater) usageLine(c *cobra.Command) string {

@@ -48,6 +48,7 @@ type TemplatePluginConfig struct {
 	StatsUsername          string
 	StatsPassword          string
 	IncludeUDP             bool
+	AllowWildcardRoutes    bool
 	PeerService            *ktypes.NamespacedName
 }
 
@@ -107,6 +108,8 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
 		"isInteger":         isInteger,         //determines if a given variable is an integer
 		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
+
+		"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
@@ -138,6 +141,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		statsUser:              cfg.StatsUsername,
 		statsPassword:          cfg.StatsPassword,
 		statsPort:              cfg.StatsPort,
+		allowWildcardRoutes:    cfg.AllowWildcardRoutes,
 		peerEndpointsKey:       peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)

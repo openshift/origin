@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a2ed4ce669d97c9656f877e529ddc3c90b4c4475
+%global commit ee835673597629789e82a5c6db200a2ee6f629fc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.17+a2ed4ce-38 OS_GIT_COMMIT=a2ed4ce OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.18+ee83567-128 OS_GIT_COMMIT=ee83567 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.18
+Version:        3.4.0.19
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -492,6 +492,191 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Nov 02 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.19
+- Merge remote-tracking branch upstream/master, bump origin-web-console b476d31
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3d0d7c23d3eb7a858daad9f6995e71326ce2be4b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c971f7568a31038543a4ec3f26188ca563e6e714 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d08915b806cd94bda01941e9589d2f98f39adc3d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2478dab5f3396516a008761df66d71663d80c81d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d62161e496bf902a3c8c30d7b79a7bbb0605df0c (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 35082: Wait for all pods to be running before checking PDB status
+  (maszulik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7928c08da8959bd851013a9b61c8569c9c7e85a7 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: <drop>: add Timeout to client-go Config (agoldste@redhat.com)
+- Removed `--force` flag from `docker tag` invocations (skuznets@redhat.com)
+- Fix the failing serialization test - need a custom fuzzer to default the
+  wildcard policy. (smitram@gmail.com)
+- Fixes oc help global options hint (ffranz@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ed5d1ccb56350d4e3c72c27f7923d778907a44d5 (dmcphers+openshiftbot@redhat.com)
+- Refactor scripts to use `oc get --raw` when possible (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4e66d443ec2918e6cba6256c4bfea1c0a8397b68 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  45e492f2f140fa3742895d10d0b379440cf2d06d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2701326256a43fda48739b211b1e88df570a8f88 (dmcphers+openshiftbot@redhat.com)
+- Use custom transport for gitlab communication (jliggitt@redhat.com)
+- fix oc whoami --show-server output (jvallejo@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9c9f464e58da31df472fab9edef1502dfb6e2b2a (dmcphers+openshiftbot@redhat.com)
+- Fixes bug 1380462 - https://bugzilla.redhat.com/show_bug.cgi?id=1380462
+  (cdaley@redhat.com)
+- update extended tests to work with non-empty output (jvallejo@redhat.com)
+- update e2e test to work with non-emtpy output (jvallejo@redhat.com)
+- UPSTREAM: 32722: warn on empty oc get output (jvallejo@redhat.com)
+- UPSTREAM: 34434: Print valid json/yaml output (jvallejo@redhat.com)
+- print valid json/yaml output (jvallejo@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  15caab12bc98d8be9decbcdf41fbbdd572118ff5 (dmcphers+openshiftbot@redhat.com)
+- new-app: validate that Dockerfile from the repository has numeric EXPOSE
+  directive (when strategy wasn't specified). (vsemushi@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  904eaca0a5e0ed5e1562a172ce064d125dec8e31 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  41d96f74bd672d4a4a67ff75796b1819c5d7f6d0 (dmcphers+openshiftbot@redhat.com)
+- Generated clientset (maszulik@redhat.com)
+- bump(k8s.io/client-go): d72c0e162789e1bbb33c33cfa26858a1375efe01
+  (maszulik@redhat.com)
+- Add cloud.google.com to supported hosts (maszulik@redhat.com)
+- UPSTREAM: <drop>: Continue to carry the cAdvisor patch - revert
+  (maszulik@redhat.com)
+- UPSTREAM: 33806: Update cAdvisor godeps for v1.4.1 (maszulik@redhat.com)
+- bump(github.com/google/cadvisor): ef63d70156d509efbbacfc3e86ed120228fab914
+  (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  2dffea37104471547b865307415876cba2bdf1fc - revert (maszulik@redhat.com)
+- UPSTREAM: 34368: Node status updater should SetNodeStatusUpdateNeeded if it
+  fails to (maszulik@redhat.com)
+- UPSTREAM: 35273: Fixed mutation warning in Attach/Detach controller
+  (maszulik@redhat.com)
+- UPSTREAM: 35071: Change merge key for VolumeMount to mountPath
+  (maszulik@redhat.com)
+- UPSTREAM: 34955: HPA: fixed wrong count for target replicas calculations
+  (maszulik@redhat.com)
+- UPSTREAM: 34895: Fix non-starting node controller in 1.4 branch
+  (maszulik@redhat.com)
+- UPSTREAM: 34851: Only wait for cache syncs once in NodeController
+  (maszulik@redhat.com)
+- UPSTREAM: 34251: Fix nil pointer issue when getting metrics from volume
+  mounter (maszulik@redhat.com)
+- UPSTREAM: 34809: NodeController waits for informer sync before doing anything
+  (maszulik@redhat.com)
+- UPSTREAM: 34694: Handle DeletedFinalStateUnknown in NodeController
+  (maszulik@redhat.com)
+- UPSTREAM: 34076: Remove headers that are unnecessary for proxy target
+  (maszulik@redhat.com)
+- UPSTREAM: 33968: scheduler: initialize podsWithAffinity (maszulik@redhat.com)
+- UPSTREAM: 33735: Fixes in HPA: consider only running pods; proper denominator
+  in avg (maszulik@redhat.com)
+- UPSTREAM: 33796: Fix issue in updating device path when volume is attached
+  multiple times (maszulik@redhat.com)
+- UPSTREAM: 32914: Limit the number of names per image reported in the node
+  status (maszulik@redhat.com)
+- UPSTREAM: 32807: Fix race condition in setting node statusUpdateNeeded flag
+  (maszulik@redhat.com)
+- UPSTREAM: 33346: disallow user to update loadbalancerSourceRanges
+  (maszulik@redhat.com)
+- UPSTREAM: 33170: Remove closing audit log file and add error check when
+  writing to audit (maszulik@redhat.com)
+- UPSTREAM: 33086: Fix possible panic in PodAffinityChecker
+  (maszulik@redhat.com)
+- bump(github.com/google/cadvisor): 0cdf4912793fac9990de3790c273342ec31817fb
+  (maszulik@redhat.com)
+- Fix oauth redirect ref in jenkins service account (cewong@redhat.com)
+- Fixing kubernetes_plugin extended test failure
+  (root@dhcp137-43.rdu.redhat.com)
+- UPSTREAM: 33014: Kubelet: Use RepoDigest for ImageID when available
+  (sross@redhat.com)
+- Fix EgressNetworkPolicy match-all-IPs special case (danw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d3402a50e89c5d476f9a41f6e4ac964eaeceddd0 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  05de64a8417d48ef33ba4474c15aa271010895ab (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1029c81d8cfd04534683ebd87b28ca3bad99b339 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d4becd8aedc3f39efdb1272a1cd66ff1212c9e7c (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6631cc234d01243f12a594b949dad5b60a0211fd (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cd29ae2a7530f67924f5ea6ee26ff8afc9394602 (dmcphers+openshiftbot@redhat.com)
+- provide the ability to modify the prefix of error reporting and ignore some
+  errors in cmd operations (pweil@redhat.com)
+- Jenkins imagestream scm extended tests (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cb2212c6008c41196a78c43a4b3dd1de4ba8248f (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b0ce978d52143e0f3d9d4ecc36f40a905d4f31f4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  78a74f7768b05f2a73508e0d2e9a9b33bbecb7b3 (dmcphers+openshiftbot@redhat.com)
+- deploy: correct updating lastTransitionTime in deployment conditions
+  (mkargaki@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  693c33e8a5724f6b3d7d659411f3eeeea0aad78a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e5b9d0fbfd2b3cceb0f9674d2361af0960861bb2 (dmcphers+openshiftbot@redhat.com)
+- Update ose_images.sh - 2016-10-31 (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d1d6113a8d3dc6f2654d02d33332c110009ff4d0 (dmcphers+openshiftbot@redhat.com)
+- Initialize cloud provider in node (jsafrane@redhat.com)
+- deploy: drop paused conditions (mkargaki@redhat.com)
+- Update rules for upstream deployment rollbacks (mkargaki@redhat.com)
+- cli: remove support for comma-separated template values (mmilata@redhat.com)
+- Fix as per @liggitt review comments - write wildcard spec as is in the
+  rejection. (smitram@gmail.com)
+- Fixes as per @liggitt review comments:   o Fix generated route protobuf file
+  o Default Route.Spec.WildcardPolicy to None   o Add WildcardPolicy to
+  RouteIngress in RouteStatus (defaulting to None)   o Record admitted wildcard
+  policy when recording route status   o Reject wildcard routes when wildcards
+  are disabled   o Change admission functions to just return errors (no bool)
+  and update     checks for policy to use a switch in lieu of a if statement
+  o Simpilify RouteLessThan api helper function   o Make
+  Route.Spec.WildcardPolicy immutable (in update validation)   o Log details
+  about conflicting routes, but don't leak info to the user   o Change error to
+  "HostAlreadyClaimed"   o Add checks for defaults on Spec and Ingress
+  WildcardPolicy in conversion tests. (smitram@gmail.com)
+- Test run with --dry-run and attachable containers (ffranz@redhat.com)
+- UPSTREAM: 35732: validate run with --dry-run and attachable containers
+  (ffranz@redhat.com)
+- UPSTREAM: 34298: Fix potential panic in namespace controller
+  (decarr@redhat.com)
+- to fix service account informer to podsecuritypolicyreview (salvatore-
+  dario.minonne@amadeus.com)
+- bump(github.com/spf13/pflag): 5ccb023bc27df288a957c5e994cd44fd19619465
+  (mmilata@redhat.com)
+- Align with other cli descriptions (yu.peng36@zte.com.cn)
+- UPSTREAM: 30836:  fix Dynamic provisioning for vSphere (gethemant@gmail.com)
+- Change to use helper function and fix up helper function expectations and
+  tests and add missing generated files. (smitram@gmail.com)
+- Data structure rework (jliggitt@redhat.com)
+-    o Split out cert list and use commit from PR 11217    o Allow wildcard
+  (currently only *.) routes to be created and add tests.    o Add a host
+  admission controller and allow/deny list of domains and control      the
+  admission/blockage of wildcard routes.    o Fix test cases and expection.
+  o Add helper to generate valid wildcard regular expressions.    o Add
+  wildcard domain map + regex based rules and use the rules for wildcard
+  routes.    o Bug fixes and add tests.    o Add generated completions and
+  docs.    o Changes as per @marun, @rajatchopra, @smarterclayton review
+  comments    o Rework as per api changes to use wildcard policy with routes
+  o Add defaults and update generated files. (smitram@gmail.com)
+- Fix an issue with route ordering: it was possible for a newer route to be
+  reported as the older route based on name/namespace checks. Ensure that we
+  have a stable ordering based on the age of a route. (smitram@gmail.com)
+- UPSTREAM: 35420: Remove Job also from .status.active for Replace strategy
+  (maszulik@redhat.com)
+- Fix for bugz https://bugzilla.redhat.com/show_bug.cgi?id=1337322 Add
+  Spec.Host validation for dns labels and subdomain at runtime - this is not
+  enabled in the API validation checks on route creation. And fixes as per
+  @smarterclayton review comments. (smitram@gmail.com)
+
 * Mon Oct 31 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.18
 - Merge remote-tracking branch upstream/master, bump origin-web-console 9f1003a
   (tdawson@redhat.com)

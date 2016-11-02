@@ -105,7 +105,7 @@ var _ = g.Describe("[image_ecosystem][jenkins] schedule jobs on pod slaves", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("grant service account in jenkins container access to API")
-			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+oc.Namespace()+":jenkins", "-n", oc.Namespace()).Execute()
+			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+oc.Namespace()+":default", "-n", oc.Namespace()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("instantiate the master template")

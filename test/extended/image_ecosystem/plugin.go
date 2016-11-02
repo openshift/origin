@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -770,6 +771,46 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		})
 
+		testImageStreamSCM := func(jobXMLFile string) {
+			jobName := "test-imagestream-scm"
+			g.By("creating a jenkins job with an imagestream SCM")
+			data := j.readJenkinsJob(jobXMLFile, oc.Namespace())
+			j.createItem(jobName, data)
+
+			// Because polling is enabled, a job should start automatically and fail
+			// Wait for it to run and fail
+			tree := url.QueryEscape("jobs[name,color]")
+			xpath := url.QueryEscape("//job/name[text()='test-imagestream-scm']/../color")
+			jobStatusURI := "api/xml?tree=%s&xpath=%s"
+			g.By("waiting for initial job to complete")
+			wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
+				result, status, err := j.getResource(jobStatusURI, tree, xpath)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if status == 200 && strings.Contains(result, "red") {
+					return true, nil
+				}
+				return false, nil
+			})
+
+			// Create a new imagestream tag and expect a job to be kicked off
+			// that will create a new tag in the current namespace
+			g.By("creating an imagestream tag in the current project")
+			oc.Run("tag").Args("openshift/jenkins:latest", fmt.Sprintf("%s/testimage:v1", oc.Namespace())).Execute()
+
+			// Wait after the image has been tagged for the Jenkins job to run
+			// and create the new imagestream/tag
+			g.By("verifying that the job ran by looking for the resulting imagestream tag")
+			err := exutil.TimedWaitForAnImageStreamTag(oc, oc.Namespace(), "localjenkins", "develop", 10*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		g.It("jenkins-plugin test imagestream SCM", func() {
+			testImageStreamSCM("imagestream-scm-job.xml")
+		})
+
+		g.It("jenkins-plugin test imagestream SCM DSL", func() {
+			testImageStreamSCM("imagestream-scm-dsl-job.xml")
+		})
 	})
 
 })

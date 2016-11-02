@@ -84,6 +84,7 @@ func Convert_api_Route_To_v1_Route(in *api.Route, out *Route, s conversion.Scope
 }
 
 func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.RouteIngress, s conversion.Scope) error {
+	SetDefaults_RouteIngress(in)
 	out.Host = in.Host
 	out.RouterName = in.RouterName
 	if in.Conditions != nil {
@@ -97,6 +98,7 @@ func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.
 	} else {
 		out.Conditions = nil
 	}
+	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 
@@ -118,6 +120,7 @@ func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *api.RouteIngress, out *
 	} else {
 		out.Conditions = nil
 	}
+	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 
@@ -224,6 +227,7 @@ func Convert_api_RoutePort_To_v1_RoutePort(in *api.RoutePort, out *RoutePort, s 
 }
 
 func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *api.RouteSpec, s conversion.Scope) error {
+	SetDefaults_RouteSpec(in)
 	out.Host = in.Host
 	out.Path = in.Path
 	if err := Convert_v1_RouteTargetReference_To_api_RouteTargetReference(&in.To, &out.To, s); err != nil {
@@ -258,6 +262,7 @@ func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *api.RouteSpec
 	} else {
 		out.TLS = nil
 	}
+	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 
@@ -300,6 +305,7 @@ func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *api.RouteSpec, out *RouteSpec
 	} else {
 		out.TLS = nil
 	}
+	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
 

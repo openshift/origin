@@ -91,15 +91,12 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 	if kcmdutil.GetFlagBool(cmd, "show-server") {
-		cfg, err := f.OpenShiftClientConfig.RawConfig()
+		cfg, err := f.OpenShiftClientConfig.ClientConfig()
 		if err != nil {
 			return err
 		}
-		for _, c := range cfg.Clusters {
-			fmt.Fprintf(out, "%s\n", c.Server)
-			return nil
-		}
-		return fmt.Errorf("unable to get clusters. Cannot retrieve server URL.")
+		fmt.Fprintf(out, "%s\n", cfg.Host)
+		return nil
 	}
 
 	client, _, err := f.Clients()

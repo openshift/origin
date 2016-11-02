@@ -70,96 +70,6 @@ function wait_for_command() {
 }
 readonly -f wait_for_command
 
-# wait_for_file returns 0 if a file exists, 1 if it does not exist
-#
-# $1 - The file to check for existence
-# $2 - Optional time to sleep between attempts (Default: 0.2s)
-# $3 - Optional number of attemps to make (Default: 10)
-function wait_for_file() {
-	file=$1
-	wait=${2:-0.2}
-	times=${3:-10}
-	for i in $(seq 1 $times); do
-		if [ -f "${file}" ]; then
-			return 0
-		fi
-		sleep $wait
-	done
-	echo "ERROR: gave up waiting for file ${file}"
-	return 1
-}
-readonly -f wait_for_file
-
-# wait_for_url attempts to access a url in order to
-# determine if it is available to service requests.
-#
-# $1 - The URL to check
-# $2 - Optional prefix to use when echoing a successful result
-# $3 - Optional time to sleep between attempts (Default: 0.2s)
-# $4 - Optional number of attemps to make (Default: 10)
-function wait_for_url() {
-	url=$1
-	prefix=${2:-}
-	wait=${3:-0.2}
-	times=${4:-10}
-
-	set_curl_args $wait $times
-
-	set +e
-	cmd="env -i CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-} $(which curl) ${clientcert_args} -fs ${url}"
-	for i in $(seq 1 $times); do
-		out=$(${cmd})
-		if [ $? -eq 0 ]; then
-			set -e
-			echo "${prefix}${out}"
-			return 0
-		fi
-		sleep $wait
-	done
-	echo "ERROR: gave up waiting for ${url}" 1>&2
-	${cmd} 1>&2
-	set -e
-	return 1
-}
-readonly -f wait_for_url
-
-# set_curl_args tries to export CURL_ARGS for a program to use.
-# will do a wait for the files to exist when using curl with
-# SecureTransport (because we must convert the keys to a different
-# form).
-#
-# $1 - Optional time to sleep between attempts (Default: 0.2s)
-# $2 - Optional number of attemps to make (Default: 10)
-function set_curl_args() {
-	wait=${1:-0.2}
-	times=${2:-10}
-
-	CURL_CERT=${CURL_CERT:-}
-	CURL_KEY=${CURL_KEY:-}
-	clientcert_args="${CURL_EXTRA:-} "
-
-	if [ -n "${CURL_CERT}" ]; then
-		if [ -n "${CURL_KEY}" ]; then
-			if [[ `curl -V` == *"SecureTransport"* ]]; then
-					# Convert to a p12 cert for SecureTransport
-					export CURL_CERT_DIR=$(dirname "${CURL_CERT}")
-					export CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
-					export CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
-					if [ ! -f "${CURL_CERT_P12}" ]; then
-					wait_for_file "${CURL_CERT}" $wait $times
-					wait_for_file "${CURL_KEY}" $wait $times
-					openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
-					fi
-					clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD} ${CURL_EXTRA:-}"
-			else
-				clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY} ${CURL_EXTRA:-}"
-			fi
-		fi
-	fi
-	export CURL_ARGS="${clientcert_args}"
-}
-readonly -f set_curl_args
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {
@@ -246,10 +156,7 @@ function cleanup_openshift() {
 	# really have it smack people in their logs.  This is a severe correctness problem
 	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
+	os::cleanup::dump_etcd
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		echo "[INFO] Tearing down test"

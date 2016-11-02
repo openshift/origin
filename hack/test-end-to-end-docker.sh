@@ -30,11 +30,7 @@ function cleanup()
 	# really have it smack people in their logs.  This is a severe correctness problem
     grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/container-origin.log
 
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	ETCD_PORT="${ETCD_PORT:-4001}"
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
+	os::cleanup::dump_etcd
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		echo "[INFO] remove the openshift container"

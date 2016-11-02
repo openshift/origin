@@ -17,10 +17,11 @@ func (Route) SwaggerDoc() map[string]string {
 }
 
 var map_RouteIngress = map[string]string{
-	"":           "RouteIngress holds information about the places where a route is exposed.",
-	"host":       "Host is the host string under which the route is exposed; this value is required",
-	"routerName": "Name is a name chosen by the router to identify itself; this value is required",
-	"conditions": "Conditions is the state of the route, may be empty.",
+	"":               "RouteIngress holds information about the places where a route is exposed.",
+	"host":           "Host is the host string under which the route is exposed; this value is required",
+	"routerName":     "Name is a name chosen by the router to identify itself; this value is required",
+	"conditions":     "Conditions is the state of the route, may be empty.",
+	"wildcardPolicy": "Wildcard policy is the wildcard policy that was allowed where this route is exposed.",
 }
 
 func (RouteIngress) SwaggerDoc() map[string]string {
@@ -67,6 +68,7 @@ var map_RouteSpec = map[string]string{
 	"alternateBackends": "alternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference. If the weight field is zero, the backend is ignored.",
 	"port":              "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.",
 	"tls":               "The tls field provides the ability to configure certificates and termination for the route.",
+	"wildcardPolicy":    "Wildcard policy if any for the route. Currently only 'Subdomain' or 'None' is allowed.",
 }
 
 func (RouteSpec) SwaggerDoc() map[string]string {

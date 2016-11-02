@@ -329,8 +329,7 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 		Conditions:          config.Status.Conditions,
 	}
 
-	isProgressing := deployutil.IsProgressing(config, status)
-	updateConditions(config, &status, latestRC, isProgressing)
+	updateConditions(config, &status, latestRC)
 	for _, cond := range additional {
 		deployutil.SetDeploymentCondition(&status, cond)
 	}
@@ -338,7 +337,7 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 	return status, nil
 }
 
-func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController, isProgressing bool) {
+func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController) {
 	// Availability condition.
 	if newStatus.AvailableReplicas >= config.Spec.Replicas-deployutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
 		minAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionTrue, "", "Deployment config has minimum availability.")
@@ -349,7 +348,6 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 	}
 
 	// Condition about progress.
-	cond := deployutil.GetDeploymentCondition(*newStatus, deployapi.DeploymentProgressing)
 	if latestRC != nil {
 		switch deployutil.DeploymentStatusFor(latestRC) {
 		case deployapi.DeploymentStatusPending:
@@ -357,7 +355,7 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusRunning:
-			if isProgressing {
+			if deployutil.IsProgressing(config, *newStatus) {
 				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
 				msg := fmt.Sprintf("Replication controller %q is progressing", latestRC.Name)
 				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
@@ -372,19 +370,6 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 		case deployapi.DeploymentStatusComplete:
 			msg := fmt.Sprintf("Replication controller %q has completed progressing", latestRC.Name)
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
-			deployutil.SetDeploymentCondition(newStatus, *condition)
-		}
-	}
-	// Pause / resume condition. Since we don't pause running deployments, let's use paused conditions only when a deployment
-	// actually terminates. For now it may be ok to override lack of progress in the conditions, later we may want to separate
-	// paused from the rest of the progressing conditions.
-	if latestRC == nil || deployutil.IsTerminatedDeployment(latestRC) {
-		pausedCondExists := cond != nil && cond.Reason == deployutil.PausedDeployReason
-		if config.Spec.Paused && !pausedCondExists {
-			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.PausedDeployReason, "Deployment config is paused")
-			deployutil.SetDeploymentCondition(newStatus, *condition)
-		} else if !config.Spec.Paused && pausedCondExists {
-			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.ResumedDeployReason, "Deployment config is resumed")
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		}
 	}

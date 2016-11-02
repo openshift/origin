@@ -248,19 +248,6 @@ items:
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
-    name: system:build-strategy-custom-binding
-  roleRef:
-    name: system:build-strategy-custom
-  subjects:
-  - kind: SystemGroup
-    name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
     name: system:build-strategy-source-binding
   roleRef:
     name: system:build-strategy-source

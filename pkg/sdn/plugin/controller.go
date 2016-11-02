@@ -373,7 +373,7 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
 			}
 
 			var dst string
-			if rule.To.CIDRSelector == "0.0.0.0/32" {
+			if rule.To.CIDRSelector == "0.0.0.0/0" {
 				dst = ""
 			} else {
 				dst = fmt.Sprintf(", nw_dst=%s", rule.To.CIDRSelector)

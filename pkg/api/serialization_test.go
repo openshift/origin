@@ -430,6 +430,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.Scopes = append(j.Scopes, "user:full")
 			}
 		},
+		func(j *route.RouteSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if len(j.WildcardPolicy) == 0 {
+				j.WildcardPolicy = route.WildcardPolicyNone
+			}
+		},
+		func(j *route.RouteIngress, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if len(j.WildcardPolicy) == 0 {
+				j.WildcardPolicy = route.WildcardPolicyNone
+			}
+		},
 
 		func(j *runtime.Object, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.

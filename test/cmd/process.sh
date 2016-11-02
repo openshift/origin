@@ -55,5 +55,18 @@ os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=req
 # failure on labels fails the entire call
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --labels======" 'error parsing labels'
 
+# values are not split on commas, required parameter is not recognized
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=optional_param=a,required_param=b" 'parameter required_param is required and must be specified'
+# warning is printed iff --value looks like two k-v pairs separated by comma
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --value=required_param=a,b=c,d" 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --value=required_param=a_b_c_d" 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --value=required_param=a,b,c,d" 'no longer accepts comma-separated list'
+# warning is not printed for template values passed as positional arguments
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' required_param=a,b=c,d" 'no longer accepts comma-separated list'
+
+# set template parameter to contents of file
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --value=required_param='`cat ${OS_ROOT}/test/testdata/multiline.txt`'" 'also,with=commas'
+
+
 echo "process: ok"
 os::test::junit::declare_suite_end

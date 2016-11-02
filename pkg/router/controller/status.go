@@ -79,8 +79,9 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 	case position == -1:
 		position = len(route.Status.Ingress)
 		route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{
-			RouterName: name,
-			Host:       route.Spec.Host,
+			RouterName:     name,
+			Host:           route.Spec.Host,
+			WildcardPolicy: route.Spec.WildcardPolicy,
 		})
 		changed = true
 	case changed:
@@ -89,6 +90,10 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 	ingress := &route.Status.Ingress[position]
 	if ingress.Host != route.Spec.Host {
 		ingress.Host = route.Spec.Host
+		changed = true
+	}
+	if ingress.WildcardPolicy != route.Spec.WildcardPolicy {
+		ingress.WildcardPolicy = route.Spec.WildcardPolicy
 		changed = true
 	}
 	return ingress, changed

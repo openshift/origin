@@ -100,7 +100,7 @@ token="$( oc sa get-token builder )"
 os::cmd::expect_success "docker login -u imagensbuilder -p ${token} -e fake@example.org ${docker_registry}"
 os::cmd::expect_success "oc import-image busybox:latest --confirm"
 os::cmd::expect_success "docker pull busybox"
-os::cmd::expect_success "docker tag -f docker.io/busybox:latest ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "docker tag docker.io/busybox:latest ${docker_registry}/image-ns/busybox:latest"
 os::cmd::expect_success "docker push ${docker_registry}/image-ns/busybox:latest"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 

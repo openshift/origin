@@ -43,6 +43,9 @@ type ServiceAliasConfig struct {
 	// Hash of the route name - used to obscure cookieId
 	RoutingKeyName string
 
+	// IsWildcard indicates this service unit needs wildcarding support.
+	IsWildcard bool
+
 	// Annotations attached to this route
 	Annotations map[string]string
 
