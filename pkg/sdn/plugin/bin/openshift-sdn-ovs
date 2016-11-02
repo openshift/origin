@@ -69,10 +69,12 @@ add_ovs_flows() {
 }
 
 del_ovs_flows() {
-    ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_dst=${ipaddr}"
-    ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_src=${ipaddr}"
-    ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
-    ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_src=${ipaddr}"
+    if [ -n "$ipaddr" ]; then
+        ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_dst=${ipaddr}"
+        ovs-ofctl -O OpenFlow13 del-flows br0 "ip,nw_src=${ipaddr}"
+        ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
+        ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_src=${ipaddr}"
+    fi
 
     qos=$(ovs-vsctl get port ${veth_host} qos)
     if [ "$qos" != "[]" ]; then
@@ -84,8 +86,8 @@ del_ovs_flows() {
 add_macvlan() {
     default_dev=$(ip route show | sed -ne 's/^default .* dev \([^ ]*\) .*/\1/p')
     if [ -z "$default_dev" ]; then
-	echo "Could not find default network interface"
-	exit 1
+        echo "Could not find default network interface"
+        exit 1
     fi
     ip link add link $default_dev name macvlan0 type macvlan mode private
     ip link set macvlan0 netns $pid
