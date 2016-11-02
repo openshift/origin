@@ -40,6 +40,7 @@ type OsdnNode struct {
 	localIP            string
 	hostName           string
 	podNetworkReady    chan struct{}
+	kubeletInitReady   chan struct{}
 	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
@@ -95,6 +96,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		hostName:           hostname,
 		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
+		kubeletInitReady:   make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
@@ -202,10 +204,18 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
 	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
 	if err != nil {
 		return err
 	}
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+		return err
+	}
+
+	// Wait for kubelet to init the plugin so we get a knetwork.Host
+	log.V(5).Infof("Waiting for kubelet network plugin initialization")
+	<-node.kubeletInitReady
 
 	if networkChanged {
 		var pods []kapi.Pod
@@ -221,10 +231,7 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
-		return err
-	}
-
+	log.V(5).Infof("openshift-sdn network plugin ready")
 	node.markPodNetworkReady()
 
 	return nil
