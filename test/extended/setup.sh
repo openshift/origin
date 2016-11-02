@@ -120,7 +120,7 @@ function os::test::extended::setup () {
 
 		install_registry
 		if [[ -z "${SKIP_NODE:-}" ]]; then
-			wait_for_registry
+			oc rollout status dc/docker-registry
 		fi
 		DROP_SYN_DURING_RESTART=1 CREATE_ROUTER_CERT=1 install_router
 
