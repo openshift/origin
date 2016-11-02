@@ -901,7 +901,7 @@ func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRe
 		return nil
 	}
 
-	if config.Strategy != "docker" {
+	if len(config.Strategy) > 0 && config.Strategy != "docker" {
 		return nil
 	}
 

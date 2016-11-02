@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
@@ -23,12 +24,13 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher oscc.SCCMatcher
+	saCache    oscache.StoreToServiceAccountLister
 	client     clientset.Interface
 }
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {
-	return &REST{sccMatcher: m, client: c}
+func NewREST(m oscc.SCCMatcher, saCache oscache.StoreToServiceAccountLister, c clientset.Interface) *REST {
+	return &REST{sccMatcher: m, saCache: saCache, client: c}
 }
 
 // New creates a new PodSecurityPolicyReview object
@@ -49,7 +51,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
-	serviceAccounts, err := getServiceAccounts(pspr.Spec, r.client, ns)
+	serviceAccounts, err := getServiceAccounts(pspr.Spec, r.saCache, ns)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(err.Error())
 	}
@@ -97,7 +99,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return pspr, nil
 }
 
-func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, client clientset.Interface, namespace string) ([]*kapi.ServiceAccount, error) {
+func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache oscache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 	//  TODO: express 'all service accounts'
 	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(kapi.ListOptions{}); err == nil {
@@ -108,8 +110,7 @@ func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, client
 	if len(psprSpec.ServiceAccountNames) > 0 {
 		errs := []error{}
 		for _, saName := range psprSpec.ServiceAccountNames {
-			// TODO: use cache as soon ServiceAccount informer is ready
-			sa, err := client.Core().ServiceAccounts(namespace).Get(saName)
+			sa, err := saCache.ServiceAccounts(namespace).Get(saName)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("unable to retrieve ServiceAccount %s: %v", saName, err))
 			}
@@ -121,7 +122,7 @@ func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, client
 	if len(psprSpec.Template.Spec.ServiceAccountName) > 0 {
 		saName = psprSpec.Template.Spec.ServiceAccountName
 	}
-	sa, err := client.Core().ServiceAccounts(namespace).Get(saName)
+	sa, err := saCache.ServiceAccounts(namespace).Get(saName)
 	if err != nil {
 		return serviceAccounts, fmt.Errorf("unable to retrieve ServiceAccount %s: %v", saName, err)
 	}

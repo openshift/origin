@@ -354,21 +354,22 @@ func TestCanTransitionPhase(t *testing.T) {
 }
 
 var (
-	now             = unversioned.Now()
+	now   = unversioned.Now()
+	later = unversioned.Time{Time: now.Add(time.Minute)}
+
 	condProgressing = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
 			Type:               deployapi.DeploymentProgressing,
-			Status:             kapi.ConditionFalse,
+			Status:             kapi.ConditionTrue,
 			LastTransitionTime: now,
 			Reason:             "ForSomeReason",
 		}
 	}
 
-	later                        = unversioned.Time{Time: now.Add(time.Minute)}
 	condProgressingDifferentTime = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
 			Type:               deployapi.DeploymentProgressing,
-			Status:             kapi.ConditionFalse,
+			Status:             kapi.ConditionTrue,
 			LastTransitionTime: later,
 			Reason:             "ForSomeReason",
 		}
@@ -376,9 +377,10 @@ var (
 
 	condProgressingDifferentReason = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
-			Type:   deployapi.DeploymentProgressing,
-			Status: kapi.ConditionTrue,
-			Reason: "BecauseItIs",
+			Type:               deployapi.DeploymentProgressing,
+			Status:             kapi.ConditionTrue,
+			LastTransitionTime: later,
+			Reason:             "BecauseItIs",
 		}
 	}
 
@@ -502,10 +504,21 @@ func TestSetCondition(t *testing.T) {
 			},
 			cond: condProgressingDifferentReason(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressingDifferentReason()}},
+			expectedStatus: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					{
+						Type:   deployapi.DeploymentProgressing,
+						Status: kapi.ConditionTrue,
+						// Note that LastTransitionTime stays the same.
+						LastTransitionTime: now,
+						// Only the reason changes.
+						Reason: "BecauseItIs",
+					},
+				},
+			},
 		},
 		{
-			name: "don't replace if status and reason doesn't changes",
+			name: "don't replace if status and reason don't change",
 
 			status: &deployapi.DeploymentConfigStatus{
 				Conditions: []deployapi.DeploymentCondition{

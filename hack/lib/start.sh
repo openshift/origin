@@ -383,7 +383,9 @@ function os::start::etcd() {
 	echo "[INFO] etcd server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 80
+	os::test::junit::declare_suite_start "setup/start-etcd"
+	os::cmd::try_until_success "os::util::curl_etcd '/version'" $(( 10 * second ))
+	os::test::junit::declare_suite_end
 
 	echo "[INFO] etcd server health checks done at: "
 	date
@@ -495,7 +497,9 @@ function os::start::internal::start_node() {
 	echo "[INFO] OpenShift node start at: "
 	date
 
-	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 120
+	os::test::junit::declare_suite_start "setup/start-node"
+	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+	os::test::junit::declare_suite_end
 
 	echo "[INFO] OpenShift node health checks done at: "
 	date

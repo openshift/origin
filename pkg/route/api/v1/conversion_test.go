@@ -46,6 +46,9 @@ func TestDefaults(t *testing.T) {
 			To:  v1.RouteTargetReference{Name: "other"},
 			TLS: &v1.TLSConfig{},
 		},
+		Status: v1.RouteStatus{
+			Ingress: []v1.RouteIngress{{}},
+		},
 	}
 	out := &api.Route{}
 	if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
@@ -54,7 +57,13 @@ func TestDefaults(t *testing.T) {
 	if out.Spec.TLS.Termination != api.TLSTerminationEdge {
 		t.Errorf("did not default termination: %#v", out)
 	}
+	if out.Spec.WildcardPolicy != api.WildcardPolicyNone {
+		t.Errorf("did not default wildcard policy: %#v", out)
+	}
 	if out.Spec.To.Kind != "Service" {
 		t.Errorf("did not default object reference kind: %#v", out)
+	}
+	if out.Status.Ingress[0].WildcardPolicy != api.WildcardPolicyNone {
+		t.Errorf("did not default status ingress wildcard policy: %#v", out)
 	}
 }

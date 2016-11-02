@@ -166,9 +166,9 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 	cmd.Flags().StringSliceVar(&config.Templates, "template", config.Templates, "Name of a stored template to use in the app.")
 	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
 	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
-	cmd.Flags().StringSliceVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a list of key value pairs (e.g., -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
+	cmd.Flags().StringArrayVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key-value pairs of environment variables to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
+	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
@@ -208,6 +208,9 @@ func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c 
 	o.Action.Bulk.Retry = retryBuildConfig
 
 	o.Config.DryRun = o.Action.DryRun
+
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.TemplateParameters, "--param")
 
 	o.CommandPath = c.CommandPath()
 	o.BaseName = baseName

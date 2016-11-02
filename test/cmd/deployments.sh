@@ -181,6 +181,11 @@ os::cmd::expect_success_and_text "oc set deployment-hook --all --pre -- echo 'al
 os::cmd::expect_success_and_text "oc get dc -o yaml" "all dc"
 os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --remove" "updated"
 os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "pre:"
+# Environment handling
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y,Z=W -- echo 'test'" "value: Y,Z=W"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y,Z=W -- echo 'test'" "no longer accepts comma-separated list"
+os::cmd::expect_success_and_not_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y -- echo 'test'" "no longer accepts comma-separated list"
+
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 echo "set deployment-hook: ok"
 os::test::junit::declare_suite_end

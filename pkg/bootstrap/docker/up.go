@@ -108,7 +108,7 @@ var (
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	config := &ClientStartConfig{
 		Out:            out,
 		PortForwarding: defaultPortForwarding(),
@@ -120,7 +120,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 		Example: fmt.Sprintf(cmdUpExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(config.Complete(f, c))
-			kcmdutil.CheckErr(config.Validate(out))
+			kcmdutil.CheckErr(config.Validate(out, errout))
 			if err := config.Start(out); err != nil {
 				os.Exit(1)
 			}
@@ -139,7 +139,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
 	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
-	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
+	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
 	return cmd
@@ -313,7 +313,8 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 }
 
 // Validate validates that required fields in StartConfig have been populated
-func (c *ClientStartConfig) Validate(out io.Writer) error {
+func (c *ClientStartConfig) Validate(out, errout io.Writer) error {
+	cmdutil.WarnAboutCommaSeparation(errout, c.Environment, "--env")
 	if len(c.Tasks) == 0 {
 		return fmt.Errorf("no startup tasks to execute")
 	}

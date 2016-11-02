@@ -3844,7 +3844,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
         "metadata": {
             "name": "${JENKINS_SERVICE_NAME}",
             "annotations": {
-                  "serviceaccounts.openshift.io/oauth-redirectref.jenkins": "{\"kind\": \"Route\", \"name\": \"${JENKINS_SERVICE_NAME}\", \"group\": \"\"}"
+		"serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
             }
         }
     },

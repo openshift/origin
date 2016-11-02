@@ -90,7 +90,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, 
 		},
 	}
 	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
-	cmd.Flags().StringSliceVarP(&o.Env, "env", "e", o.Env, "Specify key value pairs of environment variables to set for the build container.")
+	cmd.Flags().StringArrayVarP(&o.Env, "env", "e", o.Env, "Specify a key-value pair for an environment variable to set for the build container.")
 	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
 
 	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
@@ -240,6 +240,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Namespace = namespace
 	o.Name = name
 
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
 	env, _, err := cmdutil.ParseEnv(o.Env, in)
 	if err != nil {
 		return err

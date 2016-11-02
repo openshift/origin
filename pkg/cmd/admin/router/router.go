@@ -711,7 +711,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		objects = append(objects,
 			&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
 			&authapi.ClusterRoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("router-%s-role", cfg.Name)},
+				ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
 				Subjects: []kapi.ObjectReference{
 					{
 						Kind:      "ServiceAccount",
@@ -789,10 +789,47 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		return defaultOutputErr
 	}
 
-	if errs := cfg.Action.WithMessage(fmt.Sprintf("Creating router %s", cfg.Name), "created").Run(list, namespace); len(errs) > 0 {
+	levelPrefixFilter := func(e error) string {
+		// only ignore SA/RB errors if we were creating the service account
+		if createServiceAccount && ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
+			return "warning"
+		}
+		return "error"
+	}
+
+	cfg.Action.Bulk.IgnoreError = func(e error) bool {
+		return levelPrefixFilter(e) == "warning"
+	}
+
+	if errs := cfg.Action.WithMessageAndPrefix(fmt.Sprintf("Creating router %s", cfg.Name), "created", levelPrefixFilter).Run(list, namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 	return nil
+}
+
+// ignoreError will return true if the error is an already exists status error and
+// 1. it is for a cluster role binding named roleBindingName
+// 2. it is for a serivce account name saName
+func ignoreError(e error, saName string, roleBindingName string) bool {
+	if !errors.IsAlreadyExists(e) {
+		return false
+	}
+	statusError, ok := e.(*errors.StatusError)
+	if !ok {
+		return false
+	}
+	details := statusError.Status().Details
+	if details == nil {
+		return false
+	}
+	return (details.Kind == "serviceaccounts" && details.Name == saName) ||
+		(details.Kind == "clusterrolebinding" && details.Name == roleBindingName)
+}
+
+// generateRoleBindingName generates a name for the rolebinding object if it is
+// being created.
+func generateRoleBindingName(name string) string {
+	return fmt.Sprintf("router-%s-role", name)
 }
 
 // generateStatsPassword creates a random password.

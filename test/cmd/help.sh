@@ -101,6 +101,15 @@ os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
 os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
 
+# help tips must be consistent
+os::cmd::expect_success_and_text 'oc --help' 'Use "oc <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc --help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc help' 'Use "oc <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc set --help' 'Use "oc set <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc set --help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc set env --help' 'Use "oc options" for a list of global'
+
 # runnable commands with required flags must error consistently
 os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'
 os::cmd::expect_failure_and_text 'openshift cli get' 'Required resource not specified'

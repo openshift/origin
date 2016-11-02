@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	kval "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/util/sets"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -26,9 +27,19 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Spec.Host) > 0 {
+		// TODO: Add a better check that the host name matches up to
+		//       DNS requirements. Change to use:
+		//         ValidateHostName(route)
+		//       Need to check the implications of doing it here in
+		//       ValidateRoute - probably needs to be done only on
+		//       creation time for new routes.
 		if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
 			result = append(result, field.Invalid(specPath.Child("host"), route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
+	}
+
+	if err := validateWildcardPolicy(route.Spec.WildcardPolicy, specPath.Child("wildcardPolicy")); err != nil {
+		result = append(result, err)
 	}
 
 	if len(route.Spec.Path) > 0 && !strings.HasPrefix(route.Spec.Path, "/") {
@@ -84,6 +95,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
+	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.WildcardPolicy, older.Spec.WildcardPolicy, field.NewPath("spec", "wildcardPolicy"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }
@@ -154,6 +166,31 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 		roots := x509.NewCertPool()
 		if ok := roots.AppendCertsFromPEM([]byte(tlsConfig.DestinationCACertificate)); !ok {
 			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), tlsConfig.DestinationCACertificate, "failed to parse destination CA certificate"))
+		}
+	}
+
+	return result
+}
+
+// ValidateHostName checks that a route's host name satisfies DNS requirements.
+func ValidateHostName(route *routeapi.Route) field.ErrorList {
+	result := field.ErrorList{}
+	if len(route.Spec.Host) < 1 {
+		return result
+	}
+
+	specPath := field.NewPath("spec")
+	hostPath := specPath.Child("host")
+
+	if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
+		result = append(result, field.Invalid(hostPath, route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
+	}
+
+	segments := strings.Split(route.Spec.Host, ".")
+	for _, s := range segments {
+		errs := kvalidation.IsDNS1123Label(s)
+		for _, e := range errs {
+			result = append(result, field.Invalid(hostPath, route.Spec.Host, e))
 		}
 	}
 
@@ -276,4 +313,23 @@ func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) (*x509.
 	}
 
 	return cert, nil
+}
+
+var (
+	allowedWildcardPolicies    = []string{string(routeapi.WildcardPolicyNone), string(routeapi.WildcardPolicySubdomain)}
+	allowedWildcardPoliciesSet = sets.NewString(allowedWildcardPolicies...)
+)
+
+// validateWildcardPolicy tests that the wildcard policy is either empty or one of the supported types.
+func validateWildcardPolicy(policy routeapi.WildcardPolicyType, fldPath *field.Path) *field.Error {
+	if len(policy) == 0 {
+		return nil
+	}
+
+	// Check if policy is one of None or Subdomain.
+	if !allowedWildcardPoliciesSet.Has(string(policy)) {
+		return field.NotSupported(fldPath, policy, allowedWildcardPolicies)
+	}
+
+	return nil
 }

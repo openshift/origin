@@ -75,6 +75,8 @@ type templateRouter struct {
 	statsPassword string
 	// if the router can expose statistics it should expose them with this port
 	statsPort int
+	// if the router should allow wildcard routes.
+	allowWildcardRoutes bool
 	// rateLimitedCommitFunction is a rate limited commit (persist state + refresh the backend)
 	// function that coalesces and controls how often the router is reloaded.
 	rateLimitedCommitFunction *ratelimiter.RateLimitedFunction
@@ -98,6 +100,7 @@ type templateRouterCfg struct {
 	statsUser              string
 	statsPassword          string
 	statsPort              int
+	allowWildcardRoutes    bool
 	peerEndpointsKey       string
 	includeUDP             bool
 }
@@ -156,6 +159,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		statsUser:              cfg.statsUser,
 		statsPassword:          cfg.statsPassword,
 		statsPort:              cfg.statsPort,
+		allowWildcardRoutes:    cfg.allowWildcardRoutes,
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
 
@@ -201,6 +205,23 @@ func matchPattern(pattern, s string) bool {
 	}
 	glog.Errorf("Error with regex pattern in call to matchPattern: %v", err)
 	return false
+}
+
+// Generate a regular expression to match wildcard hosts (and paths if any)
+// for a [sub]domain.
+func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
+	subdomain := routeapi.GetDomainForHost(hostname)
+	if len(subdomain) == 0 {
+		glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
+		return fmt.Sprintf("%s%s", hostname, path)
+	}
+
+	expr := regexp.QuoteMeta(fmt.Sprintf(".%s%s", subdomain, path))
+	if exactPath {
+		return fmt.Sprintf("[^\\.]*%s", expr)
+	}
+
+	return fmt.Sprintf("[^\\.]*%s(|/.*)", expr)
 }
 
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
@@ -513,6 +534,10 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 // AddRoute adds a route for the given service id
 func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeapi.Route, host string) bool {
 	backendKey := r.routeKey(route)
+	wantsWildcardSupport := (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
+
+	// The router config trumps what the route asks for/wants.
+	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
 
 	config, ok := r.state[backendKey]
 
@@ -522,6 +547,7 @@ func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeap
 			Namespace:        route.Namespace,
 			Host:             host,
 			Path:             route.Spec.Path,
+			IsWildcard:       wildcard,
 			Annotations:      route.Annotations,
 			ServiceUnitNames: make(map[string]int32),
 		}
