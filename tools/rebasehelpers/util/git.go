@@ -20,6 +20,7 @@ var UpstreamSummaryPattern = regexp.MustCompile(`UPSTREAM: (revert: [a-f0-9]{7,}
 // here.
 var SupportedHosts = map[string]int{
 	"bitbucket.org":     3,
+	"cloud.google.com":  2,
 	"code.google.com":   3,
 	"github.com":        3,
 	"golang.org":        3,
