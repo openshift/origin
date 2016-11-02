@@ -27,12 +27,12 @@ func ValidateIPAddressRange(iprange string) error {
 		return fmt.Errorf("invalid IP range format: %s", iprange)
 	}
 
-	// Its an IP range of the form: n.n.n.n-n
+	// It's an IP range of the form: n.n.n.n-n
 	rangeLimits := strings.Split(iprange, "-")
 	startIP := rangeLimits[0]
 	parts := strings.Split(startIP, ".")
-	if len(parts) < 4 {
-		return fmt.Errorf("invalid IP range start fomat: %s", startIP)
+	if len(parts) != 4 {
+		return fmt.Errorf("invalid IP range start format: %s", startIP)
 	}
 	rangeStart := parts[3]
 	rangeEnd := rangeLimits[1]
