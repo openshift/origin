@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit fea87f8c3d5112633460ff494831f98b600472ac
+%global commit d006c756adca150edc2ed3e993956345cbd9ed0c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.19+fea87f8-62 OS_GIT_COMMIT=fea87f8 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.20+d006c75 OS_GIT_COMMIT=d006c75 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.20
+Version:        3.4.0.21
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -492,6 +492,9 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Thu Nov 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.21
+- Bump the version
+
 * Thu Nov 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.20
 - minor cleanup (rpenta@redhat.com)
 - Bug 1390173 - Test more pod to pod connectivity test combinations
