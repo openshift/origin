@@ -18,7 +18,7 @@ metadata:
   labels:
     name: egress-1
   annotations:
-    pod.network.openshift.io/assign-macvlan: true
+    pod.network.openshift.io/assign-macvlan: "true"
 spec:
   containers:
   - name: egress-router
@@ -39,7 +39,8 @@ spec:
 The `pod.network.openshift.io/assign-macvlan` annotation tells
 OpenShift to create a macvlan network interface on the primary network
 interface, and then move it into the pod's network namespace before
-starting the egress-router container.
+starting the egress-router container. (Note the quotes around "true";
+you'll get errors if you forget them.)
 
 The pod contains a single container, using the
 `openshift/origin-egress-router` image, and that container is run
