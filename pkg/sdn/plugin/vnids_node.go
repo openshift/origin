@@ -9,7 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -167,7 +166,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 
 	// Update OF rules for the existing/old pods in the namespace
 	for _, pod := range pods {
-		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.ContainerID{ID: getPodContainerID(&pod)})
+		err = node.UpdatePod(pod)
 		if err != nil {
 			errList = append(errList, err)
 		}

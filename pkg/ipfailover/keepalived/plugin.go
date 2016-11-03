@@ -38,11 +38,12 @@ func NewIPFailoverConfiguratorPlugin(name string, f *clientcmd.Factory, options 
 // GetWatchPort gets the port to monitor for the IP Failover configuration.
 func (p *KeepalivedPlugin) GetWatchPort() (int, error) {
 	port := p.Options.WatchPort
-	if port < 1 {
+	if port < 1 || port > 65535 {
+		glog.V(4).Infof("Warning: KeepAlived IP Failover config: %q - WatchPort: %d invalid, will default to %d", p.Name, port, ipfailover.DefaultWatchPort)
 		port = ipfailover.DefaultWatchPort
 	}
 
-	glog.V(4).Infof("KeepAlived IP Failover config: %q - WatchPort: %+v", p.Name, port)
+	glog.V(4).Infof("KeepAlived IP Failover config: %q - WatchPort: %d", p.Name, port)
 
 	return port, nil
 }

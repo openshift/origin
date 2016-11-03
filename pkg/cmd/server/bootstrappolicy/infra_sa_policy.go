@@ -577,6 +577,11 @@ func init() {
 					Verbs:     sets.NewString("get", "create", "delete"),
 					Resources: sets.NewString("pods"),
 				},
+				// RecycleVolumeByWatchingPodUntilCompletion
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("events"),
+				},
 				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),

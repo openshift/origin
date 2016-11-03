@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"os"
 	"os/exec"
 )
 
@@ -30,6 +31,11 @@ type JenkinsRef struct {
 	namespace string
 	password  string
 }
+
+const (
+	useLocalPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_IMAGE"
+	localPluginSnapshotImage         = "openshift/jenkins-plugin-snapshot-test:latest"
+)
 
 // Struct can be marshalled into XML to represent a Jenkins workflow job definition.
 type FlowDefinition struct {
@@ -413,20 +419,53 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		time.Sleep(10 * time.Second) // Give project time to initialize
 
 		g.By("kick off the build for the jenkins ephermeral and application templates")
-		tag := []string{"openshift/jenkins-plugin-snapshot-test:latest"}
+		tag := []string{localPluginSnapshotImage}
 		hexIDs, err := exutil.DumpAndReturnTagging(tag)
-		var jenkinsEphemeralPath string
-		var testingSnapshot bool
-		if len(hexIDs) > 0 && err == nil {
-			// found an openshift pipeline plugin test image, must be testing a proposed change to the plugin
-			jenkinsEphemeralPath = exutil.FixturePath("testdata", "jenkins-ephemeral-template-test-new-plugin.json")
-			testingSnapshot = true
+
+		// If the user has expressed an interest in local plugin testing by setting the
+		// SNAPSHOT_JENKINS_IMAGE environment variable, try to use the local image. Inform them
+		// either about which image is being used in case their test fails.
+		snapshotImagePresent := len(hexIDs) > 0 && err == nil
+		useSnapshotImage := os.Getenv(useLocalPluginSnapshotEnvVarName) != ""
+
+		//TODO disabling oauth until we can update getAdminPassword path to handle oauth (perhaps borrow from oauth integration tests)
+		newAppArgs := []string{exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json"), "-p", "ENABLE_OAUTH=false"}
+
+		if useSnapshotImage {
+			g.By("Creating a snapshot Jenkins imagestream and overridding the default Jenkins imagestream")
+			o.Expect(snapshotImagePresent).To(o.BeTrue())
+
+			ginkgolog("")
+			ginkgolog("")
+			ginkgolog("IMPORTANT: You are testing a local jenkins snapshot image.")
+			ginkgolog("In order to target the official image stream, you must unset %s before running extended tests.", useLocalPluginSnapshotEnvVarName)
+			ginkgolog("")
+			ginkgolog("")
+
+			// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
+			snapshotImageStream := "jenkins-plugin-snapshot-test"
+			err = oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localPluginSnapshotImage), "--to", snapshotImageStream).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = oc.Run("logs").Args("-f", "bc/jenkins-plugin-snapshot-test").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Supplant the normal imagestream with the local imagestream using template parameters
+			newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
+			newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("JENKINS_IMAGE_STREAM_TAG=%s:latest", snapshotImageStream))
+
 		} else {
-			// no test image, testing the base jenkins image with the current, supported version of the plugin
-			//TODO disabling oauth until we can update getAdminPassword path to handle oauth (perhaps borrow from oauth integration tests)
-			jenkinsEphemeralPath = exutil.FixturePath("testdata", "jenkins-ephemeral-template-no-oauth.json")
+			if snapshotImagePresent {
+				ginkgolog("")
+				ginkgolog("")
+				ginkgolog("IMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
+				ginkgolog("In order to target your local image, you must set %s to some value before running extended tests.", useLocalPluginSnapshotEnvVarName)
+				ginkgolog("")
+				ginkgolog("")
+			}
 		}
-		err = oc.Run("new-app").Args(jenkinsEphemeralPath).Execute()
+
+		err = oc.Run("new-app").Args(newAppArgs...).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
@@ -460,7 +499,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if testingSnapshot {
+		if useSnapshotImage {
 			g.By("verifying the test image is being used")
 			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
 			_, err = j.waitForContent(`About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses")

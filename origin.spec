@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ee835673597629789e82a5c6db200a2ee6f629fc
+%global commit fea87f8c3d5112633460ff494831f98b600472ac
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.18+ee83567-128 OS_GIT_COMMIT=ee83567 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.19+fea87f8-62 OS_GIT_COMMIT=fea87f8 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.19
+Version:        3.4.0.20
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -492,6 +492,68 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Thu Nov 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.20
+- minor cleanup (rpenta@redhat.com)
+- Bug 1390173 - Test more pod to pod connectivity test combinations
+  (rpenta@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a51c2d0576902147ba30ad93e4498233d04a36a2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  668739b535bcd16bca6ba7b181939c8f25be6872 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  989f3952453cae0bd25d2f2e2f7337c16fdf7459 (dmcphers+openshiftbot@redhat.com)
+- f5 node watch fix - needs a cache to process 'MODIFY' events
+  (rchopra@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  109b88081b48b1f5f70b7386ff3a8a40e5129ce7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7862d494be717042245e49b8047b12cb8b5839f0 (dmcphers+openshiftbot@redhat.com)
+- Update router debugging instructions (jawnsy@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d7146b50996a5d5e95220613a884fa30a1fb4f65 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  42f3dc01d752b49dfa02389e8f231ee7b6220304 (dmcphers+openshiftbot@redhat.com)
+- tests: wait_for_registry: use oc rollout status (mmilata@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  00eb12fca5c8009191fecbb4093b969c35886142 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d4bfaeec71e263087e817d61b274f94d0227fd45 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6ab1616d931e6ea0d9fbb0239f728139d3a0ec86 (dmcphers+openshiftbot@redhat.com)
+- Allow pv controller to recycle pvs, watch recycler pod events
+  (mawong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  71202680a49368e6a72bdfe52f5cb558cb4d60f5 (dmcphers+openshiftbot@redhat.com)
+- bump build pod admission test timeout (bparees@redhat.com)
+- Update ose_images.sh - 2016-11-02 (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a0c089fff75cfee4a223497d9114eee2f35db6c3 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  40f7e508b443b64307c068335c5a55faaaa32d5c (dmcphers+openshiftbot@redhat.com)
+- Fix creation of macvlan interfaces (danw@redhat.com)
+- Update Swagger documentation generator script name (skuznets@redhat.com)
+- test: wait for frontend rollout before getting app logs (mkargaki@redhat.com)
+- deploy: default maxSurge/maxUnavailable when one is set to zero
+  (mkargaki@redhat.com)
+- fix error - cannot list all services in the cluster (rchopra@redhat.com)
+- dind: make /run a shared mount (dcbw@redhat.com)
+- Drop unused add_macvlan code from openshift-sdn-ovs (danw@redhat.com)
+- Merging jenkins plugin test templates into one (jupierce@redhat.com)
+- Use existing kube method to fetch the container ID (rpenta@redhat.com)
+- Bug 1389213 - Fix join/isolate project network (rpenta@redhat.com)
+- provide vxlan integration options to the router cmd line (rchopra@redhat.com)
+- sdn: fix network-already-set-up detection (dcbw@redhat.com)
+- sdn: run pod manager server forever (dcbw@redhat.com)
+- oc: update short desc for rollout (mkargaki@redhat.com)
+- fix bz1389267 - release subnet leases upon hostsubnet delete
+  (rchopra@redhat.com)
+- sdn: wait for kubelet network plugin init before processing pods
+  (dcbw@redhat.com)
+- sdn: start pod manager before trying to update if VNIDs have changed
+  (dcbw@redhat.com)
+- Fix a bug in the egress router README (danw@redhat.com)
+- Check port range for IP Failover configuration (zhao.xiangpeng@zte.com.cn)
+
 * Wed Nov 02 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.19
 - Merge remote-tracking branch upstream/master, bump origin-web-console b476d31
   (tdawson@redhat.com)

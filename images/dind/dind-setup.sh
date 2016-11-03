@@ -42,4 +42,5 @@ function enable-overlay-storage() {
 }
 
 mount --make-shared /
+mount --make-shared /run
 enable-overlay-storage

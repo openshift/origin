@@ -112,6 +112,11 @@ func TestPluginGetWatchPort(t *testing.T) {
 			Expected:  9999,
 		},
 		{
+			Name:      "service2",
+			WatchPort: 65535,
+			Expected:  65535,
+		},
+		{
 			Name:      "invalid-port",
 			WatchPort: -12345,
 			Expected:  80,
@@ -119,6 +124,11 @@ func TestPluginGetWatchPort(t *testing.T) {
 		{
 			Name:      "invalid-port-2",
 			WatchPort: -1,
+			Expected:  80,
+		},
+		{
+			Name:      "invalid-port-3",
+			WatchPort: 65536,
 			Expected:  80,
 		},
 		{

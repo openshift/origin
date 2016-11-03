@@ -82,7 +82,7 @@ os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ip
 os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_registry
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
 echo "[INFO] Waiting for IP failover to deploy"
 os::cmd::expect_success 'oc rollout status dc/ipfailover'
@@ -419,6 +419,8 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
 os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
+# Wait for the rollout to finish
+os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
 # Test retrieving application logs from dc
 os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production database'
 os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
@@ -536,7 +538,7 @@ echo "[INFO] Validated image pruning"
 echo "[INFO] Configure registry to accept manifest V2 schema 2"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
 os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
-wait_for_registry
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
 echo "[INFO] Registry configured to accept manifest V2 schema 2"
 
 echo "[INFO] Accept manifest V2 schema 2"

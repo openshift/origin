@@ -12,6 +12,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 // *** The CNIServer is PRIVATE API between OpenShift SDN components and may be
@@ -141,7 +144,11 @@ func (s *CNIServer) Start(requestFunc cniRequestFunc) error {
 	}
 
 	s.SetKeepAlivesEnabled(false)
-	go s.Serve(l)
+	go utilwait.Forever(func() {
+		if err := s.Serve(l); err != nil {
+			utilruntime.HandleError(fmt.Errorf("CNI server Serve() failed: %v", err))
+		}
+	}, 0)
 	return nil
 }
 

@@ -90,7 +90,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	}
 	found = false
 	for _, addr := range addrs {
-		if strings.Contains(addr, localSubnetGatewayCIDR+" ") {
+		if strings.Contains(addr, localSubnetGatewayCIDR) {
 			found = true
 			break
 		}

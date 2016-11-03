@@ -247,15 +247,6 @@ function install_registry() {
 }
 readonly -f install_registry
 
-function wait_for_registry() {
-	local generation="$(oc get dc/docker-registry -o 'jsonpath={.metadata.generation}')"
-	local onereplicajs='{.status.observedGeneration},{.status.replicas},{.status.updatedReplicas},{.status.availableReplicas}'
-	wait_for_command "oc get dc/docker-registry -o 'jsonpath=${onereplicajs}' --config='${ADMIN_KUBECONFIG}' | grep '^${generation},1,1,1$'"  "$((5*TIME_MIN))"
-	local readyjs='{.items[*].status.conditions[?(@.type=="Ready")].status}'
-	wait_for_command "oc get pod -l deploymentconfig=docker-registry -o 'jsonpath=${readyjs}' --config='${ADMIN_KUBECONFIG}' | grep -qi true" "${TIME_MIN}"
-}
-readonly -f wait_for_registry
-
 # Wait for builds to start
 # $1 namespace
 function os::build:wait_for_start() {
