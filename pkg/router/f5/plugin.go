@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -17,6 +18,10 @@ type F5Plugin struct {
 	// F5Client is the object that represents the F5 BIG-IP host, holds state,
 	// and provides an interface to manipulate F5 BIG-IP.
 	F5Client *f5LTM
+
+	// VtepMap is a map of node ids and their ip addresses
+	// helps to sync events at router start vs node status update events
+	VtepMap map[types.UID]string
 }
 
 // F5PluginConfig holds configuration for the f5 plugin.
@@ -84,7 +89,7 @@ func NewF5Plugin(cfg F5PluginConfig) (*F5Plugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &F5Plugin{f5}, f5.Initialize()
+	return &F5Plugin{f5, map[types.UID]string{}}, f5.Initialize()
 }
 
 // ensurePoolExists checks whether the named pool already exists in F5 BIG-IP
@@ -496,7 +501,7 @@ func (p *F5Plugin) HandleNode(eventType watch.EventType, node *kapi.Node) error 
 	// The F5 appliance, if hooked to use the VxLAN encapsulation
 	// should have its FDB updated depending on nodes arriving and leaving the cluster
 	switch eventType {
-	case watch.Added:
+	case watch.Added, watch.Modified:
 		// New VTEP created, add the record to the vxlan fdb
 		ip, err := getNodeIP(node)
 		if err != nil {
@@ -504,11 +509,19 @@ func (p *F5Plugin) HandleNode(eventType watch.EventType, node *kapi.Node) error 
 			glog.Warningf("Error in obtaining IP address of newly added node %s - %v", node.Name, err)
 			return nil
 		}
+
+		// check and find if the node has already been processed
+		// if yes, then break, or just add the new vtep
+		uid := node.ObjectMeta.UID
+		if oldNodeIP, ok := p.VtepMap[uid]; ok && (oldNodeIP == ip) {
+			break
+		}
 		err = p.F5Client.AddVtep(ip)
 		if err != nil {
 			glog.Errorf("Error in adding node '%s' to F5s FDB - %v", ip, err)
 			return err
 		}
+		p.VtepMap[uid] = ip
 	case watch.Deleted:
 		// VTEP deleted, delete the record from vxlan fdb
 		ip, err := getNodeIP(node)
@@ -522,8 +535,8 @@ func (p *F5Plugin) HandleNode(eventType watch.EventType, node *kapi.Node) error 
 			glog.Errorf("Error in removing node '%s' from F5s FDB - %v", ip, err)
 			return err
 		}
-	case watch.Modified:
-		// ignore the modified event. Change in IP address of the node is not supported.
+		uid := node.ObjectMeta.UID
+		delete(p.VtepMap, uid)
 	}
 	return nil
 }
