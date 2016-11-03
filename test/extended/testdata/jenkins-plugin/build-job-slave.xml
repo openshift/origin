@@ -17,7 +17,7 @@
         <com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <depCfg>frontend</depCfg>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <replicaCount>0</replicaCount>
             <authToken></authToken>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
@@ -25,7 +25,7 @@
         <com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <bldCfg>frontend</bldCfg>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <authToken></authToken>
             <followLog>true</followLog>
             <checkForTriggeredDeployments>true</checkForTriggeredDeployments>
@@ -33,7 +33,7 @@
 
         <com.openshift.jenkins.plugins.pipeline.OpenShiftDeployer>
           <apiURL></apiURL>
-          <namespace>PROJECT_NAME</namespace>
+          <namespace>${PROJECT_NAME}</namespace>
           <authToken></authToken>
           <verbose>false</verbose>
           <waitTime></waitTime>
@@ -44,13 +44,13 @@
         <com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <svcName>frontend</svcName>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <authToken></authToken>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
 
         <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <testStream>origin-nodejs-sample</testStream>
             <testTag>latest</testTag>
             <prodStream>origin-nodejs-sample</prodStream>
@@ -61,7 +61,7 @@
         <com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <depCfg>frontend-prod</depCfg>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <replicaCount>0</replicaCount>
             <authToken></authToken>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>

@@ -292,14 +292,28 @@ func (j *JenkinsRef) startJob(jobName string) *JobMon {
 
 // Returns the content of a Jenkins job XML file. Instances of the
 // string "PROJECT_NAME" are replaced with the specified namespace.
-func (j *JenkinsRef) readJenkinsJob(filename, namespace string) string {
+// Variables named in the vars map will also be replaced with their
+// corresponding value.
+func (j *JenkinsRef) readJenkinsJobUsingVars(filename, namespace string, vars map[string]string) string {
 	pre := exutil.FixturePath("testdata", "jenkins-plugin", filename)
 	post := exutil.ArtifactPath(filename)
-	err := exutil.VarSubOnFile(pre, post, "PROJECT_NAME", namespace)
+
+	if vars == nil {
+		vars = map[string]string{}
+	}
+	vars["PROJECT_NAME"] = namespace
+	err := exutil.VarSubOnFile(pre, post, vars)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+
 	data, err := ioutil.ReadFile(post)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	return string(data)
+}
+
+// Returns the content of a Jenkins job XML file. Instances of the
+// string "PROJECT_NAME" are replaced with the specified namespace.
+func (j *JenkinsRef) readJenkinsJob(filename, namespace string) string {
+	return j.readJenkinsJobUsingVars(filename, namespace, nil)
 }
 
 // Returns an XML string defining a Jenkins workflow/pipeline DSL job. Instances of the
@@ -395,6 +409,28 @@ func findJenkinsPod(oc *exutil.CLI) *kapi.Pod {
 
 	o.ExpectWithOffset(1, len(pods.Items)).To(o.Equal(1))
 	return &pods.Items[0]
+}
+
+// Stands up a simple pod which can be used for exec commands
+func initExecPod(oc *exutil.CLI) *kapi.Pod {
+	// Create a running pod in which we can execute our commands
+	oc.Run("run").Args("centos", "--image", "centos:7", "--command", "--", "sleep", "1800").Execute()
+
+	var targetPod *kapi.Pod
+	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
+		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{})
+		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+		for _, p := range pods.Items {
+			if strings.HasPrefix(p.Name, "centos") && !strings.Contains(p.Name, "deploy") && p.Status.Phase == "Running" {
+				targetPod = &p
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+
+	return targetPod
 }
 
 // Designed to match if RSS memory is greater than 500000000  (i.e. > 476MB)
@@ -709,23 +745,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.It("jenkins-plugin test exec DSL", func() {
 
-			// Create a running pod in which we can execute our commands
-			oc.Run("new-app").Args("https://github.com/openshift/ruby-hello-world").Execute()
-
-			var targetPod *kapi.Pod
-			err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-				pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				for _, p := range pods.Items {
-					if !strings.Contains(p.Name, "build") && !strings.Contains(p.Name, "deploy") && p.Status.Phase == "Running" {
-						targetPod = &p
-						return true, nil
-					}
-				}
-				return false, nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
+			targetPod := initExecPod(oc)
 			targetContainer := targetPod.Spec.Containers[0]
 
 			data, err := j.buildDSLJob(oc.Namespace(),
@@ -754,6 +774,46 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(strings.Contains(log, "hello world 4")).To(o.BeTrue())
 			o.Expect(strings.Contains(log, "hello world 5")).To(o.BeTrue())
 			o.Expect(strings.Contains(log, "hello world 6")).To(o.BeTrue())
+		})
+
+		g.It("jenkins-plugin test exec freestyle", func() {
+
+			targetPod := initExecPod(oc)
+			targetContainer := targetPod.Spec.Containers[0]
+
+			jobName := "test-build-with-env-steps"
+			data := j.readJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+				"POD_NAME":       targetPod.Name,
+				"CONTAINER_NAME": targetContainer.Name,
+			})
+
+			j.createItem(jobName, data)
+			jmon := j.startJob(jobName)
+			jmon.await(2 * time.Minute)
+
+			log, err := j.getLastJobConsoleLogs(jobName)
+			ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
+
+			// Now run without specifying container
+			jobName = "test-build-with-env-steps-no-container"
+			data = j.readJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+				"POD_NAME":       targetPod.Name,
+				"CONTAINER_NAME": "",
+			})
+
+			j.createItem(jobName, data)
+			jmon = j.startJob(jobName)
+			jmon.await(2 * time.Minute)
+
+			log, err = j.getLastJobConsoleLogs(jobName)
+			ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
+
 		})
 
 		g.It("jenkins-plugin test multitag", func() {
