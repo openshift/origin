@@ -33,7 +33,7 @@ os::start::server
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 install_registry
-wait_for_registry
+oc rollout status dc/docker-registry
 
 oc login ${MASTER_ADDR} -u ldap -p password --certificate-authority=${MASTER_CONFIG_DIR}/ca.crt
 oc new-project openldap
