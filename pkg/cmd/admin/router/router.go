@@ -552,24 +552,46 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	var clusterIP string
 
 	output := cfg.Action.ShouldPrint()
-	generate := output
+	generateSvc := output
 	service, err := kClient.Services(namespace).Get(name)
 	if err != nil {
-		if !generate {
+		if !generateSvc {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing router %q: %v", name, err)
 			}
-			if !output && cfg.Action.DryRun {
+			if cfg.Action.DryRun {
 				return fmt.Errorf("Router %q service does not exist", name)
 			}
-			generate = true
+			generateSvc = true
 		}
 	} else {
 		clusterIP = service.Spec.ClusterIP
+		fmt.Fprintf(out, "Router %q service exists\n", name)
 	}
 
-	if !generate {
-		fmt.Fprintf(out, "Router %q service exists\n", name)
+	certName := fmt.Sprintf("%s-certs", cfg.Name)
+	generateSecret := output
+	_, err = kClient.Secrets(namespace).Get(certName)
+	if err != nil {
+		if !generateSecret {
+			if !errors.IsNotFound(err) {
+				return fmt.Errorf("can't check for existing router %q: %v", name, err)
+			}
+			if cfg.Action.DryRun {
+				return fmt.Errorf("Router %q secret does not exist", certName)
+			}
+			generateSecret = true
+		}
+	} else {
+		if len(cfg.DefaultCertificate) == 0 {
+			fmt.Fprintf(out, "WARNING: Router %q secret %q exists and will be used by this router.\n", name, certName)
+			generateSecret = true
+		} else {
+			fmt.Fprintf(out, "Router %q secret %q  exists\n", name, certName)
+		}
+	}
+
+	if !generateSvc || !generateSecret {
 		return nil
 	}
 
@@ -661,7 +683,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		}
 	}
 	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
-	var certName = fmt.Sprintf("%s-certs", cfg.Name)
+	certName = fmt.Sprintf("%s-certs", cfg.Name)
 	secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient, namespace, defaultCert, certName)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
