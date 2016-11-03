@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -32,14 +33,12 @@ var (
 )
 
 // NewCmdRollout facilitates kubectl rollout subcommands
-func NewCmdRollout(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRollout(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollout SUBCOMMAND",
 		Short: "Manage a Kubernetes deployment or OpenShift deployment config",
 		Long:  rolloutLong,
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
-		},
+		Run:   cmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	// subcommands

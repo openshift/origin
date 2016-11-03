@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/admin"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
@@ -84,7 +86,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kube-scheduler":
 		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
 	case "kubernetes":
-		cmd = kubernetes.NewCommand(basename, basename, out)
+		cmd = kubernetes.NewCommand(basename, basename, out, errout)
 	case "origin", "atomic-enterprise":
 		cmd = NewCommandOpenShift(basename)
 	default:
@@ -107,7 +109,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Use:   name,
 		Short: "Build, deploy, and manage your cloud applications",
 		Long:  fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
 	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))
@@ -164,7 +166,7 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	f := clientcmd.New(experimental.PersistentFlags())
 
-	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
+	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out, errout))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))

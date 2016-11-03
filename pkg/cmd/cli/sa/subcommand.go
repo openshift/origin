@@ -4,9 +4,9 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -20,13 +20,13 @@ const (
 	serviceAccountsShort = `Manage service accounts in your project`
 )
 
-func NewCmdServiceAccounts(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdServiceAccounts(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:     name,
 		Short:   serviceAccountsShort,
 		Long:    serviceAccountsLong,
 		Aliases: []string{"sa"},
-		Run:     cmdutil.DefaultSubCommandRun(out),
+		Run:     cmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmds.AddCommand(NewCommandGetServiceAccountToken(GetServiceAccountTokenRecommendedName, fullName+" "+GetServiceAccountTokenRecommendedName, f, out))

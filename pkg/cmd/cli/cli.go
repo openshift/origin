@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -28,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 )
@@ -77,7 +77,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		Run: func(c *cobra.Command, args []string) {
 			explainOut := term.NewResponsiveWriter(out)
 			c.SetOutput(explainOut)
-			cmdutil.RequireNoArguments(c, args)
+			kcmdutil.RequireNoArguments(c, args)
 			fmt.Fprintf(explainOut, "%s\n\n%s\n", cliLong, fmt.Sprintf(cliExplain, fullName))
 		},
 		BashCompletionFunction: bashCompletionFunc,
@@ -86,7 +86,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	f := clientcmd.New(cmds.PersistentFlags())
 
 	loginCmd := login.NewCmdLogin(fullName, f, in, out)
-	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit")
+	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, errout, fullName+" edit")
 
 	groups := templates.CommandGroups{
 		{
@@ -107,7 +107,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
-				rollout.NewCmdRollout(fullName, f, out),
+				rollout.NewCmdRollout(fullName, f, out, errout),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out, errout),
@@ -131,7 +131,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdAutoscale(fullName, f, out),
 				secretcmds,
-				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out),
+				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out, errout),
 			},
 		},
 		{
@@ -152,7 +152,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
 				admin.NewCommandAdmin("adm", fullName+" "+"adm", in, out, errout),
-				cmd.NewCmdCreate(fullName, f, out),
+				cmd.NewCmdCreate(fullName, f, out, errout),
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdApply(fullName, f, out),
 				cmd.NewCmdPatch(fullName, f, out),
@@ -160,7 +160,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdExport(fullName, f, in, out),
 				cmd.NewCmdExtract(fullName, f, in, out, errout),
 				observe.NewCmdObserve(fullName, f, out, errout),
-				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				cmd.NewCmdConvert(fullName, f, out),
 				importer.NewCmdImport(fullName, f, in, out, errout),
 			},
@@ -169,7 +169,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
 				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
-				cmd.NewCmdConfig(fullName, "config"),
+				cmd.NewCmdConfig(fullName, "config", out, errout),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
 				cmd.NewCmdCompletion(fullName, f, out),
 			},

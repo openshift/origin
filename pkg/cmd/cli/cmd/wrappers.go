@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -174,8 +173,8 @@ var (
 )
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
-func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdCreate(f.Factory, out)
+func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdCreate(f.Factory, out, errOut)
 	cmd.Long = createLong
 	cmd.Example = fmt.Sprintf(createExample, parentName)
 
@@ -184,7 +183,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 	templates.NormalizeAll(cmd)
 
 	// create subcommands
-	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, out))
+	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, out, errOut))
 	cmd.AddCommand(create.NewCmdCreatePolicyBinding(create.PolicyBindingRecommendedName, parentName+" create "+create.PolicyBindingRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, out))
@@ -688,7 +687,7 @@ var (
 )
 
 // NewCmdConfig is a wrapper for the Kubernetes cli config command
-func NewCmdConfig(parentName, name string) *cobra.Command {
+func NewCmdConfig(parentName, name string, out, errOut io.Writer) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
 		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
@@ -700,7 +699,7 @@ func NewCmdConfig(parentName, name string) *cobra.Command {
 	}
 	pathOptions.LoadingRules.DoNotResolvePaths = true
 
-	cmd := config.NewCmdConfig(pathOptions, os.Stdout)
+	cmd := config.NewCmdConfig(pathOptions, out, errOut)
 	cmd.Short = "Change configuration files for the client"
 	cmd.Long = configLong
 	cmd.Example = fmt.Sprintf(configExample, parentName, name)

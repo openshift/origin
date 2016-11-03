@@ -4,9 +4,9 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CertRecommendedName = "ca"
@@ -18,7 +18,7 @@ func NewCmdCert(name, fullName string, out io.Writer, errout io.Writer) *cobra.C
 		Use:   name,
 		Short: "Manage certificates and keys",
 		Long:  `Manage certificates and keys`,
-		Run:   util.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errout),
 	}
 
 	cmds.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out))

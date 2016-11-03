@@ -10,8 +10,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	ocutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 type concept struct {
@@ -231,7 +232,7 @@ func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 		Short:   "An introduction to concepts and types",
 		Long:    fmt.Sprintf(typesLong, buf.String()),
 		Example: fmt.Sprintf(typesExample, fullName),
-		Run:     ocutil.DefaultSubCommandRun(out),
+		Run:     kcmdutil.DefaultSubCommandRun(out),
 	}
 	return cmd
 }

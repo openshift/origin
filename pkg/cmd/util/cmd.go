@@ -33,21 +33,6 @@ func ReplaceCommandName(from, to string, c *cobra.Command) *cobra.Command {
 	return c
 }
 
-// RequireNoArguments exits with a usage error if extra arguments are provided.
-func RequireNoArguments(c *cobra.Command, args []string) {
-	if len(args) > 0 {
-		kcmdutil.CheckErr(kcmdutil.UsageError(c, fmt.Sprintf(`unknown command "%s"`, strings.Join(args, " "))))
-	}
-}
-
-func DefaultSubCommandRun(out io.Writer) func(c *cobra.Command, args []string) {
-	return func(c *cobra.Command, args []string) {
-		c.SetOutput(out)
-		RequireNoArguments(c, args)
-		c.Help()
-	}
-}
-
 // GetDisplayFilename returns the absolute path of the filename as long as there was no error, otherwise it returns the filename as-is
 func GetDisplayFilename(filename string) string {
 	if absName, err := filepath.Abs(filename); err == nil {
