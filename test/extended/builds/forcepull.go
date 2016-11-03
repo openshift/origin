@@ -38,6 +38,16 @@ func doTest(bldPrefix, debugStr string, same bool, oc *exutil.CLI) {
 	// corrupt the builder image
 	exutil.CorruptImage(fullImageName, corruptor)
 
+	if bldPrefix == buildPrefixFC || bldPrefix == buildPrefixTC {
+		// grant access to the custom build strategy
+		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer func() {
+			err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+	}
+
 	// kick off the app/lang build and verify the builder image accordingly
 	_, err := exutil.StartBuildAndWait(oc, bldPrefix)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
@@ -110,6 +120,17 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 		pre := exutil.FixturePath("testdata", "forcepull-test.json")
 		post := exutil.ArtifactPath("forcepull-test.json")
 		varSubDest = authCfg.ServerAddress + "/" + oc.Namespace()
+
+		// grant access to the custom build strategy
+		g.By("granting system:build-strategy-custom")
+		err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		defer func() {
+			err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+
 		err = exutil.VarSubOnFile(pre, post, varSubSrc, varSubDest)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.CreateResource(post, oc)
