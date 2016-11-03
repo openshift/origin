@@ -39,7 +39,7 @@ type postExecutorStepContext struct {
 
 	// Labels that will be passed to a callback.
 	// These labels are added to the image during commit.
-	// See also: commitImageStep and invokeCallbackStep
+	// See also: commitImageStep and STI.Build()
 	labels map[string]string
 }
 
@@ -374,23 +374,6 @@ func (step *reportSuccessStep) execute(ctx *postExecutorStepContext) error {
 
 	glog.V(3).Infof("Successfully built %s", firstNonEmpty(step.builder.config.Tag, ctx.imageID))
 
-	return nil
-}
-
-type invokeCallbackStep struct {
-	builder         *STI
-	callbackInvoker util.CallbackInvoker
-}
-
-func (step *invokeCallbackStep) execute(ctx *postExecutorStepContext) error {
-	if len(step.builder.config.CallbackURL) > 0 {
-		glog.V(3).Info("Executing step: invoke callback url")
-		step.builder.result.Messages = step.callbackInvoker.ExecuteCallback(step.builder.config.CallbackURL,
-			step.builder.result.Success, ctx.labels, step.builder.result.Messages)
-		return nil
-	}
-
-	glog.V(3).Info("Skipping step: invoke callback url")
 	return nil
 }
 
