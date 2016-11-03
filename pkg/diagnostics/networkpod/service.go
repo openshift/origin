@@ -59,7 +59,7 @@ func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if !ok {
-		d.res.Warn("DSvcNet1002", nil, fmt.Sprintf("Skipping service connectivity test. Reason: Not using openshift network plugin."))
+		d.res.Warn("DSvcNet1002", nil, "Skipping service connectivity test. Reason: Not using openshift network plugin.")
 		return d.res
 	}
 
@@ -69,7 +69,7 @@ func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if len(services) == 0 {
-		d.res.Warn("DSvcNet1004", nil, fmt.Sprintf("Skipping service connectivity test. Reason: No services found."))
+		d.res.Warn("DSvcNet1004", nil, "Skipping service connectivity test. Reason: No services found.")
 		return d.res
 	}
 
@@ -96,13 +96,13 @@ func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 
 	// Applicable to flat and multitenant networks
 	if len(localGlobalPods) > 0 {
-		d.checkConnection(localGlobalPods, services, fmt.Sprintf("Skipping service connectivity test for global projects. Reason: Couldn't find a global pod."))
+		d.checkConnection(localGlobalPods, services, "Skipping service connectivity test for global projects. Reason: Couldn't find a global pod.")
 	}
 
 	// Applicable to multitenant network
 	isMultitenant := (d.vnidMap != nil)
 	if isMultitenant {
-		d.checkConnection(localNonGlobalPods, services, fmt.Sprintf("Skipping service connectivity test for non-global projects. Reason: Couldn't find a non-global pod."))
+		d.checkConnection(localNonGlobalPods, services, "Skipping service connectivity test for non-global projects. Reason: Couldn't find a non-global pod.")
 	}
 	return d.res
 }
@@ -131,6 +131,13 @@ func (d CheckServiceNetwork) checkConnection(pods []kapi.Pod, services []kapi.Se
 				d.checkPodToServiceConnection(&pod, &svc)
 			}
 		}
+	}
+
+	if !sameNamespace {
+		d.res.Warn("DSvcNet1012", nil, fmt.Sprintf("Same Namespace: %s", warnMsg))
+	}
+	if !diffNamespace {
+		d.res.Warn("DSvcNet1013", nil, fmt.Sprintf("Different namespaces: %s", warnMsg))
 	}
 }
 

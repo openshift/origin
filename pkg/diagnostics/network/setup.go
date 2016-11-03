@@ -20,12 +20,15 @@ import (
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {
-	d.nsName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
 
-	nsList := []string{d.nsName}
+	nsList := []string{d.nsName1, d.nsName2}
 	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
-		d.globalnsName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
-		nsList = append(nsList, d.globalnsName)
+		d.globalnsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		nsList = append(nsList, d.globalnsName1)
+		d.globalnsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		nsList = append(nsList, d.globalnsName2)
 	}
 
 	for _, name := range nsList {
@@ -49,7 +52,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	secret := &kapi.Secret{}
 	secret.Name = util.NetworkDiagSecretName
 	secret.Data = map[string][]byte{strings.ToLower(kclientcmd.RecommendedConfigPathEnvVar): kconfigData}
-	if _, err = d.KubeClient.Secrets(d.nsName).Create(secret); err != nil {
+	if _, err = d.KubeClient.Secrets(d.nsName1).Create(secret); err != nil {
 		return fmt.Errorf("Creating secret %q failed: %v", secret.Name, err)
 	}
 
@@ -67,8 +70,10 @@ func (d *NetworkDiagnostic) TestSetup() error {
 
 func (d *NetworkDiagnostic) Cleanup() {
 	// Deleting namespaces will delete corresponding service accounts/pods in the namespace automatically.
-	d.KubeClient.Namespaces().Delete(d.nsName)
-	d.KubeClient.Namespaces().Delete(d.globalnsName)
+	d.KubeClient.Namespaces().Delete(d.nsName1)
+	d.KubeClient.Namespaces().Delete(d.nsName2)
+	d.KubeClient.Namespaces().Delete(d.globalnsName1)
+	d.KubeClient.Namespaces().Delete(d.globalnsName2)
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {

@@ -18,7 +18,7 @@ import (
 )
 
 func (d *NetworkDiagnostic) CollectNetworkPodLogs() error {
-	podList, err := d.getPodList(d.nsName, util.NetworkDiagPodNamePrefix)
+	podList, err := d.getPodList(d.nsName1, util.NetworkDiagPodNamePrefix)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (d *NetworkDiagnostic) CollectNetworkInfo(diagsFailed bool) error {
 		l.LogMaster()
 	}
 
-	podList, err := d.getPodList(d.nsName, util.NetworkDiagPodNamePrefix)
+	podList, err := d.getPodList(d.nsName1, util.NetworkDiagPodNamePrefix)
 	if err != nil {
 		return err
 	}

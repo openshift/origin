@@ -59,7 +59,7 @@ func (d CheckPodNetwork) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if !ok {
-		d.res.Warn("DPodNet1002", nil, fmt.Sprintf("Skipping pod connectivity test. Reason: Not using openshift network plugin."))
+		d.res.Warn("DPodNet1002", nil, "Skipping pod connectivity test. Reason: Not using openshift network plugin.")
 		return d.res
 	}
 
@@ -92,31 +92,31 @@ func (d CheckPodNetwork) Check() types.DiagnosticResult {
 
 func (d CheckPodNetwork) checkDifferentNodePodToPodConnection(localGlobalPods, localNonGlobalPods, nonlocalGlobalPods, nonlocalNonGlobalPods []kapi.Pod) {
 	// Applicable to flat and multitenant networks
-	d.checkConnection(localGlobalPods, nonlocalGlobalPods, fmt.Sprintf("Skipping pod connectivity test for global projects on different nodes. Reason: Couldn't find 2 global pods."))
+	d.checkConnection(localGlobalPods, nonlocalGlobalPods, "Skipping pod connectivity test for global projects on different nodes. Reason: Couldn't find 2 global pods.", true)
 
 	// Applicable to multitenant network
 	isMultitenant := (d.vnidMap != nil)
 	if isMultitenant {
-		d.checkConnection(localNonGlobalPods, nonlocalNonGlobalPods, fmt.Sprintf("Skipping pod connectivity test for non-global projects on different nodes. Reason: Couldn't find 2 non-global pods."))
+		d.checkConnection(localNonGlobalPods, nonlocalNonGlobalPods, "Skipping pod connectivity test for non-global projects on different nodes. Reason: Couldn't find 2 non-global pods.", true)
 
-		d.checkConnection(localGlobalPods, nonlocalNonGlobalPods, fmt.Sprintf("Skipping pod connectivity test between global to non-global projects on different nodes. Reason: Couldn't find global and/or non-global pod."))
+		d.checkConnection(localGlobalPods, nonlocalNonGlobalPods, "Skipping pod connectivity test between global to non-global projects on different nodes. Reason: Couldn't find global and/or non-global pod.", false)
 	}
 }
 
 func (d CheckPodNetwork) checkSameNodePodToPodConnection(globalPods, nonGlobalPods []kapi.Pod) {
 	// Applicable to both flat and multitenant networks
-	d.checkConnection(globalPods, globalPods, fmt.Sprintf("Skipping pod connectivity test for global projects on the same node. Reason: Couldn't find 2 global pods."))
+	d.checkConnection(globalPods, globalPods, "Skipping pod connectivity test for global projects on the same node. Reason: Couldn't find 2 global pods.", true)
 
 	// Applicable to multitenant network
 	isMultitenant := (d.vnidMap != nil)
 	if isMultitenant {
-		d.checkConnection(nonGlobalPods, nonGlobalPods, fmt.Sprintf("Skipping pod connectivity test for non-global projects on the same node. Reason: Couldn't find 2 non-global pods."))
+		d.checkConnection(nonGlobalPods, nonGlobalPods, "Skipping pod connectivity test for non-global projects on the same node. Reason: Couldn't find 2 non-global pods.", true)
 
-		d.checkConnection(globalPods, nonGlobalPods, fmt.Sprintf("Skipping pod connectivity test between global to non-global projects on the same node. Reason: Couldn't find global and/or non-global pod."))
+		d.checkConnection(globalPods, nonGlobalPods, "Skipping pod connectivity test between global to non-global projects on the same node. Reason: Couldn't find global and/or non-global pod.", false)
 	}
 }
 
-func (d CheckPodNetwork) checkConnection(pods1, pods2 []kapi.Pod, warnMsg string) {
+func (d CheckPodNetwork) checkConnection(pods1, pods2 []kapi.Pod, warnMsg string, checkSameNamespace bool) {
 	minCount := 1
 	if len(pods1) > 0 && len(pods2) > 0 && (pods1[0].UID == pods2[0].UID) {
 		minCount += 1
@@ -147,6 +147,13 @@ func (d CheckPodNetwork) checkConnection(pods1, pods2 []kapi.Pod, warnMsg string
 				d.checkPodToPodConnection(&pod1, &pod2)
 			}
 		}
+	}
+
+	if checkSameNamespace && !sameNamespace {
+		d.res.Warn("DPodNet1010", nil, fmt.Sprintf("Same Namespace: %s", warnMsg))
+	}
+	if !diffNamespace {
+		d.res.Warn("DPodNet1011", nil, fmt.Sprintf("Different namespaces: %s", warnMsg))
 	}
 }
 
