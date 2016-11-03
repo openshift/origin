@@ -9,9 +9,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -74,8 +74,8 @@ func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(oapi.ListOptionsToSelectors(options))
-	list, err := filterList(namespaceList, m, nil)
+	predicate := nsregistry.MatchNamespace(oapi.ListOptionsToSelectors(options))
+	list, err := filterList(namespaceList, predicate, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ type decoratorFunc func(obj runtime.Object) error
 // filterList filters any list object that conforms to the api conventions,
 // provided that 'm' works with the concrete type of list. d is an optional
 // decorator for the returned functions. Only matching items are decorated.
-func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
+func filterList(list runtime.Object, predicate storage.SelectionPredicate, d decoratorFunc) (filtered runtime.Object, err error) {
 	// TODO: push a matcher down into tools.etcdHelper to avoid all this
 	// nonsense. This is a lot of unnecessary copies.
 	items, err := meta.ExtractList(list)
@@ -189,7 +189,7 @@ func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filter
 	}
 	var filteredItems []runtime.Object
 	for _, obj := range items {
-		match, err := m.Matches(obj)
+		match, err := predicate.Matches(obj)
 		if err != nil {
 			return nil, err
 		}
