@@ -81,6 +81,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			fmt.Fprintf(explainOut, "%s\n\n%s\n", cliLong, fmt.Sprintf(cliExplain, fullName))
 		},
 		BashCompletionFunction: bashCompletionFunc,
+		ExcludeGlobalFlagSet:   true,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
@@ -248,6 +249,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
 	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, out, os.Stderr)
+	cmds.ExcludeGlobalFlagSet = true
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"
