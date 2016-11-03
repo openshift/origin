@@ -22,7 +22,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-var buildPodAdmissionTestTimeout time.Duration = 10 * time.Second
+var buildPodAdmissionTestTimeout time.Duration = 30 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)

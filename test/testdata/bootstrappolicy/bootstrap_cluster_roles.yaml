@@ -3082,6 +3082,14 @@ items:
     resources:
     - events
     verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
     - create
     - patch
     - update

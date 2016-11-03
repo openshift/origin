@@ -31,11 +31,13 @@ type NetworkDiagnostic struct {
 	PreventModification bool
 	LogDir              string
 
-	pluginName   string
-	nodes        []kapi.Node
-	nsName       string
-	globalnsName string
-	res          types.DiagnosticResult
+	pluginName    string
+	nodes         []kapi.Node
+	nsName1       string
+	nsName2       string
+	globalnsName1 string
+	globalnsName2 string
+	res           types.DiagnosticResult
 }
 
 // Name is part of the Diagnostic interface and just returns name.
@@ -74,7 +76,7 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if !ok {
-		d.res.Warn("DNet2002", nil, fmt.Sprintf("Skipping network diagnostics check. Reason: Not using openshift network plugin."))
+		d.res.Warn("DNet2002", nil, "Skipping network diagnostics check. Reason: Not using openshift network plugin.")
 		return d.res
 	}
 
@@ -84,7 +86,7 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if len(d.nodes) == 0 {
-		d.res.Warn("DNet2004", nil, fmt.Sprint("Skipping network checks. Reason: No schedulable/ready nodes found."))
+		d.res.Warn("DNet2004", nil, "Skipping network checks. Reason: No schedulable/ready nodes found.")
 		return d.res
 	}
 
@@ -118,7 +120,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		return
 	}
 	// Wait for network diagnostic pod completion
-	if err := d.waitForNetworkPod(d.nsName, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodSucceeded, kapi.PodFailed}); err != nil {
+	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodSucceeded, kapi.PodFailed}); err != nil {
 		d.res.Error("DNet2007", err, err.Error())
 		return
 	}
@@ -137,7 +139,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	}
 
 	// Wait for network diagnostic pod to start
-	if err := d.waitForNetworkPod(d.nsName, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodRunning, kapi.PodFailed, kapi.PodSucceeded}); err != nil {
+	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodRunning, kapi.PodFailed, kapi.PodSucceeded}); err != nil {
 		d.res.Error("DNet2010", err, err.Error())
 		// Do not bail out here, collect what ever info is available from all valid nodes
 	}
@@ -157,7 +159,7 @@ func (d *NetworkDiagnostic) runNetworkPod(command []string) error {
 		podName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagPodNamePrefix))
 
 		pod := GetNetworkDiagnosticsPod(command, podName, node.Name)
-		_, err := d.KubeClient.Pods(d.nsName).Create(pod)
+		_, err := d.KubeClient.Pods(d.nsName1).Create(pod)
 		if err != nil {
 			return fmt.Errorf("Creating network diagnostic pod %q on node %q with command %q failed: %v", podName, node.Name, strings.Join(command, " "), err)
 		}

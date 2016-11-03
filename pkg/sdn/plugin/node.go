@@ -22,7 +22,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
@@ -41,6 +40,7 @@ type OsdnNode struct {
 	localIP            string
 	hostName           string
 	podNetworkReady    chan struct{}
+	kubeletInitReady   chan struct{}
 	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
@@ -96,6 +96,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		hostName:           hostname,
 		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
+		kubeletInitReady:   make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
@@ -203,10 +204,18 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
 	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
 	if err != nil {
 		return err
 	}
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+		return err
+	}
+
+	// Wait for kubelet to init the plugin so we get a knetwork.Host
+	log.V(5).Infof("Waiting for kubelet network plugin initialization")
+	<-node.kubeletInitReady
 
 	if networkChanged {
 		var pods []kapi.Pod
@@ -215,18 +224,14 @@ func (node *OsdnNode) Start() error {
 			return err
 		}
 		for _, p := range pods {
-			containerID := getPodContainerID(&p)
-			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.ContainerID{ID: containerID})
+			err = node.UpdatePod(p)
 			if err != nil {
-				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
+				log.Warningf("Could not update pod %q: %s", p.Name, err)
 			}
 		}
 	}
 
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
-		return err
-	}
-
+	log.V(5).Infof("openshift-sdn network plugin ready")
 	node.markPodNetworkReady()
 
 	return nil
@@ -234,12 +239,12 @@ func (node *OsdnNode) Start() error {
 
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
 // See https://github.com/containernetworking/cni/issues/89
-func (node *OsdnNode) UpdatePod(namespace string, name string, id kubeletTypes.ContainerID) error {
+func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	req := &cniserver.PodRequest{
 		Command:      cniserver.CNI_UPDATE,
-		PodNamespace: namespace,
-		PodName:      name,
-		ContainerId:  id.String(),
+		PodNamespace: pod.Namespace,
+		PodName:      pod.Name,
+		ContainerId:  getPodContainerID(&pod),
 		// netns is read from docker if needed, since we don't get it from kubelet
 		Result: make(chan *cniserver.PodResult),
 	}
