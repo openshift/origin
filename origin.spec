@@ -180,6 +180,28 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
+%package excluder
+Summary:   Exclude openshift packages from updates
+BuildArch: noarch
+
+%description excluder
+Many times admins do not want openshift updated when doing
+normal system updates.
+
+%{name}-excluder exclude - No openshift packages can be updated
+%{name}-excluder unexclude - Openshift packages can be updated
+
+%package docker-excluder
+Summary:   Exclude docker packages from updates
+BuildArch: noarch
+
+%description docker-excluder
+Certain versions of OpenShift will not work with newer versions
+of docker.  Exclude those versions of docker.
+
+%{name}-docker-excluder exclude - No major docker updates
+%{name}-docker-excluder unexclude - docker packages can be updated
+
 %prep
 %setup -q
 
@@ -302,6 +324,25 @@ done
 # Install origin-accounting
 install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
 install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
+
+# Excluder variables
+mkdir -p $RPM_BUILD_ROOT/usr/sbin
+%if 0%{?fedora}
+  OS_CONF_FILE="/etc/dnf.conf"
+%else
+  OS_CONF_FILE="/etc/yum.conf"
+%endif
+
+# Install openshift-excluder script
+sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|%{name} %{name}-clients %{name}-clients-redistributable %{name}-dockerregistry %{name}-master %{name}-node %{name}-pod %{name}-recycle %{name}-sdn-ovs %{name}-tests tuned-profiles-%{name}-node|" $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+
+# Install docker-excluder script
+sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.13* docker*1.14*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+
 
 %files
 %doc README.md
@@ -490,6 +531,32 @@ fi
 
 %files pod
 %{_bindir}/pod
+
+%files excluder
+/usr/sbin/%{name}-excluder
+
+%post excluder
+if [ "$1" -eq 1 ] ; then
+  %{name}-excluder exclude
+fi
+
+%preun excluder
+if [ "$1" -eq 0 ] ; then
+  /usr/sbin/%{name}-excluder unexclude
+fi
+
+%files docker-excluder
+/usr/sbin/%{name}-docker-excluder
+
+%post docker-excluder
+# we always want to run this, since the 
+#   package-list may be different with each version
+%{name}-docker-excluder exclude
+
+%preun docker-excluder
+# we always want to clear this out, since the 
+#   package-list may be different with each version
+/usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
