@@ -50,8 +50,9 @@ is_event_template=(               \
 )
 is_event_template=$(IFS=""; echo "${is_event_template[*]}") # re-formats template for use
 
+os::test::junit::declare_suite_start "extended/ldap-groups/setup"
 # wait until the last event that occurred on the imagestream was the successful pull of the latest image
-wait_for_command 'oc get imagestream openldap --template="${is_event_template}" | grep latest' $((60*TIME_SEC))
+os::cmd::try_until_text "oc get imagestream openldap --template='${is_event_template}'" 'latest' "$((60*TIME_SEC))"
 
 # kick off a build and wait for it to finish
 oc start-build openldap --follow
@@ -73,10 +74,10 @@ server_ready_template=(                                  \
 server_ready_template=$(IFS=$""; echo "${server_ready_template[*]}") # re-formats template for use
 
 # wait for LDAP server to be ready
-wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${server_ready_template}" | grep "ReadyTrue "' $((60*TIME_SEC))
+os::cmd::try_until_text "oc get pods -l deploymentconfig=openldap-server --template='${server_ready_template}'" "ReadyTrue " "$((60*TIME_SEC))"
 
 oc login -u system:admin -n openldap
-
+os::test::junit::declare_suite_end
 
 LDAP_SERVICE_IP=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}" service openldap-server)
 

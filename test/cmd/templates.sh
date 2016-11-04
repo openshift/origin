@@ -8,7 +8,6 @@ trap os::test::junit::reconcile_output EXIT
   oc delete all,templates --all
   oc delete template/ruby-helloworld-sample -n openshift
   oc delete project test-template-project
-  wait_for_command '! oc get project test-template-project'
   exit 0
 ) &>/dev/null
 
