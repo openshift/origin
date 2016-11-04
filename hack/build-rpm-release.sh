@@ -53,5 +53,21 @@ make clean
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
 cp -r "${tito_output_directory}"/* "${OS_OUTPUT}"
-mkdir -p "${OS_LOCAL_RELEASEPATH}"
-cp "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}"
+mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
+cp "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+
+if command -v createrepo >/dev/null 2>&1; then
+	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
+	createrepo "${repo_path}"
+
+	echo "[origin-local-release]
+baseurl = file://${repo_path}
+gpgcheck = 0
+name = OpenShift Origin Release from Local Source
+" > "${repo_path}/origin-local-release.repo"
+
+	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
+	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
+else
+	os::log::warn "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
+fi
