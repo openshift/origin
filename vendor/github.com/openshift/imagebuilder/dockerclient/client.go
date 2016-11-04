@@ -228,7 +228,12 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			)
 		}
 
-		if err := e.Client.StartContainer(e.Container.ID, &hostConfig); err != nil {
+		hc := &hostConfig
+		if len(hostConfig.Binds) == 0 {
+			// don't set HostConfig if we have no need for binds
+			hc = nil
+		}
+		if err := e.Client.StartContainer(e.Container.ID, hc); err != nil {
 			return fmt.Errorf("unable to start build container: %v", err)
 		}
 		// TODO: is this racy? may have to loop wait in the actual run step
