@@ -19,7 +19,6 @@
 ## COMMON VARIABLES ##
 #source ose.conf
 
-
 ## LOCAL VARIABLES ##
 MAJOR_RELEASE="3.3"
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
