@@ -236,7 +236,7 @@ func (o *NewBuildOptions) RunNewBuild() error {
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 && t.Spec.Source.Binary == nil {
 				fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
-				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, o.CommandName, t.Name)
+				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, o.BaseName, t.Name)
 			}
 		}
 	}
