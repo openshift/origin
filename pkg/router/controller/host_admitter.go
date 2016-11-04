@@ -152,6 +152,10 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
+func (p *HostAdmitter) SetSyncedAtLeastOnce() error {
+	return p.plugin.SetSyncedAtLeastOnce()
+}
+
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)

@@ -86,6 +86,10 @@ type templateRouter struct {
 	lock sync.Mutex
 	// the router should only reload when the value is false
 	skipCommit bool
+	// If true, haproxy should only bind ports when it has route and endpoint state
+	bindPortsAfterSync bool
+	// whether the router state has been read from the api at least once
+	syncedAtLeastOnce bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -103,6 +107,7 @@ type templateRouterCfg struct {
 	allowWildcardRoutes    bool
 	peerEndpointsKey       string
 	includeUDP             bool
+	bindPortsAfterSync     bool
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -124,6 +129,8 @@ type templateData struct {
 	StatsPassword string
 	//port to expose stats with (if the template supports it)
 	StatsPort int
+	// whether the router should bind the default ports
+	BindPorts bool
 }
 
 func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
@@ -162,6 +169,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		allowWildcardRoutes:    cfg.allowWildcardRoutes,
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
+		bindPortsAfterSync:     cfg.bindPortsAfterSync,
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
@@ -406,6 +414,7 @@ func (r *templateRouter) writeConfig() error {
 			StatsUser:          r.statsUser,
 			StatsPassword:      r.statsPassword,
 			StatsPort:          r.statsPort,
+			BindPorts:          !r.bindPortsAfterSync || r.syncedAtLeastOnce,
 		}
 		if err := template.Execute(file, data); err != nil {
 			file.Close()
@@ -739,6 +748,13 @@ func (r *templateRouter) SetSkipCommit(skipCommit bool) {
 		glog.V(4).Infof("Updating skip commit to: %t", skipCommit)
 		r.skipCommit = skipCommit
 	}
+}
+
+// SetSyncedAtLeastOnce indicates to the router that state has been
+// read from the api.
+func (r *templateRouter) SetSyncedAtLeastOnce() {
+	r.syncedAtLeastOnce = true
+	glog.V(4).Infof("Router state synchronized for the first time")
 }
 
 // HasServiceUnit attempts to retrieve a service unit for the given

@@ -257,6 +257,10 @@ func (p *DelayPlugin) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
+func (p *DelayPlugin) SetSyncedAtLeastOnce() error {
+	return p.plugin.SetSyncedAtLeastOnce()
+}
+
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
 func launchRouter(oc osclient.Interface, kc kclient.Interface, maxDelay int32, name string, reloadInterval int, reloadCounts map[string]int) (templatePlugin *templateplugin.TemplatePlugin) {
