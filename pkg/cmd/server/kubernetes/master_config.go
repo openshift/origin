@@ -23,11 +23,9 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -122,16 +120,13 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 		return nil, nil, err
 	}
 
-	etcdConfig := storagebackend.Config{
-		Type:       server.StorageConfig.Type,
-		Prefix:     options.EtcdStorageConfig.KubernetesStoragePrefix,
-		ServerList: options.EtcdClientInfo.URLs,
-		KeyFile:    options.EtcdClientInfo.ClientCert.KeyFile,
-		CertFile:   options.EtcdClientInfo.ClientCert.CertFile,
-		CAFile:     options.EtcdClientInfo.CA,
-		DeserializationCacheSize: genericapiserveroptions.DefaultDeserializationCacheSize,
-		Quorum: server.StorageConfig.Quorum,
-	}
+	// use the stock storage config based on args, but override bits from our config where appropriate
+	etcdConfig := server.StorageConfig
+	etcdConfig.Prefix = options.EtcdStorageConfig.KubernetesStoragePrefix
+	etcdConfig.ServerList = options.EtcdClientInfo.URLs
+	etcdConfig.KeyFile = options.EtcdClientInfo.ClientCert.KeyFile
+	etcdConfig.CertFile = options.EtcdClientInfo.ClientCert.CertFile
+	etcdConfig.CAFile = options.EtcdClientInfo.CA
 
 	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
 		etcdConfig,
