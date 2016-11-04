@@ -21,7 +21,7 @@ An unaccepted route is most likely due to one of the following reasons:
 If a router has been deployed, look for duplicate matching routes by
 running the following:
 
-  oc get --all-namespaces routes --template='{{range .items}}{{if eq .spec.host "%[2]s"}}{{println .metadata.name "in" .metadata.namespace}}{{end}}{{end}}'
+  $ oc get --all-namespaces routes --template='{{range .items}}{{if eq .spec.host "%[2]s"}}{{println .metadata.name "in" .metadata.namespace}}{{end}}{{end}}'
 
 `
 const routeCertMissingHostName = `

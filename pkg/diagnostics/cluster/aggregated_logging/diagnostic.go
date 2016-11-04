@@ -153,7 +153,7 @@ The project '%[1]s' was found with either a missing or non-empty node selector a
 This could keep Fluentd from running on certain nodes and collecting logs from the entire cluster.  
 You can correct it by editing the project:
 
-  oc edit namespace %[1]s
+  $ oc edit namespace %[1]s
 
 and updating the annotation:
 
