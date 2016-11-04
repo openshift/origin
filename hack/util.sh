@@ -25,51 +25,6 @@ function ensure_iptables_or_die() {
 }
 readonly -f ensure_iptables_or_die
 
-# wait_for_command executes a command and waits for it to
-# complete or times out after max_wait.
-#
-# $1 - The command to execute (e.g. curl -fs http://redhat.com)
-# $2 - Optional maximum time to wait in ms before giving up (Default: 10000ms)
-# $3 - Optional alternate command to determine if the wait should
-#		exit before the max_wait
-function wait_for_command() {
-	STARTTIME=$(date +%s)
-	cmd=$1
-	msg="Waiting for command to finish: '${cmd}'..."
-	max_wait=${2:-10*TIME_SEC}
-	fail=${3:-""}
-	wait=0.2
-
-	echo "[INFO] $msg"
-	expire=$(($(time_now) + $max_wait))
-	set +e
-	while [[ $(time_now) -lt $expire ]]; do
-		eval $cmd
-		if [ $? -eq 0 ]; then
-			set -e
-			ENDTIME=$(date +%s)
-			echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
-			return 0
-		fi
-		#check a failure condition where the success
-		#command may never be evaluated before timing
-		#out
-		if [[ ! -z $fail ]]; then
-			eval $fail
-			if [ $? -eq 0 ]; then
-				set -e
-				echo "[FAIL] Returning early. Command Failed '$cmd'"
-				return 1
-			fi
-		fi
-		sleep $wait
-	done
-	echo "[ ERR] Gave up waiting for: '$cmd'"
-	set -e
-	return 1
-}
-readonly -f wait_for_command
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {
