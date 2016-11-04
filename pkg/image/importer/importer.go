@@ -110,10 +110,20 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 		if from.Kind != "DockerImage" {
 			continue
 		}
-		ref, err := api.ParseDockerImageReference(from.Name)
-		if err != nil {
-			isi.Status.Images[i].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
-			continue
+		// TODO: This should be removed in 1.6
+		// See for more info: https://github.com/openshift/origin/pull/11774#issuecomment-258905994
+		var (
+			err error
+			ref api.DockerImageReference
+		)
+		if from.Name != "*" {
+			ref, err = api.ParseDockerImageReference(from.Name)
+			if err != nil {
+				isi.Status.Images[i].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
+				continue
+			}
+		} else {
+			ref = api.DockerImageReference{Name: from.Name}
 		}
 		defaultRef := ref.DockerClientDefaults()
 		repoName := defaultRef.RepositoryName()
@@ -217,11 +227,22 @@ func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retrie
 	if from.Kind != "DockerImage" {
 		return
 	}
-	ref, err := api.ParseDockerImageReference(from.Name)
-	if err != nil {
-		status.Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
-		return
+	// TODO: This should be removed in 1.6
+	// See for more info: https://github.com/openshift/origin/pull/11774#issuecomment-258905994
+	var (
+		err error
+		ref api.DockerImageReference
+	)
+	if from.Name != "*" {
+		ref, err = api.ParseDockerImageReference(from.Name)
+		if err != nil {
+			status.Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
+			return
+		}
+	} else {
+		ref = api.DockerImageReference{Name: from.Name}
 	}
+
 	defaultRef := ref.DockerClientDefaults()
 	repoName := defaultRef.RepositoryName()
 	registryURL := defaultRef.RegistryURL()

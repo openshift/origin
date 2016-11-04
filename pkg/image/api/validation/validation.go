@@ -308,6 +308,13 @@ func ValidateImageStreamImport(isi *api.ImageStreamImport) field.ErrorList {
 			if len(spec.From.Name) == 0 {
 				errs = append(errs, field.Required(imagesPath.Index(i).Child("from", "name"), ""))
 			} else {
+				// The ParseDockerImageReference qualifies '*' as a wrong name.
+				// The legacy clients use this character to look up imagestreams.
+				// TODO: This should be removed in 1.6
+				// See for more info: https://github.com/openshift/origin/pull/11774#issuecomment-258905994
+				if spec.From.Name == "*" {
+					continue
+				}
 				if ref, err := api.ParseDockerImageReference(spec.From.Name); err != nil {
 					errs = append(errs, field.Invalid(imagesPath.Index(i).Child("from", "name"), spec.From.Name, err.Error()))
 				} else {
