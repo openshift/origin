@@ -228,7 +228,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 11. Edit application-template-stibuild.json which will define the sample application
 
- * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
+ * Update the BuildConfig's sourceURI (https://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
 
 
