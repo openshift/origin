@@ -65,7 +65,19 @@ func (w wordWrapWriter) Write(p []byte) (nn int, err error) {
 	}
 	original := string(p)
 	wrapped := wordwrap.WrapString(original, w.limit)
-	return w.writer.Write([]byte(wrapped))
+	l, e := w.writer.Write([]byte(wrapped))
+
+	// This wrapped word writer could modify input in some cases such that
+	// the length of output is not equal to the length of input and this
+	// can cause ErrShortWrite error. So to avoid the error, make sure the
+	// returned length of output bytes is equal to the length of input.
+	// This returns length of original in non-erroneous cases, and in erroneous
+	// cases min(len(original), l).
+	if e == nil || l > len(original) {
+		l = len(original)
+	}
+
+	return l, e
 }
 
 // NewPunchCardWriter is a NewWordWrapWriter that limits the line width to 80 columns.
