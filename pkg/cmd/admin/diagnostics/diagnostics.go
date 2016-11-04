@@ -42,7 +42,7 @@ type DiagnosticsOptions struct {
 	ImageTemplate variable.ImageTemplate
 	// When true, prevent diagnostics from changing API state (e.g. creating something)
 	PreventModification bool
-	// Path to store network diagnostic results
+	// Path to store network diagnostic results in case of errors
 	NetworkDiagLogDir string
 	// We need a factory for creating clients. Creating a factory
 	// creates flags as a byproduct, most of which we don't want.
@@ -132,7 +132,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	cmd.Flags().StringVar(&o.ImageTemplate.Format, options.FlagImageTemplateName, o.ImageTemplate.Format, "Image template for DiagnosticPod to use in creating a pod")
 	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "When expanding the image template, use latest version, not release version")
 	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "May be set to prevent diagnostics making any changes via the API")
-	cmd.Flags().StringVar(&o.NetworkDiagLogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results")
+	cmd.Flags().StringVar(&o.NetworkDiagLogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results in case of errors")
 	flagtypes.GLog(cmd.Flags())
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 
