@@ -18,9 +18,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	"os"
 	"os/exec"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type JenkinsRef struct {
@@ -93,6 +94,11 @@ func (j *JenkinsRef) getResource(resourcePathFormat string, a ...interface{}) (s
 // Sends a POST to the Jenkins server. If a body is specified, it should be XML.
 // Returns response body and status code or an error.
 func (j *JenkinsRef) postXML(reqBody io.Reader, resourcePathFormat string, a ...interface{}) (string, int, error) {
+	return j.post(reqBody, resourcePathFormat, "application/xml", a...)
+}
+
+// Sends a POST to the Jenkins server. Returns response body and status code or an error.
+func (j *JenkinsRef) post(reqBody io.Reader, resourcePathFormat, contentType string, a ...interface{}) (string, int, error) {
 	uri := j.buildURI(resourcePathFormat, a...)
 
 	req, err := http.NewRequest("POST", uri, reqBody)
@@ -102,7 +108,7 @@ func (j *JenkinsRef) postXML(reqBody io.Reader, resourcePathFormat string, a ...
 	req.Close = true
 
 	if reqBody != nil {
-		req.Header.Set("Content-Type", "application/xml")
+		req.Header.Set("Content-Type", contentType)
 		req.Header.Del("Expect") // jenkins will return 417 if we have an expect hdr
 	}
 	req.SetBasicAuth("admin", j.password)
@@ -850,6 +856,35 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.It("jenkins-plugin test imagestream SCM DSL", func() {
 			testImageStreamSCM("imagestream-scm-dsl-job.xml")
 		})
-	})
 
+		g.It("jenkins-plugin test connection test", func() {
+
+			jobName := "test-build-job"
+			data := j.readJenkinsJob("build-job.xml", oc.Namespace())
+			j.createItem(jobName, data)
+
+			g.By("trigger test connection logic, check for success")
+			testConnectionBody := bytes.NewBufferString("apiURL=&authToken=")
+			result, code, err := j.post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+			if code != 200 {
+				err = fmt.Errorf("Expected return code of 200")
+			}
+			if matched, _ := regexp.MatchString(".*Connection successful.*", result); !matched {
+				err = fmt.Errorf("Expecting 'Connection successful', Got: %s", result)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("trigger test connection logic, check for failure")
+			testConnectionBody = bytes.NewBufferString("apiURL=https%3A%2F%2F1.2.3.4&authToken=")
+			result, code, err = j.post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+			if code != 200 {
+				err = fmt.Errorf("Expected return code of 200")
+			}
+			if matched, _ := regexp.MatchString(".*Connection unsuccessful.*", result); !matched {
+				err = fmt.Errorf("Expecting 'Connection unsuccessful', Got: %s", result)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+		})
+	})
 })
