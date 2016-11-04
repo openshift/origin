@@ -259,6 +259,10 @@ func (p *UniqueHost) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
+func (p *UniqueHost) SetSyncedAtLeastOnce() error {
+	return p.plugin.SetSyncedAtLeastOnce()
+}
+
 // routeKeys returns the internal router key to use for the given Route.
 func routeKeys(route *routeapi.Route) []string {
 	keys := make([]string, 1+len(route.Spec.AlternateBackends))

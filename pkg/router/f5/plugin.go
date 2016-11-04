@@ -618,3 +618,8 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 func (p *F5Plugin) SetLastSyncProcessed(processed bool) error {
 	return nil
 }
+
+// No-op since f5 has its own concept of what 'ready' means
+func (p *F5Plugin) SetSyncedAtLeastOnce() error {
+	return nil
+}

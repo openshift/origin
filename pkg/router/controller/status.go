@@ -315,3 +315,7 @@ func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {
 func (a *StatusAdmitter) SetLastSyncProcessed(processed bool) error {
 	return a.plugin.SetLastSyncProcessed(processed)
 }
+
+func (a *StatusAdmitter) SetSyncedAtLeastOnce() error {
+	return a.plugin.SetSyncedAtLeastOnce()
+}

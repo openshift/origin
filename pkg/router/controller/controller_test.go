@@ -12,6 +12,7 @@ import (
 
 type fakeRouterPlugin struct {
 	lastSyncProcessed bool
+	syncedAtLeastOnce bool
 }
 
 func (p *fakeRouterPlugin) HandleRoute(t watch.EventType, route *routeapi.Route) error {
@@ -26,8 +27,14 @@ func (p *fakeRouterPlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) err
 func (p *fakeRouterPlugin) HandleNamespaces(namespaces sets.String) error {
 	return nil
 }
+
 func (p *fakeRouterPlugin) SetLastSyncProcessed(processed bool) error {
 	p.lastSyncProcessed = processed
+	return nil
+}
+
+func (p *fakeRouterPlugin) SetSyncedAtLeastOnce() error {
+	p.syncedAtLeastOnce = true
 	return nil
 }
 

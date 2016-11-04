@@ -62,6 +62,7 @@ type TemplateRouter struct {
 	DefaultCertificateDir  string
 	ExtendedValidation     bool
 	RouterService          *ktypes.NamespacedName
+	BindPortsAfterSync     bool
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -86,6 +87,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
+	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 }
 
 type RouterStats struct {
@@ -188,6 +190,7 @@ func (o *TemplateRouterOptions) Run() error {
 		StatsUsername:          o.StatsUsername,
 		StatsPassword:          o.StatsPassword,
 		PeerService:            o.RouterService,
+		BindPortsAfterSync:     o.BindPortsAfterSync,
 		IncludeUDP:             o.RouterSelection.IncludeUDP,
 		AllowWildcardRoutes:    o.RouterSelection.AllowWildcardRoutes,
 	}
