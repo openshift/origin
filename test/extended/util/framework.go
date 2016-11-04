@@ -1094,14 +1094,14 @@ func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) 
 			continue
 		}
 
-		if err = c.Delete(pv.Name); err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
-			continue
-		}
-
 		pvInfo, err := c.Get(pv.Name)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
+			continue
+		}
+
+		if err = c.Delete(pv.Name); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
 			continue
 		}
 

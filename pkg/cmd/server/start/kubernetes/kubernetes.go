@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"runtime"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -21,15 +22,12 @@ The primary Kubernetes server components can be started individually using their
 arguments. No configuration settings will be used when launching these components.
 `
 
-func NewCommand(name, fullName string, out io.Writer) *cobra.Command {
+func NewCommand(name, fullName string, out, errOut io.Writer) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Kubernetes server components",
 		Long:  fmt.Sprintf(kubernetesLong),
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(os.Stdout)
-			c.Help()
-		},
+		Run:   kcmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmds.AddCommand(NewAPIServerCommand("apiserver", fullName+" apiserver", out))

@@ -130,7 +130,7 @@ frontend public
 {{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
   #  Check for wildcard domains with exposed http routes.
   acl wildcard_edge_http_expose base,map_reg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
-  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if wildcard_domain wildcard_edge_http_expose
+  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if wildcard_domain wildcard_edge_http_expose
 
   # map to http backend
   # Search from most specific to general path (host case).

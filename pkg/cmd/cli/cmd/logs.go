@@ -71,7 +71,7 @@ func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cob
 	}
 
 	cmd := kcmd.NewCmdLogs(f.Factory, out)
-	cmd.Short = "Print the logs for a resource."
+	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}

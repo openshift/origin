@@ -5,10 +5,10 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -39,7 +39,7 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, out, errout io.W
 		Use:   fmt.Sprintf("%s ACTION", name),
 		Short: "Start and stop OpenShift cluster",
 		Long:  clusterLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errout),
 	}
 
 	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, f, out, errout))

@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
@@ -50,8 +49,7 @@ type podTester struct {
 	client   *http.Client
 
 	// Holds list of expected pods and their IP address for the ADD operation
-	pods     map[string]*expectedPod
-	podsLock sync.Mutex
+	pods map[string]*expectedPod
 }
 
 func newPodTester(t *testing.T, testname string, socketPath string) *podTester {
@@ -75,16 +73,17 @@ func ptPodKey(namespace, name string) string {
 	return fmt.Sprintf("%s/%s", namespace, name)
 }
 
-func (pt *podTester) getExpectedPod(namespace, name string) *expectedPod {
-	pt.podsLock.Lock()
-	defer pt.podsLock.Unlock()
-	return pt.pods[ptPodKey(namespace, name)]
+func (pt *podTester) getExpectedPod(namespace, name string, command cniserver.CNICommand) (*expectedPod, error) {
+	pod := pt.pods[ptPodKey(namespace, name)]
+	if pod == nil {
+		return nil, fmt.Errorf("pod not found!")
+	} else if failStr, ok := pod.errors[command]; ok {
+		return nil, fmt.Errorf(failStr)
+	}
+	return pod, nil
 }
 
 func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
-	pt.podsLock.Lock()
-	defer pt.podsLock.Unlock()
-
 	pk := ptPodKey(op.namespace, op.name)
 	pod, ok := pt.pods[pk]
 	if !ok {
@@ -100,16 +99,12 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 }
 
 func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostport.RunningPod, error) {
-	pod := pt.getExpectedPod(req.PodNamespace, req.PodName)
-	if pod == nil {
-		return nil, nil, fmt.Errorf("pod not found!")
+	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
+	if err != nil {
+		return nil, nil, err
 	} else if pod.added {
 		return nil, nil, fmt.Errorf("pod already added!")
 	}
-	if failStr, ok := pod.errors[req.Command]; ok {
-		return nil, nil, fmt.Errorf(failStr)
-	}
-
 	pod.added = true
 
 	ip, ipnet, _ := net.ParseCIDR(pod.cidr)
@@ -146,27 +141,19 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostp
 }
 
 func (pt *podTester) update(req *cniserver.PodRequest) error {
-	pod := pt.getExpectedPod(req.PodNamespace, req.PodName)
-	if pod == nil {
-		return fmt.Errorf("pod not found!")
+	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
+	if err == nil {
+		pod.updated += 1
 	}
-	if failStr, ok := pod.errors[req.Command]; ok {
-		return fmt.Errorf(failStr)
-	}
-	pod.updated += 1
-	return nil
+	return err
 }
 
 func (pt *podTester) teardown(req *cniserver.PodRequest) error {
-	pod := pt.getExpectedPod(req.PodNamespace, req.PodName)
-	if pod == nil {
-		return fmt.Errorf("pod not found!")
+	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
+	if err == nil {
+		pod.deleted = true
 	}
-	if failStr, ok := pod.errors[req.Command]; ok {
-		return fmt.Errorf(failStr)
-	}
-	pod.deleted = true
-	return nil
+	return err
 }
 
 type fakeHost struct {
@@ -368,10 +355,14 @@ func TestPodManager(t *testing.T) {
 		podManager.podHandler = podTester
 		podManager.Start(socketPath)
 
-		// Run test operations from a goroutine to test locking
-		// and queuing operations in the pod manager
+		// Add pods to our expected pod list before kicking off the
+		// actual pod setup to ensure we don't concurrently access
+		// our pod map from different goroutines
 		for _, op := range tc.operations {
 			podTester.addExpectedPod(t, op)
+		}
+
+		for _, op := range tc.operations {
 			op.request = &cniserver.PodRequest{
 				Command:      op.command,
 				PodNamespace: op.namespace,
@@ -414,9 +405,9 @@ func TestPodManager(t *testing.T) {
 
 		// Verify pod operations performed as requested
 		for _, check := range tc.checks {
-			pod := podTester.getExpectedPod(check.namespace, check.name)
-			if pod == nil {
-				t.Fatalf("[%s] expected pod %v", k, check)
+			pod, err := podTester.getExpectedPod(check.namespace, check.name, "")
+			if err != nil {
+				t.Fatalf("[%s] expected pod %v: %v", k, check, err)
 			}
 
 			if len(pod.errors) > 0 {
