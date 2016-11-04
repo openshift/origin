@@ -92,12 +92,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   }
 
   # attempt to read config in this repo's .vagrant-openshift.json if present
-  if File.exist?('.vagrant-openshift.json')
-    json = File.read('.vagrant-openshift.json')
+  vagrant_openshift_config_file = ENV["VAGRANT_OPENSHIFT_CONFIG_FILE"] || ".vagrant-openshift.json"
+  if File.exist?(vagrant_openshift_config_file)
+    json = File.read(vagrant_openshift_config_file)
     begin
       hash_deep_merge!(vagrant_openshift_config, JSON.parse(json))
     rescue JSON::ParserError => e
-      raise VFLoadError.new "Error parsing .vagrant-openshift.json:\n#{e}"
+      raise VFLoadError.new "Error parsing #{vagrant_openshift_config_file}:\n#{e}"
     end
   end
 
@@ -350,7 +351,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.instance_type     = ENV['AWS_INSTANCE_TYPE'] || vagrant_openshift_config['instance_type'] || "t2.large"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
-        aws.user_data         = %{
+        if not vagrant_openshift_config['os'].start_with?("windows")
+          aws.user_data         = %{
 #cloud-config
 
 growpart:
@@ -358,19 +360,20 @@ growpart:
   devices: ['/']
 runcmd:
 - [ sh, -xc, "sed -i s/^Defaults.*requiretty/\#Defaults\ requiretty/g /etc/sudoers"]
-        }
-        aws.block_device_mapping = [
-          {
-             "DeviceName" => "/dev/sda1",
-             "Ebs.VolumeSize" => vagrant_openshift_config['volume_size'] || 25,
-             "Ebs.VolumeType" => "gp2"
-          },
-          {
-             "DeviceName" => "/dev/sdb",
-             "Ebs.VolumeSize" => vagrant_openshift_config['docker_volume_size'] || 25,
-             "Ebs.VolumeType" => "gp2"
           }
-        ]
+          aws.block_device_mapping = [
+            {
+               "DeviceName" => "/dev/sda1",
+               "Ebs.VolumeSize" => vagrant_openshift_config['volume_size'] || 25,
+               "Ebs.VolumeType" => "gp2"
+            },
+            {
+               "DeviceName" => "/dev/sdb",
+               "Ebs.VolumeSize" => vagrant_openshift_config['docker_volume_size'] || 25,
+               "Ebs.VolumeType" => "gp2"
+            }
+          ]
+        end
       end
     end if vagrant_openshift_config['aws']
 
