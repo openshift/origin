@@ -594,10 +594,15 @@ func init() {
 					Verbs:     sets.NewString("list", "watch", "get"),
 					Resources: sets.NewString("storageclasses"),
 				},
-				// Gluster provisioner
+				// Glusterfs provisioner
 				{
 					Verbs:     sets.NewString("get", "create", "delete"),
 					Resources: sets.NewString("services", "endpoints"),
+				},
+				// Glusterfs & Ceph provisioner
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("secrets"),
 				},
 			},
 		},
