@@ -104,18 +104,21 @@ const (
 func runEventQueueForResource(client kcache.Getter, resourceName ResourceName, expectedType interface{}, selector fields.Selector, process ProcessEventFunc) {
 	rn := strings.ToLower(string(resourceName))
 	lw := kcache.NewListWatchFromClient(client, rn, kapi.NamespaceAll, selector)
-	eventQueue := NewEventQueue(kcache.MetaNamespaceKeyFunc)
+	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 	// Repopulate event queue every 30 mins
 	// Existing items in the event queue will have watch.Modified event type
 	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
 
 	// Run the queue
 	for {
-		eventQueue.Pop(process)
+		eventQueue.Pop(process, expectedType)
 	}
 }
 
-// Run event queue for the given resource
+// Run event queue for the given resource.
+// NOTE: this function will handle DeletedFinalStateUnknown delta objects
+// automatically, which may not always be what you want since the now-deleted
+// object may be stale.
 func RunEventQueue(client kcache.Getter, resourceName ResourceName, process ProcessEventFunc) {
 	var expectedType interface{}
 
@@ -139,12 +142,4 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 	}
 
 	runEventQueueForResource(client, resourceName, expectedType, fields.Everything(), process)
-}
-
-func RunLocalPodsEventQueue(client kcache.Getter, nodeName string, process ProcessEventFunc) {
-	if nodeName == "" {
-		glog.Fatalf("LocalPods resource requires a node name")
-	}
-
-	runEventQueueForResource(client, Pods, &kapi.Pod{}, fields.Set{"spec.host": nodeName}.AsSelector(), process)
 }
