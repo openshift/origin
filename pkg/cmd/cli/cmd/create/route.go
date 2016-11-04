@@ -26,12 +26,12 @@ var (
 )
 
 // NewCmdCreateRoute is a macro command to create a secured route.
-func NewCmdCreateRoute(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateRoute(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "route",
 		Short: "Expose containers externally via secured routes",
 		Long:  fmt.Sprintf(routeLong, fullName),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   kcmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmd.AddCommand(NewCmdCreateEdgeRoute(fullName, f, out))

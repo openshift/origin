@@ -17,11 +17,12 @@ func TestWordWrapWriter(t *testing.T) {
 		"max 80":   {input: test, maxWidth: 80},
 		"max 120":  {input: test, maxWidth: 120},
 		"max 5000": {input: test, maxWidth: 5000},
+		"max 8":    {input: "Origin    Origin", maxWidth: 8},
 	}
 	for k, tc := range testcases {
 		b := bytes.NewBufferString("")
 		w := NewWordWrapWriter(b, tc.maxWidth)
-		_, err := w.Write([]byte(tc.input))
+		length, err := w.Write([]byte(tc.input))
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", k, err)
 		}
@@ -29,8 +30,8 @@ func TestWordWrapWriter(t *testing.T) {
 		if !strings.Contains(result, "Origin") {
 			t.Errorf("%s: Expected to contain \"Origin\"", k)
 		}
-		if len(result) < len(tc.input) {
-			t.Errorf("%s: Unexpectedly short string, got %d wanted at least %d chars: %q", k, len(result), len(tc.input), result)
+		if length < len(tc.input) {
+			t.Errorf("%s: Unexpectedly short string, got %d wanted at least %d chars: %q", k, length, len(tc.input), result)
 		}
 		for _, line := range strings.Split(result, "\n") {
 			if len(line) > int(tc.maxWidth) {

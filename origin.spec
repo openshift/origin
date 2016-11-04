@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d006c756adca150edc2ed3e993956345cbd9ed0c
+%global commit ad969db89dedc51eaf3685f575f33bf17facc79b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.20+d006c75 OS_GIT_COMMIT=d006c75 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.21+ad969db-53 OS_GIT_COMMIT=ad969db OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.21
+Version:        3.4.0.22
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -180,6 +180,28 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
+%package excluder
+Summary:   Exclude openshift packages from updates
+BuildArch: noarch
+
+%description excluder
+Many times admins do not want openshift updated when doing
+normal system updates.
+
+%{name}-excluder exclude - No openshift packages can be updated
+%{name}-excluder unexclude - Openshift packages can be updated
+
+%package docker-excluder
+Summary:   Exclude docker packages from updates
+BuildArch: noarch
+
+%description docker-excluder
+Certain versions of OpenShift will not work with newer versions
+of docker.  Exclude those versions of docker.
+
+%{name}-docker-excluder exclude - No major docker updates
+%{name}-docker-excluder unexclude - docker packages can be updated
+
 %prep
 %setup -q
 
@@ -302,6 +324,25 @@ done
 # Install origin-accounting
 install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
 install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
+
+# Excluder variables
+mkdir -p $RPM_BUILD_ROOT/usr/sbin
+%if 0%{?fedora}
+  OS_CONF_FILE="/etc/dnf.conf"
+%else
+  OS_CONF_FILE="/etc/yum.conf"
+%endif
+
+# Install openshift-excluder script
+sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|%{name} %{name}-clients %{name}-clients-redistributable %{name}-dockerregistry %{name}-master %{name}-node %{name}-pod %{name}-recycle %{name}-sdn-ovs %{name}-tests tuned-profiles-%{name}-node|" $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+
+# Install docker-excluder script
+sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.13* docker*1.14*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+
 
 %files
 %doc README.md
@@ -491,7 +532,82 @@ fi
 %files pod
 %{_bindir}/pod
 
+%files excluder
+/usr/sbin/%{name}-excluder
+
+%post excluder
+if [ "$1" -eq 1 ] ; then
+  %{name}-excluder exclude
+fi
+
+%preun excluder
+if [ "$1" -eq 0 ] ; then
+  /usr/sbin/%{name}-excluder unexclude
+fi
+
+%files docker-excluder
+/usr/sbin/%{name}-docker-excluder
+
+%post docker-excluder
+# we always want to run this, since the 
+#   package-list may be different with each version
+%{name}-docker-excluder exclude
+
+%preun docker-excluder
+# we always want to clear this out, since the 
+#   package-list may be different with each version
+/usr/sbin/%{name}-docker-excluder unexclude
+
 %changelog
+* Fri Nov 04 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.22
+- Restore use of oc ex dockerbuild (ccoleman@redhat.com)
+- UPSTREAM: openshift/imagebuilder: <drop>: Handle Docker 1.12
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6da9b9c706b9bf3b00774835ee8cc4e05dd7ef65 (dmcphers+openshiftbot@redhat.com)
+- Fix bugz 1391382 - allow http for edge teminated routes with wildcard policy.
+  (smitram@gmail.com)
+- bump(github.com/openshift/origin-web-console):
+  8aa417ed6584042f46a519be8f688d69cdc45a33 (dmcphers+openshiftbot@redhat.com)
+- Placed RPM release in a distinct directory and generated a repository
+  (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7a4bd4638a7220d8479f892138ce1973f6803721 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5f9ad0d846412cf8ae0d51e354248aa776b87f14 (dmcphers+openshiftbot@redhat.com)
+- sdn: remove need for locking in pod tests (dcbw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  75f6fe4de4ef6aedbce70280083c79b85b4bd765 (dmcphers+openshiftbot@redhat.com)
+- MongoDB replica petset test: increase time of waiting for pods.
+  (vsemushi@redhat.com)
+- update default subcommand run func (jvallejo@redhat.com)
+- UPSTREAM: 35206: update default subcommand run func (jvallejo@redhat.com)
+- Test editing lists in oc (mkargaki@redhat.com)
+- UPSTREAM: 36148: make edit work with lists (mkargaki@redhat.com)
+- Align with other cli descriptions (yu.peng36@zte.com.cn)
+- UPSTREAM: 34763: log info on invalid --output-version (jvallejo@redhat.com)
+- CleanupHostPathVolumes(): fetch meta info before removing PV.
+  (vsemushi@redhat.com)
+- Extended deployment timeout (maszulik@redhat.com)
+- Cleaned up Bash logging functions (skuznets@redhat.com)
+- UPSTREAM: 35285: Remove stale volumes if endpoint/svc creation fails
+  (hchiramm@redhat.com)
+- Bug 1388026 - Ensure deletion of namespaces created by network diagnostics
+  command (rpenta@redhat.com)
+- Add new unit tests to cover valid cases where output length is different from
+  input length. (avagarwa@redhat.com)
+- Fix wrapped word writer for cases where length of output bytes is not equal
+  to length of input bytes. (avagarwa@redhat.com)
+- Fix to restore os.Stdout. (avagarwa@redhat.com)
+- UPSTREAM: 35978: allow PATCH in an API CORS setup (ffranz@redhat.com)
+- Add openshift-excluder to origin (tdawson@redhat.com)
+- UPSTREAM: 35608: Update PodAntiAffinity to ignore calls to subresources
+  (maszulik@redhat.com)
+- UPSTREAM: 35675: Require PV provisioner secrets to match type
+  (jsafrane@redhat.com)
+- Remove redundant constant definition (danw@redhat.com)
+- Add permissions to get secrets to pv-controller. (jsafrane@redhat.com)
+
 * Thu Nov 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.21
 - Bump the version
 

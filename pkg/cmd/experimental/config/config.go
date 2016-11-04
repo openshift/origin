@@ -4,9 +4,9 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -19,7 +19,7 @@ func NewCmdConfig(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 		Use:   name,
 		Short: "Manage config",
 		Long:  configLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errout),
 	}
 
 	cmd.AddCommand(NewCmdPatch(PatchRecommendedName, fullName+" "+PatchRecommendedName, f, out))

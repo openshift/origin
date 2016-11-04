@@ -19,5 +19,8 @@ os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'Ed
 os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
 os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
 os::cmd::expect_success_and_not_text 'OC_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
+
+os::cmd::expect_success 'oc create -f test/testdata/services.yaml'
+os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit svc' 'kind: List'
 echo "edit: ok"
 os::test::junit::declare_suite_end

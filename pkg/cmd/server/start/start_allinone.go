@@ -118,7 +118,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
 
-	startKube := kubernetes.NewCommand("kubernetes", basename, out)
+	startKube := kubernetes.NewCommand("kubernetes", basename, out, errout)
 	cmds.AddCommand(startKube)
 
 	// autocompletion hints

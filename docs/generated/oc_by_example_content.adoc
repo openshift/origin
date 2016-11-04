@@ -1864,7 +1864,7 @@ End the current server session
 
 
 == oc logs
-Print the logs for a resource.
+Print the logs for a resource
 
 ====
 

@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# This script will either enable, or disable, the updating 
+#  of openshift rpms via yum
+#
+##############
+# VARIABLES
+##############
+CONF_FILE="@@CONF_FILE-VARIABLE@@"
+PACKAGE_LIST="@@PACKAGE_LIST-VARIABLE@@"
+
+##############
+# HELP
+##############
+function usage() {
+  {
+  echo "Usage: ${0} <exclude | unexclude>"
+  echo
+  echo "exclude | disable"
+  echo "  exclude packages via an excludes= line in ${CONF_FILE}"
+  echo "  This disables updates for ${PACKAGE_LIST} packages"
+  echo
+  echo "unexclude | enable"
+  echo "  removes ${PACKAGE_LIST} from the excludes= line in ${CONF_FILE}"
+  echo "  This re-enables updates for packages"
+  echo
+  } 1>&
+  exit 1
+}
+
+##############
+# FUNCTIONS
+##############
+function exclude_packages() {
+  # Ensure there is an exclude line
+  if ! grep -q exclude= "${CONF_FILE}" ; then
+    echo "Adding exclude= to ${CONF_FILE}"
+    sed -i 's|\(obsoletes=.*\)|\1\nexcludes=|' "${CONF_FILE}"
+  fi
+  # Add each package to the exclude line
+  for package in ${PACKAGE_LIST} ; do
+    # slashpackage escapes * from variable package
+    slashpackage=$(echo ${package} | sed 's|\*|\\\*|g')
+    if ! grep exclude= "${CONF_FILE}" | grep -q " ${slashpackage} " ; then
+      sed -i "s|exclude=|exclude= ${package} |" "${CONF_FILE}"
+    fi
+  done
+}
+
+function unexclude_packages() {
+  # Remove each package to the exclude line
+  for package in ${PACKAGE_LIST} ; do
+    # slashpackage escapes * from variable package
+    slashpackage=$(echo ${package} | sed 's|\*|\\\*|g')
+    if grep exclude= "${CONF_FILE}" | grep -q " ${slashpackage} " ; then
+      sed -i "s| ${slashpackage} ||" "${CONF_FILE}"
+    fi
+  done
+}
+
+##############
+# MAIN PROGRAM
+##############
+case "$1" in
+  exclude | disable )
+    exclude_packages
+    ;;
+  unexclude | enable )
+    unexclude_packages
+    ;;
+  * )
+    echo "Unknown Option: ${1}"
+    echo
+    usage
+    ;;
+esac
+
+exit 0

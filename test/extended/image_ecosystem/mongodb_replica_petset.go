@@ -57,7 +57,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,
-				1*time.Minute,
+				2*time.Minute,
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(podNames).Should(o.HaveLen(3))
@@ -83,7 +83,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,
-				1*time.Minute,
+				2*time.Minute,
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(podNames).Should(o.HaveLen(3))

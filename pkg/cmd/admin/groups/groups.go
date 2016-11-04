@@ -4,10 +4,10 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -18,13 +18,13 @@ var groupLong = templates.LongDesc(`
 
 	Groups are sets of users that can be used when describing policy.`)
 
-func NewCmdGroups(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdGroups(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Manage groups",
 		Long:  groupLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmds.AddCommand(NewCmdNewGroup(NewGroupRecommendedName, fullName+" "+NewGroupRecommendedName, f, out))
