@@ -243,6 +243,9 @@ func (r *TestRouter) Commit() {
 func (r *TestRouter) SetSkipCommit(skipCommit bool) {
 }
 
+func (r *TestRouter) SetSyncedAtLeastOnce() {
+}
+
 func (r *TestRouter) HasServiceUnit(key string) bool {
 	return false
 }

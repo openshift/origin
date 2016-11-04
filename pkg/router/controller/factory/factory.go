@@ -81,6 +81,18 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 			}
 			return eventType, obj.(*routeapi.Route), nil
 		},
+		EndpointsListCount: func() int {
+			return endpointsEventQueue.ListCount()
+		},
+		RoutesListCount: func() int {
+			return routeEventQueue.ListCount()
+		},
+		EndpointsListSuccessfulAtLeastOnce: func() bool {
+			return endpointsEventQueue.ListSuccessfulAtLeastOnce()
+		},
+		RoutesListSuccessfulAtLeastOnce: func() bool {
+			return routeEventQueue.ListSuccessfulAtLeastOnce()
+		},
 		EndpointsListConsumed: func() bool {
 			return endpointsEventQueue.ListConsumed()
 		},

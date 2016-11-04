@@ -16,4 +16,5 @@ type Plugin interface {
 	// If sent, filter the list of accepted routes and endpoints to this set
 	HandleNamespaces(namespaces sets.String) error
 	SetLastSyncProcessed(processed bool) error
+	SetSyncedAtLeastOnce() error
 }
