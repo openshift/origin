@@ -393,6 +393,13 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
+	if err := ns.IsNSorErr(req.Netns); err != nil {
+		if _, ok := err.(ns.NSPathNotExistErr); ok {
+			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s", req.PodNamespace, req.PodName)
+			return nil
+		}
+	}
+
 	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 	if err != nil {
 		return err
