@@ -128,7 +128,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		}
 
 		// no clusterIP and not headless, no DNS
-		if len(svc.Spec.ClusterIP) == 0 {
+		if len(svc.Spec.ClusterIP) == 0 && svc.Spec.Type != kapi.ServiceTypeExternalName {
 			return nil, errNoSuchName
 		}
 
@@ -140,8 +140,13 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 
 		// if has a portal IP and looking at svc
 		if svc.Spec.ClusterIP != kapi.ClusterIPNone && !retrieveEndpoints {
+			hostValue := svc.Spec.ClusterIP
+			if svc.Spec.Type == kapi.ServiceTypeExternalName {
+				hostValue = svc.Spec.ExternalName
+			}
+
 			defaultService := msg.Service{
-				Host: svc.Spec.ClusterIP,
+				Host: hostValue,
 				Port: 0,
 
 				Priority: 10,
@@ -153,6 +158,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 			defaultService.Key = msg.Path(defaultName)
 
 			if len(svc.Spec.Ports) == 0 || !includePorts {
+				glog.V(4).Infof("Answered %s:%t with %#v", dnsName, exact, defaultService)
 				return []msg.Service{defaultService}, nil
 			}
 
@@ -175,7 +181,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 				keyName := buildDNSName(defaultName, protocolSegment, portSegment)
 				services = append(services,
 					msg.Service{
-						Host: svc.Spec.ClusterIP,
+						Host: hostValue,
 						Port: int(port),
 
 						Priority: 10,
