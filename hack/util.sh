@@ -189,25 +189,6 @@ function cleanup_openshift() {
 }
 readonly -f cleanup_openshift
 
-# create a .gitconfig for test-cmd secrets
-function create_gitconfig() {
-	USERNAME=sample-user
-	PASSWORD=password
-	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
-	GITCONFIG_DIR=$(mktemp -d ${BASETMPDIR}/test-gitconfig.XXXX)
-	touch ${GITCONFIG_DIR}/.gitconfig
-	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
-	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
-	echo ${GITCONFIG_DIR}/.gitconfig
-}
-
-function create_valid_file() {
-	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
-	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
-	echo test_data >${FILE_DIR}/${1}
-	echo ${FILE_DIR}/${1}
-}
-
 # install the router for the extended tests
 function install_router() {
 	echo "[INFO] Installing the router"
@@ -233,7 +214,7 @@ function install_router() {
 		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
 	fi
 }
-readonly -f create_gitconfig
+readonly -f install_router
 
 # install registry for the extended tests
 function install_registry() {
