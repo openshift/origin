@@ -2488,8 +2488,6 @@ _oc_adm_manage-node()
 
     flags+=("--dry-run")
     local_nonpersistent_flags+=("--dry-run")
-    flags+=("--evacuate")
-    local_nonpersistent_flags+=("--evacuate")
     flags+=("--force")
     local_nonpersistent_flags+=("--force")
     flags+=("--grace-period=")
