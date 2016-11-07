@@ -54,13 +54,11 @@ func NewDeploymentConfigController(dcInformer, rcInformer, podInformer framework
 	})
 	c.rcStore.Indexer = rcInformer.GetIndexer()
 	rcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
-		AddFunc:    c.addReplicationController,
 		UpdateFunc: c.updateReplicationController,
 		DeleteFunc: c.deleteReplicationController,
 	})
 	c.podStore.Indexer = podInformer.GetIndexer()
 	podInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
-		AddFunc:    c.addPod,
 		UpdateFunc: c.updatePod,
 		DeleteFunc: c.deletePod,
 	})
@@ -144,20 +142,6 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 	c.enqueueDeploymentConfig(dc)
 }
 
-// addReplicationController figures out which deploymentconfig is managing this replication
-// controller and requeues the deployment config.
-// TODO: Determine if we need to resync here. Would be useful for adoption but we cannot
-// adopt right now.
-func (c *DeploymentConfigController) addReplicationController(obj interface{}) {
-	rc := obj.(*kapi.ReplicationController)
-	glog.V(4).Infof("Replication controller %q added.", rc.Name)
-	// We are waiting for the deployment config store to sync but still there are pathological
-	// cases of highly latent watches.
-	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
-		c.enqueueDeploymentConfig(dc)
-	}
-}
-
 // updateReplicationController figures out which deploymentconfig is managing this replication
 // controller and requeues the deployment config.
 func (c *DeploymentConfigController) updateReplicationController(old, cur interface{}) {
@@ -197,12 +181,6 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	}
 	glog.V(4).Infof("Replication controller %q deleted.", rc.Name)
 	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
-		c.enqueueDeploymentConfig(dc)
-	}
-}
-
-func (c *DeploymentConfigController) addPod(obj interface{}) {
-	if dc, err := c.dcStore.GetConfigForPod(obj.(*kapi.Pod)); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
