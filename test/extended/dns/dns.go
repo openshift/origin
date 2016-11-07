@@ -64,6 +64,23 @@ func digForNames(namesToResolve []string, expect sets.String) string {
 	return probeCmd
 }
 
+func digForCNAMEs(namesToResolve []string, expect sets.String) string {
+	fileNamePrefix := "test"
+	var probeCmd string
+	for _, name := range namesToResolve {
+		// Resolve by TCP and UDP DNS.  Use $$(...) because $(...) is
+		// expanded by kubernetes (though this won't expand so should
+		// remain a literal, safe > sorry).
+		lookup := "CNAME"
+		fileName := fmt.Sprintf("%s_udp@%s", fileNamePrefix, name)
+		expect.Insert(fileName)
+		probeCmd += fmt.Sprintf(`test -n "$$(dig +notcp +noall +answer +search %s %s)" && echo %q;`, name, lookup, fileName)
+		fileName = fmt.Sprintf("%s_tcp@%s", fileNamePrefix, name)
+		expect.Insert(fileName)
+		probeCmd += fmt.Sprintf(`test -n "$$(dig +tcp +noall +answer +search %s %s)" && echo %q;`, name, lookup, fileName)
+	}
+	return probeCmd
+}
 func digForARecords(records map[string][]string, expect sets.String) string {
 	var probeCmd string
 	fileNamePrefix := "test"
@@ -178,8 +195,8 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 	e2e.Logf("DNS probes using %s succeeded\n", pod.Name)
 }
 
-func createServiceSpec(serviceName string, isHeadless bool, selector map[string]string) *api.Service {
-	headlessService := &api.Service{
+func createServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *api.Service {
+	s := &api.Service{
 		ObjectMeta: api.ObjectMeta{
 			Name: serviceName,
 		},
@@ -191,9 +208,14 @@ func createServiceSpec(serviceName string, isHeadless bool, selector map[string]
 		},
 	}
 	if isHeadless {
-		headlessService.Spec.ClusterIP = "None"
+		s.Spec.ClusterIP = "None"
 	}
-	return headlessService
+	if len(externalName) > 0 {
+		s.Spec.Type = api.ServiceTypeExternalName
+		s.Spec.ExternalName = externalName
+		s.Spec.ClusterIP = ""
+	}
+	return s
 }
 
 func createEndpointSpec(name string) *api.Endpoints {
@@ -233,17 +255,20 @@ var _ = Describe("DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {
-		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("headless", true, nil)); err != nil {
+		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)
 		}
 		if _, err := f.Client.Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, nil)); err != nil {
+		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
 			e2e.Failf("unable to create clusterip service: %v", err)
 		}
 		if _, err := f.Client.Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
+		}
+		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
+			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
 		ep, err := f.Client.Endpoints("default").Get("kubernetes")
@@ -268,6 +293,11 @@ var _ = Describe("DNS", func() {
 
 				// answer wildcards on clusterIP services
 				fmt.Sprintf("prefix.clusterip.%s", f.Namespace.Name),
+			}, expect),
+
+			// the DNS pod should be able to get a CNAME for this service
+			digForCNAMEs([]string{
+				fmt.Sprintf("externalname.%s.svc", f.Namespace.Name),
 			}, expect),
 
 			// the DNS pod should be able to look up endpoints for names and wildcards

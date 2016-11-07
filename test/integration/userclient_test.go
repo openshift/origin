@@ -399,7 +399,7 @@ func TestUserInitialization(t *testing.T) {
 		},
 	}
 
-	oldEtcdClient, err := etcd.MakeNewEtcdClient(masterConfig.EtcdClientInfo)
+	oldEtcdClient, err := etcd.MakeEtcdClient(masterConfig.EtcdClientInfo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

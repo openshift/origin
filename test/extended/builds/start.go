@@ -2,6 +2,8 @@ package builds
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -86,6 +88,8 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	})
 
 	g.Describe("binary builds", func() {
+		var commit string
+
 		g.It("should accept --from-file as input", func() {
 			g.By("starting the build with a Dockerfile")
 			br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
@@ -127,17 +131,20 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 		g.It("should accept --from-repo with --commit as input", func() {
 			g.By("starting the build with a Git repository")
-			// NOTE: This actually takes the commit from the origin repository. If the
-			// test-build-app changes, this commit has to be bumped.
-			br, err := exutil.StartBuildAndWait(oc, "sample-build", "--commit=f0f3834", fmt.Sprintf("--from-repo=%s", exampleBuild))
+			gitCmd := exec.Command("git", "rev-parse", "HEAD~1")
+			gitCmd.Dir = exampleBuild
+			commitByteArray, err := gitCmd.CombinedOutput()
+			commit = strings.TrimSpace(string(commitByteArray[:]))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--commit=%s", commit), fmt.Sprintf("--from-repo=%s", exampleBuild))
 			br.AssertSuccess()
 			buildLog, err := br.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading"))
-			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(`at commit "f0f3834"`))
+			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("at commit \"%s\"", commit)))
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-			o.Expect(buildLog).To(o.ContainSubstring(`"commit":"f0f38342e53eac2a6995acca81d06bd9dd6d4964"`))
+			o.Expect(buildLog).To(o.ContainSubstring(fmt.Sprintf("\"commit\":\"%s\"", commit)))
 			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 		})
 
@@ -186,6 +193,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 				if err != nil || len(out) == 0 {
 					return false, nil
 				}
+
 				buildName = out
 				return true, nil
 			})

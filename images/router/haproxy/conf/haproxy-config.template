@@ -68,9 +68,7 @@ defaults
   timeout tunnel 1h
 {{ end }}
 
-{{ if ne (env "ROUTER_ENABLE_COMPRESSION" "") ""}}
-  # enable compression.
-  # http://cbonte.github.io/haproxy-dconv/1.5/configuration.html#4-compression
+{{ if (matchPattern "true|TRUE" (env "ROUTER_ENABLE_COMPRESSION" "false")) }}
   compression algo gzip
   {{ with  $mimeType := (env "ROUTER_COMPRESSION_MIME" "text/html text/plain text/css") }}  
   compression type {{$mimeType}}  

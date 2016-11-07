@@ -291,6 +291,8 @@ readonly CONFORMANCE_TESTS=(
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
 	"PetSet"
+	"DNS for ExternalName services"
+	"DNS for pods for Hostname and Subdomain annotation"
 	"PrivilegedPod should test privileged pod"
 	"Pods should support remote command execution"
 	"Pods should support retrieving logs from the container"

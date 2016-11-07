@@ -449,10 +449,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// verify we can connect to etcd with the provided config
-	if etcdClient, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
+	if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
 		return err
-	} else {
-		etcdClient.Close()
 	}
 
 	// Must start policy caching immediately

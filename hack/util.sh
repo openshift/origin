@@ -25,51 +25,6 @@ function ensure_iptables_or_die() {
 }
 readonly -f ensure_iptables_or_die
 
-# wait_for_command executes a command and waits for it to
-# complete or times out after max_wait.
-#
-# $1 - The command to execute (e.g. curl -fs http://redhat.com)
-# $2 - Optional maximum time to wait in ms before giving up (Default: 10000ms)
-# $3 - Optional alternate command to determine if the wait should
-#		exit before the max_wait
-function wait_for_command() {
-	STARTTIME=$(date +%s)
-	cmd=$1
-	msg="Waiting for command to finish: '${cmd}'..."
-	max_wait=${2:-10*TIME_SEC}
-	fail=${3:-""}
-	wait=0.2
-
-	echo "[INFO] $msg"
-	expire=$(($(time_now) + $max_wait))
-	set +e
-	while [[ $(time_now) -lt $expire ]]; do
-		eval $cmd
-		if [ $? -eq 0 ]; then
-			set -e
-			ENDTIME=$(date +%s)
-			echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
-			return 0
-		fi
-		#check a failure condition where the success
-		#command may never be evaluated before timing
-		#out
-		if [[ ! -z $fail ]]; then
-			eval $fail
-			if [ $? -eq 0 ]; then
-				set -e
-				echo "[FAIL] Returning early. Command Failed '$cmd'"
-				return 1
-			fi
-		fi
-		sleep $wait
-	done
-	echo "[ ERR] Gave up waiting for: '$cmd'"
-	set -e
-	return 1
-}
-readonly -f wait_for_command
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {
@@ -189,25 +144,6 @@ function cleanup_openshift() {
 }
 readonly -f cleanup_openshift
 
-# create a .gitconfig for test-cmd secrets
-function create_gitconfig() {
-	USERNAME=sample-user
-	PASSWORD=password
-	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
-	GITCONFIG_DIR=$(mktemp -d ${BASETMPDIR}/test-gitconfig.XXXX)
-	touch ${GITCONFIG_DIR}/.gitconfig
-	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
-	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
-	echo ${GITCONFIG_DIR}/.gitconfig
-}
-
-function create_valid_file() {
-	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
-	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
-	echo test_data >${FILE_DIR}/${1}
-	echo ${FILE_DIR}/${1}
-}
-
 # install the router for the extended tests
 function install_router() {
 	echo "[INFO] Installing the router"
@@ -233,7 +169,7 @@ function install_router() {
 		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
 	fi
 }
-readonly -f create_gitconfig
+readonly -f install_router
 
 # install registry for the extended tests
 function install_registry() {
@@ -246,30 +182,6 @@ function install_registry() {
 		oc create -f -
 }
 readonly -f install_registry
-
-# Wait for builds to start
-# $1 namespace
-function os::build:wait_for_start() {
-	echo "[INFO] Waiting for $1 namespace build to start"
-	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds  --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
-	echo "[INFO] Build ${BUILD_ID} started"
-}
-readonly -f os::build:wait_for_start
-
-# Wait for builds to complete
-# $1 namespace
-function os::build:wait_for_end() {
-	echo "[INFO] Waiting for $1 namespace build to complete"
-	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
-	echo "[INFO] Build ${BUILD_ID} finished"
-	# TODO: fix
-	set +e
-	oc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
-	set -e
-}
-readonly -f os::build:wait_for_end
 
 # enable-selinux/disable-selinux use the shared control variable
 # SELINUX_DISABLED to determine whether to re-enable selinux after it
