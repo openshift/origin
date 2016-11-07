@@ -212,18 +212,18 @@ if [[ -n "${junit_report}" ]]; then
 
     go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" \
         | tee "${test_output_file}"                                 \
-        | "${junitreport}" --type gotest                            \
-                           --suites nested                          \
-                           --roots github.com/openshift/origin      \
-                           --stream                                 \
-                           --output "${junit_report_file}"
+        | junitreport --type gotest                                 \
+                      --suites nested                               \
+                      --roots github.com/openshift/origin           \
+                      --stream                                      \
+                      --output "${junit_report_file}"
 
     test_return_code="${PIPESTATUS[0]}"
 
     set -o pipefail
 
     echo
-    summary="$( "${junitreport}" summarize < "${junit_report_file}" )"
+    summary="$( junitreport summarize < "${junit_report_file}" )"
     echo "${summary}"
 
     if echo "${summary}" | grep -q ', 0 failed,'; then

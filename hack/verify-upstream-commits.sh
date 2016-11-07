@@ -9,5 +9,5 @@ fi
 os::util::ensure::built_binary_exists 'commitchecker'
 
 echo "===== Verifying UPSTREAM Commits ====="
-$commitchecker
+commitchecker
 echo "SUCCESS: All commits are valid."

@@ -11,7 +11,7 @@ function os::test::extended::focus {
 			os::log::error "No tests would be run"
 			exit 1
 		fi
-		${EXTENDEDTEST} "$@"
+		extended.test "$@"
 		exit $?
 	fi
 }
@@ -32,10 +32,6 @@ function os::test::extended::setup () {
 	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	# ensure proper relative directories are set
-	GINKGO="$(os::build::find-binary ginkgo)"
-	EXTENDEDTEST="$(os::build::find-binary extended.test)"
-	export GINKGO
-	export EXTENDEDTEST
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
@@ -175,7 +171,7 @@ function os::test::extended::test_list () {
 
 	while IFS= read -r; do
 		full_test_list+=( "${REPLY}" )
-	done < <(TEST_OUTPUT_QUIET=true "${EXTENDEDTEST}" "$@" --ginkgo.dryRun --ginkgo.noColor )
+	done < <(TEST_OUTPUT_QUIET=true extended.test "$@" --ginkgo.dryRun --ginkgo.noColor )
 	if [[ "{$REPLY}" ]]; then lines+=( "$REPLY" ); fi
 
 	for test in "${full_test_list[@]}"; do

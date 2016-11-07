@@ -38,14 +38,14 @@ function cleanup()
       os::test::junit::check_test_counters
 
       # use the junitreport tool to generate us a report
-      cat "${JUNIT_REPORT_OUTPUT}"                             \
-        | "${junitreport}" --type oscmd                        \
-                           --suites nested                     \
-                           --roots github.com/openshift/origin \
-                           --output "${ARTIFACT_DIR}/report.xml"
-      cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
       os::util::ensure::built_binary_exists 'junitreport'
 
+      cat "${JUNIT_REPORT_OUTPUT}"                        \
+        | junitreport --type oscmd                        \
+                      --suites nested                     \
+                      --roots github.com/openshift/origin \
+                      --output "${ARTIFACT_DIR}/report.xml"
+      cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"

@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::util::ensure::built_binary_exists 'oc'
 
 function build() {
-  eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
+  eval "oc ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
 }
 
 # Build the images

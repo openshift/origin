@@ -47,7 +47,7 @@ fi
 os::util::ensure::built_binary_exists 'oc'
 
 function build() {
-  eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
+  eval "oc ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
 }
 
 # Create link to file if the FS supports hardlinks, otherwise copy the file

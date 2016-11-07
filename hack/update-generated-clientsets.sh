@@ -23,7 +23,7 @@ function generate_clientset_for() {
   local package="$1";shift
   local name="$1";shift
   echo "-- Generating ${name} client set for ${package} ..."
-  $clientgen --clientset-path="${package}/client/clientset_generated" \
+  client-gen --clientset-path="${package}/client/clientset_generated" \
              --clientset-api-path="/oapi"                             \
              --input-base="${package}/api"                            \
              --output-base="../../.."                                 \

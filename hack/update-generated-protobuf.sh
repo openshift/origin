@@ -25,4 +25,4 @@ os::build::setup_env
 os::util::ensure::built_binary_exists 'genprotobuf'
 os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
 
-PATH="$( dirname "${genprotobuf}" ):${PATH}" ${genprotobuf} --output-base="${GOPATH}/src" "$@"
+genprotobuf --output-base="${GOPATH}/src" "$@"
