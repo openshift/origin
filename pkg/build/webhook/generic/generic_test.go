@@ -89,7 +89,7 @@ func TestVerifyRequestForMethod(t *testing.T) {
 	plugin := New()
 	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err == nil || !strings.Contains(err.Error(), "Unsupported HTTP method") {
+	if err == nil || !strings.Contains(err.Error(), "unsupported HTTP method") {
 		t.Errorf("Expected unsupported HTTP method, got %v!", err)
 	}
 	if proceed {

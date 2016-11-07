@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -46,7 +47,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 	if len(contentType) != 0 {
 		contentType, _, err = mime.ParseMediaType(contentType)
 		if err != nil {
-			return revision, envvars, false, fmt.Errorf("error parsing Content-Type: %s", err)
+			return revision, envvars, false, errors.NewBadRequest(fmt.Sprintf("error parsing Content-Type: %s", err))
 		}
 	}
 
@@ -61,7 +62,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return revision, envvars, false, err
+		return revision, envvars, false, errors.NewBadRequest(err.Error())
 	}
 
 	if len(body) == 0 {
@@ -115,8 +116,8 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 }
 
 func verifyRequest(req *http.Request) error {
-	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s", method)
+	if req.Method != "POST" {
+		return webhook.MethodNotSupported
 	}
 	return nil
 }
