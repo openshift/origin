@@ -452,15 +452,15 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
 			importDigest.Image, err = schema1ToImage(signedManifest, d)
 		} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
-			imageConfig, err := b.Get(ctx, deserializedManifest.Config.Digest)
-			if err != nil {
-				glog.V(5).Infof("unable to access the image config using digest %q for repository %#v: %#v", d, repository, err)
-				if isDockerError(err, v2.ErrorCodeManifestUnknown) {
+			imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
+			if getImportConfigErr != nil {
+				glog.V(5).Infof("unable to access the image config using digest %q for repository %#v: %#v", d, repository, getImportConfigErr)
+				if isDockerError(getImportConfigErr, v2.ErrorCodeManifestUnknown) {
 					ref := repository.Ref
 					ref.ID = deserializedManifest.Config.Digest.String()
 					importDigest.Err = kapierrors.NewNotFound(api.Resource("dockerimage"), ref.Exact())
 				} else {
-					importDigest.Err = formatRepositoryError(repository, "", importDigest.Name, err)
+					importDigest.Err = formatRepositoryError(repository, "", importDigest.Name, getImportConfigErr)
 				}
 				continue
 			}
@@ -517,10 +517,10 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
 			importTag.Image, err = schema1ToImage(signedManifest, "")
 		} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
-			imageConfig, err := b.Get(ctx, deserializedManifest.Config.Digest)
-			if err != nil {
-				glog.V(5).Infof("unable to access image config using digest %q for tag %q for repository %#v: %#v", deserializedManifest.Config.Digest, importTag.Name, repository, err)
-				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
+			imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
+			if getImportConfigErr != nil {
+				glog.V(5).Infof("unable to access image config using digest %q for tag %q for repository %#v: %#v", deserializedManifest.Config.Digest, importTag.Name, repository, getImportConfigErr)
+				importTag.Err = formatRepositoryError(repository, importTag.Name, "", getImportConfigErr)
 				continue
 			}
 			importTag.Image, err = schema2ToImage(deserializedManifest, imageConfig, "")
