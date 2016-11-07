@@ -32,7 +32,7 @@ if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
 else
 	CGO_ENABLED=0 "${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test" -installsuffix=cgo
 fi
-testexec="$(pwd)/$(os::build::find-binary "${name}.test")"
+testexec="$(os::util::find::built_binary "${name}.test")"
 
 os::log::system::start
 

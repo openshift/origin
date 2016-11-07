@@ -262,7 +262,7 @@ esac
 TEST_EXTRA_ARGS="$@"
 
 if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
-     [[ -n $(os::build::find-binary extended.test) ]]; then
+     os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
   os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
 else
   # cgo must be disabled to have the symbol table available
