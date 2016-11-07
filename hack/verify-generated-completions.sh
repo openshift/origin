@@ -5,7 +5,7 @@ echo "===== Verifying Generated Completions ====="
 
 platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
-  echo "WARNING: Completions cannot be verified on non-Linux systems (${platform})"
+  os::log::warn "Completions cannot be verified on non-Linux systems (${platform})"
   exit 0
 fi
 

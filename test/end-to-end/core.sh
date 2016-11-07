@@ -387,12 +387,12 @@ echo "[INFO] Applying STI application config"
 os::cmd::expect_success "oc create -f ${STI_CONFIG_FILE}"
 
 # Wait for build which should have triggered automatically
-echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
-#oc start-build -n test ruby-sample-build --follow
-os::build:wait_for_start "test"
+os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Running" "$(( 10*TIME_MIN ))"
+BUILD_ID="$( oc get builds --namespace test -o jsonpath='{.items[0].metadata.name}' )"
 # Ensure that the build pod doesn't allow exec
 os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
-os::build:wait_for_end "test"
+os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
+os::cmd::expect_success "oc build-logs --namespace test '${BUILD_ID}' > '${LOG_DIR}/test-build.log'"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
@@ -439,14 +439,18 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
-#os::build:wait_for_end "docker"
+# BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
+# os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
+# os::cmd::expect_success "oc build-logs --namespace docker '${BUILD_ID}' > '${LOG_DIR}/docker-build.log'"
 #wait_for_app "docker"
 
 #echo "[INFO] Applying Custom application config"
 #oc create -n custom -f "${CUSTOM_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
-#os::build:wait_for_end "custom"
+# BUILD_ID="$( oc get builds --namespace custom -o jsonpath='{.items[0].metadata.name}' )"
+# os::cmd::try_until_text "oc get builds --namespace custom -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
+# os::cmd::expect_success "oc build-logs --namespace custom '${BUILD_ID}' > '${LOG_DIR}/custom-build.log'"
 #wait_for_app "custom"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."

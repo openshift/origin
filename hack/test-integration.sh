@@ -28,7 +28,7 @@ verbose="${VERBOSE:-}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
-  echo "WARNING: Skipping build due to OPENSHIFT_SKIP_BUILD"
+  os::log::warn "Skipping build due to OPENSHIFT_SKIP_BUILD"
 else
 	CGO_ENABLED=0 "${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test" -installsuffix=cgo
 fi

@@ -977,7 +977,12 @@ func (f5 *f5LTM) AddVtep(ipStr string) error {
 		Name:     macAddr,
 		Endpoint: ipStr,
 	}
-	return f5.post(url, payload, nil)
+	err = f5.post(url, payload, nil)
+	if err != nil && err.(F5Error).httpStatusCode != HTTP_CONFLICT_CODE {
+		// error HTTP_CONFLICT_CODE is fine, it just means the fdb entry exists already (and we have a unique key tied to the vtep ip ;)
+		return err
+	}
+	return nil
 }
 
 // RemoveVtep removes the Vtep IP from the VxLAN device's FDB
