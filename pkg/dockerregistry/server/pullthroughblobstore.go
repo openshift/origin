@@ -60,6 +60,12 @@ func (r *pullthroughBlobStore) remoteStat(ctx context.Context, dgst digest.Diges
 		return distribution.Descriptor{}, err
 	}
 
+	r.pullFromInsecureRegistries = false
+
+	if insecure, ok := is.Annotations[imageapi.InsecureRepositoryAnnotation]; ok {
+		r.pullFromInsecureRegistries = insecure == "true"
+	}
+
 	var localRegistry string
 	if local, err := imageapi.ParseDockerImageReference(is.Status.DockerImageRepository); err == nil {
 		// TODO: normalize further?
