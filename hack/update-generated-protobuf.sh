@@ -22,15 +22,7 @@ fi
 
 os::build::setup_env
 
-"${OS_ROOT}/hack/build-go.sh" tools/genprotobuf vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
-genprotobuf="$( os::build::find-binary genprotobuf )"
-
-if [[ -z "${genprotobuf}" ]]; then
-	echo "It looks as if you don't have a compiled genprotobuf binary."
-	echo
-	echo "If you are running from a clone of the git repo, please run"
-	echo "'./hack/build-go.sh tools/genprotobuf'."
-	exit 1
-fi
+os::util::ensure::built_binary_exists 'genprotobuf'
+os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
 
 PATH="$( dirname "${genprotobuf}" ):${PATH}" ${genprotobuf} --output-base="${GOPATH}/src" "$@"

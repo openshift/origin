@@ -3,8 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-hack/build-go.sh cmd/dockerregistry
-dockerregistry="$( os::build::find-binary dockerregistry )"
+os::util::ensure::built_binary_exists 'dockerregistry'
 
 url="${DOCKER_REGISTRY_URL:-localhost:5000}"
 # find the first builder service account token

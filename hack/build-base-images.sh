@@ -5,11 +5,7 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-oc="$(os::build::find-binary oc ${OS_ROOT})"
-if [[ -z "${oc}" ]]; then
-  "${OS_ROOT}/hack/build-go.sh" cmd/oc
-  oc="$(os::build::find-binary oc ${OS_ROOT})"
-fi
+os::util::ensure::built_binary_exists 'oc'
 
 function build() {
   eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"

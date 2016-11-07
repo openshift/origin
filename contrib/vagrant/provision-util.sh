@@ -14,8 +14,8 @@ os::provision::build-origin() {
 
   # This optimization is intended for devcluster use so hard-coding the
   # arch in the path should be ok.
-  if [[ -f "$(os::build::find-binary oc "${origin_root}")" &&
-          "${skip_build}" = "true" ]]; then
+  if OS_ROOT="${origin_root}" os::util::find::built_binary oc >/dev/null 2>&1 &&
+          [[ "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
     echo "Building openshift"

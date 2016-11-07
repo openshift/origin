@@ -6,10 +6,8 @@ if ! git status &> /dev/null; then
   exit 0
 fi
 
-"${OS_ROOT}/hack/build-go.sh" tools/rebasehelpers/commitchecker
+os::util::ensure::built_binary_exists 'commitchecker'
 
-# Find binary
-commitchecker="$(os::build::find-binary commitchecker)"
 echo "===== Verifying UPSTREAM Commits ====="
 $commitchecker
 echo "SUCCESS: All commits are valid."

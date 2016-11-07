@@ -22,15 +22,11 @@ function os::test::extended::focus {
 #		be done in other contexts.
 function os::test::extended::setup () {
 	# build binaries
-	if [[ -z "$(os::build::find-binary ginkgo)" ]]; then
-		hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-	fi
-	if [[ -z "$(os::build::find-binary extended.test)" ]]; then
-		hack/build-go.sh test/extended/extended.test
-	fi
-	if [[ -z "$(os::build::find-binary openshift)" ]]; then
-		hack/build-go.sh
-	fi
+	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
+	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
+	os::util::ensure::built_binary_exists 'openshift'
+	os::util::ensure::built_binary_exists 'oadm'
+	os::util::ensure::built_binary_exists 'oc'
 
 	os::util::environment::setup_time_vars
 	os::util::environment::setup_all_server_vars "test-extended/core"
@@ -163,7 +159,7 @@ function os::test::extended::run () {
 		return
 	fi
 
-	"${GINKGO}" -v "${runArgs[@]}" "${EXTENDEDTEST}" "$@"
+	ginkgo -v "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
 }
 
 # Create a list of extended tests to be run with the given arguments

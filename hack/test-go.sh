@@ -200,16 +200,7 @@ fi
 # Run 'go test' with the accumulated arguments and packages:
 if [[ -n "${junit_report}" ]]; then
     # we need to generate jUnit xml
-    "${OS_ROOT}/hack/build-go.sh" tools/junitreport
-    junitreport="$(os::build::find-binary junitreport)"
-
-    if [[ -z "${junitreport}" ]]; then
-        echo "It looks as if you don't have a compiled junitreport binary"
-        echo
-        echo "If you are running from a clone of the git repo, please run"
-        echo "'./hack/build-go.sh tools/junitreport'."
-        exit 1
-    fi
+    os::util::ensure::built_binary_exists 'junitreport'
 
     test_output_file="${LOG_DIR}/test-go.log"
     test_error_file="${LOG_DIR}/test-go-err.log"

@@ -212,7 +212,8 @@ function run-extended-tests() {
 
   if [[ -n "${dlv_debug}" ]]; then
     # run tests using delve debugger
-    local test_cmd="dlv exec ${TEST_BINARY} -- ${test_args}"
+    local extended_test; extended_test="$( os::util::find::built_binary extended.test )"
+    local test_cmd="dlv exec ${extended_test} -- ${test_args}"
   else
     # run tests normally
     local test_cmd="${TEST_BINARY} ${test_args}"

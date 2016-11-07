@@ -47,23 +47,14 @@ function cleanup() {
       os::test::junit::check_test_counters
 
       # use the junitreport tool to generate us a report
-      "${OS_ROOT}/hack/build-go.sh" tools/junitreport
-      junitreport="$(os::build::find-binary junitreport)"
-
-      if [[ -z "${junitreport}" ]]; then
-          echo "It looks as if you don't have a compiled junitreport binary"
-          echo
-          echo "If you are running from a clone of the git repo, please run"
-          echo "'./hack/build-go.sh tools/junitreport'."
-          exit 1
-      fi
-
       cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}"    \
         | "${junitreport}" --type oscmd                        \
                            --suites nested                     \
                            --roots github.com/openshift/origin \
                            --output "${ARTIFACT_DIR}/report.xml"
       cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
+      os::util::ensure::built_binary_exists 'junitreport'
+
     fi
 
     endtime=$(date +%s); echo "$0 took $((endtime - starttime)) seconds"
