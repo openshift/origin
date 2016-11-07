@@ -382,73 +382,83 @@
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/libcni",
-			"Comment": "v0.3.0-14-gb8e92ed",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Comment": "v0.3.0-83-g52e4358",
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/invoke",
-			"Comment": "v0.3.0-14-gb8e92ed",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Comment": "v0.3.0-83-g52e4358",
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/types",
-			"Comment": "v0.3.0-14-gb8e92ed",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Comment": "v0.3.0-83-g52e4358",
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/invoke",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/ip",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/ipam",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/ns",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/skel",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/types",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/pkg/utils",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
+		},
+		{
+			"ImportPath": "github.com/containernetworking/cni/pkg/utils/hwaddr",
+			"Comment": "v0.3.0-83-g52e4358",
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
+		},
+		{
+			"ImportPath": "github.com/containernetworking/cni/pkg/version",
+			"Comment": "v0.3.0-83-g52e4358",
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/plugins/ipam/host-local",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/plugins/ipam/host-local/backend",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/plugins/ipam/host-local/backend/disk",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/containernetworking/cni/plugins/main/loopback",
 			"Comment": "v0.2.3",
-			"Rev": "b8e92ed030588120f9fda47dd359e17a3234142d"
+			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/alarm",

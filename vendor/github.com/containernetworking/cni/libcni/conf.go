@@ -83,3 +83,28 @@ func LoadConf(dir, name string) (*NetworkConfig, error) {
 	}
 	return nil, fmt.Errorf(`no net configuration with name "%s" in %s`, name, dir)
 }
+
+func InjectConf(original *NetworkConfig, key string, newValue interface{}) (*NetworkConfig, error) {
+	config := make(map[string]interface{})
+	err := json.Unmarshal(original.Bytes, &config)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal existing network bytes: %s", err)
+	}
+
+	if key == "" {
+		return nil, fmt.Errorf("key value can not be empty")
+	}
+
+	if newValue == nil {
+		return nil, fmt.Errorf("newValue must be specified")
+	}
+
+	config[key] = newValue
+
+	newBytes, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return ConfFromBytes(newBytes)
+}
