@@ -88,7 +88,6 @@ readonly -f os::util::environment::setup_time_vars
 function os::util::environment::setup_all_server_vars() {
     local subtempdir=$1
 
-    os::util::environment::update_path_var
     os::util::environment::setup_tmpdir_vars "${subtempdir}"
     os::util::environment::setup_kubelet_vars
     os::util::environment::setup_etcd_vars
@@ -107,7 +106,7 @@ readonly -f os::util::environment::setup_all_server_vars
 # Returns:
 #  - export PATH
 function os::util::environment::update_path_var() {
-    PATH="${OS_ROOT}/_output/local/bin/$(os::util::host_platform):${PATH}"
+    PATH="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):${PATH}"
     export PATH
 }
 readonly -f os::util::environment::update_path_var
