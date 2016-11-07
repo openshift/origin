@@ -153,7 +153,7 @@ function os::util::environment::setup_tmpdir_vars() {
     done
 
     for directory in "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"; do
-        rm -rf "${directory}"
+        ${USE_SUDO:+sudo} rm -rf "${directory}"
         mkdir -p "${directory}"
     done
 }

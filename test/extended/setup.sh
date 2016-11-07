@@ -29,6 +29,7 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'oc'
 
 	os::util::environment::setup_time_vars
+	os::util::environment::use_sudo
 	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	# ensure proper relative directories are set
@@ -50,7 +51,6 @@ function os::test::extended::setup () {
 		trap "cleanup" EXIT
 		os::log::info "Starting server"
 
-		os::util::environment::use_sudo
 		os::util::environment::setup_images_vars
 
 		local sudo=${USE_SUDO:+sudo}
