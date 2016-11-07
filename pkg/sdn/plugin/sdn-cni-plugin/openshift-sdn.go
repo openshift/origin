@@ -16,6 +16,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/version"
 )
 
 type cniPlugin struct {
@@ -111,5 +112,5 @@ func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 
 func main() {
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath)
-	skel.PluginMain(p.skelCmdAdd, p.CmdDel)
+	skel.PluginMain(p.skelCmdAdd, p.CmdDel, version.Legacy)
 }
