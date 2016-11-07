@@ -33,6 +33,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -49,6 +50,8 @@ type MasterOptions struct {
 	MasterArgs *MasterArgs
 
 	CreateCertificates bool
+	ExpireDays         int
+	SignerExpireDays   int
 	ConfigFile         string
 	Output             io.Writer
 	DisabledFeatures   []string
@@ -81,7 +84,11 @@ var masterLong = templates.LongDesc(`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
-	options := &MasterOptions{Output: out}
+	options := &MasterOptions{
+		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+		Output:           out,
+	}
 	options.DefaultsFromName(basename)
 
 	cmd := &cobra.Command{
@@ -127,6 +134,8 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 	flags.Var(options.MasterArgs.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 	flags.BoolVar(&options.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created")
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	flags.IntVar(&options.SignerExpireDays, "signer-expire-days", options.SignerExpireDays, "Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
 
 	BindMasterArgs(options.MasterArgs, flags, "")
 	BindListenArg(options.MasterArgs.ListenArg, flags, "")
@@ -166,6 +175,13 @@ func (o MasterOptions) Validate(args []string) error {
 			return err
 		}
 
+	}
+
+	if o.ExpireDays < 0 {
+		return errors.New("expire-days must be valid number of days")
+	}
+	if o.SignerExpireDays < 0 {
+		return errors.New("signer-expire-days must be valid number of days")
 	}
 
 	return nil
@@ -320,6 +336,8 @@ func (o MasterOptions) CreateCerts() error {
 	mintAllCertsOptions := admin.CreateMasterCertsOptions{
 		CertDir:            o.MasterArgs.ConfigDir.Value(),
 		SignerName:         signerName,
+		ExpireDays:         o.ExpireDays,
+		SignerExpireDays:   o.SignerExpireDays,
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
 		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,

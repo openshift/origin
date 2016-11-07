@@ -233,7 +233,8 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 
 	dnsName := secret.Annotations[ServiceNameAnnotation] + "." + secret.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix
-	servingCert, err := sc.ca.MakeServerCert(sets.NewString(dnsName, fqDNSName))
+	certificateLifetime := 365 * 2 // 2 years
+	servingCert, err := sc.ca.MakeServerCert(sets.NewString(dnsName, fqDNSName), certificateLifetime)
 	if err != nil {
 		return err
 	}

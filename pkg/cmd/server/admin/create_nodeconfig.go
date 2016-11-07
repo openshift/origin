@@ -18,11 +18,12 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/crypto"
+	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -47,6 +48,7 @@ type CreateNodeConfigOptions struct {
 	ClientKeyFile     string
 	ServerCertFile    string
 	ServerKeyFile     string
+	ExpireDays        int
 	NodeClientCAFile  string
 	APIServerCAFiles  []string
 	APIServerURL      string
@@ -92,6 +94,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.ClientKeyFile, "client-key", "", "The client key file for the node to contact the API.")
 	flags.StringVar(&options.ServerCertFile, "server-certificate", "", "The server cert file for the node to serve secure traffic.")
 	flags.StringVar(&options.ServerKeyFile, "server-key", "", "The server key file for the node to serve secure traffic.")
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 	flags.StringVar(&options.NodeClientCAFile, "node-client-certificate-authority", options.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
 	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
 	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", options.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
@@ -111,7 +114,10 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 }
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
-	options := &CreateNodeConfigOptions{SignerCertOptions: NewDefaultSignerCertOptions()}
+	options := &CreateNodeConfigOptions{
+		SignerCertOptions: NewDefaultSignerCertOptions(),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+	}
 	options.VolumeDir = "openshift.local.volumes"
 	// TODO: replace me with a proper round trip of config options through decode
 	options.DNSDomain = "cluster.local"
@@ -160,7 +166,7 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 		return fmt.Errorf("--certificate-authority must be a valid certificate file")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := crypto.CertPoolFromFile(caFile); err != nil {
+			if _, err := kcrypto.CertPoolFromFile(caFile); err != nil {
 				return fmt.Errorf("--certificate-authority must be a valid certificate file: %v", err)
 			}
 		}
@@ -195,6 +201,10 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 		if len(o.SignerCertOptions.SerialFile) == 0 {
 			return errors.New("--signer-serial must be provided to create certificates")
 		}
+	}
+
+	if o.ExpireDays < 0 {
+		return errors.New("expire-days must be valid number of days")
 	}
 
 	return nil
@@ -285,6 +295,8 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 			CertFile: clientCertFile,
 			KeyFile:  clientKeyFile,
 
+			ExpireDays: o.ExpireDays,
+
 			User:   "system:node:" + o.NodeName,
 			Groups: []string{bootstrappolicy.NodesGroup},
 			Output: o.Output,
@@ -316,6 +328,8 @@ func (o CreateNodeConfigOptions) MakeAndWriteServerCert(serverCertFile, serverKe
 
 			CertFile: serverCertFile,
 			KeyFile:  serverKeyFile,
+
+			ExpireDays: o.ExpireDays,
 
 			Hostnames: o.Hostnames,
 			Output:    o.Output,
