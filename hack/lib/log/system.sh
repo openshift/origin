@@ -186,7 +186,7 @@ function os::log::system::internal::plot() {
         printf '\n\n'
     } >> "${LOG_DIR}/gnuplot.log"
 
-    echo "[INFO] Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
+    os::log::info "Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
 }
 readonly -f os::log::system::internal::plot
 
