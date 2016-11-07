@@ -14,19 +14,18 @@ MAN_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/man1"
 mkdir -p "${OUTPUT_DIR}" || echo $? > /dev/null
 mkdir -p "${MAN_OUTPUT_DIR}" || echo $? > /dev/null
 
-function os::build::gen-man() {
-  local cmd="$1"
-  local dest="$2"
-  local cmdName="$3"
-  local filestore=".files_generated_$3"
-  local skipprefix="${4:-}"
+function generate_manual_pages() {
+  local dest="$1"
+  local cmdName="$2"
+  local filestore=".files_generated_${cmdName}"
+  local skipprefix="${3:-}"
 
   # We do this in a tmpdir in case the dest has other non-autogenned files
   # We don't want to include them in the list of gen'd files
   local tmpdir="${OS_ROOT}/_tmp/gen_man"
   mkdir -p "${tmpdir}"
   # generate the new files
-  ${cmd} "${tmpdir}" "${cmdName}"
+  genman "${tmpdir}" "${cmdName}"
   # create the list of generated files
   ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/${filestore}"
 
@@ -52,19 +51,18 @@ function os::build::gen-man() {
 
   echo "Assets generated in ${dest}"
 }
-readonly -f os::build::gen-man
+readonly -f generate_manual_pages
 
-function os::build::gen-docs() {
-  local cmd="$1"
-  local dest="$2"
-  local skipprefix="${3:-}"
+function generate_documentation() {
+  local dest="$1"
+  local skipprefix="${1:-}"
 
   # We do this in a tmpdir in case the dest has other non-autogenned files
   # We don't want to include them in the list of gen'd files
   local tmpdir="${OS_ROOT}/_tmp/gen_doc"
   mkdir -p "${tmpdir}"
   # generate the new files
-  ${cmd} "${tmpdir}"
+  gendocs "${tmpdir}"
   # create the list of generated files
   ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
 
@@ -90,9 +88,9 @@ function os::build::gen-docs() {
 
   echo "Assets generated in ${dest}"
 }
-readonly -f os::build::gen-docs
+readonly -f generate_documentation
 
-os::build::gen-docs "${gendocs}" "${OUTPUT_DIR}"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oc"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "openshift"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oadm"
+generate_documentation "${OUTPUT_DIR}"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "oc"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "openshift"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "oadm"
