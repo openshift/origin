@@ -4,11 +4,7 @@
 
 # os::golang::verify_go_version ensure the go tool exists and is a viable version.
 function os::golang::verify_go_version() {
-	if ! which go &>/dev/null; then
-		os::log::error "Can't find 'go' in PATH, please fix and retry."
-		os::log::error "See http://golang.org/doc/install for installation instructions."
-		return 1
-	fi
+	os::util::ensure::system_binary_exists 'go'
 
 	local go_version
 	go_version=($(go version))

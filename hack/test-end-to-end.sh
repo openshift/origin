@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 readonly JQSETPULLPOLICY='(.items[] | select(.kind == "DeploymentConfig") | .spec.template.spec.containers[0].imagePullPolicy) |= "IfNotPresent"'
 
 if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
-	if docker version >/dev/null 2>&1; then
+	if os::util::ensure::system_binary_exists 'docker'; then
 		echo "++ Docker is installed, running hack/test-end-to-end-docker.sh instead."
 		"${OS_ROOT}/hack/test-end-to-end-docker.sh"
 		exit $?
