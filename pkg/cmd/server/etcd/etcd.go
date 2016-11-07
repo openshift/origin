@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
-	newetcdclient "github.com/coreos/etcd/client"
-	etcdclient "github.com/coreos/go-etcd/etcd"
-	"github.com/golang/glog"
+	etcdclient "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -22,9 +19,8 @@ import (
 // GetAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
-// TODO: switch this function to use EtcdHelper.
-func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
-	etcdClient, err := EtcdClient(etcdClientInfo)
+func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (etcdclient.Client, error) {
+	etcdClient, err := MakeEtcdClient(etcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +30,8 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 	return etcdClient, nil
 }
 
-// EtcdClient creates an etcd client based on the provided config.
-func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
+// MakeEtcdClient creates an etcd client based on the provided config.
+func MakeEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (etcdclient.Client, error) {
 	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
 		TLSClientConfig: restclient.TLSClientConfig{
 			CertFile: etcdClientInfo.ClientCert.CertFile,
@@ -59,51 +55,20 @@ func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client
 		MaxIdleConnsPerHost: 500,
 	})
 
-	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
-	etcdClient.SetTransport(transport)
-	etcdClient.CheckRetry = NeverRetryOnFailure
-	return etcdClient, nil
-}
-
-// MakeNewEtcdClient creates an etcd client based on the provided config.
-func MakeNewEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (newetcdclient.Client, error) {
-	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
-		TLSClientConfig: restclient.TLSClientConfig{
-			CertFile: etcdClientInfo.ClientCert.CertFile,
-			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
-			CAFile:   etcdClientInfo.CA,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	transport := knet.SetTransportDefaults(&http.Transport{
-		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			// default from http.DefaultTransport
-			Timeout: 30 * time.Second,
-			// Lower the keep alive for connections.
-			KeepAlive: 1 * time.Second,
-		}).Dial,
-		// Because watches are very bursty, defends against long delays in watch reconnections.
-		MaxIdleConnsPerHost: 500,
-	})
-
-	cfg := newetcdclient.Config{
+	cfg := etcdclient.Config{
 		Endpoints: etcdClientInfo.URLs,
 		// TODO: Determine if transport needs optimization
 		Transport: transport,
 	}
-	return newetcdclient.New(cfg)
+	return etcdclient.New(cfg)
 }
 
 // TestEtcdClient verifies a client is functional.  It will attempt to
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
-func TestEtcdClient(etcdClient *etcdclient.Client) error {
+func TestEtcdClient(etcdClient etcdclient.Client) error {
 	for i := 0; ; i++ {
-		_, err := etcdClient.Get("/", false, false)
+		_, err := etcdclient.NewKeysAPI(etcdClient).Get(context.Background(), "/", nil)
 		if err == nil || etcdutil.IsEtcdNotFound(err) {
 			break
 		}
@@ -113,37 +78,4 @@ func TestEtcdClient(etcdClient *etcdclient.Client) error {
 		time.Sleep(50 * time.Millisecond)
 	}
 	return nil
-}
-
-// TestEtcdClient verifies a client is functional.  It will attempt to
-// connect to the etcd server and block until the server responds at least once, or return an
-// error if the server never responded.
-func TestNewEtcdClient(etcdClient newetcdclient.Client) error {
-	for i := 0; ; i++ {
-		_, err := newetcdclient.NewKeysAPI(etcdClient).Get(context.Background(), "/", nil)
-		if err == nil || etcdutil.IsEtcdNotFound(err) {
-			break
-		}
-		if i > 100 {
-			return fmt.Errorf("could not reach etcd: %v", err)
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	return nil
-}
-
-// NeverRetryOnFailure is a retry function for the etcdClient.  If there's only one machine, master election doesn't make much sense,
-// so we don't bother to retry, we simply dump the failure and return the error directly.
-func NeverRetryOnFailure(cluster *etcdclient.Cluster, numReqs int, lastResp http.Response, err error) error {
-	if len(cluster.Machines) > 1 {
-		return etcdclient.DefaultCheckRetry(cluster, numReqs, lastResp, err)
-	}
-
-	content, err := httputil.DumpResponse(&lastResp, true)
-	if err != nil {
-		glog.Errorf("failure dumping response: %v", err)
-	} else {
-		glog.Errorf("etcd failure response: %s", string(content))
-	}
-	return err
 }
