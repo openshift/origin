@@ -25,13 +25,3 @@ function os::golang::verify_go_version() {
 	fi
 }
 readonly -f os::golang::verify_go_version
-
-# os::golang::verify_golint_version ensure the golint tool exists.
-function os::golang::verify_golint_version() {
-	if ! which golint &>/dev/null; then
-		os::log::error "Unable to detect 'golint' package."
-		os::log::error "To install it, run: 'go get github.com/golang/lint/golint'."
-		return 1
-	fi
-}
-readonly -f os::golang::verify_golint_version

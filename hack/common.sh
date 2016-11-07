@@ -1082,19 +1082,6 @@ function os::build::get-bin-output-path() {
 }
 readonly -f os::build::get-bin-output-path
 
-# os::build::find-binary locates a locally built binary for the current
-# platform and returns the path to the binary.  The base path to search
-# from will default to the current working directory but can be
-# overridden via the optional second argument.
-function os::build::find-binary() {
-  local bin="$1"
-  local os_root="${2:-}"
-
-  local path=$( (ls -t $(os::build::get-bin-output-path "${os_root}")/${bin}) 2>/dev/null || true | head -1 )
-  echo "$path"
-}
-readonly -f os::build::find-binary
-
 # os::build::environment::create creates a docker container with the default variables.
 # arguments are passed directly to the container, OS_BUILD_ENV_GOLANG, OS_BUILD_ENV_IMAGE,
 # and OS_RELEASE_DOCKER_ARGS can be used to customize the container. The docker socket
