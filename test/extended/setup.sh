@@ -37,7 +37,7 @@ function os::test::extended::setup () {
 
 	# allow setup to be skipped
 	if [[ -z "${TEST_ONLY+x}" ]]; then
-		ensure_iptables_or_die
+		os::util::ensure::iptables_privileges_exist
 
 		function cleanup() {
 			out=$?

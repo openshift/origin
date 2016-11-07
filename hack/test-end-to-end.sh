@@ -16,7 +16,7 @@ if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
 	echo "++ Docker is not installed, running end-to-end against local binaries"
 fi
 
-ensure_iptables_or_die
+os::util::ensure::iptables_privileges_exist
 
 os::log::info "Starting end-to-end test"
 

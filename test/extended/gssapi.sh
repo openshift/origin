@@ -16,7 +16,7 @@ os::util::environment::setup_all_server_vars "${test_name}"
 
 os::log::system::start
 
-ensure_iptables_or_die
+os::util::ensure::iptables_privileges_exist
 
 # TODO(skuznets): Fix vagrant openshift so env vars can be passed to this script
 JUNIT_REPORT=true
