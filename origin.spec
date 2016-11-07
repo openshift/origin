@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ad969db89dedc51eaf3685f575f33bf17facc79b
+%global commit 460d3662f90ff437509b0e81aad55eb661cb0b25
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.21+ad969db-53 OS_GIT_COMMIT=ad969db OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.22+460d366-58 OS_GIT_COMMIT=460d366 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.22
+Version:        3.4.0.23
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,67 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Nov 07 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.23
+- bump(github.com/openshift/origin-web-console):
+  22cbe94128168282f06b4e52766f05170a77df92 (dmcphers+openshiftbot@redhat.com)
+- Deprecated evacuate in favor of drain node (mfojtik@redhat.com)
+- Handle services of type ExternalName by returning a CNAME
+  (ccoleman@redhat.com)
+- fixes extended test issues caused by #11411 (cdaley@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6304150c9696dc4d6cb02e67d1ac42ec39ba4ee8 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6759555895af3481dbda7b92009015e0cdca3b35 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  42d3d3b85544a85b9c9d6fe7e60c09f1ae95173d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a6e3bf3a68da0b710b97d6312752faf5e7267fe2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  62f53fe551ded617e07b7eb9059b7b587e2f36a5 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2896e83370336132433ebb7aa99642dd922b84a0 (dmcphers+openshiftbot@redhat.com)
+- avoid repetitive erros on adding fdb entries if it already exists
+  (rchopra@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  06723a7cec861573be7a0b96c08bc55bdaecd7d4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4d5a78494e2618f1e5a0da0d7b61922497e1be10 (dmcphers+openshiftbot@redhat.com)
+- Refactor uses of `wait_for_command` to use `os::cmd::try_until*`
+  (skuznets@redhat.com)
+- Migrate scripts to use `os::log::warn` (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  13e9d02b809914e507721d7ea62ec3ce6b9bce48 (dmcphers+openshiftbot@redhat.com)
+- Migrate utilities specific to test/cmd/secrets.sh into the test script
+  (skuznets@redhat.com)
+- Replace old build utility functions with `os::cmd::try_until_text`
+  (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  53904fdf20c0b8e188ba56be1a2639952066d20b (dmcphers+openshiftbot@redhat.com)
+- Update ose_images.sh - 2016-11-04 (tdawson@redhat.com)
+- Allow getting images from registries over untrusted connection
+  (agladkov@redhat.com)
+- oc start-build --from-repo now uses clone+checkout (rymurphy@redhat.com)
+- Added a test for doTestConnection functionality (rymurphy@redhat.com)
+- remove set resources from the list of exceptions to the --local flag
+  (jtanenba@redhat.com)
+- UPSTREAM: 36174: Implemented both the dry run and local flags.
+  (jtanenba@redhat.com)
+- UPSTREAM: 36174: fixed some issues with kubectl set resources
+  (jtanenba@redhat.com)
+- UPSTREAM: 36161: Fix how we iterate over active jobs when removing them for
+  Replace policy (maszulik@redhat.com)
+- integration: rewrite etcd dumper to use new client (mfojtik@redhat.com)
+- remove unused go-etcd helper (mfojtik@redhat.com)
+- bump(coreos/go-etcd): remove (mfojtik@redhat.com)
+- Auto generated docs for NetworkDiagDefaultLogDir description change
+  (rpenta@redhat.com)
+- Bug 1388025 - Update NetworkDiagDefaultLogDir description (rpenta@redhat.com)
+- Correcting log follow user guidance in new-build (jupierce@redhat.com)
+- Fix an error variable reuse (miao.yanqiang@zte.com.cn)
+- Clarify how we handle compression as a router env (bbennett@redhat.com)
+- sdn: don't error deleting QoS if kubelet tears down networking a second time
+  (dcbw@redhat.com)
+
 * Fri Nov 04 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.22
 - Restore use of oc ex dockerbuild (ccoleman@redhat.com)
 - UPSTREAM: openshift/imagebuilder: <drop>: Handle Docker 1.12
