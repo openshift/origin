@@ -218,10 +218,10 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 
 	expr := regexp.QuoteMeta(fmt.Sprintf(".%s%s", subdomain, path))
 	if exactPath {
-		return fmt.Sprintf("[^\\.]*%s", expr)
+		return fmt.Sprintf("^[^\\.]*%s$", expr)
 	}
 
-	return fmt.Sprintf("[^\\.]*%s(|/.*)", expr)
+	return fmt.Sprintf("^[^\\.]*%s(|/.*)$", expr)
 }
 
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
