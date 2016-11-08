@@ -88,7 +88,7 @@ os::start::server
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
-install_registry
+os::start::registry
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
 os::cmd::expect_success 'oc login -u system:admin'
