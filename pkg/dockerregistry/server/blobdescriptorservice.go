@@ -177,7 +177,7 @@ func imageHasBlob(
 
 	// in case of pullthrough disabled, client won't be able to download a blob belonging to not managed image
 	// (image stored in external registry), thus don't consider them as candidates
-	if managed := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; requireManaged && managed != "true" {
+	if requireManaged && !isImageManaged(image) {
 		context.GetLogger(r.ctx).Debugf("skipping not managed image")
 		return false
 	}

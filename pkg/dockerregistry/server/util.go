@@ -135,3 +135,8 @@ func effectiveCreateOptions(options []distribution.BlobCreateOption) (*distribut
 	}
 	return opts, nil
 }
+
+func isImageManaged(image *imageapi.Image) bool {
+	managed, ok := image.ObjectMeta.Annotations[imageapi.ManagedByOpenShiftAnnotation]
+	return ok && managed == "true"
+}
