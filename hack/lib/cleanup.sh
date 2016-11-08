@@ -22,9 +22,9 @@ function kill_all_processes() {
 	local sudo="${USE_SUDO:+sudo}"
 
 	pids=($(jobs -pr))
-	for i in ${pids[@]-}; do
-		pgrep -P "${i}" | xargs $sudo kill &> /dev/null
-		$sudo kill ${i} &> /dev/null
+	for i in "${pids[@]-}"; do
+		pgrep -P "${i}" | xargs ${sudo} kill &> /dev/null
+		${sudo} kill "${i}" &> /dev/null
 	done
 }
 readonly -f kill_all_processes
@@ -35,18 +35,16 @@ function dump_container_logs() {
 		return
 	fi
 
-	mkdir -p ${LOG_DIR}
-
 	os::log::info "Dumping container logs to ${LOG_DIR}"
 	for container in $(docker ps -aq); do
-		container_name=$(docker inspect -f "{{.Name}}" $container)
+		container_name=$(docker inspect -f "{{.Name}}" "${container}")
 		# strip off leading /
 		container_name=${container_name:1}
-		if [[ "$container_name" =~ ^k8s_ ]]; then
-			pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
-			container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
+		if [[ "${container_name}" =~ ^k8s_ ]]; then
+			pod_name=$(echo "${container_name}" | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
+			container_name=${pod_name}-$(echo "${container_name}" | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
 		fi
-		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
+		docker logs "${container}" >&"${LOG_DIR}/container-${container_name}.log"
 	done
 }
 readonly -f dump_container_logs
@@ -89,7 +87,9 @@ function cleanup_openshift() {
 
 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
-	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
+	if [[ -f "${LOG_DIR}/openshift.log" ]]; then
+		grep -a5 "CACHE.*ALTERED" "${LOG_DIR}/openshift.log"
+	fi
 
 	os::cleanup::dump_etcd
 
