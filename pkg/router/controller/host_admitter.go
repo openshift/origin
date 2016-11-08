@@ -155,11 +155,16 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)
-	displacedRoutes, err := p.displacedRoutes(route)
+	displacedRoutes, err, ownerNamespace := p.displacedRoutes(route)
 	if err != nil {
 		msg := fmt.Sprintf("a route in another namespace holds host %s", route.Spec.Host)
+		if ownerNamespace == route.Namespace {
+			// Use the full error details if we got bumped by a
+			// route in our namespace.
+			msg = err.Error()
+		}
 		p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", msg)
-		return fmt.Errorf("%s (%s)", msg, err)
+		return err
 	}
 
 	// Remove displaced routes
@@ -169,7 +174,17 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 		p.blockedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 
-		msg := fmt.Sprintf("a route in another namespace holds host %s", displacedRoute.Spec.Host)
+		msg := ""
+		if route.Namespace == displacedRoute.Namespace {
+			if route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+				msg = fmt.Sprintf("wildcard route %s/%s has host *.%s blocking %s", route.Namespace, route.Name, wildcardKey, displacedRoute.Spec.Host)
+			} else {
+				msg = fmt.Sprintf("route %s/%s has host %s, blocking %s", route.Namespace, route.Name, route.Spec.Host, displacedRoute.Spec.Host)
+			}
+		} else {
+			msg = fmt.Sprintf("a route in another namespace holds host %s", displacedRoute.Spec.Host)
+		}
+
 		p.recorder.RecordRouteRejection(displacedRoute, "HostAlreadyClaimed", msg)
 		p.plugin.HandleRoute(watch.Deleted, displacedRoute)
 	}
@@ -207,17 +222,42 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	return nil
 }
 
-func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Route, error) {
+func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Route, error, string) {
 	displaced := []*routeapi.Route{}
 
 	// See if any existing routes block our host, or if we displace their host
 	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
 		if route.Namespace == newRoute.Namespace {
-			// Never displace a route in our namespace
-			continue
+			if route.Name == newRoute.Name {
+				continue
+			}
+
+			// Check for wildcard routes. Never displace a
+			// non-wildcard route in our namespace if we are a
+			// wildcard route.
+			// E.g. *.acme.test can co-exist with a
+			//      route for www2.acme.test
+			if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+				continue
+			}
+
+			// New route is _NOT_ a wildcard - we need to check
+			// if the paths are same and if it is older before
+			// we can displace another route in our namespace.
+			// The path check below allows non-wildcard routes
+			// with different paths to coexist with the other
+			// non-wildcard routes in this namespace.
+			// E.g. www.acme.org/p1 can coexist with other
+			//      non-wildcard routes www.acme.org/p1/p2 or
+			//      www.acme.org/p2 or www.acme.org/p2/p3
+			//      but ...
+			//      not with www.acme.org/p1
+			if route.Spec.Path != newRoute.Spec.Path {
+				continue
+			}
 		}
 		if routeapi.RouteLessThan(route, newRoute) {
-			return nil, fmt.Errorf("route %s/%s has host %s", route.Namespace, route.Name, route.Spec.Host)
+			return nil, fmt.Errorf("route %s/%s has host %s", route.Namespace, route.Name, route.Spec.Host), route.Namespace
 		}
 		displaced = append(displaced, p.claimedHosts[newRoute.Spec.Host][i])
 	}
@@ -227,11 +267,36 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	// See if any existing wildcard routes block our domain, or if we displace them
 	for i, route := range p.claimedWildcards[wildcardKey] {
 		if route.Namespace == newRoute.Namespace {
-			// Never displace a route in our namespace
-			continue
+			if route.Name == newRoute.Name {
+				continue
+			}
+
+			// Check for non-wildcard route. Never displace a
+			// wildcard route in our namespace if we are not a
+			// wildcard route.
+			// E.g. www1.foo.test can co-exist with a
+			//      wildcard route for *.foo.test
+			if newRoute.Spec.WildcardPolicy != routeapi.WildcardPolicySubdomain {
+				continue
+			}
+
+			// New route is a wildcard - we need to check if the
+			// paths are same and if it is older before we can
+			// displace another route in our namespace.
+			// The path check below allows wildcard routes with
+			// different paths to coexist with the other wildcard
+			// routes in this namespace.
+			// E.g. *.bar.org/p1 can coexist with other wildcard
+			//      wildcard routes *.bar.org/p1/p2 or
+			//      *.bar.org/p2 or *.bar.org/p2/p3
+			//      but ...
+			//      not with *.bar.org/p1
+			if route.Spec.Path != newRoute.Spec.Path {
+				continue
+			}
 		}
 		if routeapi.RouteLessThan(route, newRoute) {
-			return nil, fmt.Errorf("wildcard route %s/%s has host *.%s, blocking %s", route.Namespace, route.Name, wildcardKey, newRoute.Spec.Host)
+			return nil, fmt.Errorf("wildcard route %s/%s has host *.%s, blocking %s", route.Namespace, route.Name, wildcardKey, newRoute.Spec.Host), route.Namespace
 		}
 		displaced = append(displaced, p.claimedWildcards[wildcardKey][i])
 	}
@@ -244,11 +309,11 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 				continue
 			}
 			if routeapi.RouteLessThan(route, newRoute) {
-				return nil, fmt.Errorf("route %s/%s has host %s, blocking *.%s", route.Namespace, route.Name, route.Spec.Host, wildcardKey)
+				return nil, fmt.Errorf("route %s/%s has host %s, blocking *.%s", route.Namespace, route.Name, route.Spec.Host, wildcardKey), route.Namespace
 			}
 			displaced = append(displaced, p.blockedWildcards[wildcardKey][i])
 		}
 	}
 
-	return displaced, nil
+	return displaced, nil, newRoute.Namespace
 }
