@@ -109,14 +109,14 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		d.Cleanup()
 	}()
 
+	defer func() {
+		d.Cleanup()
+	}()
 	// Setup test environment
 	if err := d.TestSetup(); err != nil {
 		d.res.Error("DNet2005", err, fmt.Sprintf("Setting up test environment for network diagnostics failed: %v", err))
 		return
 	}
-	defer func() {
-		d.Cleanup()
-	}()
 
 	// Need to show summary at least
 	loglevel := d.Level
