@@ -188,7 +188,7 @@ working against the API. Run it with:
     $ hack/test-cmd.sh
 
 This suite comprises many smaller suites, which are found under `test/cmd` and
-can be run individually by specifying a regex filter, passed through `grep -E` 
+can be run individually by specifying a regex filter, passed through `grep -E`
 like with integration tests above:
 
     $ hack/test-cmd.sh <regex>
@@ -221,7 +221,7 @@ components working together.
 
 The end-to-end suite is currently implemented primarily in Bash, but will be
 folded into the extended suite (located in test/extended) over time.
-The extended suite is closer to the upstream Kubernetes e2e suite and 
+The extended suite is closer to the upstream Kubernetes e2e suite and
 tests the full behavior of a running system.
 
 Run the end to end tests with:
@@ -242,8 +242,7 @@ the Ginkgo library. They must be able to be run remotely, and cannot depend on
 any local interaction with the filesystem or Docker.
 
 More information about running extended tests can be found in
-[test/extended/README](https://github.com/openshift/origin/blob/master/test/exte
-nded/README.md).
+[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
 
 
 ## Installing Godep
@@ -288,7 +287,7 @@ If this fails, then it's possible you may need to pick multiple commits.
 the next rebase?
 
 Assuming you read the bullets above... If your patch is really far behind, for
-example, if there have been 5 commits modifying the directory you care about, 
+example, if there have been 5 commits modifying the directory you care about,
 cherry picking will be increasingly difficult and you should consider waiting
 for the next rebase, which will likely include the commit you care about, or at
 least decrease the amount of cherry picks you need to do to merge.
@@ -322,7 +321,7 @@ automated manner.
 
 To use this command, be sure to setup remote Pull Request branches in the
 kubernetes repository you are using (i.e. like https://gist.github.com/piscisaureus/3342247).
-Specifically, you will be doing this, to the git config you probably already 
+Specifically, you will be doing this, to the git config you probably already
 have for kubernetes:
 
 ```
