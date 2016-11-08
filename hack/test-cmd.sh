@@ -32,7 +32,7 @@ function cleanup()
         echo -------------------------------------
         echo
     elif go tool -n pprof >/dev/null 2>&1; then
-        echo "[INFO] \`pprof\` output logged to ${LOG_DIR}/pprof.out"
+        os::log::info "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
         go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
@@ -65,7 +65,7 @@ function cleanup()
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    echo "[INFO] Exiting with ${out}"
+    os::log::info "Exiting with ${out}"
     exit $out
 }
 
@@ -147,7 +147,7 @@ oc version
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
+os::log::info "Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
@@ -355,6 +355,6 @@ for test in "${tests[@]}"; do
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
-echo "[INFO] Metrics information logged to ${LOG_DIR}/metrics.log"
+os::log::info "Metrics information logged to ${LOG_DIR}/metrics.log"
 oc get --raw /metrics > "${LOG_DIR}/metrics.log"
 echo "test-cmd: ok"

@@ -215,7 +215,7 @@ if [[ -n "${junit_report}" ]]; then
     test_error_file="${LOG_DIR}/test-go-err.log"
     junit_report_file="${ARTIFACT_DIR}/report.xml"
 
-    echo "[INFO] Running \`go test\`..."
+    os::log::info "Running \`go test\`..."
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
@@ -258,8 +258,8 @@ if [[ -n "${junit_report}" ]]; then
         fi
     fi
 
-    echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
-    echo "[INFO] jUnit XML report placed at ${junit_report_file}"
+    os::log::info "Full output from \`go test\` logged at ${test_output_file}"
+    os::log::info "jUnit XML report placed at ${junit_report_file}"
     exit "${test_return_code}"
 
 elif [[ -n "${coverage_output_dir}" ]]; then
@@ -276,7 +276,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
     find "${coverage_output_dir}" -name profile.out | xargs sed '/^mode: atomic$/d' >> "${coverage_output_dir}/profiles.out"
 
     go tool cover "-html=${coverage_output_dir}/profiles.out" -o "${coverage_output_dir}/coverage.html"
-    echo "[INFO] Coverage profile written to ${coverage_output_dir}/coverage.html"
+    os::log::info "Coverage profile written to ${coverage_output_dir}/coverage.html"
 
     # clean up all of the individual coverage reports as they have been subsumed into the report at ${coverage_output_dir}/coverage.html
     # we can clean up all of the coverage reports at once as they all exist in subdirectories of ${coverage_output_dir}/${OS_GO_PACKAGE}
