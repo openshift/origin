@@ -2,8 +2,10 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -13,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	ktypes "k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
@@ -232,6 +235,38 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 		if len(rule.Ports) == 0 && len(rule.From) == 0 {
 			allowAll = true
 			break
+		}
+
+		var portFlows []string
+		if len(rule.Ports) == 0 {
+			portFlows = []string{""}
+		}
+		for _, port := range rule.Ports {
+			var protocol string
+			if port.Protocol == nil {
+				protocol = "tcp"
+			} else if *port.Protocol == kapi.ProtocolTCP || *port.Protocol == kapi.ProtocolUDP {
+				protocol = strings.ToLower(string(*port.Protocol))
+			} else {
+				// FIXME: validation should catch this
+				return nil, fmt.Errorf("policy specifies unrecognized protocol %q", *port.Protocol)
+			}
+			var portNum int
+			if port.Port.Type == intstr.Int {
+				portNum = int(port.Port.IntVal)
+				if portNum < 0 || portNum > 0xFFFF {
+					// FIXME: validation should catch this
+					return nil, fmt.Errorf("port value out of bounds %q", port.Port.IntVal)
+				}
+			} else {
+				// FIXME: implement this
+				return nil, fmt.Errorf("named port values (%q) are not yet implemented", port.Port.StrVal)
+			}
+			portFlows = append(portFlows, fmt.Sprintf("%s, tp_dst=%d, ", protocol, portNum))
+		}
+
+		for _, portFlow := range portFlows {
+			npp.flows = append(npp.flows, fmt.Sprintf("%s", portFlow))
 		}
 	}
 
