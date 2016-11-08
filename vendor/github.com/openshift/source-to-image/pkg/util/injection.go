@@ -122,6 +122,6 @@ func HandleInjectionError(p api.VolumeSpec, err error) error {
 		glog.Errorf("The destination directory for %q injection must exist in container (%q)", p.Source, p.Destination)
 		return err
 	}
-	glog.Errorf("Error occured during injecting %q to %q: %v", p.Source, p.Destination, err)
+	glog.Errorf("Error occurred during injecting %q to %q: %v", p.Source, p.Destination, err)
 	return err
 }
