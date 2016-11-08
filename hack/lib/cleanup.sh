@@ -16,22 +16,29 @@ function os::cleanup::dump_etcd() {
 	os::util::curl_etcd "/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 }
 
-# kill_all_processes function will kill all
-# all processes created by the test script.
-function kill_all_processes() {
+# os::cleanup::jobs cleans up running jobs spawned by this script.
+# We assume that the jobs are well-formed to respond to SIGTERM and
+# that they correctly forward the signal to their children.
+#
+# Globals:
+#  - USE_SUDO
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::jobs() {
 	local sudo="${USE_SUDO:+sudo}"
 
-	pids=($(jobs -pr))
-	for i in "${pids[@]-}"; do
-		pgrep -P "${i}" | xargs ${sudo} kill &> /dev/null
-		${sudo} kill "${i}" &> /dev/null
+	os::log::info "Terminating running test jobs..."
+	for i in $(jobs -pr); do
+		${sudo} kill -SIGTERM "${i}"
 	done
 }
-readonly -f kill_all_processes
+readonly -f os::cleanup::jobs
 
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs() {
-	if ! docker version >/dev/null 2>&1; then
+	if ! os::util::ensure::system_binary_exists 'docker'; then
 		return
 	fi
 
@@ -49,15 +56,31 @@ function dump_container_logs() {
 }
 readonly -f dump_container_logs
 
-# delete_empty_logs deletes empty logs
-function delete_empty_logs() {
+# os::cleanup::empty_logfiles deletes empty logfiles
+#
+# Globals:
+#  - ARTIFACT_DIR
+#  - LOG_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::empty_logfiles() {
 	# Clean up zero byte log files
 	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
 }
-readonly -f delete_empty_logs
+readonly -f os::cleanup::empty_logfiles
 
-# truncate_large_logs truncates large logs
-function truncate_large_logs() {
+# os::cleanup::large_logfiles truncates large logs
+#
+# Globals:
+#  - ARTIFACT_DIR
+#  - LOG_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::large_logfiles() {
 	# Clean up large log files so they don't end up on jenkins
 	local max_file_size="100M"
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +${max_file_size} \))
@@ -68,14 +91,18 @@ function truncate_large_logs() {
 		rm "${file}.tmp"
 	done
 }
-readonly -f truncate_large_logs
+readonly -f os::cleanup::large_logfiles
 
-######
-# start of common functions for extended test group's run.sh scripts
-######
-
-# cleanup_openshift saves container logs, saves resources, and kills all processes and containers
-function cleanup_openshift() {
+# os::cleanup::openshift saves container logs, saves resources, and kills all processes and containers
+#
+# Globals:
+#  - ARTIFACT_DIR
+#  - LOG_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::openshift() {
 	LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	ARTIFACT_DIR="${ARTIFACT_DIR:-${LOG_DIR}}"
 	API_HOST="${API_HOST:-127.0.0.1}"
@@ -95,7 +122,7 @@ function cleanup_openshift() {
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		os::log::info "Tearing down test"
-		kill_all_processes
+		os::cleanup::jobs
 
 		if docker version >/dev/null 2>&1; then
 			os::log::info "Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
@@ -116,10 +143,10 @@ function cleanup_openshift() {
 		journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
 	fi
 
-	delete_empty_logs
-	truncate_large_logs
+	os::cleanup::empty_logfiles
+	os::cleanup::large_logfiles
 
 	os::log::info "Cleanup complete"
 	set -e
 }
-readonly -f cleanup_openshift
+readonly -f os::cleanup::openshift

@@ -14,7 +14,7 @@ function cleanup()
     os::cleanup::dump_etcd
 
     pkill -P $$
-    kill_all_processes
+    os::cleanup::jobs
 
     # pull information out of the server log so that we can get failure management in jenkins to highlight it and
     # really have it smack people in their logs.  This is a severe correctness problem

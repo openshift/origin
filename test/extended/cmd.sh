@@ -13,7 +13,7 @@ function cleanup()
 {
 	out=$?
 	docker rmi test/scratchimage
-	cleanup_openshift
+	os::cleanup::openshift
 	os::log::info "Exiting"
 	return "${out}"
 }

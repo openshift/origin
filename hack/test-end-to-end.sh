@@ -31,7 +31,7 @@ function cleanup()
 	fi
 	echo
 
-	cleanup_openshift
+	os::cleanup::openshift
 	os::log::info "Exiting"
 	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
 	exit $out
