@@ -559,6 +559,35 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		})
 
+		g.It("jenkins-plugin test trigger build with slave", func() {
+
+			jobName := "test-build-job-slave"
+			data := j.readJenkinsJob("build-job-slave.xml", oc.Namespace())
+			j.createItem(jobName, data)
+			jmon := j.startJob(jobName)
+			jmon.await(10 * time.Minute)
+
+			// the build and deployment is by far the most time consuming portion of the test jenkins job;
+			// we leverage some of the openshift utilities for waiting for the deployment before we poll
+			// jenkins for the successful job completion
+			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build console logs and see if succeeded")
+			logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build console logs and confirm ran on slave")
+			logs, err = j.waitForContent("Building remotely on", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+		})
+
 		g.It("jenkins-plugin test trigger build with envs", func() {
 
 			jobName := "test-build-with-env-job"
