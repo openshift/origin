@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -23,6 +24,8 @@ func mustParseTime(t string) time.Time {
 }
 
 func TestProjectStatus(t *testing.T) {
+	requestErr := errors.NewBadRequest("unavailable").Status()
+	requestErr.Details = &unversioned.StatusDetails{Kind: "Project", Name: "example"}
 	testCases := map[string]struct {
 		File     string
 		Extra    []runtime.Object
@@ -31,7 +34,13 @@ func TestProjectStatus(t *testing.T) {
 		Time     time.Time
 	}{
 		"missing project": {
-			ErrFn: func(err error) bool { return errors.IsNotFound(err) },
+			ErrFn: func(err error) bool { return err == nil },
+		},
+		"project error is returned": {
+			Extra: []runtime.Object{
+				&requestErr,
+			},
+			ErrFn: func(err error) bool { return errors.IsBadRequest(err) },
 		},
 		"empty project with display name": {
 			Extra: []runtime.Object{
