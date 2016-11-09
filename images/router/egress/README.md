@@ -32,9 +32,8 @@ spec:
       value: 192.168.12.1
     - name: EGRESS_DESTINATION
       value: 203.0.113.25
-    # Set mtu size, optional, 1450 by default.
-    #- name: MTU_SIZE
-    #  value: 1400
+    - name: MTU_SIZE
+      value: 1450
   nodeSelector:
     site: springfield-1
 ```
