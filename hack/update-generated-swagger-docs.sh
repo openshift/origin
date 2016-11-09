@@ -7,4 +7,4 @@ pushd "${OS_ROOT}/hack/swagger-doc" > /dev/null
 gradle gendocs --info
 popd > /dev/null
 
-echo "[INFO] Swagger doc generation successful"
+os::log::info "Swagger doc generation successful"

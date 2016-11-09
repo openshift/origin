@@ -285,6 +285,12 @@ type DockerConfig struct {
 
 	// CAFile is the certificate authority file path for a TLS connection
 	CAFile string
+
+	// UseTLS indicates if TLS must be used
+	UseTLS bool
+
+	// TLSVerify indicates if TLS peer must be verified
+	TLSVerify bool
 }
 
 // AuthConfig is our abstraction of the Registry authorization information for whatever
@@ -338,14 +344,14 @@ type BuildInfo struct {
 	FailureReason FailureReason
 }
 
-// StepFailureReason holds the type of failure that occured during the build
+// StepFailureReason holds the type of failure that occurred during the build
 // process.
 type StepFailureReason string
 
 // StepFailureMessage holds the detailed message of a failure.
 type StepFailureMessage string
 
-// FailureReason holds the type of failure that occured during the build
+// FailureReason holds the type of failure that occurred during the build
 // process.
 type FailureReason struct {
 	Reason  StepFailureReason

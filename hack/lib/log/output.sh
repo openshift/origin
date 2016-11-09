@@ -19,7 +19,7 @@ readonly -f os::log::info
 # Arguments:
 #  - all: message to write
 function os::log::warn() {
-	os::text::print_yellow "[WARNING] $*\n" 1>&2
+	os::text::print_yellow "[WARNING] $*" 1>&2
 }
 readonly -f os::log::warn
 
@@ -30,7 +30,7 @@ readonly -f os::log::warn
 # Arguments:
 #  - all: message to write
 function os::log::error() {
-	os::text::print_red "[ERROR] $*\n" 1>&2
+	os::text::print_red "[ERROR] $*" 1>&2
 }
 readonly -f os::log::error
 
@@ -42,7 +42,7 @@ readonly -f os::log::error
 # Arguments:
 #  - all: message to write
 function os::log::fatal() {
-	os::text::print_red "[FATAL] $*\n" 1>&2
+	os::text::print_red "[FATAL] $*" 1>&2
 	return 1
 }
 readonly -f os::log::fatal

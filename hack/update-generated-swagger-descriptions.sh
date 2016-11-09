@@ -62,11 +62,11 @@ for file in ${source_files}; do
 				echo "[ERROR] Generated Swagger documentation at \"${swagger_file}\" is out of date."
 				failed='true'
 			else
-				echo "[INFO] Verified that generated Swagger documentation at \"${swagger_file}\" is up to date."
+				os::log::info "Verified that generated Swagger documentation at \"${swagger_file}\" is up to date."
 			fi
 		else
 			mv "${tmp_output_file}" "${swagger_file}"
-			echo "[INFO] Generated Swagger documentation written for \"${file}\" to \"${swagger_file}\""
+			os::log::info "Generated Swagger documentation written for \"${file}\" to \"${swagger_file}\""
 		fi
 	fi
 done

@@ -18,7 +18,7 @@ fi
 
 ensure_iptables_or_die
 
-echo "[INFO] Starting end-to-end test"
+os::log::info "Starting end-to-end test"
 
 function cleanup()
 {
@@ -27,12 +27,12 @@ function cleanup()
 	if [ $out -ne 0 ]; then
 		echo "[FAIL] !!!!! Test Failed !!!!"
 	else
-		echo "[INFO] Test Succeeded"
+		os::log::info "Test Succeeded"
 	fi
 	echo
 
 	cleanup_openshift
-	echo "[INFO] Exiting"
+	os::log::info "Exiting"
 	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
 	exit $out
 }

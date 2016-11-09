@@ -403,6 +403,9 @@ func InferBuildTypes(components app.ComponentReferences, g *GenerationInputs) (a
 			continue
 		}
 	}
+	if len(components) == 0 && g.BinaryBuild && g.Strategy == "source" {
+		return nil, errors.New("you must provide a builder image when using the source strategy with a binary build")
+	}
 	if len(components) == 0 && g.BinaryBuild {
 		if len(g.Name) == 0 {
 			return nil, errors.New("you must provide a --name when you don't specify a source repository or base image")

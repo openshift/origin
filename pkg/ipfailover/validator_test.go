@@ -30,7 +30,7 @@ func TestValidateIPAddress(t *testing.T) {
 func TestValidateIPAddressRange(t *testing.T) {
 	validRanges := []string{"1.1.1.1-1", "1.1.1.1-7", "1.1.1.250-255",
 		"255.255.255.255-255", "8.8.8.4-8", "0.1.2.3-255",
-		"255.254.253.252-255",
+		"255.254.253.252-255", "1.1.1.1", "   1.1.1.1-2   ",
 	}
 
 	for _, iprange := range validRanges {
@@ -43,6 +43,7 @@ func TestValidateIPAddressRange(t *testing.T) {
 		"1.1.1.5-1", "255.255.255.255-259", "1024.512.256.128-255",
 		"a.b.c.d-e", "1.2.3.4.abc-def", "5.6.7.8def-1.2.3.4abc",
 		"a.12.13.14-55", "9999.888.77.6-66", "1.2.3.4-5-6", "1.2.3-4",
+		"1,2.3.4.5-6", "-", "1.1.1.    1-2",
 	}
 
 	for _, iprange := range invalidRanges {

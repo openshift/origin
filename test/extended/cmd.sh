@@ -14,14 +14,14 @@ function cleanup()
 	out=$?
 	docker rmi test/scratchimage
 	cleanup_openshift
-	echo "[INFO] Exiting"
+	os::log::info "Exiting"
 	return "${out}"
 }
 
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
-echo "[INFO] Starting server"
+os::log::info "Starting server"
 
 os::util::environment::use_sudo
 os::util::environment::setup_all_server_vars "test-extended/cmd/"
@@ -44,7 +44,7 @@ docker_registry="$( oc get service/docker-registry -n default -o jsonpath='{.spe
 os::test::junit::declare_suite_start "extended/cmd"
 
 os::test::junit::declare_suite_start "extended/cmd/new-app"
-echo "[INFO] Running newapp extended tests"
+os::log::info "Running newapp extended tests"
 oc login "${MASTER_ADDR}" -u new-app -p password --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt"
 oc new-project new-app
 oc delete all --all
@@ -73,11 +73,11 @@ VERBOSE=true os::cmd::expect_success "oc project new-app"
 os::cmd::expect_failure_and_text "oc new-app test/scratchimage2 -o yaml" "partial match"
 # success with exact match
 os::cmd::expect_success "oc new-app test/scratchimage"
-echo "[INFO] newapp: ok"
+os::log::info "newapp: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "extended/cmd/variable-expansion"
-echo "[INFO] Running env variable expansion tests"
+os::log::info "Running env variable expansion tests"
 VERBOSE=true os::cmd::expect_success "oc new-project envtest"
 os::cmd::expect_success "oc create -f test/extended/testdata/test-env-pod.json"
 os::cmd::try_until_text "oc get pods" "Running"
@@ -86,11 +86,11 @@ os::cmd::expect_success_and_text "oc exec test-pod env" "podname_composed=test-p
 os::cmd::expect_success_and_text "oc exec test-pod env" "var1=value1"
 os::cmd::expect_success_and_text "oc exec test-pod env" "var2=value1"
 os::cmd::expect_success_and_text "oc exec test-pod ps ax" "sleep 120"
-echo "[INFO] variable-expansion: ok"
+os::log::info "variable-expansion: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "extended/cmd/image-pull-secrets"
-echo "[INFO] Running image pull secrets tests"
+os::log::info "Running image pull secrets tests"
 VERBOSE=true os::cmd::expect_success "oc login '${MASTER_ADDR}' -u pull-secrets-user -p password --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt'"
 
 # create a new project and push a busybox image in there

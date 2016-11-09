@@ -269,6 +269,29 @@ else
 fi
 TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
+# enable-selinux/disable-selinux use the shared control variable
+# SELINUX_DISABLED to determine whether to re-enable selinux after it
+# has been disabled.  The goal is to allow temporary disablement of
+# selinux enforcement while avoiding enabling enforcement in an
+# environment where it is not already enabled.
+SELINUX_DISABLED=0
+
+function enable-selinux() {
+  if [ "${SELINUX_DISABLED}" = "1" ]; then
+    os::log::info "Re-enabling selinux enforcement"
+    sudo setenforce 1
+    SELINUX_DISABLED=0
+  fi
+}
+
+function disable-selinux() {
+  if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
+    os::log::info "Temporarily disabling selinux enforcement"
+    sudo setenforce 0
+    SELINUX_DISABLED=1
+  fi
+}
+
 os::log::info "Starting 'networking' extended tests"
 if [[ -n "${CONFIG_ROOT}" ]]; then
   KUBECONFIG="$(get-kubeconfig-from-root "${CONFIG_ROOT}")"
