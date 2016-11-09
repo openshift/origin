@@ -4051,6 +4051,26 @@
 			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/storage",
+			"Comment": "v1.4.0-57-g776c994",
+			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/storage/install",
+			"Comment": "v1.4.0-57-g776c994",
+			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/storage/v1beta1",
+			"Comment": "v1.4.0-57-g776c994",
+			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/apis/storage/validation",
+			"Comment": "v1.4.0-57-g776c994",
+			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/apiserver",
 			"Comment": "v1.4.0-57-g776c994",
 			"Rev": "776c994514145ec6bea3ea2b8805b3c705703dff"
