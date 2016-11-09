@@ -18,5 +18,5 @@ os::test::extended::setup
 os::test::extended::focus "$@"
 
 
-echo "[INFO] Running compatibility tests"
+os::log::info "Running compatibility tests"
 FOCUS="\[Compatibility\]" SKIP="${SKIP_TESTS:-}" TEST_REPORT_FILE_NAME=compatibility os::test::extended::run -- -ginkgo.v -test.timeout 2h

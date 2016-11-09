@@ -173,6 +173,12 @@ func New(config *api.Config, overrides build.Overrides) (*STI, error) {
 func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 	builder.result = &api.Result{}
 
+	if len(builder.config.CallbackURL) > 0 {
+		defer func() {
+			builder.result.Messages = builder.callbackInvoker.ExecuteCallback(builder.config.CallbackURL,
+				builder.result.Success, builder.postExecutorStepsContext.labels, builder.result.Messages)
+		}()
+	}
 	defer builder.garbage.Cleanup(config)
 
 	glog.V(1).Infof("Preparing to build %s", config.Tag)
@@ -202,12 +208,11 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
 	}
 	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
-		builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonAssembleFailed, utilstatus.ReasonMessageAssembleFailed)
 
 		switch e := err.(type) {
 		case errors.ContainerError:
 			if !isMissingRequirements(e.Output) {
-				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonUnmetS2IDependencies, utilstatus.ReasonMessageUnmetS2IDependencies)
+				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonAssembleFailed, utilstatus.ReasonMessageAssembleFailed)
 				return builder.result, err
 			}
 			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
@@ -635,12 +640,14 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		errReader.Close()
 		return errors.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
 	}
-	// Do not wait for source input if the container times out.
+	// Do not wait for source input if there was an error running the container
 	// FIXME: this potentially leaks a goroutine.
-	if !util.IsTimeoutError(err) {
-		wg.Wait()
+	if err != nil {
+		return err
 	}
-	return err
+
+	wg.Wait()
+	return nil
 }
 
 func (builder *STI) initPostExecutorSteps() {
@@ -662,10 +669,6 @@ func (builder *STI) initPostExecutorSteps() {
 			&removePreviousImageStep{
 				builder: builder,
 				docker:  builder.docker,
-			},
-			&invokeCallbackStep{
-				builder:         builder,
-				callbackInvoker: builder.callbackInvoker,
 			},
 		}
 	} else {
@@ -690,10 +693,6 @@ func (builder *STI) initPostExecutorSteps() {
 			},
 			&reportSuccessStep{
 				builder: builder,
-			},
-			&invokeCallbackStep{
-				builder:         builder,
-				callbackInvoker: builder.callbackInvoker,
 			},
 		}
 	}

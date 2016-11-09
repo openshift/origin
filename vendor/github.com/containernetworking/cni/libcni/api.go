@@ -19,6 +19,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/version"
 )
 
 type RuntimeConf struct {
@@ -42,6 +43,7 @@ type CNIConfig struct {
 	Path []string
 }
 
+// AddNetwork executes the plugin with the ADD command
 func (c *CNIConfig) AddNetwork(net *NetworkConfig, rt *RuntimeConf) (*types.Result, error) {
 	pluginPath, err := invoke.FindInPath(net.Network.Type, c.Path)
 	if err != nil {
@@ -51,6 +53,7 @@ func (c *CNIConfig) AddNetwork(net *NetworkConfig, rt *RuntimeConf) (*types.Resu
 	return invoke.ExecPluginWithResult(pluginPath, net.Bytes, c.args("ADD", rt))
 }
 
+// DelNetwork executes the plugin with the DEL command
 func (c *CNIConfig) DelNetwork(net *NetworkConfig, rt *RuntimeConf) error {
 	pluginPath, err := invoke.FindInPath(net.Network.Type, c.Path)
 	if err != nil {
@@ -58,6 +61,17 @@ func (c *CNIConfig) DelNetwork(net *NetworkConfig, rt *RuntimeConf) error {
 	}
 
 	return invoke.ExecPluginWithoutResult(pluginPath, net.Bytes, c.args("DEL", rt))
+}
+
+// GetVersionInfo reports which versions of the CNI spec are supported by
+// the given plugin.
+func (c *CNIConfig) GetVersionInfo(pluginType string) (version.PluginInfo, error) {
+	pluginPath, err := invoke.FindInPath(pluginType, c.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return invoke.GetVersionInfo(pluginPath)
 }
 
 // =====

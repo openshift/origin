@@ -208,15 +208,12 @@ os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/openshift/ruby
 os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/openshift/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
 # do not allow specifying output image when specifying multiple input repos
 os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
-# but succeed with multiple intput repos and no output image specified
+# but succeed with multiple input repos and no output image specified
 os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex -o yaml'
-
 # check that binary build with a builder image results in a source type build
 os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
-
 # check that binary build with a specific strategy uses that strategy regardless of the image type
 os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=docker -o yaml' 'type: Docker'
-
 os::cmd::expect_success 'oc delete imageStreams --all'
 
 # check that we can create from the template without errors
@@ -254,6 +251,13 @@ os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify 
 os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml --to mysql:bin' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --strategy=docker -o yaml' 'type: Docker'
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
+# binary builds cannot be created unless a builder image is specified.
+os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-22-centos7 --binary --strategy=source -o yaml' 'name: ruby-22-centos7:latest'
+# binary builds can be created with no builder image if no strategy or docker strategy is specified
+os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
+
 # new-build image source tests
 os::cmd::expect_failure_and_text 'oc new-build mysql --source-image centos' 'error: --source-image-path must be specified when --source-image is specified.'
 os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'error: --source-image must be specified when --source-image-path is specified.'

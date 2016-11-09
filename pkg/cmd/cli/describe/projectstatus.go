@@ -97,6 +97,13 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 				}
 				continue
 			}
+			if kapierrors.IsNotFound(err) {
+				notfoundErr := err.(*kapierrors.StatusError)
+				if (notfoundErr.Status().Details != nil) && (len(notfoundErr.Status().Details.Kind) > 0) {
+					forbiddenResources.Insert(notfoundErr.Status().Details.Kind)
+				}
+				continue
+			}
 			actualErrors = append(actualErrors, err)
 		}
 
@@ -142,7 +149,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	if !allNamespaces {
 		p, err := d.C.Projects().Get(namespace)
 		if err != nil {
-			return "", err
+			if !kapierrors.IsNotFound(err) {
+				return "", err
+			}
+			p = &projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}
 		}
 		project = p
 		f = namespacedFormatter{currentNamespace: namespace}

@@ -12,14 +12,14 @@ function cleanup()
 {
 	out=$?
 	cleanup_openshift
-	echo "[INFO] Exiting"
+	os::log::info "Exiting"
 	return $out
 }
 
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
-echo "[INFO] Starting server"
+os::log::info "Starting server"
 
 ensure_iptables_or_die
 os::util::environment::use_sudo
@@ -94,13 +94,13 @@ function compare_and_cleanup() {
 
 oc login -u system:admin -n default
 
-echo "[INFO] Running extended tests"
+os::log::info "Running extended tests"
 
 schema=('rfc2307' 'ad' 'augmented-ad')
 
 for (( i=0; i<${#schema[@]}; i++ )); do
 	current_schema=${schema[$i]}
-	echo "[INFO] Testing schema: ${current_schema}"
+	os::log::info "Testing schema: ${current_schema}"
 
 	WORKINGDIR=${BASETMPDIR}/${current_schema}
 	mkdir ${WORKINGDIR}

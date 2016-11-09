@@ -34,16 +34,19 @@ func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, labe
 	}
 	writer.Flush()
 
-	d := map[string]interface{}{
-		"labels":  labels,
+	data := map[string]interface{}{
 		"payload": buf.String(),
 		"success": success,
+	}
+
+	if len(labels) > 0 {
+		data["labels"] = labels
 	}
 
 	jsonBuffer := new(bytes.Buffer)
 	writer = bufio.NewWriter(jsonBuffer)
 	jsonWriter := json.NewEncoder(writer)
-	jsonWriter.Encode(d)
+	jsonWriter.Encode(data)
 	writer.Flush()
 
 	var (

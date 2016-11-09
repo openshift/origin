@@ -10,30 +10,30 @@ trap os::test::junit::reconcile_output EXIT
 export VERBOSE=true
 
 function wait_for_app() {
-  echo "[INFO] Waiting for app in namespace $1"
-  echo "[INFO] Waiting for database pod to start"
+  os::log::info "Waiting for app in namespace $1"
+  os::log::info "Waiting for database pod to start"
   os::cmd::try_until_text "oc get -n $1 pods -l name=database" 'Running'
   os::cmd::expect_success "oc logs dc/database -n $1"
 
-  echo "[INFO] Waiting for database service to start"
+  os::log::info "Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
   DB_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.clusterIP }}" service database)
 
-  echo "[INFO] Waiting for frontend pod to start"
+  os::log::info "Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods -l name=frontend" 'Running' "$(( 2 * TIME_MIN ))"
   os::cmd::expect_success "oc logs dc/frontend -n $1"
 
-  echo "[INFO] Waiting for frontend service to start"
+  os::log::info "Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
   FRONTEND_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.clusterIP }}" service frontend)
 
-  echo "[INFO] Waiting for database to start..."
+  os::log::info "Waiting for database to start..."
   os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DB_IP}:5434'" "$((3*TIME_MIN))"
 
-  echo "[INFO] Waiting for app to start..."
+  os::log::info "Waiting for app to start..."
   os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${FRONTEND_IP}:5432'" "$((2*TIME_MIN))"
 
-  echo "[INFO] Testing app"
+  os::log::info "Testing app"
   os::cmd::try_until_text "curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337" "Key created"
   os::cmd::try_until_text "curl -s http://${FRONTEND_IP}:5432/keys/foo" "1337"
 }
@@ -48,8 +48,8 @@ function remove_docker_images() {
 
 os::test::junit::declare_suite_start "end-to-end/core"
 
-echo "[INFO] openshift version: `openshift version`"
-echo "[INFO] oc version:        `oc version`"
+os::log::info "openshift version: `openshift version`"
+os::log::info "oc version:        `oc version`"
 
 # service dns entry is visible via master service
 # find the IP of the master service by asking the API_HOST to verify DNS is running there
@@ -74,17 +74,17 @@ os::cmd::expect_success "openshift admin new-project cache --description='This i
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
-echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
+os::log::info "Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
-echo "[INFO] Pulled ruby-22-centos7"
+os::log::info "Pulled ruby-22-centos7"
 
 os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
 os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
-echo "[INFO] Waiting for Docker registry pod to start"
+os::log::info "Waiting for Docker registry pod to start"
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
-echo "[INFO] Waiting for IP failover to deploy"
+os::log::info "Waiting for IP failover to deploy"
 os::cmd::expect_success 'oc rollout status dc/ipfailover'
 os::cmd::expect_success "oc delete all -l ipfailover=ipfailover"
 
@@ -99,7 +99,7 @@ DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{
 
 os::cmd::expect_success_and_text "dig @${API_HOST} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
-echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
+os::log::info "Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_REGISTRY}/'" "$((2*TIME_MIN))"
 # ensure original healthz route works as well
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
@@ -108,7 +108,7 @@ os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
-echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
+os::log::info "Logging in as a regular user (e2e-user:pass) with project 'test'..."
 os::cmd::expect_success 'oc login -u e2e-user -p pass'
 os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
 
@@ -127,31 +127,31 @@ os::cmd::expect_success 'oc status -n default'
 os::cmd::expect_success 'oc project cache'
 e2e_user_token="$(oc whoami -t)"
 
-echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
+os::log::info "Docker login as e2e-user to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
-echo "[INFO] Docker login successful"
+os::log::info "Docker login successful"
 
-echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
+os::log::info "Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 os::cmd::expect_success "docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-echo "[INFO] Pushed ruby-22-centos7"
+os::log::info "Pushed ruby-22-centos7"
 
 # get image's digest
 rubyimagedigest="$(oc get -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].image}' is/ruby-22-centos7)"
-echo "[INFO] Ruby image digest: $rubyimagedigest"
+os::log::info "Ruby image digest: $rubyimagedigest"
 # get a random, non-empty blob
 rubyimageblob="$(oc get isimage -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 1024.}}{{.name}},{{end}}{{end}}' "ruby-22-centos7@${rubyimagedigest}" | cut -d , -f 1)"
-echo "[INFO] Ruby's testing blob digest: $rubyimageblob"
+os::log::info "Ruby's testing blob digest: $rubyimageblob"
 
 # verify remote images can be pulled directly from the local registry
-echo "[INFO] Docker pullthrough"
+os::log::info "Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
-echo "[INFO] Docker registry start with GCS"
+os::log::info "Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
-echo "[INFO] Docker pull from istag"
+os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
 os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
@@ -159,48 +159,48 @@ os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest
 
 # verify we can pull from tagged image (using tag)
 remove_docker_images 'cache/hello-world'
-echo "[INFO] Tagging hello-world:latest to the same image stream and pulling it"
+os::log::info "Tagging hello-world:latest to the same image stream and pulling it"
 os::cmd::expect_success "oc tag hello-world:latest hello-world:new-tag"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
-echo "[INFO] The same image stream pull successful"
+os::log::info "The same image stream pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-tag
-echo "[INFO] Tagging hello-world:latest to cross repository and pulling it"
+os::log::info "Tagging hello-world:latest to cross repository and pulling it"
 os::cmd::expect_success "oc tag hello-world:latest cross:repo-pull"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
-echo "[INFO] Cross repository pull successful"
+os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross" "repo-pull"
-echo "[INFO] Tagging hello-world:latest to cross namespace and pulling it"
+os::log::info "Tagging hello-world:latest to cross namespace and pulling it"
 os::cmd::expect_success "oc tag cache/hello-world:latest cross:namespace-pull -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
-echo "[INFO] Cross namespace pull successful"
+os::log::info "Cross namespace pull successful"
 
 # verify we can pull from tagged image (using image digest)
 remove_docker_images "${DOCKER_REGISTRY}/custom/cross"  namespace-pull
 imagedigest="$(oc get istag hello-world:latest --template='{{.image.metadata.name}}')"
-echo "[INFO] Tagging hello-world@${imagedigest} to the same image stream and pulling it"
+os::log::info "Tagging hello-world@${imagedigest} to the same image stream and pulling it"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} hello-world:new-id-tag"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
-echo "[INFO] The same image stream pull successful"
+os::log::info "The same image stream pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-id-tag
-echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it"
+os::log::info "Tagging hello-world@${imagedigest} to cross repository and pulling it"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
-echo "[INFO] Cross repository pull successful"
+os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross" repo-pull-id
-echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
+os::log::info "Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
-echo "[INFO] Cross repository pull successful"
+os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross"
-echo "[INFO] Tagging hello-world@${imagedigest} to cross namespace and pulling it"
+os::log::info "Tagging hello-world@${imagedigest} to cross namespace and pulling it"
 os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace-pull-id -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
-echo "[INFO] Cross namespace pull successful"
+os::log::info "Cross namespace pull successful"
 
 os::cmd::expect_success 'oc login -u schema2-user -p pass'
 os::cmd::expect_success "oc new-project schema2"
@@ -213,7 +213,7 @@ os::cmd::expect_failure_and_text "oc get --server='https://${KUBELET_HOST}:${KUB
 os::test::junit::declare_suite_end
 
 
-echo "[INFO] Fetch manifest V2 schema 2 image with old client using pullthrough"
+os::log::info "Fetch manifest V2 schema 2 image with old client using pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest hello-world:pullthrough"
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag hello-world:pullthrough" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
 hello_world_name="$(oc get -o 'jsonpath={.image.metadata.name}' istag hello-world:pullthrough)"
@@ -232,9 +232,9 @@ os::cmd::expect_success_and_text "jq -r '.schemaVersion' ${ARTIFACT_DIR}/hello-w
 os::cmd::expect_success_and_not_text "echo '${hello_world_schema1_digest}'" "${hello_world_name}"
 os::cmd::expect_success_and_text "echo '${hello_world_schema1_digest}'" ".+"
 os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' '${DOCKER_REGISTRY}/v2/schema2/hello-world/manifests/${hello_world_schema1_digest}'" "404 Not Found"
-echo "[INFO] Manifest V2 schema 2 image fetched successfully with old client"
+os::log::info "Manifest V2 schema 2 image fetched successfully with old client"
 
-echo "[INFO] Back to 'default' project with 'admin' user..."
+os::log::info "Back to 'default' project with 'admin' user..."
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success_and_text 'oc whoami' 'system:admin'
 
@@ -243,11 +243,11 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher -n cache
 os::cmd::expect_success 'oc login -u pusher -p pass'
 pusher_token="$(oc whoami -t)"
 
-echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
+os::log::info "Docker login as pusher to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
-echo "[INFO] Docker login successful"
+os::log::info "Docker login successful"
 
-echo "[INFO] Anonymous registry access"
+os::log::info "Anonymous registry access"
 # setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
 os::cmd::expect_success 'oc login -u e2e-user'
 os::cmd::expect_success 'docker pull busybox'
@@ -271,7 +271,7 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:a
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
-echo "[INFO] Anonymous registry access successfull"
+os::log::info "Anonymous registry access successfull"
 
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
@@ -279,14 +279,14 @@ os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-us
 os::cmd::expect_success "oc new-project crossmount"
 os::cmd::expect_success "oc create imagestream repo"
 
-echo "[INFO] Back to 'default' project with 'admin' user..."
+os::log::info "Back to 'default' project with 'admin' user..."
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success_and_text 'oc whoami' 'system:admin'
 os::cmd::expect_success "oc tag --source docker centos/ruby-22-centos7:latest -n custom ruby-22-centos7:latest"
 os::cmd::expect_success 'oc policy add-role-to-user registry-viewer pusher -n custom'
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher -n crossmount'
 
-echo "[INFO] Docker cross-repo mount"
+os::log::info "Docker cross-repo mount"
 os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/cache/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
 os::cmd::try_until_text "oc get -n custom is/ruby-22-centos7 -o 'jsonpath={.status.tags[*].tag}'" "latest" $((20*TIME_SEC))
 os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/custom/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
@@ -303,15 +303,15 @@ os::cmd::expect_success "oc policy remove-role-from-user system:image-pusher pus
 os::cmd::try_until_text "oc policy can-i get imagestreams/layers -n cache '--token=${pusher_token}'" "no"
 # cross-repo mount failed because of access denied
 os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "202 Accepted"
-echo "[INFO] Docker cross-repo mount successful"
+os::log::info "Docker cross-repo mount successful"
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.
-echo "[INFO] Waiting for dockercfg secrets to be generated in project 'test' before building"
+os::log::info "Waiting for dockercfg secrets to be generated in project 'test' before building"
 os::cmd::try_until_text 'oc get -n test serviceaccount/builder -o yaml' 'dockercfg'
 
 # Process template and create
-echo "[INFO] Submitting application template json for processing..."
+os::log::info "Submitting application template json for processing..."
 STI_CONFIG_FILE="${ARTIFACT_DIR}/stiAppConfig.json"
 DOCKER_CONFIG_FILE="${ARTIFACT_DIR}/dockerAppConfig.json"
 CUSTOM_CONFIG_FILE="${ARTIFACT_DIR}/customAppConfig.json"
@@ -319,12 +319,12 @@ os::cmd::expect_success "oc process -n test -f examples/sample-app/application-t
 os::cmd::expect_success "oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > '${DOCKER_CONFIG_FILE}'"
 os::cmd::expect_success "oc process -n custom -f examples/sample-app/application-template-custombuild.json > '${CUSTOM_CONFIG_FILE}'"
 
-echo "[INFO] Back to 'test' context with 'e2e-user' user"
+os::log::info "Back to 'test' context with 'e2e-user' user"
 os::cmd::expect_success 'oc login -u e2e-user'
 os::cmd::expect_success 'oc project test'
 os::cmd::expect_success 'oc whoami'
 
-echo "[INFO] Running a CLI command in a container using the service account"
+os::log::info "Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
 oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
 # TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
@@ -345,7 +345,7 @@ oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=N
 os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'kubectl-with-token'
 
-echo "[INFO] Testing deployment logs and failing pre and mid hooks ..."
+os::log::info "Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
 os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml"
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
@@ -376,14 +376,14 @@ os::cmd::expect_success "oc patch dc/failing-dc-mid -p '{\"status\":{\"latestVer
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc-mid' 'test mid hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test mid hook executed'
 
-echo "[INFO] Run pod diagnostics"
+os::log::info "Run pod diagnostics"
 # Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
 # TODO: Find out why this would flake expecting PodCheckDns to run
 # https://github.com/openshift/origin/issues/9888
 #os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
 os::cmd::expect_success_and_not_text "oadm diagnostics DiagnosticPod --images='${USE_IMAGES}'" ERROR
 
-echo "[INFO] Applying STI application config"
+os::log::info "Applying STI application config"
 os::cmd::expect_success "oc create -f ${STI_CONFIG_FILE}"
 
 # Wait for build which should have triggered automatically
@@ -408,11 +408,11 @@ os::cmd::expect_success 'oc logs buildconfigs/ruby-sample-build --loglevel=6'
 os::cmd::expect_success 'oc logs buildconfig/ruby-sample-build --loglevel=6'
 echo "logs: ok"
 
-echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
+os::log::info "Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
 os::cmd::expect_failure 'oc start-build test --commit=fffffff --wait'
 
 # Remote command execution
-echo "[INFO] Validating exec"
+os::log::info "Validating exec"
 frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .items 0).metadata.name}}')
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
@@ -426,53 +426,53 @@ os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production
 os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
 
 # Port forwarding
-echo "[INFO] Validating port-forward"
+os::log::info "Validating port-forward"
 os::cmd::expect_success "oc port-forward -p ${frontend_pod} 10080:8080  &> '${LOG_DIR}/port-forward.log' &"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://localhost:10080'" "$((10*TIME_SEC))"
 
 # Rsync
-echo "[INFO] Validating rsync"
+os::log::info "Validating rsync"
 os::cmd::expect_success "oc rsync examples/sample-app ${frontend_pod}:/tmp"
 os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'application-template-stibuild'
 
-#echo "[INFO] Applying Docker application config"
+#os::log::info "Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
-#echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
+#os::log::info "Invoking generic web hook to trigger new docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
 # os::cmd::expect_success "oc build-logs --namespace docker '${BUILD_ID}' > '${LOG_DIR}/docker-build.log'"
 #wait_for_app "docker"
 
-#echo "[INFO] Applying Custom application config"
+#os::log::info "Applying Custom application config"
 #oc create -n custom -f "${CUSTOM_CONFIG_FILE}"
-#echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
+#os::log::info "Invoking generic web hook to trigger new custom build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace custom -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace custom -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
 # os::cmd::expect_success "oc build-logs --namespace custom '${BUILD_ID}' > '${LOG_DIR}/custom-build.log'"
 #wait_for_app "custom"
 
-echo "[INFO] Back to 'default' project with 'admin' user..."
+os::log::info "Back to 'default' project with 'admin' user..."
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
 os::cmd::try_until_text "oc get endpoints router --output-version=v1 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
-echo "[INFO] Waiting for router to start..."
+os::log::info "Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent '${healthz_uri}'" "$((5*TIME_MIN))"
 
 # Check for privileged exec limitations.
-echo "[INFO] Validating privileged pod exec"
+os::log::info "Validating privileged pod exec"
 os::cmd::expect_success 'oc policy add-role-to-user admin e2e-default-admin'
 # system:admin should be able to exec into it
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success "oc exec -n default -tip ${router_pod} ls"
 
 
-echo "[INFO] Validating routed app response..."
+os::log::info "Validating routed app response..."
 # 172.17.42.1 is no longer the default ip of the docker bridge as of
 # docker 1.9.  Since the router is using hostNetwork=true, the router
 # will be reachable via the ip of its pod.
@@ -488,7 +488,7 @@ os::cmd::expect_success "oc create route edge --service=frontend --cert=${MASTER
 os::cmd::try_until_text "curl -s -k --resolve 'www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST}' https://www.example.com" "Hello from OpenShift" "$((10*TIME_SEC))"
 
 # Pod node selection
-echo "[INFO] Validating pod.spec.nodeSelector rejections"
+os::log::info "Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 os::cmd::expect_success "openshift admin new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
 os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='$(oc get node -o jsonpath='{.items[0].metadata.name}')' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
@@ -499,7 +499,7 @@ os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+Ma
 
 
 # Image pruning
-echo "[INFO] Validating image pruning"
+os::log::info "Validating image pruning"
 # builder service account should have the power to create new image streams: prune in this case
 os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
 os::cmd::expect_success 'docker pull busybox'
@@ -536,16 +536,16 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 
 # make sure there were changes to the registry's storage
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 1
-echo "[INFO] Validated image pruning"
+os::log::info "Validated image pruning"
 
 # with registry's re-deployment we loose all the blobs stored in its storage until now
-echo "[INFO] Configure registry to accept manifest V2 schema 2"
+os::log::info "Configure registry to accept manifest V2 schema 2"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
 os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
-echo "[INFO] Registry configured to accept manifest V2 schema 2"
+os::log::info "Registry configured to accept manifest V2 schema 2"
 
-echo "[INFO] Accept manifest V2 schema 2"
+os::log::info "Accept manifest V2 schema 2"
 os::cmd::expect_success "oc login -u schema2-user -p pass"
 os::cmd::expect_success "oc project schema2"
 # tagging remote docker.io/busybox image
@@ -554,9 +554,9 @@ os::cmd::expect_success "docker login -u e2e-user -p '${schema2_user_token}' -e 
 os::cmd::expect_success "docker push '${DOCKER_REGISTRY}/schema2/busybox'"
 # image accepted as schema 2
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag busybox:latest" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
-echo "[INFO] Manifest V2 schema 2 successfully accepted"
+os::log::info "Manifest V2 schema 2 successfully accepted"
 
-echo "[INFO] Convert manifest V2 schema 2 to schema 1 for older client"
+os::log::info "Convert manifest V2 schema 2 to schema 1 for older client"
 os::cmd::expect_success 'oc login -u schema2-user -p pass'
 os::cmd::expect_success "oc new-project schema2tagged"
 os::cmd::expect_success "oc tag --source=istag schema2/busybox:latest busybox:latest"
@@ -572,14 +572,14 @@ os::cmd::expect_success_and_text "echo '${busybox_schema1_digest}'" ".+"
 os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' '${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/${busybox_schema1_digest}'" "404 Not Found"
 # ensure we can fetch it back as schema 2
 os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' '${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/latest'" "Docker-Content-Digest:\s*${busybox_name}"
-echo "[INFO] Manifest V2 schema 2 successfully converted to schema 1"
+os::log::info "Manifest V2 schema 2 successfully converted to schema 1"
 
-echo "[INFO] Verify image size calculation"
+os::log::info "Verify image size calculation"
 busybox_expected_size="$(oc get -o 'jsonpath={.dockerImageManifest}' image "${busybox_name}" --context="${CLUSTER_ADMIN_CONTEXT}" | jq -r '[.. | .size?] | add')"
 busybox_calculated_size="$(oc get -o go-template='{{.dockerImageMetadata.Size}}' image "${busybox_name}" --context="${CLUSTER_ADMIN_CONTEXT}")"
 os::cmd::expect_success_and_text "echo '${busybox_expected_size}:${busybox_calculated_size}'" '^[1-9][0-9]*:[1-9][0-9]*$'
 os::cmd::expect_success_and_text "echo '${busybox_expected_size}'" "${busybox_calculated_size}"
-echo "[INFO] Image size matches"
+os::log::info "Image size matches"
 
 os::test::junit::declare_suite_end
 unset VERBOSE

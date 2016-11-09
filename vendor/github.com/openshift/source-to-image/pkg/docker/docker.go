@@ -144,7 +144,7 @@ type stiDocker struct {
 func (d stiDocker) InspectImage(name string) (*dockertypes.ImageInspect, error) {
 	ctx, cancel := getDefaultContext()
 	defer cancel()
-	resp, _, err := d.client.ImageInspectWithRaw(ctx, name, true)
+	resp, _, err := d.client.ImageInspectWithRaw(ctx, name, false)
 	if err != nil {
 		return nil, err
 	}
@@ -274,17 +274,25 @@ type BuildImageOptions struct {
 	CGroupLimits *api.CGroupLimits
 }
 
-// New creates a new implementation of the STI Docker interface
-func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
+// NewEngineAPIClient creates a new Docker engine API client
+func NewEngineAPIClient(config *api.DockerConfig) (*dockerapi.Client, error) {
 	var httpClient *http.Client
 
-	if config.CertFile != "" && config.KeyFile != "" && config.CAFile != "" {
+	if config.UseTLS || config.TLSVerify {
 		tlscOptions := tlsconfig.Options{
-			CAFile:             config.CAFile,
-			CertFile:           config.CertFile,
-			KeyFile:            config.KeyFile,
-			InsecureSkipVerify: os.Getenv("DOCKER_TLS_VERIFY") == "",
+			InsecureSkipVerify: !config.TLSVerify,
 		}
+
+		if _, err := os.Stat(config.CAFile); !os.IsNotExist(err) {
+			tlscOptions.CAFile = config.CAFile
+		}
+		if _, err := os.Stat(config.CertFile); !os.IsNotExist(err) {
+			tlscOptions.CertFile = config.CertFile
+		}
+		if _, err := os.Stat(config.KeyFile); !os.IsNotExist(err) {
+			tlscOptions.KeyFile = config.KeyFile
+		}
+
 		tlsc, err := tlsconfig.Client(tlscOptions)
 		if err != nil {
 			return nil, err
@@ -296,8 +304,12 @@ func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
 			},
 		}
 	}
+	return dockerapi.NewClient(config.Endpoint, os.Getenv("DOCKER_API_VERSION"), httpClient, nil)
+}
 
-	client, err := dockerapi.NewClient(config.Endpoint, os.Getenv("DOCKER_API_VERSION"), httpClient, nil)
+// New creates a new implementation of the STI Docker interface
+func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
+	client, err := NewEngineAPIClient(config)
 	if err != nil {
 		return nil, err
 	}

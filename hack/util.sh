@@ -52,7 +52,7 @@ function dump_container_logs() {
 
 	mkdir -p ${LOG_DIR}
 
-	echo "[INFO] Dumping container logs to ${LOG_DIR}"
+	os::log::info "Dumping container logs to ${LOG_DIR}"
 	for container in $(docker ps -aq); do
 		container_name=$(docker inspect -f "{{.Name}}" $container)
 		# strip off leading /
@@ -114,17 +114,17 @@ function cleanup_openshift() {
 	os::cleanup::dump_etcd
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Tearing down test"
+		os::log::info "Tearing down test"
 		kill_all_processes
 
 		if docker version >/dev/null 2>&1; then
-			echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
+			os::log::info "Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
 			if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-				echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm -v >/dev/null
+				os::log::info "Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm -v >/dev/null
 			fi
 		fi
 
-		echo "[INFO] Pruning etcd data directory..."
+		os::log::info "Pruning etcd data directory..."
 		local sudo="${USE_SUDO:+sudo}"
 		${sudo} rm -rf "${ETCD_DATA_DIR}"
 
@@ -139,18 +139,18 @@ function cleanup_openshift() {
 	delete_empty_logs
 	truncate_large_logs
 
-	echo "[INFO] Cleanup complete"
+	os::log::info "Cleanup complete"
 	set -e
 }
 readonly -f cleanup_openshift
 
 # install the router for the extended tests
 function install_router() {
-	echo "[INFO] Installing the router"
+	os::log::info "Installing the router"
 	oadm policy add-scc-to-user privileged -z router --config="${ADMIN_KUBECONFIG}"
 	# Create a TLS certificate for the router
 	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
-		echo "[INFO] Generating router TLS certificate"
+		os::log::info "Generating router TLS certificate"
 		oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
 			--signer-key=${MASTER_CONFIG_DIR}/ca.key \
 			--signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
@@ -165,7 +165,7 @@ function install_router() {
 	# Set the SYN eater to make router reloads more robust
 	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
 		# Rewrite the DC for the router to add the environment variable into the pod definition
-		echo "[INFO] Changing the router DC to drop SYN packets during a reload"
+		os::log::info "Changing the router DC to drop SYN packets during a reload"
 		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
 	fi
 }
@@ -174,7 +174,7 @@ readonly -f install_router
 # install registry for the extended tests
 function install_registry() {
 	# The --mount-host option is provided to reuse local storage.
-	echo "[INFO] Installing the registry"
+	os::log::info "Installing the registry"
 	# For testing purposes, ensure the quota objects are always up to date in the registry by
 	# disabling project cache.
 	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
@@ -182,31 +182,6 @@ function install_registry() {
 		oc create -f -
 }
 readonly -f install_registry
-
-# enable-selinux/disable-selinux use the shared control variable
-# SELINUX_DISABLED to determine whether to re-enable selinux after it
-# has been disabled.  The goal is to allow temporary disablement of
-# selinux enforcement while avoiding enabling enforcement in an
-# environment where it is not already enabled.
-SELINUX_DISABLED=0
-
-function enable-selinux() {
-	if [ "${SELINUX_DISABLED}" = "1" ]; then
-		os::log::info "Re-enabling selinux enforcement"
-		sudo setenforce 1
-		SELINUX_DISABLED=0
-	fi
-}
-readonly -f enable-selinux
-
-function disable-selinux() {
-	if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
-		os::log::info "Temporarily disabling selinux enforcement"
-		sudo setenforce 0
-		SELINUX_DISABLED=1
-	fi
-}
-readonly -f disable-selinux
 
 ######
 # end of common functions for extended test group's run.sh scripts

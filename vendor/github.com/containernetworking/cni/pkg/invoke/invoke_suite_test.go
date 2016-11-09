@@ -17,6 +17,7 @@ package invoke_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 
 	"testing"
 )
@@ -25,3 +26,20 @@ func TestInvoke(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Invoke Suite")
 }
+
+const packagePath = "github.com/containernetworking/cni/plugins/test/noop"
+
+var pathToPlugin string
+
+var _ = SynchronizedBeforeSuite(func() []byte {
+	var err error
+	pathToPlugin, err = gexec.Build(packagePath)
+	Expect(err).NotTo(HaveOccurred())
+	return []byte(pathToPlugin)
+}, func(crossNodeData []byte) {
+	pathToPlugin = string(crossNodeData)
+})
+
+var _ = SynchronizedAfterSuite(func() {}, func() {
+	gexec.CleanupBuildArtifacts()
+})

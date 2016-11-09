@@ -11,7 +11,7 @@ function cleanup()
 {
 	out=$?
     kill $OS_PID
-	echo "[INFO] Exiting"
+	os::log::info "Exiting"
 	exit $out
 }
 
@@ -19,15 +19,15 @@ trap "exit" INT TERM
 trap "cleanup" EXIT
 
 
-echo "[INFO] Starting server as distinct processes"
-echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+os::log::info "Starting server as distinct processes"
+os::log::info "`openshift version`"
+os::log::info "Server logs will be at:    ${LOG_DIR}/openshift.log"
+os::log::info "Test artifacts will be in: ${ARTIFACT_DIR}"
+os::log::info "Config dir is:             ${SERVER_CONFIG_DIR}"
 
 mkdir -p ${LOG_DIR}
 
-echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
+os::log::info "Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 ps -ef | grep openshift
 
 mkdir -p "${SERVER_CONFIG_DIR}"
