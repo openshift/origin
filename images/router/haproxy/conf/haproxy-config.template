@@ -673,7 +673,7 @@ backend be_secure_{{$cfgIdx}}
 {{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) }}
 {{         $cert := index $cfg.Certificates $cfg.Host }}
 {{         if ne $cert.Contents "" }}
-{{$workingDir}}/certs/{{$idx}}.pem {{$cfg.Host}}
+{{$workingDir}}/certs/{{$idx}}.pem {{genCertificateHostName $cfg.Host $cfg.IsWildcard}}
 {{         end }}
 {{      end }}
 {{     end }}
