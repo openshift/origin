@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/test/util"
 )
 
 func skipExternalGit(t *testing.T) {
@@ -1827,7 +1828,7 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		url := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
+		url, tempRepoDir := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
 
 		sourceRepo, err := app.NewSourceRepository(url, generate.StrategySource)
 		if err != nil {
@@ -1852,6 +1853,7 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 		if test.expectAuthRequired != sourceRef.RequiresAuth {
 			t.Errorf("%s: unexpected auth required result. Expected: %v. Actual: %v", test.name, test.expectAuthRequired, sourceRef.RequiresAuth)
 		}
+		os.RemoveAll(tempRepoDir)
 	}
 }
 
@@ -1902,9 +1904,9 @@ func TestNewAppListAndSearch(t *testing.T) {
 	}
 }
 
-func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) string {
+func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) (string, string) {
 	// Create test directories
-	testDir, err := ioutil.TempDir("", "gitauth")
+	testDir, err := ioutil.TempDir(util.GetBaseDir(), "gitauth")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -2016,7 +2018,7 @@ insteadOf = %s
 	os.Setenv("HOME", userHomeDir)
 	os.Setenv("GIT_ASKPASS", "true")
 
-	return gitURLString
+	return gitURLString, testDir
 
 }
 
