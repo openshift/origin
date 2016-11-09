@@ -30,7 +30,8 @@ import (
 const (
 	initialStatusCheckWait = 4 * time.Second
 	serverUpTimeout        = 35
-	serverMasterConfig     = "/var/lib/origin/openshift.local.config/master/master-config.yaml"
+	serverConfigPath       = "/var/lib/origin/openshift.local.config"
+	serverMasterConfig     = serverConfigPath + "/master/master-config.yaml"
 	DefaultDNSPort         = 53
 	AlternateDNSPort       = 8053
 	cmdDetermineNodeHost   = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
@@ -243,7 +244,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	skipCreateConfig := false
 	if opt.UseExistingConfig {
 		var err error
-		configDir, err = h.copyConfig(opt.HostConfigDir)
+		configDir, err = h.copyConfig()
 		if err == nil {
 			_, err = os.Stat(filepath.Join(configDir, "master", "master-config.yaml"))
 			if err == nil {
@@ -291,7 +292,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not create OpenShift configuration").WithCause(err)
 		}
-		configDir, err = h.copyConfig(opt.HostConfigDir)
+		configDir, err = h.copyConfig()
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
@@ -434,13 +435,13 @@ func masterHTTPClient(localConfig string) (*http.Client, error) {
 
 // copyConfig copies the OpenShift configuration directory from the
 // server directory into a local temporary directory.
-func (h *Helper) copyConfig(hostDir string) (string, error) {
+func (h *Helper) copyConfig() (string, error) {
 	tempDir, err := ioutil.TempDir("", "openshift-config")
 	if err != nil {
 		return "", err
 	}
-	glog.V(1).Infof("Copying from host directory %s to local directory %s", hostDir, tempDir)
-	if err = h.hostHelper.DownloadDirFromContainer(hostDir, tempDir); err != nil {
+	glog.V(1).Infof("Copying host config to local directory %s", tempDir)
+	if err = h.hostHelper.DownloadDirFromContainer(serverConfigPath, tempDir); err != nil {
 		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
 		}
