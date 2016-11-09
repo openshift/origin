@@ -24,11 +24,6 @@
 			"Rev": "3b1ae45394a234c385be014e9a488f2bb6eef821"
 		},
 		{
-			"ImportPath": "cloud.google.com/go/storage",
-			"Comment": "v0.1.0-115-g3b1ae45",
-			"Rev": "3b1ae45394a234c385be014e9a488f2bb6eef821"
-		},
-		{
 			"ImportPath": "github.com/AaronO/go-git-http",
 			"Rev": "34209cf6cd947cfa52063bcb0f6d43cfa50c5566"
 		},
