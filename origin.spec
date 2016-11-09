@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 460d3662f90ff437509b0e81aad55eb661cb0b25
+%global commit 7f7c50755fe4bde5b390bb8569ddc9ff1841d82a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.22+460d366-58 OS_GIT_COMMIT=460d366 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.23+7f7c507-63 OS_GIT_COMMIT=7f7c507 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.23
+Version:        3.4.0.24
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,76 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Nov 09 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.24
+- require builder image for source-type binary build creation
+  (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  abcecfac2a615383455af9441b65aeca2961c7b5 (dmcphers+openshiftbot@redhat.com)
+-  fix readme link for extended tests (ipalade@redhat.com)
+- Fix for bugz #1389165 - extended route validation breaks included templates.
+  Plus fixes as per @liggitt review comments:   o Clean up errors to not leak
+  cert/key data.   o Relax checks on certs which have expired or valid in the
+  future for     backward compatibility.   o Add tests for expired, future
+  valid and valid certs with intermediate     CAs and pass intermediate chains
+  to the x509 verifier.   o Improve readability of test config (certs, keys
+  etc).   o Fixup error messages to include underlying certificate parse
+  errors.   o Add comment and remove currenttime hack. (smitram@gmail.com)
+- allow special hostsubnets to force a vnid on egress packets
+  (rchopra@redhat.com)
+- Bug 1388026 - Fix network diagnostics cleanup when test setup fails
+  (rpenta@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2684d16e5b68700f70c4fb3c8ee21e2cc34e3a0d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e93ae824f55ea789a60b0b393affb44d309e187e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  582f844d34935d922cf6af60b5bafccbe32e305b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  61b1b3f78dc744ff2d5c8e303a5071cb3073a8ff (dmcphers+openshiftbot@redhat.com)
+- clarify start-build --from-webhook only meant to work with generic webhook
+  (jminter@redhat.com)
+- bump(github.com/docker/docker/cliconfig):b9f10c951893f9a00865890a5232e85d770c
+  1087 (ipalade@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  5741384e376d9c61b5b36156003ede6698ca563b (ipalade@redhat.com)
+- Fix bugz 1392395 - make regexp match more precise with ^$.
+  (smitram@gmail.com)
+- Update image-stream warning notices (andrew@andrewklau.com)
+- bump(github.com/openshift/origin-web-console):
+  35eab4849c4243041a53a5c5803bc30d6b96d4f8 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  26ed3049f6169971ab109627d0f56e48e0a347ea (dmcphers+openshiftbot@redhat.com)
+- sdn: update for bumped CNI (dcbw@redhat.com)
+- bump(github.com/containernetworking/cni):
+  52e4358cbd540cc31f72ea5e0bd4762c98011b84 (dcbw@redhat.com)
+- sdn/eventqueue: handle DeletedFinalStateUnknown delta objects
+  (dcbw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c6dbf16e5584671d4d8c84343e890c5f3a9327cf (dmcphers+openshiftbot@redhat.com)
+- Warn about the right thing on double-pod-teardown (danw@redhat.com)
+- Update ose_images.sh - 2016-11-07 (tdawson@redhat.com)
+- Migrate scripts to use `os::log::info` (skuznets@redhat.com)
+- Migrated SELinux utility functions to the networking suite
+  (skuznets@redhat.com)
+- fix --host-config-dir, don't download host path from docker container
+  (jminter@redhat.com)
+- UPSTREAM: 33014: Kubelet: Use RepoDigest for ImageID when available
+  (sross@redhat.com)
+- UPSTREAM: 33014: Add method to inspect Docker images by ID (sross@redhat.com)
+- UPSTREAM: 36248: Fix possible race in operationNotSupportedCache
+  (agoldste@redhat.com)
+- UPSTREAM: 36249: fix version detection in openstack lbaas
+  (sjenning@redhat.com)
+- fix extended argument parsing to config building for etcd (deads@redhat.com)
+- Remove uninterpreted newline literal from logging functions
+  (skuznets@redhat.com)
+- update sourceURI used in BuildConfig (li.guangxu@zte.com.cn)
+- Fix ip range check condition (zhao.xiangpeng@zte.com.cn)
+- UPSTREAM: 34831: cloudprovider/gce: canonicalize instance name when returning
+  instance array (dcbw@redhat.com)
+- Tolerate being unable to access OpenShift resources in status
+  (ccoleman@redhat.com)
+
 * Mon Nov 07 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.23
 - bump(github.com/openshift/origin-web-console):
   22cbe94128168282f06b4e52766f05170a77df92 (dmcphers+openshiftbot@redhat.com)
