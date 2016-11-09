@@ -15,11 +15,16 @@ if [ -z "${EGRESS_GATEWAY}" ]; then
     exit 1
 fi
 
+# If MTU_SIZE is not defined, set 1450 as the default value.
+MTU=${MTU_SIZE:-1450}
+
 # The pod may die and get restarted; only try to add the
 # address/route/rules if they are not already there.
 if ! ip route get ${EGRESS_DESTINATION} | grep -q macvlan0; then
     ip addr add ${EGRESS_SOURCE}/32 dev macvlan0
     ip link set up dev macvlan0
+    ip link set macvlan0 mtu ${MTU}
+
     ip route add ${EGRESS_GATEWAY}/32 dev macvlan0
     ip route add ${EGRESS_DESTINATION}/32 via ${EGRESS_GATEWAY} dev macvlan0
 

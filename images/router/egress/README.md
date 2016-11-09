@@ -32,6 +32,9 @@ spec:
       value: 192.168.12.1
     - name: EGRESS_DESTINATION
       value: 203.0.113.25
+    # Set mtu size, optional, 1450 by default.
+    #- name: MTU_SIZE
+    #  value: 1400
   nodeSelector:
     site: springfield-1
 ```
@@ -58,6 +61,13 @@ pod's cluster IP address will be redirected to the same port on
 `EGRESS_DESTINATION`. In this example, connections to the pod will be
 redirected to **203.0.113.25**, with a source IP address of
 **192.168.12.99**.
+
+The macvlan network interface can be configured to use `MTU_SIZE`
+as its mtu size. Unlike the other environment variables, Its optional.
+If not set, the mtu size is set to 1450 by default.
+
+The mtu size must be set accordingly to the
+[pod network settings](https://docs.openshift.org/latest/install_config/configuring_sdn.html#configuring-the-pod-network-on-nodes).
 
 If only some of the nodes in your cluster are capable of claiming the
 specified source IP address and using the specified gateway, you can
