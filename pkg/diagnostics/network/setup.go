@@ -126,7 +126,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 		for _, nsName := range nsList {
 			// Create 2 pods and a service in global and non-global network diagnostic namespaces
 			var testPodName string
-			for i := 0; i <= 2; i++ {
+			for i := 0; i < 2; i++ {
 				testPodName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
 				if _, err := d.KubeClient.Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
