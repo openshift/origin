@@ -55,11 +55,13 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		switch err {
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
 			return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
-		case nil:
-			return nil
-		default:
+		case webhook.MethodNotSupported:
+			return errors.NewMethodNotSupported(buildapi.Resource("buildconfighook"), req.Method)
+		}
+		if _, ok := err.(*errors.StatusError); !ok && err != nil {
 			return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
 		}
+		return err
 	}
 	warning := err
 
