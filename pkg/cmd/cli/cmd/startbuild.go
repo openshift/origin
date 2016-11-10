@@ -269,7 +269,7 @@ func (o *StartBuildOptions) Run() error {
 	request := &buildapi.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
 			buildapi.BuildTriggerCause{
-				Message: "Manually triggered",
+				Message: buildapi.BuildTriggerCauseManualMsg,
 			},
 		),
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
