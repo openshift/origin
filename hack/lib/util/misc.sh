@@ -210,3 +210,18 @@ function os::util::curl_etcd() {
 	curl --fail --silent --cacert "${ca_bundle}" \
 	     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 }
+
+# os::util::host_platform determines what the host OS and architecture
+# are, as Golang sees it. The go tool chain does some slightly different
+# things when the target platform matches the host platform.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::host_platform() {
+	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
+}
+readonly -f os::util::host_platform

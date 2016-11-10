@@ -38,12 +38,6 @@ function kill_all_processes() {
 }
 readonly -f kill_all_processes
 
-# time_now return the time since the epoch in millis
-function time_now() {
-	echo $(date +%s000)
-}
-readonly -f time_now
-
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs() {
 	if ! docker version >/dev/null 2>&1; then
@@ -202,10 +196,3 @@ function find_files() {
 	\) -name '*.go' | sort -u
 }
 readonly -f find_files
-
-# Asks golang what it thinks the host platform is.  The go tool chain does some
-# slightly different things when the target platform matches the host platform.
-function os::util::host_platform() {
-	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::util::host_platform
