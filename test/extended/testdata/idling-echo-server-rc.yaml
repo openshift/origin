@@ -17,7 +17,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: openshift/node
+        - image: openshift/node:v1.3.1
           name: idling-echo
           command:
             - /usr/bin/socat

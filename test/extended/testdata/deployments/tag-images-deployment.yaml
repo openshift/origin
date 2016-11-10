@@ -24,8 +24,7 @@ spec:
         name: tag-images
     spec:
       containers:
-      - image: openshift/origin-pod
-        imagePullPolicy: IfNotPresent
+      - image: openshift/origin-pod:v1.3.1
         name: sample-name
         ports:
         - containerPort: 8080
