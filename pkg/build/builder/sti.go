@@ -333,7 +333,7 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
-	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
+	err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in)
 	if err != nil {
 		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed
@@ -342,15 +342,17 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 		}
 		return nil, err
 	}
-	if sourceInfo != nil {
+	/*
+		if sourceInfo != nil {
 		revision := updateBuildRevision(d.s.build, sourceInfo)
 		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, revision); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
-	}
-	if sourceInfo != nil {
-		sourceInfo.ContextDir = config.ContextDir
-	}
+		}
+		if sourceInfo != nil {
+			sourceInfo.ContextDir = config.ContextDir
+		}
+	*/
 
 	// if a context dir is provided, move the context dir contents into the src location
 	if len(d.contextDir) > 0 {
@@ -362,9 +364,11 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 			return nil, err
 		}
 	}
-	if sourceInfo != nil {
-		return &sourceInfo.SourceInfo, nil
-	}
+	/*
+		if sourceInfo != nil {
+			return &sourceInfo.SourceInfo, nil
+		}
+	*/
 	return nil, nil
 }
 

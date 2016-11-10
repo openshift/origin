@@ -65,11 +65,15 @@ func (d *DockerBuilder) Build() error {
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 
-	buildDir, err := ioutil.TempDir("", "docker-build")
-	if err != nil {
-		return err
-	}
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
+	/*
+		buildDir, err := ioutil.TempDir("", "docker-build")
+		if err != nil {
+			return err
+		}
+	*/
+	buildDir := "/tmp/gitSource"
+
+	err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin)
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
@@ -78,14 +82,14 @@ func (d *DockerBuilder) Build() error {
 		}
 		return err
 	}
-
-	if sourceInfo != nil {
+	/*
+		if sourceInfo != nil {
 		glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
 		revision := updateBuildRevision(d.build, sourceInfo)
 		if updateErr := retryBuildStatusUpdate(d.build, d.client, revision); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
-	}
+	*/
 	if err = d.addBuildParameters(buildDir); err != nil {
 		return err
 	}

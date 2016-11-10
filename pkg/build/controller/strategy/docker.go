@@ -11,7 +11,8 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
-	Image string
+	GitCloneImage string
+	Image         string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -48,6 +49,22 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 		Spec: kapi.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
+			InitContainers: []kapi.Container{
+				{
+					Name:  "git-clone",
+					Image: bs.GitCloneImage,
+					Env:   containerEnv,
+					Args:  []string{},
+					VolumeMounts: []kapi.VolumeMount{
+						{
+							Name:      "gitsource",
+							MountPath: "/tmp/gitSource",
+						},
+					},
+					ImagePullPolicy: kapi.PullIfNotPresent,
+					Resources:       build.Spec.Resources,
+				},
+			},
 			Containers: []kapi.Container{
 				{
 					Name:  "docker-build",
@@ -58,14 +75,28 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,
 					},
+					VolumeMounts: []kapi.VolumeMount{
+						{
+							Name:      "gitsource",
+							MountPath: "/tmp/gitSource",
+						},
+					},
+					ImagePullPolicy: kapi.PullIfNotPresent,
+					Resources:       build.Spec.Resources,
+				},
+			},
+			Volumes: []kapi.Volume{
+				{
+					Name: "gitsource",
+					VolumeSource: kapi.VolumeSource{
+						EmptyDir: &kapi.EmptyDirVolumeSource{},
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = build.Spec.Resources
 
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds

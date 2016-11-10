@@ -43,18 +43,9 @@ func (e gitNotFoundError) Error() string {
 	return fmt.Sprintf("requested repository %q not found", string(e))
 }
 
-// fetchSource retrieves the inputs defined by the build source into the
-// provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
-	hasGitSource := false
-
-	// expect to receive input from STDIN
-	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
-		return nil, err
-	}
-
-	// may retrieve source from Git
-	hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+// GitClone clones the source associated with a build(if any) into the specified directory
+func GitClone(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string) (*git.SourceInfo, error) {
+	hasGitSource, err := extractGitSource(gitClient, gitSource, revision, dir, initialURLCheckTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +60,37 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 			}
 		}
 	}
+	return sourceInfo, nil
+}
 
+// fetchSource retrieves the inputs defined by the build source into the
+// provided directory, or returns an error if retrieval is not possible.
+func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader) error {
+	hasGitSource := false
+
+	// expect to receive input from STDIN
+	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
+		return err
+	}
+
+	/*
+		// may retrieve source from Git
+		hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+		if err != nil {
+			return nil, err
+		}
+
+		var sourceInfo *git.SourceInfo
+		if hasGitSource {
+			var errs []error
+			sourceInfo, errs = gitClient.GetInfo(dir)
+			if len(errs) > 0 {
+				for _, e := range errs {
+					glog.V(0).Infof("error: Unable to retrieve Git info: %v", e)
+				}
+			}
+		}
+	*/
 	forcePull := false
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
@@ -87,7 +108,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		}
 		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -98,10 +119,10 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
 			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
 		}
-		return sourceInfo, ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
+		return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
 	}
 
-	return sourceInfo, nil
+	return nil
 }
 
 // checkRemoteGit validates the specified Git URL. It returns GitNotFoundError

@@ -24,7 +24,7 @@ Commands are organized in the package structure as:
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/admin[pkg/cmd/admin] - `oadm` or `openshift admin` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/experimental[pkg/cmd/experimental] - `openshift ex` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
-*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.
+*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build`, `openshift-docker-build`, and `openshift-git-clone` commands.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/gitserver[pkg/cmd/infra/gitserver] - `openshift-gitserver` command.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/router[pkg/cmd/infra/router] - `openshift-router` command.
