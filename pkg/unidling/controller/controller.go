@@ -94,7 +94,8 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kclient.End
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return &kapi.EventList{}, nil
+				options.FieldSelector = fieldSelector
+				return evtNS.Events(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
