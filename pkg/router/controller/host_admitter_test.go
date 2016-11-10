@@ -356,6 +356,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			namespace: "owner",
 			host:      "wild.namespace.test",
 			policy:    routeapi.WildcardPolicySubdomain,
+			reason:    "HostAlreadyClaimed",
 		},
 		{
 			name:      "tldhost",
@@ -455,7 +456,12 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 
 	err = admitter.HandleRoute(watch.Added, wildcardRoute)
 	if err != nil {
-		t.Fatalf("Wildcard route not admitted: %v", err)
+		k := recorder.rejectionKey(wildcardRoute)
+		if recorder.rejections[k] != "HostAlreadyClaimed" {
+			t.Fatalf("Wildcard route expected host already claimed error, got %v - error=%v", recorder.rejections[k], err)
+		}
+	} else {
+		t.Fatalf("Newer wildcard route expected errors, got none")
 	}
 
 	// bounce all the routes from the namespace "owner" and claim
@@ -500,14 +506,20 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	}
 
 	routes := []*routeapi.Route{
-		makeRoute("ns1", "r1", "net", false, makeTime(0*time.Second)),
-		makeRoute("ns2", "r2", "com", false, makeTime(1*time.Second)),
-		makeRoute("ns3", "r3", "domain1.com", false, makeTime(2*time.Second)),
-		makeRoute("ns4", "r4", "domain2.com", false, makeTime(3*time.Second)),
-		makeRoute("ns5", "r5", "foo.domain1.com", false, makeTime(4*time.Second)),
-		makeRoute("ns6", "r6", "bar.domain1.com", false, makeTime(5*time.Second)),
-		makeRoute("ns7", "r7", "sub.foo.domain1.com", true, makeTime(6*time.Second)),
-		makeRoute("ns8", "r8", "sub.bar.domain1.com", true, makeTime(7*time.Second)),
+		makeRoute("ns1", "r1", "net", "", false, makeTime(0*time.Second)),
+		makeRoute("ns2", "r2", "com", "", false, makeTime(1*time.Second)),
+		makeRoute("ns3", "r3", "domain1.com", "", false, makeTime(2*time.Second)),
+		makeRoute("ns4", "r4", "domain2.com", "", false, makeTime(3*time.Second)),
+		makeRoute("ns5", "r5", "foo.domain1.com", "", false, makeTime(4*time.Second)),
+		makeRoute("ns6", "r6", "bar.domain1.com", "", false, makeTime(5*time.Second)),
+		makeRoute("ns7", "r7", "sub.foo.domain1.com", "", true, makeTime(6*time.Second)),
+		makeRoute("ns8", "r8", "sub.bar.domain1.com", "", true, makeTime(7*time.Second)),
+		makeRoute("ns8", "r9", "sub.bar.domain1.com", "/p1", true, makeTime(8*time.Second)),
+		makeRoute("ns8", "r10", "sub.bar.domain1.com", "/p2", true, makeTime(9*time.Second)),
+		makeRoute("ns8", "r11", "sub.bar.domain1.com", "/p1/p2/p3", true, makeTime(10*time.Second)),
+		makeRoute("ns9", "r12", "sub.bar.domain2.com", "", false, makeTime(11*time.Second)),
+		makeRoute("ns9", "r13", "sub.bar.domain2.com", "/p1", false, makeTime(12*time.Second)),
+		makeRoute("ns9", "r14", "sub.bar.domain2.com", "/p2", false, makeTime(13*time.Second)),
 	}
 
 	rand.Seed(1)
@@ -557,7 +569,7 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	}
 }
 
-func makeRoute(ns, name, host string, wildcard bool, creationTimestamp unversioned.Time) *routeapi.Route {
+func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp unversioned.Time) *routeapi.Route {
 	policy := routeapi.WildcardPolicyNone
 	if wildcard {
 		policy = routeapi.WildcardPolicySubdomain
@@ -566,6 +578,7 @@ func makeRoute(ns, name, host string, wildcard bool, creationTimestamp unversion
 		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
 		Spec: routeapi.RouteSpec{
 			Host:           host,
+			Path:           path,
 			WildcardPolicy: policy,
 		},
 	}
@@ -590,42 +603,75 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 		ErrIf    sets.String
 	}{
 		// Wildcard and explicit allowed in same namespace
-		{Route: makeRoute("ns1", "r1", "net", false, makeTime(0*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns1", "r2", "net", true, makeTime(1*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns1", "r3", "www.same.net", false, makeTime(2*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns1", "r4", "www.same.net", true, makeTime(3*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns1", "r5", "foo.same.net", true, makeTime(4*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns2", "r1", "com", false, makeTime(10*time.Second)), ErrIf: sets.NewString(`ns1/r2`)},
-		{Route: makeRoute("ns2", "r2", "com", true, makeTime(11*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`)},
-		{Route: makeRoute("ns2", "r3", "www.same.com", false, makeTime(12*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns2", "r4", "www.same.com", true, makeTime(13*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns2", "r5", "foo.same.com", true, makeTime(14*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r1", "net", "", false, makeTime(0*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r2", "net", "", true, makeTime(1*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r3", "www.same.net", "", false, makeTime(2*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r4", "www.same.net", "", true, makeTime(3*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r5", "foo.same.net", "", true, makeTime(4*time.Second)), ErrIf: sets.NewString(`ns1/r4`)},
+		{Route: makeRoute("ns2", "r1", "com", "", false, makeTime(10*time.Second)), ErrIf: sets.NewString(`ns1/r2`)},
+		{Route: makeRoute("ns2", "r2", "com", "", true, makeTime(11*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`)},
+		{Route: makeRoute("ns2", "r3", "www.same.com", "", false, makeTime(12*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r4", "www.same.com", "", true, makeTime(13*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r5", "www.same.com", "/abc", true, makeTime(13*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r6", "foo.same.com", "", true, makeTime(14*time.Second)), ErrIf: sets.NewString(`ns2/r4`)},
+		{Route: makeRoute("ns2", "r7", "foo.same.com", "/abc", true, makeTime(14*time.Second)), ErrIf: sets.NewString(`ns2/r5`)},
 		// Fails because of other namespaces
-		{Route: makeRoute("ns3", "r1", "net", false, makeTime(20*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r2`)},
-		{Route: makeRoute("ns3", "r2", "net", true, makeTime(21*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`)},
-		{Route: makeRoute("ns3", "r3", "com", false, makeTime(22*time.Second)), ErrIf: sets.NewString(`ns1/r2`, `ns2/r1`, `ns2/r2`)},
-		{Route: makeRoute("ns3", "r4", "com", true, makeTime(23*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`)},
+		{Route: makeRoute("ns3", "r1", "net", "", false, makeTime(20*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r2`)},
+		{Route: makeRoute("ns3", "r2", "net", "", true, makeTime(21*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`)},
+		{Route: makeRoute("ns3", "r3", "net", "/p1", true, makeTime(22*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`)},
+		{Route: makeRoute("ns3", "r4", "com", "", false, makeTime(23*time.Second)), ErrIf: sets.NewString(`ns1/r2`, `ns2/r1`, `ns2/r2`)},
+		{Route: makeRoute("ns3", "r5", "com", "", true, makeTime(24*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`, `ns3/r2`)},
+		{Route: makeRoute("ns3", "r6", "com", "/p1/p2", true, makeTime(25*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r2`, `ns2/r1`, `ns2/r2`)},
 
 		// Interleaved ages between namespaces
-		{Route: makeRoute("ns4", "r1", "domain1.com", false, makeTime(30*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns5", "r1", "domain1.com", false, makeTime(31*time.Second)), ErrIf: sets.NewString(`ns4/r1`)},
-		{Route: makeRoute("ns4", "r2", "domain1.com", false, makeTime(32*time.Second)), ErrIf: sets.NewString(`ns5/r1`)},
-		{Route: makeRoute("ns5", "r2", "domain1.com", false, makeTime(33*time.Second)), ErrIf: sets.NewString(`ns4/r1`, `ns4/r2`)},
+		{Route: makeRoute("ns4", "r1", "domain1.com", "", false, makeTime(30*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns5", "r1", "domain1.com", "", false, makeTime(31*time.Second)), ErrIf: sets.NewString(`ns4/r1`)},
+		{Route: makeRoute("ns4", "r2", "domain1.com", "", false, makeTime(32*time.Second)), ErrIf: sets.NewString(`ns4/r1`, `ns5/r1`)},
+		{Route: makeRoute("ns5", "r2", "domain1.com", "", false, makeTime(33*time.Second)), ErrIf: sets.NewString(`ns4/r1`, `ns5/r1`, `ns4/r2`)},
 
 		// namespace with older wildcard wins over specific and wildcard routes in other namespaces
-		{Route: makeRoute("ns6", "r1", "foo.domain1.com", true, makeTime(40*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns7", "r1", "bar.domain1.com", true, makeTime(50*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
-		{Route: makeRoute("ns7", "r2", "bar.domain1.com", false, makeTime(51*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
-		{Route: makeRoute("ns8", "r1", "baz.domain1.com", true, makeTime(60*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`, `ns7/r2`)},
-		{Route: makeRoute("ns8", "r2", "baz.domain1.com", false, makeTime(61*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`)},
+		{Route: makeRoute("ns6", "r1", "foo.domain1.com", "", true, makeTime(40*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns7", "r1", "bar.domain1.com", "", true, makeTime(50*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
+		{Route: makeRoute("ns7", "r2", "bar.domain1.com", "", false, makeTime(51*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
+		{Route: makeRoute("ns7", "r3", "bar.domain1.com", "/foo", false, makeTime(51*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
+		{Route: makeRoute("ns8", "r1", "baz.domain1.com", "", true, makeTime(60*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`, `ns7/r2`, `ns7/r3`)},
+		{Route: makeRoute("ns8", "r2", "baz.domain1.com", "", false, makeTime(61*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`)},
 
 		// namespace with older explicit host and wildcard wins over specific and wildcard routes in other namespaces
-		{Route: makeRoute("ns9", "r1", "foo.domain2.com", false, makeTime(40*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns10", "r1", "bar.domain2.com", true, makeTime(50*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
-		{Route: makeRoute("ns10", "r2", "bar.domain2.com", false, makeTime(51*time.Second)), ErrIf: sets.NewString()},
-		{Route: makeRoute("ns10", "r3", "foo.domain2.com", false, makeTime(52*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
-		{Route: makeRoute("ns11", "r1", "baz.domain2.com", true, makeTime(60*time.Second)), ErrIf: sets.NewString(`ns9/r1`, `ns10/r1`, `ns10/r2`, `ns10/r3`)},
-		{Route: makeRoute("ns11", "r2", "baz.domain2.com", false, makeTime(61*time.Second)), ErrIf: sets.NewString(`ns10/r1`)},
+		{Route: makeRoute("ns9", "r1", "foo.domain2.com", "", false, makeTime(40*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns10", "r1", "bar.domain2.com", "", true, makeTime(50*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns10", "r2", "bar.domain2.com", "", false, makeTime(51*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns10", "r3", "foo.domain2.com", "", false, makeTime(52*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns10", "r4", "foo.domain2.com", "/p1", false, makeTime(53*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns10", "r5", "foo.domain2.com", "/p2", false, makeTime(54*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns10", "r6", "foo.domain2.com", "/p1/p2/other", false, makeTime(55*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns10", "r7", "foo.domain2.com", "/someother", false, makeTime(56*time.Second)), ErrIf: sets.NewString(`ns9/r1`)},
+		{Route: makeRoute("ns11", "r1", "baz.domain2.com", "", true, makeTime(60*time.Second)), ErrIf: sets.NewString(`ns9/r1`, `ns10/r1`, `ns10/r2`, `ns10/r3`, `ns10/r4`, `ns10/r5`, `ns10/r6`, `ns10/r7`)},
+		{Route: makeRoute("ns11", "r2", "baz.domain2.com", "", false, makeTime(61*time.Second)), ErrIf: sets.NewString(`ns10/r1`)},
+
+		// namespace with specific and wildcard route with paths wins over specific and wildcard routes in other namespaces
+		{Route: makeRoute("ns12", "r1", "foo.domain3.com", "", false, makeTime(70*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns12", "r2", "bar.domain3.com", "/abc", false, makeTime(71*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns13", "r1", "foo.domain3.com", "", true, makeTime(80*time.Second)), ErrIf: sets.NewString(`ns12/r1`, `ns12/r2`)},
+		{Route: makeRoute("ns13", "r2", "bar.domain3.com", "", false, makeTime(81*time.Second)), ErrIf: sets.NewString(`ns12/r2`)},
+		{Route: makeRoute("ns13", "r3", "bar.domain3.com", "/abc", false, makeTime(82*time.Second)), ErrIf: sets.NewString(`ns12/r2`)},
+		{Route: makeRoute("ns13", "r4", "bar.domain3.com", "/def", false, makeTime(83*time.Second)), ErrIf: sets.NewString(`ns12/r2`)},
+		{Route: makeRoute("ns13", "r5", "wild.domain3.com", "/aces", true, makeTime(84*time.Second)), ErrIf: sets.NewString(`ns12/r1`, `ns12/r2`)},
+		{Route: makeRoute("ns13", "r6", "wild.domain3.com", "", true, makeTime(85*time.Second)), ErrIf: sets.NewString(`ns12/r1`, `ns12/r2`, `ns13/r1`)},
+		{Route: makeRoute("ns14", "r1", "foo.domain3.com", "", false, makeTime(90*time.Second)), ErrIf: sets.NewString(`ns12/r1`, `ns13/r1`, `ns13/r5`, `ns13/r6`)},
+		{Route: makeRoute("ns14", "r2", "bar.domain3.com", "", false, makeTime(91*time.Second)), ErrIf: sets.NewString(`ns12/r2`, `ns13/r1`, `ns13/r2`, `ns13/r3`, `ns13/r4`, `ns13/r5`, `ns13/r6`)},
+
+		// namespace with oldest wildcard and non-wildcard routes with same paths wins
+		{Route: makeRoute("ns15", "r1", "foo.domain4.com", "", false, makeTime(100*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns15", "r2", "foo.domain4.com", "/abc", false, makeTime(101*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns15", "r3", "foo.domain4.com", "", false, makeTime(102*time.Second)), ErrIf: sets.NewString(`ns15/r1`)},
+		{Route: makeRoute("ns15", "r4", "foo.domain4.com", "/abc", false, makeTime(103*time.Second)), ErrIf: sets.NewString(`ns15/r2`)},
+		{Route: makeRoute("ns15", "r5", "www.domain4.com", "", true, makeTime(104*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns15", "r6", "www.domain4.com", "/abc", true, makeTime(105*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns15", "r7", "www.domain4.com", "", true, makeTime(106*time.Second)), ErrIf: sets.NewString(`ns15/r5`)},
+		{Route: makeRoute("ns15", "r8", "www.domain4.com", "/abc", true, makeTime(107*time.Second)), ErrIf: sets.NewString(`ns15/r6`)},
+		{Route: makeRoute("ns15", "r9", "www.domain4.com", "/def", true, makeTime(108*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns15", "r10", "www.domain4.com", "/def", true, makeTime(109*time.Second)), ErrIf: sets.NewString(`ns15/r9`)},
 	}
 
 	nameToIndex := map[string]int{}
