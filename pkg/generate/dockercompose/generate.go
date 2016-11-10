@@ -182,7 +182,6 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 			errs = append(errs, err)
 			continue
 		}
-		repo.BuildWithDocker()
 
 		info := repo.Info()
 		if info == nil || info.Dockerfile == nil {

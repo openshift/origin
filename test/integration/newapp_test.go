@@ -33,11 +33,13 @@ import (
 	client "github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/app/cmd"
 	apptest "github.com/openshift/origin/pkg/generate/app/test"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -165,7 +167,7 @@ func TestNewAppResolve(t *testing.T) {
 			name: "Successful docker build",
 			cfg: cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: "docker",
+					Strategy: generate.StrategyDocker,
 				},
 			},
 			components: app.ComponentReferences{
@@ -210,8 +212,9 @@ func TestNewAppDetectSource(t *testing.T) {
 			cfg: &cmd.AppConfig{
 				Resolvers: cmd.Resolvers{
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 					DockerSearcher: dockerSearcher,
 				},
@@ -334,12 +337,13 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:        []string{"default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: "source",
+					Strategy: generate.StrategySource,
 				},
 				Typer:           kapi.Scheme,
 				OSClient:        &client.Fake{},
@@ -376,13 +380,14 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: "source",
+					Strategy: generate.StrategySource,
 					Labels:   map[string]string{"label1": "value1", "label2": "value2"},
 				},
 				Typer:           kapi.Scheme,
@@ -420,12 +425,13 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: "docker",
+					Strategy: generate.StrategyDocker,
 				},
 				Typer:           kapi.Scheme,
 				OSClient:        &client.Fake{},
@@ -461,8 +467,9 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 
@@ -488,7 +495,7 @@ func TestNewAppRunAll(t *testing.T) {
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy:         "source",
+					Strategy:         generate.StrategySource,
 					InsecureRegistry: true,
 				},
 
@@ -513,8 +520,9 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 					TemplateFileSearcher: &app.TemplateFileSearcher{},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				Typer:           kapi.Scheme,
@@ -552,8 +560,9 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 
@@ -602,8 +611,9 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				Typer:           kapi.Scheme,
@@ -646,8 +656,9 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces:                []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				Typer:           kapi.Scheme,
@@ -1063,7 +1074,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					Dockerfile: "FROM openshift/origin-base\nUSER foo",
-					Strategy:   "source",
+					Strategy:   generate.StrategySource,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1075,7 +1086,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					Dockerfile: "USER foo",
-					Strategy:   "docker",
+					Strategy:   generate.StrategyDocker,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1214,6 +1225,135 @@ func TestNewAppRunBuilds(t *testing.T) {
 					return fmt.Errorf("bc.Spec.Source.Image.Paths[0].DestinationDir = %q; want %q", got, want)
 				}
 				return nil
+			},
+		},
+		{
+			name: "successful build from source with autodetected jenkinsfile",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					SourceRepositories: []string{
+						"https://github.com/openshift/nodejs-ex",
+					},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					ContextDir: "openshift/pipeline",
+				},
+			},
+			expected: map[string][]string{
+				"buildConfig": {"nodejs-ex"},
+			},
+			checkResult: func(res *cmd.AppResult) error {
+				if len(res.List.Items) != 1 {
+					return fmt.Errorf("expected one Item returned")
+				}
+				bc, ok := res.List.Items[0].(*buildapi.BuildConfig)
+				if !ok {
+					return fmt.Errorf("expected Item of type *buildapi.BuildConfig")
+				}
+				if !reflect.DeepEqual(bc.Spec.Output, buildapi.BuildOutput{}) {
+					return fmt.Errorf("invalid bc.Spec.Output, got %#v", bc.Spec.Output)
+				}
+				if !reflect.DeepEqual(bc.Spec.Source, buildapi.BuildSource{
+					ContextDir: "openshift/pipeline",
+					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
+					Secrets:    []buildapi.SecretBuildSource{},
+				}) {
+					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source)
+				}
+				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}) {
+					return fmt.Errorf("invalid bc.Spec.Strategy, got %#v", bc.Spec.Strategy)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful build from component with source with pipeline strategy",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					Components: []string{
+						"centos/nodejs-4-centos7~https://github.com/openshift/nodejs-ex",
+					},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					ContextDir: "openshift/pipeline",
+					Strategy:   generate.StrategyPipeline,
+				},
+			},
+			expected: map[string][]string{
+				"buildConfig": {"nodejs-ex"},
+			},
+			checkResult: func(res *cmd.AppResult) error {
+				if len(res.List.Items) != 1 {
+					return fmt.Errorf("expected one Item returned")
+				}
+				bc, ok := res.List.Items[0].(*buildapi.BuildConfig)
+				if !ok {
+					return fmt.Errorf("expected Item of type *buildapi.BuildConfig")
+				}
+				if !reflect.DeepEqual(bc.Spec.Output, buildapi.BuildOutput{}) {
+					return fmt.Errorf("invalid bc.Spec.Output, got %#v", bc.Spec.Output)
+				}
+				if !reflect.DeepEqual(bc.Spec.Source, buildapi.BuildSource{
+					ContextDir: "openshift/pipeline",
+					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
+					Secrets:    []buildapi.SecretBuildSource{},
+				}) {
+					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source.Git)
+				}
+				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}) {
+					return fmt.Errorf("invalid bc.Spec.Strategy, got %#v", bc.Spec.Strategy)
+				}
+				return nil
+			},
+		},
+		{
+			name: "successful build from source with jenkinsfile with pipeline strategy",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					SourceRepositories: []string{
+						"https://github.com/openshift/nodejs-ex",
+					},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					ContextDir: "openshift/pipeline",
+					Strategy:   generate.StrategyPipeline,
+				},
+			},
+			expected: map[string][]string{
+				"buildConfig": {"nodejs-ex"},
+			},
+		},
+		{
+			name: "failed build from source with jenkinsfile with docker strategy",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					SourceRepositories: []string{
+						"https://github.com/openshift/nodejs-ex",
+					},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					ContextDir: "openshift/pipeline",
+					Strategy:   generate.StrategyDocker,
+				},
+			},
+			expectedErr: func(err error) bool {
+				return strings.HasPrefix(err.Error(), "No Dockerfile was found in the repository")
+			},
+		},
+		{
+			name: "failed build from source without jenkinsfile with pipeline strategy",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					SourceRepositories: []string{
+						"https://github.com/openshift/nodejs-ex",
+					},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					Strategy: generate.StrategyPipeline,
+				},
+			},
+			expectedErr: func(err error) bool {
+				return strings.HasPrefix(err.Error(), "No Jenkinsfile was found in the repository")
 			},
 		},
 	}
@@ -1526,8 +1666,9 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: dockerSearcher,
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				Typer:           kapi.Scheme,
@@ -1595,8 +1736,9 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: dockerSearcher,
 					Detector: app.SourceRepositoryEnumerator{
-						Detectors: source.DefaultDetectors,
-						Tester:    dockerfile.NewTester(),
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
 				Typer:           kapi.Scheme,
@@ -1686,14 +1828,15 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 	for _, test := range tests {
 		url := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
 
-		sourceRepo, err := app.NewSourceRepository(url)
+		sourceRepo, err := app.NewSourceRepository(url, generate.StrategySource)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
 
 		detector := app.SourceRepositoryEnumerator{
-			Detectors: source.DefaultDetectors,
-			Tester:    dockerfile.NewTester(),
+			Detectors:         source.DefaultDetectors,
+			DockerfileTester:  dockerfile.NewTester(),
+			JenkinsfileTester: jenkinsfile.NewTester(),
 		}
 
 		if err = sourceRepo.Detect(detector, true); err != nil {
@@ -1797,7 +1940,7 @@ name = developer
 email = developer@org.org
 `
 	if passwordProtected {
-		authSection := `	
+		authSection := `
 [url %q]
 insteadOf = %s
 		`
@@ -1968,7 +2111,7 @@ func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 		"https://github.com/openshift/ruby-hello-world.git",
 		file,
 	} {
-		s, err := app.NewSourceRepository(location)
+		s, err := app.NewSourceRepository(location, generate.StrategySource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1985,8 +2128,9 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 	config.Out, config.ErrOut = stdout, stderr
 
 	config.Detector = app.SourceRepositoryEnumerator{
-		Detectors: source.DefaultDetectors,
-		Tester:    dockerfile.NewTester(),
+		Detectors:         source.DefaultDetectors,
+		DockerfileTester:  dockerfile.NewTester(),
+		JenkinsfileTester: jenkinsfile.NewTester(),
 	}
 	if config.DockerSearcher == nil {
 		config.DockerSearcher = app.DockerRegistrySearcher{

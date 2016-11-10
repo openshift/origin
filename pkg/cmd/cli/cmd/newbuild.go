@@ -129,7 +129,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into resulting image.")
-	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
+	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")

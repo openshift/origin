@@ -4,11 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-type Tester interface {
-	Has(dir string) (string, bool, error)
-}
+	"github.com/openshift/origin/pkg/generate"
+)
 
 type StatFunc func(path string) (os.FileInfo, error)
 
@@ -24,7 +22,7 @@ func (t StatFunc) Has(dir string) (string, bool, error) {
 	return path, true, nil
 }
 
-func NewTester() Tester {
+func NewTester() generate.Tester {
 	return StatFunc(os.Stat)
 }
 

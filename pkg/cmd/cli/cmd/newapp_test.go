@@ -72,7 +72,7 @@ func TestNewAppDefaultFlags(t *testing.T) {
 		},
 		"strategy": {
 			flagName:   "strategy",
-			defaultVal: config.Strategy,
+			defaultVal: "",
 		},
 		"labels": {
 			flagName:   "labels",

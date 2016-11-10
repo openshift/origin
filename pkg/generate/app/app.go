@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -18,6 +19,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util"
@@ -193,13 +195,19 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 
 // BuildStrategyRef is a reference to a build strategy
 type BuildStrategyRef struct {
-	IsDockerBuild bool
-	Base          *ImageRef
+	Strategy generate.Strategy
+	Base     *ImageRef
 }
 
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
 func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
-	if s.IsDockerBuild {
+	switch s.Strategy {
+	case generate.StrategyPipeline:
+		return &buildapi.BuildStrategy{
+			JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+		}, s.Base.BuildTriggers()
+
+	case generate.StrategyDocker:
 		var triggers []buildapi.BuildTriggerPolicy
 		strategy := &buildapi.DockerBuildStrategy{
 			Env: env.List(),
@@ -212,14 +220,18 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrate
 		return &buildapi.BuildStrategy{
 			DockerStrategy: strategy,
 		}, triggers
+
+	case generate.StrategySource:
+		return &buildapi.BuildStrategy{
+			SourceStrategy: &buildapi.SourceBuildStrategy{
+				From: s.Base.ObjectReference(),
+				Env:  env.List(),
+			},
+		}, s.Base.BuildTriggers()
 	}
 
-	return &buildapi.BuildStrategy{
-		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: s.Base.ObjectReference(),
-			Env:  env.List(),
-		},
-	}, s.Base.BuildTriggers()
+	glog.Error("BuildStrategy called with unknown strategy")
+	return nil, nil
 }
 
 // BuildRef is a reference to a build configuration
