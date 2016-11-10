@@ -290,7 +290,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 	g.Describe("with env in params referencing the configmap [Conformance]", func() {
 		g.AfterEach(func() {
-			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, "deploymenty-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 		g.It("should expand the config map key to a value", func() {
 			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()
@@ -298,8 +298,15 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			_, name, err := createFixture(oc, envRefDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForSyncedConfig(oc, name, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
-			out, err := oc.Run("deploy").Args("dc/"+name, "--latest", "--follow").Output()
+			_, err = oc.Run("rollout").Args("latest", "dc/"+name).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			out, _ := oc.Run("rollout").Args("status", "dc/"+name).Output()
+			o.Expect(out).To(o.ContainSubstring("has failed progressing"))
+
+			out, err = oc.Run("logs").Args("dc/" + name).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("hello bar"))
 		})
@@ -307,7 +314,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 	g.Describe("with multiple image change triggers [Conformance]", func() {
 		g.AfterEach(func() {
-			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 
 		g.It("should run a successful deployment with multiple triggers", func() {
@@ -536,8 +543,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			g.By("verifying that we cannot start a new deployment")
+			g.By("verifying that we cannot start a new deployment via oc deploy")
 			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
+
+			g.By("verifying that we cannot start a new deployment via oc rollout")
+			out, err = oc.Run("rollout").Args("latest", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
