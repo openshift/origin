@@ -38,7 +38,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		}
 	}
 
-	if err := validateWildcardPolicy(route.Spec.WildcardPolicy, specPath.Child("wildcardPolicy")); err != nil {
+	if err := validateWildcardPolicy(route.Spec.Host, route.Spec.WildcardPolicy, specPath.Child("wildcardPolicy")); err != nil {
 		result = append(result, err)
 	}
 
@@ -323,7 +323,7 @@ var (
 )
 
 // validateWildcardPolicy tests that the wildcard policy is either empty or one of the supported types.
-func validateWildcardPolicy(policy routeapi.WildcardPolicyType, fldPath *field.Path) *field.Error {
+func validateWildcardPolicy(host string, policy routeapi.WildcardPolicyType, fldPath *field.Path) *field.Error {
 	if len(policy) == 0 {
 		return nil
 	}
@@ -331,6 +331,10 @@ func validateWildcardPolicy(policy routeapi.WildcardPolicyType, fldPath *field.P
 	// Check if policy is one of None or Subdomain.
 	if !allowedWildcardPoliciesSet.Has(string(policy)) {
 		return field.NotSupported(fldPath, policy, allowedWildcardPolicies)
+	}
+
+	if policy == routeapi.WildcardPolicySubdomain && len(host) == 0 {
+		return field.Invalid(fldPath, policy, "host name not specified for wildcard policy")
 	}
 
 	return nil
