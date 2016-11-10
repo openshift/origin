@@ -52,6 +52,7 @@ build-tests:
 #   make check
 check: | build verify
 	$(MAKE) test-unit test-cmd -o build -o verify
+	hack/godep-restore.sh
 .PHONY: check
 
 
