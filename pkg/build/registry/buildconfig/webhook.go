@@ -84,7 +84,7 @@ func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secre
 	case hookType == "generic":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildapi.BuildTriggerCause{
-				Message: "Generic WebHook",
+				Message: buildapi.BuildTriggerCauseGenericMsg,
 				GenericWebHook: &buildapi.GenericWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
@@ -93,7 +93,7 @@ func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secre
 	case hookType == "github":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildapi.BuildTriggerCause{
-				Message: "GitHub WebHook",
+				Message: buildapi.BuildTriggerCauseGithubMsg,
 				GitHubWebHook: &buildapi.GitHubWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
