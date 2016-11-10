@@ -63,17 +63,23 @@ func (d *DockerBuilder) Build() error {
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 
-	buildDir, err := ioutil.TempDir("", "docker-build")
+	/*
+		buildDir, err := ioutil.TempDir("", "docker-build")
+		if err != nil {
+			return err
+		}
+	*/
+	buildDir := "/tmp/gitSource"
+
+	err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin)
 	if err != nil {
 		return err
 	}
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
-	if err != nil {
-		return err
-	}
-	if sourceInfo != nil {
-		updateBuildRevision(d.client, d.build, sourceInfo)
-	}
+	/*
+		if sourceInfo != nil {
+			updateBuildRevision(d.client, d.build, sourceInfo)
+		}
+	*/
 	if err := d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
