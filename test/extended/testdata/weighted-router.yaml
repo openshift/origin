@@ -11,7 +11,7 @@ items:
   spec:
     containers:
     - name: router
-      image: openshift/origin-haproxy-router
+      image: openshift/origin-haproxy-router:v1.3.1
       env:
       - name: POD_NAMESPACE
         valueFrom:

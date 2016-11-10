@@ -20,7 +20,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: openshift/node
+        - image: openshift/node:v1.3.1
           name: idling-tcp-echo
           command:
             - /usr/bin/socat
@@ -29,7 +29,7 @@ items:
           ports:
           - containerPort: 8675
             protocol: TCP
-        - image: openshift/node
+        - image: openshift/node:v1.3.1
           name: idling-udp-echo
           command:
             - /usr/bin/socat

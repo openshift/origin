@@ -27,7 +27,6 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "openshift/origin-base:latest"
+      - image: openshift/origin-base:v1.3.1
         args: [ "sleep 120" ]
-        imagePullPolicy: IfNotPresent
         name: myapp
