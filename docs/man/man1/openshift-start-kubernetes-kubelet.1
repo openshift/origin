@@ -448,7 +448,7 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     Timeout of all runtime requests except long running request \- pull, logs, exec and attach. When timeout exceeded, kubelet will cancel the request, throw out an error and retry later. Default: 2m0s
 
 .PP
-\fB\-\-seccomp\-profile\-root\fP=""
+\fB\-\-seccomp\-profile\-root\fP="/var/lib/kubelet/seccomp"
     Directory path for seccomp profiles.
 
 .PP
