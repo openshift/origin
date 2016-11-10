@@ -11,7 +11,7 @@ items:
   spec:
     containers:
     - name: router
-      image: openshift/origin-haproxy-router
+      image: openshift/origin-haproxy-router:v1.3.1
       env:
       - name: POD_NAMESPACE
         valueFrom:
@@ -120,7 +120,7 @@ items:
   spec:
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: openshift/hello-openshift:v1.3.1
       ports:
       - containerPort: 8080
         name: http
@@ -136,7 +136,7 @@ items:
   spec:
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: openshift/hello-openshift:v1.3.1
       ports:
       - containerPort: 8080
         name: http
