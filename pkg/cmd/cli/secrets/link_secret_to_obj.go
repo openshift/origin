@@ -127,7 +127,7 @@ func (o LinkSecretOptions) LinkSecrets() error {
 // linkSecretsToServiceAccount links secrets to the service account, either as pull secrets, mount secrets, or both.
 func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.ServiceAccount) error {
 	updated := false
-	newSecrets, failLater, err := o.GetSecrets()
+	newSecrets, hasNotFound, err := o.GetSecrets(false)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.Serv
 		return err
 	}
 
-	if failLater {
+	if hasNotFound {
 		return errors.New("Some secrets could not be linked")
 	}
 

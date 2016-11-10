@@ -105,16 +105,16 @@ os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basica
 os::cmd::expect_success 'oc secrets link deployer basicauth'
 
 # Removing a non-existent secret should warn but succeed and change nothing
-os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar' 'secrets "foobar" not found'
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar' 'secret "foobar" not found'
 
 # Make sure that removing an existent and non-existent secret succeeds but warns about the non-existent one
-os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar basicauth' 'secrets "foobar" not found'
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar basicauth' 'secret "foobar" not found'
 # Make sure that the existing secret is removed
 os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
 
 # Make sure that removing a real but unlinked secret succeeds
 # https://github.com/openshift/origin/pull/9234#discussion_r70832486
-os::cmd::expect_success 'oc secrets unlink deployer basicauth'
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer basicauth', 'No valid secrets found or secrets not linked to service account'
 
 # Make sure that it succeeds if *any* of the secrets are linked
 # https://github.com/openshift/origin/pull/9234#discussion_r70832486

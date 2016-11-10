@@ -74,7 +74,7 @@ func (o UnlinkSecretOptions) UnlinkSecrets() error {
 func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kapi.ServiceAccount) error {
 	// All of the requested secrets must be present in either the Mount or Pull secrets
 	// If any of them are not present, we'll return an error and push no changes.
-	rmSecrets, failLater, err := o.GetSecrets()
+	rmSecrets, hasNotFound, err := o.GetSecrets(true)
 	if err != nil {
 		return err
 	}
@@ -82,12 +82,15 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 
 	newMountSecrets := []kapi.ObjectReference{}
 	newPullSecrets := []kapi.LocalObjectReference{}
+	updated := false
 
 	// Check the mount secrets
 	for _, secret := range serviceaccount.Secrets {
 		if !rmSecretNames.Has(secret.Name) {
 			// Copy this back in, since it doesn't match the ones we're removing
 			newMountSecrets = append(newMountSecrets, secret)
+		} else {
+			updated = true
 		}
 	}
 
@@ -96,20 +99,24 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 		if !rmSecretNames.Has(imagePullSecret.Name) {
 			// Copy this back in, since it doesn't match the one we're removing
 			newPullSecrets = append(newPullSecrets, imagePullSecret)
+		} else {
+			updated = true
 		}
 	}
 
-	// Save the updated Secret lists back to the server
-	serviceaccount.Secrets = newMountSecrets
-	serviceaccount.ImagePullSecrets = newPullSecrets
-	_, err = o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceaccount)
-	if err != nil {
-		return err
+	if updated {
+		// Save the updated Secret lists back to the server
+		serviceaccount.Secrets = newMountSecrets
+		serviceaccount.ImagePullSecrets = newPullSecrets
+		_, err = o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		if err != nil {
+			return err
+		}
+		if hasNotFound {
+			return fmt.Errorf("Unlinked deleted secrets from %s/%s service account", o.Namespace, serviceaccount.Name)
+		}
+		return nil
+	} else {
+		return errors.New("No valid secrets found or secrets not linked to service account")
 	}
-
-	if failLater {
-		return errors.New("Some secrets could not be unlinked")
-	}
-
-	return nil
 }
