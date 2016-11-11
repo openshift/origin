@@ -691,7 +691,7 @@ func resolveError(kind string, namespace string, name string, err error) error {
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
 func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
 	buildConfig.Status.LastVersion++
-	return fmt.Sprintf("%s-%d", buildConfig.Name, buildConfig.Status.LastVersion)
+	return namer.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
 }
 
 //updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
