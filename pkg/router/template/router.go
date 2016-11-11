@@ -572,9 +572,7 @@ func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeap
 		if tls != nil && len(tls.Termination) > 0 {
 			config.TLSTermination = tls.Termination
 
-			if tls.Termination == routeapi.TLSTerminationEdge {
-				config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
-			}
+			config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
 
 			if tls.Termination != routeapi.TLSTerminationPassthrough {
 				if config.Certificates == nil {
