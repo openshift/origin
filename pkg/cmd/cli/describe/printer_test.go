@@ -21,6 +21,7 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
@@ -258,5 +259,92 @@ func mockStreams() []*imageapi.ImageStream {
 				},
 			},
 		},
+	}
+}
+
+func TestPrintTemplate(t *testing.T) {
+	tests := []struct {
+		template templateapi.Template
+		want     string
+	}{
+		{
+			templateapi.Template{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "name",
+					Annotations: map[string]string{
+						"description": "description",
+					},
+				},
+				Parameters: []templateapi.Parameter{{}},
+				Objects:    []runtime.Object{&kapi.Pod{}},
+			},
+			"name\tdescription\t1 (1 blank)\t1\n",
+		},
+		{
+			templateapi.Template{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "long",
+					Annotations: map[string]string{
+						"description": "the long description of this template is way way way way way way way way way way way way way too long",
+					},
+				},
+				Parameters: []templateapi.Parameter{},
+				Objects:    []runtime.Object{},
+			},
+			"long\tthe long description of this template is way way way way way way way way way...\t0 (all set)\t0\n",
+		},
+		{
+			templateapi.Template{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "multiline",
+					Annotations: map[string]string{
+						"description": "Once upon a time\nthere was a template\nwith multiple\nlines\n",
+					},
+				},
+				Parameters: []templateapi.Parameter{},
+				Objects:    []runtime.Object{},
+			},
+			"multiline\tOnce upon a time...\t0 (all set)\t0\n",
+		},
+		{
+			templateapi.Template{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "trailingnewline",
+					Annotations: map[string]string{
+						"description": "Next line please\n",
+					},
+				},
+				Parameters: []templateapi.Parameter{},
+				Objects:    []runtime.Object{},
+			},
+			"trailingnewline\tNext line please...\t0 (all set)\t0\n",
+		},
+		{
+			templateapi.Template{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "longmultiline",
+					Annotations: map[string]string{
+						"description": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123\n0",
+					},
+				},
+				Parameters: []templateapi.Parameter{},
+				Objects:    []runtime.Object{},
+			},
+			"longmultiline\t12345678901234567890123456789012345678901234567890123456789012345678901234567...\t0 (all set)\t0\n",
+		},
+	}
+
+	for i, test := range tests {
+		buf := bytes.NewBuffer([]byte{})
+		err := printTemplate(&test.template, buf, kctl.PrintOptions{})
+		if err != nil {
+			t.Errorf("[%d] unexpected error: %v", i, err)
+			continue
+		}
+		got := buf.String()
+		if got != test.want {
+			t.Errorf("[%d] expected %q, got %q", i, test.want, got)
+			continue
+		}
 	}
 }

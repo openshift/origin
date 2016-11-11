@@ -178,6 +178,10 @@ func printTemplate(t *templateapi.Template, w io.Writer, opts kctl.PrintOptions)
 	if t.Annotations != nil {
 		description = t.Annotations["description"]
 	}
+	// Only print the first line of description
+	if lines := strings.SplitN(description, "\n", 2); len(lines) > 1 {
+		description = lines[0] + "..."
+	}
 	if len(description) > templateDescriptionLen {
 		description = strings.TrimSpace(description[:templateDescriptionLen-3]) + "..."
 	}
