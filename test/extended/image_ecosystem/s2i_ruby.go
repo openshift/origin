@@ -60,7 +60,6 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 			assertPageContent("Welcome to your Rails application on OpenShift")
 			g.By("modifying the source code with disabled hot deploy")
 			RunInPodContainer(oc, dcLabel, modifyCommand)
-			RunInPodContainer(oc, dcLabel, removeCommand)
 			g.By("testing application content source modification")
 			assertPageContent("Welcome to your Rails application on OpenShift")
 
@@ -79,6 +78,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("modifying the source code with enabled hot deploy")
+			assertPageContent("Welcome to your Rails application on OpenShift")
 			RunInPodContainer(oc, dcLabel, modifyCommand)
 			RunInPodContainer(oc, dcLabel, removeCommand)
 			assertPageContent("Hello, Rails!")
