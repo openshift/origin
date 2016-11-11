@@ -3499,6 +3499,14 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                   {
                     "name": "JNLP_SERVICE_NAME",
                     "value": "${JNLP_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "JAVA_OPTS",
+                    "value": "${JAVA_OPTS}"
+                  },
+                  {
+                    "name": "JENKINS_OPTS",
+                    "value": "${JENKINS_OPTS}"
                   }
                 ],
                 "resources": {
@@ -3650,6 +3658,18 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "displayName": "Jenkins ImageStreamTag",
       "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
       "value": "jenkins:latest"
+    },
+    {
+      "name": "JAVA_OPTS",
+      "displayName": "Jenkins JVM Arguments",
+      "description": "Arguments which will be passed directly to the JVM running Jenkins.",
+      "value": ""
+    },
+    {
+      "name": "JENKINS_OPTS",
+      "displayName": "Jenkins Arguments",
+      "description": "Arguments which will be passed to the Jenkins application.",
+      "value": ""
     }
   ],
   "labels": {
@@ -3808,6 +3828,14 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                   {
                     "name": "JNLP_SERVICE_NAME",
                     "value": "${JNLP_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "JAVA_OPTS",
+                    "value": "${JAVA_OPTS}"
+                  },
+                  {
+                    "name": "JENKINS_OPTS",
+                    "value": "${JENKINS_OPTS}"
                   }
                 ],
                 "resources": {
@@ -3966,6 +3994,18 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "displayName": "Jenkins ImageStreamTag",
       "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
       "value": "jenkins:latest"
+    },
+    {
+      "name": "JAVA_OPTS",
+      "displayName": "Jenkins JVM Arguments",
+      "description": "Arguments which will be passed directly to the JVM running Jenkins.",
+      "value": ""
+    },
+    {
+      "name": "JENKINS_OPTS",
+      "displayName": "Jenkins Arguments",
+      "description": "Arguments which will be passed to the Jenkins application.",
+      "value": ""
     }
   ],
   "labels": {
