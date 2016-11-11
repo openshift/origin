@@ -822,6 +822,21 @@ func TestValidateRoute(t *testing.T) {
 			expectedErrors: 0,
 		},
 		{
+			name: "wildcard policy subdomain",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "wildcardpolicy",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host:           "subdomain.wildcard.test",
+					To:             createRouteSpecTo("serviceName", "Service"),
+					WildcardPolicy: api.WildcardPolicySubdomain,
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
 			name: "Invalid wildcard policy",
 			route: &api.Route{
 				ObjectMeta: kapi.ObjectMeta{
@@ -832,6 +847,35 @@ func TestValidateRoute(t *testing.T) {
 					Host:           "bad.wildcard.test",
 					To:             createRouteSpecTo("serviceName", "Service"),
 					WildcardPolicy: "bad-wolf",
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Invalid host for wildcard policy",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "badhost",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					To:             createRouteSpecTo("serviceName", "Service"),
+					WildcardPolicy: api.WildcardPolicySubdomain,
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Empty host for wildcard policy",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "emptyhost",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host:           "",
+					To:             createRouteSpecTo("serviceName", "Service"),
+					WildcardPolicy: api.WildcardPolicySubdomain,
 				},
 			},
 			expectedErrors: 1,

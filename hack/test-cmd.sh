@@ -219,7 +219,7 @@ os::test::junit::declare_suite_end
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 # start up a registry for images tests
-ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" install_registry
+ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" os::start::registry
 
 #
 # Begin tests

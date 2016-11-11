@@ -181,7 +181,7 @@ readonly -f os::start::internal::configure_master
 function os::start::internal::patch_master_config() {
 	local sudo=${USE_SUDO:+sudo}
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml"
-	openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml" --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
 	openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
 	openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
 	openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
@@ -595,3 +595,66 @@ function os::start::internal::print_server_info() {
 	os::log::info "Using images:             ${USE_IMAGES}"
 	os::log::info "MasterIP is:              ${MASTER_ADDR}"
 }
+
+# os::start::router installs the OpenShift router and optionally creates
+# the server cert as well.
+#
+# Globals:
+#  - CREATE_ROUTER_CERT
+#  - MASTER_CONFIG_DIR
+#  - API_HOST
+#  - ADMIN_KUBECONFIG
+#  - USE_IMAGES
+#  - DROP_SYN_DURING_RESTART
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::start::router() {
+	os::log::info "Installing the router"
+	oadm policy add-scc-to-user privileged --serviceaccount='router' --config="${ADMIN_KUBECONFIG}"
+	# Create a TLS certificate for the router
+	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
+		os::log::info "Generating router TLS certificate"
+		oadm ca create-server-cert --hostnames="*.${API_HOST}.xip.io"          \
+		                           --key="${MASTER_CONFIG_DIR}/router.key"     \
+		                           --cert="${MASTER_CONFIG_DIR}/router.crt"    \
+		                           --signer-key="${MASTER_CONFIG_DIR}/ca.key"  \
+		                           --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+		                           --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+		cat "${MASTER_CONFIG_DIR}/router.crt" \
+		    "${MASTER_CONFIG_DIR}/router.key" \
+			"${MASTER_CONFIG_DIR}/ca.crt" > "${MASTER_CONFIG_DIR}/router.pem"
+		openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router --default-cert="${MASTER_CONFIG_DIR}/router.pem"
+	else
+		openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
+	fi
+
+	# Set the SYN eater to make router reloads more robust
+	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
+		# Rewrite the DC for the router to add the environment variable into the pod definition
+		os::log::info "Changing the router DC to drop SYN packets during a reload"
+		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
+	fi
+}
+readonly -f os::start::router
+
+# os::start::registry installs the OpenShift integrated registry
+#
+# Globals:
+#  - ADMIN_KUBECONFIG
+#  - USE_IMAGES
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::start::registry() {
+	# The --mount-host option is provided to reuse local storage.
+	os::log::info "Installing the registry"
+	# For testing purposes, ensure the quota objects are always up to date in the registry by
+	# disabling project cache.
+	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
+		oc env -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
+		oc create -f -
+}
+readonly -f os::start::registry

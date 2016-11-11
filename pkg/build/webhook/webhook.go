@@ -19,8 +19,9 @@ const (
 )
 
 var (
-	ErrSecretMismatch = errors.New("the provided secret does not match")
-	ErrHookNotEnabled = errors.New("the specified hook is not enabled")
+	ErrSecretMismatch  = errors.New("the provided secret does not match")
+	ErrHookNotEnabled  = errors.New("the specified hook is not enabled")
+	MethodNotSupported = errors.New("unsupported HTTP method")
 )
 
 // Plugin for Webhook verification is dependent on the sending side, it can be

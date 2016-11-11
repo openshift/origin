@@ -54,7 +54,7 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 		buildTriggerCauses := []buildapi.BuildTriggerCause{}
 		request.TriggeredBy = append(buildTriggerCauses,
 			buildapi.BuildTriggerCause{
-				Message: "Manually triggered",
+				Message: buildapi.BuildTriggerCauseManualMsg,
 			},
 		)
 	}

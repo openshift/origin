@@ -121,7 +121,7 @@ func (c *ImageChangeController) HandleImageStream(stream *imageapi.ImageStream) 
 				},
 				TriggeredBy: append(buildCauses,
 					buildapi.BuildTriggerCause{
-						Message: "Image change",
+						Message: buildapi.BuildTriggerCauseImageMsg,
 						ImageChangeBuild: &buildapi.ImageChangeCause{
 							ImageID: latest.DockerImageReference,
 							FromRef: from,

@@ -349,7 +349,7 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	newBuild.Spec.TriggeredBy = append(buildTriggerCauses,
 		buildapi.BuildTriggerCause{
-			Message: "Manually triggered",
+			Message: buildapi.BuildTriggerCauseManualMsg,
 		},
 	)
 
@@ -694,7 +694,7 @@ func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
 	return fmt.Sprintf("%s-%d", buildConfig.Name, buildConfig.Status.LastVersion)
 }
 
-// For a custom build strategy, update base image env variable reference with the new image.
+//updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
 // If no env variable reference exists, create a new env variable.
 func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage string) {
 	if strategy.Env == nil {

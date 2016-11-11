@@ -105,7 +105,7 @@ func TestKubeletDefaults(t *testing.T) {
 			OutOfDiskTransitionFrequency:   unversioned.Duration{Duration: 5 * time.Minute},
 			HairpinMode:                    "promiscuous-bridge",
 			BabysitDaemons:                 false,
-			SeccompProfileRoot:             "",
+			SeccompProfileRoot:             "/var/lib/kubelet/seccomp",
 			CloudProvider:                  "auto-detect",
 			RuntimeRequestTimeout:          unversioned.Duration{Duration: 2 * time.Minute},
 			ContentType:                    "application/vnd.kubernetes.protobuf",
