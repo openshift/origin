@@ -1670,7 +1670,7 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 }
 
 func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
-	changeMessage := "Build configuration change"
+	changeMessage := buildapi.BuildTriggerCauseConfigMsg
 
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	buildRequest := &buildapi.BuildRequest{
@@ -1695,7 +1695,7 @@ func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
-	changeMessage := "Image change"
+	changeMessage := buildapi.BuildTriggerCauseImageMsg
 	imageID := "centos@sha256:b3da5267165b"
 	refName := "centos:7"
 	refKind := "ImageStreamTag"
@@ -1721,7 +1721,7 @@ func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
 	for _, cause := range buildObject.Spec.TriggeredBy {
-		if cause.Message != "Image change" {
+		if cause.Message != buildapi.BuildTriggerCauseImageMsg {
 			t.Errorf("Expected reason %s, got %s", changeMessage, cause.Message)
 		}
 		if cause.ImageChangeBuild.ImageID != imageID {
@@ -1783,7 +1783,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
-	changeMessage := "GitHub WebHook"
+	changeMessage := buildapi.BuildTriggerCauseGithubMsg
 	webHookSecret := "testsecret"
 
 	gitRevision := &buildapi.SourceRevision{

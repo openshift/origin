@@ -120,6 +120,14 @@ type CommonSpec struct {
 	NodeSelector map[string]string
 }
 
+const (
+	BuildTriggerCauseManualMsg  = "Manually triggered"
+	BuildTriggerCauseConfigMsg  = "Build configuration change"
+	BuildTriggerCauseImageMsg   = "Image change"
+	BuildTriggerCauseGithubMsg  = "GitHub WebHook"
+	BuildTriggerCauseGenericMsg = "Generic WebHook"
+)
+
 // BuildTriggerCause holds information about a triggered build. It is used for
 // displaying build trigger data for each build and build configuration in oc
 // describe. It is also used to describe which triggers led to the most recent

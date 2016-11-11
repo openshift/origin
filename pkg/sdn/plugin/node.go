@@ -204,6 +204,10 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	// Wait for kubelet to init the plugin so we get a knetwork.Host
+	log.V(5).Infof("Waiting for kubelet network plugin initialization")
+	<-node.kubeletInitReady
+
 	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
 	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
 	if err != nil {
@@ -212,10 +216,6 @@ func (node *OsdnNode) Start() error {
 	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
 		return err
 	}
-
-	// Wait for kubelet to init the plugin so we get a knetwork.Host
-	log.V(5).Infof("Waiting for kubelet network plugin initialization")
-	<-node.kubeletInitReady
 
 	if networkChanged {
 		var pods []kapi.Pod

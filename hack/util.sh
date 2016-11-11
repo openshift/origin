@@ -38,12 +38,6 @@ function kill_all_processes() {
 }
 readonly -f kill_all_processes
 
-# time_now return the time since the epoch in millis
-function time_now() {
-	echo $(date +%s000)
-}
-readonly -f time_now
-
 # dump_container_logs writes container logs to $LOG_DIR
 function dump_container_logs() {
 	if ! docker version >/dev/null 2>&1; then
@@ -144,45 +138,6 @@ function cleanup_openshift() {
 }
 readonly -f cleanup_openshift
 
-# install the router for the extended tests
-function install_router() {
-	os::log::info "Installing the router"
-	oadm policy add-scc-to-user privileged -z router --config="${ADMIN_KUBECONFIG}"
-	# Create a TLS certificate for the router
-	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
-		os::log::info "Generating router TLS certificate"
-		oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
-			--signer-key=${MASTER_CONFIG_DIR}/ca.key \
-			--signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
-			--hostnames="*.${API_HOST}.xip.io" \
-			--cert=${MASTER_CONFIG_DIR}/router.crt --key=${MASTER_CONFIG_DIR}/router.key
-		cat ${MASTER_CONFIG_DIR}/router.crt ${MASTER_CONFIG_DIR}/router.key \
-			${MASTER_CONFIG_DIR}/ca.crt > ${MASTER_CONFIG_DIR}/router.pem
-		ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
-	fi
-	openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
-
-	# Set the SYN eater to make router reloads more robust
-	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
-		# Rewrite the DC for the router to add the environment variable into the pod definition
-		os::log::info "Changing the router DC to drop SYN packets during a reload"
-		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
-	fi
-}
-readonly -f install_router
-
-# install registry for the extended tests
-function install_registry() {
-	# The --mount-host option is provided to reuse local storage.
-	os::log::info "Installing the registry"
-	# For testing purposes, ensure the quota objects are always up to date in the registry by
-	# disabling project cache.
-	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
-		oc env -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
-		oc create -f -
-}
-readonly -f install_registry
-
 ######
 # end of common functions for extended test group's run.sh scripts
 ######
@@ -202,10 +157,3 @@ function find_files() {
 	\) -name '*.go' | sort -u
 }
 readonly -f find_files
-
-# Asks golang what it thinks the host platform is.  The go tool chain does some
-# slightly different things when the target platform matches the host platform.
-function os::util::host_platform() {
-	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::util::host_platform

@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7f7c50755fe4bde5b390bb8569ddc9ff1841d82a
+%global commit 76e3158eb607427200d32df43680a32e1193b7d3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.23+7f7c507-63 OS_GIT_COMMIT=7f7c507 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.24+76e3158-46 OS_GIT_COMMIT=76e3158 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.24
+Version:        3.4.0.25
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,53 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Nov 11 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.25
+- bump(github.com/openshift/origin-web-console):
+  d5d4a253ad5c6e1be4bb06ccdcb255feb7b41bb2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cc2bd92ae1cb470a5d09121b0bbf92f5e52fb619 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a8c369b3f0a87ca757f179d13ae7e48cce0f9c86 (dmcphers+openshiftbot@redhat.com)
+- List events for unidling controller (jliggitt@redhat.com)
+- Change default to etcd2 (jliggitt@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bb443db5dae2de44042f8cafb0c0b01000f1d1d1 (dmcphers+openshiftbot@redhat.com)
+- set automatic to false for the dev DC deployment (bparees@redhat.com)
+- Move test case TestGenerateGateway to common_test.go
+  (zhao.xiangpeng@zte.com.cn)
+- add general build trigger msg and add some other optimizition
+  (li.guangxu@zte.com.cn)
+- Fix for bugz https://bugzilla.redhat.com/show_bug.cgi?id=1392862 - don't
+  allow wildcard policy if host is not specified. (smitram@gmail.com)
+- Fix for bugz 1393262 - serve certs for wildcard hosts. (smitram@gmail.com)
+- Add missing permission when running 'oc cluster up --metrics'
+  (mwringe@redhat.com)
+- add test/cmd test (jvallejo@redhat.com)
+- UPSTREAM: 36541: Remove duplicate describer errs (jvallejo@redhat.com)
+- Fix for bugz 1391878 and 1391338 - for multiple wildcard routes asking for
+  the same subdomain and in the same namespace, reject newer routes with
+  'HostAlreadyClaimed' if paths are different + address @liggitt review
+  comments. (smitram@gmail.com)
+- fixup man and test for default seccomp directory (sjenning@redhat.com)
+- UPSTREAM: 36375: Fix default Seccomp profile directory (sjenning@redhat.com)
+- Fix launching number of pods for testing network diagnostics
+  (rpenta@redhat.com)
+- Fix ordering of SDN startup threads (danw@redhat.com)
+- deployments: stop using --follow to verify the env var in test
+  (mfojtik@redhat.com)
+- Migrated router and registry startup utilities from util.sh
+  (skuznets@redhat.com)
+- resolve logic errors introduced in #11077 and return 40x errors instead of
+  500 errors where possible (jminter@redhat.com)
+- deployments: oc rollout latest should not rollout on paused config
+  (mfojtik@redhat.com)
+- Allow to use star as repository name in imagestreamimport
+  (agladkov@redhat.com)
+- UPSTREAM: 36386: Avoid setting S_ISGID on files in volumes
+  (sjenning@redhat.com)
+- Migrated misc method and removed unused method from util.sh
+  (skuznets@redhat.com)
+
 * Wed Nov 09 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.24
 - require builder image for source-type binary build creation
   (bparees@redhat.com)

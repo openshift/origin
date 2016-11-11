@@ -426,7 +426,7 @@ func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
 		if cause.GenericWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != "Generic WebHook" {
+		if cause.Message != api.BuildTriggerCauseGenericMsg {
 			t.Errorf("Expected build reason to be 'Generic WebHook, go %s'", cause.Message)
 		}
 	}
@@ -456,7 +456,7 @@ func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
 		if cause.GitHubWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != "GitHub WebHook" {
+		if cause.Message != api.BuildTriggerCauseGithubMsg {
 			t.Errorf("Expected build reason to be 'GitHub WebHook, go %s'", cause.Message)
 		}
 	}

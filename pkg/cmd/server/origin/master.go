@@ -798,13 +798,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	if configapi.IsBuildEnabled(&c.Options) {
 		storage["builds"] = buildStorage
-		storage["buildConfigs"] = buildConfigStorage
-		storage["buildConfigs/webhooks"] = buildConfigWebHooks
 		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/details"] = buildDetailsStorage
+
+		storage["buildConfigs"] = buildConfigStorage
+		storage["buildConfigs/webhooks"] = buildConfigWebHooks
+		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
+		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
 	}
 
 	return storage

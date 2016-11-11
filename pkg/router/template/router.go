@@ -224,6 +224,18 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 	return fmt.Sprintf("^[^\\.]*%s(|/.*)$", expr)
 }
 
+// Generates the host name to use for serving/certificate matching.
+// If wildcard is set, a wildcard host name (*.<subdomain>) is generated.
+func genCertificateHostName(hostname string, wildcard bool) string {
+	if wildcard {
+		if idx := strings.IndexRune(hostname, '.'); idx > 0 {
+			return fmt.Sprintf("*.%s", hostname[idx+1:])
+		}
+	}
+
+	return hostname
+}
+
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 	if len(alias.PreferPort) == 0 {
 		return svc.EndpointTable
