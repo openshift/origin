@@ -502,7 +502,7 @@ func (e SourceRepositoryEnumerator) Detect(dir string, noSourceDetection bool) (
 	// is docker or pipeline
 	if !noSourceDetection {
 		for _, d := range e.Detectors {
-			if detected, ok := d(dir); ok {
+			if detected := d(dir); detected != nil {
 				info.Types = append(info.Types, SourceLanguageType{
 					Platform: detected.Platform,
 					Version:  detected.Version,
