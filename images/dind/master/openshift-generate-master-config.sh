@@ -4,6 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+source /usr/local/bin/openshift-dind-lib.sh
 # Should set OPENSHIFT_NETWORK_PLUGIN
 source /data/dind-env
 
@@ -50,6 +51,11 @@ function ensure-master-config() {
   # ensure the configuration can be used outside of the container
   chmod -R ga+rX "${master_path}"
   chmod ga+w "${master_path}/admin.kubeconfig"
+
+  os::util::ensure-ipsec-config "${name}" \
+    "${master_path}/ca.crt" \
+    "${master_path}/master.server.crt" \
+    "${master_path}/master.server.key"
 }
 
 ensure-master-config
