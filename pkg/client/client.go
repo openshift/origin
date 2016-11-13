@@ -6,6 +6,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -80,6 +81,8 @@ type Interface interface {
 	AppliedClusterResourceQuotasNamespacer
 	// Openshift specific methods.
 	Discovery() discovery.DiscoveryInterface
+	SetTimeout(d time.Duration)
+
 	// Implements kubectl RESTClient
 	resource.RESTClient
 }
@@ -349,6 +352,10 @@ func (c *Client) Get() *restclient.Request {
 }
 func (c *Client) Delete() *restclient.Request {
 	return c.RESTClient.Delete()
+}
+
+func (c *Client) SetTimeout(d time.Duration) {
+	c.RESTClient.Client.Timeout = d
 }
 
 // SetOpenShiftDefaults sets the default settings on the passed

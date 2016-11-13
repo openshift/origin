@@ -237,9 +237,9 @@ func TestStartBuildComplete(t *testing.T) {
 
 	for _, test := range tests {
 
-		cmd := NewCmdStartBuild("start-build", "oc", f, os.Stdin, os.Stdout)
+		cmd := NewCmdStartBuild("start-build", "oc", f, os.Stdin, os.Stdout, os.Stdout)
 
-		if err := test.opts.Complete("oc", f, cmd, test.args, os.Stdin, os.Stdout); err != nil {
+		if err := test.opts.Complete("oc", f, cmd, test.args, os.Stdin, os.Stdout, os.Stdout); err != nil {
 			if len(test.expectedErr) == 0 {
 				t.Fatalf("[%s] error not expected: %v", test.name, err)
 			}

@@ -113,7 +113,7 @@ type StartBuildOptions struct {
 }
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(name, baseName string, f clientcmd.InterfaceFactory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdStartBuild(name, baseName string, f clientcmd.FactoryInterface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -149,7 +149,7 @@ func NewCmdStartBuild(name, baseName string, f clientcmd.InterfaceFactory, in io
 	return cmd
 }
 
-func (o *StartBuildOptions) Complete(baseName string, f clientcmd.InterfaceFactory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *StartBuildOptions) Complete(baseName string, f clientcmd.FactoryInterface, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout
@@ -167,7 +167,7 @@ func (o *StartBuildOptions) Complete(baseName string, f clientcmd.InterfaceFacto
 		if len(args) > 0 || len(o.FromBuild) > 0 || len(o.FromFile) > 0 || len(o.FromDir) > 0 || len(o.FromRepo) > 0 {
 			return kcmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
-		if !strings.HasSuffix(webhook, "/generic") {
+		if !strings.HasSuffix(o.FromWebhook, "/generic") {
 			fmt.Fprintf(errout, "warning: the '--from-webhook' flag should be called with a generic webhook URL.\n")
 		}
 		return nil

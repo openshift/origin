@@ -3,6 +3,7 @@ package testclient
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
@@ -353,6 +354,8 @@ func (c *Fake) AppliedClusterResourceQuotas(namespace string) client.AppliedClus
 func (c *Fake) Discovery() discovery.DiscoveryInterface {
 	return nil
 }
+
+func (c *Fake) SetTimeout(time.Duration) {}
 
 func (c *Fake) Post() *restclient.Request {
 	return nil
