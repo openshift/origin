@@ -27,7 +27,7 @@ const (
 // NetworkDiagnostic is a diagnostic that runs a network diagnostic pod and relays the results.
 type NetworkDiagnostic struct {
 	KubeClient          *kclient.Client
-	OSClient            *osclient.Client
+	OSClient            osclient.Interface
 	ClientFlags         *flag.FlagSet
 	Level               int
 	Factory             *osclientcmd.Factory

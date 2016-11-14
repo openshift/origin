@@ -532,7 +532,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	}
 
 	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient)
-	dcGetter := deployclient.New(oclient.RESTClient)
+	dcGetter := deployclient.New(oclient)
 	rcGetter := clientset.FromUnversionedClient(kclient)
 
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, rcGetter, func(currentReplicas int32, annotations map[string]string) {

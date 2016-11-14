@@ -424,7 +424,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 }
 
 // getClients returns a Kube client, OpenShift client, and registry client.
-func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient.Client, *http.Client, error) {
+func getClients(f *clientcmd.Factory, caBundle string) (client.Interface, *kclient.Client, *http.Client, error) {
 	clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return nil, nil, nil, err
@@ -432,7 +432,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 
 	var (
 		token          string
-		osClient       *client.Client
+		osClient       client.Interface
 		kClient        *kclient.Client
 		registryClient *http.Client
 	)

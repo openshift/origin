@@ -20,7 +20,7 @@ import (
 )
 
 // NewBuildConfigReaper returns a new reaper for buildConfigs
-func NewBuildConfigReaper(oc *client.Client) kubectl.Reaper {
+func NewBuildConfigReaper(oc client.Interface) kubectl.Reaper {
 	return &BuildConfigReaper{oc: oc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 

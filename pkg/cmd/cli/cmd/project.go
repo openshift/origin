@@ -27,7 +27,7 @@ import (
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	ClientFn     func() (*client.Client, kclient.Interface, error)
+	ClientFn     func() (client.Interface, kclient.Interface, error)
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -107,7 +107,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		return err
 	}
 
-	o.ClientFn = func() (*client.Client, kclient.Interface, error) {
+	o.ClientFn = func() (client.Interface, kclient.Interface, error) {
 		return f.Clients()
 	}
 
@@ -279,7 +279,7 @@ func (o ProjectOptions) RunProject() error {
 	return nil
 }
 
-func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclient.Interface) error {
+func confirmProjectAccess(currentProject string, oClient client.Interface, kClient kclient.Interface) error {
 	_, projectErr := oClient.Projects().Get(currentProject)
 	if !kapierrors.IsNotFound(projectErr) {
 		return projectErr
@@ -294,7 +294,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 	return projectErr
 }
 
-func getProjects(oClient *client.Client, kClient kclient.Interface) ([]api.Project, error) {
+func getProjects(oClient client.Interface, kClient kclient.Interface) ([]api.Project, error) {
 	projects, err := oClient.Projects().List(kapi.ListOptions{})
 	if err == nil {
 		return projects.Items, nil

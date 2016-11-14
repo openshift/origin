@@ -33,7 +33,7 @@ const (
 	NetworkDiagPodLogDirPrefix       = "/pods"
 )
 
-func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
+func GetOpenShiftNetworkPlugin(osClient osclient.Interface) (string, bool, error) {
 	cn, err := osClient.ClusterNetwork().Get(api.ClusterNetworkDefault)
 	if err != nil {
 		if kerrors.IsNotFound(err) {

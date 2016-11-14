@@ -591,7 +591,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		if err != nil {
 			return nil, err
 		}
-		return w.OriginSwaggerSchema(oc.RESTClient, gvk.GroupVersion())
+		return w.OriginSwaggerSchema(oc, gvk.GroupVersion())
 	}
 
 	w.EditorEnvs = func() []string {
@@ -993,7 +993,7 @@ func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, so
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
+func (f *Factory) Clients() (client.Interface, *kclient.Client, error) {
 	kClient, err := f.Client()
 	if err != nil {
 		return nil, nil, err
@@ -1006,7 +1006,7 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (f *Factory) OriginSwaggerSchema(client resource.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}

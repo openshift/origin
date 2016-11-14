@@ -28,7 +28,7 @@ import (
 
 type ProjectOptions struct {
 	DefaultNamespace string
-	Oclient          *osclient.Client
+	Oclient          osclient.Interface
 	Kclient          *kclient.Client
 	Out              io.Writer
 
