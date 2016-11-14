@@ -5,7 +5,7 @@
 
 # os::text::reset resets the terminal output to default if it is called in a TTY
 function os::text::reset() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput sgr0
 	fi
 }
@@ -13,7 +13,7 @@ readonly -f os::text::reset
 
 # os::text::bold sets the terminal output to bold text if it is called in a TTY
 function os::text::bold() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput bold
 	fi
 }
@@ -21,7 +21,7 @@ readonly -f os::text::bold
 
 # os::text::red sets the terminal output to red text if it is called in a TTY
 function os::text::red() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput setaf 1
 	fi
 }
@@ -29,7 +29,7 @@ readonly -f os::text::red
 
 # os::text::green sets the terminal output to green text if it is called in a TTY
 function os::text::green() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput setaf 2
 	fi
 }
@@ -37,7 +37,7 @@ readonly -f os::text::green
 
 # os::text::blue sets the terminal output to blue text if it is called in a TTY
 function os::text::blue() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput setaf 4
 	fi
 }
@@ -45,7 +45,7 @@ readonly -f os::text::blue
 
 # os::text::yellow sets the terminal output to yellow text if it is called in a TTY
 function os::text::yellow() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput setaf 11
 	fi
 }
@@ -55,7 +55,7 @@ readonly -f os::text::yellow
 # terminal and leaves the cursor on that line to allow for overwriting that text
 # if it is called in a TTY
 function os::text::clear_last_line() {
-	if [[ -t 1 ]]; then
+	if os::text::internal::is_tty; then
 		tput cuu 1
 		tput el
 	fi
@@ -69,7 +69,7 @@ readonly -f os::text::clear_last_line
 # No action is taken if this is called outside of a TTY
 function os::text::clear_string() {
     local -r string="$1"
-    if [[ -t 1 ]]; then
+    if os::text::internal::is_tty; then
         echo "${string}" | while read line; do
             # num_lines is the number of terminal lines this one line of output
             # would have taken up with the current terminal width in columns
@@ -80,6 +80,16 @@ function os::text::clear_string() {
         done
     fi
 }
+
+# If $TERM is set but not exported, we will not be able to call
+# tput. Therefore, we export whatever is present in $TERM.
+export TERM
+
+# os::text::internal::is_tty determines if we are outputting to a TTY
+function os::text::internal::is_tty() {
+	[[ -t 1 && -n "${TERM:-}" ]]
+}
+readonly -f os::text::internal::is_tty
 
 # os::text::print_bold prints all input in bold text
 function os::text::print_bold() {
