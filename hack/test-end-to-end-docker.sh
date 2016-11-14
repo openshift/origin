@@ -72,7 +72,7 @@ os::log::info "oc version:        `oc version`"
 os::log::info "Using images:							${USE_IMAGES}"
 
 os::log::info "Starting OpenShift containerized server"
-oc cluster up --server-loglevel=4 --version="${TAG}" \
+oc cluster up --image=openshift/origin --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
 
