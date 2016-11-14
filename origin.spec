@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 76e3158eb607427200d32df43680a32e1193b7d3
+%global commit 17a6b6bc7a1fa40caf8a60a4bb39057c5f2aee0f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.24+76e3158-46 OS_GIT_COMMIT=76e3158 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.25+17a6b6b-8 OS_GIT_COMMIT=17a6b6b OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.25
+Version:        3.4.0.26
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,14 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Nov 14 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.26
+- bump(github.com/openshift/origin-web-console):
+  3d8c136b9089d687db197eb6c80daf243076c06a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  44484b3fa93991a6b9d5f4121eda94600ef55628 (dmcphers+openshiftbot@redhat.com)
+- Update the TTY detection logic in Bash text utils (skuznets@redhat.com)
+- oc get templates: print only first description line (mmilata@redhat.com)
+
 * Fri Nov 11 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.25
 - bump(github.com/openshift/origin-web-console):
   d5d4a253ad5c6e1be4bb06ccdcb255feb7b41bb2 (dmcphers+openshiftbot@redhat.com)
