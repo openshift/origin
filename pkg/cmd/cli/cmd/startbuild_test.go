@@ -18,34 +18,8 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client/testclient"
 )
-
-type FakeClientConfig struct {
-	Raw      clientcmdapi.Config
-	Client   *restclient.Config
-	NS       string
-	Explicit bool
-	Err      error
-}
-
-func (c *FakeClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
-	return nil
-}
-
-// RawConfig returns the merged result of all overrides
-func (c *FakeClientConfig) RawConfig() (clientcmdapi.Config, error) {
-	return c.Raw, c.Err
-}
-
-// ClientConfig returns a complete client config
-func (c *FakeClientConfig) ClientConfig() (*restclient.Config, error) {
-	return c.Client, c.Err
-}
-
-// Namespace returns the namespace resulting from the merged result of all overrides
-func (c *FakeClientConfig) Namespace() (string, bool, error) {
-	return c.NS, c.Explicit, c.Err
-}
 
 func TestStartBuildWebHook(t *testing.T) {
 	invoked := make(chan struct{}, 1)
@@ -144,4 +118,127 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	if event.Git.Refs[0].Commit != "2384" {
 		t.Fatalf("unexpected ref: %#v", event.Git.Refs[0])
 	}
+}
+
+// TestStartBuildRun ensures that Run works like expected.
+func TestStartBuildRun(t *testing.T) {
+	type testAction struct {
+		verb, resource, subresource string
+	}
+
+	tests := []struct {
+		name            string
+		opts            *StartBuildOptions
+		expectedActions []testAction
+		expectedErr     string
+	}{
+		{
+			name: "create builds clone",
+			opts: &StartBuildOptions{
+				FromBuild: "hello-world-1",
+			},
+			expectedActions: []testAction{
+				{verb: "create", resource: "builds", subresource: "clone"},
+			},
+		},
+		{
+			name: "create buildconfigs instantiate",
+			opts: &StartBuildOptions{
+				Name: "hello-world",
+			},
+			expectedActions: []testAction{
+				{verb: "create", resource: "buildconfigs", subresource: "instantiate"},
+			},
+		},
+		{
+			name: "binary with dir, file",
+			opts: &StartBuildOptions{
+				AsBinary: true,
+				FromDir:  "src/",
+				FromFile: "test.xml",
+				Name:     "hello-world",
+			},
+			expectedErr: "only one of --from-file, --from-repo, or --from-dir may be specified",
+		},
+		{
+			name: "binary",
+			opts: &StartBuildOptions{
+				AsBinary: true,
+				Name:     "hello-world",
+			},
+			expectedActions: []testAction{
+				{verb: "create", resource: "buildconfigs", subresource: "instantiatebinary"},
+			},
+		},
+		{
+			name: "fromrepo with commit tag",
+			opts: &StartBuildOptions{
+				FromRepo: "../hello-world",
+				Commit:   "v2",
+				Name:     "hello-world",
+			},
+			expectedActions: []testAction{
+				{verb: "create", resource: "buildconfigs", subresource: "instantiate"},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		osclient := testclient.NewSimpleFake(genBuild("hello-world-1", "test", buildapi.BuildPhaseNew))
+
+		test.opts.Client = osclient
+		test.opts.Out = ioutil.Discard
+		test.opts.ErrOut = ioutil.Discard
+		test.opts.Mapper = registered.RESTMapper()
+
+		if err := test.opts.Run(); err != nil {
+			if len(test.expectedErr) == 0 {
+				t.Fatalf("[%s] RUN: error not expected: %v", test.name, err)
+			}
+			if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Fatalf("[%s] RUN: error not expected: %v", test.name, err)
+			}
+		} else if len(test.expectedErr) != 0 {
+			t.Fatalf("[%s] RUN: expected error: %v, got nil", test.name, test.expectedErr)
+		}
+
+		got := osclient.Actions()
+		if len(test.expectedActions) != len(got) {
+			t.Fatalf("action length mismatch: expected %d, got %d", len(test.expectedActions), len(got))
+		}
+
+		for i, action := range test.expectedActions {
+			if !got[i].Matches(action.verb, action.resource) {
+				t.Errorf("action mismatch: expected %s %s, got %s %s", action.verb, action.resource, got[i].GetVerb(), got[i].GetResource())
+			}
+		}
+	}
+}
+
+// FakeClientConfig mocks a kubernetes ClientConfig.
+type FakeClientConfig struct {
+	Raw      clientcmdapi.Config
+	Client   *restclient.Config
+	NS       string
+	Explicit bool
+	Err      error
+}
+
+func (c *FakeClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
+	return nil
+}
+
+// RawConfig returns the merged result of all overrides
+func (c *FakeClientConfig) RawConfig() (clientcmdapi.Config, error) {
+	return c.Raw, c.Err
+}
+
+// ClientConfig returns a complete client config
+func (c *FakeClientConfig) ClientConfig() (*restclient.Config, error) {
+	return c.Client, c.Err
+}
+
+// Namespace returns the namespace resulting from the merged result of all overrides
+func (c *FakeClientConfig) Namespace() (string, bool, error) {
+	return c.NS, c.Explicit, c.Err
 }
