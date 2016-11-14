@@ -237,17 +237,19 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("deploying a few more times")
 			for i := 0; i < 3; i++ {
-				out, err = oc.Run("deploy").Args("--latest", "--follow", "deployment-test").Output()
+				_, err = oc.Run("rollout").Args("latest", "dc/deployment-test").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("verifying the deployment is marked complete and scaled to zero")
+				out, err = oc.Run("rollout").Args("status", "dc/deployment-test").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By(fmt.Sprintf("verifying the deployment #%d is marked complete and scaled to zero", i+2))
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
-				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
-				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
-				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
-				o.Expect(out).To(o.ContainSubstring("--> Success"))
+				g.By("checking the events for deployment hooks")
+				out, err = oc.Run("describe").Args("dc/deployment-test").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("The pre-hook for deployment %s/deployment-test-%d completed successfully", oc.Namespace(), i+2)))
 			}
 		})
 	})
