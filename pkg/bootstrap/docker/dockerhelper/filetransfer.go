@@ -73,18 +73,19 @@ func newContainerDownloader(client *docker.Client, container, path string) io.Re
 	return r
 }
 
-func newContainerUploader(client *docker.Client, container, path string) io.WriteCloser {
+func newContainerUploader(client *docker.Client, container, path string) (io.WriteCloser, <-chan error) {
 	r, w := io.Pipe()
+	errch := make(chan error, 1)
 
 	go func() {
 		opts := docker.UploadToContainerOptions{
 			Path:        path,
 			InputStream: r,
 		}
-		r.CloseWithError(client.UploadToContainer(container, opts))
+		errch <- client.UploadToContainer(container, opts)
 	}()
 
-	return w
+	return w, errch
 }
 
 type readCloser struct {
@@ -121,16 +122,16 @@ func DownloadDirFromContainer(client *docker.Client, container, src, dst string)
 
 // UploadFileToContainer uploads a file to a remote container.
 func UploadFileToContainer(client *docker.Client, container, src, dest string) error {
-	uploader := newContainerUploader(client, container, filepath.Dir(dest))
+	uploader, errch := newContainerUploader(client, container, filepath.Dir(dest))
 
 	nullWalkFunc := func(path string, info os.FileInfo, err error) error { return err }
 
 	t := stitar.New()
 	err := t.StreamFileAsTarWithCallback(src, filepath.Base(dest), uploader, nullWalkFunc, false)
+	uploader.Close()
 	if err != nil {
-		uploader.Close()
 		return err
 	}
 
-	return uploader.Close()
+	return <-errch
 }
