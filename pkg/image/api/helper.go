@@ -32,9 +32,9 @@ const (
 	// DockerDefaultV2Registry is the host name of the default v2 registry
 	DockerDefaultV2Registry = "registry-1." + DockerDefaultRegistry
 
-	// containerImageEntrypointAnnotationFormatKey is a format used to identify the entrypoint of a particular
+	// ContainerImageEntrypointAnnotationFormatKey is a format used to identify the entrypoint of a particular
 	// container in a pod template. It is a JSON array of strings.
-	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
+	ContainerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
 )
 
 // DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
@@ -929,7 +929,7 @@ func PrioritizeTags(tags []string) {
 }
 
 func ContainerImageEntrypointByAnnotation(annotations map[string]string, containerName string) ([]string, bool) {
-	s, ok := annotations[fmt.Sprintf(containerImageEntrypointAnnotationFormatKey, containerName)]
+	s, ok := annotations[fmt.Sprintf(ContainerImageEntrypointAnnotationFormatKey, containerName)]
 	if !ok {
 		return nil, false
 	}
@@ -941,7 +941,7 @@ func ContainerImageEntrypointByAnnotation(annotations map[string]string, contain
 }
 
 func SetContainerImageEntrypointAnnotation(annotations map[string]string, containerName string, cmd []string) {
-	key := fmt.Sprintf(containerImageEntrypointAnnotationFormatKey, containerName)
+	key := fmt.Sprintf(ContainerImageEntrypointAnnotationFormatKey, containerName)
 	if len(cmd) == 0 {
 		delete(annotations, key)
 		return

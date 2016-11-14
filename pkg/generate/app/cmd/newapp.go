@@ -269,8 +269,12 @@ func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
 }
 
 func validateEnforcedName(name string) error {
-	if reasons := validation.ValidateServiceName(name, false); len(reasons) != 0 && !app.IsParameterizableValue(name) {
-		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
+	// The limiting factor on name length is that name may be substituted into
+	// imageapi.ContainerImageEntrypointAnnotationFormatKey, whose part after
+	// the '/' character cannot exceed 63 characters.
+	maxlen := 63 - len(fmt.Sprintf(strings.Split(imageapi.ContainerImageEntrypointAnnotationFormatKey, "/")[1], ""))
+	if reasons := validation.ValidateServiceName(name, false); (len(reasons) != 0 || len(name) > maxlen) && !app.IsParameterizableValue(name) {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of %d characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name, maxlen)
 	}
 	return nil
 }
