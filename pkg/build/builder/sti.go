@@ -310,7 +310,7 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
-	err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in)
+	err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout)
 	if err != nil {
 		return nil, err
 	}

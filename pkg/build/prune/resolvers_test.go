@@ -63,6 +63,7 @@ func TestOrphanBuildResolver(t *testing.T) {
 		buildapi.BuildPhaseFailed,
 		buildapi.BuildPhaseNew,
 		buildapi.BuildPhasePending,
+		buildapi.BuildPhaseInit,
 		buildapi.BuildPhaseRunning,
 	}
 	BuildPhaseFilter := []buildapi.BuildPhase{
@@ -109,6 +110,7 @@ func TestPerBuildConfigResolver(t *testing.T) {
 		buildapi.BuildPhaseFailed,
 		buildapi.BuildPhaseNew,
 		buildapi.BuildPhasePending,
+		buildapi.BuildphaseInit,
 		buildapi.BuildPhaseRunning,
 	}
 	buildConfigs := []*buildapi.BuildConfig{

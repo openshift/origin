@@ -201,7 +201,8 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildapi.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
-		Stdin: true,
+		Stdin:     true,
+		Container: "git-clone",
 	}
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {

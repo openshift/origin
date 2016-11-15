@@ -71,7 +71,7 @@ func (d *DockerBuilder) Build() error {
 	*/
 	buildDir := "/tmp/gitSource"
 
-	err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin)
+	err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout)
 	if err != nil {
 		return err
 	}

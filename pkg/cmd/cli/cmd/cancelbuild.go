@@ -265,6 +265,7 @@ func isStateCancellable(state string) bool {
 		string(buildapi.BuildPhaseNew),
 		string(buildapi.BuildPhasePending),
 		string(buildapi.BuildPhaseRunning),
+		string(buildapi.BuildPhaseInit),
 	}
 	for _, p := range cancellablePhases {
 		if state == strings.ToLower(p) {

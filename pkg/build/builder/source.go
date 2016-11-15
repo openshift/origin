@@ -65,13 +65,15 @@ func GitClone(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader) error {
+func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration) error {
 	hasGitSource := false
 
-	// expect to receive input from STDIN
-	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
-		return err
-	}
+	/*
+		// expect to receive input from STDIN
+		if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
+			return err
+		}
+	*/
 
 	/*
 		// may retrieve source from Git
@@ -182,9 +184,9 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 	return checkRemoteGit(gitClient, rawurl, timeout)
 }
 
-// extractInputBinary processes the provided input stream as directed by BinaryBuildSource
+// ExtractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
-func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string) error {
+func ExtractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string) error {
 	if source == nil {
 		return nil
 	}
@@ -209,6 +211,10 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
+	glog.V(0).Infof("sleeping2")
+	exec.Command("sleep", "5")
+	glog.V(0).Infof("done sleeping2")
+
 	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
@@ -216,6 +222,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 		glog.V(0).Infof("Extracting...\n%s", string(out))
 		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
+	glog.V(0).Infof("Source received: %s", string(out))
 	return nil
 }
 
