@@ -549,7 +549,7 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 		route.Spec.To, route)
 
 	// Name of the pool in F5.
-	poolname := poolName(route.Namespace, route.Name)
+	poolname := poolName(route.Namespace, route.Spec.To.Name)
 
 	// Virtual hostname for policy rule in F5.
 	hostname := route.Spec.Host
