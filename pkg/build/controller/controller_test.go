@@ -473,13 +473,22 @@ func TestHandlePod(t *testing.T) {
 		{ // 2
 			matchID:             true,
 			inStatus:            buildapi.BuildPhasePending,
-			outStatus:           buildapi.BuildPhaseRunning,
-			podStatus:           kapi.PodRunning,
+			outStatus:           buildapi.BuildPhaseInit,
+			podStatus:           "Init:0/1",
 			exitCode:            0,
 			startTimestamp:      curtime,
 			completionTimestamp: nil,
 		},
 		{ // 3
+			matchID:             true,
+			inStatus:            buildapi.BuildPhaseInit,
+			outStatus:           buildapi.BuildPhaseRunning,
+			podStatus:           kapi.PodRunning,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
+		},
+		{ // 4
 			matchID:             true,
 			inStatus:            buildapi.BuildPhaseRunning,
 			outStatus:           buildapi.BuildPhaseComplete,
@@ -488,7 +497,7 @@ func TestHandlePod(t *testing.T) {
 			startTimestamp:      nil,
 			completionTimestamp: curtime,
 		},
-		{ // 4
+		{ // 5
 			matchID:             true,
 			inStatus:            buildapi.BuildPhaseRunning,
 			outStatus:           buildapi.BuildPhaseFailed,
@@ -497,7 +506,7 @@ func TestHandlePod(t *testing.T) {
 			startTimestamp:      nil,
 			completionTimestamp: curtime,
 		},
-		{ // 5
+		{ // 6
 			matchID:             true,
 			inStatus:            buildapi.BuildPhaseRunning,
 			outStatus:           buildapi.BuildPhaseComplete,
@@ -507,7 +516,7 @@ func TestHandlePod(t *testing.T) {
 			startTimestamp:      nil,
 			completionTimestamp: curtime,
 		},
-		{ // 6
+		{ // 7
 			matchID:             true,
 			inStatus:            buildapi.BuildPhaseCancelled,
 			outStatus:           buildapi.BuildPhaseCancelled,

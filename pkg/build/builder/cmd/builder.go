@@ -162,10 +162,14 @@ func (c *builderConfig) clone() error {
 	}
 
 	sourceInfo, err := bld.GitClone(gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
-
+	if err != nil {
+		return err
+	}
 	if sourceInfo != nil {
 		bld.UpdateBuildRevision(c.buildsClient, c.build, sourceInfo)
 	}
+
+	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
 	return nil
 }
 

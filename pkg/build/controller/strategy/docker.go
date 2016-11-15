@@ -102,8 +102,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
 	}
 	if build.Spec.Source.Binary != nil {
-		pod.Spec.Containers[0].Stdin = true
-		pod.Spec.Containers[0].StdinOnce = true
+		pod.Spec.InitContainers[0].Stdin = true
+		pod.Spec.InitContainers[0].StdinOnce = true
 	}
 
 	setupDockerSocket(pod)
