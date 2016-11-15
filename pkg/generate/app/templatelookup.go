@@ -129,6 +129,8 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 			switch {
 			case strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "the path"):
 				continue
+			case strings.Contains(err.Error(), "not a directory") && strings.Contains(err.Error(), "the path"):
+				continue
 			default:
 				if syntaxErr, ok := err.(*json.SyntaxError); ok {
 					err = fmt.Errorf("at offset %d: %v", syntaxErr.Offset, err)
