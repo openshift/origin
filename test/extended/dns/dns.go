@@ -81,6 +81,25 @@ func digForCNAMEs(namesToResolve []string, expect sets.String) string {
 	}
 	return probeCmd
 }
+
+func digForSRVs(namesToResolve []string, expect sets.String) string {
+	fileNamePrefix := "test"
+	var probeCmd string
+	for _, name := range namesToResolve {
+		// Resolve by TCP and UDP DNS.  Use $$(...) because $(...) is
+		// expanded by kubernetes (though this won't expand so should
+		// remain a literal, safe > sorry).
+		lookup := "SRV"
+		fileName := fmt.Sprintf("%s_udp@%s", fileNamePrefix, name)
+		expect.Insert(fileName)
+		probeCmd += fmt.Sprintf(`test -n "$$(dig +notcp +noall +additional +search %s %s)" && echo %q;`, name, lookup, fileName)
+		fileName = fmt.Sprintf("%s_tcp@%s", fileNamePrefix, name)
+		expect.Insert(fileName)
+		probeCmd += fmt.Sprintf(`test -n "$$(dig +tcp +noall +additional +search %s %s)" && echo %q;`, name, lookup, fileName)
+	}
+	return probeCmd
+}
+
 func digForARecords(records map[string][]string, expect sets.String) string {
 	var probeCmd string
 	fileNamePrefix := "test"
@@ -293,6 +312,11 @@ var _ = Describe("DNS", func() {
 
 				// answer wildcards on clusterIP services
 				fmt.Sprintf("prefix.clusterip.%s", f.Namespace.Name),
+			}, expect),
+
+			// the DNS pod should be able to get additional A records for this service
+			digForSRVs([]string{
+				fmt.Sprintf("_http._tcp.externalname.%s.svc", f.Namespace.Name),
 			}, expect),
 
 			// the DNS pod should be able to get a CNAME for this service
