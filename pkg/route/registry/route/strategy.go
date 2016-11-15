@@ -62,10 +62,15 @@ func (s routeStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 	}
 }
 
-// allocateHost allocates a host name ONLY if the host name on the route is empty and an allocator
-// is configured.  It must first allocate the shard and may return an error if shard allocation
-// fails.
+// allocateHost allocates a host name ONLY if the route doesn't specify a subdomain wildcard policy and
+// the host name on the route is empty and an allocator is configured.
+// It must first allocate the shard and may return an error if shard allocation fails.
 func (s routeStrategy) allocateHost(route *api.Route) error {
+	if route.Spec.WildcardPolicy == api.WildcardPolicySubdomain {
+		// Don't allocate a host if subdomain wildcard policy.
+		return nil
+	}
+
 	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
