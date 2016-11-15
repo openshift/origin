@@ -48,7 +48,7 @@ type RecreateDeploymentStrategy struct {
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
-	hookExecutor hookExecutor
+	hookExecutor stratsupport.HookExecutor
 	// retryTimeout is how long to wait for the replica count update to succeed
 	// before giving up.
 	retryTimeout time.Duration
@@ -58,9 +58,9 @@ type RecreateDeploymentStrategy struct {
 	events record.EventSink
 }
 
-// AcceptorInterval is how often the UpdateAcceptor should check for
+// acceptorInterval is how often the UpdateAcceptor should check for
 // readiness.
-const AcceptorInterval = 1 * time.Second
+const acceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
@@ -82,7 +82,7 @@ func NewRecreateDeploymentStrategy(oldClient kclient.Interface, tagClient client
 		rcClient:    client.Core(),
 		eventClient: client.Core(),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client.Core(), timeout, AcceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout, acceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
@@ -220,19 +220,4 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 	}
 
 	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
-}
-
-// hookExecutor knows how to execute a deployment lifecycle hook.
-type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
-}
-
-// hookExecutorImpl is a pluggable hookExecutor.
-type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
-}
-
-// Execute executes the provided lifecycle hook
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
-	return i.executeFunc(hook, deployment, suffix, label)
 }
