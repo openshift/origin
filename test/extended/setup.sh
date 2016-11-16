@@ -276,6 +276,9 @@ readonly EXCLUDED_TESTS=(
 	# Inordinately slow tests
 	"should create and stop a working application"
 	"should always delete fast" # will be uncommented in etcd3
+
+	# tested by networking.sh and requires the environment that script sets up
+	"\[networking\] OVS"
 )
 
 readonly SERIAL_TESTS=(
