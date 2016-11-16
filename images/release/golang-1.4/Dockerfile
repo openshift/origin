@@ -21,7 +21,7 @@ RUN mkdir $TMPDIR && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
     curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-4/protoc-3.0.0-beta-4-linux-x86_64.zip | bsdtar -C /usr/local -xf - && \
-    chmod ug+x /usr/local/bin/protoc && \
+    chmod uga+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
     touch /os-build-image
 
