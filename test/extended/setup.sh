@@ -226,6 +226,7 @@ readonly EXCLUDED_TESTS=(
 	"^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
 
 	"\[Feature:Federation\]"   # Not enabled yet
+	"\[Feature:Federation12\]"   # Not enabled yet
 	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
