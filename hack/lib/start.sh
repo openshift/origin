@@ -34,7 +34,7 @@
 function os::start::configure_server() {
 	local version="${1:-}"
 	local current_user
-	current_user="$( whoami )"
+	current_user="$( id -u )"
 
 	os::start::internal::create_master_certs     "${version}"
 	os::start::internal::configure_node          "${version}"

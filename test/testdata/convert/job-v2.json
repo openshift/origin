@@ -1,0 +1,46 @@
+{
+    "kind": "ScheduledJob",
+    "apiVersion": "batch/v2alpha1",
+    "metadata": {
+        "name": "hello",
+        "creationTimestamp": null
+    },
+    "spec": {
+        "schedule": "0/1 * * * ?",
+        "concurrencyPolicy": "Allow",
+        "suspend": false,
+        "jobTemplate": {
+            "metadata": {
+                "creationTimestamp": null
+            },
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "hello",
+                                "image": "busybox",
+                                "args": [
+                                    "/bin/sh",
+                                    "-c",
+                                    "date; echo Hello from the Kubernetes cluster"
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "imagePullPolicy": "Always"
+                            }
+                        ],
+                        "restartPolicy": "OnFailure",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "securityContext": {}
+                    }
+                }
+            }
+        }
+    },
+    "status": {}
+}

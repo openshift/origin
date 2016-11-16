@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 17a6b6bc7a1fa40caf8a60a4bb39057c5f2aee0f
+%global commit 37de656911174855a134c0d8eba6a14228612b00
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.25+17a6b6b-8 OS_GIT_COMMIT=17a6b6b OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.26+37de656-31 OS_GIT_COMMIT=37de656 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.26
+Version:        3.4.0.27
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,27 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Nov 16 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.27
+- oc convert tests (ffranz@redhat.com)
+- Fix SDN startup ordering (again) (danw@redhat.com)
+- UPSTREAM: 36603: fixes handling lists in convert (ffranz@redhat.com)
+- Do not use whoami inside of start scripts (ccoleman@redhat.com)
+- We should not be able to create a route when the host is not specified and
+  wildcardpolicy is enabled. Fixes bug 1392862 -
+  https://bugzilla.redhat.com/show_bug.cgi?id=1392862 Rework as per @liggitt
+  review comments. Fix govet issue. (smitram@gmail.com)
+- Accept docker0 traffic regardless of firewall (danw@redhat.com)
+- updating (cdaley@redhat.com)
+- Force image in test-end-to-end-docker.sh for ose (tdawson@redhat.com)
+- Warn on login when user cannot request projects (jvallejo@redhat.com)
+- Rescue panic (jliggitt@redhat.com)
+- Update ose_images.sh - 2016-11-14 (tdawson@redhat.com)
+- Wait for remote API response before return in UploadFileToContainer
+  (jminter@redhat.com)
+- f5 poolname fix (rchopra@redhat.com)
+- Increase retained CI log size to 100M (agoldste@redhat.com)
+- Fix SRV record lookup for ExternalName service (yhlou@travelsky.com)
+
 * Mon Nov 14 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.26
 - bump(github.com/openshift/origin-web-console):
   3d8c136b9089d687db197eb6c80daf243076c06a (dmcphers+openshiftbot@redhat.com)
