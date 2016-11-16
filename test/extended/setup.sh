@@ -214,6 +214,9 @@ readonly EXCLUDED_TESTS=(
 
 	"\[Feature:Performance\]"
 
+	# not enabled in Origin yet
+	"\[Feature:GarbageCollector\]"
+
 	# Depends on external components, may not need yet
 	Monitoring              # Not installed, should be
 	"Cluster level logging" # Not installed yet
