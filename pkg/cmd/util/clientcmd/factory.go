@@ -371,6 +371,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				client.GroupsInterface(oc),
 				client.ClusterRoleBindingsInterface(oc),
 				client.RoleBindingsNamespacer(oc),
+				client.OAuthClientAuthorizationsInterface(oc),
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
 		case userapi.Kind("Group"):

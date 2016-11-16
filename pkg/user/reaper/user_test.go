@@ -12,6 +12,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	authenticationapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -173,6 +174,32 @@ func TestUserReaper(t *testing.T) {
 				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "users"}, Name: "bob"},
 			},
 		},
+		{
+			name: "oauth client authorizations",
+			user: "bob",
+			objects: []runtime.Object{
+				&oauthapi.OAuthClientAuthorization{
+					ObjectMeta: kapi.ObjectMeta{Name: "other-user"},
+					UserName:   "alice",
+					UserUID:    "123",
+				},
+				&oauthapi.OAuthClientAuthorization{
+					ObjectMeta: kapi.ObjectMeta{Name: "bob-authorization-1"},
+					UserName:   "bob",
+					UserUID:    "234",
+				},
+				&oauthapi.OAuthClientAuthorization{
+					ObjectMeta: kapi.ObjectMeta{Name: "bob-authorization-2"},
+					UserName:   "bob",
+					UserUID:    "345",
+				},
+			},
+			expected: []interface{}{
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "oauthclientauthorizations"}, Name: "bob-authorization-1"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "oauthclientauthorizations"}, Name: "bob-authorization-2"},
+				ktestclient.DeleteActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "delete", Resource: "users"}, Name: "bob"},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -190,7 +217,7 @@ func TestUserReaper(t *testing.T) {
 		ktc.PrependReactor("update", "*", reactor)
 		ktc.PrependReactor("delete", "*", reactor)
 
-		reaper := NewUserReaper(tc, tc, tc, tc, ktc)
+		reaper := NewUserReaper(tc, tc, tc, tc, tc, ktc)
 		err := reaper.Stop("", test.user, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
