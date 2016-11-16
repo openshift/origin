@@ -32,33 +32,33 @@ func newOAuthClients(c *Client) *oauthClients {
 
 func (c *oauthClients) Create(obj *oauthapi.OAuthClient) (result *oauthapi.OAuthClient, err error) {
 	result = &oauthapi.OAuthClient{}
-	err = c.r.Post().Resource("oAuthClients").Body(obj).Do().Into(result)
+	err = c.r.Post().Resource("oauthclients").Body(obj).Do().Into(result)
 	return
 }
 
 func (c *oauthClients) List(opts kapi.ListOptions) (result *oauthapi.OAuthClientList, err error) {
 	result = &oauthapi.OAuthClientList{}
-	err = c.r.Get().Resource("oAuthClients").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
+	err = c.r.Get().Resource("oauthclients").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 func (c *oauthClients) Get(name string) (result *oauthapi.OAuthClient, err error) {
 	result = &oauthapi.OAuthClient{}
-	err = c.r.Get().Resource("oAuthClients").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("oauthclients").Name(name).Do().Into(result)
 	return
 }
 
 func (c *oauthClients) Delete(name string) (err error) {
-	err = c.r.Delete().Resource("oAuthClients").Name(name).Do().Error()
+	err = c.r.Delete().Resource("oauthclients").Name(name).Do().Error()
 	return
 }
 
 func (c *oauthClients) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Resource("oAuthClients").VersionedParams(&opts, kapi.ParameterCodec).Watch()
+	return c.r.Get().Prefix("watch").Resource("oauthclients").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }
 
 func (c *oauthClients) Update(client *oauthapi.OAuthClient) (result *oauthapi.OAuthClient, err error) {
 	result = &oauthapi.OAuthClient{}
-	err = c.r.Put().Resource("oAuthClients").Name(client.Name).Body(client).Do().Into(result)
+	err = c.r.Put().Resource("oauthclients").Name(client.Name).Body(client).Do().Into(result)
 	return
 }
