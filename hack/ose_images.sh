@@ -140,7 +140,6 @@ add_group_to_list() {
       add_to_list openshift-postgresql-docker
       ;;
     misc)
-      add_to_list openshift-jenkins-docker
       add_to_list image-inspector-docker
       ;;
     logging)
@@ -579,14 +578,14 @@ start_push_image() {
     case ${current_tag} in
       default )
         # Full name - <name>:<version>-<release>
-        echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
+        echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
         docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
         echo | tee -a ${workingdir}/logs/push.image.log
         push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
         echo | tee -a ${workingdir}/logs/push.image.log
         # Name and Version - <name>:<version>
         if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}"
+          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
           docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
@@ -594,7 +593,7 @@ start_push_image() {
         fi
         # Latest - <name>:latest
         if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest"
+          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest" | tee -a ${workingdir}/logs/push.image.log
           docker tag  -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
@@ -604,7 +603,7 @@ start_push_image() {
       single-v )
         if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
           version_trim="v${MAJOR_RELEASE}"
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
+          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
           docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
@@ -615,7 +614,7 @@ start_push_image() {
         if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
           version_trim_list="v3.1 v3.2 v3.3 v3.4"
           for version_trim in ${version_trim_list} ; do
-            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
+            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
             docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
             echo | tee -a ${workingdir}/logs/push.image.log
             push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
@@ -626,7 +625,7 @@ start_push_image() {
       three-only )
         if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
           version_trim=`echo ${version_version} | sed 's|v||g' | cut -d'.' -f-3`
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
+          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
           docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
@@ -642,13 +641,13 @@ start_push_image() {
       echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
       echo "----------"
     fi
-    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} "
+    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} " | tee -a ${workingdir}/logs/push.image.log
     docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest "
+      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest " | tee -a ${workingdir}/logs/push.image.log
       docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
@@ -890,6 +889,7 @@ do
     add_group_to_list misc
     add_group_to_list logging
     add_group_to_list metrics
+    add_group_to_list jenkins
   else
     add_group_to_list "${group_input}"
   fi
