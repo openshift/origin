@@ -256,7 +256,6 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	// Create configuration if needed
 	var nodeHost string
 	if !skipCreateConfig {
-		glog.V(1).Infof("Creating openshift configuration at %s on Docker host", opt.HostConfigDir)
 		fmt.Fprintf(out, "Creating initial OpenShift configuration\n")
 		createConfigCmd := []string{
 			"start",
@@ -296,7 +295,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost, opt.LoggingHost)
+		err = h.updateConfig(configDir, opt.RouterIP, opt.MetricsHost, opt.LoggingHost)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -440,7 +439,7 @@ func (h *Helper) copyConfig() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	glog.V(1).Infof("Copying host config to local directory %s", tempDir)
+	glog.V(1).Infof("Copying OpenShift config to local directory %s", tempDir)
 	if err = h.hostHelper.DownloadDirFromContainer(serverConfigPath, tempDir); err != nil {
 		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
@@ -481,7 +480,7 @@ func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, err
 	return config, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, loggingHost string) error {
+func (h *Helper) updateConfig(configDir, routerIP, metricsHost, loggingHost string) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
 		return err

@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -242,6 +243,28 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	return nil
 }
 
+func (o *LoginOptions) canRequestProjects() (bool, error) {
+	oClient, err := client.New(o.Config)
+	if err != nil {
+		return false, err
+	}
+
+	sar := &authorizationapi.SubjectAccessReview{
+		Action: authorizationapi.Action{
+			Namespace: o.DefaultNamespace,
+			Verb:      "create",
+			Resource:  "projectrequests",
+		},
+	}
+
+	response, err := oClient.SubjectAccessReviews().Create(sar)
+	if err != nil {
+		return false, err
+	}
+
+	return response.Allowed, nil
+}
+
 // Discover the projects available for the established session and take one to use. It
 // fails in case of no existing projects, and print out useful information in case of
 // multiple projects.
@@ -289,6 +312,14 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	switch len(projectsItems) {
 	case 0:
+		canRequest, err := o.canRequestProjects()
+		if err != nil {
+			return err
+		}
+		if !canRequest {
+			fmt.Fprintf(o.Out, "You do not have access to create new projects, contact your system administrator to request a project.\n")
+			return nil
+		}
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
     %s new-project <projectname>

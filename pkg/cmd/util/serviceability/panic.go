@@ -24,6 +24,7 @@ func BehaviorOnPanic(mode string) (fn func()) {
 			return
 		}
 		glog.Infof("Process will log all panics and errors to Sentry.")
+		utilruntime.ReallyCrash = false
 		utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, m.CapturePanic)
 		utilruntime.ErrorHandlers = append(utilruntime.ErrorHandlers, m.CaptureError)
 		fn = func() {
@@ -34,6 +35,7 @@ func BehaviorOnPanic(mode string) (fn func()) {
 		}
 	case len(mode) == 0:
 		// default panic behavior
+		utilruntime.ReallyCrash = false
 	default:
 		glog.Errorf("Unrecognized panic behavior")
 	}

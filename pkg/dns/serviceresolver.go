@@ -141,8 +141,10 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		// if has a portal IP and looking at svc
 		if svc.Spec.ClusterIP != kapi.ClusterIPNone && !retrieveEndpoints {
 			hostValue := svc.Spec.ClusterIP
+			targetStripValue := 2
 			if svc.Spec.Type == kapi.ServiceTypeExternalName {
 				hostValue = svc.Spec.ExternalName
+				targetStripValue = 0
 			}
 
 			defaultService := msg.Service{
@@ -188,7 +190,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 						Weight:   10,
 						Ttl:      30,
 
-						TargetStrip: 2,
+						TargetStrip: targetStripValue,
 
 						Key: msg.Path(keyName),
 					},
