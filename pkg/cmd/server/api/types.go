@@ -864,6 +864,8 @@ type GitHubIdentityProvider struct {
 	ClientSecret StringSource
 	// Organizations optionally restricts which organizations are allowed to log in
 	Organizations []string
+	// Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
+	Teams []string
 }
 
 type GitLabIdentityProvider struct {

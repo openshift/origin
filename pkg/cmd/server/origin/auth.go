@@ -534,7 +534,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 		if err != nil {
 			return nil, err
 		}
-		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations), nil
+		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations, provider.Teams), nil
 
 	case (*configapi.GitLabIdentityProvider):
 		transport, err := cmdutil.TransportFor(provider.CA, "", "")

@@ -323,6 +323,7 @@ oauthConfig:
       clientSecret: ""
       kind: GitHubIdentityProvider
       organizations: null
+      teams: null
   - challenge: false
     login: false
     mappingMethod: ""
@@ -337,6 +338,7 @@ oauthConfig:
         value: ""
       kind: GitHubIdentityProvider
       organizations: null
+      teams: null
   - challenge: false
     login: false
     mappingMethod: ""
