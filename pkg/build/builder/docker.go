@@ -94,6 +94,10 @@ func (d *DockerBuilder) Build() error {
 		return fmt.Errorf("no from image in dockerfile.")
 	}
 	for _, imageName := range imageNames {
+		if imageName == "scratch" {
+			glog.V(4).Infof("\nSkipping image \"scratch\"")
+			continue
+		}
 		var imageExists bool = true
 		_, err = d.dockerClient.InspectImage(imageName)
 		if err != nil {
