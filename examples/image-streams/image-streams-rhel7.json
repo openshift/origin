@@ -110,9 +110,9 @@
             "name": "0.10",
             "annotations": {
               "openshift.io/display-name": "Node.js 0.10",
-              "description": "Build and run Node.js 0.10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
+              "description": "DEPRECATED: Build and run Node.js 0.10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
               "iconClass": "icon-nodejs",
-              "tags": "builder,nodejs",
+              "tags": "hidden,nodejs",
               "supports":"nodejs:0.10,nodejs:0.1,nodejs",
               "version": "0.10",
               "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
