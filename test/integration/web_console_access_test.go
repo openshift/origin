@@ -98,7 +98,7 @@ func TestAccessOriginWebConsole(t *testing.T) {
 	}{
 		"":                    {http.StatusFound, masterOptions.AssetConfig.PublicURL},
 		"healthz":             {http.StatusOK, ""},
-		"login":               {http.StatusOK, ""},
+		"login?then=%2F":      {http.StatusOK, ""},
 		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
 		"console":             {http.StatusMovedPermanently, "/console/"},
 		"console/":            {http.StatusOK, ""},
@@ -137,7 +137,7 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		location   string
 	}{
 		"healthz":             {http.StatusOK, ""},
-		"login":               {http.StatusOK, ""},
+		"login?then=%2F":      {http.StatusOK, ""},
 		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
 		"console":             {http.StatusForbidden, ""},
 		"console/":            {http.StatusForbidden, ""},
@@ -220,8 +220,8 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 
 		// Expect the providerSelectionURL to redirect to the loginURL
 		urlMap[providerSelectionURL] = urlResults{http.StatusFound, loginURL}
-		// Expect the loginURL to be valid
-		urlMap[loginURL] = urlResults{http.StatusOK, ""}
+		// Expect the loginURL to be valid (requires a 'then' param)
+		urlMap[loginURL+"?then=%2F"] = urlResults{http.StatusOK, ""}
 
 		// escape the query param the way the template will
 		templateIDPParam := templateEscapeHref(t, idpQueryParam)

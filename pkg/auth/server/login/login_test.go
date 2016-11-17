@@ -53,12 +53,13 @@ func TestLogin(t *testing.T) {
 		"display form": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{},
-			Path: "/login",
+			Path: "/login?then=%2F",
 
 			ExpectStatusCode: 200,
 			ExpectContains: []string{
 				`action="/login"`,
 				`name="csrf" value="test"`,
+				`name="then" value="/"`,
 			},
 		},
 		"display form with errors": {
@@ -73,6 +74,21 @@ func TestLogin(t *testing.T) {
 				`An authentication error occurred.`,
 				`danger`,
 			},
+		},
+		"redirect when GET has no then param": {
+			CSRF: &csrf.FakeCSRF{Token: "test"},
+			Auth: &testAuth{},
+			Path: "/login",
+
+			ExpectStatusCode: 302,
+			ExpectRedirect:   "/",
+		},
+		"redirect when POST is missing then param": {
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           &testAuth{},
+			Path:           "/login",
+			PostValues:     url.Values{"csrf": []string{"test"}},
+			ExpectRedirect: "/",
 		},
 		"redirect when POST fails CSRF": {
 			CSRF:           &csrf.FakeCSRF{Token: "test"},
@@ -94,8 +110,9 @@ func TestLogin(t *testing.T) {
 			Path: "/login",
 			PostValues: url.Values{
 				"csrf": []string{"test"},
+				"then": []string{"anotherurl"},
 			},
-			ExpectRedirect: "/login?reason=user_required",
+			ExpectRedirect: "/login?reason=user_required&then=anotherurl",
 		},
 		"redirect when not authenticated": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
@@ -104,8 +121,9 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"then":     []string{"anotherurl"},
 			},
-			ExpectRedirect: "/login?reason=access_denied",
+			ExpectRedirect: "/login?reason=access_denied&then=anotherurl",
 		},
 		"redirect on auth error": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
@@ -114,8 +132,9 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"then":     []string{"anotherurl"},
 			},
-			ExpectRedirect: "/login?reason=authentication_error",
+			ExpectRedirect: "/login?reason=authentication_error&then=anotherurl",
 		},
 		"redirect on lookup error": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
@@ -124,8 +143,9 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"then":     []string{"anotherurl"},
 			},
-			ExpectRedirect: "/login?reason=mapping_lookup_error",
+			ExpectRedirect: "/login?reason=mapping_lookup_error&then=anotherurl",
 		},
 		"redirect on claim error": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
@@ -134,8 +154,9 @@ func TestLogin(t *testing.T) {
 			PostValues: url.Values{
 				"csrf":     []string{"test"},
 				"username": []string{"user"},
+				"then":     []string{"anotherurl"},
 			},
-			ExpectRedirect: "/login?reason=mapping_claim_error",
+			ExpectRedirect: "/login?reason=mapping_claim_error&then=anotherurl",
 		},
 		"redirect preserving then param": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
