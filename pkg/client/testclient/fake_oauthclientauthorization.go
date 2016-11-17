@@ -13,7 +13,7 @@ type FakeOAuthClientAuthorization struct {
 }
 
 func (c *FakeOAuthClientAuthorization) Get(name string) (*oauthapi.OAuthClientAuthorization, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("oauthClientAuthorizations", name), &oauthapi.OAuthClientAuthorization{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("oauthclientauthorizations", name), &oauthapi.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (c *FakeOAuthClientAuthorization) Get(name string) (*oauthapi.OAuthClientAu
 }
 
 func (c *FakeOAuthClientAuthorization) List(opts kapi.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("oauthClientAuthorizations", opts), &oauthapi.OAuthClientAuthorizationList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("oauthclientauthorizations", opts), &oauthapi.OAuthClientAuthorizationList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (c *FakeOAuthClientAuthorization) List(opts kapi.ListOptions) (*oauthapi.OA
 }
 
 func (c *FakeOAuthClientAuthorization) Create(inObj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("oauthClientAuthorizations", inObj), inObj)
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("oauthclientauthorizations", inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (c *FakeOAuthClientAuthorization) Create(inObj *oauthapi.OAuthClientAuthori
 }
 
 func (c *FakeOAuthClientAuthorization) Update(inObj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("oauthClientAuthorizations", inObj), inObj)
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("oauthclientauthorizations", inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -49,10 +49,10 @@ func (c *FakeOAuthClientAuthorization) Update(inObj *oauthapi.OAuthClientAuthori
 }
 
 func (c *FakeOAuthClientAuthorization) Delete(name string) error {
-	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("oauthClientAuthorizations", name), &oauthapi.OAuthClientAuthorization{})
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("oauthclientauthorizations", name), &oauthapi.OAuthClientAuthorization{})
 	return err
 }
 
 func (c *FakeOAuthClientAuthorization) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("oauthClientAuthorizations", opts))
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("oauthclientauthorizations", opts))
 }
