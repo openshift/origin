@@ -239,7 +239,7 @@ You'll need [etcd](https://github.com/coreos/etcd) installed and on your path fo
 $ hack/install-etcd.sh
 ```
 
-Some of the components of Origin run as Docker images, including the builders and deployment tools in `images/builder/docker/*` and 'images/deploy/*`.  To build them locally run
+Some of the components of Origin run as Docker images, including the builders and deployment tools in `images/builder/docker/*` and `images/deploy/*`.  To build them locally run
 
 ```
 $ hack/build-images.sh
