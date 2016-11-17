@@ -1,8 +1,0 @@
-git:2.4.2
-git-client:1.19.0
-ssh-credentials:1.11
-mailer:1.16
-matrix-project:1.6
-scm-api:1.0
-script-security:1.13
-junit:1.2
