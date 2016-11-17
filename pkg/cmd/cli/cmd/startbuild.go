@@ -300,6 +300,9 @@ func (o *StartBuildOptions) Run() error {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying environment variables with binary builds is not supported.\n")
 		}
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.Client.BuildConfigs(o.Namespace), o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
+			if kerrors.IsAlreadyExists(err) {
+				return transformIsAlreadyExistsError(err, o.Name)
+			}
 			return err
 		}
 	case len(o.FromBuild) > 0:
@@ -307,12 +310,18 @@ func (o *StartBuildOptions) Run() error {
 			if isInvalidSourceInputsError(err) {
 				return fmt.Errorf("Build %s/%s has no valid source inputs and '--from-build' cannot be used for binary builds", o.Namespace, o.Name)
 			}
+			if kerrors.IsAlreadyExists(err) {
+				return transformIsAlreadyExistsError(err, o.Name)
+			}
 			return err
 		}
 	default:
 		if newBuild, err = o.Client.BuildConfigs(o.Namespace).Instantiate(request); err != nil {
 			if isInvalidSourceInputsError(err) {
 				return fmt.Errorf("Build configuration %s/%s has no valid source inputs, if this is a binary build you must specify one of '--from-dir', '--from-repo', or '--from-file'", o.Namespace, o.Name)
+			}
+			if kerrors.IsAlreadyExists(err) {
+				return transformIsAlreadyExistsError(err, o.Name)
 			}
 			return err
 		}
@@ -781,4 +790,8 @@ func isInvalidSourceInputsError(err error) bool {
 		}
 	}
 	return false
+}
+
+func transformIsAlreadyExistsError(err error, buildConfigName string) error {
+	return fmt.Errorf("%s. Retry building BuildConfig \"%s\" or delete the conflicting builds.", err.Error(), buildConfigName)
 }
