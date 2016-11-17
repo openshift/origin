@@ -14,7 +14,7 @@ import (
 	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/generate/dockerfile"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
@@ -99,7 +99,7 @@ type SourceRepository struct {
 	sourceImageTo   string
 
 	usedBy           []ComponentReference
-	buildWithDocker  bool
+	strategy         generate.Strategy
 	ignoreRepository bool
 	binary           bool
 
@@ -110,7 +110,7 @@ type SourceRepository struct {
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
 // a URL or path.
-func NewSourceRepository(s string) (*SourceRepository, error) {
+func NewSourceRepository(s string, strategy generate.Strategy) (*SourceRepository, error) {
 	location, err := git.ParseRepository(s)
 	if err != nil {
 		return nil, err
@@ -119,13 +119,14 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 	return &SourceRepository{
 		location: s,
 		url:      *location,
+		strategy: strategy,
 	}, nil
 }
 
 // NewSourceRepositoryWithDockerfile creates a reference to a local source code repository with
 // the provided relative Dockerfile path (defaults to "Dockerfile").
 func NewSourceRepositoryWithDockerfile(s, dockerfilePath string) (*SourceRepository, error) {
-	r, err := NewSourceRepository(s)
+	r, err := NewSourceRepository(s, generate.StrategyDocker)
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +149,7 @@ func NewSourceRepositoryWithDockerfile(s, dockerfilePath string) (*SourceReposit
 func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error) {
 	s := &SourceRepository{
 		ignoreRepository: true,
+		strategy:         generate.StrategyDocker,
 	}
 	err := s.AddDockerfile(contents)
 	return s, err
@@ -155,10 +157,11 @@ func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error
 
 // NewBinarySourceRepository creates a source repository that is configured for binary
 // input.
-func NewBinarySourceRepository() *SourceRepository {
+func NewBinarySourceRepository(strategy generate.Strategy) *SourceRepository {
 	return &SourceRepository{
 		binary:           true,
 		ignoreRepository: true,
+		strategy:         strategy,
 	}
 }
 
@@ -171,6 +174,7 @@ func NewImageSourceRepository(compRef ComponentReference, from, to string) *Sour
 		sourceImageTo:    to,
 		ignoreRepository: true,
 		location:         compRef.Input().From,
+		strategy:         generate.StrategySource,
 	}
 }
 
@@ -189,14 +193,14 @@ func (r *SourceRepository) InUse() bool {
 	return len(r.usedBy) > 0
 }
 
-// BuildWithDocker specifies that the source repository was built with Docker
-func (r *SourceRepository) BuildWithDocker() {
-	r.buildWithDocker = true
+// SetStrategy sets the source repository strategy
+func (r *SourceRepository) SetStrategy(strategy generate.Strategy) {
+	r.strategy = strategy
 }
 
-// IsDockerBuild checks if the source repository was built with Docker
-func (r *SourceRepository) IsDockerBuild() bool {
-	return r.buildWithDocker
+// GetStrategy returns the source repository strategy
+func (r *SourceRepository) GetStrategy() generate.Strategy {
+	return r.strategy
 }
 
 func (r *SourceRepository) String() string {
@@ -377,7 +381,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 		r.info = &SourceRepositoryInfo{}
 	}
 	r.info.Dockerfile = dockerfile
-	r.buildWithDocker = true
+	r.SetStrategy(generate.StrategyDocker)
 	r.forceAddDockerfile = true
 	return nil
 }
@@ -385,7 +389,7 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 // AddBuildSecrets adds the defined secrets into a build. The input format for
 // the secrets is "<secretName>:<destinationDir>". The destinationDir is
 // optional and when not specified the default is the current working directory.
-func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool) error {
+func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
 	injections := s2iapi.VolumeList{}
 	r.secrets = []buildapi.SecretBuildSource{}
 	for _, in := range secrets {
@@ -402,7 +406,7 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool)
 		return false
 	}
 	for _, in := range injections {
-		if isDockerBuild && filepath.IsAbs(in.Destination) {
+		if r.GetStrategy() == generate.StrategyDocker && filepath.IsAbs(in.Destination) {
 			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.Destination)
 		}
 		if len(validation.ValidateSecretName(in.Source, false)) != 0 {
@@ -443,9 +447,10 @@ func (rr SourceRepositories) NotUsed() SourceRepositories {
 
 // SourceRepositoryInfo contains info about a source repository
 type SourceRepositoryInfo struct {
-	Path       string
-	Types      []SourceLanguageType
-	Dockerfile Dockerfile
+	Path        string
+	Types       []SourceLanguageType
+	Dockerfile  Dockerfile
+	Jenkinsfile bool
 }
 
 // Terms returns which languages the source repository was
@@ -482,23 +487,20 @@ type Detector interface {
 
 // SourceRepositoryEnumerator implements the Detector interface
 type SourceRepositoryEnumerator struct {
-	Detectors source.Detectors
-	Tester    dockerfile.Tester
+	Detectors         source.Detectors
+	DockerfileTester  generate.Tester
+	JenkinsfileTester generate.Tester
 }
 
-// ErrNoLanguageDetected is the error returned when no language can be detected by all
-// source code detectors.
-var ErrNoLanguageDetected = errors.New("No language matched the source repository")
-
 // Detect extracts source code information about the provided source repository
-func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*SourceRepositoryInfo, error) {
+func (e SourceRepositoryEnumerator) Detect(dir string, noSourceDetection bool) (*SourceRepositoryInfo, error) {
 	info := &SourceRepositoryInfo{
 		Path: dir,
 	}
 
 	// no point in doing source-type detection if the requested build strategy
-	// is docker
-	if !dockerStrategy {
+	// is docker or pipeline
+	if !noSourceDetection {
 		for _, d := range e.Detectors {
 			if detected, ok := d(dir); ok {
 				info.Types = append(info.Types, SourceLanguageType{
@@ -508,17 +510,17 @@ func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*So
 			}
 		}
 	}
-	if path, ok, err := e.Tester.Has(dir); err == nil && ok {
+	if path, ok, err := e.DockerfileTester.Has(dir); err == nil && ok {
 		dockerfile, err := NewDockerfileFromFile(path)
 		if err != nil {
 			return nil, err
 		}
 		info.Dockerfile = dockerfile
 	}
-
-	if info.Dockerfile == nil && len(info.Types) == 0 {
-		return nil, ErrNoLanguageDetected
+	if _, ok, err := e.JenkinsfileTester.Has(dir); err == nil && ok {
+		info.Jenkinsfile = true
 	}
+
 	return info, nil
 }
 
@@ -528,8 +530,8 @@ func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*So
 // more info
 func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*BuildStrategyRef, *SourceRef, error) {
 	strategy := &BuildStrategyRef{
-		Base:          image,
-		IsDockerBuild: repo.IsDockerBuild(),
+		Base:     image,
+		Strategy: repo.strategy,
 	}
 	source := &SourceRef{
 		Binary:       repo.binary,

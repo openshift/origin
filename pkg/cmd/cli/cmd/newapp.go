@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	"github.com/openshift/origin/pkg/generate"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -170,7 +171,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
-	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
+	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
 	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
@@ -505,6 +506,11 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
 		return kcmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
 	}
+
+	if config.BinaryBuild && config.Strategy == generate.StrategyPipeline {
+		return kcmdutil.UsageError(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
+	}
+
 	return nil
 }
 

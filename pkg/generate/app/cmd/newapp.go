@@ -28,8 +28,10 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dockerregistry"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
+	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	outil "github.com/openshift/origin/pkg/util"
@@ -44,10 +46,6 @@ const (
 	GeneratedByNewBuild  = "OpenShiftNewBuild"
 )
 
-// ErrNoDockerfileDetected is the error returned when the requested build strategy is Docker
-// and no Dockerfile is detected in the repository.
-var ErrNoDockerfileDetected = errors.New("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
-
 // GenerationInputs control how new-app creates output
 // TODO: split these into finer grained structs
 type GenerationInputs struct {
@@ -59,7 +57,7 @@ type GenerationInputs struct {
 
 	InsecureRegistry bool
 
-	Strategy string
+	Strategy generate.Strategy
 
 	Name     string
 	To       string
@@ -161,8 +159,9 @@ func NewAppConfig() *AppConfig {
 	return &AppConfig{
 		Resolvers: Resolvers{
 			Detector: app.SourceRepositoryEnumerator{
-				Detectors: source.DefaultDetectors,
-				Tester:    dockerfile.NewTester(),
+				Detectors:         source.DefaultDetectors,
+				DockerfileTester:  dockerfile.NewTester(),
+				JenkinsfileTester: jenkinsfile.NewTester(),
 			},
 		},
 	}
@@ -249,18 +248,18 @@ func (c *AppConfig) AddArguments(args []string) []string {
 }
 
 // validateBuilders confirms that all images associated with components that are to be built,
-// are builders (or we're using a docker strategy).
+// are builders (or we're using a non-source strategy).
 func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
-	if len(c.Strategy) != 0 {
+	if c.Strategy != generate.StrategyUnspecified {
 		return nil
 	}
 	errs := []error{}
 	for _, ref := range components {
 		input := ref.Input()
 		// if we're supposed to build this thing, and the image/imagestream we've matched it to did not come from an explicit CLI argument,
-		// and the image/imagestream we matched to is not explicitly an s2i builder, and we're not doing a docker-type build, warn the user
+		// and the image/imagestream we matched to is not explicitly an s2i builder, and we're doing a source-type build, warn the user
 		// that this probably won't work and force them to declare their intention explicitly.
-		if input.ExpectToBuild && input.ResolvedMatch != nil && !app.IsBuilderMatch(input.ResolvedMatch) && input.Uses != nil && !input.Uses.IsDockerBuild() {
+		if input.ExpectToBuild && input.ResolvedMatch != nil && !app.IsBuilderMatch(input.ResolvedMatch) && input.Uses != nil && input.Uses.GetStrategy() == generate.StrategySource {
 			errs = append(errs, fmt.Errorf("the image match %q for source repository %q does not appear to be a source-to-image builder.\n\n- to attempt to use this image as a source builder, pass \"--strategy=source\"\n- to use it as a base image for a Docker build, pass \"--strategy=docker\"", input.ResolvedMatch.Name, input.Uses))
 			continue
 		}
@@ -271,13 +270,6 @@ func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
 func validateEnforcedName(name string) error {
 	if reasons := validation.ValidateServiceName(name, false); len(reasons) != 0 && !app.IsParameterizableValue(name) {
 		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
-	}
-	return nil
-}
-
-func validateStrategyName(name string) error {
-	if name != "docker" && name != "source" {
-		return fmt.Errorf("invalid strategy: %s. Must be 'docker' or 'source'.", name)
 	}
 	return nil
 }
@@ -304,7 +296,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
-				if err := refInput.Uses.AddBuildSecrets(c.Secrets, refInput.Uses.IsDockerBuild()); err != nil {
+				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
 				}
 
@@ -317,7 +309,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					if err != nil {
 						return nil, fmt.Errorf("can't build %q: %v", from, err)
 					}
-					if !inputImage.AsImageStream && from != "scratch" {
+					if !inputImage.AsImageStream && from != "scratch" && (refInput.Uses == nil || refInput.Uses.GetStrategy() != generate.StrategyPipeline) {
 						msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
 						glog.Warningf(msg, from)
 					}
@@ -350,6 +342,12 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			}
 			if c.NoOutput {
 				pipeline.Build.Output = nil
+			}
+			if refInput.Uses != nil && refInput.Uses.GetStrategy() == generate.StrategyPipeline {
+				pipeline.Build.Output = nil
+				pipeline.Deployment = nil
+				pipeline.Image = nil
+				pipeline.InputImage = nil
 			}
 			common = append(common, pipeline)
 			if err := common.Reduce(); err != nil {
@@ -609,12 +607,6 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	if len(c.Name) > 0 {
 		if err := validateEnforcedName(c.Name); err != nil {
-			return nil, err
-		}
-	}
-
-	if len(c.Strategy) > 0 {
-		if err := validateStrategyName(c.Strategy); err != nil {
 			return nil, err
 		}
 	}
@@ -901,7 +893,7 @@ func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRe
 		return nil
 	}
 
-	if len(config.Strategy) > 0 && config.Strategy != "docker" {
+	if config.Strategy != generate.StrategyUnspecified && config.Strategy != generate.StrategyDocker {
 		return nil
 	}
 

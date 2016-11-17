@@ -15,6 +15,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	image "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -339,7 +340,7 @@ func mockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 		"https://github.com/openshift/ruby-hello-world.git",
 		file,
 	} {
-		s, err := app.NewSourceRepository(location)
+		s, err := app.NewSourceRepository(location, generate.StrategySource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -356,11 +357,10 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git")
+	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git", generate.StrategyDocker)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sourceRepo.BuildWithDocker()
 	sourceRepo.SetInfo(&app.SourceRepositoryInfo{
 		Dockerfile: dockerFile,
 	})
@@ -509,15 +509,15 @@ func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
 
 func TestAllowedNonNumericExposedPorts(t *testing.T) {
 	tests := []struct {
-		strategy             string
+		strategy             generate.Strategy
 		allowNonNumericPorts bool
 	}{
 		{
-			strategy:             "",
+			strategy:             generate.StrategyUnspecified,
 			allowNonNumericPorts: true,
 		},
 		{
-			strategy:             "source",
+			strategy:             generate.StrategySource,
 			allowNonNumericPorts: false,
 		},
 	}
@@ -543,15 +543,15 @@ func TestAllowedNonNumericExposedPorts(t *testing.T) {
 
 func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 	tests := []struct {
-		strategy             string
+		strategy             generate.Strategy
 		allowNonNumericPorts bool
 	}{
 		{
-			strategy:             "",
+			strategy:             generate.StrategyUnspecified,
 			allowNonNumericPorts: false,
 		},
 		{
-			strategy:             "docker",
+			strategy:             generate.StrategyDocker,
 			allowNonNumericPorts: false,
 		},
 	}
