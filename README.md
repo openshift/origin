@@ -247,6 +247,12 @@ $ hack/build-images.sh
 
 To hack on the web console, check out the [assets/README.md](assets/README.md) file for instructions on testing the console and building your changes.
 
+Security Response
+-----------------
+If you've found a security issue that you'd like to disclose confidentially
+please contact Red Hat's Product Security team. Details at
+https://access.redhat.com/security/team/contact
+
 
 License
 -------
