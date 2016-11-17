@@ -384,11 +384,21 @@ func getAdminPassword(oc *exutil.CLI) string {
 	return "password"
 }
 
-func followDCLogs(oc *exutil.CLI, jenkinsNamespace string) {
-	oc.SetNamespace(jenkinsNamespace)
-	oc.Run("logs").Args("-f", "dc/jenkins").Execute()
+// Finds the pod running Jenkins
+func findJenkinsPod(oc *exutil.CLI) *kapi.Pod {
+	pods, err := exutil.GetDeploymentConfigPods(oc, "jenkins")
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
+	if pods == nil || pods.Items == nil {
+		g.Fail("No pods matching jenkins deploymentconfig in namespace " + oc.Namespace())
+	}
+
+	o.ExpectWithOffset(1, len(pods.Items)).To(o.Equal(1))
+	return &pods.Items[0]
 }
+
+// Designed to match if RSS memory is greater than 500000000  (i.e. > 476MB)
+var memoryOverragePattern = regexp.MustCompile(`\s+rss\s+5\d\d\d\d\d\d\d\d`)
 
 var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
@@ -396,8 +406,13 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 	var j *JenkinsRef
 	var dcLogFollow *exec.Cmd
 	var dcLogStdOut, dcLogStdErr *bytes.Buffer
+	var ticker *time.Ticker
 
 	g.AfterEach(func() {
+
+		ticker.Stop()
+
+		oc.SetNamespace(j.namespace)
 		ginkgolog("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
 		exutil.DumpDeploymentLogs("jenkins", oc)
 
@@ -511,6 +526,42 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			_, err = j.waitForContent(`About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
+
+		jenkinsPod := findJenkinsPod(oc)
+
+		ticker = time.NewTicker(10 * time.Second)
+		go func() {
+			for t := range ticker.C {
+				memstats, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "cat", "/sys/fs/cgroup/memory/memory.stat").Output()
+				if err != nil {
+					ginkgolog("\nUnable to acquire Jenkins cgroup memory.stat")
+				}
+				ps, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "ps", "faux").Output()
+				if err != nil {
+					ginkgolog("\nUnable to acquire Jenkins ps information")
+				}
+				ginkgolog("\nJenkins memory statistics at %v\n%s\n%s\n\n", t, ps, memstats)
+
+				// This is likely a temporary measure in place to extract diagnostic information during unexpectedly
+				// high memory utilization within the Jenkins image. If Jenkins is using
+				// a large amount of RSS, extract JVM information from the pod.
+				if memoryOverragePattern.MatchString(memstats) {
+					histogram, err := oc.Run("rsh").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "jmap", "-histo", "1").Output()
+					if err == nil {
+						ginkgolog("\n\nJenkins histogram:\n%s\n\n", histogram)
+					} else {
+						ginkgolog("Unable to acquire Jenkins histogram: %v", err)
+					}
+					stack, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "jstack", "1").Output()
+					if err == nil {
+						ginkgolog("\n\nJenkins thread dump:\n%s\n\n", stack)
+					} else {
+						ginkgolog("Unable to acquire Jenkins thread dump: %v", err)
+					}
+				}
+
+			}
+		}()
 
 		// Start capturing logs from this deployment config.
 		// This command will terminate if the Jekins instance crashes. This

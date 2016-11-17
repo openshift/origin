@@ -150,47 +150,44 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	ExaminePodDiskUsage(oc)
 }
 
+func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapi.PodList, error) {
+	return oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName))})
+}
+
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dc string, oc *CLI) {
-	out, err := oc.Run("get").Args("pods", "-o", "json").Output()
-	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n Pod JSON dump: \n%s\n\n", out)
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on Pod JSON dump: %+v\n\n", err)
-	}
-	// pod logs were proving redundant .. leaving code that dumps them commented out for now in case we want to pull back in
-	if err == nil {
-		b := []byte(out)
-		var list kapi.PodList
-		err = json.Unmarshal(b, &list)
-		if err == nil {
-			for _, pod := range list.Items {
-				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s to see if it is affiliated with %s \n\n", pod.ObjectMeta.Name, dc)
-				if strings.Contains(pod.ObjectMeta.Name, dc) {
-					podName := pod.ObjectMeta.Name
-					fmt.Fprintf(g.GinkgoWriter, "\n\n Describing pod %s \n\n", podName)
-					descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
-					if err == nil {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  description for pod %s : %s\n\n", podName, descOutput)
-					} else {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on describing %s:  %v\n\n", podName, err)
-					}
+	fmt.Fprintf(g.GinkgoWriter, "\n\nDumping logs for deploymentconfig %q in namespace %q\n\n", dc, oc.Namespace())
 
-					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
-					depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
-					if err == nil {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOutput)
-					} else {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on dep logs for %s:  %v\n\n", podName, err)
-					}
-				}
-			}
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
-		}
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	pods, err := GetDeploymentConfigPods(oc, dc)
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q: %+v\n\n", dc, err)
+		return
 	}
+
+	if pods == nil || pods.Items == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q. No pods found: %+v\n\n", dc, pods)
+		return
+	}
+
+	for _, pod := range pods.Items {
+		podName := pod.ObjectMeta.Name
+		fmt.Fprintf(g.GinkgoWriter, "\n\nDescribing deploymentconfig %q pod %q\n", dc, podName)
+		descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "%s\n\n", descOutput)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "Error retrieving pod description: %v\n\n", err)
+		}
+
+		fmt.Fprintf(g.GinkgoWriter, "\n\nLog for deploymentconfig %q pod %q\n---->\n", dc, podName)
+		depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "%s\n<----end of log for %q\n", depOutput, podName)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n<----unable to retrieve logs: %v\n", err)
+		}
+	}
+
 }
 
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
