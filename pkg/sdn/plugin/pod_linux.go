@@ -211,37 +211,43 @@ func addMacvlan(netns string) error {
 	})
 }
 
-// Run CNI IPAM for the container, either allocating an IP address and returning
-// it (for ADD) or releasing the lease and cleaning up (for DEL)
-func (m *podManager) runIPAM(netnsPath string, action cniserver.CNICommand, id string) (*cnitypes.Result, error) {
-	args := &invoke.Args{
+func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
+	return &invoke.Args{
 		Command:     string(action),
 		ContainerID: id,
 		NetNS:       netnsPath,
 		IfName:      podInterfaceName,
 		Path:        "/opt/cni/bin",
 	}
+}
 
-	if action == cniserver.CNI_ADD {
-		result, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
-		}
-
-		if result.IP4 == nil {
-			return nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
-		}
-
-		return result, nil
-	} else if action == cniserver.CNI_DEL {
-		err := invoke.ExecPluginWithoutResult("/opt/cni/bin/host-local", m.ipamConfig, args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
-		}
-		return nil, nil
+// Run CNI IPAM allocation for the container and return the allocated IP address
+func (m *podManager) ipamAdd(netnsPath string, id string) (*cnitypes.Result, error) {
+	if netnsPath == "" {
+		return nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
-	return nil, fmt.Errorf("invalid IPAM action %v", action)
+	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
+	result, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
+	}
+
+	if result.IP4 == nil {
+		return nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
+	}
+
+	return result, nil
+}
+
+// Run CNI IPAM release for the container
+func (m *podManager) ipamDel(id string) error {
+	args := createIPAMArgs("", cniserver.CNI_DEL, id)
+	err := invoke.ExecPluginWithoutResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	if err != nil {
+		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
+	}
+	return nil
 }
 
 func isScriptError(err error) bool {
@@ -271,7 +277,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 		return nil, nil, err
 	}
 
-	ipamResult, err := m.runIPAM(req.Netns, cniserver.CNI_ADD, req.ContainerId)
+	ipamResult, err := m.ipamAdd(req.Netns, req.ContainerId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.ContainerId, err)
 	}
@@ -281,7 +287,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 	var success bool
 	defer func() {
 		if !success {
-			m.runIPAM(req.Netns, cniserver.CNI_DEL, req.ContainerId)
+			m.ipamDel(req.ContainerId)
 			if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
 				glog.Warningf("failed syncing hostports: %v", err)
 			}
@@ -393,29 +399,32 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
+	netnsValid := true
 	if err := ns.IsNSorErr(req.Netns); err != nil {
 		if _, ok := err.(ns.NSPathNotExistErr); ok {
-			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s", req.PodNamespace, req.PodName)
-			return nil
+			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s; only cleaning up IPAM", req.PodNamespace, req.PodName)
+			netnsValid = false
 		}
 	}
 
-	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
-	if err != nil {
-		return err
+	if netnsValid {
+		hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
+		if err != nil {
+			return err
+		}
+
+		// The script's teardown functionality doesn't need the VNID
+		out, err := exec.Command(sdnScript, tearDownCmd, hostVethName, contVethMac, podIP, "-1").CombinedOutput()
+		glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
+
+		if isScriptError(err) {
+			return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
+		} else if err != nil {
+			return err
+		}
 	}
 
-	// The script's teardown functionality doesn't need the VNID
-	out, err := exec.Command(sdnScript, tearDownCmd, hostVethName, contVethMac, podIP, "-1").CombinedOutput()
-	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
-
-	if isScriptError(err) {
-		return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
-	} else if err != nil {
-		return err
-	}
-
-	if _, err := m.runIPAM(req.Netns, cniserver.CNI_DEL, req.ContainerId); err != nil {
+	if err := m.ipamDel(req.ContainerId); err != nil {
 		return err
 	}
 
