@@ -230,7 +230,9 @@ func init() {
 				},
 				{
 					APIGroups: []string{""},
-					Verbs:     sets.NewString("get", "list", "watch"),
+					// TODO: remove "update" once
+					// https://github.com/kubernetes/kubernetes/issues/36897 is resolved.
+					Verbs:     sets.NewString("get", "list", "watch", "update"),
 					Resources: sets.NewString("pods"),
 				},
 				{

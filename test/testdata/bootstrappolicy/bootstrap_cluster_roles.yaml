@@ -2565,6 +2565,7 @@ items:
     verbs:
     - get
     - list
+    - update
     - watch
   - apiGroups:
     - ""
