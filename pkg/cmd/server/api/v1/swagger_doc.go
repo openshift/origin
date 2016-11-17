@@ -217,6 +217,7 @@ var map_GitHubIdentityProvider = map[string]string{
 	"clientID":      "ClientID is the oauth client ID",
 	"clientSecret":  "ClientSecret is the oauth client secret",
 	"organizations": "Organizations optionally restricts which organizations are allowed to log in",
+	"teams":         "Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.",
 }
 
 func (GitHubIdentityProvider) SwaggerDoc() map[string]string {
