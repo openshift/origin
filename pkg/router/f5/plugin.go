@@ -295,6 +295,21 @@ func (p *F5Plugin) HandleEndpoints(eventType watch.EventType,
 				return err
 			}
 		}
+	case watch.Deleted:
+		poolname := poolName(endpoints.Namespace, endpoints.Name)
+		// presumably, the endpoints are a nil subnet now, reset it anyway
+		endpoints.Subsets = nil
+		err := p.updatePool(poolname, endpoints)
+		if err != nil {
+			return err
+		}
+
+		glog.V(4).Infof("Deleting pool %s", poolname)
+
+		err = p.deletePool(poolname)
+		if err != nil {
+			return err
+		}
 	}
 
 	glog.V(4).Infof("Done processing Endpoints for Name: %v.", endpoints.Name)
