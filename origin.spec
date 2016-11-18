@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 37de656911174855a134c0d8eba6a14228612b00
+%global commit b5b65722cd4701c1c45a4bf415c32dc64796c453
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.26+37de656-31 OS_GIT_COMMIT=37de656 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.27+b5b6572-16 OS_GIT_COMMIT=b5b6572 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.27
+Version:        3.4.0.28
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,19 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Nov 18 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.28
+- bump(k8s.io/kubernetes): a9e9cf3b407c1d315686c452bdb918c719c3ea6e
+  (agoldste@redhat.com)
+- Fix issues with Godeps.json (agoldste@redhat.com)
+- Cherry-pick of https://github.com/openshift/origin/pull/11940 by @rajatchopra
+  (commit a631fd33a4b6d079cd76951ea5fa082f3960c90c) (bbennett@redhat.com)
+- Fix the command to restart docker on 1.3->1.4 upgrade (danw@redhat.com)
+- Update ose_images.sh - 2016-11-16 (tdawson@redhat.com)
+- Add OVS tests to exclusion list (agoldste@redhat.com)
+- Expand scope of skipping kube federation tests (agoldste@redhat.com)
+- Disable kube garbage collector tests (agoldste@redhat.com)
+- Allow deployment controller to update pods (agoldste@redhat.com)
+
 * Wed Nov 16 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.27
 - oc convert tests (ffranz@redhat.com)
 - Fix SDN startup ordering (again) (danw@redhat.com)
