@@ -642,13 +642,13 @@ start_push_image() {
       echo "----------"
     fi
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} " | tee -a ${workingdir}/logs/push.image.log
-    docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
       echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest " | tee -a ${workingdir}/logs/push.image.log
-      docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
