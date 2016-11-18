@@ -304,9 +304,38 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		warningMarkers := allMarkers.BySeverity(osgraph.WarningSeverity)
 		if len(warningMarkers) > 0 {
 			if d.Suggest {
+				// add linebreak between Errors list and Warnings list
+				if len(errorMarkers) > 0 {
+					fmt.Fprintln(out)
+				}
 				fmt.Fprintln(out, "Warnings:")
 			}
 			for _, marker := range warningMarkers {
+				if d.Suggest {
+					fmt.Fprintln(out, indent+"* "+marker.Message)
+					switch s := marker.Suggestion.String(); {
+					case strings.Contains(s, "\n"):
+						fmt.Fprintln(out)
+						for _, line := range strings.Split(s, "\n") {
+							fmt.Fprintln(out, indent+"  "+line)
+						}
+					case len(s) > 0:
+						fmt.Fprintln(out, indent+"  try: "+s)
+					}
+				}
+			}
+		}
+
+		infoMarkers := allMarkers.BySeverity(osgraph.InfoSeverity)
+		if len(infoMarkers) > 0 {
+			if d.Suggest {
+				// add linebreak between Warnings list and Info List
+				if len(warningMarkers) > 0 || len(warningMarkers) > 0 {
+					fmt.Fprintln(out)
+				}
+				fmt.Fprintln(out, "Info:")
+			}
+			for _, marker := range infoMarkers {
 				if d.Suggest {
 					fmt.Fprintln(out, indent+"* "+marker.Message)
 					switch s := marker.Suggestion.String(); {
