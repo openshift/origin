@@ -10,6 +10,7 @@ import (
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+	time "time"
 )
 
 func init() {
@@ -36,6 +37,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildSource, InType: reflect.TypeOf(&BuildSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildSpec, InType: reflect.TypeOf(&BuildSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStatus, InType: reflect.TypeOf(&BuildStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStepInfo, InType: reflect.TypeOf(&BuildStepInfo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStrategy, InType: reflect.TypeOf(&BuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildTriggerCause, InType: reflect.TypeOf(&BuildTriggerCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildTriggerPolicy, InType: reflect.TypeOf(&BuildTriggerPolicy{})},
@@ -495,6 +497,36 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 			**out = **in
 		} else {
 			out.Config = nil
+		}
+		if in.StepInfo != nil {
+			in, out := &in.StepInfo, &out.StepInfo
+			*out = make([]BuildStepInfo, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_BuildStepInfo(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.StepInfo = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_BuildStepInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BuildStepInfo)
+		out := out.(*BuildStepInfo)
+		out.Name = in.Name
+		if newVal, err := c.DeepCopy(&in.StartTime); err != nil {
+			return err
+		} else {
+			out.StartTime = *newVal.(*time.Time)
+		}
+		if newVal, err := c.DeepCopy(&in.StopTime); err != nil {
+			return err
+		} else {
+			out.StopTime = *newVal.(*time.Time)
 		}
 		return nil
 	}

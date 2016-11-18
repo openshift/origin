@@ -45007,6 +45007,27 @@
      "startTimestamp": {
       "description": "startTimestamp is a timestamp representing the server time when this Build started running in a Pod. It is represented in RFC3339 form and is in UTC.",
       "type": "string"
+     },
+     "stepInfo": {
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.BuildStepInfo"
+      }
+     }
+    }
+   },
+   "v1.BuildStepInfo": {
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "startTime": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "stopTime": {
+      "type": "string",
+      "format": "date-time"
      }
     }
    },

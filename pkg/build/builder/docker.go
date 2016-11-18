@@ -58,6 +58,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	var timeStart time.Time
 	if d.build.Spec.Source.Git == nil && d.build.Spec.Source.Binary == nil &&
 		d.build.Spec.Source.Dockerfile == nil && d.build.Spec.Source.Images == nil {
 		return fmt.Errorf("must provide a value for at least one of source, binary, images, or dockerfile")
@@ -69,7 +70,9 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
+	timeStart = time.Now()
 	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
+	d.build.Status.StepInfo = AddBuildStepInfo(d.build.Status.StepInfo, api.FetchSourceStep, timeStart)
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
@@ -145,8 +148,10 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
+	cName := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
+	err = execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cName)
+	d.build.Status.StepInfo = AddBuildStepInfo(d.build.Status.StepInfo, api.PostCommitHookStep, timeStart)
+	if err != nil {
 		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {

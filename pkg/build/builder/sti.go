@@ -26,6 +26,11 @@ import (
 	"github.com/openshift/origin/pkg/client"
 )
 
+var (
+	// timeStart holds the start timestamp for a build step.
+	timeStart time.Time
+)
+
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
 type builderFactory interface {
 	// Create S2I Builder based on S2I configuration
@@ -259,10 +264,11 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
+	// NOTE: result will contain the build step timing returned from s2i build
+	// steps
 	result, err := builder.Build(config)
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(result.BuildInfo.FailureReason.Reason, result.BuildInfo.FailureReason.Message)
-
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
@@ -270,7 +276,10 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
+	timeStart = time.Now()
+	err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
+	s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PostCommitHookStep, timeStart)
+	if err != nil {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
@@ -301,7 +310,11 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		if err = pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
+
+		timeStart = time.Now()
+		err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PushImageToRegistryStep, timeStart)
+		if err != nil {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
 			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
@@ -333,7 +346,9 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	}
 
 	// fetch source
+	timeStart := time.Now()
 	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
+	d.s.build.Status.StepInfo = AddBuildStepInfo(d.s.build.Status.StepInfo, api.FetchSourceStep, timeStart)
 	if err != nil {
 		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed

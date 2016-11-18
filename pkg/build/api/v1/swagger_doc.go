@@ -191,10 +191,22 @@ var map_BuildStatus = map[string]string{
 	"duration":                   "duration contains time.Duration object describing build time.",
 	"outputDockerImageReference": "outputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
 	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on.",
+	"stepInfo":                   "StepInfo holds the information related to build execution steps in the build flow.",
 }
 
 func (BuildStatus) SwaggerDoc() map[string]string {
 	return map_BuildStatus
+}
+
+var map_BuildStepInfo = map[string]string{
+	"":          "BuildStepInfo has information about a step in the build process.",
+	"name":      "Name is the name of the build step.",
+	"startTime": "StartTime is the time when the build step process has started under the format that time.Now() returns.",
+	"stopTime":  "StopTime is the time when the build step process has finished regardless whether if finished successfully or not.",
+}
+
+func (BuildStepInfo) SwaggerDoc() map[string]string {
+	return map_BuildStepInfo
 }
 
 var map_BuildStrategy = map[string]string{

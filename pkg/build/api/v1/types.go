@@ -173,7 +173,29 @@ type BuildStatus struct {
 
 	// config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
+
+	// StepInfo holds the information related to build execution steps in the
+	// build flow.
+	StepInfo []BuildStepInfo `json:"stepInfo,omitempty" protobuf:"bytes,10,rep,name=stepInfo"`
 }
+
+// BuildStepInfo has information about a step in the build process.
+type BuildStepInfo struct {
+	// Name is the name of the build step.
+	Name StepName `json:"name,omitempty" protobuf:"bytes,1,opt,name=name,casttype=StepName"`
+
+	// StartTime is the time when the build step process has started under the
+	// format that time.Now() returns.
+	StartTime time.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
+
+	// StopTime is the time when the build step process has finished regardless
+	// whether if finished successfully or not.
+	StopTime time.Time `json:"stopTime,omitempty" protobuf:"bytes,3,opt,name=stopTime"`
+}
+
+// StepName is the name of a build step in the build process such as pull
+// builder image, fetch source, etc.
+type StepName string
 
 // BuildPhase represents the status of a build at a point in time.
 type BuildPhase string

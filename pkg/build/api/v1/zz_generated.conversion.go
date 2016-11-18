@@ -53,6 +53,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_BuildSpec_To_v1_BuildSpec,
 		Convert_v1_BuildStatus_To_api_BuildStatus,
 		Convert_api_BuildStatus_To_v1_BuildStatus,
+		Convert_v1_BuildStepInfo_To_api_BuildStepInfo,
+		Convert_api_BuildStepInfo_To_v1_BuildStepInfo,
 		Convert_v1_BuildStrategy_To_api_BuildStrategy,
 		Convert_api_BuildStrategy_To_v1_BuildStrategy,
 		Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause,
@@ -886,6 +888,17 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *api.Bui
 	} else {
 		out.Config = nil
 	}
+	if in.StepInfo != nil {
+		in, out := &in.StepInfo, &out.StepInfo
+		*out = make([]api.BuildStepInfo, len(*in))
+		for i := range *in {
+			if err := Convert_v1_BuildStepInfo_To_api_BuildStepInfo(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.StepInfo = nil
+	}
 	return nil
 }
 
@@ -911,11 +924,44 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *Bui
 	} else {
 		out.Config = nil
 	}
+	if in.StepInfo != nil {
+		in, out := &in.StepInfo, &out.StepInfo
+		*out = make([]BuildStepInfo, len(*in))
+		for i := range *in {
+			if err := Convert_api_BuildStepInfo_To_v1_BuildStepInfo(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.StepInfo = nil
+	}
 	return nil
 }
 
 func Convert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *BuildStatus, s conversion.Scope) error {
 	return autoConvert_api_BuildStatus_To_v1_BuildStatus(in, out, s)
+}
+
+func autoConvert_v1_BuildStepInfo_To_api_BuildStepInfo(in *BuildStepInfo, out *api.BuildStepInfo, s conversion.Scope) error {
+	out.Name = api.StepName(in.Name)
+	out.StartTime = in.StartTime
+	out.StopTime = in.StopTime
+	return nil
+}
+
+func Convert_v1_BuildStepInfo_To_api_BuildStepInfo(in *BuildStepInfo, out *api.BuildStepInfo, s conversion.Scope) error {
+	return autoConvert_v1_BuildStepInfo_To_api_BuildStepInfo(in, out, s)
+}
+
+func autoConvert_api_BuildStepInfo_To_v1_BuildStepInfo(in *api.BuildStepInfo, out *BuildStepInfo, s conversion.Scope) error {
+	out.Name = StepName(in.Name)
+	out.StartTime = in.StartTime
+	out.StopTime = in.StopTime
+	return nil
+}
+
+func Convert_api_BuildStepInfo_To_v1_BuildStepInfo(in *api.BuildStepInfo, out *BuildStepInfo, s conversion.Scope) error {
+	return autoConvert_api_BuildStepInfo_To_v1_BuildStepInfo(in, out, s)
 }
 
 func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *api.BuildStrategy, s conversion.Scope) error {

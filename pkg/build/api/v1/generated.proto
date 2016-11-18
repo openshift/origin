@@ -403,6 +403,24 @@ message BuildStatus {
 
   // config is an ObjectReference to the BuildConfig this Build is based on.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference config = 9;
+
+  // StepInfo holds the information related to build execution steps in the
+  // build flow.
+  repeated BuildStepInfo stepInfo = 10;
+}
+
+// BuildStepInfo has information about a step in the build process.
+message BuildStepInfo {
+  // Name is the name of the build step.
+  optional string name = 1;
+
+  // StartTime is the time when the build step process has started under the
+  // format that time.Now() returns.
+  optional Time startTime = 2;
+
+  // StopTime is the time when the build step process has finished regardless
+  // whether if finished successfully or not.
+  optional Time stopTime = 3;
 }
 
 // BuildStrategy contains the details of how to perform a build.
@@ -815,5 +833,8 @@ message WebHookTrigger {
   // allowEnv determines whether the webhook can set environment variables; can only
   // be set to true for GenericWebHook.
   optional bool allowEnv = 2;
+}
+
+message Time {
 }
 

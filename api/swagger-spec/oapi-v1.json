@@ -22574,6 +22574,28 @@
      "config": {
       "$ref": "v1.ObjectReference",
       "description": "config is an ObjectReference to the BuildConfig this Build is based on."
+     },
+     "stepInfo": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildStepInfo"
+      }
+     }
+    }
+   },
+   "v1.BuildStepInfo": {
+    "id": "v1.BuildStepInfo",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "startTime": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "stopTime": {
+      "type": "string",
+      "format": "date-time"
      }
     }
    },
