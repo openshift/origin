@@ -266,7 +266,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		allMarkers := osgraph.Markers{}
 		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
-		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat, d.SetProbeCommandName) {
+		for _, scanner := range getMarkerScanners(d.LogsCommandName, d.SecurityPolicyCommandFormat, d.SetProbeCommandName, forbiddenResources) {
 			allMarkers = append(allMarkers, scanner(g, f)...)
 		}
 
@@ -374,13 +374,19 @@ func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 	return markers
 }
 
-func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCommandName string) []osgraph.MarkerScanner {
+func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCommandName string, forbiddenResources sets.String) []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return kubeanalysis.FindRestartingPods(g, f, logsCommandName, securityPolicyCommandFormat)
 		},
 		kubeanalysis.FindDuelingReplicationControllers,
-		kubeanalysis.FindMissingSecrets,
+		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
+			// do not attempt to add markers for missing secrets if dealing with forbidden errors
+			if forbiddenResources.Has("secrets") {
+				return []osgraph.Marker{}
+			}
+			return kubeanalysis.FindMissingSecrets(g, f)
+		},
 		kubeanalysis.FindHPASpecsMissingCPUTargets,
 		kubeanalysis.FindHPASpecsMissingScaleRefs,
 		kubeanalysis.FindOverlappingHPAs,

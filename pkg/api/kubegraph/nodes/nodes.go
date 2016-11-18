@@ -76,7 +76,11 @@ func EnsureSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode 
 	return osgraph.EnsureUnique(g,
 		SecretNodeName(o),
 		func(node osgraph.Node) graph.Node {
-			return &SecretNode{node, o, true}
+			return &SecretNode{
+				Node:    node,
+				Secret:  o,
+				IsFound: true,
+			}
 		},
 	).(*SecretNode)
 }
@@ -85,7 +89,11 @@ func FindOrCreateSyntheticSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secre
 	return osgraph.EnsureUnique(g,
 		SecretNodeName(o),
 		func(node osgraph.Node) graph.Node {
-			return &SecretNode{node, o, false}
+			return &SecretNode{
+				Node:    node,
+				Secret:  o,
+				IsFound: false,
+			}
 		},
 	).(*SecretNode)
 }
