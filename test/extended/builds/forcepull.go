@@ -131,7 +131,7 @@ var _ = g.Describe("[LocalNode][builds] forcePull should affect pulling builder 
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
 
-		err = exutil.VarSubOnFile(pre, post, varSubSrc, varSubDest)
+		err = exutil.VarSubOnFile(pre, post, map[string]string{varSubSrc: varSubDest})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.CreateResource(post, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

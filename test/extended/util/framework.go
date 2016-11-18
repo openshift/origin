@@ -255,12 +255,16 @@ func WriteObjectToFile(obj runtime.Object, filename string) error {
 	return ioutil.WriteFile(filename, []byte(content), 0644)
 }
 
-// VarSubOnFile reads in srcFile, finds instances inf varToSub, changes it to var, and writes out to destFile
-func VarSubOnFile(srcFile, destFile, varToSub, val string) error {
+// VarSubOnFile reads in srcFile, finds instances of ${key} from the map
+// and replaces them with their associated values.
+func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error {
 	srcData, err := ioutil.ReadFile(srcFile)
 	if err == nil {
 		srcString := string(srcData)
-		srcString = strings.Replace(srcString, varToSub, val, -1) // -1 means unlimited replacements
+		for k, v := range vars {
+			k = "${" + k + "}"
+			srcString = strings.Replace(srcString, k, v, -1) // -1 means unlimited replacements
+		}
 		err = ioutil.WriteFile(destFile, []byte(srcString), 0644)
 	}
 	return err

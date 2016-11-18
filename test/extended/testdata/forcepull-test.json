@@ -26,12 +26,12 @@
 					"customStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
 								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
-								"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+								"value": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 							},
 							{
 								"name": "BUILD_LOGLEVEL",
@@ -67,7 +67,7 @@
 					"dockerStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
@@ -103,7 +103,7 @@
 					"sourceStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
@@ -139,12 +139,12 @@
 					"customStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
 								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
-								"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+								"value": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 							},
 							{
 								"name": "BUILD_LOGLEVEL",
@@ -180,7 +180,7 @@
 					"dockerStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
@@ -216,7 +216,7 @@
 					"sourceStrategy": {
 						"from": {
 							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"name": "${SERVICE_REGISTRY_IP}/forcepull-extended-test-builder"
 						},
 						"env": [
 							{
