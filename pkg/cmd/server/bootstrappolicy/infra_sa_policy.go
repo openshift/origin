@@ -944,12 +944,12 @@ func init() {
 				// removed once we can set the last-scale-reason field via the scale subresource
 				{
 					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("get", "update"),
+					Verbs:     sets.NewString("get", "update", "patch"),
 					Resources: sets.NewString("replicationcontrollers"),
 				},
 				{
 					APIGroups: []string{},
-					Verbs:     sets.NewString("get", "update"),
+					Verbs:     sets.NewString("get", "update", "patch"),
 					Resources: sets.NewString("deploymentconfigs"),
 				},
 			},

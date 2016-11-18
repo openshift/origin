@@ -10,8 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -25,11 +23,13 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
+	utilerrors "github.com/openshift/origin/pkg/util/errors"
 )
 
 var (
@@ -623,16 +623,20 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	// actually "idle" the scalable resources by scaling them down to zero
 	// (scale down to zero *after* we've applied the annotation so that we don't miss any traffic)
 	for scaleRef, info := range toScale {
+		idled := ""
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			if err := scaleAnnotater.UpdateObjectScale(info.namespace, scaleRef, info.obj, info.scale); err != nil {
+			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, dcGetter, rcGetter)
+			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
 				continue
 			}
+		} else {
+			idled = "(dry run)"
 		}
 
-		fmt.Fprintf(o.out, "Idled %s %s/%s (dry run)\n", scaleRef.Kind, info.namespace, scaleRef.Name)
+		fmt.Fprintf(o.out, "Idled %s %s/%s %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, idled)
 	}
 
 	if hadError {

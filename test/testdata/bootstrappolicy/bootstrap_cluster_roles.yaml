@@ -3510,6 +3510,7 @@ items:
     - replicationcontrollers
     verbs:
     - get
+    - patch
     - update
   - apiGroups:
     - ""
@@ -3518,6 +3519,7 @@ items:
     - deploymentconfigs
     verbs:
     - get
+    - patch
     - update
 kind: List
 metadata: {}

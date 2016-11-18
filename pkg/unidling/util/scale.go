@@ -1,14 +1,17 @@
 package util
 
 import (
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
 
@@ -25,7 +28,7 @@ func NewScaleAnnotater(scales kextclient.ScalesGetter, dcs deployclient.Deployme
 		scales:            scales,
 		dcs:               dcs,
 		rcs:               rcs,
-		changeAnnotations: changeAnnots,
+		ChangeAnnotations: changeAnnots,
 	}
 }
 
@@ -33,7 +36,83 @@ type ScaleAnnotater struct {
 	scales            kextclient.ScalesGetter
 	dcs               deployclient.DeploymentConfigsGetter
 	rcs               kclient.ReplicationControllersGetter
-	changeAnnotations AnnotationFunc
+	ChangeAnnotations AnnotationFunc
+}
+
+// ScaleUpdater implements a method "Update" that knows how to update a given object
+type ScaleUpdater interface {
+	Update(*ScaleAnnotater, runtime.Object, *kextapi.Scale) error
+}
+
+// ScaleUpdater implements unidlingutil.ScaleUpdater
+type scaleUpdater struct {
+	encoder   runtime.Encoder
+	namespace string
+	dcGetter  deployclient.DeploymentConfigsGetter
+	rcGetter  kclient.ReplicationControllersGetter
+}
+
+func NewScaleUpdater(encoder runtime.Encoder, namespace string, dcGetter deployclient.DeploymentConfigsGetter, rcGetter kclient.ReplicationControllersGetter) ScaleUpdater {
+	return scaleUpdater{
+		encoder:   encoder,
+		namespace: namespace,
+		dcGetter:  dcGetter,
+		rcGetter:  rcGetter,
+	}
+}
+
+func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scale *kextapi.Scale) error {
+	var (
+		err                             error
+		patchBytes, originalObj, newObj []byte
+	)
+
+	originalObj, err = runtime.Encode(s.encoder, obj)
+	if err != nil {
+		return err
+	}
+
+	switch typedObj := obj.(type) {
+	case *deployapi.DeploymentConfig:
+		if typedObj.Annotations == nil {
+			typedObj.Annotations = make(map[string]string)
+		}
+
+		annotator.ChangeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
+		typedObj.Spec.Replicas = scale.Spec.Replicas
+
+		newObj, err = runtime.Encode(s.encoder, typedObj)
+		if err != nil {
+			return err
+		}
+
+		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &deployapiv1.DeploymentConfig{})
+		if err != nil {
+			return err
+		}
+
+		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+	case *kapi.ReplicationController:
+		if typedObj.Annotations == nil {
+			typedObj.Annotations = make(map[string]string)
+		}
+
+		annotator.ChangeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
+		typedObj.Spec.Replicas = scale.Spec.Replicas
+
+		newObj, err = runtime.Encode(s.encoder, typedObj)
+		if err != nil {
+			return err
+		}
+
+		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &kapiv1.ReplicationController{})
+		if err != nil {
+			return err
+		}
+
+		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+	}
+	return err
 }
 
 // getObjectWithScale either fetches a known type of object and constructs a Scale from that, or uses the scale
@@ -77,7 +156,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 // updateObjectScale updates the scale of an object and removes unidling annotations for objects of a know type.
 // For objects of an unknown type, it scales the object using the scale subresource
 // (and does not change annotations).
-func (c *ScaleAnnotater) UpdateObjectScale(namespace string, ref unidlingapi.CrossGroupObjectReference, obj runtime.Object, scale *kextapi.Scale) error {
+func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace string, ref unidlingapi.CrossGroupObjectReference, obj runtime.Object, scale *kextapi.Scale) error {
 	var err error
 
 	if obj == nil {
@@ -85,21 +164,9 @@ func (c *ScaleAnnotater) UpdateObjectScale(namespace string, ref unidlingapi.Cro
 		return err
 	}
 
-	switch typedObj := obj.(type) {
-	case *deployapi.DeploymentConfig:
-		if typedObj.Annotations == nil {
-			typedObj.Annotations = make(map[string]string)
-		}
-		c.changeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
-		typedObj.Spec.Replicas = scale.Spec.Replicas
-		_, err = c.dcs.DeploymentConfigs(namespace).Update(typedObj)
-	case *kapi.ReplicationController:
-		if typedObj.Annotations == nil {
-			typedObj.Annotations = make(map[string]string)
-		}
-		c.changeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
-		typedObj.Spec.Replicas = scale.Spec.Replicas
-		_, err = c.rcs.ReplicationControllers(namespace).Update(typedObj)
+	switch obj.(type) {
+	case *deployapi.DeploymentConfig, *kapi.ReplicationController:
+		return updater.Update(c, obj, scale)
 	default:
 		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations")
 		_, err = c.scales.Scales(namespace).Update(ref.Kind, scale)
