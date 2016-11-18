@@ -301,8 +301,8 @@ func TestUpdateResetsMetadata(t *testing.T) {
 		// existing manifest is preserved, and unpacked
 		{
 			expect: func(image *api.Image) bool {
-				if image.DockerImageManifest != etcdManifest {
-					t.Errorf("unexpected manifest: %s", image.DockerImageManifest)
+				if len(image.DockerImageManifest) != 0 {
+					t.Errorf("unexpected not empty manifest")
 					return false
 				}
 				if image.DockerImageMetadata.ID != "fe50ac14986497fa6b5d2cc24feb4a561d01767bc64413752c0988cb70b0b8b9" {

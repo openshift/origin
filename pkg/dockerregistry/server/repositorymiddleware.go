@@ -215,6 +215,13 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 		acceptschema2: r.acceptschema2,
 	}
 
+	if r.pullthrough {
+		ms = &pullthroughManifestService{
+			ManifestService: ms,
+			repo:            r,
+		}
+	}
+
 	ms = &errorManifestService{
 		manifests: ms,
 		repo:      r,
@@ -318,17 +325,24 @@ func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName stri
 		}
 		return
 	}
-
 	mh, err := NewManifestHandlerFromImage(r, image)
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("cannot remember layers of image %q: %v", image.Name, err)
 		return
 	}
-	r.rememberLayersOfManifest(mh.Manifest(), cacheName)
+	dgst, err := mh.Digest()
+	if err != nil {
+		context.GetLogger(r.ctx).Errorf("cannot get manifest digest of image %q: %v", image.Name, err)
+		return
+	}
+
+	r.rememberLayersOfManifest(dgst, mh.Manifest(), cacheName)
 }
 
 // rememberLayersOfManifest caches the layer digests of given manifest
-func (r *repository) rememberLayersOfManifest(manifest distribution.Manifest, cacheName string) {
+func (r *repository) rememberLayersOfManifest(manifestDigest digest.Digest, manifest distribution.Manifest, cacheName string) {
+	r.cachedLayers.RememberDigest(manifestDigest, r.blobrepositorycachettl, cacheName)
+
 	// remember the layers in the cache as an optimization to avoid searching all remote repositories
 	for _, layer := range manifest.References() {
 		r.cachedLayers.RememberDigest(layer.Digest, r.blobrepositorycachettl, cacheName)
@@ -341,9 +355,14 @@ func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, ca
 	if err != nil {
 		return
 	}
-
+	dgst, err := mh.Digest()
+	if err != nil {
+		context.GetLogger(r.ctx).Errorf("cannot get payload from manifest handler: %v", err)
+		return
+	}
 	manifest = mh.Manifest()
-	r.rememberLayersOfManifest(manifest, cacheName)
+
+	r.rememberLayersOfManifest(dgst, manifest, cacheName)
 	return
 }
 

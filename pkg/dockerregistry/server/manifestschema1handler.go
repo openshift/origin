@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/libtrust"
@@ -171,4 +172,8 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 		return errs
 	}
 	return nil
+}
+
+func (h *manifestSchema1Handler) Digest() (digest.Digest, error) {
+	return digest.FromBytes(h.manifest.Canonical), nil
 }

@@ -149,6 +149,11 @@ middleware:
 		t.Fatalf("expected 0 tags, got: %#v", tags)
 	}
 
+	err = putEmptyBlob(stream.Name, user, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	dgst, err := putManifest(stream.Name, user, token)
 	if err != nil {
 		t.Fatal(err)
@@ -242,6 +247,11 @@ middleware:
 		t.Fatalf("expected error getting otherrepo")
 	}
 
+	err = putEmptyBlob("otherrepo", user, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	otherDigest, err := putManifest("otherrepo", user, token)
 	if err != nil {
 		t.Fatal(err)
@@ -296,6 +306,37 @@ func putManifest(name, user, token string) (digest.Digest, error) {
 		return "", fmt.Errorf("unexpected put status code: %d", resp.StatusCode)
 	}
 	return dgst, nil
+}
+
+func putEmptyBlob(name, user, token string) error {
+	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/blobs/uploads/", testutil.Namespace(), name)
+	method := "POST"
+
+	for range []int{1, 2} {
+		req, err := http.NewRequest(method, putUrl, bytes.NewReader(gzippedEmptyTar))
+		if err != nil {
+			return fmt.Errorf("error makeing request: %s", err)
+		}
+		req.SetBasicAuth(user, token)
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error posting blob: %s", err)
+		}
+		resp.Body.Close()
+
+		switch resp.StatusCode {
+		case http.StatusAccepted:
+			putUrl = resp.Header.Get("Location") + "&digest=" + digestSHA256GzippedEmptyTar.String()
+			method = "PUT"
+		case http.StatusCreated:
+			return nil
+		default:
+			return fmt.Errorf("unexpected post status code: %d", resp.StatusCode)
+		}
+	}
+
+	return nil
 }
 
 func getTags(streamName, user, token string) ([]string, error) {

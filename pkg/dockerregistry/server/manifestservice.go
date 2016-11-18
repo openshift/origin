@@ -69,7 +69,28 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		ref = ref.DockerClientDefaults().AsRepository()
 	}
 
-	manifest, err := m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
+	manifest, err := m.manifests.Get(WithRepository(ctx, m.repo), dgst, options...)
+	switch err.(type) {
+	case distribution.ErrManifestUnknownRevision:
+		break
+	case nil:
+		m.repo.rememberLayersOfManifest(dgst, manifest, ref.Exact())
+		return manifest, nil
+	default:
+		context.GetLogger(m.ctx).Errorf("unable to get manifest from storage: %v", err)
+		return nil, err
+	}
+
+	if len(image.DockerImageManifest) == 0 {
+		// We don't have the manifest in the storage and we don't have the manifest
+		// inside the image so there is no point to continue.
+		return nil, distribution.ErrManifestUnknownRevision{
+			Name:     m.repo.Named().Name(),
+			Revision: dgst,
+		}
+	}
+
+	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
 
 	return manifest, err
 }
@@ -94,6 +115,11 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 
 	// in order to stat the referenced blobs, repository need to be set on the context
 	if err := mh.Verify(WithRepository(ctx, m.repo), false); err != nil {
+		return "", err
+	}
+
+	_, err = m.manifests.Put(WithRepository(ctx, m.repo), manifest, options...)
+	if err != nil {
 		return "", err
 	}
 
@@ -129,6 +155,10 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	if err = mh.FillImageMetadata(ctx, &ism.Image); err != nil {
 		return "", err
 	}
+
+	// Remove the raw manifest as it's very big and this leads to a large memory consumption in etcd.
+	ism.Image.DockerImageManifest = ""
+	ism.Image.DockerImageConfig = ""
 
 	if err = m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it

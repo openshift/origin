@@ -156,7 +156,12 @@ os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n defa
 
 os::log::info "Docker registry refuses manifest with missing dependencies"
 os::cmd::expect_success 'oc new-project verify-manifest'
-os::cmd::expect_success "oc get -o jsonpath=$'{.dockerImageManifest}\n' 'image/${rubyimagedigest}' --context="${CLUSTER_ADMIN_CONTEXT}" >'${ARTIFACT_DIR}/rubyimagemanifest.json'"
+os::cmd::expect_success "curl \
+    --location                                                                      \
+    --header 'Content-Type: application/vnd.docker.distribution.manifest.v1+json'   \
+    --user 'e2e_user:${e2e_user_token}'                                             \
+    --output '${ARTIFACT_DIR}/rubyimagemanifest.json'                               \
+    'http://${DOCKER_REGISTRY}/v2/cache/ruby-22-centos7/manifests/latest'"
 os::cmd::expect_success "curl --head                                                \
     --silent                                                                        \
     --request PUT                                                                   \
@@ -245,13 +250,10 @@ os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest hel
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag hello-world:pullthrough" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
 hello_world_name="$(oc get -o 'jsonpath={.image.metadata.name}' istag hello-world:pullthrough)"
 os::cmd::expect_success_and_text "echo '${hello_world_name}'" '.+'
-# dockerImageManifest is retrievable only with "images" resource
+# dockerImageManifest isn't retrievable only with "images" resource
 hello_world_config_name="$(oc get -o 'jsonpath={.dockerImageManifest}' image "${hello_world_name}" --context="${CLUSTER_ADMIN_CONTEXT}" | jq -r '.config.digest')"
 hello_world_config_image="$(oc get -o 'jsonpath={.image.dockerImageConfig}' istag hello-world:pullthrough | jq -r '.container_config.Image')"
-os::cmd::expect_success_and_text "echo '${hello_world_config_name},${hello_world_config_image}'" '.+,.+'
-# verify we can fetch the config
-os::cmd::expect_success_and_text "curl -u 'schema2-user:${schema2_user_token}' -v -s -o '${ARTIFACT_DIR}/hello-world-config.json' '${DOCKER_REGISTRY}/v2/schema2/hello-world/blobs/${hello_world_config_name}' 2>&1" "Docker-Content-Digest:\s*${hello_world_config_name}"
-os::cmd::expect_success_and_text "jq -r '.container_config.Image' '${ARTIFACT_DIR}/hello-world-config.json'" "${hello_world_config_image}"
+os::cmd::expect_success_and_text "echo '${hello_world_config_name},${hello_world_config_image}'" '^,$'
 # no accept header provided, the registry will convert schema 2 to schema 1 on-the-fly
 hello_world_schema1_digest="$(curl -u "schema2-user:${schema2_user_token}" -s -v -o "${ARTIFACT_DIR}/hello-world-manifest.json" "${DOCKER_REGISTRY}/v2/schema2/hello-world/manifests/pullthrough" |& sed -n 's/.*Docker-Content-Digest:\s*\(\S\+\).*/\1/p')"
 # ensure the manifest was converted to schema 1
@@ -615,10 +617,8 @@ os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}
 os::log::info "Manifest V2 schema 2 successfully converted to schema 1"
 
 os::log::info "Verify image size calculation"
-busybox_expected_size="$(oc get -o 'jsonpath={.dockerImageManifest}' image "${busybox_name}" --context="${CLUSTER_ADMIN_CONTEXT}" | jq -r '[.. | .size?] | add')"
 busybox_calculated_size="$(oc get -o go-template='{{.dockerImageMetadata.Size}}' image "${busybox_name}" --context="${CLUSTER_ADMIN_CONTEXT}")"
-os::cmd::expect_success_and_text "echo '${busybox_expected_size}:${busybox_calculated_size}'" '^[1-9][0-9]*:[1-9][0-9]*$'
-os::cmd::expect_success_and_text "echo '${busybox_expected_size}'" "${busybox_calculated_size}"
+os::cmd::expect_success_and_text "echo '${busybox_calculated_size}'" '^[1-9][0-9]*$'
 os::log::info "Image size matches"
 
 os::test::junit::declare_suite_end

@@ -8,6 +8,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
@@ -182,6 +183,12 @@ func imageHasBlob(
 		return false
 	}
 
+	// someone asks for manifest
+	if imageName == blobDigest {
+		r.rememberLayersOfImage(image, cacheName)
+		return true
+	}
+
 	if len(image.DockerImageLayers) == 0 {
 		if len(image.DockerImageManifestMediaType) > 0 {
 			// If the media type is set, we can safely assume that the best effort to fill the image layers
@@ -204,7 +211,8 @@ func imageHasBlob(
 	}
 
 	// only manifest V2 schema2 has docker image config filled where dockerImage.Metadata.id is its digest
-	if len(image.DockerImageConfig) > 0 && image.DockerImageMetadata.ID == blobDigest {
+	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest &&
+		image.DockerImageMetadata.ID == blobDigest {
 		// remember manifest config reference of schema 2 as well
 		r.rememberLayersOfImage(image, cacheName)
 		return true
