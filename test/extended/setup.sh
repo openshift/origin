@@ -214,6 +214,9 @@ readonly EXCLUDED_TESTS=(
 
 	"\[Feature:Performance\]"
 
+	# not enabled in Origin yet
+	"\[Feature:GarbageCollector\]"
+
 	# Depends on external components, may not need yet
 	Monitoring              # Not installed, should be
 	"Cluster level logging" # Not installed yet
@@ -223,6 +226,7 @@ readonly EXCLUDED_TESTS=(
 	"^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
 
 	"\[Feature:Federation\]"   # Not enabled yet
+	"\[Feature:Federation12\]"   # Not enabled yet
 	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
@@ -272,6 +276,9 @@ readonly EXCLUDED_TESTS=(
 	# Inordinately slow tests
 	"should create and stop a working application"
 	"should always delete fast" # will be uncommented in etcd3
+
+	# tested by networking.sh and requires the environment that script sets up
+	"\[networking\] OVS"
 )
 
 readonly SERIAL_TESTS=(
