@@ -13,6 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -48,7 +51,9 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	K       kclient.Interface
+	// TODO internalclientset: get rid of oldClient after next rebase
+	OldK    kclient.Interface
+	K       kclientset.Interface
 	C       client.Interface
 	Server  string
 	Suggest bool
@@ -65,13 +70,13 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	g := osgraph.New()
 
 	loaders := []GraphLoader{
-		&serviceLoader{namespace: namespace, lister: d.K},
-		&serviceAccountLoader{namespace: namespace, lister: d.K},
-		&secretLoader{namespace: namespace, lister: d.K},
-		&pvcLoader{namespace: namespace, lister: d.K},
-		&rcLoader{namespace: namespace, lister: d.K},
-		&podLoader{namespace: namespace, lister: d.K},
-		&petsetLoader{namespace: namespace, lister: d.K.Apps()},
+		&serviceLoader{namespace: namespace, lister: d.K.Core()},
+		&serviceAccountLoader{namespace: namespace, lister: d.K.Core()},
+		&secretLoader{namespace: namespace, lister: d.K.Core()},
+		&pvcLoader{namespace: namespace, lister: d.K.Core()},
+		&rcLoader{namespace: namespace, lister: d.K.Core()},
+		&podLoader{namespace: namespace, lister: d.K.Core()},
+		&petsetLoader{namespace: namespace, lister: d.OldK.Apps()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
@@ -1205,7 +1210,7 @@ type GraphLoader interface {
 
 type rcLoader struct {
 	namespace string
-	lister    kclient.ReplicationControllersNamespacer
+	lister    kcoreclient.ReplicationControllersGetter
 	items     []kapi.ReplicationController
 }
 
@@ -1229,7 +1234,7 @@ func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
 
 type serviceLoader struct {
 	namespace string
-	lister    kclient.ServicesNamespacer
+	lister    kcoreclient.ServicesGetter
 	items     []kapi.Service
 }
 
@@ -1253,7 +1258,7 @@ func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
 
 type podLoader struct {
 	namespace string
-	lister    kclient.PodsNamespacer
+	lister    kcoreclient.PodsGetter
 	items     []kapi.Pod
 }
 
@@ -1301,7 +1306,7 @@ func (l *petsetLoader) AddToGraph(g osgraph.Graph) error {
 
 type horizontalPodAutoscalerLoader struct {
 	namespace string
-	lister    kclient.HorizontalPodAutoscalersNamespacer
+	lister    kautoscalingclient.HorizontalPodAutoscalersGetter
 	items     []autoscaling.HorizontalPodAutoscaler
 }
 
@@ -1325,7 +1330,7 @@ func (l *horizontalPodAutoscalerLoader) AddToGraph(g osgraph.Graph) error {
 
 type serviceAccountLoader struct {
 	namespace string
-	lister    kclient.ServiceAccountsNamespacer
+	lister    kcoreclient.ServiceAccountsGetter
 	items     []kapi.ServiceAccount
 }
 
@@ -1349,7 +1354,7 @@ func (l *serviceAccountLoader) AddToGraph(g osgraph.Graph) error {
 
 type secretLoader struct {
 	namespace string
-	lister    kclient.SecretsNamespacer
+	lister    kcoreclient.SecretsGetter
 	items     []kapi.Secret
 }
 
@@ -1373,7 +1378,7 @@ func (l *secretLoader) AddToGraph(g osgraph.Graph) error {
 
 type pvcLoader struct {
 	namespace string
-	lister    kclient.PersistentVolumeClaimsNamespacer
+	lister    kcoreclient.PersistentVolumeClaimsGetter
 	items     []kapi.PersistentVolumeClaim
 }
 

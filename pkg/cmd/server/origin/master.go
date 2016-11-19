@@ -28,9 +28,8 @@ import (
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/apiserver/audit"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/openapi"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -624,9 +623,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.ServiceAccounts().Lister(), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
-	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientset)
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -661,8 +660,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
-		ServiceAccounts: c.KubeClient(),
-		Secrets:         c.KubeClient(),
+		ServiceAccounts: c.KubeClientset(),
+		Secrets:         c.KubeClientset(),
 	}
 
 	// TODO: with sharding, this needs to be changed
@@ -681,14 +680,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
 
-	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient, c.Informers.PolicyBindings().Lister())
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset, c.Informers.PolicyBindings().Lister())
 
 	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -712,7 +711,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 
 	osClient, kubeClient := c.OAuthServerClients()
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(kubeClient, kubeClient, osClient, clientRegistry, saAccountGrantMethod)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(kubeClient.Core(), kubeClient.Core(), osClient, clientRegistry, saAccountGrantMethod)
 	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
@@ -738,7 +737,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs/scale":       deployConfigScaleStorage,
 		"deploymentConfigs/status":      deployConfigStatusStorage,
 		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), c.OldDeploymentLogClient(), kubeletClient),
 		"deploymentConfigs/instantiate": dcInstantiateStorage,
 
 		// TODO: Deprecate these
@@ -799,7 +798,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	if configapi.IsBuildEnabled(&c.Options) {
 		storage["builds"] = buildStorage
 		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
+		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient().Core(), kubeletClient)
 		storage["builds/details"] = buildDetailsStorage
 
 		storage["buildConfigs"] = buildConfigStorage
@@ -979,10 +978,10 @@ func env(key string, defaultValue string) string {
 }
 
 type clientDeploymentInterface struct {
-	KubeClient kclient.Interface
+	KubeClient kclientset.Interface
 }
 
 // GetDeployment returns the deployment with the provided context and name
 func (c clientDeploymentInterface) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
+	return c.KubeClient.Core().ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
 }

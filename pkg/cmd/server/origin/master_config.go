@@ -20,10 +20,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/labels"
@@ -152,7 +151,13 @@ type MasterConfig struct {
 	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
 	// different access control to a system component, create a separate client/config specifically for
 	// that component.
+	// DEPRECATED: use PrivilegedLoopbackKubernetesClientset instead.
 	PrivilegedLoopbackKubernetesClient *kclient.Client
+	// PrivilegedLoopbackKubernetesClientset is the client used to call Kubernetes APIs from system components,
+	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
+	// different access control to a system component, create a separate client/config specifically for
+	// that component.
+	PrivilegedLoopbackKubernetesClientset *kclientset.Clientset
 	// PrivilegedLoopbackOpenShiftClient is the client used to call OpenShift APIs from system components,
 	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically
@@ -183,7 +188,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	privilegedLoopbackKubeClient, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackKubeClient, privilegedLoopbackKubeClientset, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +201,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
 		return nil, err
 	}
-	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient, customListerWatchers, 10*time.Minute)
+	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, 10*time.Minute)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
@@ -216,13 +221,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
-	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
+	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClientset.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
 	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	kubeClientSet := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
-	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, kubeClientSet)
+	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -242,7 +246,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
 		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 	}
-	originAdmission, kubeAdmission, err := buildAdmissionChains(options, kubeClientSet, pluginInitializer)
+	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +274,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		GroupCache:                    groupCache,
-		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClientset, informerFactory),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -295,10 +299,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,
 
-		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
-		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
-		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
-		Informers:                          informerFactory,
+		PrivilegedLoopbackClientConfig:        *privilegedLoopbackClientConfig,
+		PrivilegedLoopbackOpenShiftClient:     privilegedLoopbackOpenShiftClient,
+		PrivilegedLoopbackKubernetesClient:    privilegedLoopbackKubeClient,
+		PrivilegedLoopbackKubernetesClientset: privilegedLoopbackKubeClientset,
+		Informers: informerFactory,
 	}
 
 	// ensure that the limit range informer will be started
@@ -395,7 +400,7 @@ var (
 	}
 )
 
-func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *internalclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
+func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
 	// check to see if they've taken explicit control of the kube admission chain
 	// this happens when any of the following are true:
 	// 1. extended kube server args are used to change the admission plugin list
@@ -481,7 +486,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *interna
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
 var newAdmissionChainFunc = newAdmissionChain
 
-func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet *internalclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface, error) {
+func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface, error) {
 	plugins := []admission.Interface{}
 	for _, pluginName := range pluginNames {
 		switch pluginName {
@@ -576,11 +581,11 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
 		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
-		kubeClient, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
+		_, kubeClientset, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return nil, err
 		}
-		return sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient)), nil
+		return sacontroller.NewGetterFromClient(kubeClientset), nil
 	}
 
 	// TODO: could be hoisted if other Origin code needs direct access to etcd, otherwise discourage this access pattern
@@ -662,10 +667,10 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return ret, nil
 }
 
-func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewAuthorizerReviewer(authorizer),
-		kubeClient.Namespaces(),
+		kubeClient.Core().Namespaces(),
 		informerFactory.ClusterPolicies().Lister(),
 		informerFactory.ClusterPolicyBindings().Lister(),
 		informerFactory.Policies().Lister(),
@@ -817,10 +822,15 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
 
+// KubeClientset returns the kubernetes client object
+func (c *MasterConfig) KubeClientset() *kclientset.Clientset {
+	return c.PrivilegedLoopbackKubernetesClientset
+}
+
 // OAuthServerClients returns the openshift and kubernetes OAuth server client objects
 // The returned clients are privileged
-func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // PolicyClient returns the policy client object
@@ -854,13 +864,13 @@ func (c *MasterConfig) DeploymentClient() *kclient.Client {
 // DNSServerClient returns the DNS server client object
 // It must have the following capabilities:
 //   list, watch all services in all namespaces
-func (c *MasterConfig) DNSServerClient() *kclient.Client {
-	return c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) DNSServerClient() *kclientset.Clientset {
+	return c.PrivilegedLoopbackKubernetesClientset
 }
 
 // BuildLogClient returns the build log client object
-func (c *MasterConfig) BuildLogClient() *kclient.Client {
-	return c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) BuildLogClient() *kclientset.Clientset {
+	return c.PrivilegedLoopbackKubernetesClientset
 }
 
 // BuildConfigWebHookClient returns the webhook client object
@@ -869,7 +879,7 @@ func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 }
 
 // BuildControllerClients returns the build controller client objects
-func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclientset.Clientset) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -878,8 +888,8 @@ func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Clie
 }
 
 // BuildPodControllerClients returns the build pod controller client objects
-func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // BuildImageChangeTriggerControllerClients returns the build image change trigger controller client objects
@@ -888,8 +898,8 @@ func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Cli
 }
 
 // BuildConfigChangeControllerClients returns the build config change controller client objects
-func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // ImageChangeControllerClient returns the openshift client object
@@ -903,12 +913,12 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 }
 
 // DeploymentConfigInstantiateClients returns the clients used by the instantiate endpoint.
-func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // DeploymentControllerClients returns the deployment controller client objects
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclientset.Clientset) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -917,13 +927,13 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 }
 
 // DeploymentConfigClients returns deploymentConfig and deployment client objects
-func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // DeploymentConfigControllerClients returns the deploymentConfig controller client objects
-func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object
@@ -931,24 +941,30 @@ func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentLogClient returns the deployment log client object
-func (c *MasterConfig) DeploymentLogClient() *kclient.Client {
+// OldDeploymentLogClient returns the deployment log client object
+// TODO internalclientset: get rid of oldClient after next rebase
+func (c *MasterConfig) OldDeploymentLogClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
+}
+
+// DeploymentLogClient returns the deployment log client object
+func (c *MasterConfig) DeploymentLogClient() *kclientset.Clientset {
+	return c.PrivilegedLoopbackKubernetesClientset
 }
 
 // SecurityAllocationControllerClient returns the security allocation controller client object
-func (c *MasterConfig) SecurityAllocationControllerClient() *kclient.Client {
-	return c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) SecurityAllocationControllerClient() *kclientset.Clientset {
+	return c.PrivilegedLoopbackKubernetesClientset
 }
 
 // SDNControllerClients returns the SDN controller client objects
-func (c *MasterConfig) SDNControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) SDNControllerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // RouteAllocatorClients returns the route allocator client objects
-func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // ImageStreamSecretClient returns the client capable of retrieving secrets for an image secret wrapper
@@ -963,8 +979,8 @@ func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
-func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *internalclientset.Clientset) {
-	return c.PrivilegedLoopbackOpenShiftClient, clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
+func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
@@ -975,12 +991,12 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 // OriginNamespaceControllerClients returns a client for openshift and kubernetes.
 // The openshift client object must have authority to delete openshift content in any namespace
 // The kubernetes client object must have authority to execute a finalize request on a namespace
-func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclientset.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset
 }
 
 // UnidlingControllerClients returns the unidling controller clients
-func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclientset.Clientset) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -990,14 +1006,31 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.C
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
 // named service account in the infra namespace
-func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclient.Client, error) {
+func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclientset.Clientset, error) {
 	if len(name) == 0 {
 		return nil, nil, nil, errors.New("No service account name specified")
 	}
-	return serviceaccounts.Clients(
+	config, oc, _, kcset, err := serviceaccounts.Clients(
 		c.PrivilegedLoopbackClientConfig,
-		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClient},
+		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClientset},
 		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
 		name,
 	)
+	return config, oc, kcset, err
+}
+
+// TODO internalclientset: get rid of oldClient after next rebase
+// GetOldServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
+// named service account in the infra namespace
+func (c *MasterConfig) GetOldServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclient.Client, error) {
+	if len(name) == 0 {
+		return nil, nil, nil, errors.New("No service account name specified")
+	}
+	config, oc, kc, _, err := serviceaccounts.Clients(
+		c.PrivilegedLoopbackClientConfig,
+		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClientset},
+		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		name,
+	)
+	return config, oc, kc, err
 }

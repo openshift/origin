@@ -20,8 +20,9 @@ import (
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -262,12 +263,12 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 		return
 	}
 
-	serviceList := cache.NewListWatchFromClient(c.Client, "services", kapi.NamespaceAll, fields.Everything())
+	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient, "services", kapi.NamespaceAll, fields.Everything())
 	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
 	serviceReflector.Run()
 
 	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client, "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient, "endpoints", kapi.NamespaceAll, fields.Everything())
 		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
 		endpointReflector.Run()
 
@@ -285,7 +286,7 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
 	if c.KubeletServer.ClusterDNS == "" {
-		if service, err := c.Client.Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if service, err := c.Client.Core().Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -293,7 +294,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if endpoint, err := c.Client.Core().Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)
@@ -374,7 +375,7 @@ func (c *NodeConfig) RunProxy() {
 	hostname := utilnode.GetHostname(c.KubeletServer.HostnameOverride)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
+	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: c.Client.Core().Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: hostname})
 
 	execer := kexec.New()
@@ -499,9 +500,9 @@ func (c *NodeConfig) RunProxy() {
 }
 
 // getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
-func getNodeIP(client *kclient.Client, hostname string) net.IP {
+func getNodeIP(client *kclientset.Clientset, hostname string) net.IP {
 	var nodeIP net.IP
-	node, err := client.Nodes().Get(hostname)
+	node, err := client.Core().Nodes().Get(hostname)
 	if err != nil {
 		glog.Warningf("Failed to retrieve node info: %v", err)
 		return nil

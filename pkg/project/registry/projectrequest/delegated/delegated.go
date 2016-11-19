@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -33,14 +34,14 @@ type REST struct {
 	templateName      string
 
 	openshiftClient *client.Client
-	kubeClient      *kclient.Client
+	kubeClient      *kclientset.Clientset
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
 	policyBindings client.PolicyBindingsListerNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclientset.Clientset, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -154,7 +155,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 				if latest.OriginKind(mapping.GroupVersionKind) {
 					return r.openshiftClient, nil
 				}
-				return r.kubeClient, nil
+				return r.kubeClient.CoreClient, nil
 			}),
 		},
 		After: stopOnErr,

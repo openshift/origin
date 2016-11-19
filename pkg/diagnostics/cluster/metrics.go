@@ -8,14 +8,14 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 // MetricsApiProxy is a Diagnostic for diagnosing the API proxy and HPA/metrics.
 type MetricsApiProxy struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 }
 
 const (
@@ -45,7 +45,7 @@ func (d *MetricsApiProxy) CanRun() (bool, error) {
 	}
 	// see if there's even a service to reach - if not, they probably haven't deployed
 	// metrics and don't need to get errors about it; skip the diagnostic
-	if _, err := d.KubeClient.Services(MetricsApiProxyProject).Get(MetricsApiProxyService); kapierrors.IsNotFound(err) {
+	if _, err := d.KubeClient.Core().Services(MetricsApiProxyProject).Get(MetricsApiProxyService); kapierrors.IsNotFound(err) {
 		return false, fmt.Errorf(errMsgNoHeapsterService, MetricsApiProxyService, MetricsApiProxyProject)
 	} else if err != nil {
 		return false, fmt.Errorf("Unexpected error while retrieving %[1]s service: (%[2]T) %[2]v", MetricsApiProxyService, err)
@@ -57,7 +57,7 @@ func (d *MetricsApiProxy) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MetricsApiProxyName)
 
 	// see if it has any active endpoints
-	if endpoints, err := d.KubeClient.Endpoints(MetricsApiProxyProject).Get(MetricsApiProxyService); err != nil {
+	if endpoints, err := d.KubeClient.Core().Endpoints(MetricsApiProxyProject).Get(MetricsApiProxyService); err != nil {
 		r.Error("DClu4001", err, fmt.Sprintf("Unexpected error while retrieving %[1]s service endpoints: (%[2]T) %[2]v", MetricsApiProxyService, err))
 		return r
 	} else {
@@ -79,7 +79,7 @@ func (d *MetricsApiProxy) Check() types.DiagnosticResult {
 	// the service should respond; see if we can reach it via API proxy
 	uri := fmt.Sprintf("/api/v1/proxy/namespaces/%[1]s/services/https:%[2]s:/api/v1/model/metrics", MetricsApiProxyProject, MetricsApiProxyService)
 	// note in above, project and service name are already URL-safe
-	result := d.KubeClient.Get().RequestURI(uri).Do()
+	result := d.KubeClient.CoreClient.RESTClient.Get().RequestURI(uri).Do()
 	if err := result.Error(); err != nil {
 		r.Error("DClu4003", err, fmt.Sprintf(errMsgApiProxyAccess, uri, err))
 	}

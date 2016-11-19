@@ -7,6 +7,7 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -195,10 +196,15 @@ func TestChainDescriber(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		oc, _, _, err := testclient.NewFixtureClients(kapi.Codecs.UniversalDecoder(), test.defaultNamespace, test.path)
-		if err != nil {
-			t.Fatal(err)
+		objs := []runtime.Object{}
+		if len(test.path) > 0 {
+			var err error
+			objs, err = testclient.ReadObjectsFromPath(test.path, test.defaultNamespace, kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
+		oc, _, _ := testclient.NewFixtureClients(objs...)
 		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
 		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)

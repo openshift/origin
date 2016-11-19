@@ -24,7 +24,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -490,7 +489,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if kc != nil {
 		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
+		_, _, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
@@ -625,7 +624,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
 
-		_, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
+		_, _, disruptionClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
@@ -640,7 +639,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, petSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		_, _, petSetClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}
@@ -649,7 +648,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
-		namespaceControllerClientSet := clientadapter.FromUnversionedClient(namespaceControllerKubeClient)
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
 
 		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
@@ -688,7 +686,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		}
 
 		kc.RunEndpointController(endpointControllerClient)
-		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
+		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool)
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)

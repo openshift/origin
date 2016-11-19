@@ -35,7 +35,7 @@ func TestPatchConflicts(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -43,10 +43,10 @@ func TestPatchConflicts(t *testing.T) {
 	objName := "myobj"
 	ns := "patch-namespace"
 
-	if _, err := clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}}); err != nil {
+	if _, err := clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}}); err != nil {
 		t.Fatalf("Error creating namespace:%v", err)
 	}
-	if _, err := clusterAdminKubeClient.Secrets(ns).Create(&kapi.Secret{ObjectMeta: kapi.ObjectMeta{Name: objName}}); err != nil {
+	if _, err := clusterAdminKubeClientset.Core().Secrets(ns).Create(&kapi.Secret{ObjectMeta: kapi.ObjectMeta{Name: objName}}); err != nil {
 		t.Fatalf("Error creating k8s resource:%v", err)
 	}
 	if _, err := clusterAdminClient.Templates(ns).Create(&templatesapi.Template{ObjectMeta: kapi.ObjectMeta{Name: objName}}); err != nil {
@@ -58,7 +58,7 @@ func TestPatchConflicts(t *testing.T) {
 		resource string
 	}{
 		{
-			client:   clusterAdminKubeClient.RESTClient,
+			client:   clusterAdminKubeClientset.CoreClient.RESTClient,
 			resource: "secrets",
 		},
 		{
