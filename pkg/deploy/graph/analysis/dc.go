@@ -118,7 +118,7 @@ Node:
 			// All of the containers in the deployment config lack a readiness probe
 			markers = append(markers, osgraph.Marker{
 				Node:     uncastDcNode,
-				Severity: osgraph.WarningSeverity,
+				Severity: osgraph.InfoSeverity,
 				Key:      MissingReadinessProbeWarning,
 				Message: fmt.Sprintf("%s has no readiness probe to verify pods are ready to accept traffic or ensure deployment is successful.",
 					f.ResourceName(dcNode)),
