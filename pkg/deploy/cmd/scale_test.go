@@ -6,6 +6,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -41,7 +43,7 @@ func TestScale(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test %q", test.name)
 		oc := &testclient.Fake{}
-		kc := &ktestclient.Fake{}
+		kc := &fake.Clientset{}
 		scaler := NewDeploymentConfigScaler(oc, kc)
 
 		config := deploytest.OkDeploymentConfig(1)
@@ -66,7 +68,7 @@ func TestScale(t *testing.T) {
 			deployment.Status.Replicas = deployment.Spec.Replicas
 			return true, scale, nil
 		})
-		kc.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deployment, nil
 		})
 

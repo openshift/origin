@@ -5,7 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -19,16 +20,16 @@ import (
 type REST struct {
 	generator RollbackGenerator
 	dn        client.DeploymentConfigsNamespacer
-	rn        kclient.ReplicationControllersNamespacer
+	rn        kcoreclient.ReplicationControllersGetter
 	codec     runtime.Codec
 }
 
 // NewREST safely creates a new REST.
-func NewREST(oc client.Interface, kc kclient.Interface, codec runtime.Codec) *REST {
+func NewREST(oc client.Interface, kc kclientset.Interface, codec runtime.Codec) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
 		dn:        oc,
-		rn:        kc,
+		rn:        kc.Core(),
 		codec:     codec,
 	}
 }

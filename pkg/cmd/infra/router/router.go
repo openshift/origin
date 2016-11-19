@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -210,7 +211,7 @@ func (o *RouterSelection) Complete() error {
 }
 
 // NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclient.Interface) *controllerfactory.RouterControllerFactory {
+func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
 	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
 	factory.Labels = o.Labels
 	factory.Fields = o.Fields
@@ -219,7 +220,7 @@ func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclient.Interface)
 	switch {
 	case o.NamespaceLabels != nil:
 		glog.Infof("Router is only using routes in namespaces matching %s", o.NamespaceLabels)
-		factory.Namespaces = namespaceNames{kc.Namespaces(), o.NamespaceLabels}
+		factory.Namespaces = namespaceNames{kc.Core().Namespaces(), o.NamespaceLabels}
 	case o.ProjectLabels != nil:
 		glog.Infof("Router is only using routes in projects matching %s", o.ProjectLabels)
 		factory.Namespaces = projectNames{oc.Projects(), o.ProjectLabels}
@@ -251,7 +252,7 @@ func (n projectNames) NamespaceNames() (sets.String, error) {
 
 // namespaceNames returns the names of namespaces matching the label selector
 type namespaceNames struct {
-	client   kclient.NamespaceInterface
+	client   kcoreclient.NamespaceInterface
 	selector labels.Selector
 }
 

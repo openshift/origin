@@ -22,6 +22,7 @@ import (
 	"github.com/docker/libtrust"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/util/diff"
 
@@ -692,7 +693,7 @@ func (r *testRegistry) Repository(ctx context.Context, ref reference.Named) (dis
 		return nil, err
 	}
 
-	kFakeClient := ktestclient.NewSimpleFake()
+	kFakeClient := fake.NewSimpleClientset()
 
 	parts := strings.SplitN(ref.Name(), "/", 3)
 	if len(parts) != 2 {
@@ -703,8 +704,8 @@ func (r *testRegistry) Repository(ctx context.Context, ref reference.Named) (dis
 		Repository: repo,
 
 		ctx:              ctx,
-		quotaClient:      kFakeClient,
-		limitClient:      kFakeClient,
+		quotaClient:      kFakeClient.Core(),
+		limitClient:      kFakeClient.Core(),
 		registryOSClient: r.osClient,
 		registryAddr:     "localhost:5000",
 		namespace:        parts[0],

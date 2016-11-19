@@ -105,7 +105,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	o.Client, _, _, err = f.Clients()
 	if err != nil {
 		return err
 	}

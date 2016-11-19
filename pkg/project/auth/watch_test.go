@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -21,9 +21,9 @@ func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namesp
 	for i := range namespaces {
 		objects = append(objects, namespaces[i])
 	}
-	mockClient := testclient.NewSimpleFake(objects...)
+	mockClient := fake.NewSimpleClientset(objects...)
 
-	projectCache := projectcache.NewProjectCache(mockClient.Namespaces(), "")
+	projectCache := projectcache.NewProjectCache(mockClient.Core().Namespaces(), "")
 	projectCache.Run()
 	fakeAuthCache := &fakeAuthCache{}
 

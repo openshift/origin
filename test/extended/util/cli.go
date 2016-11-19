@@ -16,6 +16,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -30,7 +31,7 @@ import (
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
-// REST clients.
+// clients.
 type CLI struct {
 	execPath         string
 	verb             string
@@ -151,7 +152,7 @@ func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string
 	e2e.Logf("The user is now %q", c.Username())
 
 	e2e.Logf("Creating project %q", c.Namespace())
-	_, err := c.REST().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.Client().ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()},
 	})
 	if err != nil {
@@ -159,7 +160,7 @@ func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string
 		return nil, err
 	}
 	if err := wait.ExponentialBackoff(kclient.DefaultBackoff, func() (bool, error) {
-		if _, err := c.KubeREST().Pods(c.Namespace()).List(kapi.ListOptions{}); err != nil {
+		if _, err := c.KubeClient().Core().Pods(c.Namespace()).List(kapi.ListOptions{}); err != nil {
 			if apierrs.IsForbidden(err) {
 				e2e.Logf("Waiting for user to have access to the namespace")
 				return false, nil
@@ -178,10 +179,10 @@ func (c *CLI) Verbose() *CLI {
 	return c
 }
 
-// REST provides an OpenShift REST client for the current user. If the user is not
-// set, then it provides REST client for the cluster admin user
-func (c *CLI) REST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.configPath, nil)
+// Client provides an OpenShift client for the current user. If the user is not
+// set, then it provides client for the cluster admin user
+func (c *CLI) Client() *client.Client {
+	_, _, clientConfig, err := configapi.GetKubeClient(c.configPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -189,9 +190,9 @@ func (c *CLI) REST() *client.Client {
 	return osClient
 }
 
-// AdminREST provides an OpenShift REST client for the cluster admin user.
-func (c *CLI) AdminREST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath, nil)
+// AdminClient provides an OpenShift client for the cluster admin user.
+func (c *CLI) AdminClient() *client.Client {
+	_, _, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -199,18 +200,18 @@ func (c *CLI) AdminREST() *client.Client {
 	return osClient
 }
 
-// KubeREST provides a Kubernetes REST client for the current namespace
-func (c *CLI) KubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.configPath, nil)
+// KubeClient provides a Kubernetes client for the current namespace
+func (c *CLI) KubeClient() *kclientset.Clientset {
+	_, kubeClient, _, err := configapi.GetKubeClient(c.configPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}
 	return kubeClient
 }
 
-// AdminKubeREST provides a Kubernetes REST client for the cluster admin user.
-func (c *CLI) AdminKubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath, nil)
+// AdminKubeClient provides a Kubernetes client for the cluster admin user.
+func (c *CLI) AdminKubeClient() *kclientset.Clientset {
+	_, kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}

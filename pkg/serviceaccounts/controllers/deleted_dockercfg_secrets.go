@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -29,7 +30,7 @@ type DockercfgDeletedControllerOptions struct {
 }
 
 // NewDockercfgDeletedController returns a new *DockercfgDeletedController.
-func NewDockercfgDeletedController(cl client.Interface, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
+func NewDockercfgDeletedController(cl kclientset.Interface, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
 	e := &DockercfgDeletedController{
 		client: cl,
 	}
@@ -39,11 +40,11 @@ func NewDockercfgDeletedController(cl client.Interface, options DockercfgDeleted
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				opts := api.ListOptions{FieldSelector: dockercfgSelector}
-				return e.client.Secrets(api.NamespaceAll).List(opts)
+				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
 				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
-				return e.client.Secrets(api.NamespaceAll).Watch(opts)
+				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
 			},
 		},
 		&api.Secret{},
@@ -61,7 +62,7 @@ func NewDockercfgDeletedController(cl client.Interface, options DockercfgDeleted
 type DockercfgDeletedController struct {
 	stopChan chan struct{}
 
-	client client.Interface
+	client kclientset.Interface
 
 	secretController *framework.Controller
 }
@@ -108,7 +109,7 @@ func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 	}
 
 	// remove the reference token secret
-	if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]); (err != nil) && !kapierrors.IsNotFound(err) {
+	if err := e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey], nil); (err != nil) && !kapierrors.IsNotFound(err) {
 		utilruntime.HandleError(err)
 	}
 }
@@ -149,7 +150,7 @@ func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSec
 	serviceAccount.ImagePullSecrets = imagePullSecrets
 
 	if changed {
-		_, err = e.client.ServiceAccounts(dockercfgSecret.Namespace).Update(serviceAccount)
+		_, err = e.client.Core().ServiceAccounts(dockercfgSecret.Namespace).Update(serviceAccount)
 		if err != nil {
 			return err
 		}
@@ -165,7 +166,7 @@ func (e *DockercfgDeletedController) getServiceAccount(secret *api.Secret) (*api
 		return nil, nil
 	}
 
-	serviceAccount, err := e.client.ServiceAccounts(secret.Namespace).Get(saName)
+	serviceAccount, err := e.client.Core().ServiceAccounts(secret.Namespace).Get(saName)
 	if err != nil {
 		return nil, err
 	}

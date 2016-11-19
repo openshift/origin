@@ -37,7 +37,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb replication", f
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
 			g.By("waiting for the deployment to complete")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), deploymentConfigName, oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), deploymentConfigName, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			podNames := waitForNumberOfPodsWithLabel(oc, expectedReplicasAfterDeployment, "mongodb-replica")
@@ -87,7 +87,7 @@ func waitForNumberOfPodsWithLabel(oc *exutil.CLI, number int, label string) []st
 	g.By(fmt.Sprintf("expecting that there are %d running pods with label name=%s", number, label))
 
 	podNames, err := exutil.WaitForPods(
-		oc.KubeREST().Pods(oc.Namespace()),
+		oc.KubeClient().Core().Pods(oc.Namespace()),
 		exutil.ParseLabelsOrDie("name="+label),
 		exutil.CheckPodIsRunningFn,
 		number,

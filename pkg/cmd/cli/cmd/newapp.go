@@ -17,8 +17,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -348,8 +348,8 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 
 	// we cannot retrieve logs until the pod is out of pending
 	// TODO: move this to the server side
-	podClient := config.KubeClient.Pods(pod.Namespace)
-	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, config.KubeClient.Secrets(pod.Namespace))); err != nil {
+	podClient := config.KubeClient.Core().Pods(pod.Namespace)
+	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, config.KubeClient.Core().Secrets(pod.Namespace))); err != nil {
 		return err
 	}
 
@@ -384,7 +384,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 	return nil
 }
 
-func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsInterface) wait.ConditionFunc {
+func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.SecretInterface) wait.ConditionFunc {
 	return func() (bool, error) {
 		pod, err := c.Get(name)
 		if err != nil {
@@ -397,7 +397,7 @@ func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsI
 		if secret, err := s.Get(name); err == nil {
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
-				if err := s.Delete(name); err != nil {
+				if err := s.Delete(name, nil); err != nil {
 					glog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
 				}
 			}
@@ -406,7 +406,7 @@ func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsI
 	}
 }
 
-func installationComplete(c kclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
+func installationComplete(c kcoreclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
 	return func() (bool, error) {
 		pod, err := c.Get(name)
 		if err != nil {
@@ -475,7 +475,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 		return err
 	}
 
-	osclient, kclient, err := f.Clients()
+	osclient, _, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}

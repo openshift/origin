@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -69,7 +69,7 @@ func TestConcurrentBuildConfigControllers(t *testing.T) {
 	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclient.Client) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclientset.Clientset) {
 	testutil.RequireEtcd(t)
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -81,18 +81,18 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -117,5 +117,5 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	for i := 0; i < counts.ConfigChangeControllers; i++ {
 		openshiftConfig.RunBuildConfigChangeController()
 	}
-	return clusterAdminClient, clusterAdminKubeClient
+	return clusterAdminClient, clusterAdminKubeClientset
 }

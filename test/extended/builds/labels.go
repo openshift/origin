@@ -21,7 +21,7 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.AdminKubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -42,10 +42,10 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
+			imageRef, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			imageLabels, err := eximages.GetImageLabels(oc.REST().ImageStreamImages(oc.Namespace()), "test", imageRef)
+			imageLabels, err := eximages.GetImageLabels(oc.Client().ImageStreamImages(oc.Namespace()), "test", imageRef)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the new image for proper Docker labels")
@@ -71,10 +71,10 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
+			imageRef, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			imageLabels, err := eximages.GetImageLabels(oc.REST().ImageStreamImages(oc.Namespace()), "test", imageRef)
+			imageLabels, err := eximages.GetImageLabels(oc.Client().ImageStreamImages(oc.Namespace()), "test", imageRef)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the new image for proper Docker labels")

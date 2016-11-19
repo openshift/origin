@@ -129,7 +129,7 @@ func (o *DockerComposeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	}
 	o.Namespace = ns
 
-	o.Client, _, err = f.Clients()
+	o.Client, _, _, err = f.Clients()
 	return err
 }
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
@@ -22,7 +22,7 @@ const (
 
 // CheckPodNetwork is a Diagnostic to check communication between pods in the cluster.
 type CheckPodNetwork struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 	OSClient   *osclient.Client
 
 	vnidMap map[string]uint32

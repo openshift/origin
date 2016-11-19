@@ -19,8 +19,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -109,7 +109,7 @@ func init() {
 				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
 
-			return newRepositoryWithClient(registryOSClient, kClient, kClient, ctx, repo, options)
+			return newRepositoryWithClient(registryOSClient, kClient.Core(), kClient.Core(), ctx, repo, options)
 		},
 	)
 
@@ -126,8 +126,8 @@ type repository struct {
 	distribution.Repository
 
 	ctx              context.Context
-	quotaClient      kclient.ResourceQuotasNamespacer
-	limitClient      kclient.LimitRangesNamespacer
+	quotaClient      kcoreclient.ResourceQuotasGetter
+	limitClient      kcoreclient.LimitRangesGetter
 	registryOSClient client.Interface
 	registryAddr     string
 	namespace        string
@@ -151,8 +151,8 @@ var _ distribution.ManifestService = &repository{}
 // newRepositoryWithClient returns a new repository middleware.
 func newRepositoryWithClient(
 	registryOSClient client.Interface,
-	quotaClient kclient.ResourceQuotasNamespacer,
-	limitClient kclient.LimitRangesNamespacer,
+	quotaClient kcoreclient.ResourceQuotasGetter,
+	limitClient kcoreclient.LimitRangesGetter,
 	ctx context.Context,
 	repo distribution.Repository,
 	options map[string]interface{},

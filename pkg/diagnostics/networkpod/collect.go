@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -17,7 +17,7 @@ const (
 
 // CollectNetworkInfo is a Diagnostic to collect network information in the cluster.
 type CollectNetworkInfo struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 }
 
 // Name is part of the Diagnostic interface and just returns name.

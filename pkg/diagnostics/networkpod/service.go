@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
@@ -22,7 +22,7 @@ const (
 
 // CheckServiceNetwork is a Diagnostic to check communication between services in the cluster.
 type CheckServiceNetwork struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 	OSClient   *osclient.Client
 
 	vnidMap map[string]uint32
@@ -141,9 +141,9 @@ func (d CheckServiceNetwork) checkConnection(pods []kapi.Pod, services []kapi.Se
 	}
 }
 
-func getAllServices(kubeClient *kclient.Client) ([]kapi.Service, error) {
+func getAllServices(kubeClient *kclientset.Clientset) ([]kapi.Service, error) {
 	filtered_srvs := []kapi.Service{}
-	serviceList, err := kubeClient.Services(kapi.NamespaceAll).List(kapi.ListOptions{})
+	serviceList, err := kubeClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return filtered_srvs, err
 	}

@@ -10,8 +10,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -53,9 +55,9 @@ type RollingDeploymentStrategy struct {
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
 	// rcClient is used to deal with ReplicationControllers.
-	rcClient kclient.ReplicationControllersNamespacer
+	rcClient kcoreclient.ReplicationControllersGetter
 	// eventClient is a client to access events
-	eventClient kclient.EventNamespacer
+	eventClient kcoreclient.EventsGetter
 	// tags is a client used to perform tag actions
 	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
@@ -87,31 +89,33 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, oldClient kclient.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
+	// TODO internalclientset: get rid of oldClient after next rebase
+	client := adapter.FromUnversionedClient(oldClient.(*kclient.Client))
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
-		rcClient:        client,
-		eventClient:     client,
+		rcClient:        client.Core(),
+		eventClient:     client.Core(),
 		tags:            tags,
 		apiRetryPeriod:  DefaultApiRetryPeriod,
 		apiRetryTimeout: DefaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
-			updater := kubectl.NewRollingUpdater(namespace, client)
+			updater := kubectl.NewRollingUpdater(namespace, oldClient)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, tags, client, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client.Core(), timeout, AcceptorInterval, minReadySeconds)
 		},
 	}
 }

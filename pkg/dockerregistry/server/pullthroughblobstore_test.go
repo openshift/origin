@@ -21,7 +21,7 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
@@ -43,7 +43,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 
 	// TODO: get rid of those nasty global vars
 	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, ktestclient.NewSimpleFake())
+	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
 	defer func() {
 		// set it back once this test finishes to make other unit tests working again
 		DefaultRegistryClient = backupRegistryClient

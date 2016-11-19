@@ -22,7 +22,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, projectName, []string{"default"}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, projectName, []string{"default"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -63,7 +63,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 		t.Fatalf("missing forbidden: %v", err)
 	}
 
-	actualPod, err := clusterAdminKubeClient.Pods(projectName).Create(privilegedPod)
+	actualPod, err := clusterAdminKubeClientset.Core().Pods(projectName).Create(privilegedPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

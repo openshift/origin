@@ -105,7 +105,7 @@ Common functions for extended tests are located in `./hack/util.sh`. Environment
 CLI interface
 -------------
 
-In order to be able to call the OpenShift CLI and Kubernetes and OpenShift REST clients and simulate the OpenShift `oc` command in the test suite, first we need to create an instance of the CLI, in the top-level Ginkgo describe container.
+In order to be able to call the OpenShift CLI and Kubernetes and OpenShift clients and simulate the OpenShift `oc` command in the test suite, first we need to create an instance of the CLI, in the top-level Ginkgo describe container.
 The top-level describe container should also specify the bucket into which the test belongs and a short test description. Other globally accessible variables (eg. fixtures) can be declared as well.
 
 ```go

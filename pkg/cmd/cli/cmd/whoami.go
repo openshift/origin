@@ -99,7 +99,7 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 
-	client, _, err := f.Clients()
+	client, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

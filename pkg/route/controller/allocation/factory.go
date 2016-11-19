@@ -1,7 +1,7 @@
 package allocation
 
 import (
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/route"
@@ -14,7 +14,7 @@ type RouteAllocationControllerFactory struct {
 	OSClient osclient.Interface
 
 	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
+	KubeClient kclientset.Interface
 }
 
 // Create a RouteAllocationController instance.

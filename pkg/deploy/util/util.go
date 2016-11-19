@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -18,7 +19,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/util/namer"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 const (
@@ -568,7 +568,7 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 
 // WaitForRunningDeployerPod waits a given period of time until the deployer pod
 // for given replication controller is not running.
-func WaitForRunningDeployerPod(podClient kclient.PodsNamespacer, rc *api.ReplicationController, timeout time.Duration) error {
+func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.ReplicationController, timeout time.Duration) error {
 	podName := DeployerPodNameForDeployment(rc.Name)
 	canGetLogs := func(p *api.Pod) bool {
 		return api.PodSucceeded == p.Status.Phase || api.PodFailed == p.Status.Phase || api.PodRunning == p.Status.Phase

@@ -24,7 +24,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 
 			g.By("creating persistent volumes")
 			_, err := exutil.SetupHostPathVolumes(
-				oc.AdminKubeREST().PersistentVolumes(),
+				oc.AdminKubeClient().Core().PersistentVolumes(),
 				oc.Namespace(),
 				"256Mi",
 				3,
@@ -34,7 +34,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 			defer func() {
 				// We're removing only PVs because all other things will be removed
 				// together with namespace.
-				err := exutil.CleanupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace())
+				err := exutil.CleanupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace())
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't cleanup persistent volumes: %v", err)
 				}
@@ -53,7 +53,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 
 			g.By("waiting for pods to running")
 			podNames, err := exutil.WaitForPods(
-				oc.KubeREST().Pods(oc.Namespace()),
+				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,
@@ -79,7 +79,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 
 			g.By("waiting for restarting of the pods")
 			podNames, err = exutil.WaitForPods(
-				oc.KubeREST().Pods(oc.Namespace()),
+				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,

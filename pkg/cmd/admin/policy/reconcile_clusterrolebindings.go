@@ -115,7 +115,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 }
 
 func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups []string) error {
-	oclient, _, err := f.Clients()
+	oclient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

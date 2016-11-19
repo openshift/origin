@@ -91,7 +91,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 
 // CreateEdgeRoute implements the behavior to run the create edge route command.
 func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	oc, kc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 
 // CreatePassthroughRoute implements the behavior to run the create passthrough route command.
 func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	oc, kc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -311,7 +311,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
 func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	oc, kc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

@@ -79,7 +79,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Users = append(o.Users, args[1:]...)
 	}
 
-	osClient, _, err := f.Clients()
+	osClient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

@@ -192,12 +192,12 @@ func (o *TemplateRouterOptions) Run() error {
 		AllowWildcardRoutes:    o.RouterSelection.AllowWildcardRoutes,
 	}
 
-	oc, kc, err := o.Config.Clients()
+	oc, _, kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}
 
-	svcFetcher := templateplugin.NewListWatchServiceLookup(kc, 10*time.Minute)
+	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), 10*time.Minute)
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
 	if err != nil {
 		return err

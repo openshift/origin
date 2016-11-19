@@ -445,7 +445,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Logf("testing %s host", host)
 
 		// add secrets for subsequent checks
-		_, err = kc.Secrets(testutil.Namespace()).Create(&kapi.Secret{
+		_, err = kc.Core().Secrets(testutil.Namespace()).Create(&kapi.Secret{
 			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
 			Type:       kapi.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{

@@ -5,7 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/security"
@@ -37,7 +37,7 @@ func DefaultMCSAllocation(from *uid.Range, to *mcs.Range, blockSize int) MCSAllo
 type Allocation struct {
 	uid    uidallocator.Interface
 	mcs    MCSAllocationFunc
-	client kclient.NamespaceInterface
+	client kcoreclient.NamespaceInterface
 }
 
 // retryCount is the number of times to retry on a conflict when updating a namespace

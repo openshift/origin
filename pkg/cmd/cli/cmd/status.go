@@ -98,7 +98,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	o.securityPolicyCommandFormat = "oadm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
-	client, kclient, err := f.Clients()
+	client, kclient, kclientset, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,8 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	}
 
 	o.describer = &describe.ProjectStatusDescriber{
-		K:       kclient,
+		OldK:    kclient,
+		K:       kclientset,
 		C:       client,
 		Server:  config.Host,
 		Suggest: o.verbose,

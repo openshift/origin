@@ -88,7 +88,7 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	o.Client, _, _, err = f.Clients()
 	if err != nil {
 		return err
 	}

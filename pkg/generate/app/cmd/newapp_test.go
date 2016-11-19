@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -156,7 +157,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
-		appCfg.KubeClient = ktestclient.NewSimpleFake()
+		appCfg.KubeClient = fake.NewSimpleClientset()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = []string{}

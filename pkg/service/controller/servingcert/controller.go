@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -46,8 +46,8 @@ const (
 // ServiceServingCertController is responsible for synchronizing Service objects stored
 // in the system with actual running replica sets and pods.
 type ServiceServingCertController struct {
-	serviceClient kclient.ServicesNamespacer
-	secretClient  kclient.SecretsNamespacer
+	serviceClient kcoreclient.ServicesGetter
+	secretClient  kcoreclient.SecretsGetter
 
 	// Services that need to be checked
 	queue      workqueue.RateLimitingInterface
@@ -66,7 +66,7 @@ type ServiceServingCertController struct {
 
 // NewServiceServingCertController creates a new ServiceServingCertController.
 // TODO this should accept a shared informer
-func NewServiceServingCertController(serviceClient kclient.ServicesNamespacer, secretClient kclient.SecretsNamespacer, ca *crypto.CA, dnsSuffix string, resyncInterval time.Duration) *ServiceServingCertController {
+func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, secretClient kcoreclient.SecretsGetter, ca *crypto.CA, dnsSuffix string, resyncInterval time.Duration) *ServiceServingCertController {
 	sc := &ServiceServingCertController{
 		serviceClient: serviceClient,
 		secretClient:  secretClient,

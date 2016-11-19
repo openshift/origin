@@ -37,10 +37,10 @@ func (f *podInformer) Informer() framework.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.Pods(kapi.NamespaceAll).List(options)
+				return f.kubeClient.Core().Pods(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.Pods(kapi.NamespaceAll).Watch(options)
+				return f.kubeClient.Core().Pods(kapi.NamespaceAll).Watch(options)
 			},
 		}
 
@@ -92,10 +92,10 @@ func (f *nodeInformer) Informer() framework.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.Nodes().List(options)
+				return f.kubeClient.Core().Nodes().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.Nodes().Watch(options)
+				return f.kubeClient.Core().Nodes().Watch(options)
 			},
 		}
 
@@ -147,10 +147,10 @@ func (f *persistentVolumeInformer) Informer() framework.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.PersistentVolumes().List(options)
+				return f.kubeClient.Core().PersistentVolumes().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.PersistentVolumes().Watch(options)
+				return f.kubeClient.Core().PersistentVolumes().Watch(options)
 			},
 		}
 
@@ -202,10 +202,10 @@ func (f *persistentVolumeClaimInformer) Informer() framework.SharedIndexInformer
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.PersistentVolumeClaims(kapi.NamespaceAll).List(options)
+				return f.kubeClient.Core().PersistentVolumeClaims(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.PersistentVolumeClaims(kapi.NamespaceAll).Watch(options)
+				return f.kubeClient.Core().PersistentVolumeClaims(kapi.NamespaceAll).Watch(options)
 			},
 		}
 
@@ -257,10 +257,10 @@ func (f *replicationControllerInformer) Informer() framework.SharedIndexInformer
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.ReplicationControllers(kapi.NamespaceAll).List(options)
+				return f.kubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(options)
+				return f.kubeClient.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 			},
 		}
 	}
@@ -311,10 +311,10 @@ func (f *namespaceInformer) Informer() framework.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.Namespaces().List(options)
+				return f.kubeClient.Core().Namespaces().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.Namespaces().Watch(options)
+				return f.kubeClient.Core().Namespaces().Watch(options)
 			},
 		}
 	}
@@ -365,10 +365,10 @@ func (f *limitRangeInformer) Informer() framework.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.kubeClient.LimitRanges(kapi.NamespaceAll).List(options)
+				return f.kubeClient.Core().LimitRanges(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.kubeClient.LimitRanges(kapi.NamespaceAll).Watch(options)
+				return f.kubeClient.Core().LimitRanges(kapi.NamespaceAll).Watch(options)
 			},
 		}
 	}

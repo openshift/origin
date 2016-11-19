@@ -150,7 +150,7 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 
 	mapper, typer := f.Object(false)
 
-	client, _, err := f.Clients()
+	client, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

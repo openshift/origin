@@ -33,7 +33,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	namespace := &kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: "integration-test"},
 	}
-	namespaceResult, err := kubeClient.Namespaces().Create(namespace)
+	namespaceResult, err := kubeClientset.Core().Namespaces().Create(namespace)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now get the namespace for that project
-	namespace, err = kubeClient.Namespaces().Get(projectResult.Name)
+	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestProjectMustExist(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestProjectMustExist(t *testing.T) {
 		},
 	}
 
-	_, err = clusterAdminKubeClient.Pods("test").Create(pod)
+	_, err = clusterAdminKubeClientset.Core().Pods("test").Create(pod)
 	if err == nil {
 		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
 	}

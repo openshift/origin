@@ -8,9 +8,9 @@ items:
     labels:
       app: mysql
     name: mysql
-    namespace: default
+    namespace: example
     resourceVersion: "6790"
-    selfLink: /apis/apps/v1alpha1/namespaces/default/petsets/mysql
+    selfLink: /apis/apps/v1alpha1/namespaces/example/petsets/mysql
     uid: 3900c985-4f5b-11e6-b8a1-080027242396
   spec:
     replicas: 3
@@ -99,9 +99,9 @@ items:
     labels:
       app: mysql
     name: galera
-    namespace: default
+    namespace: example
     resourceVersion: "343"
-    selfLink: /api/v1/namespaces/default/services/galera
+    selfLink: /api/v1/namespaces/example/services/galera
     uid: 38fb3915-4f5b-11e6-b8a1-080027242396
   spec:
     clusterIP: None
@@ -121,7 +121,7 @@ items:
   metadata:
     annotations:
       kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6784"}}
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"example","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6784"}}
       openshift.io/scc: anyuid
       pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:12Z","finishedAt":"2016-07-27T02:41:12Z","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:14Z","finishedAt":"2016-07-27T02:41:15Z","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}]'
       pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
@@ -133,9 +133,9 @@ items:
     labels:
       app: mysql
     name: mysql-0
-    namespace: default
+    namespace: example
     resourceVersion: "7191"
-    selfLink: /api/v1/namespaces/default/pods/mysql-0
+    selfLink: /api/v1/namespaces/example/pods/mysql-0
     uid: 92e49e79-53a3-11e6-b45a-080027242396
   spec:
     containers:
@@ -244,7 +244,7 @@ items:
   metadata:
     annotations:
       kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"example","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
       openshift.io/scc: anyuid
       pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:42Z","finishedAt":"2016-07-27T02:41:42Z","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:44Z","finishedAt":"2016-07-27T02:41:45Z","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}]'
       pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
@@ -256,9 +256,9 @@ items:
     labels:
       app: mysql
     name: mysql-1
-    namespace: default
+    namespace: example
     resourceVersion: "7195"
-    selfLink: /api/v1/namespaces/default/pods/mysql-1
+    selfLink: /api/v1/namespaces/example/pods/mysql-1
     uid: a4da4725-53a3-11e6-b45a-080027242396
   spec:
     containers:
@@ -373,7 +373,7 @@ items:
   metadata:
     annotations:
       kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"PetSet","namespace":"example","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
       openshift.io/scc: anyuid
       pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:01Z","finishedAt":"2016-07-27T03:01:01Z","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:02Z","finishedAt":"2016-07-27T03:01:03Z","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}]'
       pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
@@ -385,9 +385,9 @@ items:
     labels:
       app: mysql
     name: mysql-2
-    namespace: default
+    namespace: example
     resourceVersion: "7226"
-    selfLink: /api/v1/namespaces/default/pods/mysql-2
+    selfLink: /api/v1/namespaces/example/pods/mysql-2
     uid: 57e618f1-53a6-11e6-b215-080027242396
   spec:
     containers:

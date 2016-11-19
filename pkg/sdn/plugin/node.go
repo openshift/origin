@@ -20,7 +20,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fields"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/labels"
@@ -31,7 +31,7 @@ import (
 
 type OsdnNode struct {
 	multitenant        bool
-	kClient            *kclient.Client
+	kClient            *kclientset.Clientset
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
@@ -53,7 +53,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	if !osapi.IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}
@@ -268,7 +268,7 @@ func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 		LabelSelector: labels.Everything(),
 		FieldSelector: fieldSelector,
 	}
-	podList, err := node.kClient.Pods(namespace).List(opts)
+	podList, err := node.kClient.Core().Pods(namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}

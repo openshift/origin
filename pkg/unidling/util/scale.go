@@ -1,21 +1,20 @@
 package util
 
 import (
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
-	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
-	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
-
-	"github.com/golang/glog"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
+	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
 // TODO: remove the below functions once we get a way to mark/unmark an object as idled
@@ -23,7 +22,7 @@ import (
 
 type AnnotationFunc func(currentReplicas int32, annotations map[string]string)
 
-func NewScaleAnnotater(scales kextclient.ScalesGetter, dcs deployclient.DeploymentConfigsGetter, rcs kclient.ReplicationControllersGetter, changeAnnots AnnotationFunc) *ScaleAnnotater {
+func NewScaleAnnotater(scales kextensionsclient.ScalesGetter, dcs deployclient.DeploymentConfigsGetter, rcs kcoreclient.ReplicationControllersGetter, changeAnnots AnnotationFunc) *ScaleAnnotater {
 	return &ScaleAnnotater{
 		scales:            scales,
 		dcs:               dcs,
@@ -33,9 +32,9 @@ func NewScaleAnnotater(scales kextclient.ScalesGetter, dcs deployclient.Deployme
 }
 
 type ScaleAnnotater struct {
-	scales            kextclient.ScalesGetter
+	scales            kextensionsclient.ScalesGetter
 	dcs               deployclient.DeploymentConfigsGetter
-	rcs               kclient.ReplicationControllersGetter
+	rcs               kcoreclient.ReplicationControllersGetter
 	ChangeAnnotations AnnotationFunc
 }
 
@@ -49,10 +48,10 @@ type scaleUpdater struct {
 	encoder   runtime.Encoder
 	namespace string
 	dcGetter  deployclient.DeploymentConfigsGetter
-	rcGetter  kclient.ReplicationControllersGetter
+	rcGetter  kcoreclient.ReplicationControllersGetter
 }
 
-func NewScaleUpdater(encoder runtime.Encoder, namespace string, dcGetter deployclient.DeploymentConfigsGetter, rcGetter kclient.ReplicationControllersGetter) ScaleUpdater {
+func NewScaleUpdater(encoder runtime.Encoder, namespace string, dcGetter deployclient.DeploymentConfigsGetter, rcGetter kcoreclient.ReplicationControllersGetter) ScaleUpdater {
 	return scaleUpdater{
 		encoder:   encoder,
 		namespace: namespace,

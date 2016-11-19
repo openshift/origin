@@ -8,7 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
@@ -305,7 +305,8 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 	dockerfile := "FROM foo"
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "testBuildCfg",
+			Name:      "testBuildCfg",
+			Namespace: kapi.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -346,7 +347,8 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: repoName,
+			Name:      repoName,
+			Namespace: kapi.NamespaceDefault,
 		},
 		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: dockerImageRepo,
@@ -379,14 +381,14 @@ func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildap
 
 func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *buildConfigInstantiator {
 	builderAccount := kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName},
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: kapi.NamespaceDefault},
 		Secrets:    []kapi.ObjectReference{},
 	}
 	instantiator := &buildConfigInstantiator{}
 	instantiator.buildConfigUpdater = &mockBuildConfigUpdater{}
 	generator := buildgenerator.BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(),
-		ServiceAccounts: testclient.NewSimpleFake(&builderAccount),
+		Secrets:         fake.NewSimpleClientset().Core(),
+		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil

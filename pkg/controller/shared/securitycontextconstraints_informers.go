@@ -36,10 +36,10 @@ func (s *securityContextConstraintsInformer) Informer() framework.SharedIndexInf
 	informer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return s.kubeClient.SecurityContextConstraints().List(options)
+				return s.kubeClient.Core().SecurityContextConstraints().List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return s.kubeClient.SecurityContextConstraints().Watch(options)
+				return s.kubeClient.Core().SecurityContextConstraints().Watch(options)
 			},
 		},
 		informerObj,

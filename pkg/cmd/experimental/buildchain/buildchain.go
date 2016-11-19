@@ -92,7 +92,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 
 	// Setup client
-	oc, _, err := f.Clients()
+	oc, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

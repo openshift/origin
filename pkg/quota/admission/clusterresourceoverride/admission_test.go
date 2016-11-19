@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -326,7 +325,7 @@ func fakeNamespace(pluginEnabled bool) *kapi.Namespace {
 func fakeProjectCache(ns *kapi.Namespace) *projectcache.ProjectCache {
 	store := projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc)
 	store.Add(ns)
-	return projectcache.NewFake((&ktestclient.Fake{}).Namespaces(), store, "")
+	return projectcache.NewFake((&fake.Clientset{}).Core().Namespaces(), store, "")
 }
 
 func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *api.ClusterResourceOverrideConfig {

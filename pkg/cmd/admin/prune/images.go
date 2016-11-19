@@ -15,8 +15,8 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
@@ -75,7 +75,7 @@ type PruneImagesOptions struct {
 	Namespace           string
 
 	OSClient       client.Interface
-	KClient        kclient.Interface
+	KClient        kclientset.Interface
 	RegistryClient *http.Client
 	Out            io.Writer
 }
@@ -180,12 +180,12 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allPods, err := o.KClient.Pods(o.Namespace).List(kapi.ListOptions{})
+	allPods, err := o.KClient.Core().Pods(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := o.KClient.ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
+	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	limitRangesList, err := o.KClient.LimitRanges(o.Namespace).List(kapi.ListOptions{})
+	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -424,7 +424,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 }
 
 // getClients returns a Kube client, OpenShift client, and registry client.
-func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient.Client, *http.Client, error) {
+func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclientset.Clientset, *http.Client, error) {
 	clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return nil, nil, nil, err
@@ -433,13 +433,13 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 	var (
 		token          string
 		osClient       *client.Client
-		kClient        *kclient.Client
+		kClient        *kclientset.Clientset
 		registryClient *http.Client
 	)
 
 	switch {
 	case len(clientConfig.BearerToken) > 0:
-		osClient, kClient, err = f.Clients()
+		osClient, _, kClient, err = f.Clients()
 		if err != nil {
 			return nil, nil, nil, err
 		}

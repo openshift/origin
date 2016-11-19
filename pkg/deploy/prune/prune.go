@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -94,14 +94,14 @@ func (p *pruner) Prune(deleter DeploymentDeleter) error {
 
 // deploymentDeleter removes a deployment from OpenShift.
 type deploymentDeleter struct {
-	deployments kclient.ReplicationControllersNamespacer
-	pods        kclient.PodsNamespacer
+	deployments kcoreclient.ReplicationControllersGetter
+	pods        kcoreclient.PodsGetter
 }
 
 var _ DeploymentDeleter = &deploymentDeleter{}
 
 // NewDeploymentDeleter creates a new deploymentDeleter.
-func NewDeploymentDeleter(deployments kclient.ReplicationControllersNamespacer, pods kclient.PodsNamespacer) DeploymentDeleter {
+func NewDeploymentDeleter(deployments kcoreclient.ReplicationControllersGetter, pods kcoreclient.PodsGetter) DeploymentDeleter {
 	return &deploymentDeleter{
 		deployments: deployments,
 		pods:        pods,

@@ -10,7 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -38,8 +38,8 @@ type ReconcileSCCOptions struct {
 	Out    io.Writer
 	Output string
 
-	SCCClient kclient.SecurityContextConstraintInterface
-	NSClient  kclient.NamespaceInterface
+	SCCClient kcoreclient.SecurityContextConstraintsInterface
+	NSClient  kcoreclient.NamespaceInterface
 }
 
 var (
@@ -112,12 +112,12 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory,
 		return kcmdutil.UsageError(cmd, "no arguments are allowed")
 	}
 
-	_, kClient, err := f.Clients()
+	_, _, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.SCCClient = kClient.SecurityContextConstraints()
-	o.NSClient = kClient.Namespaces()
+	o.SCCClient = kClient.Core().SecurityContextConstraints()
+	o.NSClient = kClient.Core().Namespaces()
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
 	return nil

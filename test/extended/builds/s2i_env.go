@@ -28,7 +28,7 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.AdminKubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -49,7 +49,7 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
+			imageName, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("instantiating a pod and service with the new image")
