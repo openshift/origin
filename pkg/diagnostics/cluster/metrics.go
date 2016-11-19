@@ -8,14 +8,14 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 // MetricsApiProxy is a Diagnostic for diagnosing the API proxy and HPA/metrics.
 type MetricsApiProxy struct {
-	KubeClient *kclient.Client
+	KubeClient client.KClientInterface
 }
 
 const (

@@ -28,8 +28,8 @@ import (
 
 type ProjectOptions struct {
 	DefaultNamespace string
-	Oclient          *osclient.Client
-	Kclient          *kclient.Client
+	Oclient          osclient.Interface
+	Kclient          kclient.Interface
 	Out              io.Writer
 
 	Mapper            meta.RESTMapper

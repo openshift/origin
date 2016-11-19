@@ -46,7 +46,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 			}
 		case clientdiags.DiagnosticPodName:
 			diagnostics = append(diagnostics, &clientdiags.DiagnosticPod{
-				KubeClient:          *kubeClient,
+				KubeClient:          kubeClient,
 				Namespace:           rawConfig.Contexts[rawConfig.CurrentContext].Namespace,
 				Level:               o.LogOptions.Level,
 				Factory:             o.Factory,

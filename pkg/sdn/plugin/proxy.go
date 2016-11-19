@@ -24,7 +24,7 @@ type proxyFirewallItem struct {
 
 type OsdnProxy struct {
 	kClient              *kclient.Client
-	osClient             *osclient.Client
+	osClient             osclient.Interface
 	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
@@ -34,7 +34,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (*OsdnProxy, error) {
+func NewProxyPlugin(pluginName string, osClient osclient.Interface, kClient *kclient.Client) (*OsdnProxy, error) {
 	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}

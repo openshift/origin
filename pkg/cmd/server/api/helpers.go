@@ -327,7 +327,7 @@ func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components. Overrides are optional
 // and may alter the default configuration.
-func GetOpenShiftClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*client.Client, *restclient.Config, error) {
+func GetOpenShiftClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (client.Interface, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})

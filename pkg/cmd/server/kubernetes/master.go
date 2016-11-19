@@ -326,7 +326,7 @@ func (c *MasterConfig) RunDisruptionBudgetController(client *client.Client) {
 }
 
 // RunHPAController starts the Kubernetes hpa controller sync loop
-func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc *client.Client, heapsterNamespace string) {
+func (c *MasterConfig) RunHPAController(oc osclient.Interface, kc *client.Client, heapsterNamespace string) {
 	clientsetClient := clientadapter.FromUnversionedClient(kc)
 	delegatingScaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
 	podautoscaler := podautoscalercontroller.NewHorizontalController(

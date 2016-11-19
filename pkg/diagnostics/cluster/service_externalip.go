@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	"github.com/openshift/origin/pkg/client"
 	hostdiag "github.com/openshift/origin/pkg/diagnostics/host"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	"github.com/openshift/origin/pkg/service/admission"
@@ -19,7 +19,7 @@ import (
 // Background: https://github.com/openshift/origin/issues/7808
 type ServiceExternalIPs struct {
 	MasterConfigFile string
-	KclusterClient   *kclient.Client
+	KclusterClient   client.KClientInterface
 }
 
 const ServiceExternalIPsName = "ServiceExternalIPs"

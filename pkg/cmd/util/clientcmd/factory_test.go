@@ -56,7 +56,7 @@ func TestClientConfigForVersion(t *testing.T) {
 	client.SetOpenShiftDefaults(defaultConfig)
 
 	clients := &clientCache{
-		clients:       make(map[string]*client.Client),
+		clients:       make(map[string]client.Interface),
 		configs:       make(map[string]*restclient.Config),
 		defaultConfig: defaultConfig,
 	}

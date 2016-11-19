@@ -145,7 +145,7 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	return authzadapter.KubernetesAuthorizerAttributes(namespace, u, attrs)
 }
 
-func newAuthorizer(c *oclient.Client, cacheTTL time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {
+func newAuthorizer(c oclient.Interface, cacheTTL time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {
 	var (
 		authz oauthorizer.Authorizer
 		err   error

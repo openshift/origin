@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
@@ -20,7 +21,7 @@ type LogInterface struct {
 	Logdir string
 }
 
-func (l *LogInterface) LogNode(kubeClient *kclient.Client) {
+func (l *LogInterface) LogNode(kubeClient osclient.KClientInterface) {
 	l.LogSystem()
 	l.LogServices()
 

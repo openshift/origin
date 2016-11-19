@@ -122,7 +122,7 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	return id, nil
 }
 
-func (vmap *nodeVNIDMap) populateVNIDs(osClient *osclient.Client) error {
+func (vmap *nodeVNIDMap) populateVNIDs(osClient osclient.Interface) error {
 	nets, err := osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err

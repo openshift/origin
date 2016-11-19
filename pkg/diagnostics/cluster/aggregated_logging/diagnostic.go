@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
@@ -26,8 +25,8 @@ import (
 type AggregatedLogging struct {
 	masterConfig     *configapi.MasterConfig
 	MasterConfigFile string
-	OsClient         *client.Client
-	KubeClient       *kclient.Client
+	OsClient         client.Interface
+	KubeClient       client.KClientInterface
 	result           types.DiagnosticResult
 }
 
@@ -45,7 +44,7 @@ const (
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
 
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
-func NewAggregatedLogging(masterConfigFile string, kclient *kclient.Client, osclient *client.Client) *AggregatedLogging {
+func NewAggregatedLogging(masterConfigFile string, kclient client.KClientInterface, osclient client.Interface) *AggregatedLogging {
 	return &AggregatedLogging{nil, masterConfigFile, osclient, kclient, types.NewDiagnosticResult(AggregatedLoggingName)}
 }
 
@@ -158,7 +157,7 @@ and updating the annotation:
 
 `
 
-func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.MasterConfig, osClient *client.Client) string {
+func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.MasterConfig, osClient client.Interface) string {
 	r.Debug("AGL0010", fmt.Sprintf("masterConfig.AssetConfig.LoggingPublicURL: '%s'", masterCfg.AssetConfig.LoggingPublicURL))
 	projectName := ""
 	if len(masterCfg.AssetConfig.LoggingPublicURL) == 0 {

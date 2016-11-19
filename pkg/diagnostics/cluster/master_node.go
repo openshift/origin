@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -27,8 +26,8 @@ to proxy to pods over the Open vSwitch SDN.
 // This is currently required to have the master on the Open vSwitch SDN and able to communicate
 // with other nodes.
 type MasterNode struct {
-	KubeClient       *kclient.Client
-	OsClient         *osclient.Client
+	KubeClient       osclient.KClientInterface
+	OsClient         osclient.Interface
 	ServerUrl        string
 	MasterConfigFile string // may often be empty if not being run on the host
 }

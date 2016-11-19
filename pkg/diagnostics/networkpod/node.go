@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
@@ -20,7 +20,7 @@ const (
 
 // CheckNodeNetwork is a Diagnostic to check that pods in the cluster can access its own node
 type CheckNodeNetwork struct {
-	KubeClient *kclient.Client
+	KubeClient osclient.KClientInterface
 }
 
 // Name is part of the Diagnostic interface and just returns name.

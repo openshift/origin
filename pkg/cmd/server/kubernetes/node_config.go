@@ -415,7 +415,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	return proxyconfig, nil
 }
 
-func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
+func validateNetworkPluginName(originClient osclient.Interface, pluginName string) error {
 	if sdnapi.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)

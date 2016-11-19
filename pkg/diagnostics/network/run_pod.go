@@ -12,7 +12,6 @@ import (
 	flag "github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -26,8 +25,8 @@ const (
 
 // NetworkDiagnostic is a diagnostic that runs a network diagnostic pod and relays the results.
 type NetworkDiagnostic struct {
-	KubeClient          *kclient.Client
-	OSClient            *osclient.Client
+	KubeClient          osclient.KClientInterface
+	OSClient            osclient.Interface
 	ClientFlags         *flag.FlagSet
 	Level               int
 	Factory             *osclientcmd.Factory
