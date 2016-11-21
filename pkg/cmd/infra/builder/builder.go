@@ -30,6 +30,12 @@ var (
 
 		This command executes a Git clone using arguments passed via the environment.
 		It expects to be run inside of a container.`)
+
+	manageDockerfileLong = templates.LongDesc(`
+		Manipulates a dockerfile for a docker build.
+
+		This command updates a dockerfile based on build inputs.
+		It expects to be run inside of a container.`)
 )
 
 // NewCommandS2IBuilder provides a CLI handler for S2I build type
@@ -63,7 +69,8 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 	return cmd
 }
 
-// NewCommandDockerBuilder provides a CLI handler for Docker build type
+// NewCommandGitClone manages cloning the git source for a build.
+// It also manages binary build input content.
 func NewCommandGitClone(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
@@ -71,6 +78,20 @@ func NewCommandGitClone(name string) *cobra.Command {
 		Long:  gitCloneLong,
 		Run: func(c *cobra.Command, args []string) {
 			err := cmd.RunGitClone(c.OutOrStderr())
+			kcmdutil.CheckErr(err)
+		},
+	}
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	return cmd
+}
+
+func NewCommandManageDockerfile(name string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: "Manage a dockerfile for a docker build",
+		Long:  manageDockerfileLong,
+		Run: func(c *cobra.Command, args []string) {
+			err := cmd.RunManageDockerfile(c.OutOrStderr())
 			kcmdutil.CheckErr(err)
 		},
 	}

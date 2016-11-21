@@ -11,8 +11,9 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
-	GitCloneImage string
-	Image         string
+	GitCloneImage         string
+	ManageDockerfileImage string
+	Image                 string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -53,6 +54,20 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 				{
 					Name:  "git-clone",
 					Image: bs.GitCloneImage,
+					Env:   containerEnv,
+					Args:  []string{},
+					VolumeMounts: []kapi.VolumeMount{
+						{
+							Name:      "gitsource",
+							MountPath: "/tmp/gitSource",
+						},
+					},
+					ImagePullPolicy: kapi.PullIfNotPresent,
+					Resources:       build.Spec.Resources,
+				},
+				{
+					Name:  "manage-dockerfile",
+					Image: bs.ManageDockerfileImage,
 					Env:   containerEnv,
 					Args:  []string{},
 					VolumeMounts: []kapi.VolumeMount{

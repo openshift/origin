@@ -63,10 +63,47 @@ func GitClone(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.
 	return sourceInfo, nil
 }
 
+func ManageDockerfile(gitClient GitClient, dir string, build *api.Build) error {
+	// a Dockerfile has been specified, create or overwrite into the destination
+	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
+		baseDir := dir
+		if len(build.Spec.Source.ContextDir) != 0 {
+			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+		}
+		if err := ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660); err != nil {
+			return err
+		}
+	}
+	return addBuildParameters(gitClient, dir, build)
+}
+
+func ExtractImageContent(dockerClient DockerClient, dir string, build *api.Build) error {
+	forcePull := false
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		forcePull = build.Spec.Strategy.SourceStrategy.ForcePull
+	case build.Spec.Strategy.DockerStrategy != nil:
+		forcePull = build.Spec.Strategy.DockerStrategy.ForcePull
+	case build.Spec.Strategy.CustomStrategy != nil:
+		forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
+	}
+	// extract source from an Image if specified
+	for i, image := range build.Spec.Source.Images {
+		imageSecretIndex := i
+		if image.PullSecret == nil {
+			imageSecretIndex = -1
+		}
+		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
+		if err != nil {
+			return err
+		}
+	}
+}
+
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
 func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration) error {
-	hasGitSource := false
+	//hasGitSource := false
 
 	/*
 		// expect to receive input from STDIN
@@ -93,37 +130,40 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 			}
 		}
 	*/
-	forcePull := false
-	switch {
-	case build.Spec.Strategy.SourceStrategy != nil:
-		forcePull = build.Spec.Strategy.SourceStrategy.ForcePull
-	case build.Spec.Strategy.DockerStrategy != nil:
-		forcePull = build.Spec.Strategy.DockerStrategy.ForcePull
-	case build.Spec.Strategy.CustomStrategy != nil:
-		forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
-	}
-	// extract source from an Image if specified
-	for i, image := range build.Spec.Source.Images {
-		imageSecretIndex := i
-		if image.PullSecret == nil {
-			imageSecretIndex = -1
-		}
-		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
-		if err != nil {
-			return err
-		}
-	}
 
-	// a Dockerfile has been specified, create or overwrite into the destination
-	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
-		baseDir := dir
-		// if a context dir has been defined and we cloned source, overwrite the destination
-		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
-			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+	/*
+		forcePull := false
+		switch {
+		case build.Spec.Strategy.SourceStrategy != nil:
+			forcePull = build.Spec.Strategy.SourceStrategy.ForcePull
+		case build.Spec.Strategy.DockerStrategy != nil:
+			forcePull = build.Spec.Strategy.DockerStrategy.ForcePull
+		case build.Spec.Strategy.CustomStrategy != nil:
+			forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
 		}
-		return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
-	}
-
+		// extract source from an Image if specified
+		for i, image := range build.Spec.Source.Images {
+			imageSecretIndex := i
+			if image.PullSecret == nil {
+				imageSecretIndex = -1
+			}
+			err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
+			if err != nil {
+				return err
+			}
+		}
+	*/
+	/*
+		// a Dockerfile has been specified, create or overwrite into the destination
+		if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
+			baseDir := dir
+			// if a context dir has been defined and we cloned source, overwrite the destination
+			if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
+				baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+			}
+			return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
+		}
+	*/
 	return nil
 }
 

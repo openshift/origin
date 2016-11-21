@@ -170,7 +170,22 @@ func (c *builderConfig) clone() error {
 	}
 
 	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
-	return nil
+	return err
+}
+
+func (c *builderConfig) manageDockerfile() error {
+	buildDir := "/tmp/gitSource"
+
+	/*
+		secretTmpDir, gitEnv, err := c.setupGitEnvironment()
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(secretTmpDir)
+	*/
+	gitClient := git.NewRepositoryWithEnv(nil)
+
+	return bld.ManageDockerfile(gitClient, buildDir, c.build)
 }
 
 // execute is responsible for running a build
@@ -264,4 +279,13 @@ func RunGitClone(out io.Writer) error {
 		return err
 	}
 	return cfg.clone()
+}
+
+// RunManageDockerfile manipulates the dockerfile for docker builds
+func RunManageDockerfile(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, false)
+	if err != nil {
+		return err
+	}
+	return cfg.manageDockerfile()
 }

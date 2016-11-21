@@ -187,8 +187,8 @@ func (s *S2IBuilder) Build() error {
 		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
-		Environment:       buildEnvVars(s.build),
-		Labels:            buildLabels(s.build),
+		Environment: buildEnvVars(s.build),
+		//		Labels:            s2iBuildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:                    sourceURI.String(),
@@ -389,13 +389,15 @@ func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
 	return *envVars
 }
 
-func buildLabels(build *api.Build) map[string]string {
+/*
+func s2iBuildLabels(build *api.Build) map[string]string {
 	labels := make(map[string]string)
 	for _, lbl := range build.Spec.Output.ImageLabels {
 		labels[lbl.Name] = lbl.Value
 	}
 	return labels
 }
+*/
 
 // scriptProxyConfig determines a proxy configuration for downloading
 // scripts from a URL. For now, it uses environment variables passed in

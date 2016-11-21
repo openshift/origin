@@ -74,6 +74,7 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-sti-build
   openshift-docker-build
   openshift-git-clone
+  openshift-manage-dockerfile
   origin
   atomic-enterprise
   osc

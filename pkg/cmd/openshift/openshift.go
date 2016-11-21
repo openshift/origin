@@ -70,6 +70,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "openshift-git-clone":
 		cmd = builder.NewCommandGitClone(basename)
+	case "openshift-manage-dockerfile":
+		cmd = builder.NewCommandManageDockerfile(basename)
 	case "oc", "osc":
 		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
 	case "oadm", "osadm":
