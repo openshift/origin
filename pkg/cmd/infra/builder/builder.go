@@ -36,6 +36,12 @@ var (
 
 		This command updates a dockerfile based on build inputs.
 		It expects to be run inside of a container.`)
+
+	extractImageContentLong = templates.LongDesc(`
+		Extracts files from existing images.
+
+		This command extracts files from existing images to use as input to a build.
+		It expects to be run inside of a container.`)
 )
 
 // NewCommandS2IBuilder provides a CLI handler for S2I build type
@@ -92,6 +98,20 @@ func NewCommandManageDockerfile(name string) *cobra.Command {
 		Long:  manageDockerfileLong,
 		Run: func(c *cobra.Command, args []string) {
 			err := cmd.RunManageDockerfile(c.OutOrStderr())
+			kcmdutil.CheckErr(err)
+		},
+	}
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	return cmd
+}
+
+func NewCommandExtractImageContent(name string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: "Extract build input content from existing images",
+		Long:  extractImageContentLong,
+		Run: func(c *cobra.Command, args []string) {
+			err := cmd.RunExtractImageContent(c.OutOrStderr())
 			kcmdutil.CheckErr(err)
 		},
 	}

@@ -11,9 +11,10 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
-	GitCloneImage         string
-	ManageDockerfileImage string
-	Image                 string
+	GitCloneImage            string
+	ManageDockerfileImage    string
+	ExtractImageContentImage string
+	Image                    string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -51,20 +52,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		Spec: kapi.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
 			InitContainers: []kapi.Container{
-				{
-					Name:  "git-clone",
-					Image: bs.GitCloneImage,
-					Env:   containerEnv,
-					Args:  []string{},
-					VolumeMounts: []kapi.VolumeMount{
-						{
-							Name:      "gitsource",
-							MountPath: "/tmp/gitSource",
-						},
-					},
-					ImagePullPolicy: kapi.PullIfNotPresent,
-					Resources:       build.Spec.Resources,
-				},
 				{
 					Name:  "manage-dockerfile",
 					Image: bs.ManageDockerfileImage,
@@ -112,7 +99,47 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-
+	// can't conditionalize the manage-dockerfile init container because we don't
+	// know until we've cloned, whether or not we've got a dockerfile to manage
+	// (also if it's a docker type build, we should always have a dockerfile to manage)
+	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
+		gitCloneContainer := kapi.Container{
+			Name:  "git-clone",
+			Image: bs.GitCloneImage,
+			Env:   containerEnv,
+			Args:  []string{},
+			VolumeMounts: []kapi.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: "/tmp/gitSource",
+				},
+			},
+			ImagePullPolicy: kapi.PullIfNotPresent,
+			Resources:       build.Spec.Resources,
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
+	}
+	if len(build.Spec.Source.Images) > 0 {
+		extractImageContentContainer := kapi.Container{
+			Name:  "extract-image-content",
+			Image: bs.ExtractImageContentImage,
+			Env:   containerEnv,
+			Args:  []string{},
+			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+			SecurityContext: &kapi.SecurityContext{
+				Privileged: &privileged,
+			},
+			VolumeMounts: []kapi.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: "/tmp/gitSource",
+				},
+			},
+			ImagePullPolicy: kapi.PullIfNotPresent,
+			Resources:       build.Spec.Resources,
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
+	}
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
 	}

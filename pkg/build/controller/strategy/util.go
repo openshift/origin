@@ -42,7 +42,7 @@ func IsFatal(err error) bool {
 }
 
 // setupDockerSocket configures the pod to support the host's Docker socket
-func setupDockerSocket(podSpec *kapi.Pod) {
+func setupDockerSocket(pod *kapi.Pod) {
 	dockerSocketVolume := kapi.Volume{
 		Name: "docker-socket",
 		VolumeSource: kapi.VolumeSource{
@@ -57,11 +57,17 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 		MountPath: dockerSocketPath,
 	}
 
-	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		dockerSocketVolume)
-	podSpec.Spec.Containers[0].VolumeMounts =
-		append(podSpec.Spec.Containers[0].VolumeMounts,
+	pod.Spec.Containers[0].VolumeMounts =
+		append(pod.Spec.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
+	for i, initContainer := range pod.Spec.InitContainers {
+		if initContainer.Name == "extract-image-content" {
+			pod.Spec.InitContainers[i].VolumeMounts = append(pod.Spec.InitContainers[i].VolumeMounts, dockerSocketVolumeMount)
+			break
+		}
+	}
 }
 
 // mountSecretVolume is a helper method responsible for actual mounting secret

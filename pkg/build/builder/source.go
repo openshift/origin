@@ -98,6 +98,7 @@ func ExtractImageContent(dockerClient DockerClient, dir string, build *api.Build
 			return err
 		}
 	}
+	return nil
 }
 
 // fetchSource retrieves the inputs defined by the build source into the

@@ -237,6 +237,7 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	stiImage := c.ImageFor("sti-builder")
 	gitCloneImage := c.ImageFor("git-clone")
 	manageDockerfileImage := c.ImageFor("manage-dockerfile")
+	extractImageContentImage := c.ImageFor("extract-image-content")
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
@@ -263,8 +264,9 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
 		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			GitCloneImage:         gitCloneImage,
-			ManageDockerfileImage: manageDockerfileImage,
+			GitCloneImage:            gitCloneImage,
+			ManageDockerfileImage:    manageDockerfileImage,
+			ExtractImageContentImage: extractImageContentImage,
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: codec,
