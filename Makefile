@@ -261,6 +261,7 @@ build-rpms-redistributable:
 #
 # Args:
 #   BUILD_TESTS: whether or not to build a test RPM, off by default
+#   INSTALL_REPO: whether or not to install the RPM repo, off by default
 #
 # Example:
 #   make release-rpms BUILD_TESTS=1
