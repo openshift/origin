@@ -107,6 +107,7 @@ image openshift/origin-docker-builder        images/builder/docker/docker-builde
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 image openshift/origin-git-clone             images/builder/docker/git-clone
 image openshift/origin-manage-dockerfile     images/builder/docker/manage-dockerfile
+image openshift/origin-extract-image-content images/builder/docker/extract-image-content
 #image openshift/origin-f5-router             images/router/f5
 #image openshift/node                         images/node
 

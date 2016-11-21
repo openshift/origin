@@ -188,6 +188,12 @@ func (c *builderConfig) manageDockerfile() error {
 	return bld.ManageDockerfile(gitClient, buildDir, c.build)
 }
 
+func (c *builderConfig) extractImageContent() error {
+	buildDir := "/tmp/gitSource"
+
+	return bld.ExtractImageContent(c.dockerClient, buildDir, c.build)
+}
+
 // execute is responsible for running a build
 func (c *builderConfig) execute(b builder) error {
 	secretTmpDir, gitEnv, err := c.setupGitEnvironment()
@@ -288,4 +294,13 @@ func RunManageDockerfile(out io.Writer) error {
 		return err
 	}
 	return cfg.manageDockerfile()
+}
+
+// RunExtractImageContent extracts files from existing images
+func RunExtractImageContent(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, true)
+	if err != nil {
+		return err
+	}
+	return cfg.extractImageContent()
 }
