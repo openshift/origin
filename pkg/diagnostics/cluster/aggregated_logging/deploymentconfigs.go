@@ -33,15 +33,15 @@ const deploymentConfigZeroPodsFound = `
 There were no Pods found that support logging.  Try running
 the following commands for additional information:
 
-  oc describe dc -n %[1]s
-  oc get events -n %[1]s
+  $ oc describe dc -n %[1]s
+  $ oc get events -n %[1]s
 `
 const deploymentConfigNoPodsFound = `
 There were no Pods found for DeploymentConfig '%[1]s'.  Try running
 the following commands for additional information:
 
-  oc describe dc %[1]s -n %[2]s
-  oc get events -n %[2]s
+  $ oc describe dc %[1]s -n %[2]s
+  $ oc get events -n %[2]s
 `
 const deploymentConfigPodsNotRunning = `
 The Pod '%[1]s' matched by DeploymentConfig '%[2]s' is not in '%[3]s' status: %[4]s. 
@@ -50,9 +50,9 @@ Depending upon the state, this could mean there is an error running the image
 for one or more pod containers, the node could be pulling images, etc.  Try running
 the following commands for additional information:
 
-  oc describe pod %[1]s -n %[5]s
-  oc logs %[1]s -n %[5]s
-  oc get events -n %[5]s
+  $ oc describe pod %[1]s -n %[5]s
+  $ oc logs %[1]s -n %[5]s
+  $ oc get events -n %[5]s
 `
 
 func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapter, project string) {
