@@ -462,7 +462,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		var sourceImageSpec string
 		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
 		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildutil.GetInputReference(bc.Spec.Strategy); reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
+		if strategyFrom := buildutil.GetInputReference(bc.Spec.Strategy); strategyFrom != nil && reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
 			strategyImageChangeTrigger != nil {
 			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
 		} else {

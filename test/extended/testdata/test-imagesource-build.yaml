@@ -54,12 +54,7 @@ items:
         - destinationDir: injected/dir
           sourcePath: /usr/lib/jenkins/jenkins.war
     strategy:
-      sourceStrategy: 
-        forcePull: true
-        from: 
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
+      dockerStrategy: {}
 - apiVersion: v1
   kind: ImageStream
   metadata:
