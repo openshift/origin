@@ -517,6 +517,18 @@ func AddMissingComponentsToRefBuilder(
 		case info == nil:
 			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
 			continue
+
+		case info.Jenkinsfile && (g.Strategy == generate.StrategyUnspecified || g.Strategy == generate.StrategyPipeline):
+			refs := b.AddComponents([]string{"pipeline"}, func(input *app.ComponentInput) app.ComponentReference {
+				input.Resolver = pipelineResolver
+				input.Use(repo)
+				input.ExpectToBuild = true
+				repo.UsedBy(input)
+				repo.SetStrategy(generate.StrategyPipeline)
+				return input
+			})
+			result = append(result, refs...)
+
 		case info.Dockerfile != nil && (g.Strategy == generate.StrategyUnspecified || g.Strategy == generate.StrategyDocker):
 			node := info.Dockerfile.AST()
 			baseImage := dockerfileutil.LastBaseImage(node)
@@ -530,17 +542,6 @@ func AddMissingComponentsToRefBuilder(
 				input.ExpectToBuild = true
 				repo.UsedBy(input)
 				repo.SetStrategy(generate.StrategyDocker)
-				return input
-			})
-			result = append(result, refs...)
-
-		case info.Jenkinsfile && (g.Strategy == generate.StrategyUnspecified || g.Strategy == generate.StrategyPipeline):
-			refs := b.AddComponents([]string{"pipeline"}, func(input *app.ComponentInput) app.ComponentReference {
-				input.Resolver = pipelineResolver
-				input.Use(repo)
-				input.ExpectToBuild = true
-				repo.UsedBy(input)
-				repo.SetStrategy(generate.StrategyPipeline)
 				return input
 			})
 			result = append(result, refs...)
