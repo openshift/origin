@@ -5,7 +5,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"go/parser"
+	"go/token"
+	"path"
+	"runtime"
+	"strings"
 	"testing"
+
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func TestCrypto(t *testing.T) {
@@ -173,5 +180,41 @@ func TestRandomSerialGenerator(t *testing.T) {
 	}
 	if _, err := generator.Next(template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestNewCipherSuites determines if there are new cipher suites that we may want to use in SecureTLSConfig
+func TestNewCipherSuites(t *testing.T) {
+	knownCipherSuites := sets.NewString(
+		"TLS_RSA_WITH_RC4_128_SHA",
+		"TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+		"TLS_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_FALLBACK_SCSV")
+	filename := path.Join(runtime.GOROOT(), "src", "crypto", "tls", "cipher_suites.go")
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filename, nil, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for k := range f.Scope.Objects {
+		if strings.HasPrefix(k, "TLS_") {
+			if !knownCipherSuites.Has(k) {
+				t.Errorf("Encountered new cipher suite: %s", k)
+			}
+		}
 	}
 }
