@@ -33,6 +33,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: tregistry.Strategy,
 		UpdateStrategy: tregistry.Strategy,
+		DeleteStrategy: tregistry.Strategy,
 
 		ReturnDeletedObject: true,
 	}

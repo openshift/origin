@@ -33,6 +33,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: netnamespace.Strategy,
 		UpdateStrategy: netnamespace.Strategy,
+		DeleteStrategy: netnamespace.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {

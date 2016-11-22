@@ -33,6 +33,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: egressnetworkpolicy.Strategy,
 		UpdateStrategy: egressnetworkpolicy.Strategy,
+		DeleteStrategy: egressnetworkpolicy.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {

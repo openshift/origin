@@ -33,6 +33,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: clusterpolicy.Strategy,
 		UpdateStrategy: clusterpolicy.Strategy,
+		DeleteStrategy: clusterpolicy.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {

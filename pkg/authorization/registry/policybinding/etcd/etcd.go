@@ -32,6 +32,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: policybinding.Strategy,
 		UpdateStrategy: policybinding.Strategy,
+		DeleteStrategy: policybinding.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
