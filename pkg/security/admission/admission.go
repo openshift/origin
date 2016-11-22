@@ -3,8 +3,6 @@ package admission
 import (
 	"fmt"
 	"io"
-	"sort"
-	"strings"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -92,38 +90,14 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-
-	// remove duplicate constraints and sort
-	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
-
-	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
-	logProviders(pod, providers, errs)
-
-	if len(providers) == 0 {
-		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
-	}
-
-	// all containers in a single pod must validate under a single provider or we will reject the request
-	validationErrs := field.ErrorList{}
-	for _, provider := range providers {
-		if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
-			validationErrs = append(validationErrs, errs...)
-			continue
-		}
-
-		// the entire pod validated, annotate and accept the pod
-		glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, provider.GetSCCName())
-		if pod.ObjectMeta.Annotations == nil {
-			pod.ObjectMeta.Annotations = map[string]string{}
-		}
-		pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
+	assigner := newSCCAssigner(pod)
+	err = oscc.AssignConstraints(sccMatcher, matchedConstraints, a.GetNamespace(), c.client, assigner)
+	if err == nil {
 		return nil
 	}
-
 	// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, validationErrs)
-	return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
+	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, err)
+	return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", err))
 }
 
 // SetInformers implements WantsInformers interface for constraint.
@@ -139,16 +113,28 @@ func (c *constraint) Validate() error {
 	return nil
 }
 
-// logProviders logs what providers were found for the pod as well as any errors that were encountered
-// while creating providers.
-func logProviders(pod *kapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
-	names := make([]string, len(providers))
-	for i, p := range providers {
-		names[i] = p.GetSCCName()
-	}
-	glog.V(4).Infof("validating pod %s (generate: %s) against providers %s", pod.Name, pod.GenerateName, strings.Join(names, ","))
+type sCCAssigner struct {
+	pod *kapi.Pod
+}
 
-	for _, err := range providerCreationErrs {
-		glog.V(4).Infof("provider creation error: %v", err)
+var _ oscc.SCCAssigner = &sCCAssigner{}
+
+func (a *sCCAssigner) Assign(provider scc.SecurityContextConstraintsProvider, unused *kapi.SecurityContextConstraints) error {
+	validationErrs := field.ErrorList{}
+	if errs := oscc.AssignSecurityContext(provider, a.pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+		validationErrs = append(validationErrs, errs...)
+		return validationErrs.ToAggregate()
 	}
+
+	// the entire pod validated, annotate and accept the pod
+	glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", a.pod.Name, a.pod.GenerateName, provider.GetSCCName())
+	if a.pod.ObjectMeta.Annotations == nil {
+		a.pod.ObjectMeta.Annotations = map[string]string{}
+	}
+	a.pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
+	return nil
+}
+
+func newSCCAssigner(pod *kapi.Pod) oscc.SCCAssigner {
+	return &sCCAssigner{pod: pod}
 }

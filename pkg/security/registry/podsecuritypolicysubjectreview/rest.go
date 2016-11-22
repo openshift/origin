@@ -2,7 +2,6 @@ package podsecuritypolicysubjectreview
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/golang/glog"
 
@@ -67,26 +66,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-	oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
-	var namespace *kapi.Namespace
-	for _, constraint := range matchedConstraints {
-		var (
-			provider kscc.SecurityContextConstraintsProvider
-			err      error
-		)
-		if provider, namespace, err = oscc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
-			glog.Errorf("Unable to create provider for constraint: %v", err)
-			continue
-		}
-		filled, err := FillPodSecurityPolicySubjectReviewStatus(&pspsr.Status, provider, pspsr.Spec.Template.Spec, constraint)
-		if err != nil {
-			glog.Errorf("unable to fill PodSecurityPolicySubjectReviewStatus from constraint %v", err)
-			continue
-		}
-		if filled {
-			return pspsr, nil
-		}
+	assigner := newSCCAssigner(&pspsr.Status, pspsr.Spec.Template.Spec)
+	if err = oscc.AssignConstraints(r.sccMatcher, matchedConstraints, ns, r.client, assigner); err != nil {
+		glog.V(4).Infof("PodSecurityPolicySelfSubjectReview error: %v", err)
 	}
 	return pspsr, nil
 }
@@ -112,4 +94,29 @@ func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySu
 		s.Template.Spec = pod.Spec
 	}
 	return true, nil
+}
+
+type sCCAssigner struct {
+	status *securityapi.PodSecurityPolicySubjectReviewStatus
+	spec   kapi.PodSpec
+}
+
+var _ oscc.SCCAssigner = &sCCAssigner{}
+
+func newSCCAssigner(status *securityapi.PodSecurityPolicySubjectReviewStatus, spec kapi.PodSpec) oscc.SCCAssigner {
+	return &sCCAssigner{
+		status: status,
+		spec:   spec,
+	}
+}
+
+func (a *sCCAssigner) Assign(provider kscc.SecurityContextConstraintsProvider, constraint *kapi.SecurityContextConstraints) error {
+	filled, err := FillPodSecurityPolicySubjectReviewStatus(a.status, provider, a.spec, constraint)
+	if !filled || err != nil {
+		if err == nil {
+			err = fmt.Errorf("unknown reason")
+		}
+		return fmt.Errorf("unable to fill PodSecurityPolicySubjectReviewStatus from constraint: %v", err)
+	}
+	return nil
 }

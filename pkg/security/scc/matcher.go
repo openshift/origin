@@ -2,6 +2,7 @@ package scc
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -11,6 +12,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -19,7 +21,12 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-// SCCMatcher defines interface for SecurityContextConstraint matcher
+// SCCAssigner defines interface for Security Context Constraints assigner
+type SCCAssigner interface {
+	Assign(provider kscc.SecurityContextConstraintsProvider, constraint *kapi.SecurityContextConstraints) error
+}
+
+// SCCMatcher defines interface for Security Context Constraints matcher
 type SCCMatcher interface {
 	FindApplicableSCCs(user user.Info) ([]*kapi.SecurityContextConstraints, error)
 }
@@ -428,4 +435,39 @@ func requiresPreallocatedFSGroup(constraint *kapi.SecurityContextConstraints) bo
 		return false
 	}
 	return len(constraint.FSGroup.Ranges) == 0
+}
+
+// AssignConstraints implements a template function to share code between security admission and
+// security policy review endpoints
+func AssignConstraints(matcher SCCMatcher, constraints []*kapi.SecurityContextConstraints, namespace string, client clientset.Interface, assigner SCCAssigner) error {
+	constraints = DeduplicateSecurityContextConstraints(constraints)
+	sort.Sort(ByPriority(constraints))
+	errs := []error{}
+	var (
+		providers []kscc.SecurityContextConstraintsProvider
+		ns        *kapi.Namespace
+	)
+	for _, constraint := range constraints {
+		var (
+			provider kscc.SecurityContextConstraintsProvider
+			err      error
+		)
+		provider, ns, err = CreateProviderFromConstraint(namespace, ns, constraint, client)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("unable to create security context provider: %v", err))
+			continue
+		}
+		if provider != nil {
+			providers = append(providers, provider)
+			err = assigner.Assign(provider, constraint)
+			if err == nil {
+				return nil
+			}
+		}
+		errs = append(errs, err)
+	}
+	if len(providers) == 0 {
+		return fmt.Errorf("no providers available")
+	}
+	return kerrors.NewAggregate(errs)
 }

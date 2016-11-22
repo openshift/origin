@@ -2,7 +2,6 @@ package podsecuritypolicyreview
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/golang/glog"
 
@@ -70,31 +69,17 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			errs = append(errs, fmt.Errorf("unable to find SecurityContextConstraints for ServiceAccount %s: %v", sa.Name, err))
 			continue
 		}
-		oscc.DeduplicateSecurityContextConstraints(saConstraints)
-		sort.Sort(oscc.ByPriority(saConstraints))
-		var namespace *kapi.Namespace
-		for _, constraint := range saConstraints {
-			var (
-				provider kscc.SecurityContextConstraintsProvider
-				err      error
-			)
-			pspsrs := securityapi.PodSecurityPolicySubjectReviewStatus{}
-			if provider, namespace, err = oscc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
-				errs = append(errs, fmt.Errorf("unable to create provider for service account %s: %v", sa.Name, err))
-				continue
-			}
-			_, err = podsecuritypolicysubjectreview.FillPodSecurityPolicySubjectReviewStatus(&pspsrs, provider, pspr.Spec.Template.Spec, constraint)
-			if err != nil {
-				glog.Errorf("unable to fill PodSecurityPolicyReviewStatus from constraint %v", err)
-				continue
-			}
-			sapsprs := securityapi.ServiceAccountPodSecurityPolicyReviewStatus{pspsrs, sa.Name}
-			newStatus.AllowedServiceAccounts = append(newStatus.AllowedServiceAccounts, sapsprs)
+		assigner := newSCCAssigner(&newStatus, pspr.Spec.Template.Spec, sa.Name)
+		err = oscc.AssignConstraints(r.sccMatcher, saConstraints, ns, r.client, assigner)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("unable to assign SecurityContextConstraints for ServiceAccount %s: %v", sa.Name, err))
+			continue
 		}
 	}
-	if len(errs) > 0 {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("%s", kerrors.NewAggregate(errs)))
+	for err := range errs {
+		glog.V(4).Infof("PodSecurityPolicyReview error: %v", err)
 	}
+
 	pspr.Status = newStatus
 	return pspr, nil
 }
@@ -128,4 +113,34 @@ func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCach
 	}
 	serviceAccounts = append(serviceAccounts, sa)
 	return serviceAccounts, nil
+}
+
+type sCCAssigner struct {
+	status             *securityapi.PodSecurityPolicyReviewStatus
+	spec               kapi.PodSpec
+	serviceAccountName string
+}
+
+var _ oscc.SCCAssigner = &sCCAssigner{}
+
+func newSCCAssigner(status *securityapi.PodSecurityPolicyReviewStatus, spec kapi.PodSpec, serviceAccountName string) oscc.SCCAssigner {
+	return &sCCAssigner{
+		status:             status,
+		spec:               spec,
+		serviceAccountName: serviceAccountName,
+	}
+}
+
+func (a *sCCAssigner) Assign(provider kscc.SecurityContextConstraintsProvider, constraint *kapi.SecurityContextConstraints) error {
+	pspsrs := securityapi.PodSecurityPolicySubjectReviewStatus{}
+	filled, err := podsecuritypolicysubjectreview.FillPodSecurityPolicySubjectReviewStatus(&pspsrs, provider, a.spec, constraint)
+	if !filled || err != nil {
+		if err == nil {
+			err = fmt.Errorf("unknown reason")
+		}
+		return fmt.Errorf("unable to fill PodSecurityPolicySubjectReviewStatus from constraint: %v", err)
+	}
+	sapsprs := securityapi.ServiceAccountPodSecurityPolicyReviewStatus{pspsrs, a.serviceAccountName}
+	a.status.AllowedServiceAccounts = append(a.status.AllowedServiceAccounts, sapsprs)
+	return nil
 }
