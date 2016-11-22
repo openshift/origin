@@ -71,7 +71,10 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out, errout io.Writer)
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-	cmd.Flags().StringArrayP("value", "v", nil, "Specify a key-value pair (eg. -v FOO=BAR) to set/override a parameter value in the template.")
+	params := cmd.Flags().StringArrayP("value", "v", nil, "Specify a key-value pair (eg. -v FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().MarkDeprecated("value", "Use -p, --param instead.")
+	cmd.Flags().MarkHidden("value")
+	cmd.Flags().StringArrayVarP(params, "param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
@@ -102,11 +105,10 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 	duplicatedKeys := sets.NewString()
 
 	var flagValues []string
-	if cmd.Flag("value").Changed {
-		flagValues = getFlagStringArray(cmd, "value")
+	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
+		flagValues = getFlagStringArray(cmd, "param")
+		cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--param")
 	}
-
-	cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--value")
 
 	for _, value := range flagValues {
 		key := strings.Split(value, "=")[0]
@@ -134,7 +136,7 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 	}
 
 	if kcmdutil.GetFlagBool(cmd, "parameters") {
-		for _, flag := range []string{"value", "labels", "output", "output-version", "raw", "template"} {
+		for _, flag := range []string{"value", "param", "labels", "output", "output-version", "raw", "template"} {
 			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
 				return kcmdutil.UsageError(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
 			}
@@ -238,10 +240,10 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 		}
 	}
 
-	// Override the values for the current template parameters
-	// when user specify the --value
-	if cmd.Flag("value").Changed {
-		values := getFlagStringArray(cmd, "value")
+	// Override the parameter values for the current template parameters
+	// when user specifies --param
+	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
+		values := getFlagStringArray(cmd, "param")
 		if errs := injectUserVars(values, obj); errs != nil {
 			return kerrors.NewAggregate(errs)
 		}

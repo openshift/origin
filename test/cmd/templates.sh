@@ -37,8 +37,8 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/parameters"
 # Individually specified parameter values are honored
-os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
-os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword' '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword' '"mypassword"'
 # Argument values are honored
 os::cmd::expect_success_and_text 'oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f test/templates/testdata/guestbook.json'       '"myuser"'
 os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword'       '"mypassword"'
@@ -46,8 +46,8 @@ os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestboo
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s'        '"myself"'
 os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'        '"my,1%pa=s"'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -v MYSQL_USER=myself -v MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
-os::cmd::expect_success_and_text 'oc process -v MYSQL_USER=myself -v MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'  '"my,1%pa=s"'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
+os::cmd::expect_success_and_text 'oc process -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'  '"my,1%pa=s"'
 os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 echo "template+parameters: ok"
 os::test::junit::declare_suite_end
