@@ -21,9 +21,8 @@ function cleanup()
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
-
 os::log::info "Starting server as distinct processes"
-ensure_iptables_or_die
+os::util::ensure::iptables_privileges_exist
 os::start::configure_server
 
 os::log::info "`openshift version`"

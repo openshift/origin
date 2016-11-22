@@ -21,7 +21,7 @@ trap "cleanup" EXIT
 
 os::log::info "Starting server"
 
-ensure_iptables_or_die
+os::util::ensure::iptables_privileges_exist
 os::util::environment::use_sudo
 os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 

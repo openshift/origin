@@ -11,7 +11,7 @@ function os::test::extended::focus {
 			os::log::error "No tests would be run"
 			exit 1
 		fi
-		${EXTENDEDTEST} "$@"
+		extended.test "$@"
 		exit $?
 	fi
 }
@@ -22,30 +22,23 @@ function os::test::extended::focus {
 #		be done in other contexts.
 function os::test::extended::setup () {
 	# build binaries
-	if [[ -z "$(os::build::find-binary ginkgo)" ]]; then
-		hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-	fi
-	if [[ -z "$(os::build::find-binary extended.test)" ]]; then
-		hack/build-go.sh test/extended/extended.test
-	fi
-	if [[ -z "$(os::build::find-binary openshift)" ]]; then
-		hack/build-go.sh
-	fi
+	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
+	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
+	os::util::ensure::built_binary_exists 'openshift'
+	os::util::ensure::built_binary_exists 'oadm'
+	os::util::ensure::built_binary_exists 'oc'
 
 	os::util::environment::setup_time_vars
+	os::util::environment::use_sudo
 	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	# ensure proper relative directories are set
-	GINKGO="$(os::build::find-binary ginkgo)"
-	EXTENDEDTEST="$(os::build::find-binary extended.test)"
-	export GINKGO
-	export EXTENDEDTEST
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	# allow setup to be skipped
 	if [[ -z "${TEST_ONLY+x}" ]]; then
-		ensure_iptables_or_die
+		os::util::ensure::iptables_privileges_exist
 
 		function cleanup() {
 			out=$?
@@ -58,7 +51,6 @@ function os::test::extended::setup () {
 		trap "cleanup" EXIT
 		os::log::info "Starting server"
 
-		os::util::environment::use_sudo
 		os::util::environment::setup_images_vars
 
 		local sudo=${USE_SUDO:+sudo}
@@ -163,7 +155,7 @@ function os::test::extended::run () {
 		return
 	fi
 
-	"${GINKGO}" -v "${runArgs[@]}" "${EXTENDEDTEST}" "$@"
+	ginkgo -v "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
 }
 
 # Create a list of extended tests to be run with the given arguments
@@ -179,7 +171,7 @@ function os::test::extended::test_list () {
 
 	while IFS= read -r; do
 		full_test_list+=( "${REPLY}" )
-	done < <(TEST_OUTPUT_QUIET=true "${EXTENDEDTEST}" "$@" --ginkgo.dryRun --ginkgo.noColor )
+	done < <(TEST_OUTPUT_QUIET=true extended.test "$@" --ginkgo.dryRun --ginkgo.noColor )
 	if [[ "{$REPLY}" ]]; then lines+=( "$REPLY" ); fi
 
 	for test in "${full_test_list[@]}"; do

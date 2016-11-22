@@ -1,12 +1,8 @@
 #!/bin/bash
 
-if ! which origin-version-change &>/dev/null; then
-  echo "The 'origin-version-change' was not found in the PATH."
-  echo "To build it, run: ./hack/build-go.sh cmd/origin-version-change"
-  echo
-  exit 1
-fi
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+os::util::ensure::built_binary_exists 'origin-version-change'
 IGNORE_FILES={$IGNORE_FILES:-"examples/sample-app/github-webhook-example.json"}
 
 sample_files=$(find {api,examples,docs,images,plugins,test} -name "*.json" -o -name "*.yaml")

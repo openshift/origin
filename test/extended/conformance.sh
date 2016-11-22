@@ -21,8 +21,8 @@ ss=$(join '|' "${serial_exclude[@]}")
 
 
 os::log::info "Running the following tests:"
-TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${pf}" "--ginkgo.skip=${ps}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
-TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.focus=${sf}" "--ginkgo.skip=${ss}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true extended.test "--ginkgo.focus=${pf}" "--ginkgo.skip=${ps}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true extended.test "--ginkgo.focus=${sf}" "--ginkgo.skip=${ss}" --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
 echo
 
 exitstatus=0
@@ -30,10 +30,10 @@ exitstatus=0
 # run parallel tests
 nodes="${PARALLEL_NODES:-5}"
 os::log::info "Running parallel tests N=${nodes}"
-TEST_REPORT_FILE_NAME=conformance_parallel ${GINKGO} -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 6h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_parallel ginkgo -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.v -test.timeout 6h || exitstatus=$?
 
 # run tests in serial
 os::log::info "Running serial tests"
-TEST_REPORT_FILE_NAME=conformance_serial ${GINKGO} -v "-focus=${sf}" "-skip=${ss}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 2h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_serial ginkgo -v "-focus=${sf}" "-skip=${ss}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.v -test.timeout 2h || exitstatus=$?
 
 exit $exitstatus

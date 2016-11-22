@@ -2,29 +2,6 @@
 
 # Provides simple utility functions
 
-# ensure_iptables_or_die tests if the testing machine has iptables available
-# and in PATH. Also test whether current user has sudo privileges.
-function ensure_iptables_or_die() {
-	if [[ -z "$(which iptables)" ]]; then
-		echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
-		exit 1
-	fi
-
-	set +e
-
-	iptables --list > /dev/null 2>&1
-	if [ $? -ne 0 ]; then
-		sudo iptables --list > /dev/null 2>&1
-		if [ $? -ne 0 ]; then
-			echo "You do not have iptables or sudo privileges. Kubernetes services will not work without iptables access.	See https://github.com/kubernetes/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
-			exit 1
-		fi
-	fi
-
-	set -e
-}
-readonly -f ensure_iptables_or_die
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {
@@ -84,12 +61,6 @@ readonly -f truncate_large_logs
 ######
 # start of common functions for extended test group's run.sh scripts
 ######
-
-# exit run if ginkgo not installed
-function ensure_ginkgo_or_die() {
-	which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
-}
-readonly -f ensure_ginkgo_or_die
 
 # cleanup_openshift saves container logs, saves resources, and kills all processes and containers
 function cleanup_openshift() {
