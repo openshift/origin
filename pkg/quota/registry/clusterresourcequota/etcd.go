@@ -18,7 +18,7 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against nodes.
+// NewStorage returns a RESTStorage object that will work against ClusterResourceQuota objects.
 func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 	store, err := makeStore(optsGetter)
 	if err != nil {
