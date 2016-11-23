@@ -10,6 +10,8 @@
 // examples/db-templates/mysql-persistent-template.json
 // examples/db-templates/postgresql-ephemeral-template.json
 // examples/db-templates/postgresql-persistent-template.json
+// examples/db-templates/redis-ephemeral-template.json
+// examples/db-templates/redis-persistent-template.json
 // examples/jenkins/jenkins-ephemeral-template.json
 // examples/jenkins/jenkins-persistent-template.json
 // examples/jenkins/pipeline/bluegreen-pipeline.yaml
@@ -309,7 +311,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "7.0"
             }
           },
           {
@@ -342,6 +344,22 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/php-56-centos7:latest"
+            }
+          },
+          {
+            "name": "7.0",
+            "annotations": {
+              "openshift.io/display-name": "PHP 7.0",
+              "description": "Build and run PHP 7.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.0/README.md.",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:7.0,php",
+              "version": "7.0",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/php-70-centos7:latest"
             }
           }
         ]
@@ -785,6 +803,47 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
+        "name": "redis",
+        "annotations": {
+          "openshift.io/display-name": "Redis"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": "Redis (Latest)",
+              "description": "Provides a Redis database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Redis available on OpenShift, including major versions updates.",
+              "iconClass": "icon-redis",
+              "tags": "redis"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.2"
+            }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "openshift.io/display-name": "Redis 3.2",
+              "description": "Provides a Redis 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-redis",
+              "tags": "redis",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/redis-32-centos7:latest"
+            }
+          }
+        ]
+      }
+     },
+     {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
         "name": "jenkins",
         "annotations": {
           "openshift.io/display-name": "Jenkins"
@@ -1132,6 +1191,22 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
             }
+          },
+          {
+            "name": "7.0",
+            "annotations": {
+              "openshift.io/display-name": "PHP 7.0",
+              "description": "Build and run PHP 7.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.0/README.md.",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:7.0,php",
+              "version": "7.0",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/php-70-rhel7:latest"
+            }
           }
         ]
       }
@@ -1478,6 +1553,47 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       }
     },
     {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis",
+        "annotations": {
+          "openshift.io/display-name": "Redis"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": "Redis (Latest)",
+              "description": "Provides a Redis database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Redis available on OpenShift, including major versions updates.",
+              "iconClass": "icon-redis",
+              "tags": "redis"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.2"
+            }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "openshift.io/display-name": "Redis 3.2",
+              "description": "Provides a Redis 3.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-redis",
+              "tags": "redis",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/redis-32-rhel7:latest"
+            }
+          }
+        ]
+      }
+     },
+     {
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
@@ -3690,6 +3806,446 @@ func examplesDbTemplatesPostgresqlPersistentTemplateJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/db-templates/postgresql-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "redis-ephemeral",
+    "creationTimestamp": null,
+    "annotations": {
+      "openshift.io/display-name": "Redis (Ephemeral)",
+      "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-redis",
+      "tags": "database,redis"
+    }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.",
+  "labels": {
+    "template": "redis-ephemeral-template"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "redis",
+            "protocol": "TCP",
+            "port": 6379,
+            "targetPort": 6379,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "redis"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "redis:${REDIS_VERSION}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "redis",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "test \"$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)\" == \"PONG\""]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 6379
+                  }
+                },
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/redis/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "redis",
+      "required": true
+    },
+    {
+      "name": "REDIS_PASSWORD",
+      "displayName": "Redis Connection Password",
+      "description": "Password for the Redis connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "REDIS_VERSION",
+      "displayName": "Version of Redis Image",
+      "description": "Version of Redis image to be used (3.2 or latest).",
+      "value": "3.2",
+      "required": true
+    }
+  ]
+}
+`)
+
+func examplesDbTemplatesRedisEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesRedisEphemeralTemplateJson, nil
+}
+
+func examplesDbTemplatesRedisEphemeralTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesRedisEphemeralTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/redis-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "redis-persistent",
+    "creationTimestamp": null,
+    "annotations": {
+      "openshift.io/display-name": "Redis (Persistent)",
+      "description": "Redis in-memory data structure store, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
+      "iconClass": "icon-redis",
+      "tags": "database,redis"
+    }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.",
+  "labels": {
+    "template": "redis-persistent-template"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "redis",
+            "protocol": "TCP",
+            "port": 6379,
+            "targetPort": 6379,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "redis"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "redis:${REDIS_VERSION}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "redis",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "test \"$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)\" == \"PONG\""]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 6379
+                  }
+                },
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/redis/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${DATABASE_SERVICE_NAME}"
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "redis",
+      "required": true
+    },
+    {
+      "name": "REDIS_PASSWORD",
+      "displayName": "Redis Connection Password",
+      "description": "Password for the Redis connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "REDIS_VERSION",
+      "displayName": "Version of Redis Image",
+      "description": "Version of Redis image to be used (3.2 or latest).",
+      "value": "3.2",
+      "required": true
+    }
+  ]
+}
+`)
+
+func examplesDbTemplatesRedisPersistentTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesRedisPersistentTemplateJson, nil
+}
+
+func examplesDbTemplatesRedisPersistentTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesRedisPersistentTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/redis-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -8604,6 +9160,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/db-templates/mysql-persistent-template.json": examplesDbTemplatesMysqlPersistentTemplateJson,
 	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
 	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
+	"examples/db-templates/redis-ephemeral-template.json": examplesDbTemplatesRedisEphemeralTemplateJson,
+	"examples/db-templates/redis-persistent-template.json": examplesDbTemplatesRedisPersistentTemplateJson,
 	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
 	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
 	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
@@ -8676,6 +9234,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"postgresql-ephemeral-template.json": &bintree{examplesDbTemplatesPostgresqlEphemeralTemplateJson, map[string]*bintree{
 			}},
 			"postgresql-persistent-template.json": &bintree{examplesDbTemplatesPostgresqlPersistentTemplateJson, map[string]*bintree{
+			}},
+			"redis-ephemeral-template.json": &bintree{examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{
+			}},
+			"redis-persistent-template.json": &bintree{examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{
 			}},
 		}},
 		"image-streams": &bintree{nil, map[string]*bintree{
