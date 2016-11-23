@@ -35,6 +35,7 @@ type JenkinsRef struct {
 
 const (
 	useLocalPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_IMAGE"
+	disableJenkinsMemoryStats        = "DISABLE_JENKINS_MEMORY_MONITORING"
 	localPluginSnapshotImage         = "openshift/jenkins-plugin-snapshot-test:latest"
 )
 
@@ -63,7 +64,7 @@ func (j *JenkinsRef) buildURI(resourcePathFormat string, a ...interface{}) strin
 // Returns a response body and status code or an error.
 func (j *JenkinsRef) getResource(resourcePathFormat string, a ...interface{}) (string, int, error) {
 	uri := j.buildURI(resourcePathFormat, a...)
-	ginkgolog("Retrieving Jekins resource: %q", uri)
+	ginkgolog("Retrieving Jenkins resource: %q", uri)
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return "", 0, fmt.Errorf("Unable to build request for uri %q: %v", uri, err)
@@ -433,6 +434,22 @@ func initExecPod(oc *exutil.CLI) *kapi.Pod {
 	return targetPod
 }
 
+type apiObjJob struct {
+	jobName string
+	create  bool
+}
+
+// Validate create/delete of objects
+func validateCreateDelete(create bool, key, out string, err error) {
+	ginkgolog("\nOBJ: %s\n", out)
+	if create {
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(strings.Contains(out, key)).To(o.BeTrue())
+	} else {
+		o.Expect(err).To(o.HaveOccurred())
+	}
+}
+
 // Designed to match if RSS memory is greater than 500000000  (i.e. > 476MB)
 var memoryOverragePattern = regexp.MustCompile(`\s+rss\s+5\d\d\d\d\d\d\d\d`)
 
@@ -446,7 +463,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 	g.AfterEach(func() {
 
-		ticker.Stop()
+		if os.Getenv(disableJenkinsMemoryStats) == "" {
+			ticker.Stop()
+		}
 
 		oc.SetNamespace(j.namespace)
 		ginkgolog("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
@@ -565,42 +584,44 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		jenkinsPod := findJenkinsPod(oc)
 
-		ticker = time.NewTicker(10 * time.Second)
-		go func() {
-			for t := range ticker.C {
-				memstats, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "cat", "/sys/fs/cgroup/memory/memory.stat").Output()
-				if err != nil {
-					ginkgolog("\nUnable to acquire Jenkins cgroup memory.stat")
-				}
-				ps, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "ps", "faux").Output()
-				if err != nil {
-					ginkgolog("\nUnable to acquire Jenkins ps information")
-				}
-				ginkgolog("\nJenkins memory statistics at %v\n%s\n%s\n\n", t, ps, memstats)
-
-				// This is likely a temporary measure in place to extract diagnostic information during unexpectedly
-				// high memory utilization within the Jenkins image. If Jenkins is using
-				// a large amount of RSS, extract JVM information from the pod.
-				if memoryOverragePattern.MatchString(memstats) {
-					histogram, err := oc.Run("rsh").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "jmap", "-histo", "1").Output()
-					if err == nil {
-						ginkgolog("\n\nJenkins histogram:\n%s\n\n", histogram)
-					} else {
-						ginkgolog("Unable to acquire Jenkins histogram: %v", err)
+		if os.Getenv(disableJenkinsMemoryStats) == "" {
+			ticker = time.NewTicker(10 * time.Second)
+			go func() {
+				for t := range ticker.C {
+					memstats, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "cat", "/sys/fs/cgroup/memory/memory.stat").Output()
+					if err != nil {
+						ginkgolog("\nUnable to acquire Jenkins cgroup memory.stat")
 					}
-					stack, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "jstack", "1").Output()
-					if err == nil {
-						ginkgolog("\n\nJenkins thread dump:\n%s\n\n", stack)
-					} else {
-						ginkgolog("Unable to acquire Jenkins thread dump: %v", err)
+					ps, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "ps", "faux").Output()
+					if err != nil {
+						ginkgolog("\nUnable to acquire Jenkins ps information")
 					}
-				}
+					ginkgolog("\nJenkins memory statistics at %v\n%s\n%s\n\n", t, ps, memstats)
 
-			}
-		}()
+					// This is likely a temporary measure in place to extract diagnostic information during unexpectedly
+					// high memory utilization within the Jenkins image. If Jenkins is using
+					// a large amount of RSS, extract JVM information from the pod.
+					if memoryOverragePattern.MatchString(memstats) {
+						histogram, err := oc.Run("rsh").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "jmap", "-histo", "1").Output()
+						if err == nil {
+							ginkgolog("\n\nJenkins histogram:\n%s\n\n", histogram)
+						} else {
+							ginkgolog("Unable to acquire Jenkins histogram: %v", err)
+						}
+						stack, err := oc.Run("exec").Args("--namespace", jenkinsNamespace, jenkinsPod.Name, "--", "jstack", "1").Output()
+						if err == nil {
+							ginkgolog("\n\nJenkins thread dump:\n%s\n\n", stack)
+						} else {
+							ginkgolog("Unable to acquire Jenkins thread dump: %v", err)
+						}
+					}
+
+				}
+			}()
+		}
 
 		// Start capturing logs from this deployment config.
-		// This command will terminate if the Jekins instance crashes. This
+		// This command will terminate if the Jenkins instance crashes. This
 		// ensures that even if the Jenkins DC restarts, we should capture
 		// logs from the crash.
 		dcLogFollow, dcLogStdOut, dcLogStdErr, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
@@ -672,6 +693,31 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			logs, err = j.waitForContent("Building remotely on", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+		})
+
+		g.It("jenkins-plugin test create obj delete obj", func() {
+
+			jobsToCreate := map[string]string{"test-create-obj": "create-job.xml", "test-delete-obj": "delete-job.xml", "test-delete-obj-labels": "delete-job-labels.xml", "test-delete-obj-keys": "delete-job-keys.xml"}
+			for jobName, jobConfig := range jobsToCreate {
+				data := j.readJenkinsJob(jobConfig, oc.Namespace())
+				j.createItem(jobName, data)
+			}
+
+			jobsToRun := []apiObjJob{{"test-create-obj", true}, {"test-delete-obj", false}, {"test-create-obj", true}, {"test-delete-obj-labels", false}, {"test-create-obj", true}, {"test-delete-obj-keys", false}}
+			for _, job := range jobsToRun {
+				jmon := j.startJob(job.jobName)
+				jmon.await(10 * time.Minute)
+
+				g.By("get build console logs and see if succeeded")
+				logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
+				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				out, err := oc.Run("get").Args("bc", "forcepull-bldr").Output()
+				validateCreateDelete(job.create, "forcepull-bldr", out, err)
+				out, err = oc.Run("get").Args("is", "forcepull-extended-test-builder").Output()
+				validateCreateDelete(job.create, "forcepull-extended-test-builder", out, err)
+			}
 
 		})
 
