@@ -4,7 +4,10 @@ package plugin
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -20,6 +23,7 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
+	ksets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/ip"
@@ -211,37 +215,43 @@ func addMacvlan(netns string) error {
 	})
 }
 
-// Run CNI IPAM for the container, either allocating an IP address and returning
-// it (for ADD) or releasing the lease and cleaning up (for DEL)
-func (m *podManager) runIPAM(netnsPath string, action cniserver.CNICommand, id string) (*cnitypes.Result, error) {
-	args := &invoke.Args{
+func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
+	return &invoke.Args{
 		Command:     string(action),
 		ContainerID: id,
 		NetNS:       netnsPath,
 		IfName:      podInterfaceName,
 		Path:        "/opt/cni/bin",
 	}
+}
 
-	if action == cniserver.CNI_ADD {
-		result, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
-		}
-
-		if result.IP4 == nil {
-			return nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
-		}
-
-		return result, nil
-	} else if action == cniserver.CNI_DEL {
-		err := invoke.ExecPluginWithoutResult("/opt/cni/bin/host-local", m.ipamConfig, args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
-		}
-		return nil, nil
+// Run CNI IPAM allocation for the container and return the allocated IP address
+func (m *podManager) ipamAdd(netnsPath string, id string) (*cnitypes.Result, error) {
+	if netnsPath == "" {
+		return nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
-	return nil, fmt.Errorf("invalid IPAM action %v", action)
+	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
+	result, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
+	}
+
+	if result.IP4 == nil {
+		return nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
+	}
+
+	return result, nil
+}
+
+// Run CNI IPAM release for the container
+func (m *podManager) ipamDel(id string) error {
+	args := createIPAMArgs("", cniserver.CNI_DEL, id)
+	err := invoke.ExecPluginWithoutResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	if err != nil {
+		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
+	}
+	return nil
 }
 
 func isScriptError(err error) bool {
@@ -264,6 +274,93 @@ func vnidToString(vnid uint32) string {
 	return strconv.FormatUint(uint64(vnid), 10)
 }
 
+// podIsExited returns true if the pod is exited (all containers inside are exited).
+func podIsExited(p *kcontainer.Pod) bool {
+	for _, c := range p.Containers {
+		if c.State != kcontainer.ContainerStateExited {
+			return false
+		}
+	}
+	return true
+}
+
+// getNonExitedPods returns a list of pods that have at least one running container.
+func (m *podManager) getNonExitedPods() ([]*kcontainer.Pod, error) {
+	ret := []*kcontainer.Pod{}
+	pods, err := m.host.GetRuntime().GetPods(true)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve pods from runtime: %v", err)
+	}
+	for _, p := range pods {
+		if podIsExited(p) {
+			continue
+		}
+		ret = append(ret, p)
+	}
+	return ret, nil
+}
+
+// ipamGarbageCollection will release unused IPs from dead containers that
+// the CNI plugin was never notified had died.  openshift-sdn uses the CNI
+// host-local IPAM plugin, which stores allocated IPs in a file in
+// /var/lib/cni/network. Each file in this directory has as its name the
+// allocated IP address of the container, and as its contents the container ID.
+// This routine looks for container IDs that are not reported as running by the
+// container runtime, and releases each one's IPAM allocation.
+func (m *podManager) ipamGarbageCollection() {
+	glog.V(2).Infof("Starting IP garbage collection")
+
+	const ipamDir string = "/var/lib/cni/networks/openshift-sdn"
+	files, err := ioutil.ReadDir(ipamDir)
+	if err != nil {
+		glog.Errorf("Failed to list files in CNI host-local IPAM store %v: %v", ipamDir, err)
+		return
+	}
+
+	// gather containerIDs for allocated ips
+	ipContainerIdMap := make(map[string]string)
+	for _, file := range files {
+		// skip non checkpoint file
+		if ip := net.ParseIP(file.Name()); ip == nil {
+			continue
+		}
+
+		content, err := ioutil.ReadFile(filepath.Join(ipamDir, file.Name()))
+		if err != nil {
+			glog.Errorf("Failed to read file %v: %v", file, err)
+		}
+		ipContainerIdMap[file.Name()] = strings.TrimSpace(string(content))
+	}
+
+	// gather infra container IDs of current running Pods
+	runningContainerIDs := ksets.String{}
+	pods, err := m.getNonExitedPods()
+	if err != nil {
+		glog.Errorf("Failed to get pods: %v", err)
+		return
+	}
+	for _, pod := range pods {
+		containerID, err := m.host.GetRuntime().GetPodContainerID(pod)
+		if err != nil {
+			glog.Warningf("Failed to get infra containerID of %q/%q: %v", pod.Namespace, pod.Name, err)
+			continue
+		}
+
+		runningContainerIDs.Insert(strings.TrimSpace(containerID.ID))
+	}
+
+	// release leaked ips
+	for ip, containerID := range ipContainerIdMap {
+		// if the container is not running, release IP
+		if runningContainerIDs.Has(containerID) {
+			continue
+		}
+
+		glog.V(2).Infof("Releasing IP %q allocated to %q.", ip, containerID)
+		m.ipamDel(containerID)
+	}
+}
+
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.RunningPod, error) {
 	podConfig, pod, err := m.getPodConfig(req)
@@ -271,8 +368,17 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 		return nil, nil, err
 	}
 
-	ipamResult, err := m.runIPAM(req.Netns, cniserver.CNI_ADD, req.ContainerId)
+	ipamResult, err := m.ipamAdd(req.Netns, req.ContainerId)
 	if err != nil {
+		// TODO: Remove this hack once we've figured out how to retrieve the netns
+		// of an exited container. Currently, restarting docker will leak a bunch of
+		// ips. This will exhaust available ip space unless we cleanup old ips. At the
+		// same time we don't want to try GC'ing them periodically as that could lead
+		// to a performance regression in starting pods. So on each setup failure, try
+		// GC on the assumption that the kubelet is going to retry pod creation, and
+		// when it does, there will be ips.
+		m.ipamGarbageCollection()
+
 		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.ContainerId, err)
 	}
 	podIP := ipamResult.IP4.IP.IP
@@ -281,7 +387,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 	var success bool
 	defer func() {
 		if !success {
-			m.runIPAM(req.Netns, cniserver.CNI_DEL, req.ContainerId)
+			m.ipamDel(req.ContainerId)
 			if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
 				glog.Warningf("failed syncing hostports: %v", err)
 			}
@@ -393,29 +499,32 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
+	netnsValid := true
 	if err := ns.IsNSorErr(req.Netns); err != nil {
 		if _, ok := err.(ns.NSPathNotExistErr); ok {
-			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s", req.PodNamespace, req.PodName)
-			return nil
+			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s; only cleaning up IPAM", req.PodNamespace, req.PodName)
+			netnsValid = false
 		}
 	}
 
-	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
-	if err != nil {
-		return err
+	if netnsValid {
+		hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
+		if err != nil {
+			return err
+		}
+
+		// The script's teardown functionality doesn't need the VNID
+		out, err := exec.Command(sdnScript, tearDownCmd, hostVethName, contVethMac, podIP, "-1").CombinedOutput()
+		glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
+
+		if isScriptError(err) {
+			return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
+		} else if err != nil {
+			return err
+		}
 	}
 
-	// The script's teardown functionality doesn't need the VNID
-	out, err := exec.Command(sdnScript, tearDownCmd, hostVethName, contVethMac, podIP, "-1").CombinedOutput()
-	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
-
-	if isScriptError(err) {
-		return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
-	} else if err != nil {
-		return err
-	}
-
-	if _, err := m.runIPAM(req.Netns, cniserver.CNI_DEL, req.ContainerId); err != nil {
+	if err := m.ipamDel(req.ContainerId); err != nil {
 		return err
 	}
 
