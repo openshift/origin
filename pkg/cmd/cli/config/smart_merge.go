@@ -63,7 +63,7 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 		return "", err
 	}
 	userInfo, err := client.Users().Get("~")
-	if kerrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {
 		case len(clientCfg.BearerToken) > 0:

@@ -220,6 +220,9 @@ function wait-for-cluster() {
   local oc
   oc="$(os::util::find::built_binary oc)"
 
+  # wait for healthz to report ok before trying to get nodes
+  os::util::wait-for-condition "ok" "${oc} get --config=${kubeconfig} --raw=/healthz" "120"
+
   local msg="${expected_node_count} nodes to report readiness"
   local condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
   local timeout=120

@@ -281,11 +281,11 @@ func (o ProjectOptions) RunProject() error {
 
 func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclient.Interface) error {
 	_, projectErr := oClient.Projects().Get(currentProject)
-	if !kapierrors.IsNotFound(projectErr) {
+	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}
 
-	// at this point we know the error is a not found, but we'll test namespaces just in case we're running on kube
+	// at this point we know the error is a not found or forbidden, but we'll test namespaces just in case we're running on kube
 	if _, err := kClient.Namespaces().Get(currentProject); err == nil {
 		return nil
 	}
@@ -299,7 +299,8 @@ func getProjects(oClient *client.Client, kClient kclient.Interface) ([]api.Proje
 	if err == nil {
 		return projects.Items, nil
 	}
-	if err != nil && !kapierrors.IsNotFound(err) {
+	// if this is kube with authorization enabled, this endpoint will be forbidden.  OpenShift allows this for everyone.
+	if err != nil && !(kapierrors.IsNotFound(err) || kapierrors.IsForbidden(err)) {
 		return nil, err
 	}
 
