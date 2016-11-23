@@ -308,6 +308,11 @@ func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStr
 	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
+// updateImage modifies the Image.
+func (r *repository) updateImage(image *imageapi.Image) (*imageapi.Image, error) {
+	return r.registryOSClient.Images().Update(image)
+}
+
 // rememberLayersOfImage caches the layer digests of given image
 func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName string) {
 	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 && len(image.DockerImageConfig) == 0 {

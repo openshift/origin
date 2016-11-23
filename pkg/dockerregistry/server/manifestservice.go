@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -75,6 +76,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		break
 	case nil:
 		m.repo.rememberLayersOfManifest(dgst, manifest, ref.Exact())
+		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, true)
 		return manifest, nil
 	default:
 		context.GetLogger(m.ctx).Errorf("unable to get manifest from storage: %v", err)
@@ -91,6 +93,9 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 	}
 
 	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
+	if err == nil {
+		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, false)
+	}
 
 	return manifest, err
 }
@@ -219,4 +224,52 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 func (m *manifestService) Delete(ctx context.Context, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*manifestService).Delete")
 	return m.manifests.Delete(WithRepository(ctx, m.repo), dgst)
+}
+
+// manifestInflight tracks currently downloading manifests
+var manifestInflight = make(map[digest.Digest]struct{})
+
+// manifestInflightSync protects manifestInflight
+var manifestInflightSync sync.Mutex
+
+func (m *manifestService) migrateManifest(ctx context.Context, image *imageapi.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
+	// Everything in its place and nothing to do.
+	if isLocalStored && len(image.DockerImageManifest) == 0 {
+		return
+	}
+	manifestInflightSync.Lock()
+	if _, ok := manifestInflight[dgst]; ok {
+		manifestInflightSync.Unlock()
+		return
+	}
+	manifestInflight[dgst] = struct{}{}
+	manifestInflightSync.Unlock()
+
+	go m.storeManifestLocally(ctx, image, dgst, manifest, isLocalStored)
+}
+
+func (m *manifestService) storeManifestLocally(ctx context.Context, image *imageapi.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
+	defer func() {
+		manifestInflightSync.Lock()
+		delete(manifestInflight, dgst)
+		manifestInflightSync.Unlock()
+	}()
+
+	if !isLocalStored {
+		if _, err := m.manifests.Put(ctx, manifest); err != nil {
+			context.GetLogger(ctx).Errorf("unable to put manifest to storage: %v", err)
+			return
+		}
+	}
+
+	if len(image.DockerImageManifest) == 0 {
+		return
+	}
+
+	image.DockerImageManifest = ""
+	image.DockerImageConfig = ""
+
+	if _, err := m.repo.updateImage(image); err != nil {
+		context.GetLogger(ctx).Errorf("error updating Image: %v", err)
+	}
 }
