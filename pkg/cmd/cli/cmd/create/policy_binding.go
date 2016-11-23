@@ -40,13 +40,13 @@ type CreatePolicyBindingOptions struct {
 
 type ObjectPrinter func(runtime.Object, io.Writer) error
 
-// NewCmdCreateServiceAccount is a macro command to create a new service account
+// NewCmdCreatePolicyBinding is a macro command to create a new policy binding.
 func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &CreatePolicyBindingOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:     name + " TARGET_POLICY_NAMESPACE",
-		Short:   "Create a policy binding that references the policy in the targetted namespace.",
+		Short:   "Create a policy binding that references the policy in the targeted namespace.",
 		Long:    policyBindingLong,
 		Example: fmt.Sprintf(policyBindingExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -1250,7 +1250,7 @@ Create a namespace with the specified name
 
 
 == oc create policybinding
-Create a policy binding that references the policy in the targetted namespace.
+Create a policy binding that references the policy in the targeted namespace.
 
 ====
 
