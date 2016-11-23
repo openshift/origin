@@ -237,15 +237,12 @@ Prerequisites:
 
 1. A host running docker and with SELinux disabled.
 
-2. It is acceptable to load some kernel modules (overlay, openvswitch
-and br_netfilter) on the docker host.
+2. It is acceptable to load some kernel modules (overlay and
+openvswitch) on the docker host.
 
-3. It is acceptable to have net.bridge.bridge-nf-call-iptables set to
-0 on the docker host.
+3. An environment with the tools necessary to build origin.
 
-4. An environment with the tools necessary to build origin.
-
-5. A clone of the origin repo.
+4. A clone of the origin repo.
 
 From the root of the origin repo, run the following command to launch
 a new cluster:
