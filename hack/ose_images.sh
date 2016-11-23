@@ -59,6 +59,7 @@ usage() {
   echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
   echo "  --nochannel         :: Do not tag or push as channel latest (v3.3), or regular latest" >&2
   echo "  --nolatest          :: Do not tag or push as latest, still do channel latest" >&2
+  echo "  --noversiononly     :: Do not tag or push without a release (v3.3.0.4)" >&2
   echo "  --message [message] :: Git commit message" >&2
   echo "  --group [group]     :: Which group list to use (base sti database deployer metrics logging jenkins misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
@@ -223,7 +224,7 @@ check_builds() {
       echo "::${package}::" >> ${workingdir}/logs/finished
       echo "::${package}::" >> ${workingdir}/logs/buildfailed
     else
-      if grep -q -e "buildContainer (noarch) completed successfully" ${line} ; then
+      if grep -q -e "completed successfully" ${line} ; then
         package=`echo ${line} | cut -d'.' -f1`
         echo "==== ${package} IMAGE COMPLETED ===="
         # Only doing false positives, but leave code incase we need something similar
@@ -272,14 +273,14 @@ build_image() {
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    echo -n "  Waiting for createContainer taskid ."
+    echo -n "  Waiting for build to start ."
     sleep 10
-    taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+    taskid=`grep 'free -> open' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
     while [ "${taskid}" == "" ]
     do
       echo -n "."
       sleep 10
-      taskid=`grep createContainer ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+      taskid=`grep 'free -> open' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
       if grep -q -e "Unknown build target:" -e "buildContainer (noarch) failed" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
         echo " error"
         echo "=== ${container} IMAGE BUILD FAILED ==="
@@ -584,7 +585,7 @@ start_push_image() {
         push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
         echo | tee -a ${workingdir}/logs/push.image.log
         # Name and Version - <name>:<version>
-        if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+        if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
           echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
           docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
@@ -836,17 +837,20 @@ case $key in
       ;;
     -d|--dep|--deps|--dependents)
       export DEPENDENTS="TRUE"
-    ;;
+      ;;
     --nochannel | --notchannel)
       export NOCHANNEL="TRUE"
       export NOTLATEST="TRUE"
-    ;;
+      ;;
     --nolatest | --notlatest)
       export NOTLATEST="TRUE"
-    ;;
+      ;;
+    --noversiononly )
+      export NOVERSIONONLY="TRUE"
+      ;;
     -v|--verbose)
       export VERBOSE="TRUE"
-    ;;
+      ;;
     -f|--force)
       export FORCE="TRUE"
       export REALLYFORCE="TRUE"
