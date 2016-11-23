@@ -643,7 +643,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 	g.Context("jenkins-plugin test context  ", func() {
 
-		g.It("jenkins-plugin test trigger build", func() {
+		g.It("jenkins-plugin test trigger build including clone", func() {
 
 			jobName := "test-build-job"
 			data := j.readJenkinsJob("build-job.xml", oc.Namespace())
@@ -664,6 +664,29 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build and confirm trigger by field is correct")
+			out, err := oc.Run("get").Args("builds/frontend-1", "-o", "jsonpath='{.spec.triggeredBy[0].message}'").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(strings.Contains(out, "Jenkins job")).To(o.BeTrue())
+
+			jobName = "test-build-clone-job"
+			data = j.readJenkinsJob("build-job-clone.xml", oc.Namespace())
+			j.createItem(jobName, data)
+			jmon = j.startJob(jobName)
+			jmon.await(10 * time.Minute)
+			g.By("get clone build console logs and see if succeeded")
+			logs, err = j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build and confirm trigger by field is correct")
+			out2, err := oc.Run("get").Args("builds/frontend-2", "-o", "jsonpath='{.spec.triggeredBy[0].message}'").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(strings.Contains(out2, "Jenkins job")).To(o.BeTrue())
+
+			g.By("ensure trigger by fields for the two builds are different")
+			o.Expect(strings.Compare(out, out2) == 0).NotTo(o.BeTrue())
 
 		})
 
