@@ -17,7 +17,6 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -162,7 +161,7 @@ func ValidateBuildConfigUpdate(config *buildapi.BuildConfig, older *buildapi.Bui
 
 // ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) field.ErrorList {
-	return validation.ValidateObjectMeta(&request.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	return validation.ValidateObjectMeta(&request.ObjectMeta, true, validation.ValidatePathSegmentName, field.NewPath("metadata"))
 }
 
 func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.ErrorList {

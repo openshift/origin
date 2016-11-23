@@ -9,7 +9,6 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -81,7 +80,7 @@ func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAcc
 }
 
 func ValidatePolicyName(name string, prefix bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+	if reasons := validation.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -137,7 +136,7 @@ func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizat
 
 func PolicyBindingNameValidator(policyRefNamespace string) validation.ValidateNameFunc {
 	return func(name string, prefix bool) []string {
-		if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		if reasons := validation.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 			return reasons
 		}
 
@@ -227,7 +226,7 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorLis
 }
 
 func validateRole(role *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
-	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, validation.ValidatePathSegmentName, fldPath.Child("metadata"))
 }
 
 func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) field.ErrorList {
@@ -259,7 +258,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 
 func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, validation.ValidatePathSegmentName, fldPath.Child("metadata"))...)
 
 	// roleRef namespace is empty when referring to global policy.
 	if (len(roleBinding.RoleRef.Namespace) > 0) && len(kvalidation.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace)) != 0 {
@@ -269,7 +268,7 @@ func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	if len(roleBinding.RoleRef.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("roleRef", "name"), ""))
 	} else {
-		if reasons := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); len(reasons) != 0 {
+		if reasons := validation.ValidatePathSegmentName(roleBinding.RoleRef.Name, false); len(reasons) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "name"), roleBinding.RoleRef.Name, strings.Join(reasons, ", ")))
 		}
 	}
