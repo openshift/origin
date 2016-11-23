@@ -65,7 +65,6 @@ func NewCmdCreate(f *cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 				return
 			}
 			cmdutil.CheckErr(ValidateArgs(cmd, args))
-			cmdutil.CheckErr(cmdutil.ValidateOutputArgs(cmd))
 			cmdutil.CheckErr(RunCreate(f, cmd, out, options))
 		},
 	}
@@ -127,6 +126,7 @@ func RunCreate(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *C
 	}
 
 	dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
+	output := cmdutil.GetFlagString(cmd, "output")
 
 	count := 0
 	err = r.Visit(func(info *resource.Info, err error) error {
@@ -150,7 +150,17 @@ func RunCreate(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *C
 		}
 
 		count++
-		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+		shortOutput := output == "name"
+		if len(output) > 0 && !shortOutput {
+			printer, generic, err := cmdutil.PrinterForCommand(cmd)
+			if err != nil {
+				return err
+			}
+			if !generic {
+				return fmt.Errorf("That output format is not supoported")
+			}
+			return printer.PrintObj(info.Object, out)
+		}
 		if !shortOutput {
 			f.PrintObjectSpecificMessage(info.Object, out)
 		}
