@@ -174,8 +174,6 @@ os::cmd::try_until_text 'oc get pods/centos -o jsonpath={.status.phase}' "Succee
 os::cmd::expect_success_and_text 'oc logs pods/centos' "Welcome to nginx"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "extended/cmd/oc-on-kube"
 os::cmd::expect_success "oc login -u system:admin -n default"
 os::cmd::expect_success "oc new-project kube"
@@ -187,3 +185,4 @@ kube_kubectl="${tmp}/kube-kubeconfig"
 os::cmd::try_until_text "oc login --config ${kube_kubectl}../kube-kubeconfig https://${kube_ip}:443 --token=secret --insecure-skip-tls-verify=true --loglevel=8" ' as "secret" using the token provided.'
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_end
