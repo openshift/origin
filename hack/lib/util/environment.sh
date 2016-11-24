@@ -145,12 +145,14 @@ function os::util::environment::setup_tmpdir_vars() {
     HOME="${FAKE_HOME_DIR}"
     export HOME
 
-    # ensure that the directories are clean
-    for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
-        if [[ "${target}" == "${BASETMPDIR}"* ]]; then
-            ${USE_SUDO:+sudo} umount "${target}"
-        fi
-    done
+		if [[ "$(uname)" != "Darwin" ]]; then
+			# ensure that the directories are clean
+			for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
+				if [[ "${target}" == "${BASETMPDIR}"* ]]; then
+					${USE_SUDO:+sudo} umount "${target}"
+				fi
+			done
+		fi
 
     for directory in "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"; do
         ${USE_SUDO:+sudo} rm -rf "${directory}"
