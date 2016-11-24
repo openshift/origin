@@ -1945,6 +1945,11 @@
 			"Rev": "bfe36d3254337b7cc18024805dfab2106613abdf"
 		},
 		{
+			"ImportPath": "github.com/jteeuwen/go-bindata/go-bindata",
+			"Comment": "v3.0.7-70-gbfe36d3",
+			"Rev": "bfe36d3254337b7cc18024805dfab2106613abdf"
+		},
+		{
 			"ImportPath": "github.com/juju/ratelimit",
 			"Rev": "77ed1c8a01217656d2080ad51981f6e99adaa177"
 		},
