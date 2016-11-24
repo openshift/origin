@@ -89,7 +89,7 @@ type etcdWatcher struct {
 	list    bool // If we're doing a recursive watch, should be true.
 	quorum  bool // If we enable quorum, shoule be true
 	include includeFunc
-	filter  storage.Filter
+	filter  storage.FilterFunc
 
 	etcdIncoming  chan *etcd.Response
 	etcdError     chan error
@@ -121,7 +121,7 @@ const watchWaitDuration = 100 * time.Millisecond
 // newEtcdWatcher returns a new etcdWatcher; if list is true, watch sub-nodes.
 // The versioner must be able to handle the objects that transform creates.
 func newEtcdWatcher(
-	list bool, quorum bool, include includeFunc, filter storage.Filter,
+	list bool, quorum bool, include includeFunc, filter storage.FilterFunc,
 	encoding runtime.Codec, versioner storage.Versioner, transform TransformFunc,
 	cache etcdCache) *etcdWatcher {
 	w := &etcdWatcher{
@@ -326,7 +326,7 @@ func (w *etcdWatcher) translate() {
 }
 
 func (w *etcdWatcher) decodeObject(node *etcd.Node) (runtime.Object, error) {
-	if obj, found := w.cache.getFromCache(node.ModifiedIndex, storage.Everything); found {
+	if obj, found := w.cache.getFromCache(node.ModifiedIndex, storage.SimpleFilter(storage.Everything)); found {
 		return obj, nil
 	}
 
@@ -371,7 +371,7 @@ func (w *etcdWatcher) sendAdd(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	if !w.filter.Filter(obj) {
+	if !w.filter(obj) {
 		return
 	}
 	action := watch.Added
@@ -400,7 +400,7 @@ func (w *etcdWatcher) sendModify(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	curObjPasses := w.filter.Filter(curObj)
+	curObjPasses := w.filter(curObj)
 	oldObjPasses := false
 	var oldObj runtime.Object
 	if res.PrevNode != nil && res.PrevNode.Value != "" {
@@ -409,7 +409,7 @@ func (w *etcdWatcher) sendModify(res *etcd.Response) {
 			if err := w.versioner.UpdateObject(oldObj, res.Node.ModifiedIndex); err != nil {
 				utilruntime.HandleError(fmt.Errorf("failure to version api object (%d) %#v: %v", res.Node.ModifiedIndex, oldObj, err))
 			}
-			oldObjPasses = w.filter.Filter(oldObj)
+			oldObjPasses = w.filter(oldObj)
 		}
 	}
 	// Some changes to an object may cause it to start or stop matching a filter.
@@ -458,7 +458,7 @@ func (w *etcdWatcher) sendDelete(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	if !w.filter.Filter(obj) {
+	if !w.filter(obj) {
 		return
 	}
 	w.emit(watch.Event{

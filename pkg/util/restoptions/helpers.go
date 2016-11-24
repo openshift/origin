@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 )
 
 // DefaultKeyFunctions sets the default behavior for storage key generation onto a Store.
@@ -66,7 +67,8 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, isNamespaced bool, t
 	DefaultKeyFunctions(store, prefix, isNamespaced)
 
 	store.DeleteCollectionWorkers = opts.DeleteCollectionWorkers
-	store.Storage, _ = opts.Decorator(
+	var dFunc factory.DestroyFunc
+	store.Storage, dFunc = opts.Decorator(
 		opts.StorageConfig,
 		UseConfiguredCacheSize,
 		store.NewFunc(),
@@ -75,5 +77,6 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, isNamespaced bool, t
 		store.NewListFunc,
 		triggerFn,
 	)
+	store.DestroyFunc = dFunc
 	return nil
 }

@@ -6,8 +6,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	apistorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -64,8 +64,8 @@ func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
-	return &generic.SelectionPredicate{
+func Matcher(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
+	return apistorage.SelectionPredicate{
 		Label: label,
 		Field: field,
 		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
