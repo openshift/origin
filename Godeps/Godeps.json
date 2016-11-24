@@ -2353,6 +2353,11 @@
 			"Rev": "5741384e376d9c61b5b36156003ede6698ca563b"
 		},
 		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/util/status",
+			"Comment": "v1.1.3-29-g5741384",
+			"Rev": "5741384e376d9c61b5b36156003ede6698ca563b"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/user",
 			"Rev": "5741384e376d9c61b5b36156003ede6698ca563b"
 		},
