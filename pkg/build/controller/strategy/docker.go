@@ -11,10 +11,10 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
+	Image                    string
 	GitCloneImage            string
 	ManageDockerfileImage    string
 	ExtractImageContentImage string
-	Image                    string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -117,6 +117,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			ImagePullPolicy: kapi.PullIfNotPresent,
 			Resources:       build.Spec.Resources,
 		}
+		if build.Spec.Source.Binary != nil {
+			gitCloneContainer.Stdin = true
+			gitCloneContainer.StdinOnce = true
+		}
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
 	}
 	if len(build.Spec.Source.Images) > 0 {
@@ -140,12 +144,9 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		}
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
 	}
+
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
-	}
-	if build.Spec.Source.Binary != nil {
-		pod.Spec.InitContainers[0].Stdin = true
-		pod.Spec.InitContainers[0].StdinOnce = true
 	}
 
 	setupDockerSocket(pod)

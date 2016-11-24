@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -98,6 +97,12 @@ func (s *S2IBuilder) Build() error {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
+	/*
+		buildDir, err := ioutil.TempDir("", "s2i-build")
+		if err != nil {
+			return err
+		}
+		srcDir := filepath.Join(buildDir, s2iapi.Source)
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
 	if contextDir == "." || contextDir == "/" {
 		contextDir = ""
@@ -108,22 +113,24 @@ func (s *S2IBuilder) Build() error {
 	}
 	srcDir := filepath.Join(buildDir, s2iapi.Source)
 	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
-		return err
-	}
-	tmpDir := filepath.Join(buildDir, "tmp")
+			return err
+		}
+		tmpDir := filepath.Join(buildDir, "tmp")
 	if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return err
-	}
+			return err
+		}
 
-	download := &downloader{
-		s:       s,
-		in:      os.Stdin,
-		timeout: initialURLCheckTimeout,
 
-		dir:        srcDir,
-		contextDir: contextDir,
-		tmpDir:     tmpDir,
-	}
+		download := &downloader{
+			s:       s,
+			in:      os.Stdin,
+			timeout: initialURLCheckTimeout,
+
+			dir:        srcDir,
+			contextDir: contextDir,
+			tmpDir:     tmpDir,
+		}
+	*/
 
 	var push bool
 	// if there is no output target, set one up so the docker build logic
@@ -134,21 +141,24 @@ func (s *S2IBuilder) Build() error {
 		push = true
 	}
 	pushTag := s.build.Status.OutputDockerImageReference
-	git := s.build.Spec.Source.Git
+	/*
+		git := s.build.Spec.Source.Git
 
-	var ref string
-	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
-		len(s.build.Spec.Revision.Git.Commit) != 0 {
-		ref = s.build.Spec.Revision.Git.Commit
-	} else if git != nil && len(git.Ref) != 0 {
-		ref = git.Ref
-	}
+		var ref string
+		if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
+			len(s.build.Spec.Revision.Git.Commit) != 0 {
+			ref = s.build.Spec.Revision.Git.Commit
+		} else if git != nil && len(git.Ref) != 0 {
+			ref = git.Ref
+		}
 
-	sourceURI := &url.URL{
-		Scheme:   "file",
-		Path:     srcDir,
-		Fragment: ref,
-	}
+
+			sourceURI := &url.URL{
+				Scheme:   "file",
+				Path:     srcDir,
+				Fragment: ref,
+			}
+	*/
 
 	injections := s2iapi.VolumeList{}
 	for _, s := range s.build.Spec.Source.Secrets {
@@ -175,11 +185,21 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.Incremental != nil {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
+	srcDir := "file:///tmp/gitSource"
+	if len(s.build.Spec.Source.ContextDir) != 0 {
+		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		if contextDir == "." || contextDir == "/" {
+			contextDir = ""
+		}
+		srcDir = filepath.Join("file:///tmp/gitSource", s.build.Spec.Source.ContextDir)
+	}
 	config := &s2iapi.Config{
-		WorkingDir:     buildDir,
-		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
-		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
-		LabelNamespace: api.DefaultDockerLabelNamespace,
+		// Working dir is on a volume so we can't clean it up (nor do we need to).
+		PreserveWorkingDir: true,
+		WorkingDir:         "/tmp",
+		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
+		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
+		LabelNamespace:     api.DefaultDockerLabelNamespace,
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
@@ -191,9 +211,13 @@ func (s *S2IBuilder) Build() error {
 		//		Labels:            s2iBuildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:                    sourceURI.String(),
-		Tag:                       buildTag,
-		ContextDir:                s.build.Spec.Source.ContextDir,
+		//		Source:     sourceURI.String(),
+		//ContextDir: s.build.Spec.Source.ContextDir,
+		Source:    srcDir,
+		ForceCopy: true,
+
+		Tag: buildTag,
+
 		CGroupLimits:              s.cgLimits,
 		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
