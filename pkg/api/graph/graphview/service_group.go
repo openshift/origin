@@ -22,12 +22,18 @@ type ServiceGroup struct {
 	DeploymentConfigPipelines []DeploymentConfigPipeline
 	ReplicationControllers    []ReplicationController
 	PetSets                   []PetSet
+	ReplicaSets               []ReplicaSet
 
 	// TODO: this has to stop
 	FulfillingPetSets []*kubegraph.PetSetNode
 	FulfillingDCs     []*deploygraph.DeploymentConfigNode
 	FulfillingRCs     []*kubegraph.ReplicationControllerNode
 	FulfillingPods    []*kubegraph.PodNode
+
+	// Deployments
+	DeploymentPipelines []DeploymentPipeline
+	FulfillingDs        []*kubegraph.DeploymentNode
+	FulfillingRSs       []*kubegraph.ReplicaSetNode
 
 	ExposingRoutes []*routegraph.RouteNode
 }
@@ -71,6 +77,10 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 			service.FulfillingPods = append(service.FulfillingPods, castContainer)
 		case *kubegraph.PetSetNode:
 			service.FulfillingPetSets = append(service.FulfillingPetSets, castContainer)
+		case *kubegraph.DeploymentNode:
+			service.FulfillingDs = append(service.FulfillingDs, castContainer)
+		case *kubegraph.ReplicaSetNode:
+			service.FulfillingRSs = append(service.FulfillingRSs, castContainer)
 		default:
 			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
 		}
@@ -95,11 +105,25 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		service.DeploymentConfigPipelines = append(service.DeploymentConfigPipelines, dcPipeline)
 	}
 
+	for _, fulfillingD := range service.FulfillingDs {
+		dPipeline, dCovers := NewDeploymentPipeline(g, fulfillingD)
+
+		covered.Insert(dCovers.List()...)
+		service.DeploymentPipelines = append(service.DeploymentPipelines, dPipeline)
+	}
+
 	for _, fulfillingRC := range service.FulfillingRCs {
 		rcView, rcCovers := NewReplicationController(g, fulfillingRC)
 
 		covered.Insert(rcCovers.List()...)
 		service.ReplicationControllers = append(service.ReplicationControllers, rcView)
+	}
+
+	for _, fulfillingRS := range service.FulfillingRSs {
+		rsView, rsCovers := NewReplicaSet(g, fulfillingRS)
+
+		covered.Insert(rsCovers.List()...)
+		service.ReplicaSets = append(service.ReplicaSets, rsView)
 	}
 
 	for _, fulfillingPetSet := range service.FulfillingPetSets {

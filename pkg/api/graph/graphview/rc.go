@@ -1,11 +1,8 @@
 package graphview
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
-	"github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 )
 
@@ -40,15 +37,7 @@ func AllReplicationControllers(g osgraph.Graph, excludeNodeIDs IntSet) ([]Replic
 // MaxRecentContainerRestarts returns the maximum container restarts for all pods in
 // replication controller.
 func (rc *ReplicationController) MaxRecentContainerRestarts() int32 {
-	var maxRestarts int32
-	for _, pod := range rc.OwnedPods {
-		for _, status := range pod.Status.ContainerStatuses {
-			if status.RestartCount > maxRestarts && analysis.ContainerRestartedRecently(status, unversioned.Now()) {
-				maxRestarts = status.RestartCount
-			}
-		}
-	}
-	return maxRestarts
+	return MaxRecentContainerRestartsForPods(rc.OwnedPods)
 }
 
 // NewReplicationController returns the ReplicationController and a set of all the NodeIDs covered by the ReplicationController
