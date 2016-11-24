@@ -91,30 +91,30 @@ function image {
 }
 
 # images that depend on scratch / centos
-#image openshift/origin-pod                   images/pod
-#image openshift/openvswitch                  images/openvswitch
+image openshift/origin-pod                   images/pod
+image openshift/openvswitch                  images/openvswitch
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
-#image openshift/origin-haproxy-router        images/router/haproxy
-#image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
-#image openshift/origin-docker-registry       images/dockerregistry
-#image openshift/origin-egress-router         images/router/egress
-#image openshift/origin-gitserver             examples/gitserver
+image openshift/origin-haproxy-router        images/router/haproxy
+image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
+image openshift/origin-docker-registry       images/dockerregistry
+image openshift/origin-egress-router         images/router/egress
+image openshift/origin-gitserver             examples/gitserver
 # images that depend on openshift/origin
-#image openshift/origin-deployer              images/deployer
-#image openshift/origin-recycler              images/recycler
+image openshift/origin-deployer              images/deployer
+image openshift/origin-recycler              images/recycler
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 image openshift/origin-git-clone             images/builder/docker/git-clone
 image openshift/origin-manage-dockerfile     images/builder/docker/manage-dockerfile
 image openshift/origin-extract-image-content images/builder/docker/extract-image-content
-#image openshift/origin-f5-router             images/router/f5
-#image openshift/node                         images/node
+image openshift/origin-f5-router             images/router/f5
+image openshift/node                         images/node
 
 # extra images (not part of infrastructure)
-#image openshift/hello-openshift              examples/hello-openshift
-#docker build --no-cache -t openshift/deployment-example:v1 examples/deployment
-#docker build --no-cache -t openshift/deployment-example:v2 -f examples/deployment/Dockerfile.v2 examples/deployment
+image openshift/hello-openshift              examples/hello-openshift
+docker build --no-cache -t openshift/deployment-example:v1 examples/deployment
+docker build --no-cache -t openshift/deployment-example:v2 -f examples/deployment/Dockerfile.v2 examples/deployment
 
 echo
 echo

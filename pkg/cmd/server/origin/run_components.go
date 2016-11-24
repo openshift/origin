@@ -264,15 +264,17 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
 		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
+			Image:                    dockerImage,
 			GitCloneImage:            gitCloneImage,
 			ManageDockerfileImage:    manageDockerfileImage,
 			ExtractImageContentImage: extractImageContentImage,
-			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: stiImage,
+			Image:                    stiImage,
+			GitCloneImage:            gitCloneImage,
+			ExtractImageContentImage: extractImageContentImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec:            codec,
 			AdmissionControl: admissionControl,
