@@ -31,9 +31,7 @@ func (r *Reader) Close() error {
 
 func (r *Reader) Read(p []byte) (int, error) {
 	n, err := r.body.Read(p)
-	if r.remain != -1 {
-		r.remain -= int64(n)
-	}
+	r.remain -= int64(n)
 	return n, err
 }
 
@@ -44,7 +42,7 @@ func (r *Reader) Size() int64 {
 	return r.size
 }
 
-// Remain returns the number of bytes left to read, or -1 if unknown.
+// Remain returns the number of bytes left to read.
 func (r *Reader) Remain() int64 {
 	return r.remain
 }
