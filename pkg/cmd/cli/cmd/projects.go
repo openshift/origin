@@ -23,7 +23,7 @@ import (
 type ProjectsOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	Client       *client.Client
+	Client       client.Interface
 	KubeClient   kclient.Interface
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions

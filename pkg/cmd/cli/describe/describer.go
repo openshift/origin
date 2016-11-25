@@ -35,7 +35,7 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
+func describerMap(c client.Interface, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
 	m := map[unversioned.GroupKind]kctl.Describer{
 		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, kclient, host},
@@ -58,7 +58,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
 		oauthapi.Kind("OAuthAccessToken"):             &OAuthAccessTokenDescriber{c},
 		userapi.Kind("User"):                          &UserDescriber{c},
-		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
+		userapi.Kind("Group"):                         &GroupDescriber{c},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
@@ -83,7 +83,7 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind unversioned.GroupKind, c client.Interface, kclient kclient.Interface, host string) (kctl.Describer, bool) {
 	f, ok := describerMap(c, kclient, host)[kind]
 	if ok {
 		return f, true
@@ -1143,12 +1143,14 @@ func (d *UserDescriber) Describe(namespace, name string, settings kctl.Describer
 
 // GroupDescriber generates information about a group
 type GroupDescriber struct {
-	c client.GroupInterface
+	c client.Interface
 }
 
 // Describe returns the description of a group
 func (d *GroupDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
-	group, err := d.c.Get(name)
+	groupClient := d.c.Groups()
+
+	group, err := groupClient.Get(name)
 	if err != nil {
 		return "", err
 	}

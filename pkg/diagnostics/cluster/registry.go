@@ -21,7 +21,7 @@ import (
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
 	KubeClient          *kclient.Client
-	OsClient            *osclient.Client
+	OsClient            osclient.Interface
 	PreventModification bool
 }
 

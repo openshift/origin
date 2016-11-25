@@ -22,7 +22,7 @@ const (
 )
 
 //checkKibana verifies the various integration points between Kibana and logging
-func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient *kclient.Client, project string) {
+func checkKibana(r types.DiagnosticResult, osClient client.Interface, kClient *kclient.Client, project string) {
 	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
@@ -33,7 +33,7 @@ func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient *kcl
 }
 
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
-func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient *kclient.Client, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaSecret(r types.DiagnosticResult, osClient client.Interface, kClient *kclient.Client, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
 	secret, err := kClient.Secrets(project).Get(kibanaProxySecretName)
 	if err != nil {
@@ -54,7 +54,7 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 }
 
 //checkKibanaRoutesInOauthClient verifies the client contains the correct redirect uris
-func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.Client, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient client.Interface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
 	routeList, err := osClient.Routes(project).List(kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {

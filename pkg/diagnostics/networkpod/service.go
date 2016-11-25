@@ -23,7 +23,7 @@ const (
 // CheckServiceNetwork is a Diagnostic to check communication between services in the cluster.
 type CheckServiceNetwork struct {
 	KubeClient *kclient.Client
-	OSClient   *osclient.Client
+	OSClient   osclient.Interface
 
 	vnidMap map[string]uint32
 	res     types.DiagnosticResult

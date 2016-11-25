@@ -4,16 +4,17 @@ import (
 	api "k8s.io/kubernetes/pkg/api"
 	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
 type CoreInterface interface {
-	GetRESTClient() *restclient.RESTClient
+	GetRESTClient() resource.RESTClient
 	DeploymentConfigsGetter
 }
 
 // CoreClient is used to interact with features provided by the Core group.
 type CoreClient struct {
-	*restclient.RESTClient
+	resource.RESTClient
 }
 
 func (c *CoreClient) DeploymentConfigs(namespace string) DeploymentConfigInterface {
@@ -44,7 +45,7 @@ func NewForConfigOrDie(c *restclient.Config) *CoreClient {
 }
 
 // New creates a new CoreClient for the given RESTClient.
-func New(c *restclient.RESTClient) *CoreClient {
+func New(c resource.RESTClient) *CoreClient {
 	return &CoreClient{c}
 }
 
@@ -77,9 +78,9 @@ func setConfigDefaults(config *restclient.Config) error {
 
 // GetRESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *CoreClient) GetRESTClient() *restclient.RESTClient {
+func (c *CoreClient) GetRESTClient() resource.RESTClient {
 	if c == nil {
 		return nil
 	}
-	return c.RESTClient
+	return c
 }

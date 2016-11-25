@@ -23,7 +23,7 @@ import (
 // ClusterRouter is a Diagnostic to check that there is a working router.
 type ClusterRouter struct {
 	KubeClient *kclient.Client
-	OsClient   *osclient.Client
+	OsClient   osclient.Interface
 }
 
 const (

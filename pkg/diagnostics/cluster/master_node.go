@@ -28,7 +28,7 @@ to proxy to pods over the Open vSwitch SDN.
 // with other nodes.
 type MasterNode struct {
 	KubeClient       *kclient.Client
-	OsClient         *osclient.Client
+	OsClient         osclient.Interface
 	ServerUrl        string
 	MasterConfigFile string // may often be empty if not being run on the host
 }

@@ -3,9 +3,12 @@ package testclient
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -346,4 +349,30 @@ func (c *Fake) ClusterResourceQuotas() client.ClusterResourceQuotaInterface {
 
 func (c *Fake) AppliedClusterResourceQuotas(namespace string) client.AppliedClusterResourceQuotaInterface {
 	return &FakeAppliedClusterResourceQuotas{Fake: c, Namespace: namespace}
+}
+
+func (c *Fake) Discovery() discovery.DiscoveryInterface {
+	return nil
+}
+
+func (c *Fake) SetTimeout(time.Duration) {}
+
+func (c *Fake) Post() *restclient.Request {
+	return nil
+}
+
+func (c *Fake) Put() *restclient.Request {
+	return nil
+}
+
+func (c *Fake) Patch(pt kapi.PatchType) *restclient.Request {
+	return nil
+}
+
+func (c *Fake) Get() *restclient.Request {
+	return nil
+}
+
+func (c *Fake) Delete() *restclient.Request {
+	return nil
 }

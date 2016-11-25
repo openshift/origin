@@ -33,7 +33,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, *kclient.Client, error)
+	Clients      func() (client.Interface, *kclient.Client, error)
 
 	Timeout time.Duration
 

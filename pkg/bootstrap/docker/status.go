@@ -104,7 +104,7 @@ func isHealthy(f *clientcmd.Factory) (bool, error) {
 	}
 
 	var statusCode int
-	osClient.Client.Timeout = 10 * time.Second
+	osClient.SetTimeout(10 * time.Second)
 	osClient.Get().AbsPath("/healthz").Do().StatusCode(&statusCode)
 	return statusCode == 200, nil
 }
