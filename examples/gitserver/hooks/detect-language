@@ -14,6 +14,11 @@ set -o pipefail
 function has {
   [[ -n $(git ls-tree --full-name --name-only HEAD ${@:1}) ]]
 }
+function hasglob {
+  git ls-tree --full-name --name-only HEAD | while read NAME; do
+    [[ "$NAME" == $1 ]] && return 0
+  done
+}
 function key {
   git config --local --get "${1}"
 }
@@ -50,7 +55,12 @@ if has index.pl cpanfile; then
   exit 0
 fi
 
-if has project.json; then
+if has build.sbt; then
+  echo "${prefix}scala"
+  exit 0
+fi
+
+if has project.json || hasglob '*.csproj'; then
   echo "${prefix}dotnet"
   exit 0
 fi
