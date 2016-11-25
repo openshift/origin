@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
@@ -67,16 +67,16 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 type UnidlingController struct {
 	controller          *framework.Controller
 	scaleNamespacer     kextclient.ScalesGetter
-	endpointsNamespacer kclient.EndpointsGetter
+	endpointsNamespacer kcoreclient.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
 	lastFiredCache      *lastFiredCache
 
 	// TODO: remove these once we get the scale-source functionality in the scale endpoints
 	dcNamespacer deployclient.DeploymentConfigsGetter
-	rcNamespacer kclient.ReplicationControllersGetter
+	rcNamespacer kcoreclient.ReplicationControllersGetter
 }
 
-func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kclient.EndpointsGetter, evtNS kclient.EventsGetter, dcNamespacer deployclient.DeploymentConfigsGetter, rcNamespacer kclient.ReplicationControllersGetter, resyncPeriod time.Duration) *UnidlingController {
+func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient.EndpointsGetter, evtNS kcoreclient.EventsGetter, dcNamespacer deployclient.DeploymentConfigsGetter, rcNamespacer kcoreclient.ReplicationControllersGetter, resyncPeriod time.Duration) *UnidlingController {
 	fieldSet := fields.Set{}
 	fieldSet["reason"] = unidlingapi.NeedPodsReason
 	fieldSelector := fieldSet.AsSelector()

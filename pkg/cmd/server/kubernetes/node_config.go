@@ -19,8 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -55,7 +54,7 @@ type NodeConfig struct {
 	Containerized bool
 
 	// Client to connect to the master.
-	Client *client.Client
+	Client *kclientset.Clientset
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
 	// KubeletServer contains the KubeletServer configuration
@@ -90,12 +89,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
-	kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	_, kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	_, eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -232,15 +231,15 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 
 	// provide any config overrides
 	//deps.NodeName = options.NodeName
-	deps.KubeClient = clientadapter.FromUnversionedClient(kubeClient)
-	deps.EventClient = clientadapter.FromUnversionedClient(eventClient)
+	deps.KubeClient = kubeClient
+	deps.EventClient = eventClient
 
 	// Setup auth
 	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
 	if err != nil {
 		return nil, err
 	}
-	authn, err := newAuthenticator(deps.KubeClient.Authentication(), clientCAs, authnTTL, options.AuthConfig.AuthenticationCacheSize)
+	authn, err := newAuthenticator(kubeClient.Authentication(), clientCAs, authnTTL, options.AuthConfig.AuthenticationCacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +325,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		services, serviceStore := dns.NewCachedServiceAccessorAndStore()
 		endpoints, endpointsStore := dns.NewCachedEndpointsAccessorAndStore()
 		if !enableProxy {
-			endpoints = kubeClient
+			endpoints = deps.KubeClient
 			endpointsStore = nil
 		}
 

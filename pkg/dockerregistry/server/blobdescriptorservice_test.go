@@ -23,9 +23,9 @@ import (
 	"github.com/docker/distribution/registry/storage"
 
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -55,7 +55,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 
 	// TODO: get rid of those nasty global vars
 	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, ktestclient.NewSimpleFake())
+	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
 	defer func() {
 		// set it back once this test finishes to make other unit tests working
 		DefaultRegistryClient = backupRegistryClient
@@ -475,7 +475,7 @@ func (f *fakeAccessController) Authorized(ctx context.Context, access ...registr
 	return ctx, nil
 }
 
-func makeFakeRegistryClient(client osclient.Interface, kClient kclient.Interface) RegistryClient {
+func makeFakeRegistryClient(client osclient.Interface, kClient kclientset.Interface) RegistryClient {
 	return &fakeRegistryClient{
 		client:  client,
 		kClient: kClient,
@@ -484,10 +484,10 @@ func makeFakeRegistryClient(client osclient.Interface, kClient kclient.Interface
 
 type fakeRegistryClient struct {
 	client  osclient.Interface
-	kClient kclient.Interface
+	kClient kclientset.Interface
 }
 
-func (f *fakeRegistryClient) Clients() (osclient.Interface, kclient.Interface, error) {
+func (f *fakeRegistryClient) Clients() (osclient.Interface, kclientset.Interface, error) {
 	return f.client, f.kClient, nil
 }
 func (f *fakeRegistryClient) SafeClientConfig() restclient.Config {

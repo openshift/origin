@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -37,10 +38,10 @@ var (
 	rcInformer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return (&ktestclient.Fake{}).ReplicationControllers(kapi.NamespaceAll).List(options)
+				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return (&ktestclient.Fake{}).ReplicationControllers(kapi.NamespaceAll).Watch(options)
+				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.ReplicationController{},

@@ -108,7 +108,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 							if rand.Float32() < 0.5 {
 								options = nil
 							}
-							if err := oc.KubeREST().Pods(oc.Namespace()).Delete(pod.Name, options); err != nil {
+							if err := oc.KubeClient().Core().Pods(oc.Namespace()).Delete(pod.Name, options); err != nil {
 								e2e.Logf("%02d: unable to delete deployer pod %q: %v", i, pod.Name, err)
 							}
 						}
@@ -222,7 +222,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("ensuring no scale up of the deployment happens")
 			wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-				rc, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get("deployment-test-1")
+				rc, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get("deployment-test-1")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(rc.Spec.Replicas).Should(o.BeEquivalentTo(0))
 				o.Expect(rc.Status.Replicas).Should(o.BeEquivalentTo(0))
@@ -230,7 +230,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			})
 
 			g.By("verifying the scale is updated on the deployment config")
-			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get("deployment-test")
+			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get("deployment-test")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(config.Spec.Replicas).Should(o.BeEquivalentTo(1))
 			o.Expect(config.Spec.Test).Should(o.BeTrue())
@@ -404,11 +404,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 			g.By("waiting for the first rollout to complete")
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			dc, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("updating the deployment config in order to trigger a new rollout")
-			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
+			_, err = client.UpdateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
 				one := int64(1)
 				update.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			})
@@ -416,7 +416,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			// Wait for latestVersion=2 to be surfaced in the API
 			latestVersion := dc.Status.LatestVersion
 			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
-				dc, err = oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+				dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 				if err != nil {
 					return false, err
 				}
@@ -574,7 +574,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+			_, err = client.UpdateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
 				// TODO: oc rollout pause should patch instead of making a full update
 				dc.Spec.Paused = false
 			})
@@ -761,14 +761,14 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
 			g.By("verifying that all pods are ready")
-			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			selector := labels.Set(config.Spec.Selector).AsSelector()
 			opts := kapi.ListOptions{LabelSelector: selector}
 			ready := 0
 			if err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				pods, err := oc.KubeREST().Pods(oc.Namespace()).List(opts)
+				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)
 				if err != nil {
 					return false, nil
 				}
@@ -789,7 +789,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying that the deployment is still running")
 			latestName := deployutil.DeploymentNameForConfigVersion(name, config.Status.LatestVersion)
-			latest, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get(latestName)
+			latest, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if deployutil.IsTerminatedDeployment(latest) {
 				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())

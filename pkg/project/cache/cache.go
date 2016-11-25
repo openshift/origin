@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -16,7 +16,7 @@ import (
 )
 
 // NewProjectCache returns a non-initialized ProjectCache. The cache needs to be run to begin functioning
-func NewProjectCache(client client.NamespaceInterface, defaultNodeSelector string) *ProjectCache {
+func NewProjectCache(client kcoreclient.NamespaceInterface, defaultNodeSelector string) *ProjectCache {
 	return &ProjectCache{
 		Client:              client,
 		DefaultNodeSelector: defaultNodeSelector,
@@ -24,7 +24,7 @@ func NewProjectCache(client client.NamespaceInterface, defaultNodeSelector strin
 }
 
 type ProjectCache struct {
-	Client              client.NamespaceInterface
+	Client              kcoreclient.NamespaceInterface
 	Store               cache.Indexer
 	DefaultNodeSelector string
 }
@@ -115,7 +115,7 @@ func (c *ProjectCache) Running() bool {
 }
 
 // NewFake is used for testing purpose only
-func NewFake(c client.NamespaceInterface, store cache.Indexer, defaultNodeSelector string) *ProjectCache {
+func NewFake(c kcoreclient.NamespaceInterface, store cache.Indexer, defaultNodeSelector string) *ProjectCache {
 	return &ProjectCache{
 		Client:              c,
 		Store:               store,

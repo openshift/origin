@@ -117,7 +117,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	}
 
 	var err error
-	oclient, _, err := f.Clients()
+	oclient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

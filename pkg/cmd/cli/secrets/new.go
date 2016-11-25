@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
@@ -57,7 +57,7 @@ type CreateSecretOptions struct {
 	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
 	Sources []string
 
-	SecretsInterface kclient.SecretsInterface
+	SecretsInterface kcoreclient.SecretInterface
 
 	// Writer to write warnings to
 	Stderr io.Writer
@@ -129,7 +129,7 @@ func (o *CreateSecretOptions) Complete(args []string, f *clientcmd.Factory) erro
 	}
 
 	if f != nil {
-		_, kubeClient, err := f.Clients()
+		_, _, kubeClient, err := f.Clients()
 		if err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func (o *CreateSecretOptions) Complete(args []string, f *clientcmd.Factory) erro
 		if err != nil {
 			return err
 		}
-		o.SecretsInterface = kubeClient.Secrets(namespace)
+		o.SecretsInterface = kubeClient.Core().Secrets(namespace)
 	}
 
 	return nil

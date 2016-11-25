@@ -10,8 +10,9 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
@@ -69,7 +70,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 // BuildControllerFactory constructs BuildController objects
 type BuildControllerFactory struct {
 	OSClient            osclient.Interface
-	KubeClient          kclient.Interface
+	KubeClient          kclientset.Interface
 	BuildUpdater        buildclient.BuildUpdater
 	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
@@ -88,7 +89,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: factory.KubeClient.Core().Events("")})
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
@@ -168,7 +169,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 // BuildPodControllerFactory construct BuildPodController objects
 type BuildPodControllerFactory struct {
 	OSClient     osclient.Interface
-	KubeClient   kclient.Interface
+	KubeClient   kclientset.Interface
 	BuildUpdater buildclient.BuildUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -210,7 +211,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	buildPodController := &buildcontroller.BuildPodController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: factory.BuildUpdater,
-		SecretClient: factory.KubeClient,
+		SecretClient: factory.KubeClient.Core(),
 		PodManager:   client,
 	}
 
@@ -336,7 +337,7 @@ func (factory *ImageChangeControllerFactory) waitForSyncedStores() {
 
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
-	KubeClient              kclient.Interface
+	KubeClient              kclientset.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -348,7 +349,7 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: factory.KubeClient.Core().Events("")})
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
@@ -420,7 +421,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 
 // podLW is a ListWatcher implementation for Pods.
 type podLW struct {
-	client kclient.Interface
+	client kclientset.Interface
 }
 
 // List lists all Pods that have a build label.
@@ -428,13 +429,13 @@ func (lw *podLW) List(options kapi.ListOptions) (runtime.Object, error) {
 	return listPods(lw.client)
 }
 
-func listPods(client kclient.Interface) (*kapi.PodList, error) {
+func listPods(client kclientset.Interface) (*kapi.PodList, error) {
 	// get builds with new label
 	sel, err := labels.Parse(buildapi.BuildLabel)
 	if err != nil {
 		return nil, err
 	}
-	listNew, err := client.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: sel})
+	listNew, err := client.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: sel})
 	if err != nil {
 		return nil, err
 	}
@@ -452,7 +453,7 @@ func (lw *podLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}
-	return lw.client.Pods(kapi.NamespaceAll).Watch(opts)
+	return lw.client.Core().Pods(kapi.NamespaceAll).Watch(opts)
 }
 
 // buildLW is a ListWatcher implementation for Builds.
@@ -578,7 +579,7 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 			glog.V(5).Infof("Ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
 			continue
 		}
-		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))
+		pod, err := lw.KubeClient.Core().Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))
 		if err != nil {
 			if !kerrors.IsNotFound(err) {
 				glog.V(4).Infof("Error getting pod for build %s/%s: %v", build.Namespace, build.Name, err)
@@ -621,28 +622,28 @@ func (lw *buildPodDeleteLW) Watch(options kapi.ListOptions) (watch.Interface, er
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}
-	return lw.KubeClient.Pods(kapi.NamespaceAll).Watch(opts)
+	return lw.KubeClient.Core().Pods(kapi.NamespaceAll).Watch(opts)
 }
 
 // ControllerClient implements the common interfaces needed for build controllers
 type ControllerClient struct {
-	KubeClient kclient.Interface
+	KubeClient kclientset.Interface
 	Client     osclient.Interface
 }
 
 // CreatePod creates a pod using the Kubernetes client.
 func (c ControllerClient) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return c.KubeClient.Pods(namespace).Create(pod)
+	return c.KubeClient.Core().Pods(namespace).Create(pod)
 }
 
 // DeletePod destroys a pod using the Kubernetes client.
 func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
-	return c.KubeClient.Pods(namespace).Delete(pod.Name, nil)
+	return c.KubeClient.Core().Pods(namespace).Delete(pod.Name, nil)
 }
 
 // GetPod gets a pod using the Kubernetes client.
 func (c ControllerClient) GetPod(namespace, name string) (*kapi.Pod, error) {
-	return c.KubeClient.Pods(namespace).Get(name)
+	return c.KubeClient.Core().Pods(namespace).Get(name)
 }
 
 // GetImageStream retrieves an image repository by namespace and name

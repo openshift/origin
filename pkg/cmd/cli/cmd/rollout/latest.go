@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -47,7 +47,7 @@ type RolloutLatestOptions struct {
 	again  bool
 
 	oc              client.Interface
-	kc              kclient.Interface
+	kc              kclientset.Interface
 	baseCommandName string
 }
 
@@ -95,7 +95,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	o.oc, o.kc, err = f.Clients()
+	o.oc, _, o.kc, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	}
 
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kc.ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kc.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
 	switch {
 	case err == nil:
 		// Reject attempts to start a concurrent deployment.

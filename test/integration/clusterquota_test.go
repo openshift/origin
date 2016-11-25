@@ -9,7 +9,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
@@ -66,10 +66,10 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err := labelNamespace(clusterAdminKubeClient, "first"); err != nil {
+	if err := labelNamespace(clusterAdminKubeClient.Core(), "first"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := labelNamespace(clusterAdminKubeClient, "second"); err != nil {
+	if err := labelNamespace(clusterAdminKubeClient.Core(), "second"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := waitForQuotaLabeling(clusterAdminClient, "first"); err != nil {
@@ -81,19 +81,19 @@ func TestClusterQuota(t *testing.T) {
 
 	configmap := &kapi.ConfigMap{}
 	configmap.GenerateName = "test"
-	if _, err := clusterAdminKubeClient.ConfigMaps("first").Create(configmap); err != nil {
+	if _, err := clusterAdminKubeClient.Core().ConfigMaps("first").Create(configmap); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := clusterAdminKubeClient.ConfigMaps("second").Create(configmap); err != nil {
+	if _, err := clusterAdminKubeClient.Core().ConfigMaps("second").Create(configmap); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := clusterAdminKubeClient.ConfigMaps("second").Create(configmap); !kapierrors.IsForbidden(err) {
+	if _, err := clusterAdminKubeClient.Core().ConfigMaps("second").Create(configmap); !kapierrors.IsForbidden(err) {
 		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(kapi.ListOptions{})
 		if err == nil {
 			t.Errorf("quota is %#v", list)
 		}
 
-		list2, err := clusterAdminKubeClient.ConfigMaps("").List(kapi.ListOptions{})
+		list2, err := clusterAdminKubeClient.Core().ConfigMaps("").List(kapi.ListOptions{})
 		if err == nil {
 			t.Errorf("ConfigMaps is %#v", list2)
 		}
@@ -135,7 +135,7 @@ func waitForQuotaLabeling(clusterAdminClient client.AppliedClusterResourceQuotas
 	})
 }
 
-func labelNamespace(clusterAdminKubeClient kclient.NamespacesInterface, namespaceName string) error {
+func labelNamespace(clusterAdminKubeClient kcoreclient.NamespacesGetter, namespaceName string) error {
 	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName)
 	if err != nil {
 		return err

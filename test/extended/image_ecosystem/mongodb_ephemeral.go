@@ -26,12 +26,12 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
 			g.By("waiting for the deployment to complete")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mongodb", oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "mongodb", oc)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting the mongodb pod is running")
 			podNames, err := exutil.WaitForPods(
-				oc.KubeREST().Pods(oc.Namespace()),
+				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb"),
 				exutil.CheckPodIsRunningFn,
 				1,

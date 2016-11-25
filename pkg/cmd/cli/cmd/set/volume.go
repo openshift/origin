@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	kresource "k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -101,7 +101,7 @@ type VolumeOptions struct {
 	Typer                  runtime.ObjectTyper
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
-	Client                 kclient.PersistentVolumeClaimsNamespacer
+	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
 
 	// Resource selection
@@ -343,11 +343,11 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	_, kc, err := f.Clients()
+	_, _, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	v.Client = kc
+	v.Client = kc.Core()
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {

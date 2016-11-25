@@ -31,7 +31,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("Waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -39,7 +39,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 	// is destroyed
 	tearDown := func(oc *exutil.CLI) {
 		g.By(fmt.Sprintf("Deleting quota %s", quotaName))
-		oc.AdminKubeREST().ResourceQuotas(oc.Namespace()).Delete(quotaName)
+		oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Delete(quotaName, nil)
 
 		deleteTestImagesAndStreams(oc)
 	}
@@ -96,10 +96,10 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting first image stream")
-		err = oc.REST().ImageStreams(oc.Namespace()).Delete("first")
+		err = oc.Client().ImageStreams(oc.Namespace()).Delete("first")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
-			oc.KubeREST().ResourceQuotas(oc.Namespace()),
+			oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
 			quotaName,
 			kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")},
 			true,
@@ -130,7 +130,7 @@ func createResourceQuota(oc *exutil.CLI, hard kapi.ResourceList) (*kapi.Resource
 	}
 
 	g.By(fmt.Sprintf("creating resource quota with a limit %v", hard))
-	rq, err := oc.AdminKubeREST().ResourceQuotas(oc.Namespace()).Create(rq)
+	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Create(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -167,12 +167,12 @@ func assertQuotasEqual(a, b kapi.ResourceList) error {
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump the quota to %s=%d", resourceName, value))
-	rq, err := oc.AdminKubeREST().ResourceQuotas(oc.Namespace()).Get(quotaName)
+	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName)
 	if err != nil {
 		return nil, err
 	}
 	rq.Spec.Hard[resourceName] = *resource.NewQuantity(value, resource.DecimalSI)
-	_, err = oc.AdminKubeREST().ResourceQuotas(oc.Namespace()).Update(rq)
+	_, err = oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Update(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kap
 func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kapi.ResourceList) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", name))
 	used, err := exutil.WaitForResourceQuotaSync(
-		oc.KubeREST().ResourceQuotas(oc.Namespace()),
+		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		expectedResources,
 		false,
@@ -203,7 +203,7 @@ func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kap
 func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", quotaName))
 	return testutil.WaitForResourceQuotaLimitSync(
-		oc.KubeREST().ResourceQuotas(oc.Namespace()),
+		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		hardLimit,
 		waitTimeout)
@@ -219,14 +219,14 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		oc.Namespace(),
 	} {
 		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminREST().ImageStreams(projectName).List(kapi.ListOptions{})
+		iss, err := oc.AdminClient().ImageStreams(projectName).List(kapi.ListOptions{})
 		if err != nil {
 			continue
 		}
 		for _, is := range iss.Items {
 			for _, history := range is.Status.Tags {
 				for i := range history.Items {
-					oc.AdminREST().Images().Delete(history.Items[i].Image)
+					oc.AdminClient().Images().Delete(history.Items[i].Image)
 				}
 			}
 			for _, tagRef := range is.Spec.Tags {
@@ -236,7 +236,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 					if err != nil {
 						continue
 					}
-					oc.AdminREST().Images().Delete(id)
+					oc.AdminClient().Images().Delete(id)
 				}
 			}
 		}
@@ -244,7 +244,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		// let the extended framework take care of the current namespace
 		if projectName != oc.Namespace() {
 			g.By(fmt.Sprintf("Deleting project %q", projectName))
-			oc.AdminREST().Projects().Delete(projectName)
+			oc.AdminClient().Projects().Delete(projectName)
 		}
 	}
 }

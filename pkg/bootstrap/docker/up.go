@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -795,12 +795,16 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (*client.Client, *kclient.Client, error) {
+func (c *ClientStartConfig) Clients() (*client.Client, *kclientset.Clientset, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
 	}
-	return f.Clients()
+	oc, _, kcset, err := f.Clients()
+	if err != nil {
+		return nil, nil, err
+	}
+	return oc, kcset, nil
 }
 
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
@@ -943,7 +947,7 @@ func (c *ClientStartConfig) ShouldInitializeData() bool {
 			return true
 		}
 
-		if _, err = kclient.Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
+		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
 			return true
 		}
 

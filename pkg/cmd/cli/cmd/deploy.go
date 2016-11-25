@@ -136,7 +136,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 	var err error
 
-	o.osClient, o.kubeClient, err = f.Clients()
+	o.osClient, o.kubeClient, _, err = f.Clients()
 	if err != nil {
 		return err
 	}

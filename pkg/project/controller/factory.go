@@ -5,8 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -20,17 +19,17 @@ type NamespaceControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 }
 
 // Create creates a NamespaceController.
 func (factory *NamespaceControllerFactory) Create() controller.RunnableController {
 	namespaceLW := &cache.ListWatch{
 		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-			return factory.KubeClient.Namespaces().List(options)
+			return factory.KubeClient.Core().Namespaces().List(options)
 		},
 		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-			return factory.KubeClient.Namespaces().Watch(options)
+			return factory.KubeClient.Core().Namespaces().Watch(options)
 		},
 	}
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
@@ -38,7 +37,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 
 	namespaceController := &NamespaceController{
 		Client:     factory.Client,
-		KubeClient: clientadapter.FromUnversionedClient(factory.KubeClient),
+		KubeClient: factory.KubeClient,
 	}
 
 	return &controller.RetryController{

@@ -9,7 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -36,7 +37,7 @@ const (
 // podGetter implements the ResourceGetter interface. Used by LogLocation to
 // retrieve the deployer pod
 type podGetter struct {
-	pn unversioned.PodsNamespacer
+	pn kcoreclient.PodsGetter
 }
 
 // Get is responsible for retrieving the deployer pod
@@ -50,9 +51,11 @@ func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	dn       client.DeploymentConfigsNamespacer
-	rn       unversioned.ReplicationControllersNamespacer
-	pn       unversioned.PodsNamespacer
+	dn client.DeploymentConfigsNamespacer
+	rn kcoreclient.ReplicationControllersGetter
+	pn kcoreclient.PodsGetter
+	// TODO internalclientset: get rid of oldClient after next rebase
+	oldPn    kclient.PodsNamespacer
 	connInfo kubeletclient.ConnectionInfoGetter
 	timeout  time.Duration
 	interval time.Duration
@@ -65,11 +68,12 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dn client.DeploymentConfigsNamespacer, rn unversioned.ReplicationControllersNamespacer, pn unversioned.PodsNamespacer, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
+func NewREST(dn client.DeploymentConfigsNamespacer, rn kcoreclient.ReplicationControllersGetter, pn kcoreclient.PodsGetter, oldPn kclient.PodsNamespacer, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		dn:       dn,
 		rn:       rn,
 		pn:       pn,
+		oldPn:    oldPn,
 		connInfo: connectionInfo,
 		timeout:  defaultTimeout,
 		interval: defaultInterval,
@@ -221,7 +225,7 @@ func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (str
 	selector := labels.Set(target.Spec.Selector).AsSelector()
 	sortBy := func(pods []*kapi.Pod) sort.Interface { return controller.ByLogging(pods) }
 
-	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector, r.timeout, sortBy)
+	pod, _, err := kcmdutil.GetFirstPod(r.oldPn, target.Namespace, selector, r.timeout, sortBy)
 	if err != nil {
 		return "", errors.NewInternalError(err)
 	}

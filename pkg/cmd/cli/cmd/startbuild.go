@@ -215,7 +215,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		return err
 	}
 
-	client, _, err := f.Clients()
+	client, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

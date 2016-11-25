@@ -8,8 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -41,9 +41,9 @@ func (e actionableError) Error() string { return string(e) }
 //   2. If the deployment failed, the deployer pod is not deleted.
 type DeploymentController struct {
 	// rn is used for updating replication controllers.
-	rn kclient.ReplicationControllersNamespacer
+	rn kcoreclient.ReplicationControllersGetter
 	// pn is used for creating, updating, and deleting deployer pods.
-	pn kclient.PodsNamespacer
+	pn kcoreclient.PodsGetter
 
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface

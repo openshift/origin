@@ -145,7 +145,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 	// Setup client.
 	var err error
-	o.osClient, _, err = f.Clients()
+	o.osClient, _, _, err = f.Clients()
 	if err != nil {
 		return err
 	}

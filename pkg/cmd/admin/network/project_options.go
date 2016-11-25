@@ -13,7 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -30,7 +30,7 @@ import (
 type ProjectOptions struct {
 	DefaultNamespace string
 	Oclient          *osclient.Client
-	Kclient          *kclient.Client
+	Kclient          *kclientset.Clientset
 	Out              io.Writer
 
 	Mapper            meta.RESTMapper
@@ -49,7 +49,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	if err != nil {
 		return err
 	}
-	oc, kc, err := f.Clients()
+	oc, _, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}

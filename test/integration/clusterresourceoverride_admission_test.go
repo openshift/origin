@@ -3,15 +3,16 @@ package integration
 import (
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
 )
@@ -23,8 +24,8 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	kubeClient := setupClusterResourceOverrideTest(t, config)
-	podHandler := kubeClient.Pods(testutil.Namespace())
+	kubeClientset := setupClusterResourceOverrideTest(t, config)
+	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
 
 	// test with no limits object present
 
@@ -50,9 +51,9 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	kubeClient := setupClusterResourceOverrideTest(t, config)
-	podHandler := kubeClient.Pods(testutil.Namespace())
-	limitHandler := kubeClient.LimitRanges(testutil.Namespace())
+	kubeClientset := setupClusterResourceOverrideTest(t, config)
+	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
+	limitHandler := kubeClientset.Core().LimitRanges(testutil.Namespace())
 
 	// test with limits object with defaults;
 	// I wanted to test with a limits object without defaults to see limits forbid an empty resource spec,
@@ -100,7 +101,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 	}
 }
 
-func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclient.Interface {
+func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclientset.Interface {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -123,7 +124,7 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,10 +141,10 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Fatal(err)
 	}
-	return clusterAdminKubeClient
+	return clusterAdminKubeClientset
 }
 
 func testClusterResourceOverridePod(name string, memory string, cpu string) *kapi.Pod {

@@ -78,7 +78,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 			},
 		},
 	}
-	if _, err := projectAdminKubeClient.Extensions().Jobs(projName).Create(&job); err != nil {
+	if _, err := projectAdminKubeClient.Batch().Jobs(projName).Create(&job); err != nil {
 		t.Fatalf("unexpected error creating the job object: %v", err)
 	}
 
@@ -86,7 +86,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error deleting the project: %v", err)
 	}
 	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
-		_, err := clusterAdminKubeClient.Namespaces().Get(projName)
+		_, err := clusterAdminKubeClient.Core().Namespaces().Get(projName)
 		if errors.IsNotFound(err) {
 			return true, nil
 		}
@@ -101,7 +101,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	} else if !errors.IsNotFound(err) {
 		t.Fatalf("Error trying to get deleted HPA object (not a not-found error): %v", err)
 	}
-	if _, err := clusterAdminKubeClient.Extensions().Jobs(projName).Get(job.Name); err == nil {
+	if _, err := clusterAdminKubeClient.Batch().Jobs(projName).Get(job.Name); err == nil {
 		t.Fatalf("Job object was still present after project was deleted!")
 	} else if !errors.IsNotFound(err) {
 		t.Fatalf("Error trying to get deleted Job object (not a not-found error): %v", err)

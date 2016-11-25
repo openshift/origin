@@ -240,7 +240,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	RunEventQueue(node.kClient, Services, func(delta cache.Delta) error {
+	RunEventQueue(node.kClient.CoreClient, Services, func(delta cache.Delta) error {
 		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services

@@ -16,8 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -88,7 +88,7 @@ type RegistryOptions struct {
 	nodeSelector  map[string]string
 	ports         []kapi.ContainerPort
 	namespace     string
-	serviceClient kclient.ServicesNamespacer
+	serviceClient kcoreclient.ServicesGetter
 	image         string
 }
 
@@ -242,10 +242,11 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return fmt.Errorf("error getting namespace: %v", nsErr)
 	}
 
-	var kClientErr error
-	if _, opts.serviceClient, kClientErr = f.Clients(); kClientErr != nil {
+	_, _, kClient, kClientErr := f.Clients()
+	if kClientErr != nil {
 		return fmt.Errorf("error getting client: %v", kClientErr)
 	}
+	opts.serviceClient = kClient.Core()
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, errout

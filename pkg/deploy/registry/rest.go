@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,7 +22,7 @@ var (
 // WaitForRunningDeployment waits until the specified deployment is no longer New or Pending. Returns true if
 // the deployment became running, complete, or failed within timeout, false if it did not, and an error if any
 // other error state occurred. The last observed deployment state is returned.
-func WaitForRunningDeployment(rn kclient.ReplicationControllersNamespacer, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
+func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
 	fieldSelector := fields.Set{"metadata.name": observed.Name}.AsSelector()
 	options := kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: observed.ResourceVersion}
 	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)

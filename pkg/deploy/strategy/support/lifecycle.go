@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kdeployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -36,7 +36,7 @@ const HookContainerName = "lifecycle"
 // HookExecutor executes a deployment lifecycle hook.
 type HookExecutor struct {
 	// pods provides client to pods
-	pods kclient.PodsNamespacer
+	pods kcoreclient.PodsGetter
 	// tags allows setting image stream tags
 	tags client.ImageStreamTagsNamespacer
 	// out is where hook pod logs should be written to.
@@ -44,13 +44,13 @@ type HookExecutor struct {
 	// decoder is used for encoding/decoding.
 	decoder runtime.Decoder
 	// recorder is used to emit events from hooks
-	events kclient.EventNamespacer
+	events kcoreclient.EventsGetter
 	// getPodLogs knows how to get logs from a pod and is used for testing
 	getPodLogs func(*kapi.Pod) (io.ReadCloser, error)
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(pods kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, events kclient.EventNamespacer, out io.Writer, decoder runtime.Decoder) *HookExecutor {
+func NewHookExecutor(pods kcoreclient.PodsGetter, tags client.ImageStreamTagsNamespacer, events kcoreclient.EventsGetter, out io.Writer, decoder runtime.Decoder) *HookExecutor {
 	executor := &HookExecutor{
 		tags:    tags,
 		pods:    pods,
@@ -412,7 +412,7 @@ func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
 // FIFO/reflector pair. This avoids managing watches directly.
 // A stop channel to close the watch's reflector is also returned.
 // It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
-func NewPodWatch(client kclient.PodInterface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
+func NewPodWatch(client kcoreclient.PodInterface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &cache.ListWatch{
 		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -438,7 +438,7 @@ func NewPodWatch(client kclient.PodInterface, namespace, name, resourceVersion s
 // from a real client.
 func NewAcceptNewlyObservedReadyPods(
 	out io.Writer,
-	kclient kclient.PodsNamespacer,
+	kclient kcoreclient.PodsGetter,
 	timeout time.Duration,
 	interval time.Duration,
 	minReadySeconds int32,

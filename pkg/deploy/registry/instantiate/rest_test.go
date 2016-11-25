@@ -5,6 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -660,8 +662,8 @@ func TestCanTrigger(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("running scenario %q", test.name)
 
-		fake := &ktestclient.Fake{}
-		fake.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		client := &fake.Clientset{}
+		client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			config := test.decoded
 			if config == nil {
 				config = test.config
@@ -673,7 +675,7 @@ func TestCanTrigger(t *testing.T) {
 
 		test.config = deploytest.RoundTripConfig(t, test.config)
 
-		got, gotCauses, err := canTrigger(test.config, fake, codec, test.force)
+		got, gotCauses, err := canTrigger(test.config, client.Core(), codec, test.force)
 		if err != nil && !test.expectedErr {
 			t.Errorf("unexpected error: %v", err)
 			continue

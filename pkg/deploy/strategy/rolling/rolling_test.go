@@ -8,7 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -25,8 +26,8 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	strategy := &RollingDeploymentStrategy{
 		decoder:     kapi.Codecs.UniversalDecoder(),
-		rcClient:    ktestclient.NewSimpleFake(),
-		eventClient: ktestclient.NewSimpleFake(),
+		rcClient:    fake.NewSimpleClientset().Core(),
+		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				initialStrategyInvoked = true
@@ -69,13 +70,13 @@ func TestRolling_deployRolling(t *testing.T) {
 	}
 	deploymentUpdated := false
 
-	fake := &ktestclient.Fake{}
-	fake.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(ktestclient.GetAction).GetName()
+	client := &fake.Clientset{}
+	client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(core.GetAction).GetName()
 		return true, deployments[name], nil
 	})
-	fake.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
 		deploymentUpdated = true
 		return true, updated, nil
 	})
@@ -83,8 +84,8 @@ func TestRolling_deployRolling(t *testing.T) {
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
 		decoder:     kapi.Codecs.UniversalDecoder(),
-		rcClient:    fake,
-		eventClient: ktestclient.NewSimpleFake(),
+		rcClient:    client.Core(),
+		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -153,20 +154,20 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 
 	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
 
-	fake := &ktestclient.Fake{}
-	fake.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(ktestclient.GetAction).GetName()
+	client := &fake.Clientset{}
+	client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(core.GetAction).GetName()
 		return true, deployments[name], nil
 	})
-	fake.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
 		return true, updated, nil
 	})
 
 	strategy := &RollingDeploymentStrategy{
 		decoder:     kapi.Codecs.UniversalDecoder(),
-		rcClient:    fake,
-		eventClient: ktestclient.NewSimpleFake(),
+		rcClient:    client.Core(),
+		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -227,8 +228,8 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 
 	strategy := &RollingDeploymentStrategy{
 		decoder:     kapi.Codecs.UniversalDecoder(),
-		rcClient:    ktestclient.NewSimpleFake(),
-		eventClient: ktestclient.NewSimpleFake(),
+		rcClient:    fake.NewSimpleClientset().Core(),
+		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				return nil

@@ -8,8 +8,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -33,9 +35,9 @@ type RecreateDeploymentStrategy struct {
 	// until is a condition that, if reached, will cause the strategy to exit early
 	until string
 	// rcClient is a client to access replication controllers
-	rcClient kclient.ReplicationControllersNamespacer
+	rcClient kcoreclient.ReplicationControllersGetter
 	// eventClient is a client to access events
-	eventClient kclient.EventNamespacer
+	eventClient kcoreclient.EventsGetter
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
 	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
@@ -62,27 +64,29 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(oldClient kclient.Interface, tagClient client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
-	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
+	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), oldClient)
+	// TODO internalclientset: get rid of oldClient after next rebase
+	client := adapter.FromUnversionedClient(oldClient.(*kclient.Client))
 	return &RecreateDeploymentStrategy{
 		out:         out,
 		errOut:      errOut,
 		events:      events,
 		until:       until,
-		rcClient:    client,
-		eventClient: client,
+		rcClient:    client.Core(),
+		eventClient: client.Core(),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client.Core(), timeout, AcceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, client, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}

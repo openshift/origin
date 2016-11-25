@@ -70,10 +70,10 @@ func (d *NetworkDiagnostic) TestSetup() error {
 
 func (d *NetworkDiagnostic) Cleanup() {
 	// Deleting namespaces will delete corresponding service accounts/pods in the namespace automatically.
-	d.KubeClient.Namespaces().Delete(d.nsName1)
-	d.KubeClient.Namespaces().Delete(d.nsName2)
-	d.KubeClient.Namespaces().Delete(d.globalnsName1)
-	d.KubeClient.Namespaces().Delete(d.globalnsName2)
+	d.KubeClient.Namespaces().Delete(d.nsName1, nil)
+	d.KubeClient.Namespaces().Delete(d.nsName2, nil)
+	d.KubeClient.Namespaces().Delete(d.globalnsName1, nil)
+	d.KubeClient.Namespaces().Delete(d.globalnsName2, nil)
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {

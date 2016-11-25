@@ -12,7 +12,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -26,7 +26,7 @@ const (
 
 // NetworkDiagnostic is a diagnostic that runs a network diagnostic pod and relays the results.
 type NetworkDiagnostic struct {
-	KubeClient          *kclient.Client
+	KubeClient          *kclientset.Clientset
 	OSClient            *osclient.Client
 	ClientFlags         *flag.FlagSet
 	Level               int
@@ -170,7 +170,7 @@ func (d *NetworkDiagnostic) runNetworkPod(command []string) error {
 		podName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagPodNamePrefix))
 
 		pod := GetNetworkDiagnosticsPod(command, podName, node.Name)
-		_, err := d.KubeClient.Pods(d.nsName1).Create(pod)
+		_, err := d.KubeClient.Core().Pods(d.nsName1).Create(pod)
 		if err != nil {
 			return fmt.Errorf("Creating network diagnostic pod %q on node %q with command %q failed: %v", podName, node.Name, strings.Join(command, " "), err)
 		}

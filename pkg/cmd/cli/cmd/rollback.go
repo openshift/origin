@@ -137,7 +137,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 		return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 	}
 
-	oClient, kClient, err := f.Clients()
+	oClient, kClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

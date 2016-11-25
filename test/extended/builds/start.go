@@ -28,7 +28,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})

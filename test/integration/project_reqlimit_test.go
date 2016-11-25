@@ -5,8 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -18,7 +18,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclient.Interface, client.Interface, *restclient.Config) {
+func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, client.Interface, *restclient.Config) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -60,13 +60,13 @@ func setupProjectRequestLimitUsers(t *testing.T, client client.Interface, users 
 	}
 }
 
-func setupProjectRequestLimitNamespaces(t *testing.T, kclient kclient.Interface, namespacesByRequester map[string]int) {
+func setupProjectRequestLimitNamespaces(t *testing.T, kclient kclientset.Interface, namespacesByRequester map[string]int) {
 	for requester, nsCount := range namespacesByRequester {
 		for i := 0; i < nsCount; i++ {
 			ns := &kapi.Namespace{}
 			ns.GenerateName = "testns"
 			ns.Annotations = map[string]string{projectapi.ProjectRequester: requester}
-			_, err := kclient.Namespaces().Create(ns)
+			_, err := kclient.Core().Namespaces().Create(ns)
 			if err != nil {
 				t.Fatalf("Could not create namespace for requester %s: %v", requester, err)
 			}

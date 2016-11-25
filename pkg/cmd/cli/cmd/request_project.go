@@ -87,7 +87,7 @@ func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, erro
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 
 			var err error
-			o.Client, _, err = f.Clients()
+			o.Client, _, _, err = f.Clients()
 			kcmdutil.CheckErr(err)
 
 			kcmdutil.CheckErr(o.Run())

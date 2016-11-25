@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -171,7 +171,7 @@ func TestSyncNamespace(t *testing.T) {
 			},
 		},
 	}
-	mockKubeClient := testclient.NewSimpleFake(&namespaceList)
+	mockKubeClient := fake.NewSimpleClientset(&namespaceList)
 
 	reviewer := &mockReviewer{
 		expectedResults: map[string]*mockReview{
@@ -192,7 +192,7 @@ func TestSyncNamespace(t *testing.T) {
 
 	mockPolicyCache := &MockPolicyClient{}
 
-	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Namespaces(), mockPolicyCache, mockPolicyCache, mockPolicyCache, mockPolicyCache)
+	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Core().Namespaces(), mockPolicyCache, mockPolicyCache, mockPolicyCache, mockPolicyCache)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {
 		authorizationCache.namespaceStore.Add(&namespaceList.Items[i])

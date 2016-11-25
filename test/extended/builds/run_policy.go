@@ -24,7 +24,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// Create all fixtures
 		oc.Run("create").Args("-f", exutil.FixturePath("testdata", "run_policy")).Execute()
@@ -39,7 +39,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			)
 			bcName := "sample-parallel-build"
 
-			buildWatch, err := oc.REST().Builds(oc.Namespace()).Watch(kapi.ListOptions{
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName),
 			})
 			defer buildWatch.Stop()
@@ -86,7 +86,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				// TODO: This might introduce flakes in case the first build complete
 				// sooner or fail.
 				if build.Status.Phase == buildapi.BuildPhasePending {
-					c := buildclient.NewOSClientBuildClient(oc.REST())
+					c := buildclient.NewOSClientBuildClient(oc.Client())
 					firstBuildRunning := false
 					_, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
 						if b.Name == startedBuilds[0] && b.Status.Phase == buildapi.BuildPhaseRunning {
@@ -125,7 +125,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
-			buildWatch, err := oc.REST().Builds(oc.Namespace()).Watch(kapi.ListOptions{
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName),
 			})
 			defer buildWatch.Stop()
@@ -142,7 +142,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 					}
 					// Verify there are no other running or pending builds than this
 					// build as serial build always runs alone.
-					c := buildclient.NewOSClientBuildClient(oc.REST())
+					c := buildclient.NewOSClientBuildClient(oc.Client())
 					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
 						if b.Name == build.Name {
 							return false
@@ -179,7 +179,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			bcName := "sample-serial-latest-only-build"
 			buildVerified := map[string]bool{}
-			buildWatch, err := oc.REST().Builds(oc.Namespace()).Watch(kapi.ListOptions{
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName),
 			})
 			defer buildWatch.Stop()
@@ -233,7 +233,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 					}
 					// Verify there are no other running or pending builds than this
 					// build as serial build always runs alone.
-					c := buildclient.NewOSClientBuildClient(oc.REST())
+					c := buildclient.NewOSClientBuildClient(oc.Client())
 					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
 						e2e.Logf("[%s] build %s is %s", build.Name, b.Name, b.Status.Phase)
 						if b.Name == build.Name {

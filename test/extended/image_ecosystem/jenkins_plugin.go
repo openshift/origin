@@ -354,7 +354,7 @@ func loadFixture(oc *exutil.CLI, filename string) {
 
 func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]string) {
 
-	buildList, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
+	buildList, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Ensure that expected start-build environment variables were injected
@@ -419,7 +419,7 @@ func initExecPod(oc *exutil.CLI) *kapi.Pod {
 
 	var targetPod *kapi.Pod
 	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{})
 		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 		for _, p := range pods.Items {
 			if strings.HasPrefix(p.Name, "centos") && !strings.Contains(p.Name, "deploy") && p.Status.Phase == "Running" {
@@ -545,7 +545,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins", oc)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("get ip and port for jenkins service")
@@ -655,9 +655,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -679,9 +679,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -737,7 +737,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend deployments as signs that the build has finished")
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -753,7 +753,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.It("jenkins-plugin test trigger build DSL", func() {
 
-			buildsBefore, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			data, err := j.buildDSLJob(oc.Namespace(),
@@ -769,12 +769,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-				buildsAfter, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
+				buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return (len(buildsAfter.Items) != len(buildsBefore.Items)), nil
 			})
 
-			buildsAfter, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 
@@ -866,7 +866,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			loadFixture(oc, "multitag-template.json")
 			err := wait.Poll(10*time.Second, 1*time.Minute, func() (bool, error) {
-				_, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag3", "orig")
+				_, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag3", "orig")
 				if err != nil {
 					return false, nil
 				}
@@ -885,39 +885,39 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			ginkgolog("Job logs>>\n%s\n\n", log)
 
 			// Assert stream tagging results
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// 1 to N mapping
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod2")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod2")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod3")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod3")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod4")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod4")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// N to 1 mapping
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod5")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod5")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag2", "prod5")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag2", "prod5")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag3", "prod5")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag3", "prod5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// N to N mapping
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag", "prod6")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag", "prod6")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag2", "prod7")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag2", "prod7")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag3", "prod8")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag3", "prod8")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// N to N mapping with creation
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag4", "prod9")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag4", "prod9")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag5", "prod10")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag5", "prod10")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag6", "prod11")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag6", "prod11")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 		})
@@ -928,7 +928,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			loadFixture(oc, "multitag-template.json")
 			err := wait.Poll(10*time.Second, 1*time.Minute, func() (bool, error) {
-				_, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("multitag3", "orig")
+				_, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("multitag3", "orig")
 				if err != nil {
 					return false, nil
 				}
@@ -978,25 +978,25 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// Assert stream tagging results
 			for _, namespace := range []string{oc.Namespace(), anotherNamespace} {
 				g.By("Checking tags in namespace: " + namespace)
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag", "prod")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag", "prod")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag2", "prod1")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag2", "prod1")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag2", "prod2")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag2", "prod2")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag2", "prod3")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag2", "prod3")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag2", "prod4")
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag5", "prod5")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag2", "prod4")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag6", "prod6")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag5", "prod5")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				_, err = oc.REST().ImageStreamTags(namespace).Get("multitag7", "prod4")
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag6", "prod6")
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				_, err = oc.Client().ImageStreamTags(namespace).Get("multitag7", "prod4")
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 

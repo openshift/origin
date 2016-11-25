@@ -18,7 +18,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 	)
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 	g.Context("Manual deploy the jenkins and trigger a jenkins pipeline build", func() {
@@ -31,7 +31,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 			//wait for the jenkins deployment complete
 			g.By("waiting the jenkins service deployed")
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "jenkins", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 			if err != nil {
 				exutil.DumpDeploymentLogs("jenkins", oc)
 			}

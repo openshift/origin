@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -47,7 +47,7 @@ type PruneDeploymentsOptions struct {
 	Namespace       string
 
 	OSClient client.Interface
-	KClient  kclient.Interface
+	KClient  kclientset.Interface
 	Out      io.Writer
 }
 
@@ -99,7 +99,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	}
 	o.Out = out
 
-	osClient, kClient, err := f.Clients()
+	osClient, _, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (o PruneDeploymentsOptions) Run() error {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := o.KClient.ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
+	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (o PruneDeploymentsOptions) Run() error {
 	deploymentDeleter := &describingDeploymentDeleter{w: w}
 
 	if o.Confirm {
-		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KClient, o.KClient)
+		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KClient.Core(), o.KClient.Core())
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
 	}

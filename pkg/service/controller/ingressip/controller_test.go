@@ -9,8 +9,9 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -19,29 +20,32 @@ import (
 
 const namespace = "ns"
 
-func newController(t *testing.T, client *ktestclient.Fake) *IngressIPController {
+func newController(t *testing.T, client *fake.Clientset) *IngressIPController {
 	_, ipNet, err := net.ParseCIDR("172.16.0.12/28")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if client == nil {
+		client = fake.NewSimpleClientset()
+	}
 	return NewIngressIPController(client, ipNet, 10*time.Minute)
 }
 
-func controllerSetup(t *testing.T, startingObjects []runtime.Object) (*ktestclient.Fake, *watch.FakeWatcher, *IngressIPController) {
-	client := ktestclient.NewSimpleFake(startingObjects...)
+func controllerSetup(t *testing.T, startingObjects []runtime.Object) (*fake.Clientset, *watch.FakeWatcher, *IngressIPController) {
+	client := fake.NewSimpleClientset(startingObjects...)
 
 	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("*", ktestclient.DefaultWatchReactor(fakeWatch, nil))
+	client.PrependWatchReactor("*", core.DefaultWatchReactor(fakeWatch, nil))
 
-	client.PrependReactor("create", "*", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(ktestclient.CreateAction).GetObject()
+	client.PrependReactor("create", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		obj := action.(core.CreateAction).GetObject()
 		fakeWatch.Add(obj)
 		return true, obj, nil
 	})
 
 	// Ensure that updates the controller makes are passed through to the watcher.
-	client.PrependReactor("update", "*", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(ktestclient.CreateAction).GetObject()
+	client.PrependReactor("update", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		obj := action.(core.CreateAction).GetObject()
 		fakeWatch.Modify(obj)
 		return true, obj, nil
 	})
@@ -206,7 +210,7 @@ func TestProcessChange(t *testing.T) {
 	}
 	for _, test := range tests {
 		c := newController(t, nil)
-		c.persistenceHandler = func(client kclient.ServicesNamespacer, service *kapi.Service, targetStatus bool) error {
+		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
 			return nil
 		}
 		s := newService("svc", test.ip, test.lb)
@@ -279,7 +283,7 @@ func TestRecordAllocationReallocates(t *testing.T) {
 	c := newController(t, nil)
 	var persisted *kapi.Service
 	// Keep track of the last-persisted service
-	c.persistenceHandler = func(client kclient.ServicesNamespacer, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
 		persisted = service
 		return nil
 	}
@@ -304,7 +308,7 @@ func TestAllocateReleasesOnPersistenceFailure(t *testing.T) {
 	c := newController(t, nil)
 	expectedFree := c.ipAllocator.Free()
 	expectedErr := errors.New("Persistence failure")
-	c.persistenceHandler = func(client kclient.ServicesNamespacer, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
 		return expectedErr
 	}
 	s := newService("svc", "", true)
@@ -369,7 +373,7 @@ func TestClearLocalAllocation(t *testing.T) {
 
 func TestEnsureExternalIPRespectsNonIngress(t *testing.T) {
 	c := newController(t, nil)
-	c.persistenceHandler = func(client kclient.ServicesNamespacer, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
 		return nil
 	}
 	ingressIP := "172.16.0.1"
@@ -529,7 +533,7 @@ func TestClearPersistedAllocation(t *testing.T) {
 	for _, test := range tests {
 		c := newController(t, nil)
 		var persistedService *kapi.Service
-		c.persistenceHandler = func(client kclient.ServicesNamespacer, service *kapi.Service, targetStatus bool) error {
+		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
 			// Save the last persisted service
 			persistedService = service
 			return test.persistenceError

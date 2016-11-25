@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -122,7 +122,7 @@ type AuthorizationCache struct {
 	// TODO remove this in favor of a list/watch mechanism for projects
 	allKnownNamespaces        sets.String
 	namespaceStore            cache.Store
-	namespaceInterface        kclient.NamespaceInterface
+	namespaceInterface        kcoreclient.NamespaceInterface
 	lastSyncResourceVersioner LastSyncResourceVersioner
 
 	clusterPolicyLister             client.SyncedClusterPoliciesListerInterface
@@ -150,7 +150,7 @@ type AuthorizationCache struct {
 }
 
 // NewAuthorizationCache creates a new AuthorizationCache
-func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.NamespaceInterface,
+func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kcoreclient.NamespaceInterface,
 	clusterPolicyLister client.SyncedClusterPoliciesListerInterface, clusterPolicyBindingLister client.SyncedClusterPolicyBindingsListerInterface,
 	policyNamespacer client.SyncedPoliciesListerNamespacer, policyBindingNamespacer client.SyncedPolicyBindingsListerNamespacer,
 ) *AuthorizationCache {

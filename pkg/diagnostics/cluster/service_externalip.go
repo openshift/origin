@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	hostdiag "github.com/openshift/origin/pkg/diagnostics/host"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -19,7 +19,7 @@ import (
 // Background: https://github.com/openshift/origin/issues/7808
 type ServiceExternalIPs struct {
 	MasterConfigFile string
-	KclusterClient   *kclient.Client
+	KclusterClient   *kclientset.Clientset
 }
 
 const ServiceExternalIPsName = "ServiceExternalIPs"
@@ -59,7 +59,7 @@ func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 			return r
 		}
 	}
-	services, err := d.KclusterClient.Services("").List(kapi.ListOptions{})
+	services, err := d.KclusterClient.Core().Services("").List(kapi.ListOptions{})
 	if err != nil {
 		r.Error("DH2005", err, fmt.Sprintf("Error while listing cluster services: (%[1]T) %[1]v", err))
 		return r

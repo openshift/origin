@@ -8,6 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -341,18 +343,18 @@ func TestHandleScenarios(t *testing.T) {
 
 		oc := &testclient.Fake{}
 		oc.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			dc := action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+			dc := action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
 			return true, dc, nil
 		})
-		kc := &ktestclient.Fake{}
-		kc.AddReactor("create", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(ktestclient.CreateAction).GetObject().(*kapi.ReplicationController)
+		kc := &fake.Clientset{}
+		kc.AddReactor("create", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(core.CreateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = *rc
 			return true, rc, nil
 		})
-		kc.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+		kc.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = *rc
 			return true, rc, nil
 		})
@@ -374,10 +376,10 @@ func TestHandleScenarios(t *testing.T) {
 		rcInformer := framework.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					return kc.ReplicationControllers(kapi.NamespaceAll).List(options)
+					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 				},
 				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					return kc.ReplicationControllers(kapi.NamespaceAll).Watch(options)
+					return kc.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.ReplicationController{},
@@ -387,10 +389,10 @@ func TestHandleScenarios(t *testing.T) {
 		podInformer := framework.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					return kc.Pods(kapi.NamespaceAll).List(options)
+					return kc.Core().Pods(kapi.NamespaceAll).List(options)
 				},
 				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					return kc.Pods(kapi.NamespaceAll).Watch(options)
+					return kc.Core().Pods(kapi.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.Pod{},

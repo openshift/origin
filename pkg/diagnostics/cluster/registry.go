@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -20,7 +20,7 @@ import (
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
-	KubeClient          *kclient.Client
+	KubeClient          *kclientset.Clientset
 	OsClient            *osclient.Client
 	PreventModification bool
 }
@@ -186,7 +186,7 @@ func (d *ClusterRegistry) Check() types.DiagnosticResult {
 }
 
 func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Service {
-	service, err := d.KubeClient.Services(kapi.NamespaceDefault).Get(registryName)
+	service, err := d.KubeClient.Core().Services(kapi.NamespaceDefault).Get(registryName)
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu1002", err, fmt.Sprintf(clGetRegNone, registryName, kapi.NamespaceDefault))
 		return nil
@@ -200,7 +200,7 @@ func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Ser
 
 func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.DiagnosticResult) []*kapi.Pod {
 	runningPods := []*kapi.Pod{}
-	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(service.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(service.Spec.Selector)})
 	if err != nil {
 		r.Error("DClu1005", err, fmt.Sprintf("Finding pods for '%s' service failed. This should never happen. Error: (%T) %[2]v", registryName, err))
 		return runningPods
@@ -252,7 +252,7 @@ func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.Diagnos
 
 func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticResult) {
 	// pull out logs from the pod
-	readCloser, err := d.KubeClient.RESTClient.Get().
+	readCloser, err := d.KubeClient.CoreClient.RESTClient.Get().
 		Namespace("default").Name(pod.ObjectMeta.Name).
 		Resource("pods").SubResource("log").
 		Param("follow", "false").
@@ -302,7 +302,7 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticRes
 }
 
 func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r types.DiagnosticResult) bool {
-	endPoint, err := d.KubeClient.Endpoints(kapi.NamespaceDefault).Get(registryName)
+	endPoint, err := d.KubeClient.Core().Endpoints(kapi.NamespaceDefault).Get(registryName)
 	if err != nil {
 		r.Error("DClu1013", err, fmt.Sprintf(`Finding endpoints for "%s" service failed. This should never happen. Error: (%[2]T) %[2]v`, registryName, err))
 		return false

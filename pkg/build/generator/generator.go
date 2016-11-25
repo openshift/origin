@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
@@ -47,8 +47,8 @@ func IsFatal(err error) bool {
 type BuildGenerator struct {
 	Client                    GeneratorClient
 	DefaultServiceAccountName string
-	ServiceAccounts           kclient.ServiceAccountsNamespacer
-	Secrets                   kclient.SecretsNamespacer
+	ServiceAccounts           kcoreclient.ServiceAccountsGetter
+	Secrets                   kcoreclient.SecretsGetter
 }
 
 // GeneratorClient is the API client used by the generator

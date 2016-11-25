@@ -38,7 +38,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Watch the project, rolebindings, and configmaps
-	nswatch, err := kubeClient.Namespaces().Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns)})
+	nswatch, err := kubeClientset.Core().Namespaces().Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmwatch, err := kubeClient.ConfigMaps(ns).Watch(kapi.ListOptions{})
+	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Verify project is deleted
-	if nsObj, err := kubeClient.Namespaces().Get(ns); !kapierrors.IsNotFound(err) {
+	if nsObj, err := kubeClientset.Core().Namespaces().Get(ns); !kapierrors.IsNotFound(err) {
 		t.Errorf("Expected namespace to be gone, got %#v, %#v", nsObj, err)
 	}
 }

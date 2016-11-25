@@ -8,8 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -27,7 +27,7 @@ import (
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	ClientFn     func() (*client.Client, kclient.Interface, error)
+	ClientFn     func() (*client.Client, kclientset.Interface, error)
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -107,8 +107,9 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		return err
 	}
 
-	o.ClientFn = func() (*client.Client, kclient.Interface, error) {
-		return f.Clients()
+	o.ClientFn = func() (*client.Client, kclientset.Interface, error) {
+		oc, _, kc, err := f.Clients()
+		return oc, kc, err
 	}
 
 	o.Out = out
@@ -279,14 +280,14 @@ func (o ProjectOptions) RunProject() error {
 	return nil
 }
 
-func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclient.Interface) error {
+func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclientset.Interface) error {
 	_, projectErr := oClient.Projects().Get(currentProject)
 	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}
 
 	// at this point we know the error is a not found or forbidden, but we'll test namespaces just in case we're running on kube
-	if _, err := kClient.Namespaces().Get(currentProject); err == nil {
+	if _, err := kClient.Core().Namespaces().Get(currentProject); err == nil {
 		return nil
 	}
 
@@ -294,7 +295,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 	return projectErr
 }
 
-func getProjects(oClient *client.Client, kClient kclient.Interface) ([]api.Project, error) {
+func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Project, error) {
 	projects, err := oClient.Projects().List(kapi.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
@@ -304,7 +305,7 @@ func getProjects(oClient *client.Client, kClient kclient.Interface) ([]api.Proje
 		return nil, err
 	}
 
-	namespaces, err := kClient.Namespaces().List(kapi.ListOptions{})
+	namespaces, err := kClient.Core().Namespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

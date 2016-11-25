@@ -110,7 +110,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 }
 
 func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	oclient, _, err := f.Clients()
+	oclient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
