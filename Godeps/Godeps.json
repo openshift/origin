@@ -53,11 +53,11 @@
 		},
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm",
-			"Rev": "fa152c58bc15761d0200cb75fe958b89a9d4888e"
+			"Rev": "7e0a0b69f76673d5d2f451ee59d9d02cfa006527"
 		},
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm/winterm",
-			"Rev": "fa152c58bc15761d0200cb75fe958b89a9d4888e"
+			"Rev": "7e0a0b69f76673d5d2f451ee59d9d02cfa006527"
 		},
 		{
 			"ImportPath": "github.com/Azure/go-autorest/autorest",
