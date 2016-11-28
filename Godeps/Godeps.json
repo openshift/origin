@@ -89,8 +89,8 @@
 		},
 		{
 			"ImportPath": "github.com/Microsoft/go-winio",
-			"Comment": "v0.3.5",
-			"Rev": "4f1a71750d95a5a8a46c40a67ffbed8129c2f138"
+			"Comment": "v0.3.7",
+			"Rev": "24a3e3d3fc7451805e09d11e11e95d9a0a4f205e"
 		},
 		{
 			"ImportPath": "github.com/PuerkitoBio/purell",
