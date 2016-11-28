@@ -44,7 +44,7 @@ type OsdnNode struct {
 	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
-	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
+	egressPolicies     map[uint32][]osapi.EgressNetworkPolicy
 
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
@@ -99,7 +99,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		kubeletInitReady:   make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
-		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
+		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 	}
 
 	if err := plugin.dockerPreCNICleanup(); err != nil {

@@ -332,7 +332,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	return true, nil
 }
 
-func policyNames(policies []*osapi.EgressNetworkPolicy) string {
+func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	names := make([]string, len(policies))
 	for i, policy := range policies {
 		names[i] = policy.Namespace + ":" + policy.Name
