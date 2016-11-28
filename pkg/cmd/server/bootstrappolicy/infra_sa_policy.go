@@ -973,7 +973,7 @@ func init() {
 				},
 				{
 					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("get", "create"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update"),
 					Resources: sets.NewString("secrets"),
 				},
 			},
