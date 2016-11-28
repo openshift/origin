@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 99d8a050486b3f896eef00c389973e080a2d7bf4
+%global commit d16be8a4482b4e8296a99768f47d69da30676c8b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.28+99d8a05-8 OS_GIT_COMMIT=99d8a05 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.29+d16be8a-6 OS_GIT_COMMIT=d16be8a OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.29
+Version:        3.4.0.30
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,11 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Nov 28 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.30
+- Update ose_images.sh - 2016-11-23 (tdawson@redhat.com)
+- UPSTREAM: 36444: Read all resources for finalization and gc, not just
+  preferred (maszulik@redhat.com)
+
 * Wed Nov 23 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.29
 - Merge remote-tracking branch upstream/master, bump origin-web-console 35b920b
   (tdawson@redhat.com)
