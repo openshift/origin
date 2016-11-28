@@ -17,7 +17,7 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against nodes.
+// NewStorage returns a RESTStorage object that will work against PolicyBinding objects.
 func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.PolicyBinding{} },
