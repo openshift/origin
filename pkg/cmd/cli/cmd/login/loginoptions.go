@@ -252,17 +252,30 @@ func (o *LoginOptions) canRequestProjects() (bool, error) {
 	sar := &authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.Action{
 			Namespace: o.DefaultNamespace,
+			Verb:      "list",
+			Resource:  "projectrequests",
+		},
+	}
+
+	listResponse, err := oClient.SubjectAccessReviews().Create(sar)
+	if err != nil {
+		return false, err
+	}
+
+	sar = &authorizationapi.SubjectAccessReview{
+		Action: authorizationapi.Action{
+			Namespace: o.DefaultNamespace,
 			Verb:      "create",
 			Resource:  "projectrequests",
 		},
 	}
 
-	response, err := oClient.SubjectAccessReviews().Create(sar)
+	createResponse, err := oClient.SubjectAccessReviews().Create(sar)
 	if err != nil {
 		return false, err
 	}
 
-	return response.Allowed, nil
+	return (listResponse.Allowed && createResponse.Allowed), nil
 }
 
 // Discover the projects available for the established session and take one to use. It
