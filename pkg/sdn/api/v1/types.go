@@ -95,8 +95,10 @@ const (
 
 // EgressNetworkPolicyPeer specifies a target to apply egress network policy to
 type EgressNetworkPolicyPeer struct {
-	// cidrSelector is the CIDR range to allow/deny traffic to
-	CIDRSelector string `json:"cidrSelector" protobuf:"bytes,1,rep,name=cidrSelector"`
+	// cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset
+	CIDRSelector string `json:"cidrSelector,omitempty" protobuf:"bytes,1,rep,name=cidrSelector"`
+	// dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset
+	DNSName string `json:"dnsName,omitempty" protobuf:"bytes,2,rep,name=dnsName"`
 }
 
 // EgressNetworkPolicyRule contains a single egress network policy rule
