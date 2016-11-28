@@ -73,6 +73,7 @@ const (
 // EgressNetworkPolicyPeer specifies a target to apply egress policy to
 type EgressNetworkPolicyPeer struct {
 	CIDRSelector string
+	DNSName      string
 }
 
 // EgressNetworkPolicyRule contains a single egress network policy rule
