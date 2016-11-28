@@ -207,9 +207,21 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 							},
 						},
 						{
+							Type: api.EgressNetworkPolicyRuleAllow,
+							To: api.EgressNetworkPolicyPeer{
+								DNSName: "www.example.com",
+							},
+						},
+						{
 							Type: api.EgressNetworkPolicyRuleDeny,
 							To: api.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.4/32",
+							},
+						},
+						{
+							Type: api.EgressNetworkPolicyRuleDeny,
+							To: api.EgressNetworkPolicyPeer{
+								DNSName: "www.foo.com",
 							},
 						},
 					},
@@ -268,6 +280,85 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 				},
 			},
 			expectedErrors: 2,
+		},
+		{
+			name: "Policy rule with both CIDR and DNS",
+			fw: &api.EgressNetworkPolicy{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "default",
+					Namespace: "testing",
+				},
+				Spec: api.EgressNetworkPolicySpec{
+					Egress: []api.EgressNetworkPolicyRule{
+						{
+							Type: api.EgressNetworkPolicyRuleAllow,
+							To: api.EgressNetworkPolicyPeer{
+								CIDRSelector: "1.2.3.4",
+								DNSName:      "www.example.com",
+							},
+						},
+					},
+				},
+			},
+			expectedErrors: 2,
+		},
+		{
+			name: "Policy rule without CIDR or DNS",
+			fw: &api.EgressNetworkPolicy{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "default",
+					Namespace: "testing",
+				},
+				Spec: api.EgressNetworkPolicySpec{
+					Egress: []api.EgressNetworkPolicyRule{
+						{
+							Type: api.EgressNetworkPolicyRuleAllow,
+							To:   api.EgressNetworkPolicyPeer{},
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Policy rule with invalid DNS",
+			fw: &api.EgressNetworkPolicy{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "default",
+					Namespace: "testing",
+				},
+				Spec: api.EgressNetworkPolicySpec{
+					Egress: []api.EgressNetworkPolicyRule{
+						{
+							Type: api.EgressNetworkPolicyRuleAllow,
+							To: api.EgressNetworkPolicyPeer{
+								DNSName: "www.Example$.com",
+							},
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Policy rule with wildcard DNS",
+			fw: &api.EgressNetworkPolicy{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "default",
+					Namespace: "testing",
+				},
+				Spec: api.EgressNetworkPolicySpec{
+					Egress: []api.EgressNetworkPolicyRule{
+						{
+							Type: api.EgressNetworkPolicyRuleAllow,
+							To: api.EgressNetworkPolicyPeer{
+								DNSName: "*.example.com",
+							},
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
 		},
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/api/validation/path"
+	utilvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -148,9 +149,22 @@ func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.Error
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("type"), rule.Type, "invalid policy type"))
 		}
 
-		_, err := netutils.ParseCIDRMask(rule.To.CIDRSelector)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To.CIDRSelector, err.Error()))
+		if len(rule.To.CIDRSelector) == 0 && len(rule.To.DNSName) == 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To, "must specify cidrSelector or dnsName"))
+		} else if len(rule.To.CIDRSelector) != 0 && len(rule.To.DNSName) != 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To, "either specify cidrSelector or dnsName but not both"))
+		}
+
+		if len(rule.To.CIDRSelector) > 0 {
+			if _, err := netutils.ParseCIDRMask(rule.To.CIDRSelector); err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to", "cidrSelector"), rule.To.CIDRSelector, err.Error()))
+			}
+		}
+
+		if len(rule.To.DNSName) > 0 {
+			if len(utilvalidation.IsDNS1123Subdomain(rule.To.DNSName)) != 0 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to", "dnsName"), rule.To.DNSName, "must conform to DNS 952 subdomain conventions"))
+			}
 		}
 	}
 
