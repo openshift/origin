@@ -117,21 +117,32 @@ func (r *Response) GetRedirectUrl() (string, error) {
 		return "", err
 	}
 
+	var q url.Values
+	if r.RedirectInFragment {
+		// start with empty set for fragment
+		q = url.Values{}
+	} else {
+		// add parameters to existing query
+		q = u.Query()
+	}
+
 	// add parameters
-	q := u.Query()
 	for n, v := range r.Output {
 		q.Set(n, fmt.Sprint(v))
 	}
+
+	// https://tools.ietf.org/html/rfc6749#section-4.2.2
+	// Fragment should be encoded as application/x-www-form-urlencoded (%-escaped, spaces are represented as '+')
+	// The stdlib URL#String() doesn't make that easy to accomplish, so build this ourselves
 	if r.RedirectInFragment {
-		u.RawQuery = ""
-		u.Fragment, err = url.QueryUnescape(q.Encode())
-		if err != nil {
-			return "", err
-		}
-	} else {
-		u.RawQuery = q.Encode()
+		u.Fragment = ""
+		redirectURI := u.String() + "#" + q.Encode()
+		return redirectURI, nil
 	}
 
+	// Otherwise, update the query and encode normally
+	u.RawQuery = q.Encode()
+	u.Fragment = ""
 	return u.String(), nil
 }
 
