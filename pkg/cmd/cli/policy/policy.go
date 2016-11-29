@@ -23,6 +23,8 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errOut io.Wr
 
 	cmds.AddCommand(adminpolicy.NewCmdWhoCan(adminpolicy.WhoCanRecommendedName, fullName+" "+adminpolicy.WhoCanRecommendedName, f, out))
 	cmds.AddCommand(adminpolicy.NewCmdCanI(adminpolicy.CanIRecommendedName, fullName+" "+adminpolicy.CanIRecommendedName, f, out))
+	cmds.AddCommand(adminpolicy.NewCmdSccSubjectReview(adminpolicy.SubjectReviewRecommendedName, fullName+" "+adminpolicy.SubjectReviewRecommendedName, f, out))
+	cmds.AddCommand(adminpolicy.NewCmdSccReview(adminpolicy.ReviewRecommendedName, fullName+" "+adminpolicy.ReviewRecommendedName, f, out))
 
 	cmds.AddCommand(adminpolicy.NewCmdAddRoleToUser(adminpolicy.AddRoleToUserRecommendedName, fullName+" "+adminpolicy.AddRoleToUserRecommendedName, f, out))
 	cmds.AddCommand(adminpolicy.NewCmdRemoveRoleFromUser(adminpolicy.RemoveRoleFromUserRecommendedName, fullName+" "+adminpolicy.RemoveRoleFromUserRecommendedName, f, out))
