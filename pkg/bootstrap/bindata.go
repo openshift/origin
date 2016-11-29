@@ -1508,6 +1508,18 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MYSQL_USER}",
+        "databasePassword" : "${MYSQL_PASSWORD}",
+        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -1592,11 +1604,30 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseRootPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -1668,6 +1699,14 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "required": true
     },
     {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MariaDB root Password",
+      "description": "Password for the MariaDB root user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
       "name": "MYSQL_DATABASE",
       "displayName": "MariaDB Database Name",
       "description": "Name of the MariaDB database accessed.",
@@ -1710,6 +1749,18 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
     "template": "mariadb-persistent-template"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MYSQL_USER}",
+        "databasePassword" : "${MYSQL_PASSWORD}",
+        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -1812,11 +1863,30 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseRootPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -1888,6 +1958,14 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "required": true
     },
     {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MariaDB root Password",
+      "description": "Password for the MariaDB root user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
       "name": "MYSQL_DATABASE",
       "displayName": "MariaDB Database Name",
       "description": "Name of the MariaDB database accessed.",
@@ -1938,6 +2016,18 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     "template": "mongodb-ephemeral-template"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MONGODB_USER}",
+        "databasePassword" : "${MONGODB_PASSWORD}",
+        "databaseAdminPassword" : "${MONGODB_ADMIN_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -2035,19 +2125,34 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MONGODB_USER",
-                    "value": "${MONGODB_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${MONGODB_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MONGODB_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseAdminPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
                     "value": "${MONGODB_DATABASE}"
-                  },
-                  {
-                    "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${MONGODB_ADMIN_PASSWORD}"
                   }
                 ],
                 "resources": {
@@ -2182,6 +2287,18 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MONGODB_USER}",
+        "databasePassword" : "${MONGODB_PASSWORD}",
+        "databaseAdminPassword" : "${MONGODB_ADMIN_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -2295,19 +2412,34 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MONGODB_USER",
-                    "value": "${MONGODB_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${MONGODB_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MONGODB_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseAdminPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
                     "value": "${MONGODB_DATABASE}"
-                  },
-                  {
-                    "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${MONGODB_ADMIN_PASSWORD}"
                   }
                 ],
                 "resources": {
@@ -2447,6 +2579,18 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     "template": "mysql-ephemeral-template"
   },
   "objects": [
+   {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MYSQL_USER}",
+        "databasePassword" : "${MYSQL_PASSWORD}",
+        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -2545,11 +2689,30 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseRootPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -2629,6 +2792,14 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "required": true
     },
     {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MySQL root user Password",
+      "description": "Password for the MySQL root user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
       "name": "MYSQL_DATABASE",
       "displayName": "MySQL Database Name",
       "description": "Name of the MySQL database accessed.",
@@ -2678,6 +2849,18 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     "template": "mysql-persistent-template"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${MYSQL_USER}",
+        "databasePassword" : "${MYSQL_PASSWORD}",
+        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -2780,11 +2963,30 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseRootPassword"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -2856,6 +3058,14 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "required": true
     },
     {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MySQL root user Password",
+      "description": "Password for the MySQL root user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
       "name": "MYSQL_DATABASE",
       "displayName": "MySQL Database Name",
       "description": "Name of the MySQL database accessed.",
@@ -2913,6 +3123,17 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     "template": "postgresql-ephemeral-template"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${POSTGRESQL_USER}",
+        "databasePassword" : "${POSTGRESQL_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -3010,11 +3231,21 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${POSTGRESQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${POSTGRESQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -3145,6 +3376,17 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${POSTGRESQL_USER}",
+        "databasePassword" : "${POSTGRESQL_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -3258,11 +3500,21 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${POSTGRESQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${POSTGRESQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -4523,6 +4775,17 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${DATABASE_USER}",
+        "databasePassword" : "${DATABASE_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -4719,11 +4982,21 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   },
                   {
                     "name": "DATABASE_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "DATABASE_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECRET_TOKEN",
@@ -4856,12 +5129,22 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                 },
                 "env": [
                     {
-                        "name": "MYSQL_USER",
-                        "value": "${DATABASE_USER}"
+                      "name": "MYSQL_USER",
+                      "valueFrom": {
+                        "secretKeyRef" : {
+                          "name" : "${NAME}",
+                          "key" : "databaseUser"
+                        }
+                      }
                     },
                     {
-                        "name": "MYSQL_PASSWORD",
-                        "value": "${DATABASE_PASSWORD}"
+                      "name": "MYSQL_PASSWORD",
+                      "valueFrom": {
+                        "secretKeyRef" : {
+                          "name" : "${NAME}",
+                          "key" : "databasePassword"
+                          }
+                        }
                     },
                     {
                         "name": "MYSQL_DATABASE",
@@ -5040,6 +5323,17 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${DATABASE_USER}",
+        "databasePassword" : "${DATABASE_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -5139,7 +5433,10 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
               "secret": "${GITHUB_WEBHOOK_SECRET}"
             }
           }
-        ]
+        ],
+        "postCommit": {
+          "script": "perl -I extlib/lib/perl5 -I lib t/*"
+        }
       }
     },
     {
@@ -5214,11 +5511,21 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                   },
                   {
                     "name": "MYSQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -5348,11 +5655,21 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                       "name": "MYSQL_DATABASE",
@@ -5429,18 +5746,6 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
       "description": "A secret string used to configure the GitHub webhook.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
-    },
-    {
-      "name": "ADMIN_USERNAME",
-      "displayName": "Administrator Username",
-      "generate": "expression",
-      "from": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "displayName": "Administrator Password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
@@ -5521,6 +5826,17 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
     "template": "django-psql-example"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${DATABASE_USER}",
+        "databasePassword" : "${DATABASE_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -5710,11 +6026,21 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                   },
                   {
                     "name": "DATABASE_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "DATABASE_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "APP_CONFIG",
@@ -5820,11 +6146,21 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -6008,6 +6344,18 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData": {
+        "databaseUser": "${DATABASE_USER}",
+        "databasePassword": "${DATABASE_PASSWORD}",
+        "databaseAdminPassword" : "${DATABASE_ADMIN_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -6080,10 +6428,10 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
               "namespace": "${NAMESPACE}",
               "name": "nodejs:4"
             },
-            "env":  [
+            "env": [
               {
-                  "name": "NPM_MIRROR",
-                  "value": "${NPM_MIRROR}"
+                "name": "NPM_MIRROR",
+                "value": "${NPM_MIRROR}"
               }
             ]
           }
@@ -6178,11 +6526,21 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   },
                   {
                     "name": "MONGODB_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
@@ -6190,7 +6548,12 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   },
                   {
                     "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseAdminPassword"
+                      }
+                    }
                   }
                 ],
                 "readinessProbe": {
@@ -6202,17 +6565,17 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
-                    "httpGet": {
-                        "path": "/pagecount",
-                        "port": 8080
-                    }
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/pagecount",
+                    "port": 8080
+                  }
                 },
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -6298,11 +6661,21 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                 "env": [
                   {
                     "name": "MONGODB_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
@@ -6310,14 +6683,24 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   },
                   {
                     "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseAdminPassword"
+                      }
+                    }
                   }
                 ],
                 "readinessProbe": {
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""
+                    ]
                   }
                 },
                 "livenessProbe": {
@@ -6328,9 +6711,9 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   }
                 },
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_MONGODB_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_MONGODB_LIMIT}"
+                  }
                 },
                 "volumeMounts": [
                   {
@@ -6494,6 +6877,20 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
     "template": "rails-postgresql-example"
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${DATABASE_USER}",
+        "databasePassword" : "${DATABASE_PASSWORD}",
+        "applicationUser" : "${APPLICATION_USER}",
+        "applicationPassword" : "${APPLICATION_PASSWORD}",
+        "keyBase" : "${SECRET_KEY_BASE}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -6686,11 +7083,21 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                   },
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -6698,7 +7105,12 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                   },
                   {
                     "name": "SECRET_KEY_BASE",
-                    "value": "${SECRET_KEY_BASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "keyBase"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_MAX_CONNECTIONS",
@@ -6714,11 +7126,21 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                   },
                   {
                     "name": "APPLICATION_USER",
-                    "value": "${APPLICATION_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "applicationUser"
+                      }
+                    }
                   },
                   {
                     "name": "APPLICATION_PASSWORD",
-                    "value": "${APPLICATION_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "applicationPassword"
+                      }
+                    }
                   },
                   {
                     "name": "RAILS_ENV",
