@@ -91,6 +91,7 @@ type AppliedClusterResourceQuotaList struct {
 	Items []AppliedClusterResourceQuota
 }
 
+// +gencopy=false
 // ResourceQuotasStatusByNamespace provides type correct methods
 type ResourceQuotasStatusByNamespace struct {
 	orderedMap orderedMap
