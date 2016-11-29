@@ -64,7 +64,7 @@ func hasRunningSerialBuild(lister buildclient.BuildLister, namespace, buildConfi
 	var hasRunningBuilds bool
 	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b buildapi.Build) bool {
 		switch b.Status.Phase {
-		case buildapi.BuildPhasePending, buildapi.BuildPhaseInit, buildapi.BuildPhaseRunning:
+		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
 			switch buildutil.BuildRunPolicy(&b) {
 			case buildapi.BuildRunPolicySerial, buildapi.BuildRunPolicySerialLatestOnly:
 				hasRunningBuilds = true
@@ -87,7 +87,7 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 	)
 	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b buildapi.Build) bool {
 		switch b.Status.Phase {
-		case buildapi.BuildPhasePending, buildapi.BuildPhaseInit, buildapi.BuildPhaseRunning:
+		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
 			hasRunningBuilds = true
 			return false
 		}

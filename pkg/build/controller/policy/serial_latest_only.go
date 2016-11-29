@@ -63,7 +63,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b buildapi.Build) bool {
 		// Do not cancel the complete builds, builds that were already cancelled, or
 		// running builds.
-		if buildutil.IsBuildComplete(&b) || b.Status.Phase == buildapi.BuildPhaseInit || b.Status.Phase == buildapi.BuildPhaseRunning {
+		if buildutil.IsBuildComplete(&b) || b.Status.Phase == buildapi.BuildPhaseRunning {
 			return false
 		}
 

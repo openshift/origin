@@ -232,9 +232,6 @@ const (
 	// about to start running.
 	BuildPhasePending BuildPhase = "Pending"
 
-	// BuildPhaseInit indicates that a pod is running one of the init containers.
-	BuildPhaseInit BuildPhase = "Init"
-
 	// BuildPhaseRunning indicates that a pod has been created and a build is running.
 	BuildPhaseRunning BuildPhase = "Running"
 

@@ -41,7 +41,6 @@ func TestPruneTask(t *testing.T) {
 		buildapi.BuildPhaseFailed,
 		buildapi.BuildPhaseNew,
 		buildapi.BuildPhasePending,
-		buildapi.BuildPhaseInit,
 		buildapi.BuildPhaseRunning,
 	}
 	BuildPhaseFilter := []buildapi.BuildPhase{
