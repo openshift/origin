@@ -24,7 +24,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 			continue
 		}
-		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], &policy)
+		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], policy)
 	}
 
 	for vnid := range plugin.egressPolicies {
@@ -55,7 +55,7 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 			}
 		}
 		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
-			policies = append(policies, policy)
+			policies = append(policies, *policy)
 		}
 		plugin.egressPolicies[vnid] = policies
 
@@ -73,7 +73,7 @@ func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid,
 	policies := plugin.egressPolicies[oldVnid]
 	for i, oldPolicy := range policies {
 		if oldPolicy.Namespace == namespace {
-			policy = oldPolicy
+			policy = &oldPolicy
 			plugin.egressPolicies[oldVnid] = append(policies[:i], policies[i+1:]...)
 			err := plugin.updateEgressNetworkPolicyRules(oldVnid)
 			if err != nil {
@@ -84,7 +84,7 @@ func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid,
 	}
 
 	if policy != nil {
-		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], policy)
+		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], *policy)
 		err := plugin.updateEgressNetworkPolicyRules(newVnid)
 		if err != nil {
 			return err
