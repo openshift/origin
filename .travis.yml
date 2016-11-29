@@ -9,6 +9,7 @@ install:
 
 script:
   - PERMISSIVE_GO=y make verify
+  - make verify-commits
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
