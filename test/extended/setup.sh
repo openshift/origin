@@ -2,7 +2,7 @@
 #
 # This abstracts starting up an extended server.
 
-source "${OS_ROOT}/hack/util.sh"
+#source "${OS_ROOT}/hack/util.sh"
 
 # If invoked with arguments, executes the test directly.
 function os::test::extended::focus {
