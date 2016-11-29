@@ -30,7 +30,6 @@ func TestParallelIsRunnableMixedBuilds(t *testing.T) {
 		addBuild("build-4", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicyParallel),
 		addBuild("build-6", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
 		addBuild("build-5", "sample-bc", buildapi.BuildPhasePending, buildapi.BuildRunPolicyParallel),
-		addBuild("build-7", "sample-bc", buildapi.BuildPhaseInit, buildapi.BuildRunPolicyParallel),
 	}
 	client := newTestClient(mixedBuilds)
 	policy := ParallelPolicy{BuildLister: client, BuildUpdater: client}
@@ -48,25 +47,6 @@ func TestParallelIsRunnableMixedBuilds(t *testing.T) {
 func TestParallelIsRunnableWithSerialRunning(t *testing.T) {
 	mixedBuilds := []buildapi.Build{
 		addBuild("build-7", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicySerial),
-		addBuild("build-8", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-		addBuild("build-9", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
-	}
-	client := newTestClient(mixedBuilds)
-	policy := ParallelPolicy{BuildLister: client, BuildUpdater: client}
-	for _, build := range mixedBuilds {
-		runnable, err := policy.IsRunnable(&build)
-		if err != nil {
-			t.Errorf("expected no error, got %v", err)
-		}
-		if runnable {
-			t.Errorf("expected build %s as not runnable", build.Name)
-		}
-	}
-}
-
-func TestParallelIsRunnableWithSerialInit(t *testing.T) {
-	mixedBuilds := []buildapi.Build{
-		addBuild("build-7", "sample-bc", buildapi.BuildPhaseInit, buildapi.BuildRunPolicySerial),
 		addBuild("build-8", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
 		addBuild("build-9", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
 	}

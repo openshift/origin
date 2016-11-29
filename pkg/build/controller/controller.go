@@ -377,7 +377,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 
 // isBuildCancellable checks for build status and returns true if the condition is checked.
 func isBuildCancellable(build *buildapi.Build) bool {
-	return build.Status.Phase == buildapi.BuildPhaseNew || build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseInit || build.Status.Phase == buildapi.BuildPhaseRunning
+	return build.Status.Phase == buildapi.BuildPhaseNew || build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseRunning
 }
 
 // BuildPodDeleteController watches pods running builds and updates the build if the pod is deleted

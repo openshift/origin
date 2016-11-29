@@ -87,7 +87,6 @@ func TestSerialLatestOnlyIsRunnableMixedInit(t *testing.T) {
 	allNewBuilds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseCancelled, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseInit, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)

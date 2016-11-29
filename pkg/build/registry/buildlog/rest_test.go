@@ -48,7 +48,6 @@ func TestRegistryResourceLocation(t *testing.T) {
 		api.BuildPhaseComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
 		api.BuildPhaseFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
 		api.BuildPhaseRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
-		api.BuildPhaseInit:      fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
 		api.BuildPhaseNew:       "",
 		api.BuildPhasePending:   "",
 		api.BuildPhaseError:     "",
