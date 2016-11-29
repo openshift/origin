@@ -11,6 +11,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -104,6 +105,13 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		// build a valid object to use if we failed on a non-existent file
 		o.StartingKubeConfig = kclientcmdapi.NewConfig()
 	}
+
+	unparsedTimeout := kcmdutil.GetFlagString(cmd, "request-timeout")
+	timeout, err := kclientcmd.ParseTimeout(unparsedTimeout)
+	if err != nil {
+		return err
+	}
+	o.RequestTimeout = timeout
 
 	o.CommandName = commandName
 	if o.CommandName == "" {
