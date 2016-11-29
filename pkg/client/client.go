@@ -295,6 +295,18 @@ func (c *Client) RoleBindingRestrictions(namespace string) RoleBindingRestrictio
 	return newRoleBindingRestrictions(c, namespace)
 }
 
+func (c *Client) PodSecurityPolicyReviews(namespace string) PodSecurityPolicyReviewInterface {
+	return newPodSecurityPolicyReviews(c, namespace)
+}
+
+func (c *Client) PodSecurityPolicySelfSubjectReviews(namespace string) PodSecurityPolicySelfSubjectReviewInterface {
+	return newPodSecurityPolicySelfSubjectReviews(c, namespace)
+}
+
+func (c *Client) PodSecurityPolicySubjectReviews(namespace string) PodSecurityPolicySubjectReviewInterface {
+	return newPodSecurityPolicySubjectReviews(c, namespace)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*restclient.RESTClient

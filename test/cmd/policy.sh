@@ -98,6 +98,35 @@ os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --gro
 os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
 
 
+os::cmd::expect_failure 'oc policy scc-subject-review'
+os::cmd::expect_failure 'oc policy scc-review'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.AllowedBy.name}' 'privileged'
+os::cmd::expect_success "oc login -u bob -p bob"
+os::cmd::expect_success_and_text 'oc whoami' 'bob'
+os::cmd::expect_success 'oc new-project bob'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/two_jobs.yaml -o=jsonpath={.status.AllowedBy.name}' 'restrictedrestricted'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
+os::cmd::expect_failure 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/external-service.yaml'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n bob -o=jsonpath={.status.AllowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_ROOT}/test/testdata/job.yaml -n bob --no-headers=true' '<none>'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -f ${OS_ROOT}/test/testdata/job.yaml' ''
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'error: --user and --serviceaccount are mutually exclusive'
+os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/scc_lax.yaml'
+os::cmd::expect_success "oc login -u bob -p bob"
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success 'oc delete project bob'
+
 
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
