@@ -124,6 +124,10 @@
                     "value": "${MYSQL_PASSWORD}"
                   },
                   {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "${MYSQL_ROOT_PASSWORD}"
+                  },
+                  {
                     "name": "MYSQL_DATABASE",
                     "value": "${MYSQL_DATABASE}"
                   }
@@ -188,6 +192,14 @@
       "name": "MYSQL_PASSWORD",
       "displayName": "MariaDB Connection Password",
       "description": "Password for the MariaDB connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MariaDB root Password",
+      "description": "Password for the MariaDB root user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
