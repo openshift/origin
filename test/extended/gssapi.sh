@@ -36,7 +36,7 @@ os::cmd::expect_success_and_text 'oc version' 'GSSAPI Kerberos SPNEGO'
 function cleanup() {
     out=$?
     set +e
-    cleanup_openshift
+    os::cleanup::openshift
 
     # TODO(skuznets): un-hack this nonsense once traps are in a better state
     if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then

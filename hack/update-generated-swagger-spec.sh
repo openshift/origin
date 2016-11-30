@@ -5,7 +5,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 function cleanup() {
     out=$?
-    cleanup_openshift
+    os::cleanup::openshift
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Generate Failed !!!!"

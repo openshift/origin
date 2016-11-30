@@ -13,7 +13,7 @@ function cleanup()
 {
 	out=$?
   pgrep -f "openshift" | xargs -r sudo kill
-	cleanup_openshift
+	os::cleanup::openshift
 	os::log::info "Exiting"
 	exit $out
 }

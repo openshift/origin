@@ -11,7 +11,7 @@ os::build::setup_env
 function cleanup()
 {
 	out=$?
-	cleanup_openshift
+	os::cleanup::openshift
 	os::log::info "Exiting"
 	return $out
 }
