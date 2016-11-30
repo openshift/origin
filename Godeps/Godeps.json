@@ -1269,8 +1269,8 @@
 		},
 		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
-			"Comment": "v1.2.10-6-g3c39c22",
-			"Rev": "3c39c22b2c7b0516d5f2553f1608e5d13cb19053"
+			"Comment": "v1.3.1-1-gf12c623",
+			"Rev": "f12c6236fe7b5cf6bcf30e5935d08cb079d78334"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
