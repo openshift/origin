@@ -306,6 +306,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -370,6 +371,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -429,6 +431,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -450,6 +453,54 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				"label1": "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
+		},
+		{
+			name: "allways pull image",
+			hook: &deployapi.LifecycleHook{
+				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &deployapi.ExecNewPodHook{
+					ContainerName: "container2",
+				},
+			},
+			expected: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: namer.GetPodName(deploymentName, "hook"),
+					Labels: map[string]string{
+						deployapi.DeploymentPodTypeLabel:        "hook",
+						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+					},
+					Annotations: map[string]string{
+						deployapi.DeploymentAnnotation: deploymentName,
+					},
+				},
+				Spec: kapi.PodSpec{
+					RestartPolicy:         kapi.RestartPolicyNever,
+					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+					Containers: []kapi.Container{
+						{
+							Name:  "lifecycle",
+							Image: "registry:8080/repo1:ref2",
+							Env: []kapi.EnvVar{
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
+									Value: deploymentName,
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+									Value: deploymentNamespace,
+								},
+							},
+							ImagePullPolicy: kapi.PullAlways,
+						},
+					},
+					TerminationGracePeriodSeconds: &gracePeriod,
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -670,7 +721,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 						{
 							Name:            "container2",
 							Image:           "registry:8080/repo1:ref2",
-							ImagePullPolicy: kapi.PullIfNotPresent,
+							ImagePullPolicy: kapi.PullAlways,
 						},
 					},
 					Volumes: []kapi.Volume{
