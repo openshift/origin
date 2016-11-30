@@ -39,7 +39,7 @@ func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, erro
 	return pod, nil
 }
 
-// TestRegistryResourceLocation tests if proper resource location URL is returner
+// TestRegistryResourceLocation tests if proper resource location URL is returned
 // for different build states.
 // Note: For this test, the mocked pod is set to "Running" phase, so the test
 // is evaluating the outcome based only on build state.

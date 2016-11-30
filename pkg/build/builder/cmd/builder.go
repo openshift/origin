@@ -42,7 +42,7 @@ type builderConfig struct {
 	buildsClient    client.BuildInterface
 }
 
-func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
+func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
 	cfg := &builderConfig{}
 	var err error
 
@@ -71,13 +71,14 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
 	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
 
-	// dockerClient and dockerEndpoint (DOCKER_HOST)
-	// usually not set, defaults to docker socket
-	cfg.dockerClient, cfg.dockerEndpoint, err = dockerutil.NewHelper().GetClient()
-	if err != nil {
-		return nil, fmt.Errorf("no Docker configuration defined: %v", err)
+	if needsDocker {
+		// dockerClient and dockerEndpoint (DOCKER_HOST)
+		// usually not set, defaults to docker socket
+		cfg.dockerClient, cfg.dockerEndpoint, err = dockerutil.NewHelper().GetClient()
+		if err != nil {
+			return nil, fmt.Errorf("no Docker configuration defined: %v", err)
+		}
 	}
-
 	// buildsClient (KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT)
 	clientConfig, err := restclient.InClusterConfig()
 	if err != nil {
@@ -142,6 +143,55 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 		gitEnv = append(gitEnv, fmt.Sprintf("no_proxy=%s", *gitSource.NoProxy))
 	}
 	return sourceSecretDir, bld.MergeEnv(os.Environ(), gitEnv), nil
+}
+
+// clone is responsible for cloning the source referenced in the buildconfig
+func (c *builderConfig) clone() error {
+	secretTmpDir, gitEnv, err := c.setupGitEnvironment()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(secretTmpDir)
+
+	gitClient := git.NewRepositoryWithEnv(gitEnv)
+
+	//buildDir, err := ioutil.TempDir("", "inputs")
+	buildDir := "/tmp/gitSource"
+	if err != nil {
+		return err
+	}
+
+	sourceInfo, err := bld.GitClone(gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
+	if err != nil {
+		return err
+	}
+	if sourceInfo != nil {
+		bld.UpdateBuildRevision(c.buildsClient, c.build, sourceInfo)
+	}
+
+	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
+	return err
+}
+
+func (c *builderConfig) manageDockerfile() error {
+	buildDir := "/tmp/gitSource"
+
+	/*
+		secretTmpDir, gitEnv, err := c.setupGitEnvironment()
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(secretTmpDir)
+	*/
+	gitClient := git.NewRepositoryWithEnv(nil)
+
+	return bld.ManageDockerfile(gitClient, buildDir, c.build)
+}
+
+func (c *builderConfig) extractImageContent() error {
+	buildDir := "/tmp/gitSource"
+
+	return bld.ExtractImageContent(c.dockerClient, buildDir, c.build)
 }
 
 // execute is responsible for running a build
@@ -211,7 +261,7 @@ func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient
 }
 
 func runBuild(out io.Writer, builder builder) error {
-	cfg, err := newBuilderConfigFromEnvironment(out)
+	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
 	}
@@ -226,4 +276,31 @@ func RunDockerBuild(out io.Writer) error {
 // RunS2IBuild creates a S2I builder and runs its build
 func RunS2IBuild(out io.Writer) error {
 	return runBuild(out, s2iBuilder{})
+}
+
+// RunGitClone performs a git clone using the build defined in the environment
+func RunGitClone(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, false)
+	if err != nil {
+		return err
+	}
+	return cfg.clone()
+}
+
+// RunManageDockerfile manipulates the dockerfile for docker builds
+func RunManageDockerfile(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, false)
+	if err != nil {
+		return err
+	}
+	return cfg.manageDockerfile()
+}
+
+// RunExtractImageContent extracts files from existing images
+func RunExtractImageContent(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, true)
+	if err != nil {
+		return err
+	}
+	return cfg.extractImageContent()
 }

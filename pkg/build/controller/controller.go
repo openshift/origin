@@ -304,6 +304,29 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 			}
 		}
+		for _, initContainer := range pod.Status.InitContainerStatuses {
+			if initContainer.Name == "git-clone" && initContainer.State.Running != nil {
+				nextStatus = buildapi.BuildPhaseRunning
+			}
+		}
+		/*
+			glog.Infof("Looking at pending pod %#v with annotations %#v", pod, pod.Annotations)
+			if initStatus, ok := pod.Annotations["pod.beta.kubernetes.io/init-container-statuses"]; ok {
+				glog.Infof("with annotation %v", initStatus)
+				var dat []map[string]interface{}
+				json.Unmarshal([]byte(initStatus), &dat)
+				for _, initContainer := range dat {
+					if initContainer["name"] == "git-clone" {
+						glog.Infof("found git-clone container")
+						state := initContainer["state"].(map[string]interface{})
+						if _, ok = state["running"]; ok {
+							glog.Infof("found state running")
+							nextStatus = buildapi.BuildPhaseRunning
+						}
+					}
+				}
+			}
+		*/
 	case kapi.PodSucceeded:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildPhaseComplete
@@ -325,7 +348,6 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		build.Status.Reason = ""
 		nextStatus = buildapi.BuildPhaseFailed
 	}
-
 	// Update the build object when it progress to a next state or the reason for
 	// the current state changed.
 	if (!hasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus) && !buildutil.IsBuildComplete(build) {

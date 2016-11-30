@@ -66,7 +66,7 @@ func buildInfo(build *api.Build) []KeyValue {
 	return kv
 }
 
-func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *git.SourceInfo) {
+func UpdateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *git.SourceInfo) {
 	if build.Spec.Revision != nil {
 		return
 	}

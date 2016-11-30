@@ -43,18 +43,9 @@ func (e gitNotFoundError) Error() string {
 	return fmt.Sprintf("requested repository %q not found", string(e))
 }
 
-// fetchSource retrieves the inputs defined by the build source into the
-// provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
-	hasGitSource := false
-
-	// expect to receive input from STDIN
-	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
-		return nil, err
-	}
-
-	// may retrieve source from Git
-	hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+// GitClone clones the source associated with a build(if any) into the specified directory
+func GitClone(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string) (*git.SourceInfo, error) {
+	hasGitSource, err := extractGitSource(gitClient, gitSource, revision, dir, initialURLCheckTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +60,24 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 			}
 		}
 	}
+	return sourceInfo, nil
+}
 
+func ManageDockerfile(gitClient GitClient, dir string, build *api.Build) error {
+	// a Dockerfile has been specified, create or overwrite into the destination
+	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
+		baseDir := dir
+		if len(build.Spec.Source.ContextDir) != 0 {
+			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+		}
+		if err := ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660); err != nil {
+			return err
+		}
+	}
+	return addBuildParameters(gitClient, dir, build)
+}
+
+func ExtractImageContent(dockerClient DockerClient, dir string, build *api.Build) error {
 	forcePull := false
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
@@ -87,21 +95,77 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		}
 		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// fetchSource retrieves the inputs defined by the build source into the
+// provided directory, or returns an error if retrieval is not possible.
+func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration) error {
+	//hasGitSource := false
+
+	/*
+		// expect to receive input from STDIN
+		if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
+			return err
+		}
+	*/
+
+	/*
+		// may retrieve source from Git
+		hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+		if err != nil {
 			return nil, err
 		}
-	}
 
-	// a Dockerfile has been specified, create or overwrite into the destination
-	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
-		baseDir := dir
-		// if a context dir has been defined and we cloned source, overwrite the destination
-		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
-			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+		var sourceInfo *git.SourceInfo
+		if hasGitSource {
+			var errs []error
+			sourceInfo, errs = gitClient.GetInfo(dir)
+			if len(errs) > 0 {
+				for _, e := range errs {
+					glog.V(0).Infof("error: Unable to retrieve Git info: %v", e)
+				}
+			}
 		}
-		return sourceInfo, ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
-	}
+	*/
 
-	return sourceInfo, nil
+	/*
+		forcePull := false
+		switch {
+		case build.Spec.Strategy.SourceStrategy != nil:
+			forcePull = build.Spec.Strategy.SourceStrategy.ForcePull
+		case build.Spec.Strategy.DockerStrategy != nil:
+			forcePull = build.Spec.Strategy.DockerStrategy.ForcePull
+		case build.Spec.Strategy.CustomStrategy != nil:
+			forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
+		}
+		// extract source from an Image if specified
+		for i, image := range build.Spec.Source.Images {
+			imageSecretIndex := i
+			if image.PullSecret == nil {
+				imageSecretIndex = -1
+			}
+			err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
+			if err != nil {
+				return err
+			}
+		}
+	*/
+	/*
+		// a Dockerfile has been specified, create or overwrite into the destination
+		if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
+			baseDir := dir
+			// if a context dir has been defined and we cloned source, overwrite the destination
+			if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
+				baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+			}
+			return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
+		}
+	*/
+	return nil
 }
 
 // checkRemoteGit validates the specified Git URL. It returns GitNotFoundError
@@ -161,9 +225,9 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 	return checkRemoteGit(gitClient, rawurl, timeout)
 }
 
-// extractInputBinary processes the provided input stream as directed by BinaryBuildSource
+// ExtractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
-func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string) error {
+func ExtractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string) error {
 	if source == nil {
 		return nil
 	}
@@ -188,6 +252,10 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
+	glog.V(0).Infof("sleeping2")
+	exec.Command("sleep", "5")
+	glog.V(0).Infof("done sleeping2")
+
 	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
@@ -195,6 +263,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 		glog.V(0).Infof("Extracting...\n%s", string(out))
 		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
+	glog.V(0).Infof("Source received: %s", string(out))
 	return nil
 }
 

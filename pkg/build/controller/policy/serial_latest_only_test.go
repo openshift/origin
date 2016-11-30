@@ -50,11 +50,43 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 	}
 }
 
-func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
+func TestSerialLatestOnlyIsRunnableMixedRunning(t *testing.T) {
 	allNewBuilds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseCancelled, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-3", "sample-bc", buildapi.BuildPhaseRunning, buildapi.BuildRunPolicySerialLatestOnly),
+		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
+	}
+	client := newTestClient(allNewBuilds)
+	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
+	for _, build := range allNewBuilds {
+		runnable, err := policy.IsRunnable(&build)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if runnable {
+			t.Errorf("%s should not be runnable", build.Name)
+		}
+	}
+	builds, err := client.List("test", kapi.ListOptions{})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if builds.Items[0].Status.Cancelled {
+		t.Errorf("expected build-1 is complete and should not be cancelled")
+	}
+	if builds.Items[2].Status.Cancelled {
+		t.Errorf("expected build-3 is running and should not be cancelled")
+	}
+	if builds.Items[3].Status.Cancelled {
+		t.Errorf("expected build-4 will run next and should not be cancelled")
+	}
+}
+
+func TestSerialLatestOnlyIsRunnableMixedInit(t *testing.T) {
+	allNewBuilds := []buildapi.Build{
+		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerialLatestOnly),
+		addBuild("build-2", "sample-bc", buildapi.BuildPhaseCancelled, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)

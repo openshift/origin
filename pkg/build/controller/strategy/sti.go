@@ -15,7 +15,9 @@ import (
 
 // SourceBuildStrategy creates STI(source to image) builds
 type SourceBuildStrategy struct {
-	Image string
+	Image                    string
+	GitCloneImage            string
+	ExtractImageContentImage string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -76,26 +78,79 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Name:  "sti-build",
 					Image: bs.Image,
 					Env:   containerEnv,
+					Args:  []string{},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,
 					},
-					Args: []string{},
+					VolumeMounts: []kapi.VolumeMount{
+						{
+							Name:      "gitsource",
+							MountPath: "/tmp/gitSource",
+						},
+					},
+					ImagePullPolicy: kapi.PullIfNotPresent,
+					Resources:       build.Spec.Resources,
+				},
+			},
+			Volumes: []kapi.Volume{
+				{
+					Name: "gitsource",
+					VolumeSource: kapi.VolumeSource{
+						EmptyDir: &kapi.EmptyDirVolumeSource{},
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = build.Spec.Resources
+
+	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
+		gitCloneContainer := kapi.Container{
+			Name:  "git-clone",
+			Image: bs.GitCloneImage,
+			Env:   containerEnv,
+			Args:  []string{},
+			VolumeMounts: []kapi.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: "/tmp/gitSource",
+				},
+			},
+			ImagePullPolicy: kapi.PullIfNotPresent,
+			Resources:       build.Spec.Resources,
+		}
+		if build.Spec.Source.Binary != nil {
+			gitCloneContainer.Stdin = true
+			gitCloneContainer.StdinOnce = true
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
+	}
+	if len(build.Spec.Source.Images) > 0 {
+		extractImageContentContainer := kapi.Container{
+			Name:  "extract-image-content",
+			Image: bs.ExtractImageContentImage,
+			Env:   containerEnv,
+			Args:  []string{},
+			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+			SecurityContext: &kapi.SecurityContext{
+				Privileged: &privileged,
+			},
+			VolumeMounts: []kapi.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: "/tmp/gitSource",
+				},
+			},
+			ImagePullPolicy: kapi.PullIfNotPresent,
+			Resources:       build.Spec.Resources,
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
+	}
 
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
-	}
-	if build.Spec.Source.Binary != nil {
-		pod.Spec.Containers[0].Stdin = true
-		pod.Spec.Containers[0].StdinOnce = true
 	}
 
 	setupDockerSocket(pod)
