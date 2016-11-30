@@ -24,7 +24,7 @@ function usage() {
   echo "  removes ${PACKAGE_LIST} from the excludes= line in ${CONF_FILE}"
   echo "  This re-enables updates for packages"
   echo
-  } 1>&
+  } 1>&2
   exit 1
 }
 
