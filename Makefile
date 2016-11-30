@@ -61,7 +61,6 @@ check: | build verify
 #   make verify
 verify: build
 	# build-tests is disabled until we can determine why memory usage is so high
-	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
 	hack/verify-generated-bootstrap-bindata.sh
@@ -75,6 +74,14 @@ verify: build
 	hack/verify-generated-swagger-descriptions.sh
 	hack/verify-generated-swagger-spec.sh
 .PHONY: verify
+
+# Verify commit comments.
+#
+# Example:
+#   make verify-commits
+verify-commits:
+	hack/verify-upstream-commits.sh
+.PHONY: verify-commits
 
 # Update all generated artifacts.
 #
