@@ -6,14 +6,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
 type PodInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToPodLister
 }
@@ -22,7 +21,7 @@ type podInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *podInformer) Informer() framework.SharedIndexInformer {
+func (f *podInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -46,7 +45,7 @@ func (f *podInformer) Informer() framework.SharedIndexInformer {
 
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -68,7 +67,7 @@ func (f *podInformer) Lister() *cache.StoreToPodLister {
 }
 
 type NodeInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToNodeLister
 }
@@ -77,7 +76,7 @@ type nodeInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *nodeInformer) Informer() framework.SharedIndexInformer {
+func (f *nodeInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -101,7 +100,7 @@ func (f *nodeInformer) Informer() framework.SharedIndexInformer {
 
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -123,7 +122,7 @@ func (f *nodeInformer) Lister() *cache.StoreToNodeLister {
 }
 
 type PersistentVolumeInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToPVFetcher
 }
@@ -132,7 +131,7 @@ type persistentVolumeInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *persistentVolumeInformer) Informer() framework.SharedIndexInformer {
+func (f *persistentVolumeInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -156,7 +155,7 @@ func (f *persistentVolumeInformer) Informer() framework.SharedIndexInformer {
 
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -178,7 +177,7 @@ func (f *persistentVolumeInformer) Lister() *cache.StoreToPVFetcher {
 }
 
 type PersistentVolumeClaimInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToPVCFetcher
 }
@@ -187,7 +186,7 @@ type persistentVolumeClaimInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *persistentVolumeClaimInformer) Informer() framework.SharedIndexInformer {
+func (f *persistentVolumeClaimInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -211,7 +210,7 @@ func (f *persistentVolumeClaimInformer) Informer() framework.SharedIndexInformer
 
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -233,7 +232,7 @@ func (f *persistentVolumeClaimInformer) Lister() *cache.StoreToPVCFetcher {
 }
 
 type ReplicationControllerInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToReplicationControllerLister
 }
@@ -242,7 +241,7 @@ type replicationControllerInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *replicationControllerInformer) Informer() framework.SharedIndexInformer {
+func (f *replicationControllerInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -265,7 +264,7 @@ func (f *replicationControllerInformer) Informer() framework.SharedIndexInformer
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -287,7 +286,7 @@ func (f *replicationControllerInformer) Lister() *cache.StoreToReplicationContro
 }
 
 type NamespaceInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.IndexerToNamespaceLister
 }
@@ -296,7 +295,7 @@ type namespaceInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *namespaceInformer) Informer() framework.SharedIndexInformer {
+func (f *namespaceInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -319,7 +318,7 @@ func (f *namespaceInformer) Informer() framework.SharedIndexInformer {
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -341,7 +340,7 @@ func (f *namespaceInformer) Lister() *cache.IndexerToNamespaceLister {
 }
 
 type LimitRangeInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() StoreToLimitRangeLister
 }
@@ -350,7 +349,7 @@ type limitRangeInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *limitRangeInformer) Informer() framework.SharedIndexInformer {
+func (f *limitRangeInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -373,7 +372,7 @@ func (f *limitRangeInformer) Informer() framework.SharedIndexInformer {
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,

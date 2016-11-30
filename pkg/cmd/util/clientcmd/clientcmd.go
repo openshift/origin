@@ -10,8 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -233,10 +231,10 @@ func (cfg *Config) OpenShiftConfig() *restclient.Config {
 }
 
 // Clients returns an OpenShift and a Kubernetes client from a given configuration
-func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, kclientset.Interface, error) {
+func (cfg *Config) Clients() (osclient.Interface, kclientset.Interface, error) {
 	cfg.bindEnv()
 
-	kubeClient, err := kclient.New(cfg.KubeConfig())
+	kubeClientset, err := kclientset.NewForConfig(cfg.KubeConfig())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
 	}
@@ -245,8 +243,6 @@ func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, kclientset.
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
 	}
-
-	kubeClientset := adapter.FromUnversionedClient(kubeClient)
 
 	return osClient, kubeClient, kubeClientset, nil
 }

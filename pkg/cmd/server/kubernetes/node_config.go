@@ -27,7 +27,7 @@ import (
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -89,12 +89,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
-	_, kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	_, eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
 	}
 
-	clientCAs, err := kcrypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+	clientCAs, err := cert.NewPool(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
 	}

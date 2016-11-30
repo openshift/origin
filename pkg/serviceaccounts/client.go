@@ -7,8 +7,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -57,7 +55,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account
 // TODO: change return types to client.Interface/kclientset.Interface to allow auto-reloading credentials
-func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclient.Client, *kclientset.Clientset, error) {
+func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclientset.Clientset, error) {
 	// Clear existing auth info
 	config.Username = ""
 	config.Password = ""
@@ -84,24 +82,23 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	// TODO: refetch the token if the client encounters 401 errors
 	token, err := tokenRetriever.GetToken(namespace, name)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	config.BearerToken = token
 
 	config.UserAgent = openshiftUserAgent
 	c, err := client.New(&config)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	config.UserAgent = kubeUserAgent
-	kc, err := kclient.New(&config)
+	kcset, err := kclientset.NewFromConfig(&config)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
-	kcset := adapter.FromUnversionedClient(kc)
 
-	return &config, c, kc, kcset, nil
+	return &config, c, kcset, nil
 }
 
 // IsValidServiceAccountToken returns true if the given secret contains a service account token valid for the given service account

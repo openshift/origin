@@ -247,7 +247,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		podWatch.Stop()
 
 		for _, state := range test.States {
-			if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Update pod state and verify that corresponding build state happens accordingly
 				pod, err := kClient.Pods(ns).Get(pod.Name)
 				if err != nil {

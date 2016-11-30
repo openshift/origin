@@ -9,9 +9,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -116,7 +116,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 			// Retry faster on conflicts
 			var updatedDeployment *kapi.ReplicationController
-			if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 				if kapierrors.IsNotFound(err) {
 					return nil
@@ -232,7 +232,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		// Only update if necessary.
 		var copied *kapi.ReplicationController
 		if newReplicaCount != oldReplicaCount {
-			if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 				// refresh the replication controller version
 				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 				if err != nil {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/kubernetes/cmd/libs/go2idl/args"
+	"k8s.io/gengo/args"
 	"k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protobuf"
 
 	flag "github.com/spf13/pflag"

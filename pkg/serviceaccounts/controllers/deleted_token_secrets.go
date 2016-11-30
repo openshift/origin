@@ -9,7 +9,6 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -30,7 +29,7 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 	}
 
 	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	_, e.secretController = framework.NewInformer(
+	_, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				opts := api.ListOptions{FieldSelector: dockercfgSelector}
@@ -43,7 +42,7 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 		},
 		&api.Secret{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			DeleteFunc: e.secretDeleted,
 		},
 	)
@@ -58,7 +57,7 @@ type DockercfgTokenDeletedController struct {
 
 	client kclientset.Interface
 
-	secretController *framework.Controller
+	secretController *cache.Controller
 }
 
 // Runs controller loops and returns immediately

@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
-	appsv1alpha1 "k8s.io/kubernetes/pkg/apis/apps/v1alpha1"
+	appsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
@@ -29,7 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/cronjob"
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	"k8s.io/kubernetes/pkg/controller/deployment"
 	"k8s.io/kubernetes/pkg/controller/disruption"
@@ -45,7 +45,6 @@ import (
 	gccontroller "k8s.io/kubernetes/pkg/controller/podgc"
 	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
-	"k8s.io/kubernetes/pkg/controller/scheduledjob"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	attachdetachcontroller "k8s.io/kubernetes/pkg/controller/volume/attachdetach"
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/volume/persistentvolume"
@@ -57,8 +56,8 @@ import (
 	storagefactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
-	"k8s.io/kubernetes/pkg/registry/endpoint"
-	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
+	"k8s.io/kubernetes/pkg/registry/core/endpoint"
+	endpointsetcd "k8s.io/kubernetes/pkg/registry/core/endpoint/etcd"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/cinder"
@@ -142,7 +141,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 		batchv2alpha1.SchemeGroupVersion,
 		autoscalingv1.SchemeGroupVersion,
 		certificatesv1alpha1.SchemeGroupVersion,
-		appsv1alpha1.SchemeGroupVersion,
+		appsv1beta1.SchemeGroupVersion,
 		policyv1alpha1.SchemeGroupVersion,
 		federationv1beta1.SchemeGroupVersion,
 	}
@@ -316,7 +315,7 @@ func (c *MasterConfig) RunScheduledJobController(config *restclient.Config) {
 	if err != nil {
 		glog.Fatalf("Unable to configure scheduled job controller: %v", err)
 	}
-	go scheduledjob.NewScheduledJobController(client).Run(utilwait.NeverStop)
+	go cronjob.NewCronJobController(client).Run(utilwait.NeverStop)
 }
 
 // RunDisruptionBudgetController starts the Kubernetes disruption budget controller
@@ -415,7 +414,7 @@ func (c *MasterConfig) RunNodeController() {
 	controller, err := nodecontroller.NewNodeController(
 		c.Informers.Pods().Informer(),
 		c.CloudProvider,
-		adapter.FromUnversionedClient(c.KubeClient),
+		clientset.NewFromConfig(c.KubeClient),
 		s.PodEvictionTimeout.Duration,
 
 		s.NodeEvictionRate,

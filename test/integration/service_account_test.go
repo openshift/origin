@@ -367,7 +367,7 @@ func TestEnforcingServiceAccount(t *testing.T) {
 
 	clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
 
-	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		sa, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

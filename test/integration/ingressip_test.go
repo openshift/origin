@@ -9,7 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -52,7 +51,7 @@ func TestIngressIPAllocation(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	t.Log("start informer to watch for sentinel")
-	_, informerController := framework.NewInformer(
+	_, informerController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return kc.Core().Services(kapi.NamespaceAll).List(options)
@@ -63,7 +62,7 @@ func TestIngressIPAllocation(t *testing.T) {
 		},
 		&kapi.Service{},
 		time.Minute*10,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(old, cur interface{}) {
 				service := cur.(*kapi.Service)
 				if service.Name == sentinelName && len(service.Spec.ExternalIPs) > 0 {

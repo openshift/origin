@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -13,7 +12,7 @@ import (
 )
 
 type ServiceAccountInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() oscache.StoreToServiceAccountLister
 }
@@ -22,7 +21,7 @@ type serviceAccountInformer struct {
 	*sharedInformerFactory
 }
 
-func (s *serviceAccountInformer) Informer() framework.SharedIndexInformer {
+func (s *serviceAccountInformer) Informer() cache.SharedIndexInformer {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -33,7 +32,7 @@ func (s *serviceAccountInformer) Informer() framework.SharedIndexInformer {
 		return informer
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return s.kubeClient.Core().ServiceAccounts(kapi.NamespaceAll).List(options)

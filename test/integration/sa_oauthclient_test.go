@@ -92,7 +92,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	var defaultSA *kapi.ServiceAccount
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
-	err = kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default")
 		if err != nil {
 			return err

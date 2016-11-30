@@ -13,7 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kendpoints "k8s.io/kubernetes/pkg/api/endpoints"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/skynetservices/skydns/msg"

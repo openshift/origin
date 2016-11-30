@@ -10,10 +10,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -90,15 +89,13 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, oldClient kclient.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
-	// TODO internalclientset: get rid of oldClient after next rebase
-	client := adapter.FromUnversionedClient(oldClient.(*kclient.Client))
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,

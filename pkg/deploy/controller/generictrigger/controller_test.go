@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,7 +21,7 @@ import (
 
 var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
-	dcInformer = framework.NewSharedIndexInformer(
+	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -35,7 +34,7 @@ var (
 		2*time.Minute,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
-	rcInformer = framework.NewSharedIndexInformer(
+	rcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).List(options)
@@ -48,7 +47,7 @@ var (
 		2*time.Minute,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
-	streamInformer = framework.NewSharedIndexInformer(
+	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).List(options)

@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -15,7 +14,7 @@ import (
 )
 
 type ClusterPolicyInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedClusterPoliciesListerInterface
@@ -25,7 +24,7 @@ type clusterPolicyInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *clusterPolicyInformer) Informer() framework.SharedIndexInformer {
+func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -48,7 +47,7 @@ func (f *clusterPolicyInformer) Informer() framework.SharedIndexInformer {
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -69,7 +68,7 @@ func (f *clusterPolicyInformer) Lister() client.SyncedClusterPoliciesListerInter
 }
 
 type ClusterPolicyBindingInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedClusterPolicyBindingsListerInterface
@@ -79,7 +78,7 @@ type clusterPolicyBindingInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *clusterPolicyBindingInformer) Informer() framework.SharedIndexInformer {
+func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -102,7 +101,7 @@ func (f *clusterPolicyBindingInformer) Informer() framework.SharedIndexInformer 
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -123,7 +122,7 @@ func (f *clusterPolicyBindingInformer) Lister() client.SyncedClusterPolicyBindin
 }
 
 type PolicyInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedPoliciesListerNamespacer
@@ -133,7 +132,7 @@ type policyInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *policyInformer) Informer() framework.SharedIndexInformer {
+func (f *policyInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -156,7 +155,7 @@ func (f *policyInformer) Informer() framework.SharedIndexInformer {
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,
@@ -177,7 +176,7 @@ func (f *policyInformer) Lister() client.SyncedPoliciesListerNamespacer {
 }
 
 type PolicyBindingInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() client.SyncedPolicyBindingsListerNamespacer
@@ -187,7 +186,7 @@ type policyBindingInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *policyBindingInformer) Informer() framework.SharedIndexInformer {
+func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -210,7 +209,7 @@ func (f *policyBindingInformer) Informer() framework.SharedIndexInformer {
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,

@@ -8,8 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/framework"
-	"k8s.io/kubernetes/pkg/controller/framework/informers"
+	"k8s.io/kubernetes/pkg/controller/informers"
 
 	oclient "github.com/openshift/origin/pkg/client"
 )
@@ -64,8 +63,8 @@ func NewInformerFactory(kubeClient kclientset.Interface, originClient oclient.In
 		customListerWatchers: customListerWatchers,
 		defaultResync:        defaultResync,
 
-		informers:            map[reflect.Type]framework.SharedIndexInformer{},
-		coreInformers:        map[reflect.Type]framework.SharedIndexInformer{},
+		informers:            map[reflect.Type]cache.SharedIndexInformer{},
+		coreInformers:        map[reflect.Type]cache.SharedIndexInformer{},
 		startedInformers:     map[reflect.Type]bool{},
 		startedCoreInformers: map[reflect.Type]bool{},
 	}
@@ -77,8 +76,8 @@ type sharedInformerFactory struct {
 	customListerWatchers ListerWatcherOverrides
 	defaultResync        time.Duration
 
-	informers            map[reflect.Type]framework.SharedIndexInformer
-	coreInformers        map[reflect.Type]framework.SharedIndexInformer
+	informers            map[reflect.Type]cache.SharedIndexInformer
+	coreInformers        map[reflect.Type]cache.SharedIndexInformer
 	startedInformers     map[reflect.Type]bool
 	startedCoreInformers map[reflect.Type]bool
 	lock                 sync.Mutex

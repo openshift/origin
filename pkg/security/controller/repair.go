@@ -5,8 +5,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
-	"k8s.io/kubernetes/pkg/registry/rangeallocation"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/registry/core/rangeallocation"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 

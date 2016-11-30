@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/watch"
@@ -360,7 +359,7 @@ func TestHandleScenarios(t *testing.T) {
 		})
 		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
-		dcInformer := framework.NewSharedIndexInformer(
+		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -373,7 +372,7 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		rcInformer := framework.NewSharedIndexInformer(
+		rcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
@@ -386,7 +385,7 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		podInformer := framework.NewSharedIndexInformer(
+		podInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return kc.Core().Pods(kapi.NamespaceAll).List(options)

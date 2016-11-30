@@ -10,7 +10,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/labels"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -56,7 +55,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 		clusterQuotaMapper: NewClusterQuotaMapper(),
 	}
 
-	namespaceInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addNamespace,
 		UpdateFunc: c.updateNamespace,
 		DeleteFunc: c.deleteNamespace,
@@ -64,7 +63,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 	c.namespaceLister = namespaceInformer.Lister()
 	c.namespacesSynced = namespaceInformer.Informer().HasSynced
 
-	quotaInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	quotaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addQuota,
 		UpdateFunc: c.updateQuota,
 		DeleteFunc: c.deleteQuota,

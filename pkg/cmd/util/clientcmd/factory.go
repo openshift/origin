@@ -20,7 +20,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/client-go/1.4/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/controller"
@@ -42,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/homedir"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/restmapper"
@@ -1050,17 +1049,16 @@ func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, so
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients() (*client.Client, *kclient.Client, *kclientset.Clientset, error) {
-	kClient, err := f.Client()
+func (f *Factory) Clients() (*client.Client, *kclientset.Clientset, error) {
+	kClientset, err := f.ClientSet()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	kClientset := adapter.FromUnversionedClient(kClient)
 	osClient, err := f.clients.ClientForVersion(nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return osClient, kClient, kClientset, nil
+	return osClient, kClientset, nil
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.

@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
@@ -40,7 +40,7 @@ import (
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
 	Options    configapi.KubernetesMasterConfig
-	KubeClient *kclient.Client
+	KubeClient kclientset.Interface
 
 	Master            *master.Config
 	ControllerManager *cmapp.CMServer
@@ -156,7 +156,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 	return server, storageFactory, nil
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient kclientset.Interface, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}

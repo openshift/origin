@@ -12,12 +12,11 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -43,7 +42,7 @@ const (
 type IngressIPController struct {
 	client kcoreclient.ServicesGetter
 
-	controller *framework.Controller
+	controller *cache.Controller
 
 	maxRetries int
 
@@ -90,7 +89,7 @@ func NewIngressIPController(kc kclientset.Interface, ipNet *net.IPNet, resyncInt
 		recorder:   recorder,
 	}
 
-	ic.cache, ic.controller = framework.NewInformer(
+	ic.cache, ic.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return ic.client.Services(kapi.NamespaceAll).List(options)
@@ -101,7 +100,7 @@ func NewIngressIPController(kc kclientset.Interface, ipNet *net.IPNet, resyncInt
 		},
 		&kapi.Service{},
 		resyncInterval,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				service := obj.(*kapi.Service)
 				glog.V(5).Infof("Adding service %s/%s", service.Namespace, service.Name)

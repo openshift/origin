@@ -507,7 +507,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if kc != nil {
 		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, _, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
@@ -642,7 +642,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
 
-		_, _, disruptionClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
+		_, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
@@ -657,7 +657,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, petSetClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		_, _, petSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}

@@ -16,14 +16,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
+	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
@@ -106,7 +105,8 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
-	sacontroller.NewServiceAccountsController(clientadapter.FromUnversionedClient(c.KubeClient()), options).Run()
+	//REBASE: add new args to NewServiceAccountsController
+	sacontroller.NewServiceAccountsController(c.KubeClientset(), options).Run()
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -126,7 +126,7 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 		if err != nil {
 			glog.Fatalf("Error reading master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
 		}
-		if _, err := kcrypto.CertsFromPEM(rootCA); err != nil {
+		if _, err := cert.ParseCertsPEM(rootCA); err != nil {
 			glog.Fatalf("Error parsing master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
 		}
 	}
@@ -330,7 +330,7 @@ func (c *MasterConfig) RunDeploymentController() {
 	podInformer := c.Informers.Pods().Informer()
 	_, kclient := c.DeploymentControllerClients()
 
-	_, _, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}

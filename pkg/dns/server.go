@@ -7,7 +7,7 @@ import (
 	"github.com/skynetservices/skydns/server"
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
 // NewServerDefaults returns the default SkyDNS server configuration for a DNS server.

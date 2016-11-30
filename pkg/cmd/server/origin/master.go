@@ -27,7 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/apiserver/audit"
+	"k8s.io/kubernetes/pkg/apiserver/filters"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -202,7 +202,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 			// backwards compatible writer to regular log
 			writer = cmdutil.NewGLogWriterV(0)
 		}
-		handler = audit.WithAudit(handler, attributeGetter, writer)
+		handler = filters.WithAudit(handler, attributeGetter, writer)
 	}
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())

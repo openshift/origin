@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	utildiff "k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -94,7 +93,7 @@ func TestUpdateQuota(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		quotaIndexer := cache.NewIndexer(framework.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
+		quotaIndexer := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
 		availableQuotas := tc.availableQuotas()
 		objs := []runtime.Object{}
 		for i := range availableQuotas {
@@ -281,14 +280,14 @@ func TestGetQuota(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		quotaIndexer := cache.NewIndexer(framework.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
+		quotaIndexer := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
 		availableQuotas := tc.availableQuotas()
 		for i := range availableQuotas {
 			quotaIndexer.Add(availableQuotas[i])
 		}
 		quotaLister := &ocache.IndexerToClusterResourceQuotaLister{Indexer: quotaIndexer}
 
-		namespaceIndexer := cache.NewIndexer(framework.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
+		namespaceIndexer := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
 		for i := range tc.availableNamespaces {
 			namespaceIndexer.Add(tc.availableNamespaces[i])
 		}

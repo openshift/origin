@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -318,7 +318,7 @@ func (o TagOptions) RunTag() error {
 			return fmt.Errorf("%q must be of the form <stream_name>:<tag>", destNameAndTag)
 		}
 
-		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			isc := o.osClient.ImageStreams(o.destNamespace[i])
 
 			if o.deleteTag {

@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -131,7 +131,7 @@ func getNodeIP(node *kapi.Node) (string, error) {
 func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi.Node) {
 	knode := node
 	cleared := false
-	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 
 		if knode != node {

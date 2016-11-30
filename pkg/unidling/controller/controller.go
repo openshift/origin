@@ -16,9 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
-	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -65,7 +64,7 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 }
 
 type UnidlingController struct {
-	controller          *framework.Controller
+	controller          *cache.Controller
 	scaleNamespacer     kextclient.ScalesGetter
 	endpointsNamespacer kcoreclient.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
@@ -93,7 +92,7 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 		rcNamespacer: rcNamespacer,
 	}
 
-	_, controller := framework.NewInformer(
+	_, controller := cache.NewInformer(
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -107,7 +106,7 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 		},
 		&kapi.Event{},
 		resyncPeriod,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc:    unidlingController.addEvent,
 			UpdateFunc: unidlingController.updateEvent,
 			// this is just to clean up our cache of the last seen times
