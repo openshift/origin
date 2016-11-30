@@ -14,6 +14,27 @@ function cleanup()
 	out=$?
 	docker rmi test/scratchimage
 	cleanup_openshift
+
+	# TODO(skuznets): un-hack this nonsense once traps are in a better state
+	if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+		# get the jUnit output file into a workable state in case we crashed in
+		# the middle of testing something
+		os::test::junit::reconcile_output
+
+		# check that we didn't mangle jUnit output
+		os::test::junit::check_test_counters
+
+		# use the junitreport tool to generate us a report
+		os::util::ensure::built_binary_exists 'junitreport'
+
+		cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}" \
+			| junitreport --type oscmd \
+			--suites nested \
+			--roots github.com/openshift/origin \
+			--output "${ARTIFACT_DIR}/report.xml"
+		cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
+	fi
+
 	os::log::info "Exiting"
 	return "${out}"
 }
@@ -30,6 +51,11 @@ os::log::system::start
 
 os::start::configure_server
 os::start::server
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

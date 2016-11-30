@@ -18,9 +18,6 @@ os::log::system::start
 
 os::util::ensure::iptables_privileges_exist
 
-# TODO(skuznets): Fix vagrant openshift so env vars can be passed to this script
-JUNIT_REPORT=true
-
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then
     export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
@@ -76,6 +73,11 @@ oauth_patch="$(sed "s/HOST_NAME/${host}/" "${test_data_location}/config/oauth_co
 cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml"
 openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml" --patch="${oauth_patch}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 os::start::server
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
