@@ -32,9 +32,9 @@ func writeDebugHeader(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // bindataRead reads the given file from disk. It returns an error on failure.
