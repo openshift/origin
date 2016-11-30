@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/openshift/origin",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v63",
+	"GodepVersion": "v75",
 	"Packages": [
 		"github.com/elazarl/goproxy",
 		"github.com/golang/mock/gomock",
