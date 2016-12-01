@@ -210,6 +210,14 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		if errors.IsAlreadyExists(err) {
 			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
+
+			// If the existing pod was created before this build, switch to Error state.
+			existingPod, err := bc.PodManager.GetPod(podSpec.Namespace, podSpec.Name)
+			if err == nil && existingPod.CreationTimestamp.Before(build.CreationTimestamp) {
+				build.Status.Phase = buildapi.BuildPhaseError
+				build.Status.Reason = buildapi.StatusReasonBuildPodExists
+				build.Status.Message = buildapi.StatusMessageBuildPodExists
+			}
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).

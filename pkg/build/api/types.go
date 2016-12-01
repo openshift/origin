@@ -309,6 +309,10 @@ const (
 	// StatusReasonDockerBuildFailed indicates that the docker build strategy has
 	// failed.
 	StatusReasonDockerBuildFailed StatusReason = "DockerBuildFailed"
+
+	// StatusReasonBuildPodExists indicates that the build tried to create a
+	// build pod but one was already present.
+	StatusReasonBuildPodExists = "BuildPodExists"
 )
 
 // NOTE: These messages might change.
@@ -326,6 +330,7 @@ const (
 	StatusMessageFetchSourceFailed         = "Failed to fetch the input source"
 	StatusMessageCancelledBuild            = "The build was cancelled by the user"
 	StatusMessageDockerBuildFailed         = "Docker build strategy has failed"
+	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build"
 )
 
 // BuildSource is the input used for the build.
