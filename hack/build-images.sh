@@ -140,6 +140,7 @@ image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder
 image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder
 image "${tag_prefix}-f5-router"             images/router/f5
 image openshift/node                        images/node
+image openshift/diagnostics-deployer        images/diagnostics
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift       examples/hello-openshift
