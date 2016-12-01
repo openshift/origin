@@ -395,6 +395,9 @@ func (c *MasterConfig) RunServiceServingCertController(client *kclientset.Client
 
 	servingCertController := servingcertcontroller.NewServiceServingCertController(client.Core(), client.Core(), ca, "cluster.local", 2*time.Minute)
 	go servingCertController.Run(1, make(chan struct{}))
+
+	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(client.Core(), client.Core(), ca, "cluster.local", 20*time.Minute)
+	go servingCertUpdateController.Run(5, make(chan struct{}))
 }
 
 // RunImageImportController starts the image import trigger controller process.

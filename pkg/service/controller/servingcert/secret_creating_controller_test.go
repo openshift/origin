@@ -105,6 +105,7 @@ func TestBasicControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", namespace, newSecret.Namespace)
 				continue
 			}
+			delete(newSecret.Annotations, ServingCertExpiryAnnotation)
 			if !reflect.DeepEqual(newSecret.Annotations, expectedSecretAnnotations) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue

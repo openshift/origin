@@ -41,6 +41,9 @@ const (
 	// ServiceNameAnnotation is an annotation on a secret that indicates which service created it, by Name to allow reverse lookups on services
 	// for comparison against UIDs
 	ServiceNameAnnotation = "service.alpha.openshift.io/originating-service-name"
+	// ServingCertExpiryAnnotation is an annotation that holds the expiry time of the certificate.  It accepts time in the
+	// RFC3339 format: 2018-11-29T17:44:39Z
+	ServingCertExpiryAnnotation = "service.alpha.openshift.io/expiry"
 )
 
 // ServiceServingCertController is responsible for synchronizing Service objects stored
@@ -207,8 +210,9 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 			Namespace: service.Namespace,
 			Name:      service.Annotations[ServingCertSecretAnnotation],
 			Annotations: map[string]string{
-				ServiceUIDAnnotation:  string(service.UID),
-				ServiceNameAnnotation: service.Name,
+				ServiceUIDAnnotation:        string(service.UID),
+				ServiceNameAnnotation:       service.Name,
+				ServingCertExpiryAnnotation: servingCert.Certs[0].NotAfter.Format(time.RFC3339),
 			},
 		},
 		Type: kapi.SecretTypeTLS,
