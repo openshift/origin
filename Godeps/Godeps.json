@@ -1565,7 +1565,7 @@
 		},
 		{
 			"ImportPath": "github.com/golang/glog",
-			"Rev": "335da9dda11408a34b64344f82e9c03779b71673"
+			"Rev": "65d674618f712aa808a7d0104131b9206fc3d5ad"
 		},
 		{
 			"ImportPath": "github.com/golang/groupcache/lru",
