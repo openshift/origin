@@ -27,7 +27,7 @@ function cleanup()
 		# use the junitreport tool to generate us a report
 		os::util::ensure::built_binary_exists 'junitreport'
 
-		cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}" \
+		cat "${JUNIT_REPORT_OUTPUT}" \
 			| junitreport --type oscmd \
 			--suites nested \
 			--roots github.com/openshift/origin \
