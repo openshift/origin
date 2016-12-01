@@ -414,7 +414,7 @@ func checkAdmitError(t *testing.T, err error, expectedError error, prefix string
 	case expectedError == nil && err != nil:
 		t.Errorf("%s: expected no error, got: %q", prefix, err.Error())
 	case expectedError != nil && err == nil:
-		t.Errorf("%s: expected error %q, no error recieved", prefix, expectedError.Error())
+		t.Errorf("%s: expected error %q, no error received", prefix, expectedError.Error())
 	}
 }
 

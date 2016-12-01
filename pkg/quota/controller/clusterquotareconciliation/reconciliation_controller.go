@@ -113,7 +113,7 @@ func (c *ClusterQuotaReconcilationController) Run(workers int, stopCh <-chan str
 	case <-stopCh:
 		return
 	}
-	glog.V(4).Infof("Starting the cluster quota reconcilation controller workers")
+	glog.V(4).Infof("Starting the cluster quota reconciliation controller workers")
 
 	// the controllers that replenish other resources to respond rapidly to state changes
 	for _, replenishmentController := range c.replenishmentControllers {
@@ -137,7 +137,7 @@ func (c *ClusterQuotaReconcilationController) waitForSyncedStores(ready chan<- s
 	defer utilruntime.HandleCrash()
 
 	for !c.clusterQuotaSynced() {
-		glog.V(4).Infof("Waiting for the caches to sync before starting the cluster quota reconcilation controller workers")
+		glog.V(4).Infof("Waiting for the caches to sync before starting the cluster quota reconciliation controller workers")
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-stopCh:

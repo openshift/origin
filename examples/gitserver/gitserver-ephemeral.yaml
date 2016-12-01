@@ -55,7 +55,7 @@ items:
 
           # The URL that builds must use to access the Git repositories
           # stored in this app.
-          # TOOD: support HTTPS
+          # TODO: support HTTPS
           - name: PUBLIC_URL
             value: http://git.$(POD_NAMESPACE).svc.cluster.local:8080
           # If INTERNAL_URL is specified, then it's used to point

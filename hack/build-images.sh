@@ -30,7 +30,7 @@ else
     exit 1
   fi
 
-  # Extract the release achives to a staging area.
+  # Extract the release archives to a staging area.
   os::build::detect_local_release_tars "linux-64bit"
 
   echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"

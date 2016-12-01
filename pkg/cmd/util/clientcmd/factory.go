@@ -725,7 +725,7 @@ func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
 }
 
 // useDiscoveryRESTMapper checks the server version to see if its recent enough to have
-// enough discovery information avaiable to reliably build a RESTMapper.  If not, use the
+// enough discovery information available to reliably build a RESTMapper.  If not, use the
 // hardcoded mapper in this client (legacy behavior)
 func useDiscoveryRESTMapper(serverVersion string) bool {
 	serverSemVer, err := semver.Parse(serverVersion[1:])

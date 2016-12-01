@@ -522,7 +522,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		if len(byService) == 0 || len(byScalable) == 0 {
 			return fmt.Errorf("no valid scalable resources found to idle: %v", err)
 		}
-		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occured while finding scalable resources to idle: %v", err)
+		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
 	oclient, _, kclient, err := f.Clients()

@@ -107,7 +107,7 @@ type TemplateFileSearcher struct {
 	Namespace    string
 }
 
-// Search attemps to read template files and transform it into template objects
+// Search attempts to read template files and transform it into template objects
 func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	matches := ComponentMatches{}
 	var errs []error

@@ -135,7 +135,7 @@ func (h *Helper) TestIP(ip string) error {
 		Entrypoint("socat").
 		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
 	if err != nil {
-		return errors.NewError("cannnot start simple server on Docker host").WithCause(err)
+		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
 	}
 	defer func() {
 		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))
@@ -150,7 +150,7 @@ func (h *Helper) TestForwardedIP(ip string) error {
 		Entrypoint("socat").
 		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
 	if err != nil {
-		return errors.NewError("cannnot start simple server on Docker host").WithCause(err)
+		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
 	}
 	defer func() {
 		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))

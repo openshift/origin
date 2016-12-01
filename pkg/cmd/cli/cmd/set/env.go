@@ -89,7 +89,7 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 		},
 	}
 	cmd.Flags().StringP("containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject enviroment variables")
+	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject environment variables")
 	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
 	cmd.Flags().StringArrayVarP(&env, "env", "e", env, "Specify a key-value pair for an environment variable to set into each container.")
 	cmd.Flags().Bool("list", false, "Display the environment and any changes in the standard format")

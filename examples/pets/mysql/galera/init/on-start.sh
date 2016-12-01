@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script writes out a mysql galera config using a list of newline seperated
+# This script writes out a mysql galera config using a list of newline separated
 # peer DNS names it accepts through stdin.
 
 # /etc/mysql is assumed to be a shared volume so we can modify my.cnf as required

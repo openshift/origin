@@ -19,7 +19,7 @@ import (
 const PolicyBindingRecommendedName = "policybinding"
 
 var (
-	policyBindingLong = templates.LongDesc(`Create a policy binding that references the policy in the targetted namespace.`)
+	policyBindingLong = templates.LongDesc(`Create a policy binding that references the policy in the targeted namespace.`)
 
 	policyBindingExample = templates.Examples(`
 		# Create a policy binding in namespace "foo" that references the policy in namespace "bar"
@@ -46,7 +46,7 @@ func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out 
 
 	cmd := &cobra.Command{
 		Use:     name + " TARGET_POLICY_NAMESPACE",
-		Short:   "Create a policy binding that references the policy in the targetted namespace.",
+		Short:   "Create a policy binding that references the policy in the targeted namespace.",
 		Long:    policyBindingLong,
 		Example: fmt.Sprintf(policyBindingExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

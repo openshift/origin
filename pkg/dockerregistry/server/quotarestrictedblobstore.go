@@ -30,7 +30,7 @@ const (
 
 // newQuotaEnforcingConfig creates caches for quota objects. The objects are stored with given eviction
 // timeout. Caches will only be initialized if the given ttl is positive. Options are gathered from
-// configuration file and will be overriden by enforceQuota and projectCacheTTL environment variable values.
+// configuration file and will be overridden by enforceQuota and projectCacheTTL environment variable values.
 func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
 	enforce, err := getBoolOption(EnforceQuotaEnvVar, "enforcequota", false, options)
 	if err != nil {

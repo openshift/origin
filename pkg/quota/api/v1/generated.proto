@@ -87,7 +87,7 @@ message ClusterResourceQuotaStatus {
   optional k8s.io.kubernetes.pkg.api.v1.ResourceQuotaStatus total = 1;
 
   // Namespaces slices the usage by project.  This division allows for quick resolution of
-  // deletion reconcilation inside of a single project without requiring a recalculation
+  // deletion reconciliation inside of a single project without requiring a recalculation
   // across all projects.  This can be used to pull the deltas for a given project.
   repeated ResourceQuotaStatusByNamespace namespaces = 2;
 }

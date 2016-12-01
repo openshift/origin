@@ -814,7 +814,7 @@ func getServiceAccount(buildConfig *buildapi.BuildConfig, defaultServiceAccount 
 	return serviceAccount
 }
 
-//setBuildSource update build source by bianry status
+//setBuildSource update build source by binary status
 func setBuildSource(binary *buildapi.BinaryBuildSource, build *buildapi.Build) {
 	if binary != nil {
 		build.Spec.Source.Git = nil

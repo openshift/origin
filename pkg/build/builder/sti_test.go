@@ -210,7 +210,7 @@ func TestScriptProxyConfig(t *testing.T) {
 	}
 	resultedProxyConf, err := scriptProxyConfig(newBuild)
 	if err != nil {
-		t.Fatalf("An error occured while parsing the proxy config: %v", err)
+		t.Fatalf("An error occurred while parsing the proxy config: %v", err)
 	}
 	if resultedProxyConf.HTTPProxy.Path != "/insecure" {
 		t.Errorf("Expected HTTP Proxy path to be /insecure, got: %v", resultedProxyConf.HTTPProxy.Path)

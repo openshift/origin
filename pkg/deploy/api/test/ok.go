@@ -176,7 +176,7 @@ func OkPodTemplateMissingImage(missing ...string) *kapi.PodTemplateSpec {
 	template := OkPodTemplate()
 	for i, c := range template.Spec.Containers {
 		if set.Has(c.Name) {
-			// rememeber that slices use copies, so have to ref array entry explicitly
+			// remember that slices use copies, so have to ref array entry explicitly
 			template.Spec.Containers[i].Image = ""
 		}
 	}
