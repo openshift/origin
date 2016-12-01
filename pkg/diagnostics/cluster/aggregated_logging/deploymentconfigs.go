@@ -13,15 +13,16 @@ import (
 )
 
 const (
-	componentNameEs        = "es"
-	componentNameEsOps     = "es-ops"
-	componentNameKibana    = "kibana"
-	componentNameKibanaOps = "kibana-ops"
-	componentNameCurator   = "curator"
+	componentNameEs         = "es"
+	componentNameEsOps      = "es-ops"
+	componentNameKibana     = "kibana"
+	componentNameKibanaOps  = "kibana-ops"
+	componentNameCurator    = "curator"
+	componentNameCuratorOps = "curator-ops"
 )
 
 // loggingComponents are those 'managed' by rep controllers (e.g. fluentd is deployed with a DaemonSet)
-var loggingComponents = sets.NewString(componentNameEs, componentNameEsOps, componentNameKibana, componentNameKibanaOps, componentNameCurator)
+var loggingComponents = sets.NewString(componentNameEs, componentNameEsOps, componentNameKibana, componentNameKibanaOps, componentNameCurator, componentNameCuratorOps)
 
 const deploymentConfigWarnMissingForOps = `
 Did not find a DeploymentConfig to support component '%s'.  If you require
