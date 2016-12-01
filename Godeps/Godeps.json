@@ -3216,6 +3216,11 @@
 			"Rev": "b1a2821ca5a4fd6b6e48ddfbb7d6d7584d839d21"
 		},
 		{
+			"ImportPath": "google.golang.org/grpc/credentials/oauth",
+			"Comment": "v1.0.2",
+			"Rev": "b1a2821ca5a4fd6b6e48ddfbb7d6d7584d839d21"
+		},
+		{
 			"ImportPath": "google.golang.org/grpc/grpclog",
 			"Comment": "v1.0.2",
 			"Rev": "b1a2821ca5a4fd6b6e48ddfbb7d6d7584d839d21"
