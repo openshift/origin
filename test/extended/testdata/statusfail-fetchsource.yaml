@@ -1,0 +1,14 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: failstatus-fetchsource
+spec:
+  source:
+    git:
+      uri: "https://failure/s2i/status"
+  strategy:
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: ruby:latest
+    type: Docker

@@ -53,6 +53,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		build.Status.Phase = buildapi.BuildPhaseFailed
 		if !isFatal {
 			build.Status.Reason = buildapi.StatusReasonExceededRetryTimeout
+			build.Status.Message = buildapi.StatusMessageExceededRetryTimeout
 		}
 		build.Status.Message = errors.ErrorToSentence(err)
 		now := unversioned.Now()

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -27,7 +29,7 @@ import (
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
 type builderFactory interface {
 	// Create S2I Builder based on S2I configuration
-	Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error)
+	Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error)
 }
 
 // validator is the interval interface to decouple S2I-specific code from Origin builder code
@@ -40,9 +42,9 @@ type validator interface {
 type runtimeBuilderFactory struct{}
 
 // Builder delegates execution to S2I-specific code
-func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error) {
-	builder, _, err := s2i.Strategy(config, overrides)
-	return builder, err
+func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
+	builder, buildInfo, err := s2i.Strategy(config, overrides)
+	return builder, buildInfo, err
 }
 
 // runtimeConfigValidator is the default implementation of stiConfigValidator
@@ -67,7 +69,8 @@ type S2IBuilder struct {
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *api.Build,
+	gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
 	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
 }
@@ -88,7 +91,8 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 	}
 }
 
-// Build executes STI build based on configured builder, S2I builder factory and S2I config validator
+// Build executes STI build based on configured builder, S2I builder factory
+// and S2I config validator
 func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy == nil {
 		return errors.New("the source to image builder must be used with the source strategy")
@@ -103,11 +107,11 @@ func (s *S2IBuilder) Build() error {
 		return err
 	}
 	srcDir := filepath.Join(buildDir, s2iapi.Source)
-	if err := os.MkdirAll(srcDir, os.ModePerm); err != nil {
+	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
 		return err
 	}
 	tmpDir := filepath.Join(buildDir, "tmp")
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+	if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -210,7 +214,7 @@ func (s *S2IBuilder) Build() error {
 	allowedUIDs := os.Getenv(api.AllowedUIDs)
 	glog.V(4).Infof("The value of %s is [%s]", api.AllowedUIDs, allowedUIDs)
 	if len(allowedUIDs) > 0 {
-		err := config.AllowedUIDs.Set(allowedUIDs)
+		err = config.AllowedUIDs.Set(allowedUIDs)
 		if err != nil {
 			return err
 		}
@@ -245,29 +249,43 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
-	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
+	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(buildInfo.FailureReason.Reason, buildInfo.FailureReason.Message)
+		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
+	result, err := builder.Build(config)
+	if err != nil {
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(result.BuildInfo.FailureReason.Reason, result.BuildInfo.FailureReason.Message)
 
-	if _, err = builder.Build(config); err != nil {
+		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
 
-	cname := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	if err := execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cname); err != nil {
+	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
+	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
+		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
+		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
+		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
 
 	if push {
-		if err := tagImage(s.dockerClient, buildTag, pushTag); err != nil {
+		if err = tagImage(s.dockerClient, buildTag, pushTag); err != nil {
 			return err
 		}
 	}
 
-	if err := removeImage(s.dockerClient, buildTag); err != nil {
+	if err = removeImage(s.dockerClient, buildTag); err != nil {
 		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
@@ -283,7 +301,12 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
+		if err = pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
+			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
+			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
+			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+			}
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 		glog.V(0).Infof("Push successful")
@@ -312,10 +335,18 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	// fetch source
 	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
 	if err != nil {
+		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
+		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed
+		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return nil, err
 	}
 	if sourceInfo != nil {
-		updateBuildRevision(d.s.client, d.s.build, sourceInfo)
+		revision := updateBuildRevision(d.s.build, sourceInfo)
+		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, revision); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 	}
 	if sourceInfo != nil {
 		sourceInfo.ContextDir = config.ContextDir
@@ -408,4 +439,8 @@ func copyToVolumeList(artifactsMapping []api.ImageSourcePath) (volumeList s2iapi
 		})
 	}
 	return
+}
+
+func convertS2IFailureType(reason s2iapi.StepFailureReason, message s2iapi.StepFailureMessage) (api.StatusReason, string) {
+	return api.StatusReason(reason), fmt.Sprintf("%s", message)
 }

@@ -23,12 +23,12 @@ type testStiBuilderFactory struct {
 
 // Builder implements builderFactory. It returns a mock S2IBuilder instance that
 // returns specific errors.
-func (factory testStiBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error) {
+func (factory testStiBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
 	// Return a strategy error if non-nil.
 	if factory.getStrategyErr != nil {
-		return nil, factory.getStrategyErr
+		return nil, s2iapi.BuildInfo{}, factory.getStrategyErr
 	}
-	return testBuilder{buildError: factory.buildError}, nil
+	return testBuilder{buildError: factory.buildError}, s2iapi.BuildInfo{}, nil
 }
 
 // testBuilder is a mock implementation of s2iapi.Builder.
@@ -38,7 +38,9 @@ type testBuilder struct {
 
 // Build implements s2iapi.Builder. It always returns a mocked build error.
 func (builder testBuilder) Build(config *s2iapi.Config) (*s2iapi.Result, error) {
-	return nil, builder.buildError
+	return &s2iapi.Result{
+		BuildInfo: s2iapi.BuildInfo{},
+	}, builder.buildError
 }
 
 type testS2IBuilderConfig struct {

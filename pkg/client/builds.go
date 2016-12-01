@@ -39,42 +39,41 @@ func newBuilds(c *Client, namespace string) *builds {
 }
 
 // List returns a list of builds that match the label and field selectors.
-func (c *builds) List(opts kapi.ListOptions) (result *buildapi.BuildList, err error) {
-	result = &buildapi.BuildList{}
-	err = c.r.Get().
+func (c *builds) List(opts kapi.ListOptions) (*buildapi.BuildList, error) {
+	result := &buildapi.BuildList{}
+	err := c.r.Get().
 		Namespace(c.ns).
 		Resource("builds").
 		VersionedParams(&opts, kapi.ParameterCodec).
 		Do().
 		Into(result)
-	return
+	return result, err
 }
 
 // Get returns information about a particular build and error if one occurs.
-func (c *builds) Get(name string) (result *buildapi.Build, err error) {
-	result = &buildapi.Build{}
-	err = c.r.Get().Namespace(c.ns).Resource("builds").Name(name).Do().Into(result)
-	return
+func (c *builds) Get(name string) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Get().Namespace(c.ns).Resource("builds").Name(name).Do().Into(result)
+	return result, err
 }
 
 // Create creates new build. Returns the server's representation of the build and error if one occurs.
-func (c *builds) Create(build *buildapi.Build) (result *buildapi.Build, err error) {
-	result = &buildapi.Build{}
-	err = c.r.Post().Namespace(c.ns).Resource("builds").Body(build).Do().Into(result)
-	return
+func (c *builds) Create(build *buildapi.Build) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Post().Namespace(c.ns).Resource("builds").Body(build).Do().Into(result)
+	return result, err
 }
 
 // Update updates the build on server. Returns the server's representation of the build and error if one occurs.
-func (c *builds) Update(build *buildapi.Build) (result *buildapi.Build, err error) {
-	result = &buildapi.Build{}
-	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).Body(build).Do().Into(result)
-	return
+func (c *builds) Update(build *buildapi.Build) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).Body(build).Do().Into(result)
+	return result, err
 }
 
 // Delete deletes a build, returns error if one occurs.
-func (c *builds) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Resource("builds").Name(name).Do().Error()
-	return
+func (c *builds) Delete(name string) error {
+	return c.r.Delete().Namespace(c.ns).Resource("builds").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested builds
@@ -88,17 +87,17 @@ func (c *builds) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 }
 
 // Clone creates a clone of a build returning new object or an error
-func (c *builds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	result = &buildapi.Build{}
-	err = c.r.Post().Namespace(c.ns).Resource("builds").Name(request.Name).SubResource("clone").Body(request).Do().Into(result)
-	return
+func (c *builds) Clone(request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Post().Namespace(c.ns).Resource("builds").Name(request.Name).SubResource("clone").Body(request).Do().Into(result)
+	return result, err
 }
 
 // UpdateDetails updates the build details for a given build.
 // Currently only the Spec.Revision is allowed to be updated.
 // Returns the server's representation of the build and error if one occurs.
-func (c *builds) UpdateDetails(build *buildapi.Build) (result *buildapi.Build, err error) {
-	result = &buildapi.Build{}
-	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("details").Body(build).Do().Into(result)
-	return
+func (c *builds) UpdateDetails(build *buildapi.Build) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("details").Body(build).Do().Into(result)
+	return result, err
 }

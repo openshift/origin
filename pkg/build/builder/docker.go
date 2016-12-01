@@ -12,7 +12,9 @@ import (
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -69,12 +71,22 @@ func (d *DockerBuilder) Build() error {
 	}
 	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
 	if err != nil {
+		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
+		d.build.Status.Message = api.StatusMessageFetchSourceFailed
+		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
+
 	if sourceInfo != nil {
-		updateBuildRevision(d.client, d.build, sourceInfo)
+		glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
+		revision := updateBuildRevision(d.build, sourceInfo)
+		if updateErr := retryBuildStatusUpdate(d.build, d.client, revision); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 	}
-	if err := d.addBuildParameters(buildDir); err != nil {
+	if err = d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
 
@@ -91,14 +103,14 @@ func (d *DockerBuilder) Build() error {
 	dockerfilePath := d.getDockerfilePath(buildDir)
 	imageNames := getDockerfileFrom(dockerfilePath)
 	if len(imageNames) == 0 {
-		return fmt.Errorf("no from image in dockerfile.")
+		return fmt.Errorf("no FROM image in Dockerfile")
 	}
 	for _, imageName := range imageNames {
 		if imageName == "scratch" {
 			glog.V(4).Infof("\nSkipping image \"scratch\"")
 			continue
 		}
-		var imageExists bool = true
+		imageExists := true
 		_, err = d.dockerClient.InspectImage(imageName)
 		if err != nil {
 			if err != docker.ErrNoSuchImage {
@@ -113,18 +125,33 @@ func (d *DockerBuilder) Build() error {
 				dockercfg.PullAuthType,
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
-			if err := pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
+			if err = pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
+				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
+				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
+				if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+					utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+				}
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
 		}
 	}
 
-	if err := d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
+	if err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
+		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
+		d.build.Status.Message = api.StatusMessageDockerBuildFailed
+		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
 
 	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
 	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
+		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
+		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
+		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 		return err
 	}
 
@@ -149,6 +176,11 @@ func (d *DockerBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
+			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
+			d.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
+			if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+			}
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 		glog.V(0).Infof("Push successful")
