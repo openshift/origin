@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	appsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
-	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	certificatesv1alpha1 "k8s.io/kubernetes/pkg/apis/certificates/v1alpha1"
@@ -307,14 +306,8 @@ func (c *MasterConfig) RunJobController(client *kclientset.Clientset) {
 	go controller.Run(int(c.ControllerManager.ConcurrentJobSyncs), utilwait.NeverStop)
 }
 
-// RunScheduledJobController starts the Kubernetes scheduled job controller sync loop
-func (c *MasterConfig) RunScheduledJobController(config *restclient.Config) {
-	// TODO: this is a temp fix for allowing kubeClient list v2alpha1 jobs, should switch to using clientset
-	config.ContentConfig.GroupVersion = &unversioned.GroupVersion{Group: batch.GroupName, Version: "v2alpha1"}
-	client, err := kclient.New(config)
-	if err != nil {
-		glog.Fatalf("Unable to configure scheduled job controller: %v", err)
-	}
+// RunCronJobController starts the Kubernetes scheduled job controller sync loop
+func (c *MasterConfig) RunCronJobController(client kclientset.Interface) {
 	go cronjob.NewCronJobController(client).Run(utilwait.NeverStop)
 }
 

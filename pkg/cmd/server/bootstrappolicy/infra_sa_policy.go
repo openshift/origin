@@ -332,21 +332,22 @@ func init() {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
-				// ScheduledJobController.SyncAll
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncAll
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("jobs", "scheduledjobs"),
+					// TODO do we need to keep scheduledjobs or is cronjobs sufficient?
+					Resources: sets.NewString("jobs", "scheduledjobs", "cronjobs"),
 				},
 				// JobController.syncJob
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("jobs/status", "scheduledjobs/status"),
+					Resources: sets.NewString("jobs/status", "scheduledjobs/status", "cronjobs/status"),
 				},
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("create", "update", "delete"),

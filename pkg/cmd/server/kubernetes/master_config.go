@@ -135,7 +135,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 		genericapiserver.NewDefaultResourceEncodingConfig(),
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
-		[]unversioned.GroupVersionResource{batch.Resource("scheduledjobs").WithVersion("v2alpha1")},
+		[]unversioned.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
 		master.DefaultAPIResourceConfigSource(), server.RuntimeConfig,
 	)
 	if err != nil {

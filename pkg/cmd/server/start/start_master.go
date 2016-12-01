@@ -687,7 +687,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			kc.RunJobController(jobClient)
 		}
 		if batchEnabled {
-			kc.RunScheduledJobController(jobConfig)
+			kc.RunCronJobController(jobClient)
 		}
 		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
 		autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
