@@ -183,7 +183,7 @@ func TestBuildTemplates(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
 		}
-		_, _, err = appCfg.buildTemplates(components, app.Environment(parms))
+		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment(map[string]string{}))
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}

@@ -22,6 +22,7 @@ import (
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
+	ometa "github.com/openshift/origin/pkg/api/meta"
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -361,14 +362,14 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, environment app.Environment) (string, []runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
 	name := ""
 	for _, ref := range components {
 		tpl := ref.Input().ResolvedMatch.Template
 
 		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
-		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, environment)
+		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, parameters)
 		if err != nil {
 			return name, nil, err
 		}
@@ -376,6 +377,22 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 			name = tpl.Name
 		}
 		objects = append(objects, result.Objects...)
+		if len(result.Objects) > 0 {
+			// if environment variables were passed in, let's apply the environment variables
+			// to every pod template object
+			for i := range result.Objects {
+				podSpec, _, err := ometa.GetPodSpec(result.Objects[i])
+				if err == nil {
+					for ii := range podSpec.Containers {
+						if podSpec.Containers[ii].Env != nil {
+							podSpec.Containers[ii].Env = app.JoinEnvironment(environment.List(), podSpec.Containers[ii].Env)
+						} else {
+							podSpec.Containers[ii].Env = environment.List()
+						}
+					}
+				}
+			}
+		}
 
 		DescribeGeneratedTemplate(c.Out, ref.Input().String(), result, c.OriginNamespace)
 	}
@@ -666,7 +683,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), app.Environment(parameters))
+	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), app.Environment(parameters), app.Environment(environment))
 	if err != nil {
 		return nil, err
 	}
