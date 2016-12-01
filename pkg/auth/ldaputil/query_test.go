@@ -143,6 +143,33 @@ func TestNewSearchRequest(t *testing.T) {
 			expectedError: false,
 		},
 		{
+			name: "valid dn query with additional attributes that contain spaces",
+			options: LDAPQueryOnAttribute{
+				LDAPQuery: LDAPQuery{
+					BaseDN:       DefaultBaseDN,
+					Scope:        DefaultScope,
+					DerefAliases: DefaultDerefAliases,
+					TimeLimit:    DefaultTimeLimit,
+					Filter:       DefaultFilter,
+				},
+				QueryAttribute: "DN",
+			},
+			attributeValue: "uid=john, o=users, dc=example, dc=com",
+			attributes:     append(DefaultAttributes, []string{"email", "phone"}...),
+			expectedRequest: &ldap.SearchRequest{
+				BaseDN:       "uid=john, o=users, dc=example, dc=com",
+				Scope:        ldap.ScopeBaseObject,
+				DerefAliases: int(DefaultDerefAliases),
+				SizeLimit:    DefaultSizeLimit,
+				TimeLimit:    DefaultTimeLimit,
+				TypesOnly:    DefaultTypesOnly,
+				Filter:       "(objectClass=*)",
+				Attributes:   append(DefaultAttributes, []string{"email", "phone"}...),
+				Controls:     DefaultControls,
+			},
+			expectedError: false,
+		},
+		{
 			name: "invalid dn query out of bounds",
 			options: LDAPQueryOnAttribute{
 				LDAPQuery: LDAPQuery{
