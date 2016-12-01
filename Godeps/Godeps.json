@@ -3002,8 +3002,8 @@
 		},
 		{
 			"ImportPath": "gopkg.in/ldap.v2",
-			"Comment": "v2.2.1",
-			"Rev": "07a7330929b9ee80495c88a4439657d89c7dbd87"
+			"Comment": "v2.5.0",
+			"Rev": "8168ee085ee43257585e50c6441aadf54ecb2c9f"
 		},
 		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
