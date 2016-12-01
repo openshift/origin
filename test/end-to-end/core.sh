@@ -151,6 +151,9 @@ os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 os::log::info "Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
+os::log::info "Docker registry start with OSS"
+os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"oss: {}\" openshift/origin-docker-registry:${TAG}" "No accesskeyid parameter provided"
+
 os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
