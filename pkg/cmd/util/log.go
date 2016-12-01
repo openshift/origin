@@ -31,7 +31,9 @@ type gLogWriter struct {
 }
 
 func (w *gLogWriter) Write(p []byte) (n int, err error) {
-	glog.V(w.level).InfoDepth(2, string(p))
+	if glog.V(w.level) {
+		glog.InfoDepth(2, string(p))
+	}
 
 	return len(p), nil
 }
