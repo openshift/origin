@@ -657,7 +657,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, petSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		_, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}
@@ -713,7 +713,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		appsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, apps.GroupName)) > 0
 		if appsEnabled {
-			kc.RunPetSetController(petSetClient)
+			kc.RunStatefulSetController(statefulSetClient)
 		}
 
 		glog.Infof("Started Kubernetes Controllers")

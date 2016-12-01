@@ -64,6 +64,7 @@ const (
 	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
 	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
 
+	// TODO can we just rename these or how do we handle upgrades?
 	InfraPetSetControllerServiceAccountName = "pet-set-controller"
 	PetSetControllerRoleName                = "system:pet-set-controller"
 
@@ -862,19 +863,20 @@ func init() {
 				Name: PetSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				// PetSetController.podCache.ListWatch
+				// StatefulSetController.podCache.ListWatch
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("pods"),
 				},
-				// PetSetController.cache.ListWatch
+				// StatefulSetController.cache.ListWatch
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("petsets"),
 				},
-				// PetSetController.petClient
+				// TODO/REBASE reconcile who uses what (kubeClient vs petClient)
+				// StatefulSetController.petClient
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("get"),
@@ -885,20 +887,20 @@ func init() {
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("petsets/status"),
 				},
-				// PetSetController.podClient
+				// StatefulSetController.podClient
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create", "delete", "update"),
 					Resources: sets.NewString("pods"),
 				},
-				// PetSetController.petClient (PVC)
+				// StatefulSetController.petClient (PVC)
 				// This is an escalating client and we must admission check the petset
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create"), // future "delete"
 					Resources: sets.NewString("persistentvolumeclaims"),
 				},
-				// PetSetController.eventRecorder
+				// StatefulSetController.eventRecorder
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("create", "update", "patch"),

@@ -446,9 +446,9 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client *kclientset.Clien
 	}
 }
 
-// RunPetSetController starts the PetSet controller
-func (c *MasterConfig) RunPetSetController(client *kclient.Client) {
-	ps := petsetcontroller.NewPetSetController(c.Informers.Pods().Informer(), client, kctrlmgr.ResyncPeriod(c.ControllerManager)())
+// RunStatefulSetController starts the StatefulSet controller
+func (c *MasterConfig) RunStatefulSetController(client *kclient.Client) {
+	ps := petsetcontroller.NewStatefulSetController(c.Informers.Pods().Informer(), client, kctrlmgr.ResyncPeriod(c.ControllerManager)())
 	go ps.Run(1, utilwait.NeverStop)
 }
 

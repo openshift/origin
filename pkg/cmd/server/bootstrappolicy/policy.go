@@ -119,7 +119,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/status", "resourcequotas", "resourcequotas/status", "securitycontextconstraints", "serviceaccounts", "services",
 					"services/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets", "petsets/status").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets", "petsets/status", "statefulsets", "statefulsets/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers", "horizontalpodautoscalers/status").RuleOrDie(),
 
@@ -248,7 +248,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
@@ -309,7 +309,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
@@ -360,7 +360,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),

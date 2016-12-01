@@ -6,8 +6,8 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 )
 
-type PetSet struct {
-	PetSet *kubegraph.PetSetNode
+type StatefulSet struct {
+	StatefulSet *kubegraph.StatefulSetNode
 
 	OwnedPods   []*kubegraph.PodNode
 	CreatedPods []*kubegraph.PodNode
@@ -15,17 +15,17 @@ type PetSet struct {
 	// TODO: handle conflicting once controller refs are present, not worth it yet
 }
 
-// AllPetSets returns all the PetSets that aren't in the excludes set and the set of covered NodeIDs
-func AllPetSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]PetSet, IntSet) {
+// AllStatefulSets returns all the StatefulSets that aren't in the excludes set and the set of covered NodeIDs
+func AllStatefulSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]StatefulSet, IntSet) {
 	covered := IntSet{}
-	views := []PetSet{}
+	views := []StatefulSet{}
 
-	for _, uncastNode := range g.NodesByKind(kubegraph.PetSetNodeKind) {
+	for _, uncastNode := range g.NodesByKind(kubegraph.StatefulSetNodeKind) {
 		if excludeNodeIDs.Has(uncastNode.ID()) {
 			continue
 		}
 
-		view, covers := NewPetSet(g, uncastNode.(*kubegraph.PetSetNode))
+		view, covers := NewStatefulSet(g, uncastNode.(*kubegraph.StatefulSetNode))
 		covered.Insert(covers.List()...)
 		views = append(views, view)
 	}
@@ -33,13 +33,13 @@ func AllPetSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]PetSet, IntSet) {
 	return views, covered
 }
 
-// NewPetSet returns the PetSet and a set of all the NodeIDs covered by the PetSet
-func NewPetSet(g osgraph.Graph, node *kubegraph.PetSetNode) (PetSet, IntSet) {
+// NewStatefulSet returns the StatefulSet and a set of all the NodeIDs covered by the StatefulSet
+func NewStatefulSet(g osgraph.Graph, node *kubegraph.StatefulSetNode) (StatefulSet, IntSet) {
 	covered := IntSet{}
 	covered.Insert(node.ID())
 
-	view := PetSet{}
-	view.PetSet = node
+	view := StatefulSet{}
+	view.StatefulSet = node
 
 	for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.ManagedByControllerEdgeKind) {
 		podNode := uncastPodNode.(*kubegraph.PodNode)

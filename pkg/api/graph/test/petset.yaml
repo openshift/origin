@@ -10,7 +10,7 @@ items:
     name: mysql
     namespace: example
     resourceVersion: "6790"
-    selfLink: /apis/apps/v1alpha1/namespaces/example/petsets/mysql
+    selfLink: /apis/apps/v1beta1/namespaces/example/statefulsets/mysql
     uid: 3900c985-4f5b-11e6-b8a1-080027242396
   spec:
     replicas: 3
