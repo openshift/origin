@@ -17,4 +17,5 @@ type Plugin interface {
 	HandleNamespaces(namespaces sets.String) error
 	HandleNode(watch.EventType, *kapi.Node) error
 	SetLastSyncProcessed(processed bool) error
+	SetSyncedAtLeastOnce() error
 }

@@ -50,6 +50,7 @@ type TemplatePluginConfig struct {
 	IncludeUDP             bool
 	AllowWildcardRoutes    bool
 	PeerService            *ktypes.NamespacedName
+	BindPortsAfterSync     bool
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
@@ -89,6 +90,9 @@ type routerInterface interface {
 
 	// SetSkipCommit indicates to the router whether commits should be skipped
 	SetSkipCommit(skipCommit bool)
+
+	// SetSyncedAtLeastOnce indicates to the router that state has been read from the api at least once
+	SetSyncedAtLeastOnce()
 }
 
 func env(name, defaultValue string) string {
@@ -144,6 +148,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		statsPort:              cfg.StatsPort,
 		allowWildcardRoutes:    cfg.AllowWildcardRoutes,
 		peerEndpointsKey:       peerKey,
+		bindPortsAfterSync:     cfg.BindPortsAfterSync,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, lookupSvc), err
@@ -237,6 +242,12 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 
 func (p *TemplatePlugin) SetLastSyncProcessed(processed bool) error {
 	p.Router.SetSkipCommit(!processed)
+	return nil
+}
+
+func (p *TemplatePlugin) SetSyncedAtLeastOnce() error {
+	p.Router.SetSyncedAtLeastOnce()
+	p.Router.Commit()
 	return nil
 }
 

@@ -37,6 +37,11 @@ type RouterController struct {
 	endpointsListConsumed bool
 	filteredByNamespace   bool
 
+	RoutesListSuccessfulAtLeastOnce    func() bool
+	EndpointsListSuccessfulAtLeastOnce func() bool
+	RoutesListCount                    func() int
+	EndpointsListCount                 func() int
+
 	WatchNodes bool
 
 	Namespaces            NamespaceLister
@@ -56,6 +61,51 @@ func (c *RouterController) Run() {
 	go utilwait.Forever(c.HandleEndpoints, 0)
 	if c.WatchNodes {
 		go utilwait.Forever(c.HandleNode, 0)
+	}
+	go c.watchForFirstSync()
+}
+
+// handleFirstSync signals the router when it sees that the various
+// watchers have successfully listed data from the api.
+func (c *RouterController) handleFirstSync() bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	synced := c.RoutesListSuccessfulAtLeastOnce() &&
+		c.EndpointsListSuccessfulAtLeastOnce() &&
+		(c.Namespaces == nil || c.filteredByNamespace)
+	if !synced {
+		return false
+	}
+
+	// If either of the event queues were empty after the initial
+	// List, the tracking listConsumed variable's default value of
+	// 'false' may prevent the router from reloading to indicate the
+	// readiness status.  Set the value to 'true' to ensure that a
+	// reload will be performed if necessary.
+	if c.RoutesListCount() == 0 {
+		c.routesListConsumed = true
+	}
+	if c.EndpointsListCount() == 0 {
+		c.endpointsListConsumed = true
+	}
+	c.updateLastSyncProcessed()
+
+	err := c.Plugin.SetSyncedAtLeastOnce()
+	if err == nil {
+		return true
+	}
+	utilruntime.HandleError(err)
+	return false
+}
+
+// watchForFirstSync loops until the first sync has been handled.
+func (c *RouterController) watchForFirstSync() {
+	for {
+		if c.handleFirstSync() {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 

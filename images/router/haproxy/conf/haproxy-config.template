@@ -94,6 +94,7 @@ listen stats :1936
     stats auth {{.StatsUser}}:{{.StatsPassword}}
 {{ end }}
 
+{{ if .BindPorts }}
 frontend public
   bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}
   mode http
@@ -523,6 +524,9 @@ backend be_secure_{{$cfgIdx}}
     {{ end }}{{/* end range over serviceUnitNames */}}
   {{ end }}{{/* end tls==reencrypt */}}
 {{ end }}{{/* end loop over routes */}}
+{{ else }}
+# Avoiding binding ports until routing configuration has been synchronized.
+{{ end }}{{/* end bind ports after sync */}}
 {{ end }}{{/* end haproxy config template */}}
 
 {{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
