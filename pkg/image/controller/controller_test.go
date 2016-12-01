@@ -65,6 +65,10 @@ func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*doc
 	return nil, dockerregistry.NewImageNotFoundError(fmt.Sprintf("%s/%s", namespace, name), tag, tag)
 }
 
+func (f *fakeDockerRegistryClient) ImageManifest(namespace, name, tag string) (string, []byte, error) {
+	return "", nil, dockerregistry.NewImageNotFoundError(fmt.Sprintf("%s/%s", namespace, name), tag, tag)
+}
+
 func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*dockerregistry.Image, error) {
 	f.Called = true
 	f.Namespace, f.Name, f.ID = namespace, name, id
