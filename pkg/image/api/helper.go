@@ -35,6 +35,9 @@ const (
 	// containerImageEntrypointAnnotationFormatKey is a format used to identify the entrypoint of a particular
 	// container in a pod template. It is a JSON array of strings.
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
+
+	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
+	TagReferenceAnnotationTagHidden = "hidden"
 )
 
 // DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
@@ -1001,4 +1004,13 @@ func IndexOfImageSignature(signatures []ImageSignature, sType string, sContent [
 		}
 	}
 	return -1
+}
+
+func (tagref TagReference) HasAnnotationTag(searchTag string) bool {
+	for _, tag := range strings.Split(tagref.Annotations["tags"], ",") {
+		if tag == searchTag {
+			return true
+		}
+	}
+	return false
 }

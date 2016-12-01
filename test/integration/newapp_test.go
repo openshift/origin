@@ -31,6 +31,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
+	clicmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate"
@@ -1412,7 +1413,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 	}
 }
 
-func TestBuildOutputCycleDetection(t *testing.T) {
+func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 	skipExternalGit(t)
 	tests := []struct {
 		name   string
@@ -1854,6 +1855,53 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 	}
 }
 
+func TestNewAppListAndSearch(t *testing.T) {
+	tests := []struct {
+		name           string
+		options        clicmd.NewAppOptions
+		expectedOutput string
+	}{
+		{
+			name: "search, no oldversion",
+			options: clicmd.NewAppOptions{
+				Config: &cmd.AppConfig{
+					ComponentInputs: cmd.ComponentInputs{
+						ImageStreams: []string{"ruby"},
+					},
+					AsSearch: true,
+				},
+			},
+			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
+		},
+		{
+			name: "list, no oldversion",
+			options: clicmd.NewAppOptions{
+				Config: &cmd.AppConfig{
+					AsList: true,
+				},
+			},
+			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
+		},
+	}
+	for _, test := range tests {
+		stdout, stderr := PrepareAppConfig(test.options.Config)
+		test.options.Out, test.options.ErrOut = stdout, stderr
+		test.options.BaseName = "oc"
+		test.options.CommandName = "new-app"
+
+		err := test.options.RunNewApp()
+		if err != nil {
+			t.Errorf("expected err == nil, got err == %v", err)
+		}
+		if stderr.Len() > 0 {
+			t.Errorf("expected stderr == %q, got stderr == %q", "", stderr.Bytes())
+		}
+		if string(stdout.Bytes()) != test.expectedOutput {
+			t.Errorf("expected stdout == %q, got stdout == %q", test.expectedOutput, stdout.Bytes())
+		}
+	}
+}
+
 func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) string {
 	// Create test directories
 	testDir, err := ioutil.TempDir("", "gitauth")
@@ -1976,11 +2024,28 @@ func builderImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:            "ruby",
+			Namespace:       "default",
 			ResourceVersion: "1",
+		},
+		Spec: imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{
+				"oldversion": {
+					Annotations: map[string]string{
+						"tags": "hidden",
+					},
+				},
+			},
 		},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				"latest": {
+					Items: []imageapi.TagEvent{
+						{
+							Image: "the-image-id",
+						},
+					},
+				},
+				"oldversion": {
 					Items: []imageapi.TagEvent{
 						{
 							Image: "the-image-id",
