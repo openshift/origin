@@ -4322,6 +4322,8 @@ _oc_adm_prune_images()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
     flags+=("--certificate-authority=")
     local_nonpersistent_flags+=("--certificate-authority=")
     flags+=("--confirm")
