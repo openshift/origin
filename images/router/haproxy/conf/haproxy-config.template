@@ -105,21 +105,21 @@ frontend public
   http-request replace-header Host (.*):.* \1
 
   # check if we need to redirect/force using https.
-  acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
+  acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
   redirect scheme https if secure_redirect
 
 {{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
   #  Check for wildcard domains with redirected http routes.
   acl wildcard_domain hdr(host),map_reg(/var/lib/haproxy/conf/os_wildcard_domain.map) -m found
 
-  acl wildcard_secure_redirect base,map_reg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
+  acl wildcard_secure_redirect base,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
   redirect scheme https if wildcard_domain wildcard_secure_redirect
 
 {{ end }}
 
-  # Check if it is an edge route exposed insecurely.
-  acl edge_http_expose base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
-  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if edge_http_expose
+  # Check if it is an edge or reencrypt route exposed insecurely.
+  acl route_http_expose base,map_beg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
+  use_backend %[base,map_beg(/var/lib/haproxy/conf/os_route_http_expose.map)] if route_http_expose
 
   # map to http backend
   # Search from most specific to general path (host case).
@@ -128,8 +128,8 @@ frontend public
 
 {{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
   #  Check for wildcard domains with exposed http routes.
-  acl wildcard_edge_http_expose base,map_reg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
-  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if wildcard_domain wildcard_edge_http_expose
+  acl wildcard_route_http_expose base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
+  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map)] if wildcard_domain wildcard_route_http_expose
 
   # map to http backend
   # Search from most specific to general path (host case).
@@ -580,30 +580,38 @@ backend be_secure_{{$cfgIdx}}
 {{ end }}{{/* end edge http host map template */}}
 
 {{/*
-    os_edge_http_expose.map: contains a mapping of www.example.com -> <service name>.
-    Map is used to also expose edge terminated routes via an insecure scheme
+    os_route_http_expose.map: contains a mapping of www.example.com -> <service name>.
+    Map is used to also expose edge terminated and reencrypt routes via an insecure scheme
     (http) if acls match for routes with insecure option set to expose.
 */}}
-{{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
+{{ define "/var/lib/haproxy/conf/os_route_http_expose.map" }}
 {{     range $idx, $cfg := .State }}
-{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
+{{       if and (ne $cfg.Host "") (and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
 {{         if $cfg.IsWildcard }}
-{{genSubdomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
+{{           if (eq $cfg.TLSTermination "edge") }}
+{{genSubdomainWildcardRegexp $cfg.Host $cfg.Path false}} be_edge_http_{{$idx}}
+{{           else }}
+{{genSubdomainWildcardRegexp $cfg.Host $cfg.Path false}} be_secure_{{$idx}}
+{{           end }}
 {{         else }}
-{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{           if (eq $cfg.TLSTermination "edge") }}
+{{$cfg.Host}}{{$cfg.Path}} be_edge_http_{{$idx}}
+{{           else }}
+{{$cfg.Host}}{{$cfg.Path}} be_secure_{{$idx}}
+{{           end }}
 {{         end }}
 {{       end }}
 {{     end }}
-{{ end }}{{/* end edge insecure expose http host map template */}}
+{{ end }}{{/* end edge and reencrypt expose http host map template */}}
 
 {{/*
-    os_edge_http_redirect.map: contains a mapping of www.example.com -> <service name>.
+    os_route_http_redirect.map: contains a mapping of www.example.com -> <service name>.
     Map is used to redirect insecure traffic to use a secure scheme (https)
     if acls match for routes that have the insecure option set to redirect.
 */}}
-{{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
+{{ define "/var/lib/haproxy/conf/os_route_http_redirect.map" }}
 {{     range $idx, $cfg := .State }}
-{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
+{{       if and (ne $cfg.Host "") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect")}}
 {{         if $cfg.IsWildcard }}
 {{genSubdomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
 {{         else }}
@@ -611,7 +619,7 @@ backend be_secure_{{$cfgIdx}}
 {{         end }}
 {{       end }}
 {{     end }}
-{{ end }}{{/* end edge insecure redirect http host map template */}}
+{{ end }}{{/* end redirect http host map template */}}
 
 
 {{/*
