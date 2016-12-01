@@ -684,6 +684,46 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// check for circular reference specifically from the template objects and print warnings if they exist
+	err = c.checkCircularReferences(templateObjects)
+	if err != nil {
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			// templates only apply to `oc new-app`
+			addOn := ""
+			if len(c.Name) == 0 {
+				addOn = ", override artifact names with --name"
+			}
+			fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n%s", err, addOn)
+		} else {
+			return nil, err
+		}
+	}
+	// check for circular reference specifically from the newly generated objects, handling new-app vs. new-build nuances as needed
+	err = c.checkCircularReferences(objects)
+	if err != nil {
+		if err, ok := err.(app.CircularOutputReferenceError); ok {
+			if c.ExpectToBuild {
+				// circular reference handling for `oc new-build`.
+				if len(c.To) == 0 {
+					// Output reference was generated, return error.
+					return nil, fmt.Errorf("%v, set a different tag with --to", err)
+				}
+				// Output reference was explicitly provided, print warning.
+				fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+			} else {
+				// circular reference handling for `oc new-app`
+				if len(c.Name) == 0 {
+					return nil, fmt.Errorf("%v, override artifact names with --name", err)
+				}
+				// Output reference was explicitly provided, print warning.
+				fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	objects = append(objects, templateObjects...)
 
 	name = c.Name
@@ -703,23 +743,6 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			if bc, ok := obj.(*buildapi.BuildConfig); ok {
 				name = bc.Name
 				break
-			}
-		}
-	}
-
-	// Only check circular references for `oc new-build`.
-	if c.ExpectToBuild {
-		err = c.checkCircularReferences(objects)
-		if err != nil {
-			if err, ok := err.(app.CircularOutputReferenceError); ok {
-				if len(c.To) == 0 {
-					// Output reference was generated, return error.
-					return nil, fmt.Errorf("%v, set a different tag with --to", err)
-				}
-				// Output reference was explicitly provided, print warning.
-				fmt.Fprintf(c.ErrOut, "--> WARNING: %v\n", err)
-			} else {
-				return nil, err
 			}
 		}
 	}
