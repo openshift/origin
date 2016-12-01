@@ -1,10 +1,17 @@
 package scc
 
 import (
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/conversion"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
@@ -129,7 +136,19 @@ func TestAssignSecurityContext(t *testing.T) {
 		for k, v := range testCases {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
 
-			errs := AssignSecurityContext(provider, v.pod, nil)
+			clonedPod, err := conversion.NewCloner().DeepCopy(v.pod)
+			if err != nil {
+				t.Errorf("Unable to clone pod: %v", err)
+				continue
+			}
+			psc, annotations, cscs, errs := ResolvePodSecurityContext(provider, v.pod)
+
+			//check whether ResolvePodSecurityContext mutate the provided pod
+			if !kapi.Semantic.DeepEqual(v.pod, clonedPod) {
+				t.Errorf("%s expected immutated pod %s", k, diff.ObjectDiff(v.pod, clonedPod))
+				continue
+			}
+
 			if v.shouldValidate && len(errs) > 0 {
 				t.Errorf("%s expected to validate but received errors %v", k, errs)
 				continue
@@ -137,6 +156,10 @@ func TestAssignSecurityContext(t *testing.T) {
 			if !v.shouldValidate && len(errs) == 0 {
 				t.Errorf("%s expected validation errors but received none", k)
 				continue
+			}
+
+			if len(errs) == 0 {
+				SetSecurityContext(v.pod, psc, annotations, cscs)
 			}
 
 			// if we shouldn't have validated ensure that uid is not set on the containers
@@ -572,4 +595,408 @@ func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
 		}
 	}
 	return false
+}
+
+func TestCreateProviderFromConstraint(t *testing.T) {
+	namespaceValid := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "1/3",
+			},
+		},
+	}
+	namespaceNoUID := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "1/3",
+			},
+		},
+	}
+	namespaceNoMCS := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.SupplementalGroupsAnnotation: "1/3",
+			},
+		},
+	}
+
+	namespaceNoSupplementalGroupsFallbackToUID := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation: "1/3",
+				allocator.MCSAnnotation:      "s0:c1,c0",
+			},
+		},
+	}
+
+	namespaceBadSupGroups := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "",
+			},
+		},
+	}
+
+	testCases := map[string]struct {
+		// use a generating function so we can test for non-mutation
+		scc         func() *kapi.SecurityContextConstraints
+		namespace   *kapi.Namespace
+		expectedErr string
+	}{
+		"valid non-preallocated scc": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "valid non-preallocated scc",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+				}
+			},
+			namespace: namespaceValid,
+		},
+		"valid pre-allocated scc": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "valid pre-allocated scc",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type:           kapi.SELinuxStrategyMustRunAs,
+						SELinuxOptions: &kapi.SELinuxOptions{User: "myuser"},
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
+				}
+			},
+			namespace: namespaceValid,
+		},
+		"pre-allocated no uid annotation": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no uid annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyMustRunAs,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+				}
+			},
+			namespace:   namespaceNoUID,
+			expectedErr: "unable to find pre-allocated uid annotation",
+		},
+		"pre-allocated no mcs annotation": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no mcs annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyMustRunAs,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+				}
+			},
+			namespace:   namespaceNoMCS,
+			expectedErr: "unable to find pre-allocated mcs annotation",
+		},
+		"pre-allocated group falls back to UID annotation": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no sup group annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
+				}
+			},
+			namespace: namespaceNoSupplementalGroupsFallbackToUID,
+		},
+		"pre-allocated group bad value fails": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no sup group annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
+				}
+			},
+			namespace:   namespaceBadSupGroups,
+			expectedErr: "unable to find pre-allocated group annotation",
+		},
+		"bad scc strategy options": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "bad scc user options",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAs,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+				}
+			},
+			namespace:   namespaceValid,
+			expectedErr: "MustRunAs requires a UID",
+		},
+	}
+
+	for k, v := range testCases {
+		scc := v.scc()
+		_, err := createProviderFromConstraint(v.namespace, scc)
+
+		if !reflect.DeepEqual(scc, v.scc()) {
+			diff := diff.ObjectDiff(scc, v.scc())
+			t.Errorf("%s createProvidersFromConstraint mutated constraints. diff:\n%s", k, diff)
+		}
+		if len(v.expectedErr) > 0 && err == nil {
+			t.Errorf("%s expected error %q", k, v.expectedErr)
+			continue
+		}
+		if len(v.expectedErr) == 0 && err != nil {
+			t.Errorf("%s did not expect an error but received %v", k, err)
+			continue
+		}
+
+		// check that we got the error we expected
+		if len(v.expectedErr) > 0 {
+			if !strings.Contains(err.Error(), v.expectedErr) {
+				t.Errorf("%s expected error '%s' but received %v", k, v.expectedErr, err)
+			}
+		}
+	}
+}
+
+func TestAssignConstraints(t *testing.T) {
+	tests := map[string]struct {
+		constraints          []*kapi.SecurityContextConstraints
+		namespaceName        string
+		client               clientset.Interface
+		expectedErrorMessage string
+		resolve              func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error)
+		assign               func(kscc.SecurityContextConstraintsProvider, *kapi.SecurityContextConstraints, *kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext) error
+	}{
+		"no providers": {
+			constraints:          []*kapi.SecurityContextConstraints{},
+			namespaceName:        "default",
+			client:               &fake.Clientset{},
+			expectedErrorMessage: "no providers available",
+			resolve: func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+				return nil, nil, nil, nil
+			},
+			assign: func(kscc.SecurityContextConstraintsProvider, *kapi.SecurityContextConstraints, *kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext) error {
+				return nil
+			},
+		},
+		"good assign": {
+			constraints: []*kapi.SecurityContextConstraints{
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "requiresPreAllocatedUIDRange",
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+					Groups: []string{"system:serviceaccounts"},
+				},
+			},
+			namespaceName: "ns",
+			client: fake.NewSimpleClientset(&kapi.Namespace{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "ns",
+					Annotations: map[string]string{allocator.UIDRangeAnnotation: "1/5"},
+				}}),
+			resolve: func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+				return nil, nil, nil, nil
+			},
+			assign: func(provider kscc.SecurityContextConstraintsProvider, constraint *kapi.SecurityContextConstraints, psc *kapi.PodSecurityContext, a map[string]string, sccs []*kapi.SecurityContext) error {
+				if provider != nil && constraint != nil {
+					return nil
+				}
+				return fmt.Errorf("No provider or/and constraint")
+			},
+		},
+		"cannot resolve": {
+			constraints: []*kapi.SecurityContextConstraints{
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "requiresPreAllocatedUIDRange",
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+					Groups: []string{"system:serviceaccounts"},
+				},
+			},
+			namespaceName: "ns",
+			client: fake.NewSimpleClientset(&kapi.Namespace{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "ns",
+					Annotations: map[string]string{allocator.UIDRangeAnnotation: "1/5"},
+				}}),
+			expectedErrorMessage: "unable to resolve security provider: Unable to resolve",
+			resolve: func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+				return nil, nil, nil, fmt.Errorf("Unable to resolve")
+			},
+			assign: func(kscc.SecurityContextConstraintsProvider, *kapi.SecurityContextConstraints, *kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext) error {
+				return nil
+			},
+		},
+		"two sccs": {
+			constraints: []*kapi.SecurityContextConstraints{
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "badSCCNoFSGroupStrategy",
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+					Groups: []string{"system:serviceaccounts"},
+				},
+				{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "requiresPreAllocatedUIDRange",
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
+					Groups: []string{"system:serviceaccounts"},
+				},
+			},
+			namespaceName: "ns",
+			client: fake.NewSimpleClientset(&kapi.Namespace{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "ns",
+					Annotations: map[string]string{allocator.UIDRangeAnnotation: "1/5"},
+				}}),
+			resolve: func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+				return nil, nil, nil, nil
+			},
+			assign: func(kscc.SecurityContextConstraintsProvider, *kapi.SecurityContextConstraints, *kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext) error {
+				return nil
+			},
+		},
+	}
+
+	for k, v := range tests {
+		err := AssignConstraints(v.constraints, v.namespaceName, v.client, v.resolve, v.assign)
+		switch {
+		case err == nil && len(v.expectedErrorMessage) == 0:
+		case err == nil && len(v.expectedErrorMessage) > 0:
+			t.Errorf("%q - Expected error %q, but got no error", k, v.expectedErrorMessage)
+		case err != nil && len(v.expectedErrorMessage) == 0:
+			t.Errorf("%q - Unexpected error %q", k, err.Error())
+		case err.Error() != v.expectedErrorMessage:
+			t.Errorf("%q - Unexpected error %q, wanted %q", k, err.Error(), v.expectedErrorMessage)
+		}
+	}
 }

@@ -3,6 +3,7 @@ package admission
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -90,14 +91,32 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-	assigner := newSCCAssigner(pod)
-	err = oscc.AssignConstraints(sccMatcher, matchedConstraints, a.GetNamespace(), c.client, assigner)
-	if err == nil {
-		return nil
+	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	sort.Sort(oscc.ByPriority(matchedConstraints))
+	if err = oscc.AssignConstraints(matchedConstraints, a.GetNamespace(), c.client,
+		func(provider scc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+			validationErrs := field.ErrorList{}
+			psc, annotations, scs, errs := oscc.ResolvePodSecurityContext(provider, pod)
+			if len(errs) > 0 {
+				validationErrs = append(validationErrs, errs...)
+				return nil, nil, nil, validationErrs.ToAggregate()
+			}
+			return psc, annotations, scs, nil
+		},
+		func(provider scc.SecurityContextConstraintsProvider, unused *kapi.SecurityContextConstraints, psc *kapi.PodSecurityContext, annotations map[string]string, cscs []*kapi.SecurityContext) error {
+			oscc.SetSecurityContext(pod, psc, annotations, cscs)
+			glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, provider.GetSCCName())
+			if pod.ObjectMeta.Annotations == nil {
+				pod.ObjectMeta.Annotations = map[string]string{}
+			}
+			pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
+			return nil
+		}); err != nil {
+		// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
+		glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, err)
+		return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", err))
 	}
-	// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, err)
-	return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", err))
+	return nil
 }
 
 // SetInformers implements WantsInformers interface for constraint.
@@ -111,30 +130,4 @@ func (c *constraint) Validate() error {
 		return fmt.Errorf("sccLister not initialized")
 	}
 	return nil
-}
-
-type sCCAssigner struct {
-	pod *kapi.Pod
-}
-
-var _ oscc.SCCAssigner = &sCCAssigner{}
-
-func (a *sCCAssigner) Assign(provider scc.SecurityContextConstraintsProvider, unused *kapi.SecurityContextConstraints) error {
-	validationErrs := field.ErrorList{}
-	if errs := oscc.AssignSecurityContext(provider, a.pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
-		validationErrs = append(validationErrs, errs...)
-		return validationErrs.ToAggregate()
-	}
-
-	// the entire pod validated, annotate and accept the pod
-	glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", a.pod.Name, a.pod.GenerateName, provider.GetSCCName())
-	if a.pod.ObjectMeta.Annotations == nil {
-		a.pod.ObjectMeta.Annotations = map[string]string{}
-	}
-	a.pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
-	return nil
-}
-
-func newSCCAssigner(pod *kapi.Pod) oscc.SCCAssigner {
-	return &sCCAssigner{pod: pod}
 }
