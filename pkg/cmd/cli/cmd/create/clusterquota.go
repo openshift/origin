@@ -46,7 +46,7 @@ type CreateClusterQuotaOptions struct {
 	Printer      ObjectPrinter
 }
 
-// NewCmdCreateServiceAccount is a macro command to create a new service account
+// NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
 func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &CreateClusterQuotaOptions{Out: out}
 
