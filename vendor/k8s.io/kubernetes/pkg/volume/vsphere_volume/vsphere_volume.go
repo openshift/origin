@@ -135,6 +135,18 @@ func (plugin *vsphereVolumePlugin) getCloudProvider() (*vsphere.VSphere, error) 
 	return vs, nil
 }
 
+func (plugin *vsphereVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
+	vsphereVolume := &api.Volume{
+		Name: volumeName,
+		VolumeSource: api.VolumeSource{
+			VsphereVolume: &api.VsphereVirtualDiskVolumeSource{
+				VolumePath: volumeName,
+			},
+		},
+	}
+	return volume.NewSpecFromVolume(vsphereVolume), nil
+}
+
 // Abstract interface to disk operations.
 type vdManager interface {
 	// Attaches the disk to the kubelet's host machine.
@@ -335,7 +347,7 @@ func (v *vsphereVolumeUnmounter) TearDownAt(dir string) error {
 }
 
 func makeGlobalPDPath(host volume.VolumeHost, devName string) string {
-	return path.Join(host.GetPluginDir(vsphereVolumePluginName), "mounts", devName)
+	return path.Join(host.GetPluginDir(vsphereVolumePluginName), mount.MountsInGlobalPDPath, devName)
 }
 
 func (vv *vsphereVolume) GetPath() string {

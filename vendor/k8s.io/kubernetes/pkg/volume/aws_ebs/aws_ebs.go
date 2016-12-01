@@ -50,6 +50,7 @@ var _ volume.ProvisionableVolumePlugin = &awsElasticBlockStorePlugin{}
 
 const (
 	awsElasticBlockStorePluginName = "kubernetes.io/aws-ebs"
+	awsURLNamePrefix               = "aws://"
 )
 
 func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
@@ -188,6 +189,50 @@ func getVolumeSource(
 	return nil, false, fmt.Errorf("Spec does not reference an AWS EBS volume type")
 }
 
+func (plugin *awsElasticBlockStorePlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
+	mounter := plugin.host.GetMounter()
+	pluginDir := plugin.host.GetPluginDir(plugin.GetPluginName())
+	volumeID, err := mounter.GetDeviceNameFromMount(mountPath, pluginDir)
+	if err != nil {
+		return nil, err
+	}
+	// This is a workaround to fix the issue in converting aws volume id from globalPDPath
+	// There are three aws volume id formats and their volumeID from GetDeviceNameFromMount() are:
+	// aws:///vol-1234 (aws/vol-1234)
+	// aws://us-east-1/vol-1234 (aws/us-east-1/vol-1234)
+	// vol-1234 (vol-1234)
+	// This code is for converting volume id to aws style volume id for the first two cases.
+	sourceName := volumeID
+	if strings.HasPrefix(volumeID, "aws/") {
+		names := strings.Split(volumeID, "/")
+		length := len(names)
+		if length < 2 || length > 3 {
+			return nil, fmt.Errorf("Failed to get AWS volume id from mount path %q: invalid volume name format %q", mountPath, volumeID)
+		}
+		volName := names[length-1]
+		if !strings.HasPrefix(volName, "vol-") {
+			return nil, fmt.Errorf("Invalid volume name format for AWS volume (%q) retrieved from mount path %q", volName, mountPath)
+		}
+		if length == 2 {
+			sourceName = awsURLNamePrefix + "" + "/" + volName // empty zone label
+		}
+		if length == 3 {
+			sourceName = awsURLNamePrefix + names[1] + "/" + volName // names[1] is the zone label
+		}
+		glog.V(4).Infof("Convert aws volume name from %q to %q ", volumeID, sourceName)
+	}
+
+	awsVolume := &api.Volume{
+		Name: volName,
+		VolumeSource: api.VolumeSource{
+			AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{
+				VolumeID: sourceName,
+			},
+		},
+	}
+	return volume.NewSpecFromVolume(awsVolume), nil
+}
+
 // Abstract interface to PD operations.
 type ebsManager interface {
 	CreateVolume(provisioner *awsElasticBlockStoreProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
@@ -301,12 +346,12 @@ func makeGlobalPDPath(host volume.VolumeHost, volumeID string) string {
 	// Clean up the URI to be more fs-friendly
 	name := volumeID
 	name = strings.Replace(name, "://", "/", -1)
-	return path.Join(host.GetPluginDir(awsElasticBlockStorePluginName), "mounts", name)
+	return path.Join(host.GetPluginDir(awsElasticBlockStorePluginName), mount.MountsInGlobalPDPath, name)
 }
 
 // Reverses the mapping done in makeGlobalPDPath
 func getVolumeIDFromGlobalMount(host volume.VolumeHost, globalPath string) (string, error) {
-	basePath := path.Join(host.GetPluginDir(awsElasticBlockStorePluginName), "mounts")
+	basePath := path.Join(host.GetPluginDir(awsElasticBlockStorePluginName), mount.MountsInGlobalPDPath)
 	rel, err := filepath.Rel(basePath, globalPath)
 	if err != nil {
 		glog.Errorf("Failed to get volume id from global mount %s - %v", globalPath, err)

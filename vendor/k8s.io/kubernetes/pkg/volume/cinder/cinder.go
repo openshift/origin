@@ -204,6 +204,25 @@ func (plugin *cinderPlugin) getCloudProvider() (CinderProvider, error) {
 	}
 }
 
+func (plugin *cinderPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
+	mounter := plugin.host.GetMounter()
+	pluginDir := plugin.host.GetPluginDir(plugin.GetPluginName())
+	sourceName, err := mounter.GetDeviceNameFromMount(mountPath, pluginDir)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("Found volume %s mounted to %s", sourceName, mountPath)
+	cinderVolume := &api.Volume{
+		Name: volumeName,
+		VolumeSource: api.VolumeSource{
+			Cinder: &api.CinderVolumeSource{
+				VolumeID: sourceName,
+			},
+		},
+	}
+	return volume.NewSpecFromVolume(cinderVolume), nil
+}
+
 // Abstract interface to PD operations.
 type cdManager interface {
 	// Attaches the disk to the kubelet's host machine.
@@ -340,7 +359,7 @@ func (b *cinderVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 }
 
 func makeGlobalPDName(host volume.VolumeHost, devName string) string {
-	return path.Join(host.GetPluginDir(cinderVolumePluginName), "mounts", devName)
+	return path.Join(host.GetPluginDir(cinderVolumePluginName), mount.MountsInGlobalPDPath, devName)
 }
 
 func (cd *cinderVolume) GetPath() string {
