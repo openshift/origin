@@ -133,8 +133,13 @@ func (m *clusterQuotaMapper) removeQuota(quotaName string) {
 	delete(m.requiredQuotaToSelector, quotaName)
 	delete(m.completedQuotaToSelector, quotaName)
 	delete(m.quotaToNamespaces, quotaName)
-	for _, quotas := range m.namespaceToQuota {
-		quotas.Delete(quotaName)
+	for namespaceName, quotas := range m.namespaceToQuota {
+		if quotas.Has(quotaName) {
+			quotas.Delete(quotaName)
+			for _, listener := range m.listeners {
+				listener.RemoveMapping(quotaName, namespaceName)
+			}
+		}
 	}
 }
 
@@ -176,8 +181,13 @@ func (m *clusterQuotaMapper) removeNamespace(namespaceName string) {
 	delete(m.requiredNamespaceToLabels, namespaceName)
 	delete(m.completedNamespaceToLabels, namespaceName)
 	delete(m.namespaceToQuota, namespaceName)
-	for _, namespaces := range m.quotaToNamespaces {
-		namespaces.Delete(namespaceName)
+	for quotaName, namespaces := range m.quotaToNamespaces {
+		if namespaces.Has(namespaceName) {
+			namespaces.Delete(namespaceName)
+			for _, listener := range m.listeners {
+				listener.RemoveMapping(quotaName, namespaceName)
+			}
+		}
 	}
 }
 
