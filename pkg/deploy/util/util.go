@@ -111,23 +111,23 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 // LatestDeploymentInfo returns info about the latest deployment for a config,
 // or nil if there is no latest deployment. The latest deployment is not
 // always the same as the active deployment.
-func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.ReplicationController) (bool, *api.ReplicationController) {
+func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []*api.ReplicationController) (bool, *api.ReplicationController) {
 	if config.Status.LatestVersion == 0 || len(deployments) == 0 {
 		return false, nil
 	}
 	sort.Sort(ByLatestVersionDesc(deployments))
-	candidate := &deployments[0]
+	candidate := deployments[0]
 	return DeploymentVersionFor(candidate) == config.Status.LatestVersion, candidate
 }
 
 // ActiveDeployment returns the latest complete deployment, or nil if there is
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
-func ActiveDeployment(input []api.ReplicationController) *api.ReplicationController {
+func ActiveDeployment(input []*api.ReplicationController) *api.ReplicationController {
 	var activeDeployment *api.ReplicationController
 	var lastCompleteDeploymentVersion int64 = 0
 	for i := range input {
-		deployment := &input[i]
+		deployment := input[i]
 		deploymentVersion := DeploymentVersionFor(deployment)
 		if IsCompleteDeployment(deployment) && deploymentVersion > lastCompleteDeploymentVersion {
 			activeDeployment = deployment
@@ -345,7 +345,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 // GetReplicaCountForDeployments returns the sum of all replicas for the
 // given deployments.
-func GetReplicaCountForDeployments(deployments []api.ReplicationController) int32 {
+func GetReplicaCountForDeployments(deployments []*api.ReplicationController) int32 {
 	totalReplicaCount := int32(0)
 	for _, deployment := range deployments {
 		totalReplicaCount += deployment.Spec.Replicas
@@ -355,7 +355,7 @@ func GetReplicaCountForDeployments(deployments []api.ReplicationController) int3
 
 // GetStatusReplicaCountForDeployments returns the sum of the replicas reported in the
 // status of the given deployments.
-func GetStatusReplicaCountForDeployments(deployments []api.ReplicationController) int32 {
+func GetStatusReplicaCountForDeployments(deployments []*api.ReplicationController) int32 {
 	totalReplicaCount := int32(0)
 	for _, deployment := range deployments {
 		totalReplicaCount += deployment.Status.Replicas
@@ -536,7 +536,7 @@ func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
 
 // DeploymentsForCleanup determines which deployments for a configuration are relevant for the
 // revision history limit quota
-func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployments []api.ReplicationController) []api.ReplicationController {
+func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployments []*api.ReplicationController) []api.ReplicationController {
 	// if the past deployment quota has been exceeded, we need to prune the oldest deployments
 	// until we are not exceeding the quota any longer, so we sort oldest first
 	sort.Sort(ByLatestVersionAsc(deployments))
@@ -548,7 +548,7 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 		// no active deployment. We can consider all of the deployments in this case except for
 		// the latest one
 		for i := range deployments {
-			deployment := &deployments[i]
+			deployment := deployments[i]
 			if DeploymentVersionFor(deployment) != configuration.Status.LatestVersion {
 				relevantDeployments = append(relevantDeployments, *deployment)
 			}
@@ -557,7 +557,7 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 		// if there is an active deployment, we need to filter out any deployments that we don't
 		// care about, namely the active deployment and any newer deployments
 		for i := range deployments {
-			deployment := &deployments[i]
+			deployment := deployments[i]
 			if deployment != activeDeployment && DeploymentVersionFor(deployment) < DeploymentVersionFor(activeDeployment) {
 				relevantDeployments = append(relevantDeployments, *deployment)
 			}
@@ -604,21 +604,21 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.
-type ByLatestVersionAsc []api.ReplicationController
+type ByLatestVersionAsc []*api.ReplicationController
 
 func (d ByLatestVersionAsc) Len() int      { return len(d) }
 func (d ByLatestVersionAsc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d ByLatestVersionAsc) Less(i, j int) bool {
-	return DeploymentVersionFor(&d[i]) < DeploymentVersionFor(&d[j])
+	return DeploymentVersionFor(d[i]) < DeploymentVersionFor(d[j])
 }
 
 // ByLatestVersionDesc sorts deployments by LatestVersion descending.
-type ByLatestVersionDesc []api.ReplicationController
+type ByLatestVersionDesc []*api.ReplicationController
 
 func (d ByLatestVersionDesc) Len() int      { return len(d) }
 func (d ByLatestVersionDesc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d ByLatestVersionDesc) Less(i, j int) bool {
-	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
+	return DeploymentVersionFor(d[j]) < DeploymentVersionFor(d[i])
 }
 
 // ByMostRecent sorts deployments by most recently created.

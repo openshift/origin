@@ -156,7 +156,7 @@ func (o CancelOptions) Run() error {
 		}
 
 		if !cancelled {
-			latest := &deployments[0]
+			latest := deployments[0]
 			maybeCancelling := ""
 			if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
 				maybeCancelling = " (cancelling)"
@@ -173,27 +173,31 @@ func (o CancelOptions) Run() error {
 	return utilerrors.NewAggregate(allErrs)
 }
 
-func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]kapi.ReplicationController, bool, error) {
-	deployments, err := o.Clientset.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
+	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
 	if err != nil {
 		return nil, false, err
 	}
-	if len(deployments.Items) == 0 {
+	if len(deploymentList.Items) == 0 {
 		return nil, false, fmt.Errorf("there have been no replication controllers for %s/%s\n", namespace, name)
 	}
-	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
+	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	for i := range deploymentList.Items {
+		deployments = append(deployments, &deploymentList.Items[i])
+	}
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 	allErrs := []error{}
 	cancelled := false
 
-	for _, deployment := range deployments.Items {
-		status := deployutil.DeploymentStatusFor(&deployment)
+	for _, deployment := range deployments {
+		status := deployutil.DeploymentStatusFor(deployment)
 		switch status {
 		case deployapi.DeploymentStatusNew,
 			deployapi.DeploymentStatusPending,
 			deployapi.DeploymentStatusRunning:
-			cancelled = mutateFunc(&deployment)
+			cancelled = mutateFunc(deployment)
 		}
 	}
 
-	return deployments.Items, cancelled, utilerrors.NewAggregate(allErrs)
+	return deployments, cancelled, utilerrors.NewAggregate(allErrs)
 }

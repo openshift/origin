@@ -74,13 +74,16 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, deploymentConfig.ObjectMeta)
 		var (
-			deploymentsHistory   []kapi.ReplicationController
+			deploymentsHistory   []*kapi.ReplicationController
 			activeDeploymentName string
 		)
 
 		if d.config == nil {
 			if rcs, err := d.kubeClient.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(deploymentConfig.Name)}); err == nil {
-				deploymentsHistory = rcs.Items
+				deploymentsHistory = make([]*kapi.ReplicationController, 0, len(rcs.Items))
+				for i := range rcs.Items {
+					deploymentsHistory = append(deploymentsHistory, &rcs.Items[i])
+				}
 			}
 		}
 
@@ -102,7 +105,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		isNotDeployed := len(deploymentsHistory) == 0
 		for _, item := range deploymentsHistory {
 			if item.Name == latestDeploymentName {
-				deployment = &item
+				deployment = item
 			}
 		}
 		if deployment == nil {
@@ -124,9 +127,9 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 			sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
 			counter := 1
 			for _, item := range sorted {
-				if item.Name != latestDeploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
-					header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
-					printDeploymentRc(&item, d.kubeClient, out, header, item.Name == activeDeploymentName)
+				if item.Name != latestDeploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(item) {
+					header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(item))
+					printDeploymentRc(item, d.kubeClient, out, header, item.Name == activeDeploymentName)
 					counter++
 				}
 				if counter == maxDisplayDeployments {
