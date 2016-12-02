@@ -495,7 +495,7 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient, c.Informers)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:                kClient,
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
@@ -517,7 +517,7 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient, c.Informers)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{

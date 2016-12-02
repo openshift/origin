@@ -219,7 +219,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset)
+	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset, informerFactory)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
