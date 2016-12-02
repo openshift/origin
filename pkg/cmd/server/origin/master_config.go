@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/labels"
@@ -194,7 +195,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
 		return nil, err
 	}
-	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, 10*time.Minute)
+	const defaultInformerResyncPeriod = 10 * time.Minute
+	kubeInformerFactory := informers.NewSharedInformerFactory(privilegedLoopbackKubeClientset, defaultInformerResyncPeriod)
+	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
@@ -215,7 +218,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClientset.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
-	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), kubeInformerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 

@@ -7,12 +7,12 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -68,9 +68,9 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 }
 
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
-func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
+func NewAllResourceReplenishmentControllerFactory(informerFactory informers.SharedInformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
-		kresourcequota.NewReplenishmentControllerFactory(informerFactory.Pods().Informer(), kubeClientSet),
+		kresourcequota.NewReplenishmentControllerFactory(informerFactory, kubeClientSet),
 		NewReplenishmentControllerFactory(osClient),
 	}
 }
