@@ -71,9 +71,8 @@ func (d *DockerBuilder) Build() error {
 			return err
 		}
 	*/
-	buildDir := "/tmp/gitSource"
 
-	err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout)
+	err := fetchSource(d.dockerClient, strategy.BuildSourceDir, d.build, d.urlTimeout)
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
@@ -106,7 +105,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
-	dockerfilePath := getDockerfilePath(buildDir, d.build)
+	dockerfilePath := getDockerfilePath(strategy.BuildSourceDir, d.build)
 	imageNames := getDockerfileFrom(dockerfilePath)
 	if len(imageNames) == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
@@ -142,7 +141,7 @@ func (d *DockerBuilder) Build() error {
 		}
 	}
 
-	if err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
+	if err := d.dockerBuild(strategy.BuildSourceDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
 		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
 		d.build.Status.Message = api.StatusMessageDockerBuildFailed
 		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {

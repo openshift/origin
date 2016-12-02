@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api/validation"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
+	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -156,12 +157,11 @@ func (c *builderConfig) clone() error {
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
 	//buildDir, err := ioutil.TempDir("", "inputs")
-	buildDir := "/tmp/gitSource"
 	if err != nil {
 		return err
 	}
 
-	sourceInfo, err := bld.GitClone(gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
+	sourceInfo, err := bld.GitClone(gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, strategy.BuildSourceDir)
 	if err != nil {
 		return err
 	}
@@ -169,12 +169,11 @@ func (c *builderConfig) clone() error {
 		bld.UpdateBuildRevision(c.buildsClient, c.build, sourceInfo)
 	}
 
-	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
+	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, strategy.BuildSourceDir)
 	return err
 }
 
 func (c *builderConfig) manageDockerfile() error {
-	buildDir := "/tmp/gitSource"
 
 	/*
 		secretTmpDir, gitEnv, err := c.setupGitEnvironment()
@@ -185,13 +184,11 @@ func (c *builderConfig) manageDockerfile() error {
 	*/
 	gitClient := git.NewRepositoryWithEnv(nil)
 
-	return bld.ManageDockerfile(gitClient, buildDir, c.build)
+	return bld.ManageDockerfile(gitClient, strategy.BuildSourceDir, c.build)
 }
 
 func (c *builderConfig) extractImageContent() error {
-	buildDir := "/tmp/gitSource"
-
-	return bld.ExtractImageContent(c.dockerClient, buildDir, c.build)
+	return bld.ExtractImageContent(c.dockerClient, strategy.BuildSourceDir, c.build)
 }
 
 // execute is responsible for running a build

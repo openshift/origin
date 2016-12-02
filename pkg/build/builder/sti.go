@@ -185,21 +185,21 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.Incremental != nil {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
-	srcDir := "file:///tmp/gitSource"
+	srcDir := "file://" + strategy.BuildSourceDir
 	if len(s.build.Spec.Source.ContextDir) != 0 {
 		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
 		if contextDir == "." || contextDir == "/" {
 			contextDir = ""
 		}
-		srcDir = filepath.Join("file:///tmp/gitSource", s.build.Spec.Source.ContextDir)
+		srcDir = filepath.Join("file://"+strategy.BuildSourceDir, s.build.Spec.Source.ContextDir)
 	}
 	config := &s2iapi.Config{
 		// Working dir is on a volume so we can't clean it up (nor do we need to).
-		PreserveWorkingDir: true,
-		WorkingDir:         "/tmp",
-		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
-		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
-		LabelNamespace:     api.DefaultDockerLabelNamespace,
+		//PreserveWorkingDir: true,
+		WorkingDir:     "/tmp/workdir",
+		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
+		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
+		LabelNamespace: api.DefaultDockerLabelNamespace,
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 

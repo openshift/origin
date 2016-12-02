@@ -23,6 +23,7 @@ const (
 	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
 	sourceSecretMountPath          = "/var/run/secrets/openshift.io/source"
+	BuildSourceDir                 = "/tmp/buildsource"
 )
 
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}

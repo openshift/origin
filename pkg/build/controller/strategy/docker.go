@@ -59,8 +59,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Args:  []string{},
 					VolumeMounts: []kapi.VolumeMount{
 						{
-							Name:      "gitsource",
-							MountPath: "/tmp/gitSource",
+							Name:      "buildsource",
+							MountPath: BuildSourceDir,
 						},
 					},
 					ImagePullPolicy: kapi.PullIfNotPresent,
@@ -79,8 +79,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					},
 					VolumeMounts: []kapi.VolumeMount{
 						{
-							Name:      "gitsource",
-							MountPath: "/tmp/gitSource",
+							Name:      "buildsource",
+							MountPath: BuildSourceDir,
 						},
 					},
 					ImagePullPolicy: kapi.PullIfNotPresent,
@@ -89,7 +89,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			},
 			Volumes: []kapi.Volume{
 				{
-					Name: "gitsource",
+					Name: "buildsource",
 					VolumeSource: kapi.VolumeSource{
 						EmptyDir: &kapi.EmptyDirVolumeSource{},
 					},
@@ -110,8 +110,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Args:  []string{},
 			VolumeMounts: []kapi.VolumeMount{
 				{
-					Name:      "gitsource",
-					MountPath: "/tmp/gitSource",
+					Name:      "buildsource",
+					MountPath: BuildSourceDir,
 				},
 			},
 			ImagePullPolicy: kapi.PullIfNotPresent,
@@ -135,8 +135,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			},
 			VolumeMounts: []kapi.VolumeMount{
 				{
-					Name:      "gitsource",
-					MountPath: "/tmp/gitSource",
+					Name:      "buildsource",
+					MountPath: BuildSourceDir,
 				},
 			},
 			ImagePullPolicy: kapi.PullIfNotPresent,
