@@ -614,12 +614,12 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	repositories := resolved.Repositories
 	components := resolved.Components
 
-	if err := c.validateBuilders(components); err != nil {
-		return nil, err
-	}
-
 	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
+	}
+
+	if err := c.validateBuilders(components); err != nil {
+		return nil, err
 	}
 
 	if len(c.Name) > 0 {
@@ -664,9 +664,6 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env)
 	if err != nil {
-		if err == app.ErrNameRequired {
-			return nil, errors.New("can't suggest a valid name, please specify a name with --name")
-		}
 		return nil, err
 	}
 
