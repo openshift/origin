@@ -179,8 +179,19 @@ func (c *ClusterQuotaReconcilationController) calculateAll() {
 	}
 
 	for _, quota := range quotas {
+		// If we have namespaces we map to, force calculating those namespaces
 		namespaces, _ := c.clusterQuotaMapper.GetNamespacesFor(quota.Name)
-		c.forceCalculation(quota.Name, namespaces...)
+		if len(namespaces) > 0 {
+			c.forceCalculation(quota.Name, namespaces...)
+			continue
+		}
+
+		// If the quota status has namespaces when our mapper doesn't think it should,
+		// add it directly to the queue without any work items
+		if quota.Status.Namespaces.OrderedKeys().Front() != nil {
+			c.queue.AddWithData(quota.Name)
+			continue
+		}
 	}
 }
 
@@ -283,6 +294,17 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
 		quota.Status.Namespaces.Insert(namespaceName, recalculatedStatus)
+	}
+
+	// Remove any namespaces from quota.status that no longer match.
+	// Needed because we will never get workitems for namespaces that no longer exist if we missed the delete event (e.g. on startup)
+	for e := quota.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
+		namespaceName := e.Value.(string)
+		namespaceTotals, _ := quota.Status.Namespaces.Get(namespaceName)
+		if !matchingNamespaceNames.Has(namespaceName) {
+			quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
+			quota.Status.Namespaces.Remove(namespaceName)
+		}
 	}
 
 	quota.Status.Total.Hard = quota.Spec.Quota.Hard
