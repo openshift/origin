@@ -822,6 +822,18 @@
 			"Rev": "511bcaf42ccd42c38aba7427b6673277bf19e2a1"
 		},
 		{
+			"ImportPath": "github.com/denverdino/aliyungo/common",
+			"Rev": "6670d44234961c0ca4c377c6b6270c3594ceb386"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/oss",
+			"Rev": "6670d44234961c0ca4c377c6b6270c3594ceb386"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/util",
+			"Rev": "6670d44234961c0ca4c377c6b6270c3594ceb386"
+		},
+		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
 			"Comment": "v3.0.0-4-g01aeca5",
 			"Rev": "01aeca54ebda6e0fbfafd0a524d234159c05ec20"
@@ -1013,6 +1025,11 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution/registry/storage/driver/middleware/cloudfront",
+			"Comment": "v2.5.1",
+			"Rev": "12acdf0a6c1e56d965ac6eb395d2bce687bf22fc"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/oss",
 			"Comment": "v2.5.1",
 			"Rev": "12acdf0a6c1e56d965ac6eb395d2bce687bf22fc"
 		},
@@ -3030,6 +3047,14 @@
 		},
 		{
 			"ImportPath": "google.golang.org/cloud/internal/opts",
+			"Rev": "eb47ba841d53d93506cfbfbc03927daf9cc48f88"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/internal/testutil",
+			"Rev": "eb47ba841d53d93506cfbfbc03927daf9cc48f88"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/internal/transport",
 			"Rev": "eb47ba841d53d93506cfbfbc03927daf9cc48f88"
 		},
 		{
