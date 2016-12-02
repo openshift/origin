@@ -263,12 +263,12 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 		return
 	}
 
-	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient, "services", kapi.NamespaceAll, fields.Everything())
+	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", kapi.NamespaceAll, fields.Everything())
 	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
 	serviceReflector.Run()
 
 	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient, "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", kapi.NamespaceAll, fields.Everything())
 		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
 		endpointReflector.Run()
 

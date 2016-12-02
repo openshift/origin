@@ -15,7 +15,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -223,7 +222,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		ResourceNames("pods", resources...).
 		Flatten()
 	if len(o.Filename) > 0 {
-		b.FilenameParam(explicit, false, o.Filename)
+		b.FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.Filename}})
 	}
 
 	o.AddEnv, o.RemoveEnv, err = cmdutil.ParseEnv(envArgs, nil)

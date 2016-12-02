@@ -58,8 +58,8 @@ func NewImageStreamTagEvaluator(istNamespacer osclient.ImageStreamTagsNamespacer
 		MatchesScopeFunc:     matchesScopeFunc,
 		UsageFunc:            makeImageStreamTagAdmissionUsageFunc(isNamespacer),
 		GetFuncByNamespace:   getFuncByNamespace,
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) (runtime.Object, error) {
-			return &imageapi.ImageStreamTagList{}, nil
+		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+			return []runtime.Object{}, nil
 		},
 		ConstraintsFunc: imageStreamTagConstraintsFunc,
 	}

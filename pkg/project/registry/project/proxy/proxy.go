@@ -10,8 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -180,7 +180,7 @@ type decoratorFunc func(obj runtime.Object) error
 // filterList filters any list object that conforms to the api conventions,
 // provided that 'm' works with the concrete type of list. d is an optional
 // decorator for the returned functions. Only matching items are decorated.
-func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
+func filterList(list runtime.Object, m kstorage.SelectionPredicate, d decoratorFunc) (filtered runtime.Object, err error) {
 	// TODO: push a matcher down into tools.etcdHelper to avoid all this
 	// nonsense. This is a lot of unnecessary copies.
 	items, err := meta.ExtractList(list)

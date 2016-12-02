@@ -6,8 +6,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -359,7 +361,7 @@ func TestScheduledImport(t *testing.T) {
 		},
 	}
 	successfulImport := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		Spec: api.ImageStreamImportSpec{
 			Import: true,
 			Images: []api.ImageImportSpec{{From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"}}},
@@ -400,8 +402,10 @@ func TestScheduledImport(t *testing.T) {
 	}
 
 	// encountering a not found error for image streams should drop the controller
-	status := apierrs.NewNotFound(api.Resource("imagestream"), "test").ErrStatus
-	fake = client.NewSimpleFake(&status)
+	fake = &client.Fake{}
+	fake.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, kerrors.NewNotFound(api.Resource("imagestreams"), "test")
+	})
 	b.controller.streams = fake
 	b.scheduler.RunOnce()
 	if b.scheduler.Len() != 0 {

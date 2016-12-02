@@ -8,8 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -42,13 +42,12 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		var fakeKubeClient clientset.Interface
+		var fakeKubeClient kclientset.Interface
 		if v.limitRange != nil {
-			fakeKubeClient = clientsetfake.NewSimpleClientset(v.limitRange)
+			fakeKubeClient = fake.NewSimpleClientset(v.limitRange)
 		} else {
-			fakeKubeClient = clientsetfake.NewSimpleClientset()
+			fakeKubeClient = fake.NewSimpleClientset()
 		}
-
 		plugin, err := NewImageLimitRangerPlugin(fakeKubeClient, nil)
 		if err != nil {
 			t.Errorf("%s failed creating plugin %v", k, err)
@@ -170,7 +169,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 		},
 	}
 
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -188,7 +187,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 }
 
 func TestHandles(t *testing.T) {
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -208,7 +207,7 @@ func TestHandles(t *testing.T) {
 
 func TestSupports(t *testing.T) {
 	resources := []string{"imagestreammappings"}
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}

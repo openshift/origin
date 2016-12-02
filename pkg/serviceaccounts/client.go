@@ -93,7 +93,7 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	}
 
 	config.UserAgent = kubeUserAgent
-	kcset, err := kclientset.NewFromConfig(&config)
+	kcset, err := kclientset.NewForConfig(&config)
 	if err != nil {
 		return nil, nil, nil, err
 	}

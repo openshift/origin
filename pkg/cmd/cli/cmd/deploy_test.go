@@ -9,7 +9,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	tc "github.com/openshift/origin/pkg/client/testclient"
@@ -43,16 +44,16 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 		updatedConfig := config
 
 		osClient := &tc.Fake{}
-		osClient.AddReactor("get", "deploymentconfigs", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		osClient.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, config, nil
 		})
-		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			updatedConfig.Status.LatestVersion++
 			return true, updatedConfig, nil
 		})
 
-		kubeClient := &ktc.Fake{}
-		kubeClient.AddReactor("get", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		kubeClient := fake.NewSimpleClientset()
+		kubeClient.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deploymentFor(config, status), nil
 		})
 
@@ -80,7 +81,7 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 	for _, status := range invalidStatusList {
 		config := deploytest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
-		kubeClient := ktc.NewSimpleFake(existingDeployment)
+		kubeClient := fake.NewSimpleClientset(existingDeployment)
 		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
 
 		err := o.deploy(config)
@@ -93,8 +94,8 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 // TestCmdDeploy_latestLookupError ensures that an error is thrown when
 // existing deployments can't be looked up due to some fatal server error.
 func TestCmdDeploy_latestLookupError(t *testing.T) {
-	kubeClient := &ktc.Fake{}
-	kubeClient.AddReactor("get", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient := fake.NewSimpleClientset()
+	kubeClient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewInternalError(fmt.Errorf("internal error"))
 	})
 
@@ -131,19 +132,19 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		mkpod("hook-pre"), mkpod("hook-post"), mkpod("deployerpod"),
 	}
 
-	kubeClient := &ktc.Fake{}
-	kubeClient.AddReactor("get", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient := fake.NewSimpleClientset()
+	kubeClient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, existingDeployment, nil
 	})
-	kubeClient.AddReactor("update", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
-		updatedDeployment = action.(ktc.UpdateAction).GetObject().(*kapi.ReplicationController)
+	kubeClient.PrependReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
 		return true, updatedDeployment, nil
 	})
-	kubeClient.AddReactor("list", "pods", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient.PrependReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.PodList{Items: existingDeployerPods}, nil
 	})
-	kubeClient.AddReactor("delete", "pods", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
-		deletedPods = append(deletedPods, action.(ktc.DeleteAction).GetName())
+	kubeClient.PrependReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		deletedPods = append(deletedPods, action.(core.DeleteAction).GetName())
 		return true, nil, nil
 	})
 
@@ -190,7 +191,7 @@ func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
 	for _, status := range invalidStatusList {
 		config := deploytest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
-		kubeClient := ktc.NewSimpleFake(existingDeployment)
+		kubeClient := fake.NewSimpleClientset(existingDeployment)
 		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
 		err := o.retry(config)
 		if err == nil {
@@ -242,13 +243,13 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
 
-		kubeClient := &ktc.Fake{}
-		kubeClient.AddReactor("update", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
-			updated := action.(ktc.UpdateAction).GetObject().(*kapi.ReplicationController)
+		kubeClient := fake.NewSimpleClientset()
+		kubeClient.PrependReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
 			updatedDeployments = append(updatedDeployments, *updated)
 			return true, updated, nil
 		})
-		kubeClient.AddReactor("list", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		kubeClient.PrependReactor("list", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, existingDeployments, nil
 		})
 
@@ -294,8 +295,8 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
 
 	osClient := &tc.Fake{}
-	osClient.AddReactor("update", "deploymentconfigs", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
-		updated = action.(ktc.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+	osClient.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		updated = action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		return true, updated, nil
 	})
 

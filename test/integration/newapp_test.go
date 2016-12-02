@@ -24,7 +24,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -2101,13 +2101,13 @@ func dockerBuilderImage() *docker.Image {
 
 func fakeImageStreamSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStream(), nil
 	})
-	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStreams(), nil
 	})
-	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImage(), nil
 	})
 
@@ -2120,7 +2120,7 @@ func fakeImageStreamSearcher() app.Searcher {
 
 func fakeTemplateSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 

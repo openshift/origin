@@ -166,7 +166,7 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		SelectorParam(o.Selector).
 		SelectAllParam(o.All).
 		ResourceNames("route", resources...).

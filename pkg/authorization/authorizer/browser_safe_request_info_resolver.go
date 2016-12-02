@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiserver "k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/apiserver/request"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -28,7 +28,7 @@ func NewBrowserSafeRequestInfoResolver(contextMapper kapi.RequestContextMapper, 
 	}
 }
 
-func (a *browserSafeRequestInfoResolver) GetRequestInfo(req *http.Request) (kapiserver.RequestInfo, error) {
+func (a *browserSafeRequestInfoResolver) GetRequestInfo(req *http.Request) (request.RequestInfo, error) {
 	requestInfo, err := a.infoResolver.GetRequestInfo(req)
 	if err != nil {
 		return requestInfo, err

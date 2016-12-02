@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -66,7 +66,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 			CAData: cluster1AdminConfig.CAData,
 		},
 	}
-	cluster1SAKubeClient, err := kclient.New(&cluster1SAClientConfig)
+	cluster1SAKubeClient, err := kclientset.NewForConfig(&cluster1SAClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	// Build a client to use the same service account token against cluster2
 	cluster2SAClientConfig := cluster1SAClientConfig
 	cluster2SAClientConfig.Host = cluster2AdminConfig.Host
-	cluster2SAKubeClient, err := kclient.New(&cluster2SAClientConfig)
+	cluster2SAKubeClient, err := kclientset.NewForConfig(&cluster2SAClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

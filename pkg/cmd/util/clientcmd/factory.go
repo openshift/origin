@@ -30,7 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/controller"
@@ -1036,7 +1035,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
-func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
+func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
 	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err
@@ -1087,7 +1086,7 @@ type clientCache struct {
 	configs       map[string]*restclient.Config
 	defaultConfig *restclient.Config
 	// negotiatingClient is used only for negotiating versions with the server.
-	negotiatingClient *kclient.Client
+	negotiatingClient restclient.Interface
 }
 
 // ClientConfigForVersion returns the correct config for a server
@@ -1120,7 +1119,7 @@ func (c *clientCache) ClientConfigForVersion(version *unversioned.GroupVersion) 
 		// duplication.
 		negotiatingConfig := *c.defaultConfig
 		client.SetOpenShiftDefaults(&negotiatingConfig)
-		negotiatingClient, err := kclient.New(&negotiatingConfig)
+		negotiatingClient, err := restclient.RESTClientFor(&negotiatingConfig)
 		if err != nil {
 			return nil, err
 		}

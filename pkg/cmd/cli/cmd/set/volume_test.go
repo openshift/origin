@@ -80,7 +80,7 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	f := clientcmd.NewFactory(nil)
 	fakeMapping := getFakeMapping()
 	info := &resource.Info{
-		Client:    fake.NewSimpleClientset(),
+		Client:    fake.NewSimpleClientset().Core().RESTClient(),
 		Mapping:   fakeMapping,
 		Namespace: "default",
 		Name:      "fakepod",

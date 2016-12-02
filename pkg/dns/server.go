@@ -34,7 +34,7 @@ func NewServer(config *server.Config, client *kclientset.Clientset) *Server {
 	stop := make(chan struct{})
 	return &Server{
 		Config:    config,
-		Services:  NewCachedServiceAccessor(client.CoreClient, stop),
+		Services:  NewCachedServiceAccessor(client.CoreClient.RESTClient(), stop),
 		Endpoints: client.Core(),
 		Stop:      stop,
 	}

@@ -3,9 +3,8 @@ package imagestreamimage
 import (
 	"testing"
 
+	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
-
-	etcd "github.com/coreos/etcd/client"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -38,10 +37,9 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
-
+func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := etcd.NewKeysAPI(server.Client)
+	etcdClient := etcd.NewKV(server.V3Client)
 
 	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
 	if err != nil {
@@ -204,7 +202,7 @@ func TestGet(t *testing.T) {
 			ctx := kapi.NewDefaultContext()
 			if test.repo != nil {
 				ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
-				_, err := client.Create(
+				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),
 					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo),
@@ -215,7 +213,7 @@ func TestGet(t *testing.T) {
 				}
 			}
 			if test.image != nil {
-				_, err := client.Create(
+				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/images/"+test.image.Name),
 					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image),

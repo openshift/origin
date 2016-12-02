@@ -27,6 +27,7 @@ func TestRunGenerators(t *testing.T) {
 		"job/v1",
 		"job/v1beta1",
 		"scheduledjob/v2alpha1",
+		"cronjob/v2alpha1",
 
 		// origin generators
 		"run-controller/v1", // legacy alias for run/v1

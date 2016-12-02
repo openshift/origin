@@ -265,7 +265,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		postFile(kubeClient.CoreClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(kubeClient.Core().RESTClient().(restclient.HTTPClient), "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second / 2)

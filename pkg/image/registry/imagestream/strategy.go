@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -525,8 +525,17 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 // Decorate decorates stream.Status.DockerImageRepository using the logic from
 // dockerImageRepository().
 func (s Strategy) Decorate(obj runtime.Object) error {
-	ir := obj.(*api.ImageStream)
-	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
+	switch t := obj.(type) {
+	case *api.ImageStream:
+		t.Status.DockerImageRepository = s.dockerImageRepository(t)
+	case *api.ImageStreamList:
+		for i := range t.Items {
+			is := &t.Items[i]
+			is.Status.DockerImageRepository = s.dockerImageRepository(is)
+		}
+	default:
+		return kerrors.NewBadRequest(fmt.Sprintf("not an ImageStream nor ImageStreamList: %v", obj))
+	}
 	return nil
 }
 
@@ -573,8 +582,8 @@ func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
-	return &generic.SelectionPredicate{
+func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
+	return kstorage.SelectionPredicate{
 		Label: label,
 		Field: field,
 		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {

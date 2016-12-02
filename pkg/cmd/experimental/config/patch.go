@@ -104,7 +104,7 @@ func (o *PatchOptions) RunPatch() error {
 	}
 
 	r := o.Builder.
-		FilenameParam(false, false, o.Filename).
+		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.Filename}}).
 		Flatten().
 		Do()
 	err = r.Err()

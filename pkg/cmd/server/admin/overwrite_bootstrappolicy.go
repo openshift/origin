@@ -123,7 +123,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
-		FilenameParam(false, false, policyFile).
+		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{policyFile}}).
 		Flatten().
 		Do()
 

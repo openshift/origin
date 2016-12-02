@@ -33,6 +33,8 @@ spec:
           limits:
             cpu: 100m
             memory: 3Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
       volumes:
       - emptyDir: {}
         name: vol1

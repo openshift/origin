@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -299,9 +298,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
-func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
-	namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount,
-	error) {
+func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, error) {
 	var secrets []*kapi.Secret
 	var volumes []kapi.Volume
 	var mounts []kapi.VolumeMount
@@ -858,12 +855,12 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
 	if !hostNetwork && !hostPorts {
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

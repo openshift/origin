@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -52,10 +52,10 @@ func podReady(pod *api.Pod) bool {
 
 type podCondition func(pod *api.Pod) (bool, error)
 
-func waitForPodCondition(c *client.Client, ns, podName, desc string, timeout time.Duration, condition podCondition) error {
+func waitForPodCondition(c kclientset.Interface, ns, podName, desc string, timeout time.Duration, condition podCondition) error {
 	e2e.Logf("Waiting up to %[1]v for pod %-[2]*[3]s status to be %[4]s", timeout, podPrintWidth, podName, desc)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(poll) {
-		pod, err := c.Pods(ns).Get(podName)
+		pod, err := c.Core().Pods(ns).Get(podName)
 		if err != nil {
 			// Aligning this text makes it much more readable
 			e2e.Logf("Get pod %-[1]*[2]s in namespace '%[3]s' failed, ignoring for %[4]v. Error: %[5]v",
@@ -74,7 +74,7 @@ func waitForPodCondition(c *client.Client, ns, podName, desc string, timeout tim
 }
 
 // waitForPodSuccessInNamespace returns nil if the pod reached state success, or an error if it reached failure or ran too long.
-func waitForPodSuccessInNamespace(c *client.Client, podName string, contName string, namespace string) error {
+func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contName string, namespace string) error {
 	return waitForPodCondition(c, namespace, podName, "success or failure", podStartTimeout, func(pod *api.Pod) (bool, error) {
 		// Cannot use pod.Status.Phase == api.PodSucceeded/api.PodFailed due to #2632
 		ci, ok := api.GetContainerStatus(pod.Status.ContainerStatuses, contName)
@@ -97,7 +97,7 @@ func waitForPodSuccessInNamespace(c *client.Client, podName string, contName str
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
 	e2e.LaunchWebserverPod(f, serviceName, nodeName)
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
-	podClient := f.Client.Pods(f.Namespace.Name)
+	podClient := f.ClientSet.Core().Pods(f.Namespace.Name)
 	pod, err := podClient.Get(serviceName)
 	expectNoError(err)
 	pod.ObjectMeta.Labels = make(map[string]string)
@@ -122,7 +122,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 			},
 		},
 	}
-	serviceClient := f.Client.Services(f.Namespace.Name)
+	serviceClient := f.ClientSet.Core().Services(f.Namespace.Name)
 	_, err = serviceClient.Create(service)
 	expectNoError(err)
 	expectNoError(f.WaitForAnEndpoint(serviceName))
@@ -154,11 +154,11 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 			RestartPolicy: api.RestartPolicyNever,
 		},
 	}
-	podClient := f.Client.Pods(f.Namespace.Name)
+	podClient := f.ClientSet.Core().Pods(f.Namespace.Name)
 	_, err := podClient.Create(pod)
 	expectNoError(err)
 	defer podClient.Delete(podName, nil)
-	return waitForPodSuccessInNamespace(f.Client, podName, contName, f.Namespace.Name)
+	return waitForPodSuccessInNamespace(f.ClientSet, podName, contName, f.Namespace.Name)
 }
 
 func pluginIsolatesNamespaces() bool {
@@ -176,7 +176,7 @@ func makeNamespaceGlobal(ns *api.Namespace) {
 }
 
 func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(f1.Client)
+	nodes := e2e.GetReadySchedulableNodesOrDie(f1.ClientSet)
 	var serverNode, clientNode *api.Node
 	serverNode = &nodes.Items[0]
 	if nodeType == DIFFERENT_NODE {
@@ -189,14 +189,14 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	}
 
 	podName := "isolation-webserver"
-	defer f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
+	defer f1.ClientSet.Core().Pods(f1.Namespace.Name).Delete(podName, nil)
 	ip := e2e.LaunchWebserverPod(f1, podName, serverNode.Name)
 
 	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10)
 }
 
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, nodeType NodeType) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(serverFramework.Client)
+	nodes := e2e.GetReadySchedulableNodesOrDie(serverFramework.ClientSet)
 	var serverNode, clientNode *api.Node
 	serverNode = &nodes.Items[0]
 	if nodeType == DIFFERENT_NODE {
@@ -209,8 +209,8 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 	}
 
 	podName := api.SimpleNameGenerator.GenerateName("service-")
-	defer serverFramework.Client.Pods(serverFramework.Namespace.Name).Delete(podName, nil)
-	defer serverFramework.Client.Services(serverFramework.Namespace.Name).Delete(podName)
+	defer serverFramework.ClientSet.Core().Pods(serverFramework.Namespace.Name).Delete(podName, nil)
+	defer serverFramework.ClientSet.Core().Services(serverFramework.Namespace.Name).Delete(podName, nil)
 	ip := launchWebserverService(serverFramework, podName, serverNode.Name)
 
 	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10)

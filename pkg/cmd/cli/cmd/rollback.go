@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubectl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -111,7 +111,7 @@ type RollbackOptions struct {
 	// oc is an openshift client.
 	oc client.Interface
 	// kc is a kube client.
-	kc kclient.Interface
+	kc kclientset.Interface
 	// getBuilder returns a new builder each time it is called. A
 	// resource.Builder is stateful and isn't safe to reuse (e.g. across
 	// resource types).
@@ -334,7 +334,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deployments, err := o.kc.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deployments, err := o.kc.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return nil, err
 	}

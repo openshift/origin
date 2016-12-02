@@ -97,7 +97,7 @@ func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Wri
 	mapper, typer := f.Object(false)
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ResourceNames("", args...).
 		ContinueOnError().
 		Flatten()

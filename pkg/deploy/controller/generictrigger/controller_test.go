@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -103,7 +103,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
@@ -127,7 +127,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})

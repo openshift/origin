@@ -120,7 +120,7 @@ func TestAdmission(t *testing.T) {
 				}
 				return ""
 			},
-			expectedErr: "Jenkins pipeline template / not found",
+			expectedErr: "Jenkins pipeline template namespace/ not found",
 		},
 	}
 
@@ -133,6 +133,7 @@ func TestAdmission(t *testing.T) {
 		admission.jenkinsConfig = configapi.JenkinsPipelineConfig{
 			AutoProvisionEnabled: tc.jenkinsEnabled,
 			ServiceName:          "jenkins",
+			TemplateNamespace:    "namespace",
 		}
 
 		err := admission.Admit(tc.attributes)

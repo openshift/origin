@@ -29,7 +29,7 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 		},
 	}
 	kubeClient := kfake.NewSimpleClientset(resourceQuota)
-	osClient := testclient.NewSimpleFake(&imageapi.ImageStream{})
+	osClient := testclient.NewSimpleFake()
 	plugin := NewOriginResourceQuota(kubeClient).(*originQuotaAdmission)
 	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistry(osClient))
 	if err := plugin.Validate(); err != nil {

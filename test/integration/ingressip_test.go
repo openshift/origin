@@ -36,7 +36,7 @@ func TestIngressIPAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	_, kc, _, err := configapi.GetKubeClient(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
+	kc, _, err := configapi.GetKubeClient(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
 		QPS:   20,
 		Burst: 50,
 	})

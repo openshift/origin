@@ -64,7 +64,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = creatorClient.Services("foo").Create(&kapi.Service{
+	_, err = creatorClient.Core().Services("foo").Create(&kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:            "my-service",
 			OwnerReferences: []kapi.OwnerReference{{}},

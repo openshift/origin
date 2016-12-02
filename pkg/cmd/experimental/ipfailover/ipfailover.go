@@ -10,7 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -205,9 +205,9 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	return nil
 }
 
-func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string) error {
+func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string) error {
 
-	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

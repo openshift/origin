@@ -271,7 +271,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 		b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
-			FilenameParam(explicit, false, filenames...).
+			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 			SelectorParam(selector).
 			ResourceTypeOrNameArgs(all, from).
 			Flatten()
@@ -330,7 +330,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(all, resources...).
 		Flatten()

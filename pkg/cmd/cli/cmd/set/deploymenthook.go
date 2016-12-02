@@ -162,7 +162,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		Flatten()
 	if !o.Local {
 		o.Builder = o.Builder.

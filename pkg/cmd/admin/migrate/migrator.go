@@ -189,7 +189,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 
 	o.Builder = f.Factory.NewBuilder(false).
 		AllNamespaces(allNamespaces).
-		FilenameParam(false, false, o.Filenames...).
+		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ContinueOnError().
 		DefaultNamespace().
 		RequireObject(true).

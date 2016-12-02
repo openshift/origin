@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
-	limitranger "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
+	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

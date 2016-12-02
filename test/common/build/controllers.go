@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/fields"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 

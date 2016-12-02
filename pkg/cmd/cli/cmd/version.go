@@ -11,7 +11,6 @@ import (
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
@@ -34,7 +33,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, *kclient.Client, *kclientset.Clientset, error)
+	Clients      func() (*client.Client, *kclientset.Clientset, error)
 
 	Timeout time.Duration
 

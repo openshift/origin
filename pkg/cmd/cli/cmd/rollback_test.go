@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -82,7 +82,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
 
-		fakekc := ktc.NewSimpleFake(existingControllers)
+		fakekc := fake.NewSimpleClientset(existingControllers)
 		opts := &RollbackOptions{
 			kc: fakekc,
 		}

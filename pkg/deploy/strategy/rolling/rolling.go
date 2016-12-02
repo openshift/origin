@@ -108,7 +108,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 		apiRetryPeriod:  defaultApiRetryPeriod,
 		apiRetryTimeout: defaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
-			updater := kubectl.NewRollingUpdater(namespace, oldClient)
+			updater := kubectl.NewRollingUpdater(namespace, client.Core(), client.Core())
 			return updater.Update(config)
 		},
 		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout, decoder),

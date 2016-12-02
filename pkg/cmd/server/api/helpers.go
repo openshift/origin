@@ -310,7 +310,7 @@ func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) 
 
 	kubeConfig, err := loader.ClientConfig()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	applyClientConnectionOverrides(overrides, kubeConfig)
@@ -320,7 +320,7 @@ func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) 
 	if err != nil {
 		return nil, nil, err
 	}
-	return kubeClientset, kubeConfig, nil
+	return clientset, kubeConfig, nil
 }
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then

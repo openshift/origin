@@ -43,7 +43,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
 				if err != nil {
 					return false, err
 				}
@@ -84,7 +84,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(ns).Get("router-override")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override")
 				if err != nil {
 					return false, err
 				}

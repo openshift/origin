@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
@@ -127,7 +128,7 @@ func GetRequiresNamespace(obj runtime.Object) (bool, error) {
 		return false, err
 	}
 
-	restMapping, err := kapi.RESTMapper.RESTMapping(groupVersionKinds[0].GroupKind())
+	restMapping, err := registered.RESTMapper().RESTMapping(groupVersionKinds[0].GroupKind())
 	if err != nil {
 		return false, err
 	}

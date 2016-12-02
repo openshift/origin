@@ -27,7 +27,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/cronjob"
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	"k8s.io/kubernetes/pkg/controller/deployment"
@@ -312,7 +311,7 @@ func (c *MasterConfig) RunCronJobController(client kclientset.Interface) {
 }
 
 // RunDisruptionBudgetController starts the Kubernetes disruption budget controller
-func (c *MasterConfig) RunDisruptionBudgetController(client *kclient.Client) {
+func (c *MasterConfig) RunDisruptionBudgetController(client kclientset.Interface) {
 	go disruption.NewDisruptionController(c.Informers.Pods().Informer(), client).Run(utilwait.NeverStop)
 }
 
@@ -447,7 +446,7 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client *kclientset.Clien
 }
 
 // RunStatefulSetController starts the StatefulSet controller
-func (c *MasterConfig) RunStatefulSetController(client *kclient.Client) {
+func (c *MasterConfig) RunStatefulSetController(client kclientset.Interface) {
 	ps := petsetcontroller.NewStatefulSetController(c.Informers.Pods().Informer(), client, kctrlmgr.ResyncPeriod(c.ControllerManager)())
 	go ps.Run(1, utilwait.NeverStop)
 }

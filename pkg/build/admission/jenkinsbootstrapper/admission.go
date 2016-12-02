@@ -14,7 +14,6 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -105,7 +104,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 				if latest.OriginKind(mapping.GroupVersionKind) {
 					return client.New(&impersonatingConfig)
 				}
-				return kclient.New(&impersonatingConfig)
+				return restclient.RESTClientFor(&impersonatingConfig)
 			}),
 		},
 		Op: cmd.Create,

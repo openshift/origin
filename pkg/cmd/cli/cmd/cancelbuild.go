@@ -241,7 +241,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 	if o.Restart {
 		for _, b := range builds {
-			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: b.Name}}
+			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
 			build, err := o.BuildClient.Clone(request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))

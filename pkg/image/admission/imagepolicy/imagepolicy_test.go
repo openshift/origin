@@ -9,10 +9,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 
@@ -84,27 +85,41 @@ func TestDefaultPolicy(t *testing.T) {
 		DockerImageReference: "integrated.registry/badns/badimage:bad",
 	}
 
-	client := testclient.NewSimpleFake(
-		goodImage,
-		badImage,
+	notFoundTag := kerrors.NewNotFound(imageapi.Resource("imagestreamtags"), "")
+	goodTag := &imageapi.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
+		Image:      *goodImage,
+	}
+	badTag := &imageapi.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{Name: "mysql:badtag", Namespace: "repo"},
+		Image:      *badImage,
+	}
 
-		// respond to image stream tag in this order:
-		&unversioned.Status{
-			Reason: unversioned.StatusReasonNotFound,
-			Code:   404,
-			Details: &unversioned.StatusDetails{
-				Kind: "ImageStreamTag",
-			},
-		},
-		&imageapi.ImageStreamTag{
-			ObjectMeta: kapi.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
-			Image:      *goodImage,
-		},
-		&imageapi.ImageStreamTag{
-			ObjectMeta: kapi.ObjectMeta{Name: "mysql:badtag", Namespace: "repo"},
-			Image:      *badImage,
-		},
-	)
+	client := &testclient.Fake{}
+	imageResp := 0
+	// respond to images in this order: goodImage, badImage
+	client.AddReactor("get", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		image := goodImage
+		if imageResp%2 == 1 {
+			image = badImage
+		}
+		imageResp += 1
+		return true, image, nil
+	})
+	tagResp := 0
+	// respond to imagestreamtags in this order: notFoundTag, goodTag, badTag
+	client.AddReactor("get", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if tagResp%3 == 0 {
+			tagResp += 1
+			return true, nil, notFoundTag
+		}
+		tag := goodTag
+		if tagResp%3 == 2 {
+			tag = badTag
+		}
+		tagResp += 1
+		return true, tag, nil
+	})
 
 	store := setDefaultCache(plugin)
 	plugin.SetOpenshiftClient(client)
@@ -182,7 +197,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	t.Logf("%#v", plugin.accepter)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -193,7 +208,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -204,7 +219,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -217,7 +232,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -228,7 +243,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -239,7 +254,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -250,7 +265,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -288,7 +303,7 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !apierrs.IsInvalid(err) {
+	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -329,7 +344,7 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 		"", "node1", unversioned.GroupVersionResource{Version: "v1", Resource: "nodes"},
 		"", admission.Create, nil,
 	)
-	if err := p.Admit(attrs); !apierrs.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
+	if err := p.Admit(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
 		t.Fatal(err)
 	}
 }

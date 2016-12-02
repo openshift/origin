@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/yaml"
 
@@ -59,7 +59,7 @@ type MasterArgs struct {
 
 	// EtcdDir is the etcd data directory.
 	EtcdDir   string
-	ConfigDir *util.StringFlag
+	ConfigDir *flag.StringFlag
 
 	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
 	// An allowed origin can be a regular expression to support subdomain matching.
@@ -106,7 +106,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:8053", DefaultScheme: "tcp", DefaultPort: 8053, AllowPrefix: true}.Default(),
 
-		ConfigDir: &util.StringFlag{},
+		ConfigDir: &flag.StringFlag{},
 
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),

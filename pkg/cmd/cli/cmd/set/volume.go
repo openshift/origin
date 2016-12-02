@@ -432,7 +432,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.ExplicitNamespace, false, v.Filenames...).
+		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
 		SelectorParam(v.Selector).
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()

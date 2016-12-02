@@ -360,7 +360,7 @@ func (m *podManager) ipamGarbageCollection() {
 }
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.RunningPod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.ActivePod, error) {
 	podConfig, pod, err := m.getPodConfig(req)
 	if err != nil {
 		return nil, nil, err
@@ -393,7 +393,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 	}()
 
 	// Open any hostports the pod wants
-	newPod := &kubehostport.RunningPod{Pod: pod, IP: podIP}
+	newPod := &kubehostport.ActivePod{Pod: pod, IP: podIP}
 	if err := m.hostportHandler.OpenPodHostportsAndSync(newPod, TUN, m.getRunningPods()); err != nil {
 		return nil, nil, err
 	}

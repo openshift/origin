@@ -14,9 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/flag"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -26,8 +26,8 @@ func TestKubeletDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesNodeConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeletoptions.KubeletServer{
-		AuthPath:   util.NewStringFlag(""),
-		KubeConfig: util.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+		AuthPath:   flag.NewStringFlag(""),
+		KubeConfig: flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
 
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
 			Address:                     "0.0.0.0", // overridden
@@ -38,7 +38,6 @@ func TestKubeletDefaults(t *testing.T) {
 			CgroupRoot:                  "",
 			ClusterDNS:                  "", // overridden
 			ClusterDomain:               "", // overridden
-			ConfigureCBR0:               false,
 			ContainerRuntime:            "docker",
 			Containerized:               false, // overridden based on OPENSHIFT_CONTAINERIZED
 			CPUCFSQuota:                 true,  // forced to true
@@ -101,7 +100,6 @@ func TestKubeletDefaults(t *testing.T) {
 			ReconcileCIDR:                  true,
 			KubeAPIQPS:                     5.0,
 			KubeAPIBurst:                   10,
-			ExperimentalFlannelOverlay:     false,
 			OutOfDiskTransitionFrequency:   unversioned.Duration{Duration: 5 * time.Minute},
 			HairpinMode:                    "promiscuous-bridge",
 			BabysitDaemons:                 false,

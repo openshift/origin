@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/storage/etcd"
+	kstorage "k8s.io/kubernetes/pkg/storage"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -67,7 +67,7 @@ type userProjectWatcher struct {
 var (
 	// watchChannelHWM tracks how backed up the most backed up channel got.  This mirrors etcd watch behavior and allows tuning
 	// of channel depth.
-	watchChannelHWM etcd.HighWaterMark
+	watchChannelHWM kstorage.HighWaterMark
 )
 
 func NewUserProjectWatcher(user user.Info, visibleNamespaces sets.String, projectCache *projectcache.ProjectCache, authCache WatchableCache, includeAllExistingProjects bool) *userProjectWatcher {

@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	utildiff "k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -122,7 +122,7 @@ func TestUpdateQuota(t *testing.T) {
 
 		var actualQuota *quotaapi.ClusterResourceQuota
 		for _, action := range client.Actions() {
-			updateAction, ok := action.(ktestclient.UpdateActionImpl)
+			updateAction, ok := action.(core.UpdateActionImpl)
 			if !ok {
 				continue
 			}

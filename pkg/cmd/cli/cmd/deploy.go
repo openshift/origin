@@ -15,7 +15,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -31,7 +31,7 @@ import (
 type DeployOptions struct {
 	out             io.Writer
 	osClient        client.Interface
-	kubeClient      kclient.Interface
+	kubeClient      kclientset.Interface
 	builder         *resource.Builder
 	namespace       string
 	baseCommandName string
@@ -138,7 +138,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 	var err error
 
-	o.osClient, o.kubeClient, _, err = f.Clients()
+	o.osClient, o.kubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
 		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
@@ -293,7 +293,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment with 'oc deploy --latest dc/%s'.", config.Status.LatestVersion, config.Name)
@@ -313,12 +313,12 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	}
 
 	// Delete the deployer pod as well as the deployment hooks pods, if any
-	pods, err := o.kubeClient.Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName)})
+	pods, err := o.kubeClient.Core().Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName)})
 	if err != nil {
 		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)
 	}
 	for _, pod := range pods.Items {
-		err := o.kubeClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		err := o.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
 		if err != nil {
 			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)
 		}
@@ -328,7 +328,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	// clear out the cancellation flag as well as any previous status-reason annotation
 	delete(deployment.Annotations, deployapi.DeploymentStatusReasonAnnotation)
 	delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
-	_, err = o.kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
+	_, err = o.kubeClient.Core().ReplicationControllers(deployment.Namespace).Update(deployment)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")
 	}
-	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deployments, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
-			_, err := o.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
+			_, err := o.kubeClient.Core().ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err == nil {
 				fmt.Fprintf(o.out, "Cancelled deployment #%d\n", config.Status.LatestVersion)
 				anyCancelled = true

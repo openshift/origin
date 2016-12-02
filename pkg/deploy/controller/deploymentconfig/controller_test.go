@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/watch"
@@ -341,7 +340,7 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		oc := &testclient.Fake{}
-		oc.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oc.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			dc := action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
 			return true, dc, nil

@@ -2,7 +2,8 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
@@ -12,8 +13,10 @@ type FakeAppliedClusterResourceQuotas struct {
 	Namespace string
 }
 
+var appliedClusterResourceQuotasResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "appliedclusterresourcequotas"}
+
 func (c *FakeAppliedClusterResourceQuotas) Get(name string) (*quotaapi.AppliedClusterResourceQuota, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("appliedclusterresourcequotas", c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
 	if obj == nil {
 		return nil, err
 	}
@@ -22,7 +25,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string) (*quotaapi.AppliedCl
 }
 
 func (c *FakeAppliedClusterResourceQuotas) List(opts kapi.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("appliedclusterresourcequotas", c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
+	obj, err := c.Fake.Invokes(core.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

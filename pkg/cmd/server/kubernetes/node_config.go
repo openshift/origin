@@ -171,7 +171,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if sdnapi.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
-		server.ConfigureCBR0 = false
 	}
 
 	// prevents kube from generating certs
@@ -207,7 +206,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		server.NetworkPluginName = kubeletcni.CNIPluginName
 		server.NetworkPluginDir = kubeletcni.DefaultNetDir
 		server.HairpinMode = componentconfig.HairpinNone
-		server.ConfigureCBR0 = false
 	}
 
 	deps, err := kubeletapp.UnsecuredKubeletDeps(server)

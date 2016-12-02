@@ -164,7 +164,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	RunEventQueue(master.kClient.CoreClient, Nodes, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient.CoreClient.RESTClient(), Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID

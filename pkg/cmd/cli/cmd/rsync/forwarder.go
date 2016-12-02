@@ -3,8 +3,8 @@ package rsync
 import (
 	"io"
 
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 
@@ -15,7 +15,7 @@ import (
 type portForwarder struct {
 	Namespace string
 	PodName   string
-	Client    *kclient.Client
+	Client    kclientset.Interface
 	Config    *restclient.Config
 	Out       io.Writer
 	ErrOut    io.Writer
@@ -27,7 +27,7 @@ var _ forwarder = &portForwarder{}
 // ForwardPorts will forward a set of ports from a pod, the stopChan will stop the forwarding
 // when it's closed or receives a struct{}
 func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) error {
-	req := f.Client.RESTClient.Post().
+	req := f.Client.RESTClient().Post().
 		Resource("pods").
 		Namespace(f.Namespace).
 		Name(f.PodName).

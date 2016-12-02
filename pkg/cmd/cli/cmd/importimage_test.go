@@ -353,7 +353,7 @@ func TestCreateImageImport(t *testing.T) {
 			All:      test.all,
 			Insecure: test.insecure,
 			Confirm:  test.confirm,
-			isClient: fake.ImageStreams(""),
+			isClient: fake.ImageStreams("other"),
 		}
 		// we need to run Validate, because it sets appropriate Name and Tag
 		if err := o.Validate(&cobra.Command{}); err != nil {

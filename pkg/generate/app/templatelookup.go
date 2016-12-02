@@ -120,7 +120,7 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		var isSingleItemImplied bool
 		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(r.Namespace).RequireNamespace().
-			FilenameParam(false, false, term).
+			FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: terms}).
 			Do().
 			IntoSingleItemImplied(&isSingleItemImplied).
 			Object()

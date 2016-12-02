@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
@@ -111,7 +111,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 
 func TestListAllOpenShiftGroupsListErr(t *testing.T) {
 	listFailClient := testclient.NewSimpleFake()
-	listFailClient.PrependReactor("list", "groups", func(action ktestclient.Action) (bool, runtime.Object, error) {
+	listFailClient.PrependReactor("list", "groups", func(action core.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
@@ -202,12 +202,12 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 
 	for name, testCase := range testCases {
 		fakeClient := testclient.NewSimpleFake()
-		fakeClient.PrependReactor("get", "groups", func(action ktestclient.Action) (bool, runtime.Object, error) {
+		fakeClient.PrependReactor("get", "groups", func(action core.Action) (bool, runtime.Object, error) {
 			groups := map[string]*userapi.Group{}
 			for _, group := range testCase.startingGroups {
 				groups[group.Name] = group
 			}
-			if group, exists := groups[action.(ktestclient.GetAction).GetName()]; exists {
+			if group, exists := groups[action.(core.GetAction).GetName()]; exists {
 				return true, group, nil
 			}
 			return false, nil, nil
@@ -235,7 +235,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 
 func TestListOpenShiftGroupsListErr(t *testing.T) {
 	listFailClient := testclient.NewSimpleFake()
-	listFailClient.PrependReactor("get", "groups", func(action ktestclient.Action) (bool, runtime.Object, error) {
+	listFailClient.PrependReactor("get", "groups", func(action core.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 

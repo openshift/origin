@@ -17,8 +17,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -150,7 +150,7 @@ func setCreateTestingNSFunc(baseName string, fn e2e.CreateTestingNSFn) {
 
 // createTestingNS delegates to custom namespace creation functions if registered.
 // otherwise, it ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
-func createTestingNS(baseName string, c *kclient.Client, labels map[string]string) (*kapi.Namespace, error) {
+func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapi.Namespace, error) {
 	// If a custom function exists, call it
 	if fn, exists := customCreateTestingNSFuncs[baseName]; exists {
 		return fn(baseName, c, labels)
@@ -206,9 +206,9 @@ func checkSuiteSkips() {
 var longRetry = wait.Backoff{Steps: 100}
 
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
-func allowAllNodeScheduling(c *kclient.Client, namespace string) {
+func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
-		ns, err := c.Namespaces().Get(namespace)
+		ns, err := c.Core().Namespaces().Get(namespace)
 		if err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func allowAllNodeScheduling(c *kclient.Client, namespace string) {
 			ns.Annotations = make(map[string]string)
 		}
 		ns.Annotations["openshift.io/node-selector"] = ""
-		_, err = c.Namespaces().Update(ns)
+		_, err = c.Core().Namespaces().Update(ns)
 		return err
 	})
 	if err != nil {
@@ -224,11 +224,11 @@ func allowAllNodeScheduling(c *kclient.Client, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapi.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := c.SecurityContextConstraints().Get(sccName)
+		scc, err := c.Core().SecurityContextConstraints().Get(sccName)
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -241,7 +241,7 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, 
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := c.SecurityContextConstraints().Update(scc); err != nil {
+		if _, err := c.Core().SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}
 		return nil

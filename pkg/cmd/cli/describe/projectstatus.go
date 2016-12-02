@@ -14,10 +14,10 @@ import (
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -54,8 +54,6 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	// TODO internalclientset: get rid of oldClient after next rebase
-	OldK    kclient.Interface
 	K       kclientset.Interface
 	C       client.Interface
 	Server  string
@@ -81,7 +79,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&pvcLoader{namespace: namespace, lister: d.K.Core()},
 		&rcLoader{namespace: namespace, lister: d.K.Core()},
 		&podLoader{namespace: namespace, lister: d.K.Core()},
-		&statefulSetLoader{namespace: namespace, lister: d.OldK.Apps()},
+		&statefulSetLoader{namespace: namespace, lister: d.K.Apps()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
@@ -1320,7 +1318,7 @@ func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 
 type statefulSetLoader struct {
 	namespace string
-	lister    kclient.StatefulSetNamespacer
+	lister    kappsclient.StatefulSetsGetter
 	items     []kapps.StatefulSet
 }
 

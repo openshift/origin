@@ -38,13 +38,13 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	if deployment != nil {
 		pod := deployerPod(deployment, "", related)
 		pod.Status.Phase = deployerStatus
-		c.podStore.Add(pod)
+		c.podStore.Indexer.Add(pod)
 	}
 
 	// hook pods
 	for _, name := range hookPodNames {
 		pod := deployerPod(deployment, name, related)
-		c.podStore.Add(pod)
+		c.podStore.Indexer.Add(pod)
 	}
 
 	return c
@@ -579,7 +579,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
 	pod := deployerPod(deployment, "", true)
 	pod.Labels[deployapi.DeployerPodForDeploymentLabel] = "unrelated"
-	controller.podStore.Update(pod)
+	controller.podStore.Indexer.Update(pod)
 
 	if err := controller.Handle(deployment); err != nil {
 		t.Fatalf("unexpected error: %v", err)

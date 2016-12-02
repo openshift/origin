@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -17,7 +17,7 @@ type remoteExecutor struct {
 	Namespace     string
 	PodName       string
 	ContainerName string
-	Client        *kclient.Client
+	Client        kclientset.Interface
 	Config        *restclient.Config
 }
 
@@ -37,10 +37,10 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 			Err:           errOut,
 			Stdin:         in != nil,
 		},
-		Executor: &kubecmd.DefaultRemoteExecutor{},
-		Client:   e.Client,
-		Config:   e.Config,
-		Command:  command,
+		Executor:  &kubecmd.DefaultRemoteExecutor{},
+		PodClient: e.Client.Core(),
+		Config:    e.Config,
+		Command:   command,
 	}
 	err := execOptions.Validate()
 	if err != nil {
