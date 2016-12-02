@@ -374,13 +374,14 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:         HookContainerName,
-					Image:        baseContainer.Image,
-					Command:      exec.Command,
-					WorkingDir:   baseContainer.WorkingDir,
-					Env:          mergedEnv,
-					Resources:    resources,
-					VolumeMounts: volumeMounts,
+					Name:            HookContainerName,
+					Image:           baseContainer.Image,
+					ImagePullPolicy: baseContainer.ImagePullPolicy,
+					Command:         exec.Command,
+					WorkingDir:      baseContainer.WorkingDir,
+					Env:             mergedEnv,
+					Resources:       resources,
+					VolumeMounts:    volumeMounts,
 				},
 			},
 			Volumes:               volumes,
