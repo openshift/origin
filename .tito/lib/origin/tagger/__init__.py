@@ -10,6 +10,7 @@ import tempfile
 import textwrap
 
 from tito.common import (
+    debug,
     find_git_root,
     get_latest_commit,
     run_command,
