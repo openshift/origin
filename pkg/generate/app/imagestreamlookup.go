@@ -143,6 +143,15 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 						}
 						foundOtherTags = true
 
+						// We check the "hidden" tags annotation /after/ setting
+						// foundOtherTags = true.  The ordering matters in the case that all
+						// the tags on the imagestream are hidden.  In this case, in new-app
+						// we should behave as the imagestream didn't exist at all.  This
+						// means not calling addMatch("", ..., nil, true) below.
+						if stream.Spec.Tags[tag].HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden) {
+							continue
+						}
+
 						// If the user specified a tag in their search string (followTag == false),
 						// then score this match lower.
 						tagScore := score

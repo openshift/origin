@@ -809,7 +809,9 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 			if len(imageStream.Status.Tags) > 0 {
 				set := sets.NewString()
 				for tag := range imageStream.Status.Tags {
-					set.Insert(tag)
+					if !imageStream.Spec.Tags[tag].HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden) {
+						set.Insert(tag)
+					}
 				}
 				tags = strings.Join(set.List(), ", ")
 			}
