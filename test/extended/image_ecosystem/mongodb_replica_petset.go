@@ -59,6 +59,13 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				3,
 				2*time.Minute,
 			)
+			if err != nil {
+				desc, _ := oc.Run("describe", "petset").Output()
+				ginkgolog("\n\nPetset at failure:\n%s\n\n", desc)
+				desc, _ = oc.Run("describe", "pods").Output()
+				ginkgolog("\n\nPods at petset failure:\n%s\n\n", desc)
+
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(podNames).Should(o.HaveLen(3))
 

@@ -19,5 +19,4 @@ instantiating them.
 
 Note: This file is processed by `hack/update-external-examples.sh`. New examples
 must follow the exact syntax of the existing entries. Files in this directory
-are automatically pulled down, do not add additional files directly to this
-directory.
+are automatically pulled down, do not modify/add files to this directory.

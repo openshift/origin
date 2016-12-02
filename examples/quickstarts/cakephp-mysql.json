@@ -16,6 +16,17 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "databaseUser" : "${DATABASE_USER}",
+        "databasePassword" : "${DATABASE_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -212,11 +223,21 @@
                   },
                   {
                     "name": "DATABASE_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databaseUser"
+                      }
+                    }
                   },
                   {
                     "name": "DATABASE_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "databasePassword"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECRET_TOKEN",
@@ -349,12 +370,22 @@
                 },
                 "env": [
                     {
-                        "name": "MYSQL_USER",
-                        "value": "${DATABASE_USER}"
+                      "name": "MYSQL_USER",
+                      "valueFrom": {
+                        "secretKeyRef" : {
+                          "name" : "${NAME}",
+                          "key" : "databaseUser"
+                        }
+                      }
                     },
                     {
-                        "name": "MYSQL_PASSWORD",
-                        "value": "${DATABASE_PASSWORD}"
+                      "name": "MYSQL_PASSWORD",
+                      "valueFrom": {
+                        "secretKeyRef" : {
+                          "name" : "${NAME}",
+                          "key" : "databasePassword"
+                          }
+                        }
                     },
                     {
                         "name": "MYSQL_DATABASE",
