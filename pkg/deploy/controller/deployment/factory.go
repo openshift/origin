@@ -120,6 +120,10 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 	if !deployutil.IsOwnedByConfig(curRC) {
 		return
 	}
+	// No need to requeue already terminated deployments.
+	if deployutil.IsTerminatedDeployment(oldRC) {
+		return
+	}
 
 	c.enqueueReplicationController(curRC)
 }
