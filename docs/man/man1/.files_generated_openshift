@@ -290,6 +290,7 @@ openshift-cli-secrets-new-sshauth.1
 openshift-cli-secrets-new.1
 openshift-cli-secrets-unlink.1
 openshift-cli-secrets.1
+openshift-cli-serviceaccounts-create-kubeconfig.1
 openshift-cli-serviceaccounts-get-token.1
 openshift-cli-serviceaccounts-new-token.1
 openshift-cli-serviceaccounts.1

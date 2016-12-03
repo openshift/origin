@@ -13193,6 +13193,51 @@ _oc_secrets()
     noun_aliases=()
 }
 
+_oc_serviceaccounts_create-kubeconfig()
+{
+    last_command="oc_serviceaccounts_create-kubeconfig"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--with-namespace=")
+    local_nonpersistent_flags+=("--with-namespace=")
+    flags+=("--as=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oc_serviceaccounts_get-token()
 {
     last_command="oc_serviceaccounts_get-token"
@@ -13288,6 +13333,7 @@ _oc_serviceaccounts()
 {
     last_command="oc_serviceaccounts"
     commands=()
+    commands+=("create-kubeconfig")
     commands+=("get-token")
     commands+=("new-token")
 

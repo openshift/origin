@@ -201,6 +201,7 @@ oc-secrets-new-sshauth.1
 oc-secrets-new.1
 oc-secrets-unlink.1
 oc-secrets.1
+oc-serviceaccounts-create-kubeconfig.1
 oc-serviceaccounts-get-token.1
 oc-serviceaccounts-new-token.1
 oc-serviceaccounts.1

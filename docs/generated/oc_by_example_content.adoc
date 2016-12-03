@@ -2472,6 +2472,19 @@ Detach secrets from a ServiceAccount
 ====
 
 
+== oc serviceaccounts create-kubeconfig
+Generate a kubeconfig file for a service account
+
+====
+
+[options="nowrap"]
+----
+  # Create a kubeconfig file for service account 'default'
+  oc serviceaccounts create-kubeconfig 'default' > default.kubeconfig
+----
+====
+
+
 == oc serviceaccounts get-token
 Get a token assigned to a service account.
 
