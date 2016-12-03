@@ -238,11 +238,11 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 
 	var nsErr error
-	if opts.namespace, _, nsErr = f.OpenShiftClientConfig.Namespace(); nsErr != nil {
+	if opts.namespace, _, nsErr = f.DefaultNamespace(); nsErr != nil {
 		return fmt.Errorf("error getting namespace: %v", nsErr)
 	}
 
-	_, _, kClient, kClientErr := f.Clients()
+	_, kClient, kClientErr := f.Clients()
 	if kClientErr != nil {
 		return fmt.Errorf("error getting client: %v", kClientErr)
 	}
@@ -467,7 +467,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	list := &kapi.List{Items: objects}
 
 	if opts.Config.Action.ShouldPrint() {
-		mapper, _ := opts.factory.Object(false)
+		mapper, _ := opts.factory.Object()
 		fn := cmdutil.VersionedPrintObject(opts.factory.PrintObject, opts.cmd, mapper, opts.out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)

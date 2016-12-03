@@ -60,7 +60,7 @@ func newRemoteExecutor(f *clientcmd.Factory, o *RsyncOptions) (executor, error) 
 		return nil, err
 	}
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return nil, err
 	}

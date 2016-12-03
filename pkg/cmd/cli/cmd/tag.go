@@ -119,7 +119,7 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 }
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	gvks, err := mapper.KindsFor(unversioned.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
 		return gvks[0].Kind
@@ -145,7 +145,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 	// Setup client.
 	var err error
-	o.osClient, _, _, err = f.Clients()
+	o.osClient, _, err = f.Clients()
 	if err != nil {
 		return err
 	}

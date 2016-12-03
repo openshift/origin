@@ -137,11 +137,11 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 	o.Config = config
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	o.Client = client
+	o.PodClient = client
 
 	o.PodName, err = f.PodForResource(resource, time.Duration(o.Timeout)*time.Second)
 	return err

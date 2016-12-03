@@ -104,7 +104,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		o.DryRun = true
 	}
 
-	namespace, explicitNamespace, err := f.Factory.DefaultNamespace()
+	namespace, explicitNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -131,11 +131,11 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		}
 	}
 
-	oclient, _, _, err := f.Clients()
+	oclient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 
 	resourceNames := sets.NewString()
 	for i, s := range o.Include {
@@ -187,7 +187,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		break
 	}
 
-	o.Builder = f.Factory.NewBuilder(false).
+	o.Builder = f.NewBuilder().
 		AllNamespaces(allNamespaces).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ContinueOnError().

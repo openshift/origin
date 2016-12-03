@@ -15,6 +15,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -215,7 +216,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
@@ -276,11 +277,11 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 	o.Attach.Config = config
 
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.Attach.Client = kc
+	o.Attach.PodClient = kc.Core()
 	o.Client = oc
 	return nil
 }
@@ -341,7 +342,7 @@ func (o *DebugOptions) Debug() error {
 				stderr = os.Stderr
 			}
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
-			if err := o.Attach.Client.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
+			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
@@ -351,7 +352,7 @@ func (o *DebugOptions) Debug() error {
 
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
-		w, err := o.Attach.Client.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
+		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
 		if err != nil {
 			return err
 		}
@@ -515,13 +516,13 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	namespace, name := pod.Namespace, pod.Name
 
 	// create the pod
-	created, err := o.Attach.Client.Pods(namespace).Create(pod)
+	created, err := o.Attach.PodClient.Pods(namespace).Create(pod)
 	if err == nil || !kapierrors.IsAlreadyExists(err) {
 		return created, err
 	}
 
 	// only continue if the pod has the right annotations
-	existing, err := o.Attach.Client.Pods(namespace).Get(name)
+	existing, err := o.Attach.PodClient.Pods(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
@@ -530,10 +531,10 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// delete the existing pod
-	if err := o.Attach.Client.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
+	if err := o.Attach.PodClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("unable to delete existing debug pod %q: %v", name, err)
 	}
-	return o.Attach.Client.Pods(namespace).Create(pod)
+	return o.Attach.PodClient.Pods(namespace).Create(pod)
 }
 
 func containerForName(pod *kapi.Pod, name string) *kapi.Container {

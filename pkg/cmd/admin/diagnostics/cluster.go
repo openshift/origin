@@ -44,7 +44,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 
 	var (
 		clusterClient  *client.Client
-		kclusterClient *kclientset.Clientset
+		kclusterClient kclientset.Interface
 	)
 
 	clusterClient, kclusterClient, found, serverUrl, err := o.findClusterClients(rawConfig)
@@ -84,7 +84,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 }
 
 // attempts to find which context in the config might be a cluster-admin for the server in the current context.
-func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*client.Client, *kclientset.Clientset, bool, string, error) {
+func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*client.Client, kclientset.Interface, bool, string, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
 		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
 			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
@@ -120,13 +120,13 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 }
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
-func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*client.Client, *kclientset.Clientset, bool, string, error) {
+func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*client.Client, kclientset.Interface, bool, string, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
 	serverUrl := rawConfig.Clusters[context.Cluster].Server
 	factory := osclientcmd.NewFactory(clientConfig)
 	o.Logger.Debug("CED1005", fmt.Sprintf("Checking if context is cluster-admin: '%s'", contextName))
-	if osClient, _, kubeClient, err := factory.Clients(); err != nil {
+	if osClient, kubeClient, err := factory.Clients(); err != nil {
 		o.Logger.Debug("CED1006", fmt.Sprintf("Error creating client for context '%s':\n%v", contextName, err))
 		return nil, nil, false, "", nil
 	} else {

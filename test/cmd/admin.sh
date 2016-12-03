@@ -305,19 +305,20 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/registry"
 # Test running a registry as a daemonset
+os::cmd::expect_success "oc delete clusterrolebinding/registry-registry-role"
 os::cmd::expect_failure_and_text 'oadm registry --daemonset --dry-run' 'does not exist'
-os::cmd::expect_success_and_text "oadm registry --daemonset -o yaml --credentials=${KUBECONFIG}" 'DaemonSet'
-os::cmd::expect_success "oadm registry --daemonset --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
+os::cmd::expect_success_and_text "oadm registry --daemonset -o yaml" 'DaemonSet'
+os::cmd::expect_success "oadm registry --daemonset --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry --daemonset' 'service exists'
-os::cmd::expect_success_and_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
+os::cmd::try_until_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
 # clean up so we can test non-daemonset
-os::cmd::expect_success "oc delete ds/docker-registry svc/docker-registry"
+os::cmd::expect_success "oc delete ds/docker-registry svc/docker-registry sa/registry clusterrolebinding/registry-registry-role"
 echo "registry daemonset: ok"
 
 # Test running a registry
 os::cmd::expect_failure_and_text 'oadm registry --dry-run' 'does not exist'
-os::cmd::expect_success_and_text "oadm registry -o yaml --credentials=${KUBECONFIG}" 'image:.*\-docker\-registry'
-os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} --images='${USE_IMAGES}'"
+os::cmd::expect_success_and_text "oadm registry -o yaml" 'image:.*\-docker\-registry'
+os::cmd::expect_success "oadm registry --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'

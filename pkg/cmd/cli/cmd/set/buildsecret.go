@@ -170,7 +170,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	if len(secretArg) > 0 {
 		o.Secret, err = o.secretFromArg(f, mapper, typer, cmdNamespace, secretArg)
 		if err != nil {

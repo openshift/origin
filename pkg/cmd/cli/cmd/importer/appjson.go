@@ -126,7 +126,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Action.Out)
 
 	o.Generator, _ = cmd.Flags().GetString("generator")
@@ -137,7 +137,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 	o.Namespace = ns
 
-	o.Client, _, _, err = f.Clients()
+	o.Client, _, err = f.Clients()
 	return err
 }
 

@@ -99,7 +99,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	}
 	o.Out = out
 
-	osClient, _, kClient, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}

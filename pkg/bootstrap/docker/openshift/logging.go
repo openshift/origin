@@ -51,7 +51,7 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
-	osClient, _, kubeClient, err := f.Clients()
+	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}

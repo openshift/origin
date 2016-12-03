@@ -97,18 +97,18 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		o.ProjectName = args[0]
 	}
 
-	o.Config, err = f.OpenShiftClientConfig.RawConfig()
+	o.Config, err = f.OpenShiftClientConfig().RawConfig()
 	if err != nil {
 		return err
 	}
 
-	o.ClientConfig, err = f.OpenShiftClientConfig.ClientConfig()
+	o.ClientConfig, err = f.ClientConfig()
 	if err != nil {
 		return err
 	}
 
 	o.ClientFn = func() (*client.Client, kclientset.Interface, error) {
-		oc, _, kc, err := f.Clients()
+		oc, kc, err := f.Clients()
 		return oc, kc, err
 	}
 

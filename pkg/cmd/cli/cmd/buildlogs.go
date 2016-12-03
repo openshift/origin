@@ -82,7 +82,7 @@ func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cob
 		return err
 	}
 
-	c, _, _, err := f.Clients()
+	c, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

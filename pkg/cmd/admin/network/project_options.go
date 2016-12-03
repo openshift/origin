@@ -30,7 +30,7 @@ import (
 type ProjectOptions struct {
 	DefaultNamespace string
 	Oclient          *osclient.Client
-	Kclient          *kclientset.Clientset
+	Kclient          kclientset.Interface
 	Out              io.Writer
 
 	Mapper            meta.RESTMapper
@@ -49,11 +49,11 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	if err != nil {
 		return err
 	}
-	oc, _, kc, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	p.DefaultNamespace = defaultNamespace
 	p.Oclient = oc
@@ -61,7 +61,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	p.Out = out
 	p.Mapper = mapper
 	p.Typer = typer
-	p.RESTClientFactory = f.Factory.ClientForMapping
+	p.RESTClientFactory = f.ClientForMapping
 	p.ProjectNames = []string{}
 	if len(args) != 0 {
 		p.ProjectNames = append(p.ProjectNames, args...)

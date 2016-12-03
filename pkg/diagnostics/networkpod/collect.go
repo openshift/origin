@@ -17,7 +17,7 @@ const (
 
 // CollectNetworkInfo is a Diagnostic to collect network information in the cluster.
 type CollectNetworkInfo struct {
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 }
 
 // Name is part of the Diagnostic interface and just returns name.

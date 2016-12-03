@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -26,7 +26,7 @@ import (
 
 type NodeOptions struct {
 	DefaultNamespace string
-	KubeClient       *client.Client
+	KubeClient       kclientset.Interface
 	Writer           io.Writer
 	ErrWriter        io.Writer
 
@@ -50,7 +50,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	_, kc, _, err := f.Clients()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	n.DefaultNamespace = defaultNamespace
 	n.KubeClient = kc
@@ -66,7 +66,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	n.ErrWriter = errout
 	n.Mapper = mapper
 	n.Typer = typer
-	n.RESTClientFactory = f.Factory.ClientForMapping
+	n.RESTClientFactory = f.ClientForMapping
 	n.Printer = f.Printer
 	n.NodeNames = []string{}
 	n.CmdPrinter = cmdPrinter

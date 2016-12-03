@@ -20,7 +20,7 @@ const (
 
 // CheckNodeNetwork is a Diagnostic to check that pods in the cluster can access its own node
 type CheckNodeNetwork struct {
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 }
 
 // Name is part of the Diagnostic interface and just returns name.

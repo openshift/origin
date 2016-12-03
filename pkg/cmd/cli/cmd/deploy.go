@@ -147,7 +147,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 
 	o.out = out
@@ -346,37 +346,41 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")
 	}
-	deployments, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return err
 	}
-	if len(deployments.Items) == 0 {
+	if len(deploymentList.Items) == 0 {
 		fmt.Fprintf(o.out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
 		return nil
 	}
-	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
+	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	for i := range deploymentList.Items {
+		deployments = append(deployments, &deploymentList.Items[i])
+	}
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 	failedCancellations := []string{}
 	anyCancelled := false
-	for _, deployment := range deployments.Items {
-		status := deployutil.DeploymentStatusFor(&deployment)
+	for _, deployment := range deployments {
+		status := deployutil.DeploymentStatusFor(deployment)
 		switch status {
 		case deployapi.DeploymentStatusNew,
 			deployapi.DeploymentStatusPending,
 			deployapi.DeploymentStatusRunning:
 
-			if deployutil.IsDeploymentCancelled(&deployment) {
+			if deployutil.IsDeploymentCancelled(deployment) {
 				continue
 			}
 
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
-			_, err := o.kubeClient.Core().ReplicationControllers(deployment.Namespace).Update(&deployment)
+			_, err := o.kubeClient.Core().ReplicationControllers(deployment.Namespace).Update(deployment)
 			if err == nil {
 				fmt.Fprintf(o.out, "Cancelled deployment #%d\n", config.Status.LatestVersion)
 				anyCancelled = true
 			} else {
-				fmt.Fprintf(o.out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
-				failedCancellations = append(failedCancellations, strconv.FormatInt(deployutil.DeploymentVersionFor(&deployment), 10))
+				fmt.Fprintf(o.out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(deployment), status, err)
+				failedCancellations = append(failedCancellations, strconv.FormatInt(deployutil.DeploymentVersionFor(deployment), 10))
 			}
 		}
 	}
@@ -384,7 +388,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 		return fmt.Errorf("couldn't cancel deployment %s", strings.Join(failedCancellations, ", "))
 	}
 	if !anyCancelled {
-		latest := &deployments.Items[0]
+		latest := deployments[0]
 		maybeCancelling := ""
 		if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
 			maybeCancelling = " (cancelling)"

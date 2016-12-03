@@ -95,7 +95,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 }
 
 func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string, commandName string) error {
-	kubeconfig, err := f.OpenShiftClientConfig.RawConfig()
+	kubeconfig, err := f.OpenShiftClientConfig().RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -159,7 +159,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
 	o.Token = kcmdutil.GetFlagString(cmd, "token")
 
-	o.DefaultNamespace, _, _ = f.OpenShiftClientConfig.Namespace()
+	o.DefaultNamespace, _, _ = f.DefaultNamespace()
 
 	o.PathOptions = config.NewPathOptions(cmd)
 

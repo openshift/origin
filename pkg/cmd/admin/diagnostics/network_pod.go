@@ -134,7 +134,7 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 	clientFlags := flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
 	factory := osclientcmd.New(clientFlags)                        // that would otherwise be added to this command
 
-	osClient, _, kubeClient, clientErr := factory.Clients()
+	osClient, kubeClient, clientErr := factory.Clients()
 	if clientErr != nil {
 		return diagnostics, false, []error{clientErr}
 	}

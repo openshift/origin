@@ -85,7 +85,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := e.Options.KubeClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	pods, err := e.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}
@@ -93,17 +93,17 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
 		return nil
 	}
-	rcs, err := e.Options.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	rss, err := e.Options.KubeClient.ReplicaSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	rss, err := e.Options.KubeClient.Extensions().ReplicaSets(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	dss, err := e.Options.KubeClient.DaemonSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	dss, err := e.Options.KubeClient.Extensions().DaemonSets(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		printer.PrintObj(&pod, e.Options.Writer)
 
 		if isManaged || e.Force {
-			if err := e.Options.KubeClient.Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {
+			if err := e.Options.KubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {
 				glog.Errorf("Unable to delete a pod: %+v, error: %v", pod, err)
 				errList = append(errList, err)
 				continue

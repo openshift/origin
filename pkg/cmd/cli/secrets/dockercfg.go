@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -55,13 +55,13 @@ type CreateDockerConfigOptions struct {
 	Password         string
 	EmailAddress     string
 
-	SecretsInterface client.SecretsInterface
+	SecretsInterface kcoreclient.SecretInterface
 
 	Out io.Writer
 }
 
 // NewCmdCreateDockerConfigSecret creates a command object for making a dockercfg secret
-func NewCmdCreateDockerConfigSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
+func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
 	o := &CreateDockerConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -82,7 +82,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *kcmdutil.Factory, 
 				secret, err := o.NewDockerSecret()
 				kcmdutil.CheckErr(err)
 
-				mapper, _ := f.Object(false)
+				mapper, _ := f.Object()
 				kcmdutil.CheckErr(f.PrintObject(c, mapper, secret, out))
 				return
 			}
@@ -141,13 +141,13 @@ func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
 	return secret, nil
 }
 
-func (o *CreateDockerConfigOptions) Complete(f *kcmdutil.Factory, args []string) error {
+func (o *CreateDockerConfigOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if len(args) != 1 {
 		return errors.New("must have exactly one argument: secret name")
 	}
 	o.SecretName = args[0]
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (o *CreateDockerConfigOptions) Complete(f *kcmdutil.Factory, args []string)
 		return err
 	}
 
-	o.SecretsInterface = client.Secrets(namespace)
+	o.SecretsInterface = client.Core().Secrets(namespace)
 
 	return nil
 }

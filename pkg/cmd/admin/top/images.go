@@ -74,7 +74,7 @@ type TopImagesOptions struct {
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	osClient, _, kClient, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}

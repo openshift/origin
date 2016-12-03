@@ -132,12 +132,12 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 	o.Namespace = namespace
 
 	// Set up client based support.
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.getBuilder = func() *resource.Builder {
 		return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 	}
 
-	oClient, kClient, _, err := f.Clients()
+	oClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -334,26 +334,30 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deployments, err := o.kc.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
+	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	for i := range deploymentList.Items {
+		deployments = append(deployments, &deploymentList.Items[i])
+	}
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 
 	// Find the target deployment for rollback. If a version was specified,
 	// use the version for a search. Otherwise, use the last completed
 	// deployment.
 	var target *kapi.ReplicationController
-	for _, deployment := range deployments.Items {
-		version := deployutil.DeploymentVersionFor(&deployment)
+	for _, deployment := range deployments {
+		version := deployutil.DeploymentVersionFor(deployment)
 		if desiredVersion > 0 {
 			if version == desiredVersion {
-				target = &deployment
+				target = deployment
 				break
 			}
 		} else {
-			if version < config.Status.LatestVersion && deployutil.IsCompleteDeployment(&deployment) {
-				target = &deployment
+			if version < config.Status.LatestVersion && deployutil.IsCompleteDeployment(deployment) {
+				target = deployment
 				break
 			}
 		}

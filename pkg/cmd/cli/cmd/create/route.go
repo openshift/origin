@@ -148,7 +148,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -242,7 +242,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -368,7 +368,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 			return err
 		}
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -388,7 +388,7 @@ func resolveServiceName(f *clientcmd.Factory, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
 	}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	rType, name, err := cmdutil.ResolveResource(kapi.Resource("services"), resource, mapper)
 	if err != nil {
 		return "", err

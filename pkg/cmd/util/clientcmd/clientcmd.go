@@ -236,13 +236,13 @@ func (cfg *Config) Clients() (osclient.Interface, kclientset.Interface, error) {
 
 	kubeClientset, err := kclientset.NewForConfig(cfg.KubeConfig())
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
+		return nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
 	}
 
 	osClient, err := osclient.New(cfg.OpenShiftConfig())
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
+		return nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
 	}
 
-	return osClient, kubeClient, kubeClientset, nil
+	return osClient, kubeClientset, nil
 }

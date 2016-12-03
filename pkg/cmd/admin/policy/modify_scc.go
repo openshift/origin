@@ -170,11 +170,11 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 	o.SCCName = args[0]
 	o.Subjects = authorizationapi.BuildSubjects([]string{}, args[1:], uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
-	_, kc, _, err := f.Clients()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = adapter.FromUnversionedClient(kc).Core()
+	o.SCCInterface = kc.Core()
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {

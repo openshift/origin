@@ -113,7 +113,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		return fmt.Errorf("resource names, selectors, and the all flag may not be be specified if a filename is specified")
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.svcBuilder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
@@ -190,12 +190,12 @@ type idleUpdateInfo struct {
 // name of the associated service.
 func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory) (map[types.NamespacedName]idleUpdateInfo, map[unidlingapi.CrossGroupObjectReference]types.NamespacedName, error) {
 	// load our set of services
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 
 	podsLoaded := make(map[kapi.ObjectReference]*kapi.Pod)
 	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
@@ -525,7 +525,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	oclient, _, kclient, err := f.Clients()
+	oclient, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -541,7 +541,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	replicas := make(map[unidlingapi.CrossGroupObjectReference]int32, len(byScalable))
 	toScale := make(map[unidlingapi.CrossGroupObjectReference]scaleInfo)
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	// first, collect the scale info
 	for scaleRef, svcName := range byScalable {

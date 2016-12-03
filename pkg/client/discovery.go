@@ -63,6 +63,6 @@ func (d *DiscoveryClient) ServerResources() (map[string]*unversioned.APIResource
 }
 
 // New creates a new DiscoveryClient for the given RESTClient.
-func NewDiscoveryClient(c *restclient.RESTClient) *DiscoveryClient {
+func NewDiscoveryClient(c restclient.Interface) *DiscoveryClient {
 	return &DiscoveryClient{discovery.NewDiscoveryClient(c)}
 }

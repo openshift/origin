@@ -95,12 +95,12 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	o.oc, _, o.kc, err = f.Clients()
+	o.oc, o.kc, err = f.Clients()
 	if err != nil {
 		return err
 	}
 
-	o.mapper, o.typer = f.Object(false)
+	o.mapper, o.typer = f.Object()
 	o.infos, err = resource.NewBuilder(o.mapper, o.typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(namespace).

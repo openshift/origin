@@ -27,7 +27,7 @@ var _ forwarder = &portForwarder{}
 // ForwardPorts will forward a set of ports from a pod, the stopChan will stop the forwarding
 // when it's closed or receives a struct{}
 func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) error {
-	req := f.Client.RESTClient().Post().
+	req := f.Client.Core().RESTClient().Post().
 		Resource("pods").
 		Namespace(f.Namespace).
 		Name(f.PodName).
@@ -55,7 +55,7 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 
 // newPortForwarder creates a new forwarder for use with rsync
 func newPortForwarder(f *clientcmd.Factory, o *RsyncOptions) (forwarder, error) {
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return nil, err
 	}

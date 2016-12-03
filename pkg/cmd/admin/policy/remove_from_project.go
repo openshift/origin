@@ -84,7 +84,7 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string,
 	*target = append(*target, args...)
 
 	var err error
-	if o.Client, _, _, err = f.Clients(); err != nil {
+	if o.Client, _, err = f.Clients(); err != nil {
 		return err
 	}
 	if o.BindingNamespace, _, err = f.DefaultNamespace(); err != nil {
