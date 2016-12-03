@@ -3,6 +3,7 @@ package ldaputil
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
@@ -104,11 +105,17 @@ type LDAPQueryOnAttribute struct {
 // NewSearchRequest creates a new search request from the identifying query by internalizing the value of
 // the attribute to be filtered as well as any attributes that need to be recovered
 func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attributes []string) (*ldap.SearchRequest, error) {
+	removeSpaces := func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}
 	if strings.EqualFold(o.QueryAttribute, "dn") {
 		if _, err := ldap.ParseDN(attributeValue); err != nil {
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
 		}
-		if !strings.Contains(attributeValue, o.BaseDN) {
+		if !strings.Contains(strings.Map(removeSpaces, attributeValue), strings.Map(removeSpaces, o.BaseDN)) {
 			return nil, NewQueryOutOfBoundsError(attributeValue, o.BaseDN)
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil
