@@ -229,7 +229,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.20"
+              "name": "5.24"
             }
           },
           {
@@ -263,7 +263,22 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "centos/perl-520-centos7:latest"
             }
-
+          },
+          {
+            "name": "5.24",
+            "annotations": {
+              "openshift.io/display-name": "Perl 5.24",
+              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.24,perl",
+              "version": "5.24",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/perl-524-centos7:latest"
+            }
           }
         ]
       }
@@ -536,7 +551,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "5.7"
             }
           },
           {
@@ -565,6 +580,20 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/mysql-56-centos7:latest"
+            }
+          },
+          {
+            "name": "5.7",
+            "annotations": {
+              "openshift.io/display-name": "MySQL 5.7",
+              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.7/README.md.",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql",
+              "version": "5.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mysql-57-centos7:latest"
             }
           }
         ]
@@ -989,7 +1018,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.20"
+              "name": "5.24"
             }
           },
           {
@@ -1023,7 +1052,22 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
             }
-
+           },
+           {
+            "name": "5.24",
+            "annotations": {
+              "openshift.io/display-name": "Perl 5.24",
+              "description": "Build and run Perl 5.24 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+				  "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.24,perl",
+              "version": "5.24",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/perl-524-rhel7:latest"
+            }
           }
         ]
       }
@@ -1203,7 +1247,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "5.7"
             }
           },
           {
@@ -1232,6 +1276,20 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
+            }
+          },
+          {
+            "name": "5.7",
+            "annotations": {
+              "openshift.io/display-name": "MySQL 5.7",
+              "description": "Provides a MySQL 5.7 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.7/README.md.",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql",
+              "version": "5.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/mysql-57-rhel7:latest"
             }
           }
         ]
@@ -2569,12 +2627,12 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     "name": "mysql-ephemeral",
     "annotations": {
       "openshift.io/display-name": "MySQL (Ephemeral)",
-      "description": "MySQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "MySQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.7/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql"
     }
   },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.",
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.7/README.md.",
   "labels": {
     "template": "mysql-ephemeral-template"
   },
@@ -2809,8 +2867,8 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     {
       "name": "MYSQL_VERSION",
       "displayName": "Version of MySQL Image",
-      "description": "Version of MySQL image to be used (5.5, 5.6 or latest).",
-      "value": "5.6",
+      "description": "Version of MySQL image to be used (5.5, 5.6, 5.7, or latest).",
+      "value": "5.7",
       "required": true
     }
   ]
@@ -2839,12 +2897,12 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     "name": "mysql-persistent",
     "annotations": {
       "openshift.io/display-name": "MySQL (Persistent)",
-      "description": "MySQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
+      "description": "MySQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.7/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql"
     }
   },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.",
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.7/README.md.",
   "labels": {
     "template": "mysql-persistent-template"
   },
@@ -3082,8 +3140,8 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     {
       "name": "MYSQL_VERSION",
       "displayName": "Version of MySQL Image",
-      "description": "Version of MySQL image to be used (5.5, 5.6 or latest).",
-      "value": "5.6",
+      "description": "Version of MySQL image to be used (5.5, 5.6, 5.7, or latest).",
+      "value": "5.7",
       "required": true
     }
   ]

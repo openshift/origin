@@ -164,7 +164,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.20"
+              "name": "5.24"
             }
           },
           {
@@ -198,7 +198,22 @@
               "kind": "DockerImage",
               "name": "centos/perl-520-centos7:latest"
             }
-
+          },
+          {
+            "name": "5.24",
+            "annotations": {
+              "openshift.io/display-name": "Perl 5.24",
+              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "supports":"perl:5.24,perl",
+              "version": "5.24",
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/perl-524-centos7:latest"
+            }
           }
         ]
       }
@@ -471,7 +486,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "5.7"
             }
           },
           {
@@ -500,6 +515,20 @@
             "from": {
               "kind": "DockerImage",
               "name": "centos/mysql-56-centos7:latest"
+            }
+          },
+          {
+            "name": "5.7",
+            "annotations": {
+              "openshift.io/display-name": "MySQL 5.7",
+              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.7/README.md.",
+              "iconClass": "icon-mysql-database",
+              "tags": "mysql",
+              "version": "5.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mysql-57-centos7:latest"
             }
           }
         ]

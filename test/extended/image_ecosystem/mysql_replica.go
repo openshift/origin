@@ -35,6 +35,11 @@ var (
 			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.6/examples/replica/mysql_replica.json",
 			false,
 		},
+		{
+			"5.7",
+			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.7/examples/replica/mysql_replica.json",
+			false,
+		},
 	}
 	helperTemplate = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
 	helperName     = "mysql-helper"
@@ -90,7 +95,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		err = oc.Run("new-app").Args("-f", tc.TemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
+		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("MYSQL_VERSION=%s", tc.Version), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,

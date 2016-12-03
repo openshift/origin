@@ -94,6 +94,7 @@ os::cmd::expect_failure 'oc get imageStreams mongodb'
 os::cmd::expect_failure 'oc get imageStreams wildfly'
 os::cmd::try_until_success 'oc get imagestreamTags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamTags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.7'
 os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success 'oc describe istag/mysql:latest'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
@@ -111,13 +112,15 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
 # should follow the latest reference to 5.6 and update that, and leave latest unchanged
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.6'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
 # import existing tag (implicit latest)
 os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.6'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
 # should prevent changing source
 os::cmd::expect_failure_and_text 'oc import-image mysql --from=docker.io/mysql' "use the 'tag' command if you want to change the source"
 os::cmd::expect_success 'oc describe is/mysql'
