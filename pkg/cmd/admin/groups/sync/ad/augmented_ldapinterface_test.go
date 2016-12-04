@@ -67,8 +67,8 @@ func TestGroupEntryFor(t *testing.T) {
 		},
 		{
 			name:           "search request error",
-			baseDNOverride: "otherBaseDN",
-			expectedError:  ldaputil.NewQueryOutOfBoundsError("cn=testGroup,ou=groups,dc=example,dc=com", "otherBaseDN"),
+			baseDNOverride: "dc=foo",
+			expectedError:  ldaputil.NewQueryOutOfBoundsError("cn=testGroup,ou=groups,dc=example,dc=com", "dc=foo"),
 			expectedEntry:  nil,
 		},
 		{
