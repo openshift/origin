@@ -380,14 +380,14 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "foo",
 			name:      "foo/bar",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `name may not contain "/"`),
+				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `may not contain '/'`),
 			},
 		},
 		"no percent in Name": {
 			namespace: "foo",
 			name:      "foo%%bar",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo%%bar", `name may not contain "%"`),
+				field.Invalid(field.NewPath("metadata", "name"), "foo%%bar", `may not contain '%'`),
 			},
 		},
 		"other invalid name": {
@@ -689,13 +689,13 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"no slash in Name": {
 			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "foo/bar"}, Spec: validSpec},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `name may not contain "/"`),
+				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `may not contain '/'`),
 			},
 		},
 		"no percent in Name": {
 			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "foo%%bar"}, Spec: validSpec},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo%%bar", `name may not contain "%"`),
+				field.Invalid(field.NewPath("metadata", "name"), "foo%%bar", `may not contain '%'`),
 			},
 		},
 		"other invalid name": {
