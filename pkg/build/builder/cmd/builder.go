@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
@@ -166,7 +167,10 @@ func (c *builderConfig) clone() error {
 		return err
 	}
 	if sourceInfo != nil {
-		bld.UpdateBuildRevision(c.buildsClient, c.build, sourceInfo)
+		revision := bld.UpdateBuildRevision(c.build, sourceInfo)
+		if updateErr := bld.RetryBuildStatusUpdate(c.build, c.buildsClient, revision); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+		}
 	}
 
 	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, strategy.BuildSourceDir)

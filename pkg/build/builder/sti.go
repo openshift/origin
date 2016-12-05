@@ -98,38 +98,38 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	/*
+			buildDir, err := ioutil.TempDir("", "s2i-build")
+			if err != nil {
+				return err
+			}
+			srcDir := filepath.Join(buildDir, s2iapi.Source)
+		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		if contextDir == "." || contextDir == "/" {
+			contextDir = ""
+		}
 		buildDir, err := ioutil.TempDir("", "s2i-build")
 		if err != nil {
 			return err
 		}
 		srcDir := filepath.Join(buildDir, s2iapi.Source)
-	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
-	if contextDir == "." || contextDir == "/" {
-		contextDir = ""
-	}
-	buildDir, err := ioutil.TempDir("", "s2i-build")
-	if err != nil {
-		return err
-	}
-	srcDir := filepath.Join(buildDir, s2iapi.Source)
-	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
-			return err
-		}
-		tmpDir := filepath.Join(buildDir, "tmp")
-	if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			return err
-		}
+		if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
+				return err
+			}
+			tmpDir := filepath.Join(buildDir, "tmp")
+		if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+				return err
+			}
 
 
-		download := &downloader{
-			s:       s,
-			in:      os.Stdin,
-			timeout: initialURLCheckTimeout,
+			download := &downloader{
+				s:       s,
+				in:      os.Stdin,
+				timeout: initialURLCheckTimeout,
 
-			dir:        srcDir,
-			contextDir: contextDir,
-			tmpDir:     tmpDir,
-		}
+				dir:        srcDir,
+				contextDir: contextDir,
+				tmpDir:     tmpDir,
+			}
 	*/
 
 	var push bool
@@ -273,10 +273,10 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
-	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
+	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(buildInfo.FailureReason.Reason, buildInfo.FailureReason.Message)
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -287,7 +287,7 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(result.BuildInfo.FailureReason.Reason, result.BuildInfo.FailureReason.Message)
 
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -297,7 +297,7 @@ func (s *S2IBuilder) Build() error {
 	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -328,7 +328,7 @@ func (s *S2IBuilder) Build() error {
 		if err = pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
-			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+			if updateErr := RetryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 			}
 			return reportPushFailure(err, authPresent, pushAuthConfig)
@@ -361,7 +361,7 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 	if err != nil {
 		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(d.s.build, d.s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return nil, err

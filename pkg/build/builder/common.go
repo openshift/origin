@@ -156,7 +156,7 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 	})
 }
 
-func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
+func UpdateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
 	if build.Spec.Revision != nil {
 		return build.Spec.Revision
 	}
@@ -176,7 +176,7 @@ func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.Sour
 	}
 }
 
-func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) error {
+func RetryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) error {
 	return kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
 		// before updating, make sure we are using the latest version of the build
 		latestBuild, err := client.Get(build.Name)

@@ -76,7 +76,7 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -133,7 +133,7 @@ func (d *DockerBuilder) Build() error {
 			if err = pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
 				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
 				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
-				if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+				if updateErr := RetryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
 					utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 				}
 				return fmt.Errorf("failed to pull image: %v", err)
@@ -144,7 +144,7 @@ func (d *DockerBuilder) Build() error {
 	if err := d.dockerBuild(strategy.BuildSourceDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
 		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
 		d.build.Status.Message = api.StatusMessageDockerBuildFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -154,7 +154,7 @@ func (d *DockerBuilder) Build() error {
 	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
 		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+		if updateErr := RetryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 		return err
@@ -183,7 +183,7 @@ func (d *DockerBuilder) Build() error {
 		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
 			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			d.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
-			if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
+			if updateErr := RetryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
 				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 			}
 			return reportPushFailure(err, authPresent, pushAuthConfig)
