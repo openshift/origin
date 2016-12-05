@@ -408,7 +408,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	roots := x509.NewCertPool()
 
 	// Add CAs for OAuth
-	certs, err := getOAuthClientCertCAs(options)
+	certs, err := GetOAuthClientCertCAs(options)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +428,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return roots, nil
 }
 
-func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}

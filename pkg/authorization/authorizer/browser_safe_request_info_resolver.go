@@ -9,8 +9,8 @@ import (
 )
 
 type browserSafeRequestInfoResolver struct {
-	// infoResolver is used to determine info for the request
-	infoResolver RequestInfoResolver
+	// infoFactory is used to determine info for the request
+	infoFactory RequestInfoFactory
 
 	// contextMapper is used to look up the context corresponding to a request
 	// to obtain the user associated with the request
@@ -20,16 +20,16 @@ type browserSafeRequestInfoResolver struct {
 	authenticatedGroups sets.String
 }
 
-func NewBrowserSafeRequestInfoResolver(contextMapper kapi.RequestContextMapper, authenticatedGroups sets.String, infoResolver RequestInfoResolver) RequestInfoResolver {
+func NewBrowserSafeRequestInfoResolver(contextMapper kapi.RequestContextMapper, authenticatedGroups sets.String, infoFactory RequestInfoFactory) RequestInfoFactory {
 	return &browserSafeRequestInfoResolver{
 		contextMapper:       contextMapper,
 		authenticatedGroups: authenticatedGroups,
-		infoResolver:        infoResolver,
+		infoFactory:         infoFactory,
 	}
 }
 
-func (a *browserSafeRequestInfoResolver) GetRequestInfo(req *http.Request) (request.RequestInfo, error) {
-	requestInfo, err := a.infoResolver.GetRequestInfo(req)
+func (a *browserSafeRequestInfoResolver) NewRequestInfo(req *http.Request) (*request.RequestInfo, error) {
+	requestInfo, err := a.infoFactory.NewRequestInfo(req)
 	if err != nil {
 		return requestInfo, err
 	}

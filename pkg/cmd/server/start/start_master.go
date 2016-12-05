@@ -17,6 +17,7 @@ import (
 
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -476,17 +477,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	oc.RunGroupCache()
 	oc.RunProjectCache()
 
-	unprotectedInstallers := []origin.APIInstaller{}
-
-	if oc.Options.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(oc)
-		if err != nil {
-			return err
-		}
-		unprotectedInstallers = append(unprotectedInstallers, authConfig)
-	}
-
-	var standaloneAssetConfig *origin.AssetConfig
+	var standaloneAssetConfig, embeddedAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
 		overrideConfig, err := getResourceOverrideConfig(oc)
 		if err != nil {
@@ -498,14 +489,14 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 
 		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
-			unprotectedInstallers = append(unprotectedInstallers, config)
+			embeddedAssetConfig = config
 		} else {
 			standaloneAssetConfig = config
 		}
 	}
 
 	if kc != nil {
-		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
+		oc.Run(kc, embeddedAssetConfig)
 	} else {
 		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
@@ -514,7 +505,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		proxy := &kubernetes.ProxyConfig{
 			ClientConfig: kubeClientConfig,
 		}
-		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
+		oc.RunInProxyMode(proxy, embeddedAssetConfig)
 	}
 
 	// start up the informers that we're trying to use in the API server
@@ -618,7 +609,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for deployment controller: %v", err)
 		}
-		jobConfig, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
+		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
@@ -666,7 +657,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
-		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
+		// TODO: should use a dynamic RESTMapper built from the discovery results.
+		restMapper := registered.RESTMapper()
+		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
 
 		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
 		if err != nil {

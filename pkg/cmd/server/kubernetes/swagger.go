@@ -1,16 +1,21 @@
-package origin
+package kubernetes
 
 import (
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/genericapiserver"
+
+	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/v1"
 )
 
 var apiInfo = map[string]swagger.Info{
-	OpenShiftAPIPrefixV1: {
+	api.Prefix + "/" + v1.SchemeGroupVersion.Version: {
 		Title:       "OpenShift v1 REST API",
 		Description: `The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
 	},
-	KubernetesAPIPrefix + "/v1": {
+	genericapiserver.DefaultLegacyAPIPrefix + "/v1": {
 		Title:       "Kubernetes v1 REST API",
 		Description: `The Kubernetes API allows you to run containerized applications, bind persistent storage, link those applications through service discovery, and manage the cluster infrastructure.`,
 	},
@@ -18,22 +23,22 @@ var apiInfo = map[string]swagger.Info{
 
 // customizeSwaggerDefinition applies selective patches to the swagger API docs
 // TODO: move most of these upstream or to go-restful
-func customizeSwaggerDefinition(api *swagger.ApiDeclarationList) {
+func customizeSwaggerDefinition(apiList *swagger.ApiDeclarationList) {
 	for path, info := range apiInfo {
-		if dec, ok := api.At(path); ok {
+		if dec, ok := apiList.At(path); ok {
 			if len(info.Title) > 0 {
 				dec.Info.Title = info.Title
 			}
 			if len(info.Description) > 0 {
 				dec.Info.Description = info.Description
 			}
-			api.Put(path, dec)
+			apiList.Put(path, dec)
 		} else {
 			glog.Warningf("No API exists for predefined swagger description %s", path)
 		}
 	}
-	for _, version := range []string{OpenShiftAPIPrefixV1} {
-		apiDeclaration, _ := api.At(version)
+	for _, version := range []string{api.Prefix + "/" + v1.SchemeGroupVersion.Version} {
+		apiDeclaration, _ := apiList.At(version)
 		models := &apiDeclaration.Models
 
 		model, _ := models.At("runtime.RawExtension")
@@ -47,6 +52,6 @@ func customizeSwaggerDefinition(api *swagger.ApiDeclarationList) {
 		models.Put("patch.Object", model)
 
 		apiDeclaration.Models = *models
-		api.Put(version, apiDeclaration)
+		apiList.Put(version, apiDeclaration)
 	}
 }

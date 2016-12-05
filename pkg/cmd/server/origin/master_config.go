@@ -1,7 +1,6 @@
 package origin
 
 import (
-	"crypto/rsa"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -18,7 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/apiserver/request"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -97,9 +96,11 @@ type MasterConfig struct {
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
 
-	RuleResolver                  rulevalidation.AuthorizationRuleResolver
-	Authenticator                 authenticator.Request
-	Authorizer                    authorizer.Authorizer
+	RuleResolver  rulevalidation.AuthorizationRuleResolver
+	Authenticator authenticator.Request
+	Authorizer    authorizer.Authorizer
+
+	// TODO(sttts): replace AuthorizationAttributeBuilder with kapiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
 	GroupCache                    *usercache.GroupCache
@@ -110,8 +111,6 @@ type MasterConfig struct {
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
-	// RequestInfoResolver is responsible for reading request attributes
-	RequestInfoResolver *apiserver.RequestInfoResolver
 
 	AdmissionControl admission.Interface
 
@@ -197,14 +196,14 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	const defaultInformerResyncPeriod = 10 * time.Minute
 	kubeInformerFactory := informers.NewSharedInformerFactory(privilegedLoopbackKubeClientset, defaultInformerResyncPeriod)
-	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
+	informerFactory := shared.NewInformerFactory(kubeInformerFactory, privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClient.Services(kapi.NamespaceDefault).Get)
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(kapi.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
@@ -218,11 +217,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClientset.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
-	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), kubeInformerFactory.ClusterResourceQuotas())
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset, informerFactory)
+	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset, kubeInformerFactory)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -298,15 +297,14 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		PrivilegedLoopbackClientConfig:        *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:     privilegedLoopbackOpenShiftClient,
-		PrivilegedLoopbackKubernetesClient:    privilegedLoopbackKubeClient,
 		PrivilegedLoopbackKubernetesClientset: privilegedLoopbackKubeClientset,
 		Informers: informerFactory,
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.Informers.LimitRanges().Informer()
+	informer := config.Informers.KubernetesInformers().LimitRanges().Informer()
 	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
-		list, err := config.Informers.LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
+		list, err := config.Informers.KubernetesInformers().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
 			return nil, err
 		}
@@ -612,13 +610,13 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 	// ServiceAccount token
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
-		publicKeys := []*rsa.PublicKey{}
+		publicKeys := []interface{}{}
 		for _, keyFile := range config.ServiceAccountConfig.PublicKeyFiles {
-			publicKey, err := serviceaccount.ReadPublicKey(keyFile)
+			readPublicKeys, err := serviceaccount.ReadPublicKeys(keyFile)
 			if err != nil {
 				return nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
 			}
-			publicKeys = append(publicKeys, publicKey)
+			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
 		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true))
@@ -788,13 +786,13 @@ func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, inform
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	// Default API request resolver
-	requestInfoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
-	// Wrap with a resolver that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+	// Default API request info factory
+	requestInfoFactory := &request.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
 		requestContextMapper,
 		sets.NewString(bootstrappolicy.AuthenticatedGroup),
-		requestInfoResolver,
+		requestInfoFactory,
 	)
 
 	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, browserSafeRequestInfoResolver)

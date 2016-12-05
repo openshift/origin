@@ -18,8 +18,8 @@ type AuthorizationAttributeBuilder interface {
 	GetAttributes(request *http.Request) (Action, error)
 }
 
-type RequestInfoResolver interface {
-	GetRequestInfo(req *http.Request) (request.RequestInfo, error)
+type RequestInfoFactory interface {
+	NewRequestInfo(req *http.Request) (*request.RequestInfo, error)
 }
 
 type Action interface {

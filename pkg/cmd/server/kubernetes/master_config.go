@@ -5,9 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/MakeNowJust/heredoc"
+	restful "github.com/emicklei/go-restful"
+	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
@@ -18,24 +24,38 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	apiserveropenapi "k8s.io/kubernetes/pkg/apiserver/openapi"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	openapicommon "k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
+	"k8s.io/kubernetes/pkg/registry/core/endpoint"
+	endpointsetcd "k8s.io/kubernetes/pkg/registry/core/endpoint/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	storagefactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
+	"k8s.io/kubernetes/pkg/util/config"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
+	"k8s.io/kubernetes/pkg/util/sets"
+	kversion "k8s.io/kubernetes/pkg/version"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
+	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/controller/shared"
+	openapigenerated "github.com/openshift/origin/pkg/openapi"
+	"github.com/openshift/origin/pkg/version"
 )
+
+var LegacyAPIGroupPrefixes = sets.NewString(genericapiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -52,7 +72,7 @@ type MasterConfig struct {
 
 // BuildDefaultAPIServer constructs the appropriate APIServer and StorageFactory for the kubernetes server.
 // It returns an error if no KubernetesMasterConfig was defined.
-func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.APIServer, genericapiserver.StorageFactory, error) {
+func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.ServerRunOptions, genericapiserver.StorageFactory, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
 	}
@@ -71,17 +91,30 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 	}
 
 	// Defaults are tested in TestAPIServerDefaults
-	server := apiserveroptions.NewAPIServer()
+	server := apiserveroptions.NewServerRunOptions()
+
 	// Adjust defaults
 	server.EventTTL = 2 * time.Hour
-	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
-	server.ServiceNodePortRange = *portRange
-	server.EnableLogsSupport = false // don't expose server logs
-	server.EnableProfiling = false
-	server.APIPrefix = KubeAPIPrefix
-	server.APIGroupPrefix = KubeAPIGroupPrefix
-	server.SecurePort = port
-	server.MasterCount = options.KubernetesMasterConfig.MasterCount
+	server.GenericServerRunOptions.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
+	server.GenericServerRunOptions.ServiceNodePortRange = *portRange
+	server.GenericServerRunOptions.EnableProfiling = false
+	server.GenericServerRunOptions.MasterCount = options.KubernetesMasterConfig.MasterCount
+
+	server.GenericServerRunOptions.SecurePort = port
+	server.GenericServerRunOptions.InsecurePort = 0
+	server.GenericServerRunOptions.TLSCertFile = options.ServingInfo.ServerCert.CertFile
+	server.GenericServerRunOptions.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
+	server.GenericServerRunOptions.ClientCAFile = options.ServingInfo.ClientCA
+	server.GenericServerRunOptions.MaxRequestsInFlight = options.ServingInfo.MaxRequestsInFlight
+	server.GenericServerRunOptions.MinRequestTimeout = options.ServingInfo.RequestTimeoutSeconds
+	for _, nc := range options.ServingInfo.NamedCertificates {
+		sniCert := config.NamedCertKey{
+			CertFile: nc.CertFile,
+			KeyFile:  nc.KeyFile,
+			Names:    nc.Names,
+		}
+		server.GenericServerRunOptions.SNICertKeys = append(server.GenericServerRunOptions.SNICertKeys, sniCert)
+	}
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
@@ -115,13 +148,13 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 		autoscaling.SchemeGroupVersion,
 	)
 
-	storageGroupsToEncodingVersion, err := server.StorageGroupsToEncodingVersion()
+	storageGroupsToEncodingVersion, err := server.GenericServerRunOptions.StorageGroupsToEncodingVersion()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// use the stock storage config based on args, but override bits from our config where appropriate
-	etcdConfig := server.StorageConfig
+	etcdConfig := server.GenericServerRunOptions.StorageConfig
 	etcdConfig.Prefix = options.EtcdStorageConfig.KubernetesStoragePrefix
 	etcdConfig.ServerList = options.EtcdClientInfo.URLs
 	etcdConfig.KeyFile = options.EtcdClientInfo.ClientCert.KeyFile
@@ -130,13 +163,13 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 
 	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
 		etcdConfig,
-		server.DefaultStorageMediaType,
+		server.GenericServerRunOptions.DefaultStorageMediaType,
 		kapi.Codecs,
 		genericapiserver.NewDefaultResourceEncodingConfig(),
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
 		[]unversioned.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
-		master.DefaultAPIResourceConfigSource(), server.RuntimeConfig,
+		master.DefaultAPIResourceConfigSource(), server.GenericServerRunOptions.RuntimeConfig,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -159,12 +192,6 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.AP
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient kclientset.Interface, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
-	}
-
-	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
-	kubeletClient, err := kubeletclient.NewStaticKubeletClient(kubeletClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure Kubelet client: %v", err)
 	}
 
 	// in-order list of plug-ins that should intercept admission decisions
@@ -237,59 +264,111 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		glog.Infof("Will report %v as public IP address.", publicAddress)
 	}
 
+	genericConfig := genericapiserver.NewConfig().ApplyOptions(server.GenericServerRunOptions)
+
+	kubeVersion := kversion.Get()
+	genericConfig.Version = &kubeVersion
+
+	// MUST be in synced with the value in CMServer
+	genericConfig.EnableGarbageCollection = false // disabled until we add the controller
+
+	genericConfig.PublicAddress = publicAddress
+	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
+	genericConfig.Authorizer = authorizer.NewAlwaysAllowAuthorizer()
+	genericConfig.AdmissionControl = admissionControl
+	genericConfig.RequestContextMapper = requestContextMapper
+	genericConfig.APIResourceConfigSource = getAPIResourceConfig(options)
+	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig()
+	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
+	_, loopbackClientConfig, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	genericConfig.LoopbackClientConfig = loopbackClientConfig
+	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
+	genericConfig.SecureServingInfo.BindNetwork = options.ServingInfo.BindNetwork
+	genericConfig.SecureServingInfo.ExtraClientCACerts, err = configapi.GetOAuthClientCertCAs(options)
+	if err != nil {
+		glog.Fatalf("Error setting up OAuth2 client certificates: %v", err)
+	}
+	url, err := url.Parse(options.MasterPublicURL)
+	if err != nil {
+		glog.Fatalf("Error parsing master public url %q: %v", options.MasterPublicURL, err)
+	}
+	genericConfig.ExternalAddress = url.Host
+
+	serviceIPRange, apiServerServiceIP, err := genericapiserver.DefaultServiceIPRange(server.GenericServerRunOptions.ServiceClusterIPRange)
+	if err != nil {
+		glog.Fatalf("Error determining service IP ranges: %v", err)
+	}
+
 	m := &master.Config{
-		Config: &genericapiserver.Config{
+		GenericConfig: genericConfig,
+		MasterCount:   server.GenericServerRunOptions.MasterCount,
 
-			PublicAddress: publicAddress,
-			ReadWritePort: server.SecurePort,
-
-			Authenticator:    originAuthenticator, // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-			Authorizer:       authorizer.NewAlwaysAllowAuthorizer(),
-			AdmissionControl: admissionControl,
-
-			StorageFactory: storageFactory,
-
-			ServiceClusterIPRange: (*net.IPNet)(&server.ServiceClusterIPRange),
-			ServiceNodePortRange:  server.ServiceNodePortRange,
-
-			RequestContextMapper: requestContextMapper,
-
-			APIResourceConfigSource: getAPIResourceConfig(options),
-			APIPrefix:               server.APIPrefix,
-			APIGroupPrefix:          server.APIGroupPrefix,
-
-			MasterCount: server.MasterCount,
-
-			// Set the TLS options for proxying to pods and services
-			// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
-			ProxyTLSClientConfig: &tls.Config{
+		// Set the TLS options for proxying to pods and services
+		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
+		ProxyTransport: knet.SetTransportDefaults(&http.Transport{
+			TLSClientConfig: &tls.Config{
 				// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
 				InsecureSkipVerify: true,
 				Certificates:       proxyClientCerts,
 			},
+		}),
 
-			Serializer: kapi.Codecs,
+		EnableWatchCache:          server.GenericServerRunOptions.EnableWatchCache,
+		ServiceIPRange:            serviceIPRange,
+		APIServerServiceIP:        apiServerServiceIP,
+		APIServerServicePort:      443,
+		ServiceNodePortRange:      server.GenericServerRunOptions.ServiceNodePortRange,
+		KubernetesServiceNodePort: server.GenericServerRunOptions.KubernetesServiceNodePort,
 
-			EnableLogsSupport:         server.EnableLogsSupport,
-			EnableProfiling:           server.EnableProfiling,
-			EnableWatchCache:          server.EnableWatchCache,
-			MasterServiceNamespace:    server.MasterServiceNamespace,
-			ExternalHost:              server.ExternalHost,
-			MinRequestTimeout:         server.MinRequestTimeout,
-			KubernetesServiceNodePort: server.KubernetesServiceNodePort,
-		},
+		StorageFactory: storageFactory,
 
 		EventTTL: server.EventTTL,
 
-		KubeletClient: kubeletClient,
+		KubeletClientConfig: *configapi.GetKubeletClientConfig(options),
 
+		EnableLogsSupport:     false, // don't expose server logs
 		EnableCoreControllers: true,
 
-		DeleteCollectionWorkers: server.DeleteCollectionWorkers,
+		DeleteCollectionWorkers: server.GenericServerRunOptions.DeleteCollectionWorkers,
 	}
 
-	if server.EnableWatchCache {
-		cachesize.SetWatchCacheSizes(server.WatchCacheSizes)
+	if m.EnableWatchCache {
+		cachesize.SetWatchCacheSizes(server.GenericServerRunOptions.WatchCacheSizes)
+	}
+
+	if m.EnableCoreControllers {
+		glog.V(2).Info("Using the lease endpoint reconciler")
+		config, err := m.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
+		if err != nil {
+			return nil, err
+		}
+		leaseStorage, _, err := storagefactory.Create(*config)
+		if err != nil {
+			return nil, err
+		}
+		masterLeases := newMasterLeases(leaseStorage)
+
+		endpointConfig, err := m.StorageFactory.NewConfig(kapi.Resource("endpoints"))
+		if err != nil {
+			return nil, err
+		}
+		endpointsStorage := endpointsetcd.NewREST(generic.RESTOptions{
+			StorageConfig:           endpointConfig,
+			Decorator:               generic.UndecoratedStorage,
+			DeleteCollectionWorkers: 0,
+			ResourcePrefix:          m.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
+		})
+
+		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
+
+		m.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
+			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
+			Interval:   master.DefaultEndpointReconcilerInterval,
+		}
 	}
 
 	if options.DNSConfig != nil {
@@ -323,6 +402,107 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	return kmaster, nil
+}
+
+func DefaultOpenAPIConfig() *openapicommon.Config {
+	return &openapicommon.Config{
+		Definitions:    openapigenerated.OpenAPIDefinitions,
+		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift"},
+		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
+			op := r.Operation
+			path := r.Path
+			//TODO/REBASE this is gross
+			if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/processedtemplates") {
+				op = "createNamespacedProcessedTemplate"
+			} else if strings.HasPrefix(path, "/oapi/v1/processedtemplates") {
+				op = "createProcessedTemplateForAllNamespaces"
+			} else if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/generatedeploymentconfigs") {
+				op = "generateNamespacedDeploymentConfig"
+			}
+			if op != r.Operation {
+				return op, []string{}, nil
+			}
+			return apiserveropenapi.GetOperationIDAndTags(servePath, r)
+		},
+		Info: &spec.Info{
+			InfoProps: spec.InfoProps{
+				Title:   "OpenShift API (with Kubernetes)",
+				Version: version.Get().String(),
+				License: &spec.License{
+					Name: "Apache 2.0 (ASL2.0)",
+					URL:  "http://www.apache.org/licenses/LICENSE-2.0",
+				},
+				Description: heredoc.Doc(`
+					OpenShift provides builds, application lifecycle, image content management,
+					and administrative policy on top of Kubernetes. The API allows consistent
+					management of those objects.
+
+					All API operations are authenticated via an Authorization	bearer token that
+					is provided for service accounts as a generated secret (in JWT form) or via
+					the native OAuth endpoint located at /oauth/authorize. Core infrastructure
+					components may use client certificates that require no authentication.
+
+					All API operations return a 'resourceVersion' string that represents the
+					version of the object in the underlying storage. The standard LIST operation
+					performs a snapshot read of the underlying objects, returning a resourceVersion
+					representing a consistent version of the listed objects. The WATCH operation
+					allows all updates to a set of objects after the provided resourceVersion to
+					be observed by a client. By listing and beginning a watch from the returned
+					resourceVersion, clients may observe a consistent view of the state of one
+					or more objects. Note that WATCH always returns the update after the provided
+					resourceVersion. Watch may be extended a limited time in the past - using
+					etcd 2 the watch window is 1000 events (which on a large cluster may only
+					be a few tens of seconds) so clients must explicitly handle the "watch
+					to old error" by re-listing.
+
+					Objects are divided into two rough categories - those that have a lifecycle
+					and must reflect the state of the cluster, and those that have no state.
+					Objects with lifecycle typically have three main sections:
+
+					* 'metadata' common to all objects
+					* a 'spec' that represents the desired state
+					* a 'status' that represents how much of the desired state is reflected on
+					  the cluster at the current time
+
+					Objects that have no state have 'metadata' but may lack a 'spec' or 'status'
+					section.
+
+					Objects are divided into those that are namespace scoped (only exist inside
+					of a namespace) and those that are cluster scoped (exist outside of
+					a namespace). A namespace scoped resource will be deleted when the namespace
+					is deleted and cannot be created if the namespace has not yet been created
+					or is in the process of deletion. Cluster scoped resources are typically
+					only accessible to admins - resources like nodes, persistent volumes, and
+					cluster policy.
+
+					All objects have a schema that is a combination of the 'kind' and
+					'apiVersion' fields. This schema is additive only for any given version -
+					no backwards incompatible changes are allowed without incrementing the
+					apiVersion. The server will return and accept a number of standard
+					responses that share a common schema - for instance, the common
+					error type is 'unversioned.Status' (described below) and will be returned
+					on any error from the API server.
+
+					The API is available in multiple serialization formats - the default is
+					JSON (Accept: application/json and Content-Type: application/json) but
+					clients may also use YAML (application/yaml) or the native Protobuf
+					schema (application/vnd.kubernetes.protobuf). Note that the format
+					of the WATCH API call is slightly different - for JSON it returns newline
+					delimited objects while for Protobuf it returns length-delimited frames
+					(4 bytes in network-order) that contain a 'versioned.Watch' Protobuf
+					object.
+
+					See the OpenShift documentation at https://docs.openshift.org for more
+					information.
+				`),
+			},
+		},
+		DefaultResponse: &spec.Response{
+			ResponseProps: spec.ResponseProps{
+				Description: "Default Response.",
+			},
+		},
+	}
 }
 
 // getAPIResourceConfig builds the config for enabling resources
