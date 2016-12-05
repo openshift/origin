@@ -235,6 +235,10 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	env = append(env, opt.Environment...)
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))
 
+	// Kubelet needs to be able to write to
+	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
+	binds = append(binds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
+
 	// Check if a configuration exists before creating one if UseExistingConfig
 	// was specified
 	var configDir string
