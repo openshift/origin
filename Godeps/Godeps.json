@@ -3829,6 +3829,18 @@
 			"Rev": "6a1c24d7f08e671c244023ca9367d2dfbfaf57fc"
 		},
 		{
+			"ImportPath": "k8s.io/gengo/examples/deepcopy-gen/generators",
+			"Rev": "6a1c24d7f08e671c244023ca9367d2dfbfaf57fc"
+		},
+		{
+			"ImportPath": "k8s.io/gengo/examples/defaulter-gen/generators",
+			"Rev": "6a1c24d7f08e671c244023ca9367d2dfbfaf57fc"
+		},
+		{
+			"ImportPath": "k8s.io/gengo/examples/set-gen/sets",
+			"Rev": "6a1c24d7f08e671c244023ca9367d2dfbfaf57fc"
+		},
+		{
 			"ImportPath": "k8s.io/gengo/generator",
 			"Rev": "6a1c24d7f08e671c244023ca9367d2dfbfaf57fc"
 		},
