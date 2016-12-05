@@ -3915,11 +3915,6 @@
 			"Rev": "225eecce40065518f2eabc3b52020365db012384"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/args",
-			"Comment": "v1.5.0-beta.2-30-g225eecc",
-			"Rev": "225eecce40065518f2eabc3b52020365db012384"
-		},
-		{
 			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen",
 			"Comment": "v1.5.0-beta.2-30-g225eecc",
 			"Rev": "225eecce40065518f2eabc3b52020365db012384"
@@ -3946,16 +3941,6 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/conversion-gen/generators",
-			"Comment": "v1.5.0-beta.2-30-g225eecc",
-			"Rev": "225eecce40065518f2eabc3b52020365db012384"
-		},
-		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/deepcopy-gen/generators",
-			"Comment": "v1.5.0-beta.2-30-g225eecc",
-			"Rev": "225eecce40065518f2eabc3b52020365db012384"
-		},
-		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/generator",
 			"Comment": "v1.5.0-beta.2-30-g225eecc",
 			"Rev": "225eecce40065518f2eabc3b52020365db012384"
 		},
