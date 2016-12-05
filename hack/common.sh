@@ -34,7 +34,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   cmd/gitserver
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
-readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
+readonly OS_IMAGE_COMPILE_GOFLAGS="-tags 'include_gcs include_oss'"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
   examples/deployment
