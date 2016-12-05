@@ -19,7 +19,6 @@ func init() {
 		DeepCopy_api_ClusterResourceQuotaSelector,
 		DeepCopy_api_ClusterResourceQuotaSpec,
 		DeepCopy_api_ClusterResourceQuotaStatus,
-		DeepCopy_api_ResourceQuotasStatusByNamespace,
 	); err != nil {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
@@ -138,15 +137,6 @@ func DeepCopy_api_ClusterResourceQuotaStatus(in ClusterResourceQuotaStatus, out 
 	}
 	if err := DeepCopy_api_ResourceQuotasStatusByNamespace(in.Namespaces, &out.Namespaces, c); err != nil {
 		return err
-	}
-	return nil
-}
-
-func DeepCopy_api_ResourceQuotasStatusByNamespace(in ResourceQuotasStatusByNamespace, out *ResourceQuotasStatusByNamespace, c *conversion.Cloner) error {
-	if newVal, err := c.DeepCopy(in.orderedMap); err != nil {
-		return err
-	} else {
-		out.orderedMap = newVal.(orderedMap)
 	}
 	return nil
 }
