@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/api/validation/path"
 )
@@ -32,4 +33,11 @@ func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabe
 		}
 		return "", "", fmt.Errorf("field label not supported: %s", label)
 	}
+}
+
+// GetResourceKey returns a string of the form [namespace]/[name] for
+// the given resource.  This is a common way of ensuring a key for a
+// resource that is unique across the cluster.
+func GetResourceKey(obj kapi.ObjectMeta) string {
+	return fmt.Sprintf("%s/%s", obj.Namespace, obj.Name)
 }

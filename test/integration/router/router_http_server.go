@@ -36,6 +36,8 @@ func GetDefaultLocalAddress() string {
 func NewTestHttpService() *TestHttpService {
 	endpointChannel := make(chan string)
 	routeChannel := make(chan string)
+	ingressChannel := make(chan string)
+	secretChannel := make(chan string)
 	nodeChannel := make(chan string)
 	svcChannel := make(chan string)
 
@@ -57,6 +59,8 @@ func NewTestHttpService() *TestHttpService {
 		PodHttpsCaCert:       []byte(ExampleCACert),
 		EndpointChannel:      endpointChannel,
 		RouteChannel:         routeChannel,
+		IngressChannel:       ingressChannel,
+		SecretChannel:        secretChannel,
 		NodeChannel:          nodeChannel,
 		SvcChannel:           svcChannel,
 	}
@@ -81,6 +85,8 @@ type TestHttpService struct {
 	PodTestPath          string
 	EndpointChannel      chan string
 	RouteChannel         chan string
+	IngressChannel       chan string
+	SecretChannel        chan string
 	NodeChannel          chan string
 	SvcChannel           chan string
 
@@ -191,6 +197,30 @@ func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Requ
 	fmt.Fprint(w, "{}")
 }
 
+// handleIngressWatch handles calls to /api/extensions/v1beta1/watch/ingresses and uses the ingress channel to simulate watch events
+func (s *TestHttpService) handleIngressWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, <-s.IngressChannel)
+}
+
+// handleIngressList handles calls to /api/extensions/v1beta1/ingresses and always returns empty data
+func (s *TestHttpService) handleIngressList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, "{}")
+}
+
+// handleSecretWatch handles calls to /api/v1/watch/secrets and uses the endpoint channel to simulate watch events
+func (s *TestHttpService) handleSecretWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, <-s.SecretChannel)
+}
+
+// handleSecretList handles calls to /api/v1/secrets and always returns empty data
+func (s *TestHttpService) handleSecretList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, "{}")
+}
+
 // handleWebSocket copies whatever is written to the web socket back to the socket
 func (s *TestHttpService) handleWebSocket(ws *websocket.Conn) {
 	_, err := io.Copy(ws, ws)
@@ -242,7 +272,11 @@ func (s *TestHttpService) startMaster() error {
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/nodes", version), s.handleNodeWatch)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/services", version), s.handleSvcList)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/services", version), s.handleSvcWatch)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/secrets", version), s.handleSecretList)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/secrets", version), s.handleSecretWatch)
 	}
+	masterServer.HandleFunc("/apis/extensions/v1beta1/ingresses", s.handleIngressList)
+	masterServer.HandleFunc("/apis/extensions/v1beta1/watch/ingresses", s.handleIngressWatch)
 
 	if err := s.startServing(s.MasterHttpAddr, http.Handler(masterServer)); err != nil {
 		return err
