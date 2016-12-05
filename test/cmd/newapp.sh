@@ -82,6 +82,34 @@ os::cmd::expect_success_and_not_text 'oc new-app ruby-helloworld-sample --param 
 os::cmd::expect_success_and_text 'oc new-app php PASS=one,two=three -o yaml' 'value: one,two=three'
 os::cmd::expect_success_and_not_text 'oc new-app php PASS=one,two=three -o yaml' 'no longer accepts comma-separated list'
 
+# check that we can populate template parameters from file
+param_file="${OS_ROOT}/test/testdata/test-cmd-newapp-params.env"
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_PASSWORD\")].value}'" 'thisisapassword'
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_PASSWORD=otherpass -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_PASSWORD\")].value}'" 'otherpass'
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_PASSWORD=otherpass -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${param_file} | oc new-app ruby-helloworld-sample --param-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_PASSWORD\")].value}'" 'thisisapassword'
+
+os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file test/testdata"  'is a directory'
+os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null --param-file ${param_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
+
+# check that we can set environment variables from env file
+env_file="${OS_ROOT}/test/testdata/test-cmd-newapp-env.env"
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${env_file} | oc new-app php --env-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+
+os::cmd::expect_failure_and_text "oc new-app php --env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-app php --env-file test/testdata"  'is a directory'
+os::cmd::expect_success "oc new-app php --env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-app php --env-file /dev/null --env-file ${env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app php --env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app php --env-file -" 'invalid parameter assignment'
+
 # new-build
 # check that env vars are not split on commas and warning is printed where they previously have
 os::cmd::expect_success_and_text 'oc new-build --binary php --env X=Y,Z=W -o yaml' 'value: Y,Z=W'
@@ -91,6 +119,19 @@ os::cmd::expect_success_and_not_text 'oc new-build --binary php --env X=Y,Z,W -o
 os::cmd::expect_success_and_not_text 'oc new-build --binary php --env X=Y -o yaml' 'no longer accepts comma-separated list'
 os::cmd::expect_success_and_text 'oc new-build --binary php X=Y,Z=W -o yaml' 'value: Y,Z=W'
 os::cmd::expect_success_and_not_text 'oc new-build --binary php X=Y,Z=W -o yaml' 'no longer accepts comma-separated list'
+
+# new-build - load envvars from file
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${env_file} | oc new-build --binary php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+
+os::cmd::expect_failure_and_text "oc new-build --binary php --env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-build --binary php --env-file test/testdata"  'is a directory'
+os::cmd::expect_success "oc new-build --binary php --env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-build --binary php --env-file /dev/null --env-file ${env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
 
 # verify we can create from a template when some objects in the template declare an app label
 # the app label will not be applied to any objects in the template.

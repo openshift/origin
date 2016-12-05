@@ -45,10 +45,6 @@ import (
 // NewAppRecommendedCommandName is the recommended command name.
 const NewAppRecommendedCommandName = "new-app"
 
-type usage interface {
-	UsageError(baseName string) string
-}
-
 var (
 	newAppLong = templates.LongDesc(`
 		Create a new application by specifying source code, templates, and/or images
@@ -129,6 +125,7 @@ type NewAppOptions struct {
 	CommandPath string
 	CommandName string
 
+	In            io.Reader
 	Out, ErrOut   io.Writer
 	Output        string
 	PrintObject   func(obj runtime.Object) error
@@ -136,7 +133,7 @@ type NewAppOptions struct {
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{Config: config}
@@ -148,7 +145,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
 			err := o.RunNewApp()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -168,8 +165,12 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
 	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
 	cmd.Flags().StringArrayVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().StringArrayVar(&config.TemplateParameterFiles, "param-file", config.TemplateParameterFiles, "File containing parameter values to set/override in the template.")
+	cmd.MarkFlagFilename("param-file")
 	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container.")
+	cmd.Flags().StringArrayVar(&config.EnvironmentFiles, "env-file", config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.MarkFlagFilename("env-file")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
@@ -188,12 +189,14 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
+	o.Config.In = o.In
 	if len(o.Output) == 0 {
 		o.Config.Out = o.Out
 	} else {
