@@ -29,6 +29,14 @@ func (c *fakeControllerClient) ReplicationControllers(ns string) kcoreclient.Rep
 	return fake.NewSimpleClientset(c.deployment).Core().ReplicationControllers(ns)
 }
 
+type hookExecutorImpl struct {
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+}
+
+func (h *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+	return h.executeFunc(hook, rc, suffix, label)
+}
+
 func TestRecreate_initialDeployment(t *testing.T) {
 	var deployment *kapi.ReplicationController
 	scaler := &cmdtest.FakeScaler{}

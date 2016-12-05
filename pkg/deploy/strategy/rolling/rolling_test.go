@@ -145,6 +145,14 @@ func TestRolling_deployRolling(t *testing.T) {
 	}
 }
 
+type hookExecutorImpl struct {
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+}
+
+func (h *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+	return h.executeFunc(hook, rc, suffix, label)
+}
+
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = deploytest.OkRollingStrategy()
