@@ -312,25 +312,25 @@ const (
 
 	// StatusReasonBuildPodExists indicates that the build tried to create a
 	// build pod but one was already present.
-	StatusReasonBuildPodExists = "BuildPodExists"
+	StatusReasonBuildPodExists StatusReason = "BuildPodExists"
 )
 
 // NOTE: These messages might change.
 const (
-	StatusMessageCannotCreateBuildPodSpec  = "Failed to create pod spec"
-	StatusMessageCannotCreateBuildPod      = "Failed creating build pod"
-	StatusMessageInvalidOutputRef          = "Output image could not be resolved"
-	StatusMessageCancelBuildFailed         = "Failed to cancel build"
-	StatusMessageBuildPodDeleted           = "The pod for this build was deleted before the build completed"
-	StatusMessageExceededRetryTimeout      = "Build did not complete and retrying timed out"
-	StatusMessageMissingPushSecret         = "Missing push secret"
-	StatusMessagePostCommitHookFailed      = "Build failed because of post commit hook"
-	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry"
-	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image"
-	StatusMessageFetchSourceFailed         = "Failed to fetch the input source"
-	StatusMessageCancelledBuild            = "The build was cancelled by the user"
-	StatusMessageDockerBuildFailed         = "Docker build strategy has failed"
-	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build"
+	StatusMessageCannotCreateBuildPodSpec  = "Failed to create pod spec."
+	StatusMessageCannotCreateBuildPod      = "Failed creating build pod."
+	StatusMessageInvalidOutputRef          = "Output image could not be resolved."
+	StatusMessageCancelBuildFailed         = "Failed to cancel build."
+	StatusMessageBuildPodDeleted           = "The pod for this build was deleted before the build completed."
+	StatusMessageExceededRetryTimeout      = "Build did not complete and retrying timed out."
+	StatusMessageMissingPushSecret         = "Missing push secret."
+	StatusMessagePostCommitHookFailed      = "Build failed because of post commit hook."
+	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry."
+	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image."
+	StatusMessageFetchSourceFailed         = "Failed to fetch the input source."
+	StatusMessageCancelledBuild            = "The build was cancelled by the user."
+	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
+	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
 )
 
 // BuildSource is the input used for the build.

@@ -312,6 +312,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		build.Status.Reason = ""
 		build.Status.Message = ""
 		nextStatus = buildapi.BuildPhaseRunning
+
 	case kapi.PodPending:
 		build.Status.Reason = ""
 		build.Status.Message = ""
@@ -323,6 +324,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 			}
 		}
+
 	case kapi.PodSucceeded:
 		build.Status.Reason = ""
 		build.Status.Message = ""
@@ -341,8 +343,10 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 				}
 			}
 		}
+
 	case kapi.PodFailed:
 		nextStatus = buildapi.BuildPhaseFailed
+
 	default:
 		build.Status.Reason = ""
 		build.Status.Message = ""
