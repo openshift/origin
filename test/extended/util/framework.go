@@ -354,7 +354,7 @@ func (t *BuildResult) Logs() (string, error) {
 
 	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
 	if err != nil {
-		return "", fmt.Errorf("Error retieving logs for %#v: %v", *t, err)
+		return "", fmt.Errorf("Error retrieving logs for %#v: %v", *t, err)
 	}
 
 	return buildOuput, nil
