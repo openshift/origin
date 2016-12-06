@@ -3,11 +3,12 @@ package openshift
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 	svcMetrics             = "hawkular-metrics"
 	metricsDeployerSA      = "metrics-deployer"
 	metricsDeployerSecret  = "metrics-deployer"
-	metricsDeployerPodName = "metrics-deployer-pod"
+	metricsDeployerJobName = "metrics-deployer-pod"
 )
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
@@ -65,15 +66,17 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 		return errors.NewError("cannot create metrics deployer secret").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	// Create deployer Pod
-	deployerPod := metricsDeployerPod(hostName, imagePrefix, imageVersion)
-	if _, err = kubeClient.Pods(infraNamespace).Create(deployerPod); err != nil {
-		return errors.NewError("cannot create metrics deployer pod").WithCause(err).WithDetails(h.OriginLog())
-	}
+	// Create the job client
+	jobClient := kubeClient.Batch().Jobs(infraNamespace)
+
+	// Submit the job
+	jobClient.Create(metricsDeployerJob(hostName, imagePrefix, imageVersion))
+
 	return nil
 }
 
-func metricsDeployerPod(hostName, imagePrefix, imageVersion string) *kapi.Pod {
+// Returns a job to create the metrics deployer pod
+func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job {
 	env := []kapi.EnvVar{
 		{
 			Name: "PROJECT",
@@ -144,49 +147,65 @@ func metricsDeployerPod(hostName, imagePrefix, imageVersion string) *kapi.Pod {
 			Value: "10s",
 		},
 	}
-	pod := &kapi.Pod{
-		Spec: kapi.PodSpec{
-			DNSPolicy:          kapi.DNSClusterFirst,
-			RestartPolicy:      kapi.RestartPolicyNever,
-			ServiceAccountName: metricsDeployerSA,
-			Volumes: []kapi.Volume{
-				{
-					Name: "empty",
-					VolumeSource: kapi.VolumeSource{
-						EmptyDir: &kapi.EmptyDirVolumeSource{},
-					},
+	podSpec := kapi.PodSpec{
+		DNSPolicy:          kapi.DNSClusterFirst,
+		RestartPolicy:      kapi.RestartPolicyNever,
+		ServiceAccountName: metricsDeployerSA,
+		Volumes: []kapi.Volume{
+			{
+				Name: "empty",
+				VolumeSource: kapi.VolumeSource{
+					EmptyDir: &kapi.EmptyDirVolumeSource{},
 				},
-				{
-					Name: "secret",
-					VolumeSource: kapi.VolumeSource{
-						Secret: &kapi.SecretVolumeSource{
-							SecretName: metricsDeployerSecret,
-						},
+			},
+			{
+				Name: "secret",
+				VolumeSource: kapi.VolumeSource{
+					Secret: &kapi.SecretVolumeSource{
+						SecretName: metricsDeployerSecret,
 					},
 				},
 			},
 		},
-	}
-	pod.Name = metricsDeployerPodName
-	pod.Spec.Containers = []kapi.Container{
-		{
-			Image: fmt.Sprintf("%s-metrics-deployer:%s", imagePrefix, imageVersion),
-			Name:  "deployer",
-			VolumeMounts: []kapi.VolumeMount{
-				{
-					Name:      "secret",
-					MountPath: "/secret",
-					ReadOnly:  true,
+		Containers: []kapi.Container{
+			{
+				Image: fmt.Sprintf("%s-metrics-deployer:%s", imagePrefix, imageVersion),
+				Name:  "deployer",
+				VolumeMounts: []kapi.VolumeMount{
+					{
+						Name:      "secret",
+						MountPath: "/secret",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "empty",
+						MountPath: "/etc/deploy",
+					},
 				},
-				{
-					Name:      "empty",
-					MountPath: "/etc/deploy",
-				},
+				Env: env,
 			},
-			Env: env,
 		},
 	}
-	return pod
+
+	completions := int32(1)
+
+	deadline := int64(60 * 5)
+
+	meta := kapi.ObjectMeta{
+		Name: metricsDeployerJobName,
+	}
+
+	job := &kbatch.Job{
+		ObjectMeta: meta,
+		Spec: kbatch.JobSpec{
+			Completions:           &completions,
+			ActiveDeadlineSeconds: &deadline,
+			Template: kapi.PodTemplateSpec{
+				Spec: podSpec,
+			},
+		},
+	}
+	return job
 }
 
 func MetricsHost(routingSuffix, serverIP string) string {
