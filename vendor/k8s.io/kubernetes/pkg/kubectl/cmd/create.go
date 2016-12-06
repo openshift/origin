@@ -152,18 +152,7 @@ func RunCreate(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *C
 		count++
 		shortOutput := output == "name"
 		if len(output) > 0 && !shortOutput {
-			printer, generic, err := cmdutil.PrinterForCommand(cmd)
-			if err != nil {
-				return err
-			}
-			if !generic || printer == nil {
-				printer, err := f.PrinterForMapping(cmd, nil, false)
-				if err != nil {
-					return err
-				}
-				return printer.PrintObj(info.Object, out)
-			}
-			return printer.PrintObj(info.Object, out)
+			return cmdutil.PrintResourceInfoForCommand(cmd, info, f, out)
 		}
 		if !shortOutput {
 			f.PrintObjectSpecificMessage(info.Object, out)
