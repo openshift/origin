@@ -6,16 +6,20 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -26,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/util/cache"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -43,6 +48,7 @@ import (
 	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/version"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 type MasterOptions struct {
@@ -486,8 +492,26 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 	}
 
+	var protectedInstallers []origin.APIInstaller
 	if kc != nil {
-		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
+		protectedInstallers = append(protectedInstallers, kc)
+
+		// install a proxy to heapster at the metrics endpoint - this is for testing only and will be removed
+		// in the future. Requires permissions to be granted to end users.
+		const fakeGroupPrefix = "/apis/alpha.metrics.k8s.io/"
+		metricsProxy := &kubernetes.ProxyConfig{
+			ClientConfig: clientConfigForServiceProxy(kc, "heapster", []string{"openshift-infra", "kube-system"}),
+			Component:    "Metrics API Group",
+			Path:         fakeGroupPrefix,
+			URLRewriteFn: func(u *url.URL) {
+				// replace our fake group identifier (intended to prevent conflicts with future groups) with the
+				// "real" group that Heapster answers to.
+				if strings.HasPrefix(u.Path, fakeGroupPrefix) {
+					u.Path = "/apis/metrics/" + strings.TrimPrefix(u.Path, fakeGroupPrefix)
+				}
+			},
+		}
+		protectedInstallers = append(protectedInstallers, metricsProxy)
 	} else {
 		_, _, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
@@ -495,9 +519,13 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 		proxy := &kubernetes.ProxyConfig{
 			ClientConfig: kubeClientConfig,
+			Component:    "Kubernetes",
+			Path:         "/api/",
 		}
-		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
+		protectedInstallers = append(protectedInstallers, proxy)
 	}
+
+	oc.Run(protectedInstallers, unprotectedInstallers)
 
 	// start up the informers that we're trying to use in the API server
 	oc.Informers.Start(utilwait.NeverStop)
@@ -513,6 +541,54 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	oc.RunProjectAuthorizationCache()
 	return nil
+}
+
+// clientConfigForServiceProxy creates a client for connecting to a given HTTPS enabled service
+// in a namespace. It selects the first port on the service and uses the normal master proxy config.
+// WARNING: this does not verify backends by default and could result in MITM attacks if the attacker
+// controls the pod network.
+// This is enabled to support testing of metrics and may be removed in the future.
+func clientConfigForServiceProxy(kc *kubernetes.MasterConfig, serviceName string, namespaces []string) *restclient.Config {
+	c := cache.NewLRUExpireCache(len(namespaces))
+	dialerFn := func(network, _ string) (net.Conn, error) {
+		for _, namespace := range namespaces {
+			var svc *kapi.Service
+			value, ok := c.Get(namespace)
+			glog.Infof("checking service proxy for %s in %s: %T %#v", serviceName, namespace, value, value)
+			if value == nil {
+				if ok {
+					// cached a negative result, don't retry
+					continue
+				}
+				var err error
+				svc, err = kc.KubeClient.Services(namespace).Get(serviceName)
+				// TODO: if this code persists, search for a port named "https" or with port 443 before defaulting to the
+				// first port
+				if err != nil || len(svc.Spec.ClusterIP) == 0 || len(svc.Spec.Ports) == 0 || svc.Spec.Ports[0].Port == 0 {
+					// cache a negative result to avoid clients DoS'ing the masters
+					c.Add(namespace, nil, 5*time.Second)
+					continue
+				}
+				c.Add(namespace, svc, time.Minute)
+			} else {
+				svc = value.(*kapi.Service)
+			}
+			addr := fmt.Sprintf("%s:%d", svc.Spec.ClusterIP, svc.Spec.Ports[0].Port)
+			if kc.Master.ProxyDialer != nil {
+				return kc.Master.ProxyDialer(network, addr)
+			}
+			return net.Dial(network, addr)
+		}
+		return nil, fmt.Errorf("service %s is not available", serviceName)
+	}
+
+	return &restclient.Config{
+		Host: fmt.Sprintf("https://%s.%s.svc", serviceName, namespaces[0]),
+		Transport: &http.Transport{
+			TLSClientConfig: kc.Master.ProxyTLSClientConfig,
+			Dial:            dialerFn,
+		},
+	}
 }
 
 // getResourceOverrideConfig looks in two potential places where ClusterResourceOverrideConfig can be specified

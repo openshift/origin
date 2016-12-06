@@ -286,6 +286,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("resourceaccessreviews", "subjectaccessreviews").RuleOrDie(),
+
+				// experimental, this is a synthetic group created to expose the new metrics alpha API to users with the
+				// ability to remove it later.
+				authorizationapi.NewRule(read...).Groups("alpha.metrics.k8s.io").Resources("pods").RuleOrDie(),
 			},
 		},
 		{
@@ -338,6 +342,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// backwards compatibility
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
+
+				// experimental, this is a synthetic group created to expose the new metrics alpha API to users with the
+				// ability to remove it later.
+				authorizationapi.NewRule(read...).Groups("alpha.metrics.k8s.io").Resources("pods").RuleOrDie(),
 			},
 		},
 		{
@@ -387,6 +395,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// backwards compatibility
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
+
+				// experimental, this is a synthetic group created to expose the new metrics alpha API to users with the
+				// ability to remove it later.
+				authorizationapi.NewRule(read...).Groups("alpha.metrics.k8s.io").Resources("pods").RuleOrDie(),
 			},
 		},
 		{

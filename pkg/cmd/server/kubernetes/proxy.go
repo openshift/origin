@@ -13,6 +13,9 @@ import (
 
 type ProxyConfig struct {
 	ClientConfig *restclient.Config
+	Component    string
+	Path         string
+	URLRewriteFn func(*url.URL)
 }
 
 func (c *ProxyConfig) InstallAPI(container *restful.Container) ([]string, error) {
@@ -21,14 +24,14 @@ func (c *ProxyConfig) InstallAPI(container *restful.Container) ([]string, error)
 		return nil, err
 	}
 
-	proxy, err := httpproxy.NewUpgradeAwareSingleHostReverseProxy(c.ClientConfig, kubeAddr)
+	proxy, err := httpproxy.NewUpgradeAwareSingleHostReverseProxy(c.ClientConfig, kubeAddr, c.URLRewriteFn)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to initialize the Kubernetes proxy: %v", err)
 	}
 
-	container.Handle("/api/", proxy)
+	container.Handle(c.Path, proxy)
 
 	return []string{
-		"Started Kubernetes proxy at %s/api/",
+		fmt.Sprintf("Started %s proxy at %%s%s", c.Component, c.Path),
 	}, nil
 }
