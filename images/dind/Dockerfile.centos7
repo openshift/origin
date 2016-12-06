@@ -18,7 +18,7 @@
 #      $ docker run -d --privileged openshift/dind
 #
 
-FROM centos:systemd
+FROM centos:centos7
 
 # Fix 'WARNING: terminal is not fully functional' when TERM=dumb
 ENV TERM=xterm
@@ -49,10 +49,18 @@ RUN systemctl mask\
 RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/;\
  sed -i 's/OOMScoreAdjust=-900//' /etc/systemd/system/dbus.service
 
+# Remove non-english translations for glibc to reduce image size by 100mb.
+# docker-v1.10-migrator is unnecessary for a new docker installation
+# selinux-policy-minimum is unnecessary since selinux won't be enabled
 RUN yum -y update && yum -y install\
  docker\
  iptables\
+ openssh-clients\
  openssh-server\
+ && yum -y remove\
+ docker-v1.10-migrator\
+ glibc-all-langpacks\
+ selinux-policy-minimum\
  && yum clean all
 
 ## Configure docker

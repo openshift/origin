@@ -21,7 +21,6 @@ LABEL io.k8s.display-name="OpenShift Origin Application Platform" \
 ENV HOME=/root \
     OPENSHIFT_CONTAINERIZED=true \
     KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
-VOLUME /var/lib/origin
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
 ENTRYPOINT ["/usr/bin/openshift"]
