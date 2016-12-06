@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/blang/semver"
+	"github.com/docker/docker/cliconfig"
 	dockerclient "github.com/docker/engine-api/client"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -423,10 +424,15 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 		return dockerClient, engineAPIClient, nil
 	}
 
+	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
+	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
+	if len(dockerTLSVerify) > 0 && len(dockerCertPath) == 0 {
+		dockerCertPath = cliconfig.ConfigDir()
+		os.Setenv("DOCKER_CERT_PATH", dockerCertPath)
+	}
+
 	if glog.V(4) {
 		dockerHost := os.Getenv("DOCKER_HOST")
-		dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
-		dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
 		if len(dockerHost) == 0 && len(dockerTLSVerify) == 0 && len(dockerCertPath) == 0 {
 			glog.Infof("No Docker environment variables found. Will attempt default socket.")
 		}
