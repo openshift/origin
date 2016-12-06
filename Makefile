@@ -61,6 +61,9 @@ check: | build verify
 
 # Verify code conventions are properly setup.
 #
+# TODO add verifying listers - we can't do it yet because there's an issue with the generated
+# expansion file being incorrect.
+#
 # Example:
 #   make verify
 verify: build
@@ -72,6 +75,8 @@ verify: build
 	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-conversions.sh ||r=1;\
 	hack/verify-generated-clientsets.sh ||r=1;\
+	hack/verify-generated-defaulters.sh ||r=1;\
+	hack/verify-generated-openapi.sh ||r=1;\
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-generated-docs.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
@@ -100,6 +105,9 @@ update: build
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-clientsets.sh
+	hack/update-generated-defaulters.sh
+	hack/update-generated-listers.sh
+	hack/update-generated-openapi.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
 	hack/update-generated-protobuf.sh
