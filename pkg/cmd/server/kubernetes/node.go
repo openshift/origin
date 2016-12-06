@@ -397,6 +397,7 @@ func (c *NodeConfig) RunProxy() {
 			utilsysctl.New(),
 			execer,
 			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
 			c.ProxyConfig.MasqueradeAll,
 			int(*c.ProxyConfig.IPTablesMasqueradeBit),
 			c.ProxyConfig.ClusterCIDR,
@@ -429,6 +430,7 @@ func (c *NodeConfig) RunProxy() {
 			iptInterface,
 			*portRange,
 			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
 			c.ProxyConfig.UDPIdleTimeout.Duration,
 		)
 		if err != nil {
