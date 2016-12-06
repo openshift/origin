@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/client-go/1.4/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -463,14 +464,31 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, err
 			}
-			builds, err := oc.Builds(t.Namespace).List(api.ListOptions{})
-			if err != nil {
-				return nil, err
-			}
-			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+
+			hasConfigChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, t)
+
+			var builds *buildapi.BuildList
+			err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+				builds, err = oc.Builds(t.Namespace).List(api.ListOptions{})
+				if err != nil {
+					return false, err
+				}
+				builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+				if len(builds.Items) > 0 || !hasConfigChangeTrigger {
+					return true, nil
+				}
+				// Wait for timeout before giving up on the first build from configchange trigger
+				return false, nil
+			})
+
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
+
+			if err != nil {
+				return nil, fmt.Errorf("error finding build for %q: %v", t.Name, err)
+			}
+
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))

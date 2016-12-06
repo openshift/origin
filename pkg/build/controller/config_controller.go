@@ -42,13 +42,7 @@ type BuildConfigController struct {
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
 	glog.V(4).Infof("Handling BuildConfig %s/%s", bc.Namespace, bc.Name)
 
-	hasChangeTrigger := false
-	for _, trigger := range bc.Spec.Triggers {
-		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
-			hasChangeTrigger = true
-			break
-		}
-	}
+	hasChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
 
 	if !hasChangeTrigger {
 		return nil
