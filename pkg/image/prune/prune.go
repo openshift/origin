@@ -230,8 +230,8 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 //
 // The ImageDeleter performs the following logic:
 //
-// remove any image was created at least *n* minutes ago and is *not* currently
-// referenced by:
+// remove any image that was created at least *n* minutes ago and is *not*
+// currently referenced by:
 //
 // - any pod created less than *n* minutes ago
 // - any image stream created less than *n* minutes ago
@@ -260,7 +260,7 @@ func NewPruner(options PrunerOptions) Pruner {
 	if options.PruneOverSizeLimit != nil {
 		pruneOverSizeLimit = fmt.Sprintf("%v", *options.PruneOverSizeLimit)
 	}
-	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s allImages=%t",
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%t",
 		options.KeepYoungerThan, keepTagRevisions, pruneOverSizeLimit, options.AllImages)
 
 	algorithm := pruneAlgorithm{}
@@ -314,11 +314,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		glog.V(4).Infof("Examining image %q", image.Name)
 
 		if !algorithm.allImages {
-			if image.Annotations == nil {
-				glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
-				continue
-			}
-			if value, ok := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; !ok || value != "true" {
+			if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
 				glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
 				continue
 			}
