@@ -242,7 +242,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 		GroupCache:            groupCache,
 	}
-	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer)
+
+	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
+	// Authorizer as the 2nd arg. It's currently only used by PSP.
+	kubePluginInitializer := admission.NewPluginInitializer(kubeInformerFactory, nil)
+	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +405,7 @@ var (
 	}
 )
 
-func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
+func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
 	// check to see if they've taken explicit control of the kube admission chain
 	// this happens when any of the following are true:
 	// 1. extended kube server args are used to change the admission plugin list
@@ -450,14 +454,14 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclient
 		var kubeAdmission admission.Interface
 		if options.KubernetesMasterConfig != nil {
 			var err error
-			kubeAdmission, err = newAdmissionChainFunc(KubeAdmissionPlugins, kubeAdmissionPluginConfigFilename, options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer)
+			kubeAdmission, err = newAdmissionChainFunc(KubeAdmissionPlugins, kubeAdmissionPluginConfigFilename, options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
 			if err != nil {
 				return nil, nil, err
 			}
 		}
 
 		// build openshift admission
-		openshiftAdmission, err := newAdmissionChainFunc(openshiftAdmissionPlugins, "", options.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer)
+		openshiftAdmission, err := newAdmissionChainFunc(openshiftAdmissionPlugins, "", options.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -476,7 +480,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclient
 		pluginConfig[pluginName] = config
 	}
 
-	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer)
+	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -487,7 +491,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *kclient
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
 var newAdmissionChainFunc = newAdmissionChain
 
-func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer) (admission.Interface, error) {
+func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface, error) {
 	plugins := []admission.Interface{}
 	for _, pluginName := range pluginNames {
 		switch pluginName {
@@ -548,6 +552,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 		}
 	}
 
+	kubePluginInitializer.Initialize(plugins)
 	pluginInitializer.Initialize(plugins)
 	// ensure that plugins have been properly initialized
 	if err := oadmission.Validate(plugins); err != nil {
