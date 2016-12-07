@@ -33,6 +33,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -58,6 +59,7 @@ var (
 		imageadmission.PluginName,
 		lifecycle.PluginName,
 		"OriginPodNodeEnvironment",
+		"PodNodeSelector",
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
