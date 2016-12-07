@@ -108,9 +108,9 @@ update: build
 	hack/update-generated-defaulters.sh
 	hack/update-generated-listers.sh
 	hack/update-generated-openapi.sh
+	hack/update-generated-protobuf.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
-	hack/update-generated-protobuf.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update

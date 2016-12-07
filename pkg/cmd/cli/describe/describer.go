@@ -696,6 +696,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
+		var hostName string
 		formatMeta(out, route.ObjectMeta)
 		if len(route.Spec.Host) > 0 {
 			formatString(out, "Requested Host", route.Spec.Host)
@@ -703,11 +704,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 				if route.Spec.Host != ingress.Host {
 					continue
 				}
+				hostName = ""
+				if len(ingress.RouterCanonicalHostname) > 0 {
+					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+				}
 				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 				case kapi.ConditionTrue:
-					fmt.Fprintf(out, "\t  exposed on router %s %s ago\n", ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case kapi.ConditionFalse:
-					fmt.Fprintf(out, "\t  rejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  rejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 					if len(condition.Message) > 0 {
 						fmt.Fprintf(out, "\t    %s\n", condition.Message)
 					}
@@ -721,11 +726,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 			if route.Spec.Host == ingress.Host {
 				continue
 			}
+			hostName = ""
+			if len(ingress.RouterCanonicalHostname) > 0 {
+				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+			}
 			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionTrue:
-				fmt.Fprintf(out, "\t%s exposed on router %s %s ago\n", ingress.Host, ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case kapi.ConditionFalse:
-				fmt.Fprintf(out, "\trejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\trejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				if len(condition.Message) > 0 {
 					fmt.Fprintf(out, "\t  %s\n", condition.Message)
 				}
