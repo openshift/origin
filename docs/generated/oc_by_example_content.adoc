@@ -2159,6 +2159,19 @@ Revert part of an application back to a previous deployment
 ====
 
 
+== oc rollout cancel
+cancel the in-progress deployment
+
+====
+
+[options="nowrap"]
+----
+  # Cancel the in-progress deployment based on 'nginx'
+  oc rollout cancel dc/nginx
+----
+====
+
+
 == oc rollout history
 View rollout history
 
