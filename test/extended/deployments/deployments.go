@@ -70,12 +70,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 				case n < 0.7:
 					// cancel any running deployment
 					e2e.Logf("%02d: cancelling deployment", i)
-					if out, err := oc.Run("deploy").Args("dc/deployment-simple", "--cancel").Output(); err != nil {
+					if out, err := oc.Run("rollout").Args("cancel", "dc/deployment-simple").Output(); err != nil {
 						// TODO: we should fix this
 						if !strings.Contains(out, "the object has been modified") {
 							o.Expect(err).NotTo(o.HaveOccurred())
 						}
-						e2e.Logf("--cancel deployment failed due to conflict: %v", err)
+						e2e.Logf("rollout cancel deployment failed due to conflict: %v", err)
 					}
 
 				case n < 0.0:
@@ -554,9 +554,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
 			g.By("verifying that we cannot cancel a deployment")
-			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
+			out, err = oc.Run("rollout").Args("cancel", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
+			o.Expect(out).To(o.ContainSubstring("unable to cancel paused deployment"))
 
 			g.By("verifying that we cannot retry a deployment")
 			out, err = oc.Run("deploy").Args(resource, "--retry").Output()

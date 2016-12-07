@@ -15,7 +15,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -369,7 +368,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 				continue
 			}
 
-			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = unversioned.Now().Format(time.RFC3339)
+			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 			_, err := o.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err == nil {
