@@ -27806,6 +27806,18 @@
      "refreshToken": {
       "type": "string",
       "description": "RefreshToken is the value by which this token can be renewed. Can be blank."
+     },
+     "token": {
+      "type": "string",
+      "description": "Token is the secret that hashes to the object name and the salted hash. It is never persisted, and returned only from the create API call."
+     },
+     "salt": {
+      "type": "string",
+      "description": "Salt contains salt used to generate the saltedHash field"
+     },
+     "saltedHash": {
+      "type": "string",
+      "description": "SaltedHash is the hash of the plaintext token and the contents of the 'salt' field"
      }
     }
    },
@@ -27892,6 +27904,18 @@
      "codeChallengeMethod": {
       "type": "string",
       "description": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636"
+     },
+     "token": {
+      "type": "string",
+      "description": "Token is the secret that hashes to the object name and the salted hash. It is never persisted, and returned only from the create API call."
+     },
+     "salt": {
+      "type": "string",
+      "description": "Salt contains salt used to generate the saltedHash field"
+     },
+     "saltedHash": {
+      "type": "string",
+      "description": "SaltedHash is the hash of the plaintext token and the contents of the 'salt' field"
      }
     }
    },

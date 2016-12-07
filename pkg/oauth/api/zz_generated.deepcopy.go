@@ -31,6 +31,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_OAuthRedirectReference, InType: reflect.TypeOf(&OAuthRedirectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RedirectReference, InType: reflect.TypeOf(&RedirectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ScopeRestriction, InType: reflect.TypeOf(&ScopeRestriction{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SigningMethodNone, InType: reflect.TypeOf(&SigningMethodNone{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TokenClaims, InType: reflect.TypeOf(&TokenClaims{})},
 	)
 }
 
@@ -79,6 +81,9 @@ func DeepCopy_api_OAuthAccessToken(in interface{}, out interface{}, c *conversio
 		out.UserUID = in.UserUID
 		out.AuthorizeToken = in.AuthorizeToken
 		out.RefreshToken = in.RefreshToken
+		out.Token = in.Token
+		out.Salt = in.Salt
+		out.SaltedHash = in.SaltedHash
 		return nil
 	}
 }
@@ -127,6 +132,9 @@ func DeepCopy_api_OAuthAuthorizeToken(in interface{}, out interface{}, c *conver
 		out.UserUID = in.UserUID
 		out.CodeChallenge = in.CodeChallenge
 		out.CodeChallengeMethod = in.CodeChallengeMethod
+		out.Token = in.Token
+		out.Salt = in.Salt
+		out.SaltedHash = in.SaltedHash
 		return nil
 	}
 }
@@ -300,6 +308,27 @@ func DeepCopy_api_ScopeRestriction(in interface{}, out interface{}, c *conversio
 		} else {
 			out.ClusterRole = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_api_SigningMethodNone(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SigningMethodNone)
+		out := out.(*SigningMethodNone)
+		_ = in
+		_ = out
+		return nil
+	}
+}
+
+func DeepCopy_api_TokenClaims(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TokenClaims)
+		out := out.(*TokenClaims)
+		out.UserHash = in.UserHash
+		out.Secret = in.Secret
+		out.SecretHash = in.SecretHash
 		return nil
 	}
 }
