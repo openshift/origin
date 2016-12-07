@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/client/testclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -21,11 +22,19 @@ const (
 	BlockedTestDomain = "domain.blocked.test"
 )
 
+var LogRejections = logRecorder{}
+
+type logRecorder struct{}
+
+func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+	glog.V(4).Infof("Rejected route %s: %s: %s", route.Name, reason, message)
+}
+
 type rejectionRecorder struct {
 	rejections map[string]string
 }
 
-func (_ rejectionRecorder) rejectionKey(route *routeapi.Route) string {
+func (rejectionRecorder) rejectionKey(route *routeapi.Route) string {
 	return route.Namespace + "-" + route.Name
 }
 

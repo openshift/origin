@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -9,8 +10,17 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/validation"
 	"github.com/openshift/origin/pkg/router"
 )
+
+// RejectionRecorder is an object capable of recording why a route was rejected
+type RejectionRecorder interface {
+	RecordRouteRejection(route *routeapi.Route, reason, message string)
+}
+
+// RouteHostFunc returns a host for a route. It may return an empty string.
+type RouteHostFunc func(*routeapi.Route) string
 
 // RouteAdmissionFunc determines whether or not to admit a route.
 type RouteAdmissionFunc func(*routeapi.Route) error
@@ -77,11 +87,18 @@ type HostAdmitter struct {
 	// or not to admit routes.
 	admitter RouteAdmissionFunc
 
+	// hostnamer is a function that retrives (possibly overrided) hostname
+	// from a route.
+	hostnamer RouteHostFunc
+
 	// recorder is an interface for indicating route rejections.
 	recorder RejectionRecorder
 
 	// allowWildcardRoutes enables wildcard route support.
 	allowWildcardRoutes bool
+
+	// nil means different than empty
+	allowedNamespaces sets.String
 
 	// disableNamespaceCheck disables admission checks to restrict
 	// ownership (of subdomains) to a single owner/namespace.
@@ -95,11 +112,12 @@ type HostAdmitter struct {
 // NewHostAdmitter creates a plugin wrapper that checks whether or not to
 // admit routes and relay them to the next plugin in the chain.
 // Recorder is an interface for indicating why a route was rejected.
-func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, allowWildcards, disableNamespaceCheck bool, recorder RejectionRecorder) *HostAdmitter {
+func NewHostAdmitter(plugin router.Plugin, afn RouteAdmissionFunc, hfn RouteHostFunc, allowWildcards, disableNamespaceCheck bool, recorder RejectionRecorder) *HostAdmitter {
 	return &HostAdmitter{
-		plugin:   plugin,
-		admitter: fn,
-		recorder: recorder,
+		plugin:    plugin,
+		admitter:  afn,
+		hostnamer: hfn,
+		recorder:  recorder,
 
 		allowWildcardRoutes:   allowWildcards,
 		disableNamespaceCheck: disableNamespaceCheck,
@@ -117,6 +135,9 @@ func (p *HostAdmitter) HandleNode(eventType watch.EventType, node *kapi.Node) er
 
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
+	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(endpoints.Namespace) {
+		return nil
+	}
 	return p.plugin.HandleEndpoints(eventType, endpoints)
 }
 
@@ -128,7 +149,33 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 		return err
 	}
 
-	if p.allowWildcardRoutes && len(route.Spec.Host) > 0 {
+	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
+		return nil
+	}
+
+	if host := p.hostnamer(route); len(host) > 0 {
+		route.Spec.Host = host
+	} else {
+		glog.V(4).Infof("Route %s has no host value", routeNameKey(route))
+		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
+		return nil
+	}
+
+	// Run time check to defend against older routes. Validate that the
+	// route host name conforms to DNS requirements.
+	if errs := validation.ValidateHostName(route); len(errs) > 0 {
+		glog.V(4).Infof("Route %s - invalid host name %s", routeNameKey(route), route.Spec.Host)
+		errMessages := make([]string, len(errs))
+		for i := 0; i < len(errs); i++ {
+			errMessages[i] = errs[i].Error()
+		}
+
+		err := fmt.Errorf("host name validation errors: %s", strings.Join(errMessages, ", "))
+		p.recorder.RecordRouteRejection(route, "InvalidHost", err.Error())
+		return err
+	}
+
+	if len(route.Spec.Host) > 0 {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			if err := p.addRoute(route); err != nil {
@@ -147,9 +194,21 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 	return p.plugin.HandleRoute(eventType, route)
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *HostAdmitter) HandleNamespaces(namespaces sets.String) error {
+	p.allowedNamespaces = namespaces
+	changed := false
+	for k, v := range p.claimedHosts {
+		if namespaces.Has(v[0].Namespace) {
+			continue
+		}
+		delete(p.claimedHosts, k)
+		changed = true
+	}
+	if !changed && len(namespaces) > 0 {
+		return nil
+	}
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
@@ -181,7 +240,7 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 
 		msg := ""
 		if route.Namespace == displacedRoute.Namespace {
-			if route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+			if p.allowWildcardRoutes && route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
 				msg = fmt.Sprintf("wildcard route %s/%s has host *.%s blocking %s", route.Namespace, route.Name, wildcardKey, displacedRoute.Spec.Host)
 			} else {
 				msg = fmt.Sprintf("route %s/%s has host %s, blocking %s", route.Namespace, route.Name, route.Spec.Host, displacedRoute.Spec.Host)
@@ -192,6 +251,10 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 
 		p.recorder.RecordRouteRejection(displacedRoute, "HostAlreadyClaimed", msg)
 		p.plugin.HandleRoute(watch.Deleted, displacedRoute)
+	}
+
+	if !p.allowWildcardRoutes {
+		return nil
 	}
 
 	if len(route.Spec.WildcardPolicy) == 0 {
@@ -242,7 +305,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 			// wildcard route.
 			// E.g. *.acme.test can co-exist with a
 			//      route for www2.acme.test
-			if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+			if p.allowWildcardRoutes && newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
 				continue
 			}
 
@@ -265,6 +328,10 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 			return nil, fmt.Errorf("route %s/%s has host %s", route.Namespace, route.Name, route.Spec.Host), route.Namespace
 		}
 		displaced = append(displaced, p.claimedHosts[newRoute.Spec.Host][i])
+	}
+
+	if !p.allowWildcardRoutes {
+		return displaced, nil, newRoute.Namespace
 	}
 
 	wildcardKey := routeapi.GetDomainForHost(newRoute.Spec.Host)
@@ -321,4 +388,9 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	}
 
 	return displaced, nil, newRoute.Namespace
+}
+
+// routeNameKey returns a unique name for a given route
+func routeNameKey(route *routeapi.Route) string {
+	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
 }

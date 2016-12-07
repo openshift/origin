@@ -78,7 +78,9 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 // RouteSelectionFunc returns a func that identifies the host for a route.
 func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
 	if len(o.HostnameTemplate) == 0 {
-		return controller.HostForRoute
+		return func(route *routeapi.Route) string {
+			return route.Spec.Host
+		}
 	}
 	return func(route *routeapi.Route) string {
 		if !o.OverrideHostname && len(route.Spec.Host) > 0 {
