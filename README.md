@@ -86,7 +86,19 @@ FAQ
     `kube-apiserver`, and other core components. You can see the version of Kubernetes included with
     Origin via `openshift version`.
 
-2. How does Atomic Enterprise relate to Origin and OpenShift?
+1. Does Origin support all Kubernetes features?
+
+    In general OpenShift ships everything from Kubernetes that is supportable.  This means that 
+    features in  Kubernetes that are under active development as alpha or beta features
+    may not be enabled in Origin.  Features that pose a security risk may also be disabled.
+    As Kubernetes features mature they will be enabled in the Origin repo.  
+    
+    In some cases Origin features are required to change to support Kubernetes features.
+    In this case it is always our goal to maintain backwards compatibility for the Origin
+    feature and provide an upgrade path.  The Kubernetes feature may be disabled while
+    that work is in progress.
+
+1. How does Atomic Enterprise relate to Origin and OpenShift?
 
     Two products are built from Origin, Atomic Enterprise and OpenShift. Atomic Enterprise adds
     operational centric tools to enable easy deployment and scaling and long-term lifecycle
@@ -94,7 +106,7 @@ FAQ
     developer-focused tools on top of Atomic Enterprise such as image building, management, and
     enhanced deployment flows.
 
-3. What can I run on Origin?
+1. What can I run on Origin?
 
     Origin is designed to run any existing Docker images.  Additionally, you can define builds that will produce new Docker images using a `Dockerfile`.
 
@@ -115,7 +127,7 @@ FAQ
     * [MongoDB](https://github.com/sclorg/mongodb-container)
     * [PostgreSQL](https://github.com/sclorg/postgresql-container)
 
-4. Why doesn't my Docker image run on OpenShift?
+1. Why doesn't my Docker image run on OpenShift?
 
     Security! Origin runs with the following security policy by default:
 
@@ -136,13 +148,13 @@ FAQ
 
     Otherwise, you can see the [security documentation](https://docs.openshift.org/latest/admin_guide/manage_scc.html) for descriptions on how to relax these restrictions.
 
-5. How do I get networking working?
+1. How do I get networking working?
 
     The Origin and Kubernetes network model assigns each pod (group of containers) an IP that is expected to be reachable from all nodes in the cluster. The default setup is through a simple SDN plugin with OVS - this plugin expects the port 4679 to be open between nodes in the cluster. Also, the Origin master processes need to be able to reach pods via the network, so they may require the SDN plugin.
 
     Other networking options are available such as Calico, Flannel, Nuage, and Weave. For a non-overlay networking solution, existing networks can be used by assigning a different subnet to each host, and ensuring routing rules deliver packets bound for that subnet to the host it belongs to. This is called [host subnet routing](https://docs.openshift.org/latest/install_config/configuring_routing.html#install-config-configuring-native-container-routing).
 
-6. Why can't I run Origin in a Docker image on boot2docker or Ubuntu?
+1. Why can't I run Origin in a Docker image on boot2docker or Ubuntu?
 
     Versions of Docker distributed by the Docker team don't allow containers to mount volumes on the host and write to them (mount propagation is private). Kubernetes manages volumes and uses them to expose secrets into containers, which Origin uses to give containers the tokens they need to access the API and run deployments and builds. Until mount propagation is configurable in Docker you must use Docker on Fedora, CentOS, or RHEL (which have a patch to allow mount propagation) or run Origin outside of a container. Tracked in [this issue](https://github.com/openshift/origin/issues/3072).
 
