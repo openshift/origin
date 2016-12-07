@@ -27,6 +27,7 @@ var MissingCommands = sets.NewString(
 	"uncordon",
 	"taint",
 	"top",
+	"certificate",
 )
 
 // WhitelistedCommands is the list of commands we're never going to have in oc
