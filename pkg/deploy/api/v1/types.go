@@ -146,7 +146,7 @@ type RollingDeploymentStrategyParams struct {
 	// MaxUnavailable is the maximum number of pods that can be unavailable
 	// during the update. Value can be an absolute number (ex: 5) or a
 	// percentage of total pods at the start of update (ex: 10%). Absolute
-	// number is calculated from percentage by rounding up.
+	// number is calculated from percentage by rounding down.
 	//
 	// This cannot be 0 if MaxSurge is 0. By default, 25% is used.
 	//
