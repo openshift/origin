@@ -13,16 +13,20 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type OsdnMaster struct {
-	kClient         *kclientset.Clientset
-	osClient        *osclient.Client
-	networkInfo     *NetworkInfo
+	kClient     *kclientset.Clientset
+	osClient    *osclient.Client
+	networkInfo *NetworkInfo
+	vnids       *masterVNIDMap
+
 	subnetAllocator *netutils.SubnetAllocator
-	vnids           *masterVNIDMap
+	subnetQueue     *EventQueue
+	subnetStore     kcache.Store
 }
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclientset.Clientset) error {

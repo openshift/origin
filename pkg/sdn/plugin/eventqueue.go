@@ -21,8 +21,7 @@ import (
 type EventQueue struct {
 	*cache.DeltaFIFO
 
-	// Private store if not intitialized with one to ensure deletion
-	// events are always recognized.
+	// Internal store to ensure deletion events are always recognized.
 	knownObjects cache.Store
 }
 
@@ -33,7 +32,7 @@ func DeletionHandlingMetaNamespaceKeyFunc(obj interface{}) (string, error) {
 	return cache.MetaNamespaceKeyFunc(obj)
 }
 
-func NewEventQueue(keyFunc cache.KeyFunc) *EventQueue {
+func NewEventQueue(keyFunc cache.KeyFunc) (*EventQueue, cache.Store) {
 	knownObjects := cache.NewStore(keyFunc)
 	return &EventQueue{
 		DeltaFIFO: cache.NewDeltaFIFO(
@@ -43,18 +42,7 @@ func NewEventQueue(keyFunc cache.KeyFunc) *EventQueue {
 			}),
 			knownObjects),
 		knownObjects: knownObjects,
-	}
-}
-
-func NewEventQueueForStore(keyFunc cache.KeyFunc, knownObjects cache.KeyListerGetter) *EventQueue {
-	return &EventQueue{
-		DeltaFIFO: cache.NewDeltaFIFO(
-			keyFunc,
-			cache.DeltaCompressorFunc(func(d cache.Deltas) cache.Deltas {
-				return deltaCompressor(d, keyFunc)
-			}),
-			knownObjects),
-	}
+	}, knownObjects
 }
 
 func (queue *EventQueue) updateKnownObjects(delta cache.Delta) {
@@ -89,10 +77,8 @@ func (queue *EventQueue) Pop(process ProcessEventFunc, expectedType interface{})
 	return queue.DeltaFIFO.Pop(func(obj interface{}) error {
 		// Oldest to newest delta lists
 		for _, delta := range obj.(cache.Deltas) {
-			// Update private store to track object deletion
-			if queue.knownObjects != nil {
-				queue.updateKnownObjects(delta)
-			}
+			// Update internal store to track object deletion
+			queue.updateKnownObjects(delta)
 
 			// Handle DeletedFinalStateUnknown delta objects
 			var err error
