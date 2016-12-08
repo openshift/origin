@@ -54,18 +54,21 @@ type RecreateDeploymentStrategy struct {
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor stratsupport.HookExecutor
-	// retryTimeout is how long to wait for the replica count update to succeed
-	// before giving up.
-	retryTimeout time.Duration
 	// retryPeriod is how often to try updating the replica count.
 	retryPeriod time.Duration
+	// retryParams encapsulates the retry parameters
+	retryParams *kubectl.RetryParams
 	// events records the events
 	events record.EventSink
+	// now returns the current time
+	now func() time.Time
 }
 
-// acceptorInterval is how often the UpdateAcceptor should check for
-// readiness.
-const acceptorInterval = 1 * time.Second
+const (
+	// acceptorInterval is how often the UpdateAcceptor should check for
+	// readiness.
+	acceptorInterval = 1 * time.Second
+)
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
@@ -79,23 +82,23 @@ func NewRecreateDeploymentStrategy(oldClient kclient.Interface, tagClient client
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), oldClient)
 	// TODO internalclientset: get rid of oldClient after next rebase
 	client := adapter.FromUnversionedClient(oldClient.(*kclient.Client))
+
 	return &RecreateDeploymentStrategy{
 		out:         out,
 		errOut:      errOut,
 		events:      events,
 		until:       until,
 		rcClient:    client.Core(),
-		podClient:   client.Core(),
 		eventClient: client.Core(),
+		podClient:   client.Core(),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout, acceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
 		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
-		// TODO: Should be config.Spec.Strategy.RecreateParams.TimeoutSeconds - (time.Now - deployerPodStartTime)
-		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
+		now:          func() time.Time { return time.Now() },
 	}
 }
 
@@ -117,9 +120,17 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
+	retryTimeout := time.Duration(*config.Spec.Strategy.RecreateParams.TimeoutSeconds) * time.Second
+
+	deployerPod, err := s.podClient.Pods(to.Namespace).Get(deployutil.DeployerPodNameForDeployment(to.Name))
+	if err == nil {
+		deployerRunningSeconds := deployerPod.Status.StartTime.Time.Sub(s.now())
+		retryTimeout -= deployerRunningSeconds
+	}
+
 	params := config.Spec.Strategy.RecreateParams
-	retryParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
-	waitParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
+	s.retryParams = kubectl.NewRetryParams(s.retryPeriod, retryTimeout)
+	waitParams := kubectl.NewRetryParams(s.retryPeriod, retryTimeout)
 
 	if updateAcceptor == nil {
 		updateAcceptor = s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
@@ -143,7 +154,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	// Scale down the from deployment.
 	if from != nil {
 		fmt.Fprintf(s.out, "--> Scaling %s down to zero\n", from.Name)
-		_, err := s.scaleAndWait(from, 0, retryParams, waitParams)
+		_, err := s.scaleAndWait(from, 0, s.retryParams, waitParams)
 		if err != nil {
 			return fmt.Errorf("couldn't scale %s to 0: %v", from.Name, err)
 		}
@@ -173,7 +184,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 			// Scale up to 1 and validate the replica,
 			// aborting if the replica isn't acceptable.
 			fmt.Fprintf(s.out, "--> Scaling %s to 1 before performing acceptance check\n", to.Name)
-			updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
+			updatedTo, err := s.scaleAndWait(to, 1, s.retryParams, waitParams)
 			if err != nil {
 				return fmt.Errorf("couldn't scale %s to 1: %v", to.Name, err)
 			}
@@ -191,7 +202,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		// Complete the scale up.
 		if to.Spec.Replicas != int32(desiredReplicas) {
 			fmt.Fprintf(s.out, "--> Scaling %s to %d\n", to.Name, desiredReplicas)
-			updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
+			updatedTo, err := s.scaleAndWait(to, desiredReplicas, s.retryParams, waitParams)
 			if err != nil {
 				return fmt.Errorf("couldn't scale %s to %d: %v", to.Name, desiredReplicas, err)
 			}
