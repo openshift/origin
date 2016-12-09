@@ -841,12 +841,37 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 		lastTime = passTime
 	}
 
+	var firstBuildToDisplay *buildgraph.BuildNode
+	firstTime := unversioned.Time{}
+	var secondBuildToDisplay *buildgraph.BuildNode
+	secondTime := unversioned.Time{}
+
 	// display the last successful build if specifically requested or we're going to display an active build for context
-	if lastSuccessfulBuild != nil && (includeSuccess || len(activeBuilds) > 0) {
-		out = append(out, describeBuildPhase(lastSuccessfulBuild.Build, &passTime, build.BuildConfig.Name, pushTargetResolved))
+	if includeSuccess || len(activeBuilds) > 0 {
+		if passTime.Before(failTime) {
+			firstBuildToDisplay = lastUnsuccessfulBuild
+			firstTime = failTime
+			secondBuildToDisplay = lastSuccessfulBuild
+			secondTime = passTime
+		} else {
+			firstBuildToDisplay = lastSuccessfulBuild
+			firstTime = passTime
+			secondBuildToDisplay = lastUnsuccessfulBuild
+			secondTime = failTime
+		}
+	} else {
+		// only display last unsuccessful if it is later than last successful
+		if passTime.Before(failTime) {
+			firstBuildToDisplay = lastUnsuccessfulBuild
+			firstTime = failTime
+		}
 	}
-	if passTime.Before(failTime) {
-		out = append(out, describeBuildPhase(lastUnsuccessfulBuild.Build, &failTime, build.BuildConfig.Name, pushTargetResolved))
+
+	if firstBuildToDisplay != nil {
+		out = append(out, describeBuildPhase(firstBuildToDisplay.Build, &firstTime, build.BuildConfig.Name, pushTargetResolved))
+	}
+	if secondBuildToDisplay != nil {
+		out = append(out, describeBuildPhase(secondBuildToDisplay.Build, &secondTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 
 	if len(activeBuilds) > 0 {
