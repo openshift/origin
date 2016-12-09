@@ -346,12 +346,8 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 	newBuild := generateBuildFromBuild(build, buildConfig)
 	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
 
-	buildTriggerCauses := []buildapi.BuildTriggerCause{}
-	newBuild.Spec.TriggeredBy = append(buildTriggerCauses,
-		buildapi.BuildTriggerCause{
-			Message: buildapi.BuildTriggerCauseManualMsg,
-		},
-	)
+	// Copy build trigger information to the build object.
+	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {
