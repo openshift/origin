@@ -33,7 +33,7 @@ func TestRouterReloadSuppressionOnSync(t *testing.T) {
 		// Allow the test to be configured to enable experimentation
 		// without a costly (~60s+) go build.
 		cmdutil.EnvInt("OS_TEST_NAMESPACE_COUNT", 1, 1),
-		cmdutil.EnvInt("OS_TEST_ROUTES_PER_NAMESPACE", 10, 10),
+		cmdutil.EnvInt("OS_TEST_ROUTES_PER_NAMESPACE", 5, 5),
 		cmdutil.EnvInt("OS_TEST_ROUTER_COUNT", 1, 1),
 		cmdutil.EnvInt("OS_TEST_MAX_ROUTER_DELAY", 10, 10),
 	)
@@ -85,6 +85,17 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 				t.Fatalf("unexpected error: %v", err)
 			}
 			routes = append(routes, route)
+
+		}
+		// Create a final route that uses the same host as the
+		// previous route to create a conflict.  This will validate
+		// that a router still reloads if the last item in the initial
+		// list is rejected.
+		host := routes[len(routes)-1].Spec.Host
+		routeProperties := createRouteProperties("invalid-service", host)
+		_, err = oc.Routes(namespace.Name).Create(routeProperties)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	}
 
@@ -96,38 +107,44 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	reloadInterval := 0
 
 	// Track reload counts indexed by router name.
-	reloadCounts := make(map[string]int)
+	reloadedMap := make(map[string]bool)
 
 	// Create the routers
 	for i := int32(0); i < routerCount; i++ {
 		routerName := fmt.Sprintf("router_%d", i)
-		router := launchRouter(oc, kc, maxRouterDelay, routerName, reloadInterval, reloadCounts)
+		router := launchRouter(oc, kc, maxRouterDelay, routerName, reloadInterval, reloadedMap)
 		plugins = append(plugins, router)
 	}
 
-	// Wait until the routers have processed all the routes.  The test
-	// runner is assumed enforce a timeout that ensures termination in
-	// the event of a failure.
-	expectedRouteCount := len(routes)
+	// Wait for the routers to reload
 	for {
-		routeCount := 0
-		for _, plugin := range plugins {
-			for _, route := range routes {
-				if plugin.Router.HasRoute(route) {
-					routeCount++
-				}
+		allReloaded := true
+		for _, reloaded := range reloadedMap {
+			if !reloaded {
+				allReloaded = false
+				break
 			}
 		}
-		if routeCount == expectedRouteCount {
+		if allReloaded {
 			break
 		} else {
-			time.Sleep(1)
+			time.Sleep(time.Second)
 		}
 	}
 
-	for _, reloadCount := range reloadCounts {
-		if reloadCount > 1 {
-			t.Fatalf("One or more routers reloaded more than once")
+	// Check that the routers have processed all routes.  The delay
+	// plugin should ensure that router state reflects only the
+	// initial sync and not subsequent watch events.
+	expectedRouteCount := len(routes)
+	for _, plugin := range plugins {
+		routeCount := 0
+		for _, route := range routes {
+			if plugin.Router.HasRoute(route) {
+				routeCount++
+			}
+		}
+		if routeCount != expectedRouteCount {
+			t.Fatalf("Expected %v routes, got %v", expectedRouteCount, routeCount)
 		}
 	}
 }
@@ -210,10 +227,13 @@ func launchApi() (osclient.Interface, kclientset.Interface, error) {
 
 // DelayPlugin implements the router.Plugin interface to introduce
 // random delay into plugin handlers to simulate variation in
-// processing time when a router is under load.
+// processing time when a router is under load.  It also limits the
+// router to a single commit to enable validation of initial sync
+// behavior.
 type DelayPlugin struct {
-	plugin   router.Plugin
-	maxDelay int32
+	plugin    router.Plugin
+	maxDelay  int32
+	committed bool
 }
 
 func NewDelayPlugin(plugin router.Plugin, maxDelay int32) *DelayPlugin {
@@ -229,41 +249,60 @@ func (p *DelayPlugin) delay() {
 }
 
 func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+	if p.committed {
+		return nil
+	}
 	p.delay()
 	return p.plugin.HandleRoute(eventType, route)
 }
 
 func (p *DelayPlugin) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	if p.committed {
+		return nil
+	}
 	p.delay()
 	return p.plugin.HandleNode(eventType, node)
 }
 
 func (p *DelayPlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
+	if p.committed {
+		return nil
+	}
 	p.delay()
 	return p.plugin.HandleEndpoints(eventType, endpoints)
 }
 
 func (p *DelayPlugin) HandleNamespaces(namespaces sets.String) error {
+	if p.committed {
+		return nil
+	}
 	p.delay()
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
-func (p *DelayPlugin) SetLastSyncProcessed(processed bool) error {
-	return p.plugin.SetLastSyncProcessed(processed)
+func (p *DelayPlugin) Commit() error {
+	if p.committed {
+		return nil
+	}
+	p.committed = true
+	return p.plugin.Commit()
 }
 
 func (p *DelayPlugin) SetSyncedAtLeastOnce() error {
+	if p.committed {
+		return nil
+	}
 	return p.plugin.SetSyncedAtLeastOnce()
 }
 
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
-func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32, name string, reloadInterval int, reloadCounts map[string]int) (templatePlugin *templateplugin.TemplatePlugin) {
+func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32, name string, reloadInterval int, reloadedMap map[string]bool) (templatePlugin *templateplugin.TemplatePlugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
-	reloadCounts[name] = 0
+	reloadedMap[name] = false
 	r.EnableRateLimiter(reloadInterval, func() error {
-		reloadCounts[name]++
+		reloadedMap[name] = true
 		return nil
 	})
 
@@ -281,8 +320,8 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
-	controller := factory.Create(plugin, false)
-	controller.Run()
+	ctrl := factory.Create(plugin, false)
+	ctrl.Run()
 
 	return
 }

@@ -123,8 +123,6 @@ bGvtpjWA4r9WASIDPFsxk/cDEEEO6iPxgMOf5MdpQC2y2MU0rzF/Gg==
 type TestRouter struct {
 	State        map[string]ServiceAliasConfig
 	ServiceUnits map[string]ServiceUnit
-
-	Committed bool
 }
 
 // NewTestRouter creates a new TestRouter and registers the initial state.
@@ -132,7 +130,6 @@ func newTestRouter(state map[string]ServiceAliasConfig) *TestRouter {
 	return &TestRouter{
 		State:        state,
 		ServiceUnits: make(map[string]ServiceUnit),
-		Committed:    false,
 	}
 }
 
@@ -153,22 +150,19 @@ func (r *TestRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 }
 
 // AddEndpoints adds the endpoints to the service unit identified by id
-func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
-	r.Committed = false //expect any call to this method to subsequently call commit
+func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	su, _ := r.FindServiceUnit(id)
 
 	// simulate the logic that compares endpoints
 	if reflect.DeepEqual(su.EndpointTable, endpoints) {
-		return false
+		return
 	}
 	su.EndpointTable = endpoints
 	r.ServiceUnits[id] = su
-	return true
 }
 
 // DeleteEndpoints removes all endpoints from the service unit
 func (r *TestRouter) DeleteEndpoints(id string) {
-	r.Committed = false //expect any call to this method to subsequently call commit
 	if su, ok := r.FindServiceUnit(id); !ok {
 		return
 	} else {
@@ -178,8 +172,7 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 }
 
 // AddRoute adds a ServiceAliasConfig for the route with the ServiceUnit identified by id
-func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, host string) bool {
-	r.Committed = false //expect any call to this method to subsequently call commit
+func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, host string) {
 	su, _ := r.FindServiceUnit(id)
 	routeKey := r.routeKey(route)
 
@@ -191,12 +184,10 @@ func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, ho
 
 	config.ServiceUnitNames[su.Name] = weight
 	r.State[routeKey] = config
-	return true
 }
 
 // RemoveRoute removes the service alias config for Route
 func (r *TestRouter) RemoveRoute(route *routeapi.Route) {
-	r.Committed = false //expect any call to this method to subsequently call commit
 	routeKey := r.routeKey(route)
 	_, ok := r.State[routeKey]
 	if !ok {
@@ -240,12 +231,8 @@ func (r *TestRouter) routeKey(route *routeapi.Route) string {
 	return route.Spec.Host + "-" + route.Spec.Path
 }
 
-// Commit saves router state
 func (r *TestRouter) Commit() {
-	r.Committed = true
-}
-
-func (r *TestRouter) SetSkipCommit(skipCommit bool) {
+	// No op
 }
 
 func (r *TestRouter) SetSyncedAtLeastOnce() {
@@ -336,10 +323,6 @@ func TestHandleEndpoints(t *testing.T) {
 
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
-
-		if !router.Committed {
-			t.Errorf("Expected router to be committed after HandleEndpoints call")
-		}
 
 		su, ok := router.FindServiceUnit(tc.expectedServiceUnit.Name)
 
@@ -451,10 +434,6 @@ func TestHandleTCPEndpoints(t *testing.T) {
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
 
-		if !router.Committed {
-			t.Errorf("Expected router to be committed after HandleEndpoints call")
-		}
-
 		su, ok := router.FindServiceUnit(tc.expectedServiceUnit.Name)
 
 		if !ok {
@@ -514,10 +493,6 @@ func TestHandleRoute(t *testing.T) {
 	serviceUnitKey := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 
 	plugin.HandleRoute(watch.Added, route)
-
-	if !router.Committed {
-		t.Errorf("Expected router to be committed after HandleRoute call")
-	}
 
 	_, ok := router.FindServiceUnit(serviceUnitKey)
 
@@ -614,9 +589,6 @@ func TestHandleRoute(t *testing.T) {
 	if err := plugin.HandleRoute(watch.Modified, route); err != nil {
 		t.Fatal("unexpected error")
 	}
-	if !router.Committed {
-		t.Errorf("Expected router to be committed after HandleRoute call")
-	}
 	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
@@ -641,9 +613,6 @@ func TestHandleRoute(t *testing.T) {
 	//delete
 	if err := plugin.HandleRoute(watch.Deleted, route); err != nil {
 		t.Fatal("unexpected error")
-	}
-	if !router.Committed {
-		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
@@ -693,10 +662,6 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 	serviceUnitKey := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 
 	plugin.HandleRoute(watch.Added, route)
-
-	if !router.Committed {
-		t.Errorf("Expected router to be committed after HandleRoute call")
-	}
 
 	_, ok := router.FindServiceUnit(serviceUnitKey)
 
@@ -1076,73 +1041,5 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	plugin.HandleRoute(watch.Added, route)
 	if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
 		t.Errorf("unexpected router state %#v", router)
-	}
-}
-
-func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {
-	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	plugin := newDefaultTemplatePlugin(router, true, nil)
-	endpoints := &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo",
-			Name:      "test",
-		},
-		Subsets: []kapi.EndpointSubset{{
-			Addresses: []kapi.EndpointAddress{{IP: "1.1.1.1"}, {IP: "2.2.2.2"}},
-			Ports:     []kapi.EndpointPort{{Port: 0}},
-		}},
-	}
-	changedEndpoints := &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo",
-			Name:      "test",
-		},
-		Subsets: []kapi.EndpointSubset{{
-			Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3"}, {IP: "2.2.2.2"}},
-			Ports:     []kapi.EndpointPort{{Port: 0}},
-		}},
-	}
-
-	testCases := []struct {
-		name         string
-		event        watch.EventType
-		endpoints    *kapi.Endpoints
-		expectCommit bool
-	}{
-		{
-			name:         "initial add",
-			event:        watch.Added,
-			endpoints:    endpoints,
-			expectCommit: true,
-		},
-		{
-			name:         "mod with no change",
-			event:        watch.Modified,
-			endpoints:    endpoints,
-			expectCommit: false,
-		},
-		{
-			name:         "add with change",
-			event:        watch.Added,
-			endpoints:    changedEndpoints,
-			expectCommit: true,
-		},
-		{
-			name:         "add with no change",
-			event:        watch.Added,
-			endpoints:    changedEndpoints,
-			expectCommit: false,
-		},
-	}
-
-	for _, v := range testCases {
-		err := plugin.HandleEndpoints(v.event, v.endpoints)
-		if err != nil {
-			t.Errorf("%s had unexpected error in handle endpoints %v", v.name, err)
-			continue
-		}
-		if router.Committed != v.expectCommit {
-			t.Errorf("%s expected router commit to be %v but found %v", v.name, v.expectCommit, router.Committed)
-		}
 	}
 }

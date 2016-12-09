@@ -84,12 +84,12 @@ type templateRouter struct {
 	rateLimitedCommitStopChannel chan struct{}
 	// lock is a mutex used to prevent concurrent router reloads.
 	lock sync.Mutex
-	// the router should only reload when the value is false
-	skipCommit bool
 	// If true, haproxy should only bind ports when it has route and endpoint state
 	bindPortsAfterSync bool
 	// whether the router state has been read from the api at least once
 	syncedAtLeastOnce bool
+	// whether a state change has occurred
+	stateChanged bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -348,10 +348,12 @@ func (r *templateRouter) readState() error {
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
 func (r *templateRouter) Commit() {
-	if r.skipCommit {
-		glog.V(4).Infof("Skipping router commit until last sync has been processed")
-	} else {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if r.stateChanged {
 		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+		r.stateChanged = false
 	}
 }
 
@@ -453,6 +455,8 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.stateChanged = true
+
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceAliasConfig)
 		r.serviceUnits = make(map[string]ServiceUnit)
@@ -487,6 +491,7 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 	defer r.lock.Unlock()
 
 	r.serviceUnits[id] = service
+	r.stateChanged = true
 }
 
 // findMatchingServiceUnit finds the service with the given id - internal
@@ -515,12 +520,15 @@ func (r *templateRouter) DeleteServiceUnit(id string) {
 	}
 
 	delete(r.serviceUnits, id)
+	r.stateChanged = true
 }
 
 // DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
+	r.stateChanged = true
 
 	service, ok := r.findMatchingServiceUnit(id)
 	if !ok {
@@ -555,7 +563,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 }
 
 // AddRoute adds a route for the given service id
-func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeapi.Route, host string) bool {
+func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeapi.Route, host string) {
 	backendKey := r.routeKey(route)
 	wantsWildcardSupport := (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
 
@@ -636,14 +644,15 @@ func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeap
 	config.ServiceUnitNames[frontend.Name] = weight
 	r.state[backendKey] = config
 	r.serviceUnits[serviceID] = frontend
-	//r.cleanUpdates(serviceID, backendKey)
-	return true
+	r.stateChanged = true
 }
 
 // RemoveRoute removes the given route
 func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
+	r.stateChanged = true
 
 	routeKey := r.routeKey(route)
 	serviceAliasConfig, ok := r.state[routeKey]
@@ -656,7 +665,7 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 }
 
 // AddEndpoints adds new Endpoints for the given id.
-func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
+func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	frontend, _ := r.findMatchingServiceUnit(id)
@@ -664,7 +673,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 	//only make the change if there is a difference
 	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
 		glog.V(4).Infof("Ignoring change for %s, endpoints are the same", id)
-		return false
+		return
 	}
 
 	frontend.EndpointTable = endpoints
@@ -675,7 +684,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 		glog.V(4).Infof("Peer endpoints updated to: %#v", r.peerEndpoints)
 	}
 
-	return true
+	r.stateChanged = true
 }
 
 // cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from
@@ -741,20 +750,15 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 	return false
 }
 
-// SetSkipCommit indicates to the router whether requests to
-// commit/reload should be skipped.
-func (r *templateRouter) SetSkipCommit(skipCommit bool) {
-	if r.skipCommit != skipCommit {
-		glog.V(4).Infof("Updating skip commit to: %t", skipCommit)
-		r.skipCommit = skipCommit
-	}
-}
-
 // SetSyncedAtLeastOnce indicates to the router that state has been
 // read from the api.
 func (r *templateRouter) SetSyncedAtLeastOnce() {
-	r.syncedAtLeastOnce = true
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	glog.V(4).Infof("Router state synchronized for the first time")
+	r.syncedAtLeastOnce = true
+	r.stateChanged = true
 }
 
 // HasRoute indicates whether the given route is known to this router.
