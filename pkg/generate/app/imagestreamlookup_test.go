@@ -137,6 +137,38 @@ func TestImageStreamSearcher(t *testing.T) {
 			},
 		},
 		&fakeImageStreamDesc{
+			name: "nodejs3",
+			tags: map[string]imageapi.TagReference{
+				"4": {
+					Annotations: map[string]string{
+						"supports": "nodejs3:4,nodejs3",
+						"tags":     "hidden",
+					},
+				},
+			},
+			latest: "4",
+		},
+		&fakeImageStreamDesc{
+			name: "nodejs4",
+			tags: map[string]imageapi.TagReference{
+				"0.10": {
+					Annotations: map[string]string{
+						"supports": "nodejs4:0.10,nodejs4:0.1,nodejs4",
+					},
+				},
+				"4": {
+					Annotations: map[string]string{
+						"supports": "nodejs4:4,nodejs4",
+						"tags":     "hidden",
+					},
+				},
+			},
+			latest: "4",
+			latestannotations: map[string]string{
+				"tags": "hidden",
+			},
+		},
+		&fakeImageStreamDesc{
 			name: "ruby20",
 			tags: map[string]imageapi.TagReference{
 				"stable": {
@@ -193,6 +225,16 @@ func TestImageStreamSearcher(t *testing.T) {
 		{
 			value:       "nodejs2",
 			expectMatch: false,
+		},
+		{
+			value:       "nodejs3",
+			expectMatch: true,
+			expectTag:   "latest",
+		},
+		{
+			value:       "nodejs4",
+			expectMatch: true,
+			expectTag:   "0.10",
 		},
 	}
 
@@ -358,9 +400,10 @@ func TestAnnotationMatches(t *testing.T) {
 }
 
 type fakeImageStreamDesc struct {
-	name   string
-	tags   map[string]imageapi.TagReference
-	latest string
+	name              string
+	tags              map[string]imageapi.TagReference
+	latest            string
+	latestannotations map[string]string
 }
 
 func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList, map[string]*imageapi.ImageStreamImage) {
@@ -414,6 +457,14 @@ func fakeImageStream(desc *fakeImageStreamDesc) (*imageapi.ImageStream, map[stri
 				Kind:      "ImageStreamTag",
 				Name:      desc.latest,
 				Namespace: "namespace",
+			},
+			Annotations: desc.latestannotations,
+		}
+		stream.Status.Tags["latest"] = imageapi.TagEventList{
+			Items: []imageapi.TagEvent{
+				{
+					Image: desc.latest + "-image",
+				},
 			},
 		}
 	}

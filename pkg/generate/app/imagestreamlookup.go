@@ -113,21 +113,31 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 					componentMatches = append(componentMatches, match)
 				}
 
-				// When an image stream contains a tag that references another local tag, and the user has not
-				// provided a tag themselves (i.e. they asked for mysql and we defaulted to mysql:latest), walk
-				// the chain of references to the end. This ensures that applications can default to using a "stable"
-				// branch by giving the control over version to the image stream author.
+				// When the user has not provided a tag themselves (i.e. they asked for
+				// mysql and we defaulted to mysql:latest), and "latest" references
+				// another local tag, and neither tag is hidden, use the referenced tag
+				// instead of "latest".  This ensures that applications can default to
+				// using a "stable" branch by giving the control over version to the
+				// image stream author.
 				finalTag := searchTag
-				if specTag, ok := stream.Spec.Tags[searchTag]; ok && followTag {
+				if specTag, ok := stream.Spec.Tags[searchTag]; ok && followTag && !specTag.HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden) {
 					if specTag.From != nil && specTag.From.Kind == "ImageStreamTag" && !strings.Contains(specTag.From.Name, ":") {
-						if imageapi.LatestTaggedImage(stream, specTag.From.Name) != nil {
-							finalTag = specTag.From.Name
+						if destSpecTag, ok := stream.Spec.Tags[specTag.From.Name]; ok && !destSpecTag.HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden) {
+							if imageapi.LatestTaggedImage(stream, specTag.From.Name) != nil {
+								finalTag = specTag.From.Name
+							}
 						}
 					}
 				}
 
 				latest := imageapi.LatestTaggedImage(stream, finalTag)
-				if latest == nil || len(latest.Image) == 0 {
+
+				// Special case in addition to the other tag not found cases: if no tag
+				// was specified, and "latest" is hidden, then behave as if "latest"
+				// doesn't exist (in this case, to get to "latest", the user must hard
+				// specify tag "latest").
+				if specTag, ok := stream.Spec.Tags[searchTag]; (ok && followTag && specTag.HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden)) ||
+					latest == nil || len(latest.Image) == 0 {
 
 					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
 					if r.AllowMissingTags {
