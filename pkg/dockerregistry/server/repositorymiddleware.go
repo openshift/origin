@@ -55,6 +55,12 @@ const (
 	// leaking a blob that is no longer tagged in given repository.
 	BlobRepositoryCacheTTLEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_BLOBREPOSITORYCACHETTL"
 
+	// Pullthrough is a boolean environment variable that controls whether pullthrough is enabled.
+	PullthroughEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PULLTHROUGH"
+
+	// MirrorPullthrough is a boolean environment variable that controls mirroring of blobs on pullthrough.
+	MirrorPullthroughEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH"
+
 	// Default values
 
 	defaultDigestToRepositoryCacheSize = 2048
@@ -136,6 +142,8 @@ type repository struct {
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
 	pullthrough bool
+	// mirrorPullthrough will mirror remote blobs into the local repository if set
+	mirrorPullthrough bool
 	// acceptschema2 allows to refuse the manifest schema version 2
 	acceptschema2 bool
 	// blobrepositorycachettl is an eviction timeout for <blob belongs to repository> entries of cachedLayers
@@ -170,7 +178,11 @@ func newRepositoryWithClient(
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
-	pullthrough, err := getBoolOption("", "pullthrough", false, options)
+	pullthrough, err := getBoolOption(PullthroughEnvVar, "pullthrough", false, options)
+	if err != nil {
+		context.GetLogger(ctx).Error(err)
+	}
+	mirrorPullthrough, err := getBoolOption(MirrorPullthroughEnvVar, "mirrorpullthrough", true, options)
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
@@ -193,6 +205,7 @@ func newRepositoryWithClient(
 		acceptschema2:          acceptschema2,
 		blobrepositorycachettl: blobrepositorycachettl,
 		pullthrough:            pullthrough,
+		mirrorPullthrough:      mirrorPullthrough,
 		cachedLayers:           cachedLayers,
 	}, nil
 }
@@ -228,6 +241,7 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 
 			repo:          &repo,
 			digestToStore: make(map[string]distribution.BlobStore),
+			mirror:        r.mirrorPullthrough,
 		}
 	}
 

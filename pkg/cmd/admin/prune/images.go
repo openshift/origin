@@ -34,7 +34,12 @@ const PruneImagesRecommendedName = "images"
 
 var (
 	imagesLongDesc = templates.LongDesc(`
-		Prune images no longer needed due to age and/or status
+		Remove image stream tags, images, and image layers by age or usage
+
+		This command removes historical image stream tags, unused images, and unreferenced image
+		layers from the integrated registry. It prefers images that have been directly pushed to
+		the registry, but you may specify --all to include images that were imported (if registry
+		mirroring is enabled).
 
 		By default, the prune operation performs a dry run making no changes to internal registry. A
 		--confirm flag is needed for changes to be effective.
@@ -51,7 +56,7 @@ var (
 	  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm
 
 	  # See, what the prune command would delete if we're interested in removing images
-	  # exceeding currently set LimitRanges ('openshift.io/Image')
+	  # exceeding currently set limit ranges ('openshift.io/Image')
 	  %[1]s %[2]s --prune-over-size-limit
 
 	  # To actually perform the prune operation, the confirm flag must be appended
@@ -70,6 +75,7 @@ type PruneImagesOptions struct {
 	KeepYoungerThan     *time.Duration
 	KeepTagRevisions    *int
 	PruneOverSizeLimit  *bool
+	AllImages           *bool
 	CABundle            string
 	RegistryUrlOverride string
 	Namespace           string
@@ -82,11 +88,13 @@ type PruneImagesOptions struct {
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+	allImages := false
 	opts := &PruneImagesOptions{
 		Confirm:            false,
 		KeepYoungerThan:    &defaultKeepYoungerThan,
 		KeepTagRevisions:   &defaultKeepTagRevisions,
 		PruneOverSizeLimit: &defaultPruneImageOverSizeLimit,
+		AllImages:          &allImages,
 	}
 
 	cmd := &cobra.Command{
@@ -104,6 +112,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(opts.AllImages, "all", *opts.AllImages, "Include images that were not pushed to the registry but have been mirrored by pullthrough. Requires --registry-url")
 	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 	cmd.Flags().BoolVar(opts.PruneOverSizeLimit, "prune-over-size-limit", *opts.PruneOverSizeLimit, "Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with --keep-younger-than nor --keep-tag-revisions.")
@@ -128,6 +137,11 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 		if !cmd.Flags().Lookup("keep-tag-revisions").Changed {
 			o.KeepTagRevisions = nil
+		}
+	}
+	if *o.AllImages {
+		if len(o.RegistryUrlOverride) == 0 {
+			return kcmdutil.UsageError(cmd, "--registry-url must be specified when --all is true")
 		}
 	}
 	o.Namespace = kapi.NamespaceAll
@@ -228,6 +242,7 @@ func (o PruneImagesOptions) Run() error {
 		KeepYoungerThan:    o.KeepYoungerThan,
 		KeepTagRevisions:   o.KeepTagRevisions,
 		PruneOverSizeLimit: o.PruneOverSizeLimit,
+		AllImages:          o.AllImages,
 		Images:             allImages,
 		Streams:            allStreams,
 		Pods:               allPods,
