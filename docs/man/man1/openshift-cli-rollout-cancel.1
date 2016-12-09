@@ -1,35 +1,33 @@
-.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OPENSHIFT CLI ROLLOUT" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-openshift cli rollout \- Manage a Kubernetes deployment or OpenShift deployment config
+openshift cli rollout cancel \- cancel the in\-progress deployment
 
 
 .SH SYNOPSIS
 .PP
-\fBopenshift cli rollout\fP [OPTIONS]
+\fBopenshift cli rollout cancel\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Start a new rollout, view its status or history, rollback to a previous revision of your app
+Cancel the in\-progress deployment
 
 .PP
-This command allows you to control a deployment config. Each individual rollout is exposed as a replication controller, and the deployment process manages scaling down old replication controllers and scaling up new ones.
+Running this command will cause the current in\-progress deployment to be cancelled, but keep in mind that this is a best\-effort operation and may take some time to complete. It’s possible the deployment will partially or totally complete before the cancellation is effective. In such a case an appropriate event will be emitted.
+
+
+.SH OPTIONS
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to a file identifying the resource to get from a server.
 
 .PP
-There are several deployment strategies defined:
-.IP 
+\fB\-R\fP, \fB\-\-recursive\fP=false
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
-.IP
-\(bu Rolling (default) \- scales up the new replication controller in stages, gradually reducing the number of old pods. If one of the new deployed pods never becomes "ready", the new rollout will be rolled back (scaled down to zero). Use when your application can tolerate two versions of code running at the same time (many web applications, scalable databases)
-.br
-.IP
-\(bu Recreate \- scales the old replication controller down to zero, then scales the new replication controller up to full. Use when your application cannot tolerate two versions of code running at the same time
-.br
-.IP
-\(bu Custom \- run your own deployment process inside a Docker container using your own scripts.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -101,9 +99,21 @@ There are several deployment strategies defined:
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Cancel the in\-progress deployment based on 'nginx'
+  openshift cli rollout cancel dc/nginx
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBopenshift\-cli(1)\fP, \fBopenshift\-cli\-rollout\-cancel(1)\fP, \fBopenshift\-cli\-rollout\-history(1)\fP, \fBopenshift\-cli\-rollout\-latest(1)\fP, \fBopenshift\-cli\-rollout\-pause(1)\fP, \fBopenshift\-cli\-rollout\-resume(1)\fP, \fBopenshift\-cli\-rollout\-status(1)\fP, \fBopenshift\-cli\-rollout\-undo(1)\fP,
+\fBopenshift\-cli\-rollout(1)\fP,
 
 
 .SH HISTORY
