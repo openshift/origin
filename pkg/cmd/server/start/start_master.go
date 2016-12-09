@@ -440,12 +440,13 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
+			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 		}()
 	} else {
+		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
-
 	}
 
 	return nil
@@ -509,6 +510,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// start up the informers that we're trying to use in the API server
+	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
