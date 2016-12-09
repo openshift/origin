@@ -800,6 +800,12 @@ func init() {
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("pods"),
 				},
+				// GCController.nodeStore.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
 				// GCController.deletePod
 				{
 					APIGroups: []string{kapi.GroupName},
