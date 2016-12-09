@@ -1,9 +1,11 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"k8s.io/kubernetes/pkg/util/logs"
 
@@ -22,6 +24,7 @@ func main() {
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
+	rand.Seed(time.Now().UTC().UnixNano())
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}

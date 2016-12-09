@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -846,6 +847,7 @@ func generateRoleBindingName(name string) string {
 
 // generateStatsPassword creates a random password.
 func generateStatsPassword() string {
+	rand := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	allowableChars := []rune("abcdefghijlkmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	allowableCharLength := len(allowableChars)
 	password := []string{}
