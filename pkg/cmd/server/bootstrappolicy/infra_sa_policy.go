@@ -873,19 +873,19 @@ func init() {
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("petsets"),
+					Resources: sets.NewString("petsets", "statefulsets"),
 				},
 				// TODO/REBASE reconcile who uses what (kubeClient vs petClient)
 				// StatefulSetController.petClient
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("petsets"),
+					Resources: sets.NewString("petsets", "statefulsets"),
 				},
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("petsets/status"),
+					Resources: sets.NewString("petsets/status", "petsets/status"),
 				},
 				// StatefulSetController.podClient
 				{
