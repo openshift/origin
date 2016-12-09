@@ -1002,14 +1002,18 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclientse
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
 // named service account in the infra namespace
 func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclientset.Clientset, error) {
+	return c.GetServiceAccountClientsWithConfig(name, c.PrivilegedLoopbackClientConfig)
+}
+
+func (c *MasterConfig) GetServiceAccountClientsWithConfig(name string, config restclient.Config) (*restclient.Config, *osclient.Client, *kclientset.Clientset, error) {
 	if len(name) == 0 {
 		return nil, nil, nil, errors.New("No service account name specified")
 	}
-	config, oc, kcset, err := serviceaccounts.Clients(
-		c.PrivilegedLoopbackClientConfig,
+	configToReturn, oc, kcset, err := serviceaccounts.Clients(
+		config,
 		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClientset},
 		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
 		name,
 	)
-	return config, oc, kcset, err
+	return configToReturn, oc, kcset, err
 }

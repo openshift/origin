@@ -17,6 +17,7 @@ import (
 
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -611,10 +612,16 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for deployment controller: %v", err)
 		}
-		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
+
+		// TODO there has to be a better way to do this!
+		// Make a copy of the client config because we need to modify it
+		jobClientConfig := oc.PrivilegedLoopbackClientConfig
+		jobClientConfig.ContentConfig.GroupVersion = &unversioned.GroupVersion{Group: "batch", Version: "v2alpha1"}
+		_, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
+
 		_, hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
