@@ -148,8 +148,8 @@ func (p *HostAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
-func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
-	return p.plugin.SetLastSyncProcessed(processed)
+func (p *HostAdmitter) Commit() error {
+	return p.plugin.Commit()
 }
 
 func (p *HostAdmitter) SetSyncedAtLeastOnce() error {
