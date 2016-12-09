@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -467,6 +468,12 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientConfig {
 	config := &kubeletclient.KubeletClientConfig{
 		Port: options.KubeletClientInfo.Port,
+		PreferredAddressTypes: []string{
+			string(api.NodeHostName),
+			string(api.NodeInternalIP),
+			string(api.NodeExternalIP),
+			string(api.NodeLegacyHostIP),
+		},
 	}
 
 	if len(options.KubeletClientInfo.CA) > 0 {
