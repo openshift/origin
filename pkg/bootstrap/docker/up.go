@@ -101,7 +101,7 @@ var (
 		"rails quickstart":            "examples/quickstarts/rails-postgresql.json",
 		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
-		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
+		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 		"logging":                     "examples/logging/logging-deployer.yaml",
 	}
 	dockerVersion19  = semver.MustParse("1.9.0")

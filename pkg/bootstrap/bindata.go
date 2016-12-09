@@ -12,7 +12,10 @@
 // examples/db-templates/postgresql-persistent-template.json
 // examples/jenkins/jenkins-ephemeral-template.json
 // examples/jenkins/jenkins-persistent-template.json
-// examples/jenkins/pipeline/samplepipeline.json
+// examples/jenkins/pipeline/bluegreen-pipeline.yaml
+// examples/jenkins/pipeline/mapsapp-pipeline.yaml
+// examples/jenkins/pipeline/maven-pipeline.yaml
+// examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql.json
 // examples/quickstarts/dancer-mysql.json
 // examples/quickstarts/django-postgresql.json
@@ -4241,518 +4244,1181 @@ func examplesJenkinsJenkinsPersistentTemplateJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
-  "kind": "Template",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "jenkins-pipeline-example",
-    "creationTimestamp": null,
-    "annotations": {
-      "description": "This example showcases the new Jenkins Pipeline integration in OpenShift, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI/CD process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
-      "iconClass": "icon-jenkins",
-      "tags": "instant-app,jenkins"
-    }
-  },
-  "message": "A Jenkins server will be automatically instantiated in this project to manage the Pipeline BuildConfig created by this template.  You will be able to log in to it using your OpenShift user credentials.",
-  "objects": [
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-pipeline",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "sample-pipeline"
-        },
-        "annotations": {
-          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"${NAME}\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
-        }
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "GitHub",
-            "github": {
-              "secret": "secret101"
-            }
-          },
-          {
-            "type": "Generic",
-            "generic": {
-              "secret": "secret101"
-            }
-          }
-        ],
-        "strategy": {
-          "type": "JenkinsPipeline",
-          "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('nodejs') {\n  stage('build') {\n    openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')\n  }\n  stage('deploy') {\n    openshiftDeploy(deploymentConfig: '${NAME}')\n  }\n}"
-          }
-        }
-      }
-    },
-      {
-        "kind": "Service",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${NAME}",
-          "annotations": {
-            "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]"
-          }
-        },
-        "spec": {
-          "ports": [
-            {
-              "name": "web",
-              "port": 8080,
-              "targetPort": 8080
-            }
-          ],
-          "selector": {
-            "name": "${NAME}"
-          }
-        }
-      },
-      {
-        "kind": "Route",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${NAME}"
-        },
-        "spec": {
-          "host": "${APPLICATION_DOMAIN}",
-          "to": {
-            "kind": "Service",
-            "name": "${NAME}"
-          }
-        }
-      },
-      {
-        "kind": "ImageStream",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${NAME}",
-          "annotations": {
-            "description": "Keeps track of changes in the application image"
-          }
-        }
-      },
-      {
-        "kind": "BuildConfig",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${NAME}",
-          "annotations": {
-            "description": "Defines how to build the application"
-          }
-        },
-        "spec": {
-          "source": {
-            "type": "Git",
-            "git": {
-              "uri": "${SOURCE_REPOSITORY_URL}",
-              "ref": "${SOURCE_REPOSITORY_REF}"
-            },
-            "contextDir": "${CONTEXT_DIR}"
-          },
-          "strategy": {
-            "type": "Source",
-            "sourceStrategy": {
-              "from": {
-                "kind": "ImageStreamTag",
-                "namespace": "${NAMESPACE}",
-                "name": "nodejs:4"
-              },
-              "env":  [
-                {
-                    "name": "NPM_MIRROR",
-                    "value": "${NPM_MIRROR}"
-                }
-              ]
-            }
-          },
-          "output": {
-            "to": {
-              "kind": "ImageStreamTag",
-              "name": "${NAME}:latest"
-            }
-          },
-          "triggers": [
-            {
-              "type": "GitHub",
-              "github": {
-                "secret": "${GITHUB_WEBHOOK_SECRET}"
+var _examplesJenkinsPipelineBluegreenPipelineYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: bluegreen-pipeline
+message: A Jenkins server will be automatically instantiated in this project to manage
+  the Pipeline BuildConfig created by this template.  You will be able to log in to
+  it using your OpenShift user credentials.
+metadata:
+  annotations:
+    description: This example showcases a blue green deployment using a Jenkins 
+      pipeline that pauses for approval.
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: bluegreen-pipeline
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      pipeline.alpha.openshift.io/uses: '[{"name": "${NAME}", "namespace": "", "kind": "DeploymentConfig"}]'
+    creationTimestamp: null
+    labels:
+      name: bluegreen-pipeline
+    name: bluegreen-pipeline
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          def appName="${NAME}"
+          def project=""
+          def tag="blue"
+          def altTag="green"
+
+          node {
+            project = env.PROJECT_NAME
+            stage("Initialize") {
+              sh "oc get route ${appName} -n ${project} -o jsonpath='{ .spec.to.weight }' > blueweight"
+              blueWeight = readFile('blueweight').trim()
+              if (blueWeight == "100") {
+                tag = "green"
+                altTag = "blue"
               }
-            },
-            {
-              "type": "Generic",
-              "generic": {
-                "secret": "${GENERIC_WEBHOOK_SECRET}"
-              }
+              sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' > routehost"
+              routeHost = readFile('routehost').trim()
             }
-          ],
-          "postCommit": {
-            "script": "npm test"
-          }
-        }
-      },
-      {
-        "kind": "DeploymentConfig",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${NAME}",
-          "annotations": {
-            "description": "Defines how to deploy the application server"
-          }
-        },
-        "spec": {
-          "strategy": {
-            "type": "Rolling"
-          },
-          "triggers": [
-            {
-              "type": "ImageChange",
-              "imageChangeParams": {
-                "automatic": false,
-                "containerNames": [
-                  "nodejs-mongodb-example"
-                ],
-                "from": {
-                  "kind": "ImageStreamTag",
-                  "name": "${NAME}:latest"
-                }
-              }
-            },
-            {
-              "type": "ConfigChange"
+
+            stage("Build") {
+              echo "building tag ${tag}"
+              openshiftBuild buildConfig: appName, showBuildLogs: "true"
             }
-          ],
-          "replicas": 1,
-          "selector": {
-            "name": "${NAME}"
-          },
-          "template": {
-            "metadata": {
-              "name": "${NAME}",
-              "labels": {
-                "name": "${NAME}"
-              }
-            },
-            "spec": {
-              "containers": [
-                {
-                  "name": "nodejs-mongodb-example",
-                  "image": " ",
-                  "ports": [
-                    {
-                      "containerPort": 8080
-                    }
-                  ],
-                  "env": [
-                    {
-                      "name": "DATABASE_SERVICE_NAME",
-                      "value": "${DATABASE_SERVICE_NAME}"
-                    },
-                    {
-                      "name": "MONGODB_USER",
-                      "value": "${DATABASE_USER}"
-                    },
-                    {
-                      "name": "MONGODB_PASSWORD",
-                      "value": "${DATABASE_PASSWORD}"
-                    },
-                    {
-                      "name": "MONGODB_DATABASE",
-                      "value": "${DATABASE_NAME}"
-                    },
-                    {
-                      "name": "MONGODB_ADMIN_PASSWORD",
-                      "value": "${DATABASE_ADMIN_PASSWORD}"
-                    }
-                  ],
-                  "readinessProbe": {
-                    "timeoutSeconds": 3,
-                    "initialDelaySeconds": 3,
-                    "httpGet": {
-                      "path": "/pagecount",
-                      "port": 8080
-                    }
-                  },
-                  "livenessProbe": {
-                      "timeoutSeconds": 3,
-                      "initialDelaySeconds": 30,
-                      "httpGet": {
-                          "path": "/pagecount",
-                          "port": 8080
-                      }
-                  },
-                  "resources": {
-                      "limits": {
-                          "memory": "${MEMORY_LIMIT}"
-                      }
-                  }
-                }
-              ]
+
+            stage("Deploy Test") {
+              openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag
+              openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}"
+            }
+
+            stage("Test") {
+              input "Test deployment: http://${routeHost}. Approve?"
+            }
+
+            stage("Go Live") {
+              sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0"
             }
           }
-        }
-      },
-      {
-        "kind": "Service",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${DATABASE_SERVICE_NAME}",
-          "annotations": {
-            "description": "Exposes the database server"
-          }
-        },
-        "spec": {
-          "ports": [
-            {
-              "name": "mongodb",
-              "port": 27017,
-              "targetPort": 27017
-            }
-          ],
-          "selector": {
-            "name": "${DATABASE_SERVICE_NAME}"
-          }
-        }
-      },
-      {
-        "kind": "DeploymentConfig",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "${DATABASE_SERVICE_NAME}",
-          "annotations": {
-            "description": "Defines how to deploy the database"
-          }
-        },
-        "spec": {
-          "strategy": {
-            "type": "Recreate"
-          },
-          "triggers": [
-            {
-              "type": "ImageChange",
-              "imageChangeParams": {
-                "automatic": true,
-                "containerNames": [
-                  "mongodb"
-                ],
-                "from": {
-                  "kind": "ImageStreamTag",
-                  "namespace": "${NAMESPACE}",
-                  "name": "mongodb:3.2"
-                }
-              }
-            },
-            {
-              "type": "ConfigChange"
-            }
-          ],
-          "replicas": 1,
-          "selector": {
-            "name": "${DATABASE_SERVICE_NAME}"
-          },
-          "template": {
-            "metadata": {
-              "name": "${DATABASE_SERVICE_NAME}",
-              "labels": {
-                "name": "${DATABASE_SERVICE_NAME}"
-              }
-            },
-            "spec": {
-              "containers": [
-                {
-                  "name": "mongodb",
-                  "image": " ",
-                  "ports": [
-                    {
-                      "containerPort": 27017
-                    }
-                  ],
-                  "env": [
-                    {
-                      "name": "MONGODB_USER",
-                      "value": "${DATABASE_USER}"
-                    },
-                    {
-                      "name": "MONGODB_PASSWORD",
-                      "value": "${DATABASE_PASSWORD}"
-                    },
-                    {
-                      "name": "MONGODB_DATABASE",
-                      "value": "${DATABASE_NAME}"
-                    },
-                    {
-                      "name": "MONGODB_ADMIN_PASSWORD",
-                      "value": "${DATABASE_ADMIN_PASSWORD}"
-                    }
-                  ],
-                  "readinessProbe": {
-                    "timeoutSeconds": 1,
-                    "initialDelaySeconds": 3,
-                    "exec": {
-                      "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
-                    }
-                  },
-                  "livenessProbe": {
-                    "timeoutSeconds": 1,
-                    "initialDelaySeconds": 30,
-                    "tcpSocket": {
-                      "port": 27017
-                    }
-                  },
-                  "resources": {
-                      "limits": {
-                          "memory": "${MEMORY_MONGODB_LIMIT}"
-                      }
-                  },
-                  "volumeMounts": [
-                    {
-                      "name": "${DATABASE_SERVICE_NAME}-data",
-                      "mountPath": "/var/lib/mongodb/data"
-                    }
-                  ]
-                }
-              ],
-              "volumes": [
-                {
-                  "name": "${DATABASE_SERVICE_NAME}-data",
-                  "emptyDir": {
-                    "medium": ""
-                  }
-                }
-              ]
-            }
-          }
-        }
-      }
-    ],
-  "parameters": [
-      {
-        "name": "NAME",
-        "displayName": "Name",
-        "description": "The name assigned to all of the frontend objects defined in this template.",
-        "required": true,
-        "value": "nodejs-mongodb-example"
-      },
-      {
-        "name": "APPLICATION_DOMAIN",
-        "displayName": "Application Hostname",
-        "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
-        "value": ""
-      },
-      {
-        "name": "SOURCE_REPOSITORY_URL",
-        "displayName": "Git Repository URL",
-        "description": "The URL of the repository with your application source code.",
-        "required": true,
-        "value": "https://github.com/openshift/nodejs-ex.git"
-      },
-      {
-        "name": "DATABASE_NAME",
-        "displayName": "Database Name",
-        "required": true,
-        "value": "sampledb"
-      },
-      {
-        "name": "DATABASE_USER",
-        "displayName": "MongoDB Username",
-        "description": "Username for MongoDB user that will be used for accessing the database.",
-        "generate": "expression",
-        "from": "user[A-Z0-9]{3}"
-      },
-      {
-        "name": "DATABASE_PASSWORD",
-        "displayName": "MongoDB Password",
-        "description": "Password for the MongoDB user.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{16}"
-      },
-      {
-        "name": "MEMORY_LIMIT",
-        "displayName": "Memory Limit",
-        "description": "Maximum amount of memory the Node.js container can use.",
-        "required": true,
-        "value": "512Mi"
-      },
-      {
-        "name": "MEMORY_MONGODB_LIMIT",
-        "displayName": "Memory Limit (MongoDB)",
-        "description": "Maximum amount of memory the MongoDB container can use.",
-        "required": true,
-        "value": "512Mi"
-      },
-      {
-        "name": "DATABASE_SERVICE_NAME",
-        "displayName": "Database Service Name",
-        "required": true,
-        "value": "mongodb"
-      },
-      {
-        "name": "DATABASE_ADMIN_PASSWORD",
-        "displayName": "Database Administrator Password",
-        "description": "Password for the database admin user.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{16}"
-      },
-      {
-        "name": "SOURCE_REPOSITORY_REF",
-        "displayName": "Git Reference",
-        "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
-      },
-      {
-        "name": "CONTEXT_DIR",
-        "displayName": "Context Directory",
-        "description": "Set this to the relative path to your project if it is not in the root of your repository."
-      },
-      {
-        "name": "GITHUB_WEBHOOK_SECRET",
-        "displayName": "GitHub Webhook Secret",
-        "description": "A secret string used to configure the GitHub webhook.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{40}"
-      },
-      {
-        "name": "GENERIC_WEBHOOK_SECRET",
-        "displayName": "Generic Webhook Secret",
-        "description": "A secret string used to configure the Generic webhook.",
-        "generate": "expression",
-        "from": "[a-zA-Z0-9]{40}"
-      },
-      {
-        "name": "NPM_MIRROR",
-        "displayName": "Custom NPM Mirror URL",
-        "description": "The custom NPM mirror URL",
-        "value": ""
-      },
-      {
-        "name": "NAMESPACE",
-        "displayName": "Namespace",
-        "description": "The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.",
-        "required": true,
-        "value": "openshift"
-      }
-  ],
-  "labels": {
-    "template": "application-template-sample-pipeline"
-  }
-}
+      type: JenkinsPipeline
+    triggers:
+    - github:
+        secret: "${GITHUB_WEBHOOK_SECRET}"
+      type: GitHub
+    - generic:
+        secret: "${GENERIC_WEBHOOK_SECRET}"
+      type: Generic
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: blue-${NAME}
+  spec:
+    to:
+      kind: Service
+      name: ${NAME}-blue
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: green-${NAME}
+  spec:
+    to:
+      kind: Service
+      name: ${NAME}-green
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${NAME}
+  spec:
+    alternateBackends:
+    - name: ${NAME}-green
+      weight: "0"
+    to:
+      kind: Service
+      name: ${NAME}-blue
+      weight: "100"
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: ${NAME}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    postCommit:
+      script: npm test
+    source:
+      contextDir: ${CONTEXT_DIR}
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: NPM_MIRROR
+          value: ${NPM_MIRROR}
+        from:
+          kind: ImageStreamTag
+          name: nodejs:4
+          namespace: ${NAMESPACE}
+      type: Source
+    triggers:
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}", "namespace": "", "kind": "Service"}]'
+    name: ${NAME}-blue
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}-blue
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+    name: ${NAME}-blue
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}-blue
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: ${NAME}-blue
+        name: ${NAME}-blue
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_USER
+            value: ${DATABASE_USER}
+          - name: MONGODB_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: nodejs-mongodb-example
+          ports:
+          - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nodejs-mongodb-example
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}:blue
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}", "namespace": "", "kind": "Service"}]'
+    name: ${NAME}-green
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}-green
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+    name: ${NAME}-green
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}-green
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: ${NAME}-green
+        name: ${NAME}-green
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_USER
+            value: ${DATABASE_USER}
+          - name: MONGODB_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: nodejs-mongodb-example
+          ports:
+          - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nodejs-mongodb-example
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}:green
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes the database server
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${DATABASE_SERVICE_NAME}
+        name: ${DATABASE_SERVICE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: MONGODB_USER
+            value: ${DATABASE_USER}
+          - name: MONGODB_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
+          image: ' '
+          livenessProbe:
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 27017
+            timeoutSeconds: 1
+          name: mongodb
+          ports:
+          - containerPort: 27017
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                --eval="quit()"
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_MONGODB_LIMIT}
+          volumeMounts:
+          - mountPath: /var/lib/mongodb/data
+            name: ${DATABASE_SERVICE_NAME}-data
+        volumes:
+        - emptyDir:
+            medium: ""
+          name: ${DATABASE_SERVICE_NAME}-data
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mongodb
+        from:
+          kind: ImageStreamTag
+          name: mongodb:3.2
+          namespace: ${NAMESPACE}
+      type: ImageChange
+    - type: ConfigChange
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: nodejs-mongodb-example
+- description: The exposed hostname that will route to the Node.js service, if left
+    blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: https://github.com/openshift/nodejs-ex.git
+- description: The reference of the repository with your application source code.
+  displayName: Git Repository Ref
+  name: SOURCE_REPOSITORY_REF
+  required: true
+  value: master
+- displayName: Database Name
+  name: DATABASE_NAME
+  required: true
+  value: sampledb
+- description: Username for MongoDB user that will be used for accessing the database.
+  displayName: MongoDB Username
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: DATABASE_USER
+- description: Password for the MongoDB user.
+  displayName: MongoDB Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_PASSWORD
+- description: Maximum amount of memory the Node.js container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the MongoDB container can use.
+  displayName: Memory Limit (MongoDB)
+  name: MEMORY_MONGODB_LIMIT
+  required: true
+  value: 512Mi
+- displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: mongodb
+- description: Password for the database admin user.
+  displayName: Database Administrator Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_ADMIN_PASSWORD
+- description: Set this to the relative path to your project if it is not in the root
+    of your repository.
+  displayName: Context Directory
+  name: CONTEXT_DIR
+- description: A secret string used to configure the GitHub webhook.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- description: A secret string used to configure the Generic webhook.
+  displayName: Generic Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GENERIC_WEBHOOK_SECRET
+- description: The custom NPM mirror URL
+  displayName: Custom NPM Mirror URL
+  name: NPM_MIRROR
+- description: The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
 `)
 
-func examplesJenkinsPipelineSamplepipelineJsonBytes() ([]byte, error) {
-	return _examplesJenkinsPipelineSamplepipelineJson, nil
+func examplesJenkinsPipelineBluegreenPipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineBluegreenPipelineYaml, nil
 }
 
-func examplesJenkinsPipelineSamplepipelineJson() (*asset, error) {
-	bytes, err := examplesJenkinsPipelineSamplepipelineJsonBytes()
+func examplesJenkinsPipelineBluegreenPipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineBluegreenPipelineYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/jenkins/pipeline/samplepipeline.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/bluegreen-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesJenkinsPipelineMapsappPipelineYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  application: mapsapp-pipeline
+metadata:
+  name: mapsapp-pipeline
+parameters:
+- description: NationalParks application source URI
+  displayName: NationalParks Source URI
+  name: NATIONALPARKS_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/nationalparks.git
+- description: NationalParks application source reference
+  displayName: NationalParks Source Ref
+  name: NATIONALPARKS_GIT_REF
+  required: true
+  value: master
+- description: MLBParks application source URI
+  displayName: MLBParks Source URI
+  name: MLBPARKS_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/mlbparks.git
+- description: MLBParks application source reference
+  displayName: MLBParks Source Ref
+  name: MLBPARKS_GIT_REF
+  required: true
+  value: master
+- description: ParksMap application source URI
+  displayName: ParksMap Source URI
+  name: PARKSMAP_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/parksmap-web.git
+- description: ParksMap application source reference
+  displayName: ParksMap Source Ref
+  name: PARKSMAP_GIT_REF
+  required: true
+  value: master
+- name: GITHUB_WEBHOOK_SECRET
+  displayName: GitHub Webhook Secret
+  description: A secret string used to configure the GitHub webhook.
+  generate: expression
+  from: "[a-zA-Z0-9]{40}"
+- name: GENERIC_WEBHOOK_SECRET
+  displayName: Generic Webhook Secret,
+  description: A secret string used to configure the Generic webhook.
+  generate: expression
+  from: "[a-zA-Z0-9]{40}"
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: mapsapp-pipeline
+    name: mapsapp-pipeline
+  spec:
+    runPolicy: Serial
+    source: {}
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          def project = ""
+          node {
+            project = "${env.PROJECT_NAME}"
+
+            stage('Create NationalParks back-end') {
+              def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
+              def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
+              checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
+              sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+            }
+
+            stage('Create MLBParks back-end') {
+              def mlbParksURL = "${MLBPARKS_GIT_URI}"
+              def mlbParksBranch = "${MLBPARKS_GIT_REF}"
+              checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
+              sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+            }
+
+            stage('Create ParksMap front-end') {
+              def parksMapURL = "${PARKSMAP_GIT_URI}"
+              def parksMapBranch = "${PARKSMAP_GIT_REF}"
+              checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
+              sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+            }
+          }
+
+          stage('Build Back-ends') {
+            parallel (
+              "nationalparks": {
+                node {
+                  openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                }
+              },
+              "mlbparks": {
+                node {
+                  openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                }
+              }
+            )
+          }
+
+          node {
+            stage('Build Front-end') {
+              openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+            }
+          }
+    triggers:
+    - github:
+        secret: ${GITHUB_TRIGGER_SECRET}
+      type: GitHub
+    - generic:
+        secret: ${GENERIC_TRIGGER_SECRET}
+      type: Generic
+`)
+
+func examplesJenkinsPipelineMapsappPipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineMapsappPipelineYaml, nil
+}
+
+func examplesJenkinsPipelineMapsappPipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineMapsappPipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/mapsapp-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesJenkinsPipelineMavenPipelineYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: maven-pipeline
+parameters:
+- name: APP_NAME
+  description: The name assigned to all of the application objects defined in this template.
+  displayName: Application Name
+  required: true
+  value: openshift-jee-sample
+- name: GIT_SOURCE_URL
+  description: The source URL for the application
+  displayName: Source URL
+  required: true
+  value: https://github.com/bparees/openshift-jee-sample.git
+- name: GIT_SOURCE_REF
+  description: The source Ref for the application
+  displayName: Source Ref
+  required: true
+  value: master
+- description: A secret string used to configure the GitHub webhook.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+  required: true
+- description: A secret string used to configure the Generic webhook.
+  displayName: Generic Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GENERIC_WEBHOOK_SECRET
+  required: true
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APP_NAME}
+    name: ${APP_NAME}
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      pipeline.alpha.openshift.io/uses: '[{"name": "${NAME}", "namespace": "", "kind": "DeploymentConfig"}]'
+    creationTimestamp: null
+    labels:
+      name: ${APP_NAME}
+    name: ${APP_NAME}
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          def appName="${APP_NAME}"
+          def project=""
+
+          node {
+            stage("Initialize") {
+              project = env.PROJECT_NAME
+            }
+          }
+
+          node("maven") {
+            stage("Checkout") {
+              git url: "${GIT_SOURCE_URL}", branch: "${GIT_SOURCE_REF}"
+            }
+            stage("Build WAR") {
+              sh "mvn clean package -Popenshift"
+              stash name:"war", includes:"target/ROOT.war"
+            }
+          }
+
+          node {
+            stage("Build Image") {
+              unstash name:"war"
+              sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
+            }
+            stage("Deploy") {
+              openshiftDeploy deploymentConfig: appName, namespace: project
+            }
+          }
+      type: JenkinsPipeline
+    triggers:
+    - github:
+        secret: "${GITHUB_WEBHOOK_SECRET}"
+      type: GitHub
+    - generic:
+        secret: "${GENERIC_WEBHOOK_SECRET}"
+      type: Generic
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}-docker
+    name: ${APP_NAME}-docker
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${APP_NAME}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      dockerfile: |-
+        FROM wildfly
+        COPY ROOT.war /wildfly/standalone/deployments/ROOT.war
+        CMD $STI_SCRIPTS_PATH/run
+      binary:
+        asFile: ROOT.war
+      type: Docker
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: wildfly:latest
+          namespace: openshift
+      type: Docker
+    triggers: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}
+    name: ${APP_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
+    strategy:
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/container.${APP_NAME}.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+        labels:
+          app: ${APP_NAME}
+          deploymentconfig: ${APP_NAME}
+      spec:
+        containers:
+        - image: ${APP_NAME}:latest
+          imagePullPolicy: Always
+          name: ${APP_NAME}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APP_NAME}
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}:latest
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    labels:
+      app: ${APP_NAME}
+    name: ${APP_NAME}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${APP_NAME}
+    labels:
+      app: ${APP_NAME}
+  spec:
+    to:
+      kind: Service
+      name: ${APP_NAME}
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+`)
+
+func examplesJenkinsPipelineMavenPipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineMavenPipelineYaml, nil
+}
+
+func examplesJenkinsPipelineMavenPipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineMavenPipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/maven-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesJenkinsPipelineSamplepipelineYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: application-template-sample-pipeline
+message: |-
+  A Jenkins server will be automatically instantiated in this project to manage
+  the Pipeline BuildConfig created by this template.  You will be able to log in to
+  it using your OpenShift user credentials.
+metadata:
+  annotations:
+    description: |-
+      This example showcases the new Jenkins Pipeline integration in OpenShift,
+      which performs continuous integration and deployment right on the platform.
+      The template contains a Jenkinsfile - a definition of a multi-stage CI/CD process - that
+      leverages the underlying OpenShift platform for dynamic and scalable
+      builds. OpenShift integrates the status of your pipeline builds into the web
+      console allowing you to see your entire application lifecycle in a single view.
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: jenkins-pipeline-example
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: nodejs-mongodb-example
+- description: The exposed hostname that will route to the Node.js service, if left
+    blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: https://github.com/openshift/nodejs-ex.git
+- displayName: Database Name
+  name: DATABASE_NAME
+  required: true
+  value: sampledb
+- description: Username for MongoDB user that will be used for accessing the database.
+  displayName: MongoDB Username
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: DATABASE_USER
+- description: Password for the MongoDB user.
+  displayName: MongoDB Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_PASSWORD
+- description: Maximum amount of memory the Node.js container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the MongoDB container can use.
+  displayName: Memory Limit (MongoDB)
+  name: MEMORY_MONGODB_LIMIT
+  required: true
+  value: 512Mi
+- displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: mongodb
+- description: Password for the database admin user.
+  displayName: Database Administrator Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_ADMIN_PASSWORD
+- description: Set this to a branch name, tag or other ref of your repository if you
+    are not using the default branch.
+  displayName: Git Reference
+  name: SOURCE_REPOSITORY_REF
+- description: Set this to the relative path to your project if it is not in the root
+    of your repository.
+  displayName: Context Directory
+  name: CONTEXT_DIR
+- description: A secret string used to configure the GitHub webhook.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- description: A secret string used to configure the Generic webhook.
+  displayName: Generic Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GENERIC_WEBHOOK_SECRET
+- description: The custom NPM mirror URL
+  displayName: Custom NPM Mirror URL
+  name: NPM_MIRROR
+- description: The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      pipeline.alpha.openshift.io/uses: '[{"name": "${NAME}", "namespace": "", "kind": "DeploymentConfig"}]'
+    labels:
+      name: sample-pipeline
+    name: sample-pipeline
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          node('nodejs') {
+            stage('build') {
+              openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
+            }
+            stage('deploy') {
+              openshiftDeploy(deploymentConfig: '${NAME}')
+            }
+          }
+      type: JenkinsPipeline
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        secret: secret101
+      type: Generic
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}", "namespace": "", "kind": "Service"}]'
+    name: ${NAME}
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${NAME}
+  spec:
+    host: ${APPLICATION_DOMAIN}
+    to:
+      kind: Service
+      name: ${NAME}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: ${NAME}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    postCommit:
+      script: npm test
+    source:
+      contextDir: ${CONTEXT_DIR}
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: NPM_MIRROR
+          value: ${NPM_MIRROR}
+        from:
+          kind: ImageStreamTag
+          name: nodejs:4
+          namespace: ${NAMESPACE}
+      type: Source
+    triggers:
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+    name: ${NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: ${NAME}
+        name: ${NAME}
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_USER
+            value: ${DATABASE_USER}
+          - name: MONGODB_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: nodejs-mongodb-example
+          ports:
+          - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /pagecount
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: false
+        containerNames:
+        - nodejs-mongodb-example
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}:latest
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes the database server
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${DATABASE_SERVICE_NAME}
+        name: ${DATABASE_SERVICE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: MONGODB_USER
+            value: ${DATABASE_USER}
+          - name: MONGODB_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
+          image: ' '
+          livenessProbe:
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 27017
+            timeoutSeconds: 1
+          name: mongodb
+          ports:
+          - containerPort: 27017
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                --eval="quit()"
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_MONGODB_LIMIT}
+          volumeMounts:
+          - mountPath: /var/lib/mongodb/data
+            name: ${DATABASE_SERVICE_NAME}-data
+        volumes:
+        - emptyDir:
+            medium: ""
+          name: ${DATABASE_SERVICE_NAME}-data
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mongodb
+        from:
+          kind: ImageStreamTag
+          name: mongodb:3.2
+          namespace: ${NAMESPACE}
+      type: ImageChange
+    - type: ConfigChange
+`)
+
+func examplesJenkinsPipelineSamplepipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineSamplepipelineYaml, nil
+}
+
+func examplesJenkinsPipelineSamplepipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineSamplepipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/samplepipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -7882,7 +8548,10 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
 	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
 	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
-	"examples/jenkins/pipeline/samplepipeline.json": examplesJenkinsPipelineSamplepipelineJson,
+	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
+	"examples/jenkins/pipeline/mapsapp-pipeline.yaml": examplesJenkinsPipelineMapsappPipelineYaml,
+	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
 	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
 	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
@@ -7963,7 +8632,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"jenkins-persistent-template.json": &bintree{examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{
 			}},
 			"pipeline": &bintree{nil, map[string]*bintree{
-				"samplepipeline.json": &bintree{examplesJenkinsPipelineSamplepipelineJson, map[string]*bintree{
+				"bluegreen-pipeline.yaml": &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{
+				}},
+				"mapsapp-pipeline.yaml": &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{
+				}},
+				"maven-pipeline.yaml": &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{
+				}},
+				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{
 				}},
 			}},
 		}},
