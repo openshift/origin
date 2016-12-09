@@ -149,6 +149,22 @@ ifeq ($(TEST_ASSETS),true)
 endif
 .PHONY: test-assets
 
+# Run extended tests.
+#
+# Args:
+#   SUITE: Which Bash entrypoint under test/extended/ to use. Don't include the
+#          ending `.sh`. Ex: `core`.
+#   FOCUS: Literal string to pass to `--ginkgo.focus=`
+#
+# Example:
+#   make test-extended SUITE=core
+#   make test-extended SUITE=conformance FOCUS=pods
+SUITE ?= conformance
+FOCUS ?= .
+test-extended:
+	test/extended/$(SUITE).sh --ginkgo.focus="$(FOCUS)"
+.PHONY: test-extended
+
 # Build and run the complete test-suite.
 #
 # Example:
