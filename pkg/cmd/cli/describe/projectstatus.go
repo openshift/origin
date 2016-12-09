@@ -1013,52 +1013,53 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 	return out
 }
 
-func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bool, restartCount int32) string {
-	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
-	status := deployutil.DeploymentStatusFor(deploy)
-	version := deployutil.DeploymentVersionFor(deploy)
+func describeDeploymentStatus(rc *kapi.ReplicationController, first, test bool, restartCount int32) string {
+	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
+	status := deployutil.DeploymentStatusFor(rc)
+	version := deployutil.DeploymentVersionFor(rc)
 	maybeCancelling := ""
-	if deployutil.IsDeploymentCancelled(deploy) && !deployutil.IsTerminatedDeployment(deploy) {
+	if deployutil.IsDeploymentCancelled(rc) && !deployutil.IsTerminatedDeployment(rc) {
 		maybeCancelling = " (cancelling)"
 	}
 
 	switch status {
 	case deployapi.DeploymentStatusFailed:
-		reason := deployutil.DeploymentStatusReasonFor(deploy)
+		reason := deployutil.DeploymentStatusReasonFor(rc)
 		if len(reason) > 0 {
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy.Status.Replicas, deploy.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
-		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy.Status.Replicas, deploy.Spec.Replicas, first, restartCount))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, first, restartCount))
 	case deployapi.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
 		}
-		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(deploy.Status.Replicas, deploy.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
 	default:
-		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(deploy.Status.Replicas, deploy.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
 	}
 }
 
 func describePetSetStatus(p *kapps.PetSet) string {
 	timeAt := strings.ToLower(formatRelativeTime(p.CreationTimestamp.Time))
-	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Spec.Replicas), false, 0))
+	// TODO: Replace first argument in describePodSummaryInline with ReadyReplicas once that's a thing for pet sets.
+	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Status.Replicas), int32(p.Spec.Replicas), false, 0))
 }
 
 func describeRCStatus(rc *kapi.ReplicationController) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc.Status.Replicas, rc.Spec.Replicas, false, 0))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, 0))
 }
 
-func describePodSummaryInline(actual, requested int32, includeEmpty bool, restartCount int32) string {
-	s := describePodSummary(actual, requested, includeEmpty, restartCount)
+func describePodSummaryInline(ready, actual, requested int32, includeEmpty bool, restartCount int32) string {
+	s := describePodSummary(ready, requested, includeEmpty, restartCount)
 	if len(s) == 0 {
 		return s
 	}
@@ -1072,25 +1073,25 @@ func describePodSummaryInline(actual, requested int32, includeEmpty bool, restar
 	return fmt.Sprintf(" - %s%s", s, change)
 }
 
-func describePodSummary(actual, requested int32, includeEmpty bool, restartCount int32) string {
+func describePodSummary(ready, requested int32, includeEmpty bool, restartCount int32) string {
 	var restartWarn string
 	if restartCount > 0 {
 		restartWarn = fmt.Sprintf(" (warning: %d restarts)", restartCount)
 	}
-	if actual == requested {
+	if ready == requested {
 		switch {
-		case actual == 0:
+		case ready == 0:
 			if !includeEmpty {
 				return ""
 			}
 			return "0 pods"
-		case actual > 1:
-			return fmt.Sprintf("%d pods", actual) + restartWarn
+		case ready > 1:
+			return fmt.Sprintf("%d pods", ready) + restartWarn
 		default:
 			return "1 pod" + restartWarn
 		}
 	}
-	return fmt.Sprintf("%d/%d pods", actual, requested) + restartWarn
+	return fmt.Sprintf("%d/%d pods", ready, requested) + restartWarn
 }
 
 func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {
