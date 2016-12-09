@@ -46,6 +46,7 @@ func validImage() *api.Image {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	valid := validImage()
 	valid.Name = ""
@@ -60,6 +61,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(
 		validImage(),
@@ -69,6 +71,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(
 		validImage(),
@@ -78,6 +81,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
 	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
@@ -89,6 +93,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 
 	valid := validImage()
@@ -230,6 +235,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 	for i, test := range testCases {
 		storage, server := newStorage(t)
 		defer server.Terminate(t)
+		defer storage.Store.DestroyFunc()
 
 		obj, err := storage.Create(kapi.NewDefaultContext(), test.image)
 		if obj == nil {
@@ -377,6 +383,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 	for i, test := range testCases {
 		storage, server := newStorage(t)
 		defer server.Terminate(t)
+		defer storage.Store.DestroyFunc()
 
 		// Clear the resource version before creating
 		test.existing.ResourceVersion = ""
