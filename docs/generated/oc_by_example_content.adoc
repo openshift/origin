@@ -2229,6 +2229,20 @@ Resume a paused resource
 ====
 
 
+== oc rollout retry
+Retry the latest failed rollout
+
+====
+
+[options="nowrap"]
+----
+  # Retry the latest failed deployment based on 'frontend'
+  # The deployer pod and any hook pods are deleted for the latest failed deployment
+  oc rollout retry dc/frontend
+----
+====
+
+
 == oc rollout status
 Watch rollout status until it's done
 

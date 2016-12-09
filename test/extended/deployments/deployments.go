@@ -563,6 +563,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
 
+			g.By("verifying that we cannot rollout retry a deployment")
+			out, err = oc.Run("rollout").Args("retry", resource).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("unable to retry paused deployment"))
+
 			g.By("verifying that we cannot rollback a deployment")
 			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
 			o.Expect(err).To(o.HaveOccurred())

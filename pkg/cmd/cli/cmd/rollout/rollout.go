@@ -49,6 +49,7 @@ func NewCmdRollout(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 	cmd.AddCommand(NewCmdRolloutLatest(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutStatus(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutCancel(fullName, f, out))
+	cmd.AddCommand(NewCmdRolloutRetry(fullName, f, out))
 
 	return cmd
 }
