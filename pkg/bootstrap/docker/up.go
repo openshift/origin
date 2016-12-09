@@ -19,6 +19,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockermachine"
@@ -33,7 +34,6 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -598,31 +598,31 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
-	for _, port := range openshift.RouterPorts {
-		err := c.OpenShiftHelper().TestPorts([]int{port})
-		if err != nil {
-			fmt.Fprintf(out, "WARNING: Port %d is already in use and may cause routing issues for applications.\n", port)
-		}
-	}
-	err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
+	c.DNSPort = openshift.DefaultDNSPort
+	err := c.OpenShiftHelper().TestPorts(openshift.AllPorts)
 	if err == nil {
-		c.DNSPort = openshift.DefaultDNSPort
 		return nil
 	}
 	if !openshift.IsPortsNotAvailableErr(err) {
 		return err
 	}
-	conflicts := openshift.UnavailablePorts(err)
-	if len(conflicts) == 1 && conflicts[0] == openshift.DefaultDNSPort {
-		err = c.OpenShiftHelper().TestPorts(openshift.PortsWithAlternateDNS)
-		if err == nil {
-			c.DNSPort = openshift.AlternateDNSPort
-			fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may not be resolvable from all clients.\n", openshift.AlternateDNSPort)
-			return nil
+	unavailable := sets.NewInt(openshift.UnavailablePorts(err)...)
+	if unavailable.HasAny(openshift.BasePorts...) {
+		return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	}
+	if unavailable.Has(openshift.DefaultDNSPort) {
+		if unavailable.Has(openshift.AlternateDNSPort) {
+			return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+		}
+		c.DNSPort = openshift.AlternateDNSPort
+		fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may not be resolvable from all clients.\n", openshift.AlternateDNSPort)
+	}
+	for _, port := range openshift.RouterPorts {
+		if unavailable.Has(port) {
+			fmt.Fprintf(out, "WARNING: Port %d is already in use and may cause routing issues for applications.\n", port)
 		}
 	}
-
-	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	return nil
 }
 
 // DetermineServerIP gets an appropriate IP address to communicate with the OpenShift server
