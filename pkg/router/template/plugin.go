@@ -60,10 +60,6 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
-	// HasServiceUnit indicates whether the router has a service unit
-	// for the given key.
-	HasServiceUnit(key string) bool
-
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.
@@ -82,6 +78,8 @@ type routerInterface interface {
 	AddRoute(id string, weight int32, route *routeapi.Route, host string) bool
 	// RemoveRoute removes the given route
 	RemoveRoute(route *routeapi.Route)
+	// HasRoute indicates whether the router is configured with the given route
+	HasRoute(route *routeapi.Route) bool
 	// Reduce the list of routes to only these namespaces
 	FilterNamespaces(namespaces sets.String)
 	// Commit applies the changes in the background. It kicks off a rate-limited

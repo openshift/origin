@@ -755,12 +755,12 @@ func (r *templateRouter) SetSyncedAtLeastOnce() {
 	glog.V(4).Infof("Router state synchronized for the first time")
 }
 
-// HasServiceUnit attempts to retrieve a service unit for the given
-// key, returning a boolean indication of whether the key is known.
-func (r *templateRouter) HasServiceUnit(key string) bool {
+// HasRoute indicates whether the given route is known to this router.
+func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	_, ok := r.findMatchingServiceUnit(key)
+	key := r.routeKey(route)
+	_, ok := r.state[key]
 	return ok
 }
 

@@ -206,6 +206,11 @@ func (r *TestRouter) RemoveRoute(route *routeapi.Route) {
 	}
 }
 
+func (r *TestRouter) HasRoute(route *routeapi.Route) bool {
+	// Not used
+	return false
+}
+
 func (r *TestRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
 		r.State = make(map[string]ServiceAliasConfig)
@@ -244,10 +249,6 @@ func (r *TestRouter) SetSkipCommit(skipCommit bool) {
 }
 
 func (r *TestRouter) SetSyncedAtLeastOnce() {
-}
-
-func (r *TestRouter) HasServiceUnit(key string) bool {
-	return false
 }
 
 // TestHandleEndpoints test endpoint watch events

@@ -78,7 +78,8 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 			}
 
 			// Create a route
-			routeProperties := createRouteProperties(service.Name)
+			host := fmt.Sprintf("www-%d-%d.example.com", i, j)
+			routeProperties := createRouteProperties(service.Name, host)
 			route, err := oc.Routes(namespace.Name).Create(routeProperties)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -112,8 +113,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 		routeCount := 0
 		for _, plugin := range plugins {
 			for _, route := range routes {
-				key := routeKey(route)
-				if plugin.Router.HasServiceUnit(key) {
+				if plugin.Router.HasRoute(route) {
 					routeCount++
 				}
 			}
@@ -130,11 +130,6 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 			t.Fatalf("One or more routers reloaded more than once")
 		}
 	}
-}
-
-// TODO(marun) reuse a public definition instead of copying.
-func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 }
 
 func createNamespaceProperties() *kapi.Namespace {
@@ -176,13 +171,13 @@ func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 	}
 }
 
-func createRouteProperties(serviceName string) *routeapi.Route {
+func createRouteProperties(serviceName, host string) *routeapi.Route {
 	return &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			GenerateName: "route-",
 		},
 		Spec: routeapi.RouteSpec{
-			Host: "www.example.com",
+			Host: host,
 			Path: "",
 			To: routeapi.RouteTargetReference{
 				Name: serviceName,
