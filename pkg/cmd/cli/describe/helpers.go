@@ -364,6 +364,10 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		if insecure {
 			fmt.Fprintf(out, "    will use insecure HTTPS or HTTP connections\n")
 		}
+		switch tagRef.ReferencePolicy.Type {
+		case imageapi.LocalTagReferencePolicy:
+			fmt.Fprintf(out, "    prefer registry pullthrough when referencing this tag\n")
+		}
 
 		fmt.Fprintln(out)
 
