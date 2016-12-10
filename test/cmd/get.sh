@@ -11,11 +11,23 @@ trap os::test::junit::reconcile_output EXIT
 
 
 os::test::junit::declare_suite_start "cmd/get"
-os::cmd::expect_success_and_text 'oc create -f examples/storage-examples/local-storage-examples/local-nginx-pod.json' "pod \"local-nginx\" created"
+os::cmd::expect_success_and_text 'oc create service loadbalancer testsvc1  --tcp=8080' "service \"testsvc1\" created"
 # mixed resource output should print resource kind
 # prefix even when only one type of resource is present
-os::cmd::expect_success_and_text 'oc get all' "po/local-nginx"
+os::cmd::expect_success_and_text 'oc get all' "svc/testsvc1"
+# ensure that getting mixed resource types still returns prefixed resources, if there are at most resources of one type
+os::cmd::expect_success_and_text 'oc get svc,pod' "svc/testsvc1"
+os::cmd::expect_failure_and_text 'oc get svc,pod testsvc1' "svc/testsvc1"
+# create second resource type and ensure that prefixed resource names are returned for both
+os::cmd::expect_success_and_text 'oc create imagestream testimg1' "imagestream \"testimg1\" created"
+os::cmd::expect_success_and_text 'oc get svc,is' "svc/testsvc1"
+# create second service and expect `get all` to still append resource kind to multiple of one type of resource
+os::cmd::expect_success_and_text 'oc create service loadbalancer testsvc2  --tcp=8081' "service \"testsvc2\" created"
+os::cmd::expect_success_and_text 'oc get all' "svc/testsvc2"
+# test tuples of same and different resource kinds (tuples of same resource kind should not return prefixed items).
+os::cmd::expect_success_and_not_text 'oc get svc/testsvc1 svc/testsvc2' "svc/testsvc1"
+os::cmd::expect_success_and_text 'oc get svc/testsvc1 is/testimg1' "svc/testsvc1"
 # specific resources should not have their kind prefixed
-os::cmd::expect_success_and_text 'oc get pod' "local-nginx"
-echo "oc get: ok"
+os::cmd::expect_success_and_text 'oc get svc' "testsvc1"
+echo "oc get all: ok"
 os::test::junit::declare_suite_end
