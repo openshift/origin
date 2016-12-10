@@ -178,14 +178,45 @@ type TagReference struct {
 	Generation *int64 `json:"generation" protobuf:"varint,5,opt,name=generation"`
 	// Import is information that controls how images may be imported by the server.
 	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" protobuf:"bytes,6,opt,name=importPolicy"`
+	// ReferencePolicy defines how other components should consume the image
+	ReferencePolicy TagReferencePolicy `json:"referencePolicy,omitempty" protobuf:"bytes,7,opt,name=referencePolicy"`
 }
 
-// TagImportPolicy describes the tag import policy
+// TagImportPolicy controls how images related to this tag will be imported.
 type TagImportPolicy struct {
 	// Insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
 	Insecure bool `json:"insecure,omitempty" protobuf:"varint,1,opt,name=insecure"`
 	// Scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported
 	Scheduled bool `json:"scheduled,omitempty" protobuf:"varint,2,opt,name=scheduled"`
+}
+
+// TagReferencePolicyType describes how pull-specs for images in an image stream tag are generated when
+// image change triggers are fired.
+type TagReferencePolicyType string
+
+const (
+	// SourceTagReferencePolicy indicates the image's original location should be used when the image stream tag
+	// is resolved into other resources (builds and deployment configurations).
+	SourceTagReferencePolicy TagReferencePolicyType = "Source"
+	// LocalTagReferencePolicy indicates the image should prefer to pull via the local integrated registry,
+	// falling back to the remote location if the integrated registry has not been configured. The reference will
+	// use the internal DNS name or registry service IP.
+	LocalTagReferencePolicy TagReferencePolicyType = "Local"
+)
+
+// TagReferencePolicy describes how pull-specs for images in this image stream tag are generated when
+// image change triggers in deployment configs or builds are resolved. This allows the image stream
+// author to control how images are accessed.
+type TagReferencePolicy struct {
+	// Type determines how the image pull spec should be transformed when the image stream tag is used in
+	// deployment config triggers or new builds. The default value is `Source`, indicating the original
+	// location of the image should be used (if imported). The user may also specify `Local`, indicating
+	// that the pull spec should point to the integrated Docker registry and leverage the registry's
+	// ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this
+	// image to be managed from the image stream's namespace, so others on the platform can access a remote
+	// image but have no access to the remote secret. It also allows the image layers to be mirrored into
+	// the local registry which the images can still be pulled even if the upstream registry is unavailable.
+	Type TagReferencePolicyType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TagReferencePolicyType"`
 }
 
 // ImageStreamStatus contains information about the state of this image stream.
