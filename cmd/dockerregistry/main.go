@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/util/logs"
@@ -28,6 +30,7 @@ func main() {
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 	startProfiler()
 
+	rand.Seed(time.Now().UTC().UnixNano())
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 

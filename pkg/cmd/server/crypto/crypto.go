@@ -256,7 +256,8 @@ type RandomSerialGenerator struct {
 }
 
 func (s *RandomSerialGenerator) Next(template *x509.Certificate) (int64, error) {
-	return mathrand.Int63(), nil
+	r := mathrand.New(mathrand.NewSource(time.Now().UTC().UnixNano()))
+	return r.Int63(), nil
 }
 
 // EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
