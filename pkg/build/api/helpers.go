@@ -59,3 +59,19 @@ func hasBuildConfigAnnotation(build Build, annotationName, annotationValue strin
 	value, ok := build.Annotations[annotationName]
 	return ok && value == annotationValue
 }
+
+// FindTriggerPolicy retrieves the BuildTrigger(s) of a given type from a build configuration.
+// Returns nil if no matches are found.
+func FindTriggerPolicy(triggerType BuildTriggerType, config *BuildConfig) (buildTriggers []BuildTriggerPolicy) {
+	for _, specTrigger := range config.Spec.Triggers {
+		if specTrigger.Type == triggerType {
+			buildTriggers = append(buildTriggers, specTrigger)
+		}
+	}
+	return buildTriggers
+}
+
+func HasTriggerType(triggerType BuildTriggerType, bc *BuildConfig) bool {
+	matches := FindTriggerPolicy(triggerType, bc)
+	return len(matches) > 0
+}
