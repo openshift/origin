@@ -49,6 +49,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TagEventCondition, InType: reflect.TypeOf(&TagEventCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TagImportPolicy, InType: reflect.TypeOf(&TagImportPolicy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TagReference, InType: reflect.TypeOf(&TagReference{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TagReferencePolicy, InType: reflect.TypeOf(&TagReferencePolicy{})},
 	)
 }
 
@@ -680,6 +681,16 @@ func DeepCopy_v1_TagReference(in interface{}, out interface{}, c *conversion.Clo
 			out.Generation = nil
 		}
 		out.ImportPolicy = in.ImportPolicy
+		out.ReferencePolicy = in.ReferencePolicy
+		return nil
+	}
+}
+
+func DeepCopy_v1_TagReferencePolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TagReferencePolicy)
+		out := out.(*TagReferencePolicy)
+		out.Type = in.Type
 		return nil
 	}
 }
