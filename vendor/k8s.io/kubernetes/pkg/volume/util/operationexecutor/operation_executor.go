@@ -27,6 +27,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	kevents "k8s.io/kubernetes/pkg/kubelet/events"
@@ -503,7 +504,15 @@ func (oe *operationExecutor) generateAttachVolumeFunc(
 				volumeToAttach.NodeName,
 				attachErr)
 			for _, pod := range volumeToAttach.ScheduledPods {
-				oe.recorder.Eventf(pod, api.EventTypeWarning, kevents.FailedMountVolume, err.Error())
+				// if pod is removed, reference to pod could be undefined
+				if pod != nil {
+					oe.recorder.Eventf(pod, v1.EventTypeWarning, kevents.FailedMountVolume, err.Error())
+				} else {
+					glog.Errorf("Pod is not found while attaching volume  %q on node %q. Attach error: %v",
+						volumeToAttach.VolumeSpec.Name(),
+						volumeToAttach.NodeName,
+						attachErr)
+				}
 			}
 			return err
 		}
