@@ -186,7 +186,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return nil, err
 	}
 	glog.V(4).Infof("Committing state")
-	router.Commit()
+	// Bypass the rate limiter to ensure the first sync will be
+	// committed without delay.
+	router.commitAndReload()
 	return router, nil
 }
 
