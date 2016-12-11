@@ -318,7 +318,11 @@ backend be_edge_http_{{$cfgIdx}}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
+      {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
+  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
+      {{ else }}
   balance leastconn
+      {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
@@ -353,10 +357,12 @@ backend be_edge_http_{{$cfgIdx}}
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
-  {{ if and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "None") }}
+  {{ if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
+    {{ if and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "None") }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
-  {{ else }}
+    {{ else }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
+    {{ end }}
   {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
@@ -460,7 +466,11 @@ backend be_secure_{{$cfgIdx}}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
+      {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
+  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
+      {{ else }}
   balance leastconn
+      {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
@@ -496,7 +506,9 @@ backend be_secure_{{$cfgIdx}}
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
+  {{ if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
+  {{ end }}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ if ne $weight 0 }}
         {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
