@@ -44,12 +44,6 @@ else
   os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
 fi
 
-os::util::ensure::built_binary_exists 'oc'
-
-function build() {
-  eval "oc ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
-}
-
 # Create link to file if the FS supports hardlinks, otherwise copy the file
 function ln_or_cp {
   local src_file=$1
@@ -78,39 +72,78 @@ cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
-  local STARTTIME=$(date +%s)
-  echo "--- $1 ---"
-  build $1:latest $2
-  #docker build -t $1:latest $2
-  docker tag $1:latest $1:${OS_RELEASE_COMMIT}
-  git clean -fdx $2
-  local ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
-  echo
-  echo
+  local tag=$1
+  local dir=$2
+  local out
+  out="$( mktemp )"
+
+  set +e
+  (
+    set -euo pipefail
+
+    local dest="${tag}"
+    if [[ ! "${tag}" == *":"* ]]; then
+      dest="${tag}:latest"
+    fi
+
+    local STARTTIME=$(date +%s)
+
+    # build the image
+    if ! os::build::image "${dir}" "${dest}"; then
+      os::log::warn "Retrying build once"
+      os::build::image "${dir}" "${dest}"
+    fi
+
+    # tag to release commit unless we specified a hardcoded tag
+    if [[ ! "${tag}" == *":"* ]]; then
+      docker tag "${dest}" "${tag}:${OS_RELEASE_COMMIT}"
+    fi
+    # ensure the temporary contents are cleaned up
+    git clean -fdx "${dir}"
+
+    local ENDTIME=$(date +%s); echo "Finished in $(($ENDTIME - $STARTTIME)) seconds"
+  ) > "${out}" 2>&1
+  local rc=$?
+  set -e
+
+  if [[ "${rc}" -ne 0 ]]; then
+    sed -e "s|^|$1: |" "${out}" 1>&2
+    os::log::error "Failed to build $1"
+  else
+    sed -e "s|^|$1: |" "${out}"
+  fi
+  return $rc
 }
 
 # images that depend on scratch / centos
-image openshift/origin-pod                   images/pod
-image openshift/openvswitch                  images/openvswitch
+( image openshift/origin-pod                   images/pod ) &
+( image openshift/openvswitch                  images/openvswitch ) &
 # images that depend on openshift/origin-base
-image openshift/origin                       images/origin
-image openshift/origin-haproxy-router        images/router/haproxy
-image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
-image openshift/origin-docker-registry       images/dockerregistry
-image openshift/origin-egress-router         images/router/egress
+( image openshift/origin                       images/origin ) &
+( image openshift/origin-haproxy-router        images/router/haproxy ) &
+( image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived ) &
+( image openshift/origin-docker-registry       images/dockerregistry ) &
+( image openshift/origin-egress-router         images/router/egress ) &
+
+for i in `jobs -p`; do wait $i; done
+
 # images that depend on openshift/origin
-image openshift/origin-gitserver             examples/gitserver
-image openshift/origin-deployer              images/deployer
-image openshift/origin-recycler              images/recycler
-image openshift/origin-docker-builder        images/builder/docker/docker-builder
-image openshift/origin-sti-builder           images/builder/docker/sti-builder
-image openshift/origin-f5-router             images/router/f5
-image openshift/node                         images/node
+( image openshift/origin-gitserver             examples/gitserver ) &
+( image openshift/origin-deployer              images/deployer ) &
+( image openshift/origin-recycler              images/recycler ) &
+( image openshift/origin-docker-builder        images/builder/docker/docker-builder ) &
+( image openshift/origin-sti-builder           images/builder/docker/sti-builder ) &
+( image openshift/origin-f5-router             images/router/f5 ) &
+( image openshift/node                         images/node ) &
+
+for i in `jobs -p`; do wait $i; done
 
 # extra images (not part of infrastructure)
-image openshift/hello-openshift              examples/hello-openshift
-docker build --no-cache -t openshift/deployment-example:v1 examples/deployment
-docker build --no-cache -t openshift/deployment-example:v2 -f examples/deployment/Dockerfile.v2 examples/deployment
+( image openshift/hello-openshift       examples/hello-openshift ) &
+( image openshift/deployment-example:v1 examples/deployment ) &
+( image openshift/deployment-example:v2 examples/deployment examples/deployment/Dockerfile.v2 ) &
+
+for i in `jobs -p`; do wait $i; done
 
 echo
 echo
