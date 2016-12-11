@@ -235,9 +235,6 @@ func (r *TestRouter) Commit() {
 	// No op
 }
 
-func (r *TestRouter) SetSyncedAtLeastOnce() {
-}
-
 // TestHandleEndpoints test endpoint watch events
 func TestHandleEndpoints(t *testing.T) {
 	testCases := []struct {
