@@ -1,3 +1,5 @@
+// +build go1.7
+
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -48,6 +50,8 @@ func TestCloneTLSConfig(t *testing.T) {
 		"ClientAuth",
 		"ClientCAs",
 		"ClientSessionCache",
+		"DynamicRecordSizingDisabled",
+		"Renegotiation",
 
 		// These fields are not copied
 		"SessionTicketsDisabled",
