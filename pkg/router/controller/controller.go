@@ -79,12 +79,6 @@ func (c *RouterController) handleFirstSync() bool {
 		return false
 	}
 
-	err := c.Plugin.SetSyncedAtLeastOnce()
-	if err != nil {
-		utilruntime.HandleError(err)
-		return false
-	}
-
 	// If either of the event queues were empty after the initial
 	// List, the tracking listConsumed variable's default value of
 	// 'false' may prevent the router from committing the readiness

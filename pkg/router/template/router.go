@@ -87,7 +87,7 @@ type templateRouter struct {
 	// If true, haproxy should only bind ports when it has route and endpoint state
 	bindPortsAfterSync bool
 	// whether the router state has been read from the api at least once
-	syncedAtLeastOnce bool
+	synced bool
 	// whether a state change has occurred
 	stateChanged bool
 }
@@ -349,6 +349,12 @@ func (r *templateRouter) Commit() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	if !r.synced {
+		glog.V(4).Infof("Router state synchronized for the first time")
+		r.synced = true
+		r.stateChanged = true
+	}
+
 	if r.stateChanged {
 		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
 		r.stateChanged = false
@@ -416,7 +422,7 @@ func (r *templateRouter) writeConfig() error {
 			StatsUser:          r.statsUser,
 			StatsPassword:      r.statsPassword,
 			StatsPort:          r.statsPort,
-			BindPorts:          !r.bindPortsAfterSync || r.syncedAtLeastOnce,
+			BindPorts:          !r.bindPortsAfterSync || r.synced,
 		}
 		if err := template.Execute(file, data); err != nil {
 			file.Close()
@@ -750,20 +756,8 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 	return false
 }
 
-// SetSyncedAtLeastOnce indicates to the router that state has been
-// read from the api.
-func (r *templateRouter) SetSyncedAtLeastOnce() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	glog.V(4).Infof("Router state synchronized for the first time")
-	r.syncedAtLeastOnce = true
-	r.stateChanged = true
-}
-
-// HasServiceUnit attempts to retrieve a service unit for the given
-// key, returning a boolean indication of whether the key is known.
-func (r *templateRouter) HasServiceUnit(key string) bool {
+// HasRoute indicates whether the given route is known to this router.
+func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	_, ok := r.findMatchingServiceUnit(key)

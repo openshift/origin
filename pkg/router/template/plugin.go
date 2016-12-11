@@ -85,9 +85,6 @@ type routerInterface interface {
 	// Commit applies the changes in the background. It kicks off a rate-limited
 	// commit (persist router state + refresh the backend) that coalesces multiple changes.
 	Commit()
-
-	// SetSyncedAtLeastOnce indicates to the router that state has been read from the api at least once
-	SetSyncedAtLeastOnce()
 }
 
 func env(name, defaultValue string) string {
@@ -226,11 +223,6 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 
 func (p *TemplatePlugin) Commit() error {
 	p.Router.Commit()
-	return nil
-}
-
-func (p *TemplatePlugin) SetSyncedAtLeastOnce() error {
-	p.Router.SetSyncedAtLeastOnce()
 	return nil
 }
 

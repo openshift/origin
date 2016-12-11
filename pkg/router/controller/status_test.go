@@ -43,10 +43,6 @@ func (p *fakePlugin) Commit() error {
 	return fmt.Errorf("not expected")
 }
 
-func (p *fakePlugin) SetSyncedAtLeastOnce() error {
-	return fmt.Errorf("not expected")
-}
-
 func TestStatusNoOp(t *testing.T) {
 	now := nowFn()
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}

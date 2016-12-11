@@ -259,10 +259,6 @@ func (p *UniqueHost) Commit() error {
 	return p.plugin.Commit()
 }
 
-func (p *UniqueHost) SetSyncedAtLeastOnce() error {
-	return p.plugin.SetSyncedAtLeastOnce()
-}
-
 // routeKeys returns the internal router key to use for the given Route.
 func routeKeys(route *routeapi.Route) []string {
 	keys := make([]string, 1+len(route.Spec.AlternateBackends))

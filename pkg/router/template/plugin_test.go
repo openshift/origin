@@ -230,9 +230,6 @@ func (r *TestRouter) Commit() {
 	// No op
 }
 
-func (r *TestRouter) SetSyncedAtLeastOnce() {
-}
-
 func (r *TestRouter) HasServiceUnit(key string) bool {
 	return false
 }

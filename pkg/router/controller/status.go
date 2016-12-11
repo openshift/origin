@@ -315,7 +315,3 @@ func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {
 func (a *StatusAdmitter) Commit() error {
 	return a.plugin.Commit()
 }
-
-func (a *StatusAdmitter) SetSyncedAtLeastOnce() error {
-	return a.plugin.SetSyncedAtLeastOnce()
-}
