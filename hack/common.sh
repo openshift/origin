@@ -805,6 +805,39 @@ function os::build::ldflags() {
 }
 readonly -f os::build::ldflags
 
+# os::build::image builds an image from a directory, to a tag, with an optional dockerfile to
+# use as the third argument. The environment variable OS_BUILD_IMAGE_ARGS adds additional
+# options to the command. The default is to use the imagebuilder binary if it is available
+# on the path with fallback to docker build if it is not available.
+function os::build::image() {
+  local directory=$1
+  local tag=$2
+  local dockerfile="${3-}"
+  local options="${OS_BUILD_IMAGE_ARGS-}"
+  local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
+  if [[ "${mode}" == "imagebuilder" ]]; then
+    if [[ -n "$( which imagebuilder )" ]]; then
+      if [[ -n "${dockerfile}" ]]; then
+        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+        return $?
+      fi
+      eval "imagebuilder -t '${tag}' ${options} '${directory}'"
+      return $?
+    fi
+    os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+    # clear options since we were unable to select imagebuilder
+    options=""
+  fi
+
+  if [[ -n "${dockerfile}" ]]; then
+    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    return $?
+  fi
+  eval "docker build -t '${tag}' ${options} '${directory}'"
+  return $?
+}
+readonly -f os::build::image
+
 # os::build::enable_swap attempts to enable swap for the system if a) this is Linux and b)
 # the amount of physical memory is less than 10GB. This is a stopgap until we have
 # better control over memory use in Go 1.7+.
