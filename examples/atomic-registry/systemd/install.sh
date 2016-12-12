@@ -72,6 +72,7 @@ function customize_config() {
   echo "REGISTRY_HOST=${installhost}:${REGISTRYPORT}" >> /host/etc/sysconfig/atomic-registry-console
   echo "DOCKER_REGISTRY_SERVICE_PORT=${REGISTRYPORT}" >> /host/etc/sysconfig/atomic-registry
   echo "REGISTRY_HTTP_ADDR=:${REGISTRYPORT}" >> /host/etc/sysconfig/atomic-registry
+  echo "DOCKER_REGISTRY_SERVICE_HOST=${installhost}" >> /host/etc/sysconfig/atomic-registry
   echo "REGISTRYPORT=${REGISTRYPORT}" >> /host/etc/sysconfig/atomic-registry
   echo "REGISTRYIMAGE=${REGISTRYIMAGE}" >> /host/etc/sysconfig/atomic-registry
   echo "REGISTRYTAG=${REGISTRYTAG}" >> /host/etc/sysconfig/atomic-registry
