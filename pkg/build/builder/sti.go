@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
@@ -57,10 +55,9 @@ func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validati
 
 // S2IBuilder performs an STI build given the build object
 type S2IBuilder struct {
-	builder   builderFactory
-	validator validator
-	gitClient GitClient
-
+	builder      builderFactory
+	validator    validator
+	gitClient    GitClient
 	dockerClient DockerClient
 	dockerSocket string
 	build        *api.Build
@@ -98,10 +95,6 @@ func (s *S2IBuilder) Build() error {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
-	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
-	if contextDir == "." || contextDir == "/" {
-		contextDir = ""
-	}
 	buildDir, err := ioutil.TempDir("", "s2i-build")
 	if err != nil {
 		return err
@@ -109,20 +102,6 @@ func (s *S2IBuilder) Build() error {
 	srcDir := filepath.Join(buildDir, s2iapi.Source)
 	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
 		return err
-	}
-	tmpDir := filepath.Join(buildDir, "tmp")
-	if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return err
-	}
-
-	download := &downloader{
-		s:       s,
-		in:      os.Stdin,
-		timeout: initialURLCheckTimeout,
-
-		dir:        srcDir,
-		contextDir: contextDir,
-		tmpDir:     tmpDir,
 	}
 
 	var push bool
@@ -134,20 +113,34 @@ func (s *S2IBuilder) Build() error {
 		push = true
 	}
 	pushTag := s.build.Status.OutputDockerImageReference
-	git := s.build.Spec.Source.Git
 
-	var ref string
-	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
-		len(s.build.Spec.Revision.Git.Commit) != 0 {
-		ref = s.build.Spec.Revision.Git.Commit
-	} else if git != nil && len(git.Ref) != 0 {
-		ref = git.Ref
+	// fetch source
+	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
+	if err != nil {
+		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
+		s.build.Status.Message = api.StatusMessageFetchSourceFailed
+		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
+		}
+		return err
 	}
-
-	sourceURI := &url.URL{
-		Scheme:   "file",
-		Path:     srcDir,
-		Fragment: ref,
+	if len(s.build.Spec.Source.ContextDir) > 0 {
+		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		if contextDir == "." || contextDir == "/" {
+			contextDir = ""
+		}
+		if sourceInfo != nil {
+			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
+		}
+		srcDir = filepath.Join(srcDir, s.build.Spec.Source.ContextDir)
+	}
+	download := &downloader{}
+	if sourceInfo != nil {
+		download.sourceInfo = &sourceInfo.SourceInfo
+		revision := updateBuildRevision(s.build, sourceInfo)
+		if updateErr := retryBuildStatusUpdate(s.build, s.client, revision); updateErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
+		}
 	}
 
 	injections := s2iapi.VolumeList{}
@@ -176,10 +169,12 @@ func (s *S2IBuilder) Build() error {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
 	config := &s2iapi.Config{
-		WorkingDir:     buildDir,
-		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
-		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
-		LabelNamespace: api.DefaultDockerLabelNamespace,
+		// Save some processing time by not cleaning up (the container will go away anyway)
+		PreserveWorkingDir: true,
+		WorkingDir:         buildDir,
+		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
+		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
+		LabelNamespace:     api.DefaultDockerLabelNamespace,
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
@@ -191,11 +186,13 @@ func (s *S2IBuilder) Build() error {
 		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:                    sourceURI.String(),
-		Tag:                       buildTag,
-		ContextDir:                s.build.Spec.Source.ContextDir,
+		Source:     srcDir,
+		ForceCopy:  true,
+		Injections: injections,
+
+		Tag: buildTag,
+
 		CGroupLimits:              s.cgLimits,
-		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
 	}
@@ -256,7 +253,7 @@ func (s *S2IBuilder) Build() error {
 			buildInfo.FailureReason.Message,
 		)
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
 		}
 		return err
 	}
@@ -270,7 +267,7 @@ func (s *S2IBuilder) Build() error {
 		)
 
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
 		}
 		return err
 	}
@@ -280,7 +277,7 @@ func (s *S2IBuilder) Build() error {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
 		}
 		return err
 	}
@@ -311,7 +308,7 @@ func (s *S2IBuilder) Build() error {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
 			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
+				utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
 			}
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
@@ -321,57 +318,15 @@ func (s *S2IBuilder) Build() error {
 }
 
 type downloader struct {
-	s       *S2IBuilder
-	in      io.Reader
-	timeout time.Duration
-
-	dir        string
-	contextDir string
-	tmpDir     string
+	sourceInfo *s2iapi.SourceInfo
 }
 
+// Download no-ops (because we already downloaded the source to the right location)
+// and returns the previously computed sourceInfo for the source.
 func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
-	var targetDir string
-	if len(d.contextDir) > 0 {
-		targetDir = d.tmpDir
-	} else {
-		targetDir = d.dir
-	}
+	config.WorkingSourceDir = config.Source
 
-	// fetch source
-	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
-	if err != nil {
-		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
-		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
-		return nil, err
-	}
-	if sourceInfo != nil {
-		revision := updateBuildRevision(d.s.build, sourceInfo)
-		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, revision); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
-	}
-	if sourceInfo != nil {
-		sourceInfo.ContextDir = config.ContextDir
-	}
-
-	// if a context dir is provided, move the context dir contents into the src location
-	if len(d.contextDir) > 0 {
-		srcDir := filepath.Join(targetDir, d.contextDir)
-		if err := os.Remove(d.dir); err != nil {
-			return nil, err
-		}
-		if err := os.Rename(srcDir, d.dir); err != nil {
-			return nil, err
-		}
-	}
-	if sourceInfo != nil {
-		return &sourceInfo.SourceInfo, nil
-	}
-	return nil, nil
+	return d.sourceInfo, nil
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker

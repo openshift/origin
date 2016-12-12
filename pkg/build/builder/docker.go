@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
@@ -39,7 +38,6 @@ type DockerBuilder struct {
 	gitClient    GitClient
 	tar          tar.Tar
 	build        *api.Build
-	urlTimeout   time.Duration
 	client       client.BuildInterface
 	cgLimits     *s2iapi.CGroupLimits
 }
@@ -51,7 +49,6 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		build:        build,
 		gitClient:    gitClient,
 		tar:          tar.New(s2iutil.NewFileSystem()),
-		urlTimeout:   initialURLCheckTimeout,
 		client:       buildsClient,
 		cgLimits:     cgLimits,
 	}
@@ -70,7 +67,7 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
+	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
