@@ -53,6 +53,7 @@ func NewDeploymentCondition(condType deployapi.DeploymentConditionType, status a
 	return &deployapi.DeploymentCondition{
 		Type:               condType,
 		Status:             status,
+		LastUpdateTime:     unversioned.Now(),
 		LastTransitionTime: unversioned.Now(),
 		Reason:             reason,
 		Message:            message,

@@ -24836,6 +24836,10 @@
       "type": "string",
       "description": "Status of the condition, one of True, False, Unknown."
      },
+     "lastUpdateTime": {
+      "type": "string",
+      "description": "The last time this condition was updated."
+     },
      "lastTransitionTime": {
       "type": "string",
       "description": "The last time the condition transitioned from one status to another."

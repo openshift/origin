@@ -437,6 +437,8 @@ type DeploymentCondition struct {
 	Type DeploymentConditionType
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus
+	// The last time this condition was updated.
+	LastUpdateTime unversioned.Time
 	// The last time the condition transitioned from one status to another.
 	LastTransitionTime unversioned.Time
 	// The reason for the condition's last transition.
