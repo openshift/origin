@@ -19,7 +19,7 @@ sleep 3
 $CMD atomic-registry-master oc delete dc docker-registry
 # Get the service account token for registry to connect to master API
 set -x
-TOKEN_NAME=$($CMD atomic-registry-master oc get sa registry --template '{{ $secret := index .secrets 0 }} {{ $secret.name }}')
+TOKEN_NAME=$($CMD atomic-registry-master oc get sa registry --template '{{ range .secrets}} {{ println .name }} {{ end }}' | grep 'registry-token')
 $CMD atomic-registry-master oc get secret ${TOKEN_NAME} --template '{{ .data.token }}' | base64 -d > /etc/atomic-registry/serviceaccount/token
 
 # write registry config to host and reference bindmounted host file
