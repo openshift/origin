@@ -13,14 +13,17 @@ import (
 	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/golang/glog"
 
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
 )
 
 type Dockerfile interface {
@@ -70,7 +73,7 @@ func IsPossibleSourceRepository(s string) bool {
 
 // IsRemoteRepository checks whether the provided string is a remote repository or not
 func IsRemoteRepository(s string) bool {
-	if !s2igit.New().ValidCloneSpecRemoteOnly(s) {
+	if !s2igit.New(s2iutil.NewFileSystem()).ValidCloneSpecRemoteOnly(s) {
 		return false
 	}
 	url, err := url.Parse(s)
