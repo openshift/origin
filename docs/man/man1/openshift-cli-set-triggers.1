@@ -39,6 +39,10 @@ Build configs support triggering off of image changes, config changes, and webho
     Comma delimited list of container names this trigger applies to on deployments; defaults to the name of the only container
 
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
     Filename, directory, or URL to file to use to edit the resource.
 
@@ -61,6 +65,10 @@ Build configs support triggering off of image changes, config changes, and webho
 .PP
 \fB\-\-from\-webhook\-allow\-env\fP=false
     A generic webhook which can provide environment variables \- a secret value will be generated automatically
+
+.PP
+\fB\-\-local\fP=false
+    If true, set image will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-manual\fP=false
