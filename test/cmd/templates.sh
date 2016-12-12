@@ -22,6 +22,17 @@ os::cmd::expect_success 'oc get templates'
 os::cmd::expect_success 'oc get templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get template ruby-helloworld-sample -o json | oc process -f -'
 os::cmd::expect_success 'oc process ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o template --template "{{.kind}}"'    "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template --template "{{.kind}}"' "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template={{.kind}}'              "List"
+os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/dev/null'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
+os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-22-centos7"
 os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
 os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get templates'
