@@ -49,6 +49,7 @@ var (
 	RouterPorts           = []int{80, 443}
 	DefaultPorts          = append(BasePorts, DefaultDNSPort)
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
+	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
 	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
 )
 
@@ -100,14 +101,14 @@ func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, contai
 }
 
 func (h *Helper) TestPorts(ports []int) error {
-	portData, _, err := h.runHelper.New().Image(h.image).
+	portData, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
 		HostPid().
 		Entrypoint("/bin/bash").
 		Command("-c", "cat /proc/net/tcp && ( [ -e /proc/net/tcp6 ] && cat /proc/net/tcp6 || true)").
-		CombinedOutput()
+		Output()
 	if err != nil {
 		return errors.NewError("Cannot get TCP port information from Kubernetes host").WithCause(err)
 	}
