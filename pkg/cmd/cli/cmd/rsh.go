@@ -94,9 +94,11 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
 	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/sh", "Path to the shell command")
-	cmd.Flags().IntVar(&options.Timeout, "timeout", 10, "Request timeout for obtaining a pod from the server; defaults to 10 seconds")
+	cmd.Flags().IntVar(&options.Timeout, "timeout", 10, "Maximum amount of time to wait before obtaining a pod from the server; defaults to 10 seconds")
 	cmd.Flags().StringVarP(&options.ContainerName, "container", "c", "", "Container name; defaults to first container")
 	cmd.Flags().SetInterspersed(false)
+
+	kcmdutil.AddRemoteStreamFlags(cmd)
 	return cmd
 }
 
@@ -112,6 +114,8 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	default:
 		o.TTY = term.IsTerminal(o.In)
 	}
+
+	o.ExecOptions.StreamOptions.StreamTimeout = kcmdutil.GetFlagDuration(cmd, "stream-timeout")
 
 	if len(args) < 1 {
 		return kcmdutil.UsageError(cmd, "rsh requires a single Pod to connect to")
