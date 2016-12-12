@@ -453,11 +453,10 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	r.stateChanged = true
-
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceAliasConfig)
 		r.serviceUnits = make(map[string]ServiceUnit)
+		r.stateChanged = true
 	}
 	for k := range r.serviceUnits {
 		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
@@ -467,6 +466,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 			continue
 		}
 		delete(r.serviceUnits, k)
+		r.stateChanged = true
 	}
 
 	for k := range r.state {
@@ -475,6 +475,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 			continue
 		}
 		delete(r.state, k)
+		r.stateChanged = true
 	}
 }
 
@@ -526,8 +527,6 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	r.stateChanged = true
-
 	service, ok := r.findMatchingServiceUnit(id)
 	if !ok {
 		return
@@ -543,6 +542,8 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 		r.peerEndpoints = []Endpoint{}
 		glog.V(4).Infof("Peer endpoint table has been cleared")
 	}
+
+	r.stateChanged = true
 }
 
 // routeKey generates route key in form of Namespace_Name.  This is NOT the normal key structure of ns/name because
@@ -652,8 +653,6 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	r.stateChanged = true
-
 	routeKey := r.routeKey(route)
 	serviceAliasConfig, ok := r.state[routeKey]
 	if !ok {
@@ -662,6 +661,7 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
 	delete(r.state, routeKey)
+	r.stateChanged = true
 }
 
 // AddEndpoints adds new Endpoints for the given id.
