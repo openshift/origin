@@ -815,8 +815,9 @@ function os::build::image() {
   local dockerfile="${3-}"
   local options="${OS_BUILD_IMAGE_ARGS-}"
   local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
+
   if [[ "${mode}" == "imagebuilder" ]]; then
-    if [[ -n "$( which imagebuilder )" ]]; then
+    if os::util::find::system_binary 'imagebuilder'; then
       if [[ -n "${dockerfile}" ]]; then
         eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
         return $?
@@ -824,6 +825,7 @@ function os::build::image() {
       eval "imagebuilder -t '${tag}' ${options} '${directory}'"
       return $?
     fi
+
     os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
     # clear options since we were unable to select imagebuilder
     options=""
