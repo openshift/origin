@@ -6,7 +6,7 @@ This document contains some tips and suggestions for troubleshooting an OpenShif
 System Environment
 ------------------
 
-1. Run as root
+1. Run as root.
 
    Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `oc create`) do not need to be run as root.
 
@@ -37,7 +37,7 @@ System Environment
 Build Failures
 --------------
 
-To investigate a build failure, first check the build logs.  You can view the build logs via
+To investigate a build failure, first check the build logs.  You can view the build logs via:
 
     $ oc logs build/[build_id]
 
