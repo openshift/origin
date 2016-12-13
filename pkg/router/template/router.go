@@ -584,12 +584,15 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 		Path:             route.Spec.Path,
 		IsWildcard:       wildcard,
 		Annotations:      route.Annotations,
-		ServiceUnitNames: make(map[string]int32),
+		ServiceUnitNames: getServiceUnits(route),
 	}
 
 	if route.Spec.Port != nil {
 		config.PreferPort = route.Spec.Port.TargetPort.String()
 	}
+
+	key := fmt.Sprintf("%s %s", config.TLSTermination, routeKey)
+	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
 
 	tls := route.Spec.TLS
 	if tls != nil && len(tls.Termination) > 0 {
@@ -631,16 +634,6 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 				config.Certificates[destCertKey] = destCert
 			}
 		}
-	}
-
-	key := fmt.Sprintf("%s %s", config.TLSTermination, routeKey)
-	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
-
-	// Weight suggests the % of traffic that a given service will
-	// receive compared to other services pointed to by the route.
-	serviceKeys, weights := routeKeys(route)
-	for i, key := range serviceKeys {
-		config.ServiceUnitNames[key] = weights[i]
 	}
 
 	return &config
@@ -824,22 +817,26 @@ func generateDestCertKey(config *ServiceAliasConfig) string {
 	return config.Host + destCertPostfix
 }
 
-// routeKeys returns the internal router keys to use for the given Route.
-// A route can have several services that it can point to, now
-func routeKeys(route *routeapi.Route) ([]string, []int32) {
-	keys := make([]string, 1+len(route.Spec.AlternateBackends))
-	weights := make([]int32, 1+len(route.Spec.AlternateBackends))
-	keys[0] = fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
-	if route.Spec.To.Weight != nil {
-		weights[0] = *route.Spec.To.Weight
+// getServiceUnits returns a map of service keys to their weights.
+// Weight suggests the % of traffic that a given service will receive
+// compared to other services pointed to by the route.
+func getServiceUnits(route *routeapi.Route) map[string]int32 {
+	serviceUnits := make(map[string]int32)
+	key := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+	if route.Spec.To.Weight == nil {
+		serviceUnits[key] = 0
+	} else {
+		serviceUnits[key] = *route.Spec.To.Weight
 	}
-	for i, svc := range route.Spec.AlternateBackends {
-		keys[i+1] = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
-		if svc.Weight != nil {
-			weights[i+1] = *svc.Weight
+	for _, svc := range route.Spec.AlternateBackends {
+		key = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
+		if svc.Weight == nil {
+			serviceUnits[key] = 0
+		} else {
+			serviceUnits[key] = *svc.Weight
 		}
 	}
-	return keys, weights
+	return serviceUnits
 }
 
 // configsAreEqual determines whether the given service alias configs can be considered equal.

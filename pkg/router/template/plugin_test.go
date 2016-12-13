@@ -178,12 +178,10 @@ func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	config := ServiceAliasConfig{
 		Host:             route.Spec.Host,
 		Path:             route.Spec.Path,
-		ServiceUnitNames: make(map[string]int32),
+		ServiceUnitNames: getServiceUnits(route),
 	}
 
-	serviceKeys, weights := routeKeys(route)
-	for i, key := range serviceKeys {
-		config.ServiceUnitNames[key] = weights[i]
+	for key := range config.ServiceUnitNames {
 		r.CreateServiceUnit(key)
 	}
 
