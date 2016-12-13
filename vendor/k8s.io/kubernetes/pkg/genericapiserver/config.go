@@ -53,6 +53,7 @@ import (
 	"k8s.io/kubernetes/pkg/genericapiserver/options"
 	"k8s.io/kubernetes/pkg/genericapiserver/routes"
 	genericvalidation "k8s.io/kubernetes/pkg/genericapiserver/validation"
+	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/runtime"
 	certutil "k8s.io/kubernetes/pkg/util/cert"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
@@ -114,6 +115,9 @@ type Config struct {
 	// DiscoveryAddresses is used to build the IPs pass to discovery.  If nil, the ExternalAddress is
 	// always reported
 	DiscoveryAddresses DiscoveryAddresses
+
+	// The default set of healthz checks. There might be more added via AddHealthzChecks dynamically.
+	HealthzChecks []healthz.HealthzChecker
 
 	// The port on PublicAddress where a read-write server will be installed.
 	// Defaults to 6443 if not set.
@@ -200,6 +204,7 @@ func NewConfig() *Config {
 		RequestContextMapper:   api.NewRequestContextMapper(),
 		BuildHandlerChainsFunc: DefaultBuildHandlerChain,
 		LegacyAPIGroupPrefixes: sets.NewString(DefaultLegacyAPIPrefix),
+		HealthzChecks:          []healthz.HealthzChecker{healthz.PingHealthz},
 
 		EnableIndex:     true,
 		LongRunningFunc: genericfilters.BasicLongRunningRequestCheck(longRunningRE, map[string]string{"watch": "true"}),
@@ -385,6 +390,7 @@ func (c completedConfig) New() (*GenericAPIServer, error) {
 		openAPIConfig: c.OpenAPIConfig,
 
 		postStartHooks: map[string]postStartHookEntry{},
+		healthzChecks:  c.HealthzChecks,
 	}
 
 	s.HandlerContainer = mux.NewAPIContainer(http.NewServeMux(), c.Serializer)
