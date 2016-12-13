@@ -172,7 +172,7 @@ In case you need additional control over how flags behave in terms of code compl
 |=======
 |`cmd.MarkFlagFilename("my-flag-name")`                 |allows the given flag to autocomplete as a path to file or directory.
 |`cmd.MarkFlagFilename("my-flag-name", "yaml", "yml")`  |consider the given file extensions when doing autocomplete.
-|`MarkFlagRequired("my-flag-name")`                     |mark a flag as required. 
+|`cmd.MarkFlagRequired("my-flag-name")`                 |mark a flag as required.
 |=======
 
 === Automatically Generated Documentation
