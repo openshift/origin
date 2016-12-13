@@ -241,6 +241,7 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 		RecyclerMinimumTimeout:   int(config.PersistentVolumeRecyclerConfiguration.MinimumTimeoutHostPath),
 		RecyclerTimeoutIncrement: int(config.PersistentVolumeRecyclerConfiguration.IncrementTimeoutHostPath),
 		RecyclerPodTemplate:      defaultScrubPod,
+		ProvisioningEnabled:      config.EnableHostPathProvisioning,
 	}
 	if err := kctrlmgr.AttemptToLoadRecycler(config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath, &hostPathConfig); err != nil {
 		glog.Fatalf("Could not create hostpath recycler pod from file %s: %+v", config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath, err)
