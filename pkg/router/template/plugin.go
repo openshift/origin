@@ -70,10 +70,8 @@ type routerInterface interface {
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id and the calculated host. Weight
-	// suggests the weightage attached to it with respect to other services
-	// pointed to by the route.
-	AddRoute(id string, weight int32, route *routeapi.Route, host string)
+	// AddRoute attempts to add a route to the router.
+	AddRoute(route *routeapi.Route)
 	// RemoveRoute removes the given route
 	RemoveRoute(route *routeapi.Route)
 	// HasRoute indicates whether the router is configured with the given route
@@ -184,27 +182,9 @@ func (p *TemplatePlugin) HandleNode(eventType watch.EventType, node *kapi.Node) 
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	serviceKeys, weights := routeKeys(route)
-
-	host := route.Spec.Host
-
 	switch eventType {
 	case watch.Added, watch.Modified:
-		// Delete the route first, because modify is to be treated as delete+add
-		p.Router.RemoveRoute(route)
-
-		// Now add the route back again
-		for i := range serviceKeys {
-			key := serviceKeys[i]
-			weight := weights[i]
-			if _, ok := p.Router.FindServiceUnit(key); !ok {
-				glog.V(4).Infof("Creating new frontend for key: %v", key)
-				p.Router.CreateServiceUnit(key)
-			}
-
-			glog.V(4).Infof("Modifying routes for %s", key)
-			p.Router.AddRoute(key, weight, route, host)
-		}
+		p.Router.AddRoute(route)
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting route %v", route)
 		p.Router.RemoveRoute(route)
@@ -222,24 +202,6 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 func (p *TemplatePlugin) Commit() error {
 	p.Router.Commit()
 	return nil
-}
-
-// routeKeys returns the internal router keys to use for the given Route.
-// A route can have several services that it can point to, now
-func routeKeys(route *routeapi.Route) ([]string, []int32) {
-	keys := make([]string, 1+len(route.Spec.AlternateBackends))
-	weights := make([]int32, 1+len(route.Spec.AlternateBackends))
-	keys[0] = fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
-	if route.Spec.To.Weight != nil {
-		weights[0] = *route.Spec.To.Weight
-	}
-	for i, svc := range route.Spec.AlternateBackends {
-		keys[i+1] = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
-		if svc.Weight != nil {
-			weights[i+1] = *svc.Weight
-		}
-	}
-	return keys, weights
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.

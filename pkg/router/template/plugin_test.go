@@ -171,18 +171,22 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 	}
 }
 
-// AddRoute adds a ServiceAliasConfig for the route with the ServiceUnit identified by id
-func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, host string) {
-	su, _ := r.FindServiceUnit(id)
+// AddRoute adds a ServiceAliasConfig and associated ServiceUnits for the route
+func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	routeKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
-		Host:             host,
+		Host:             route.Spec.Host,
 		Path:             route.Spec.Path,
 		ServiceUnitNames: make(map[string]int32),
 	}
 
-	config.ServiceUnitNames[su.Name] = weight
+	serviceKeys, weights := routeKeys(route)
+	for i, key := range serviceKeys {
+		config.ServiceUnitNames[key] = weights[i]
+		r.CreateServiceUnit(key)
+	}
+
 	r.State[routeKey] = config
 }
 
