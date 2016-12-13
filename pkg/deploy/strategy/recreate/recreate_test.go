@@ -276,6 +276,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		out:          &bytes.Buffer{},
 		errOut:       &bytes.Buffer{},
 		eventClient:  fake.NewSimpleClientset().Core(),
+		podClient:    fake.NewSimpleClientset().Core(),
 		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
@@ -326,6 +327,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		retryPeriod:  1 * time.Millisecond,
 		scaler:       scaler,
 		eventClient:  fake.NewSimpleClientset().Core(),
+		podClient:    fake.NewSimpleClientset().Core(),
 	}
 
 	acceptor := &testAcceptor{
