@@ -99,7 +99,7 @@ func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, contai
 	}
 }
 
-func (h *Helper) TestPorts(ports []int) error {
+func (h *Helper) TestPorts(ports map[int]string) error {
 	portData, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
@@ -265,7 +265,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 			"start",
 			fmt.Sprintf("--images=%s", opt.Images),
 			fmt.Sprintf("--volume-dir=%s", opt.HostVolumesDir),
-			fmt.Sprintf("--dns=0.0.0.0:%d", opt.DNSPort),
+			fmt.Sprintf("--dns=%s:%d", opt.ServerIP, opt.DNSPort),
 			"--write-config=/var/lib/origin/openshift.local.config",
 		}
 		if opt.PortForwarding {
@@ -521,11 +521,11 @@ func (h *Helper) getOpenShiftConfigFiles(hostname string) (string, string, error
 		nil
 }
 
-func checkPortsInUse(data string, ports []int) error {
+func checkPortsInUse(data string, ports map[int]string) error {
 	used := getUsedPorts(data)
 	conflicts := []int{}
-	for _, port := range ports {
-		if _, inUse := used[port]; inUse {
+	for port, bindInterface := range ports {
+		if interfaceInUse, inUse := used[port]; inUse && interfaceInUse == bindInterface {
 			conflicts = append(conflicts, port)
 		}
 	}
@@ -536,7 +536,7 @@ func checkPortsInUse(data string, ports []int) error {
 }
 
 func getUsedPorts(data string) map[int]struct{} {
-	ports := map[int]struct{}{}
+	ports := map[int]string{}
 	lines := strings.Split(data, "\n")
 	for _, line := range lines {
 		parts := strings.Fields(line)
@@ -557,9 +557,27 @@ func getUsedPorts(data string) map[int]struct{} {
 			continue
 		}
 		port, err := strconv.ParseInt(localAddress[1], 16, 0)
-		if err == nil {
-			ports[int(port)] = struct{}{}
+		if err != nil {
+			continue
 		}
+
+		// in /proc/net/tcp, the local address is stored as a little-endian hexadecimal number
+		// so we must reverse it first, then parse each byte as an integer to determine the
+		// interface on which this port is bound
+		if len(localAddress[0]) != 8 {
+			continue
+		}
+
+		bindInterfaceParts := []string{}
+		for i := 8; i > 0; i = i - 2 {
+			bindInterfacePart, err := strconv.ParseInt(localAddress[0][i-2:i], 16, 0)
+			if err != nil {
+				continue
+			}
+			bindInterfaceParts = append(bindInterfaceParts, strconv.FormatInt(bindInterfacePart, 10))
+		}
+
+		fmt.Println(strings.Join(bindInterfaceParts, "."))
 	}
 	glog.V(2).Infof("Used ports in container: %#v", ports)
 	return ports
