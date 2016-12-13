@@ -49,6 +49,7 @@ var (
 	RouterPorts           = []int{80, 443}
 	DefaultPorts          = append(BasePorts, DefaultDNSPort)
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
+	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
 	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
 )
 

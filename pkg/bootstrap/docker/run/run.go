@@ -38,6 +38,10 @@ type Runner struct {
 	config          *docker.Config
 	hostConfig      *docker.HostConfig
 	input           io.Reader
+	stdOut          io.Writer
+	stdErr          io.Writer
+	logStdOut       io.Writer
+	logStdErr       io.Writer
 	removeContainer bool
 }
 
@@ -127,6 +131,26 @@ func (h *Runner) Input(reader io.Reader) *Runner {
 	return h
 }
 
+func (h *Runner) AttachStdErr(out io.Writer) *Runner {
+	h.stdOut = out
+	return h
+}
+
+func (h *Runner) AttachStdOut(out io.Writer) *Runner {
+	h.stdErr = out
+	return h
+}
+
+func (h *Runner) LogStdOutTo(out io.Writer) *Runner {
+	h.logStdOut = out
+	return h
+}
+
+func (h *Runner) LogStdErrTo(out io.Writer) *Runner {
+	h.logStdErr = out
+	return h
+}
+
 // Start starts the container as a daemon and returns
 func (h *Runner) Start() (string, error) {
 	id, err := h.Create()
@@ -139,7 +163,9 @@ func (h *Runner) Start() (string, error) {
 // Output starts the container, waits for it to finish and returns its output
 func (h *Runner) Output() (string, string, int, error) {
 	stdOut, errOut := &bytes.Buffer{}, &bytes.Buffer{}
-	rc, err := h.runWithOutput(h.input, stdOut, errOut)
+	h.LogStdOutTo(stdOut)
+	h.LogStdErrTo(errOut)
+	rc, err := h.run()
 	return stdOut.String(), errOut.String(), rc, err
 }
 
@@ -147,13 +173,15 @@ func (h *Runner) Output() (string, string, int, error) {
 // are combined into one.
 func (h *Runner) CombinedOutput() (string, int, error) {
 	out := &bytes.Buffer{}
-	rc, err := h.runWithOutput(h.input, out, out)
+	h.LogStdOutTo(out)
+	h.LogStdErrTo(out)
+	rc, err := h.run()
 	return out.String(), rc, err
 }
 
 // Run executes the container and waits until it completes
 func (h *Runner) Run() (int, error) {
-	return h.runWithOutput(h.input, ioutil.Discard, ioutil.Discard)
+	return h.run()
 }
 
 func (h *Runner) Create() (string, error) {
@@ -179,7 +207,7 @@ func (h *Runner) startContainer(id string) error {
 	return nil
 }
 
-func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, error) {
+func (h *Runner) run() (int, error) {
 	id, err := h.Create()
 	if err != nil {
 		return 0, err
@@ -193,58 +221,104 @@ func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, 
 		}()
 	}
 	logOut, logErr := &bytes.Buffer{}, &bytes.Buffer{}
-	outStream := io.MultiWriter(stdOut, logOut)
-	errStream := io.MultiWriter(stdErr, logErr)
-	attached := make(chan struct{})
-	attachErr := make(chan error)
-	streamingWG := &sync.WaitGroup{}
-	streamingWG.Add(1)
-	go func() {
-		glog.V(5).Infof("Attaching to container %q", id)
-		err = h.client.AttachToContainer(docker.AttachToContainerOptions{
-			Container:    id,
-			Logs:         true,
-			Stream:       true,
-			Stdout:       true,
-			Stderr:       true,
-			Stdin:        stdIn != nil,
-			OutputStream: outStream,
-			ErrorStream:  errStream,
-			InputStream:  stdIn,
-			Success:      attached,
-		})
-		if err != nil {
-			glog.V(2).Infof("Error occurred while attaching: %v", err)
-			attachErr <- err
-		}
-		streamingWG.Done()
-		glog.V(5).Infof("Done attaching to container %q", id)
-	}()
+	rc := 0
+	doAttach := h.input != nil || h.stdOut != nil || h.stdErr != nil
+	if doAttach {
+		outStream := io.MultiWriter(h.stdOut, logOut)
+		errStream := io.MultiWriter(h.stdErr, logErr)
+		attached := make(chan struct{})
+		attachErr := make(chan error)
+		streamingWG := &sync.WaitGroup{}
+		streamingWG.Add(1)
+		go func() {
+			glog.V(5).Infof("Attaching to container %q", id)
+			err = h.client.AttachToContainer(docker.AttachToContainerOptions{
+				Container:    id,
+				Logs:         true,
+				Stream:       true,
+				Stdout:       true,
+				Stderr:       true,
+				Stdin:        h.input != nil,
+				OutputStream: outStream,
+				ErrorStream:  errStream,
+				InputStream:  h.input,
+				Success:      attached,
+			})
+			if err != nil {
+				glog.V(2).Infof("Error occurred while attaching: %v", err)
+				attachErr <- err
+			}
+			streamingWG.Done()
+			glog.V(5).Infof("Done attaching to container %q", id)
+		}()
 
-	select {
-	case <-attached:
-		glog.V(5).Infof("Attach is successful.")
-	case err = <-attachErr:
-		return 0, err
+		select {
+		case <-attached:
+			glog.V(5).Infof("Attach is successful.")
+		case err = <-attachErr:
+			return 0, err
+		}
+		glog.V(5).Infof("Starting container %q", id)
+		err = h.startContainer(id)
+		if err != nil {
+			glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
+			return 0, err
+		}
+		glog.V(5).Infof("signaling attached channel")
+		attached <- struct{}{}
+		glog.V(5).Infof("Waiting for container %q", id)
+		rc, err = h.client.WaitContainer(id)
+		if err != nil {
+			glog.V(2).Infof("Error occurred waiting for container %q: %v, rc = %d", id, err, rc)
+		}
+		glog.V(5).Infof("Done waiting for container %q, rc=%d. Waiting for attach routine", id, rc)
+		streamingWG.Wait()
+		glog.V(5).Infof("Done waiting for attach routine")
+		glog.V(5).Infof("Stdout:\n%s", logOut.String())
+		glog.V(5).Infof("Stderr:\n%s", logErr.String())
+	} else {
+		glog.V(5).Infof("Starting container %q", id)
+		err = h.startContainer(id)
+		if err != nil {
+			glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
+			return 0, err
+		}
+		glog.V(5).Infof("Waiting for container %q", id)
+		rc, err = h.client.WaitContainer(id)
+		if err != nil {
+			glog.V(2).Infof("Error occurred waiting for container %q: %v, rc = %d", id, err, rc)
+		}
+		glog.V(5).Infof("Done waiting for container %q, rc=%d.", id, rc)
 	}
-	glog.V(5).Infof("Starting container %q", id)
-	err = h.startContainer(id)
-	if err != nil {
-		glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
-		return 0, err
+	// Get container logs if logs asked for or if not attached so we at least have them for debug
+	if h.logStdOut != nil || h.logStdErr != nil || (!doAttach && (bool(glog.V(5)) || rc != 0)) {
+		glog.V(5).Infof("Obtaining container logs")
+		outTo := h.logStdOut
+		errTo := h.logStdErr
+		if outTo == nil {
+			outTo = ioutil.Discard
+		}
+		if errTo == nil {
+			errTo = ioutil.Discard
+		}
+		logOpt := docker.LogsOptions{
+			Container:    id,
+			OutputStream: io.MultiWriter(outTo, logOut),
+			Stdout:       true,
+			ErrorStream:  io.MultiWriter(errTo, logErr),
+			Stderr:       true,
+		}
+		err = h.client.Logs(logOpt)
+		if err != nil {
+			glog.V(2).Infof("Error occurred getting container %q logs: %v", id, err)
+			if h.logStdOut != nil || h.logStdErr != nil {
+				return 0, err
+			}
+		} else {
+			glog.V(5).Infof("Stdout:\n%s", logOut.String())
+			glog.V(5).Infof("Stderr:\n%s", logErr.String())
+		}
 	}
-	glog.V(5).Infof("signaling attached channel")
-	attached <- struct{}{}
-	glog.V(5).Infof("Waiting for container %q", id)
-	rc, err := h.client.WaitContainer(id)
-	if err != nil {
-		glog.V(2).Infof("Error occurred waiting for container %q: %v, rc = %d", id, err, rc)
-	}
-	glog.V(5).Infof("Done waiting for container %q, rc=%d. Waiting for attach routine", id, rc)
-	streamingWG.Wait()
-	glog.V(5).Infof("Done waiting for attach routine")
-	glog.V(5).Infof("Stdout:\n%s", logOut.String())
-	glog.V(5).Infof("Stderr:\n%s", logErr.String())
 	if rc != 0 || err != nil {
 		return rc, newRunError(rc, err, logOut.Bytes(), logErr.Bytes(), h.config)
 	}
