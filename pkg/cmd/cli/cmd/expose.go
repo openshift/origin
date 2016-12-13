@@ -65,6 +65,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("path", "", "Set a path for the new route")
+	cmd.Flags().String("wildcardpolicy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
 	return cmd
 }
 
@@ -93,6 +94,12 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	if err != nil {
 		return kcmdutil.UsageError(cmd, err.Error())
 	}
+
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcardpolicy")
+	if len(wildcardpolicy) > 0 && (wildcardpolicy != "Subdomain" && wildcardpolicy != "None") {
+		return fmt.Errorf("only \"Subdomain\" or \"None\" are supported for wildcardpolicy")
+	}
+
 	if len(infos) > 1 {
 		return fmt.Errorf("multiple resources provided: %v", args)
 	}
