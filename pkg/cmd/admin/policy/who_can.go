@@ -55,7 +55,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If present, list who can perform the specified action in all namespaces.")
+	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
 
 	return cmd
 }

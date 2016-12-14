@@ -100,8 +100,8 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "Specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
-	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves modified cluster roles.")
+	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
+	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves modified cluster roles.")
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")

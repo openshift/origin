@@ -103,7 +103,7 @@ func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Write
 
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter build configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all build configs in the namespace")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all build configs in the namespace")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.PostCommit, "post-commit", options.PostCommit, "If true, set the post-commit build hook on a build config")

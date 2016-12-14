@@ -128,7 +128,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
-	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
+	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "If true, have the build output push to a Docker repository.")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into resulting image.")
 	cmd.Flags().StringArrayVar(&config.EnvironmentFiles, "env-file", config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
 	cmd.MarkFlagFilename("env-file")

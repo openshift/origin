@@ -71,10 +71,10 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "Check the specified action in all namespaces.")
-	cmd.Flags().BoolVar(&o.ListAll, "list", o.ListAll, "List all the actions you can perform in a namespace, cannot be specified with --all-namespaces or a VERB RESOURCE")
-	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "Suppress output and just return the exit code.")
-	cmd.Flags().BoolVar(&o.IgnoreScopes, "ignore-scopes", o.IgnoreScopes, "Disregard any scopes present on this request and evaluate considering full permissions.")
+	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "If true, check the specified action in all namespaces.")
+	cmd.Flags().BoolVar(&o.ListAll, "list", o.ListAll, "If true, list all the actions you can perform in a namespace, cannot be specified with --all-namespaces or a VERB RESOURCE")
+	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "If true, suppress output and just return the exit code.")
+	cmd.Flags().BoolVar(&o.IgnoreScopes, "ignore-scopes", o.IgnoreScopes, "If true, disregard any scopes present on this request and evaluate considering full permissions.")
 	cmd.Flags().StringSliceVar(&o.Scopes, "scopes", o.Scopes, "Check the specified action using these scopes.  By default, the scopes on the current token will be used.")
 	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
 	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")

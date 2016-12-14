@@ -73,8 +73,8 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
+	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "If true, prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
 	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of a deployment for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&opts.KeepComplete, "keep-complete", opts.KeepComplete, "Per DeploymentConfig, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.")
 	cmd.Flags().IntVar(&opts.KeepFailed, "keep-failed", opts.KeepFailed, "Per DeploymentConfig, specify the number of deployments whose status is failed that will be preserved whose replica size is 0.")

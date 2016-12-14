@@ -127,22 +127,22 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 			}
 		},
 	}
-	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
+	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "If true, create a Docker machine if one doesn't exist")
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	cmd.Flags().StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	cmd.Flags().StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
-	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
+	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "If true, skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
-	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
+	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "If true, use existing configuration if present")
 	cmd.Flags().StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
 	cmd.Flags().StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
-	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
+	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "If true, use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
-	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "If true, install metrics (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "If true, install logging (experimental)")
 	return cmd
 }
 

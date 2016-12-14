@@ -103,8 +103,8 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "Specify that cluster role bindings should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
-	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves extra subjects in cluster role bindings.")
+	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster role bindings should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
+	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra subjects in cluster role bindings.")
 	cmd.Flags().StringSliceVar(&excludeUsers, "exclude-users", excludeUsers, "Do not add cluster role bindings for these user names.")
 	cmd.Flags().StringSliceVar(&excludeGroups, "exclude-groups", excludeGroups, "Do not add cluster role bindings for these group names.")
 	kcmdutil.AddPrinterFlags(cmd)

@@ -76,7 +76,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().BoolVar(&options.Overwrite, "confirm", options.Overwrite, "Overwrite files that already exist.")
+	cmd.Flags().BoolVar(&options.Overwrite, "confirm", options.Overwrite, "If true, overwrite files that already exist.")
 	cmd.Flags().StringVar(&options.TargetDirectory, "to", options.TargetDirectory, "Directory to extract files to.")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to identify to extract the resource.")
 	cmd.MarkFlagFilename("filename")
