@@ -251,7 +251,10 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
-		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(buildInfo.FailureReason.Reason, buildInfo.FailureReason.Message)
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
+			buildInfo.FailureReason.Reason,
+			buildInfo.FailureReason.Message,
+		)
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
@@ -261,7 +264,10 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 	result, err := builder.Build(config)
 	if err != nil {
-		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(result.BuildInfo.FailureReason.Reason, result.BuildInfo.FailureReason.Message)
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
+			result.BuildInfo.FailureReason.Reason,
+			result.BuildInfo.FailureReason.Message,
+		)
 
 		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))

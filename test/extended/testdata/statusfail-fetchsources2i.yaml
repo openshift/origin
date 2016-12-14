@@ -1,10 +1,11 @@
 kind: BuildConfig
 apiVersion: v1
 metadata:
-  name: statusfail-assemblescript
+  name: statusfail-fetchsourcesourcetoimage
 spec:
   source:
-      type: binary
+    git:
+      uri: "https://failure/sourcetoimage/status"
   strategy:
     type: Source
     sourceStrategy:

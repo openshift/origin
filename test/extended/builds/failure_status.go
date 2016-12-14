@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"fmt"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -15,15 +17,18 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 
 	var (
 		// convert the s2i failure cases to our own StatusReason
-		reasonAssembleFailed  = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
-		messageAssembleFailed = string(s2istatus.ReasonMessageAssembleFailed)
-
-		oc                    = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
-		postCommitHookFixture = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
-		gitCloneFixture       = exutil.FixturePath("testdata", "statusfail-fetchsource.yaml")
-		builderImageFixture   = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
-		pushToRegistryFixture = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
-		failedAssembleFixture = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
+		reasonAssembleFailed     = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
+		messageAssembleFailed    = string(s2istatus.ReasonMessageAssembleFailed)
+		reasonFetchSourceFailed  = buildapi.StatusReason(s2istatus.ReasonFetchSourceFailed)
+		messageFetchSourceFailed = string(s2istatus.ReasonMessageFetchSourceFailed)
+		postCommitHookFixture    = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
+		fetchDockerSrc           = exutil.FixturePath("testdata", "statusfail-fetchsourcedocker.yaml")
+		fetchS2ISrc              = exutil.FixturePath("testdata", "statusfail-fetchsources2i.yaml")
+		builderImageFixture      = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
+		pushToRegistryFixture    = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
+		failedAssembleFixture    = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
+		binaryBuildDir           = exutil.FixturePath("testdata", "statusfail-assemble")
+		oc                       = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
 	)
 
 	g.JustBeforeEach(func() {
@@ -37,7 +42,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", postCommitHookFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "failstatus-postcommithook")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-postcommithook")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
 
@@ -48,12 +53,12 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 		})
 	})
 
-	g.Describe("Build status fetch source failure", func() {
-		g.It("should contain the fetch source failure reason and message", func() {
-			err := oc.Run("create").Args("-f", gitCloneFixture).Execute()
+	g.Describe("Build status Docker fetch source failure", func() {
+		g.It("should contain the Docker build fetch source failure reason and message", func() {
+			err := oc.Run("create").Args("-f", fetchDockerSrc).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "failstatus-fetchsource")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcedocker")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
 
@@ -64,12 +69,28 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 		})
 	})
 
+	g.Describe("Build status fetch S2I source failure", func() {
+		g.It("should contain the S2I fetch source failure reason and message", func() {
+			err := oc.Run("create").Args("-f", fetchS2ISrc).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcesourcetoimage")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertFailure()
+
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Reason).To(o.Equal(reasonFetchSourceFailed))
+			o.Expect(build.Status.Message).To(o.Equal(messageFetchSourceFailed))
+		})
+	})
+
 	g.Describe("Build status fetch builder image failure", func() {
 		g.It("should contain the fetch builder image failure reason and message", func() {
 			err := oc.Run("create").Args("-f", builderImageFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "failstatus-builderimage")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-builderimage")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
 
@@ -85,7 +106,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", pushToRegistryFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "failstatus-pushtoregistry")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-pushtoregistry")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
 
@@ -101,7 +122,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", failedAssembleFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "failstatus-assemblescript")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-assemblescript", fmt.Sprintf("--from-dir=%s", binaryBuildDir))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
 
