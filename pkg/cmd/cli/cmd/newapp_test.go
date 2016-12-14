@@ -112,7 +112,7 @@ func TestNewAppDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, nil, nil)
+	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, nil, nil, nil)
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)
