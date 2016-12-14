@@ -78,10 +78,18 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out, errout io.Writer)
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
-	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|template|templatefile.")
+	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=...")
 	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=go-template, -o=go-templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+
+	// kcmdutil.PrinterForCommand needs these flags, however they are useless
+	// here because oc process returns list of heterogeneous objects that is
+	// not suitable for formatting as a table.
+	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
+	cmd.Flags().MarkHidden("no-headers")
+	cmd.Flags().String("sort-by", "", "If non-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. 'ObjectMeta.Name'). The field in the API resource specified by this JSONPath expression must be an integer or a string.")
+	cmd.Flags().MarkHidden("sort-by")
 
 	return cmd
 }
@@ -273,7 +281,7 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 	}
 	objects = append(objects, resultObj.Objects...)
 
-	p, _, err := kubectl.GetPrinter(outputFormat, "", false)
+	p, _, err := kcmdutil.PrinterForCommand(cmd)
 	if err != nil {
 		return err
 	}
