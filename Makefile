@@ -20,6 +20,10 @@ export OS_OUTPUT_GOPATH
 # mounting secrets specific to a build environment.
 export OS_BUILD_IMAGE_ARGS
 
+# Tests run using `make` are most often run by the CI system, so we are OK to
+# assume the user wants jUnit output and will turn it off if they don't.
+JUNIT_REPORT ?= true
+
 # Build code.
 #
 # Args:
