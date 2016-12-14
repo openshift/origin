@@ -1,3 +1,12 @@
+// This file is intended to contain tests of the behavior of
+// router-configured instances of HAProxy.  Such tests require docker
+// and a router image.  Validating a change to the router code with
+// these tests requires that the code and the router image be rebuilt
+// before the tests are run.
+//
+// Tests that do not need to validate how the router configures
+// HAProxy belong in router_controller_test.go instead.
+
 package integration
 
 import (

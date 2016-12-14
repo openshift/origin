@@ -1,3 +1,10 @@
+// This file is intended to contain tests of the behavior of the
+// router controller interacting with the api.  Docker and a router
+// image are not required to run the tests.
+//
+// Tests intended to validate router-configured HAProxy belong in
+// router_test.go instead.
+
 package integration
 
 import (
