@@ -10,6 +10,8 @@ import (
 const (
 	// DefaultRollingTimeoutSeconds is the default TimeoutSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingTimeoutSeconds int64 = 10 * 60
+	// DefaultRecreateTimeoutSeconds is the default TimeoutSeconds for RecreateDeploymentStrategyParams.
+	DefaultRecreateTimeoutSeconds int64 = 2 * 60
 	// DefaultRollingIntervalSeconds is the default IntervalSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingIntervalSeconds int64 = 1
 	// DefaultRollingUpdatePeriodSeconds is the default PeriodSeconds for RollingDeploymentStrategyParams.
