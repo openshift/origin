@@ -192,6 +192,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 		nil, nil, nil,
 		nil, // event recorder
 		s.VolumeConfiguration.EnableDynamicProvisioning,
+		true, // enableExpBackoff
 	)
 	volumeController.Run(utilwait.NeverStop)
 }

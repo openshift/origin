@@ -435,6 +435,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		nil, // classSource
 		nil, // eventRecorder
 		s.VolumeConfiguration.EnableDynamicProvisioning,
+		true, //enable Exponential backoff on errors
 	)
 	volumeController.Run(wait.NeverStop)
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))

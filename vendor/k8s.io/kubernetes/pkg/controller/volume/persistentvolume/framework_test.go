@@ -606,6 +606,7 @@ func newTestController(kubeClient clientset.Interface, volumeSource, claimSource
 		classSource,
 		record.NewFakeRecorder(1000), // event recorder
 		enableDynamicProvisioning,
+		false, // enableExpBackoff
 	)
 
 	// Speed up the test

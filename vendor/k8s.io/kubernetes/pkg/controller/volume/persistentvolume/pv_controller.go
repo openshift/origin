@@ -935,8 +935,7 @@ func (ctrl *PersistentVolumeController) reclaimVolume(volume *api.PersistentVolu
 		glog.V(4).Infof("reclaimVolume[%s]: policy is Delete", volume.Name)
 		opName := fmt.Sprintf("delete-%s[%s]", volume.Name, string(volume.UID))
 		ctrl.scheduleOperation(opName, func() error {
-			ctrl.deleteVolumeOperation(volume)
-			return nil
+			return ctrl.deleteVolumeOperation(volume)
 		})
 
 	default:
@@ -1041,12 +1040,13 @@ func (ctrl *PersistentVolumeController) recycleVolumeOperation(arg interface{}) 
 
 // deleteVolumeOperation deletes a volume. This method is running in standalone
 // goroutine and already has all necessary locks.
-func (ctrl *PersistentVolumeController) deleteVolumeOperation(arg interface{}) {
+func (ctrl *PersistentVolumeController) deleteVolumeOperation(arg interface{}) error {
 	volume, ok := arg.(*api.PersistentVolume)
 	if !ok {
 		glog.Errorf("Cannot convert deleteVolumeOperation argument to volume, got %#v", arg)
-		return
+		return nil
 	}
+
 	glog.V(4).Infof("deleteVolumeOperation [%s] started", volume.Name)
 
 	// This method may have been waiting for a volume lock for some time.
@@ -1055,29 +1055,29 @@ func (ctrl *PersistentVolumeController) deleteVolumeOperation(arg interface{}) {
 	newVolume, err := ctrl.kubeClient.Core().PersistentVolumes().Get(volume.Name)
 	if err != nil {
 		glog.V(3).Infof("error reading peristent volume %q: %v", volume.Name, err)
-		return
+		return nil
 	}
 	needsReclaim, err := ctrl.isVolumeReleased(newVolume)
 	if err != nil {
 		glog.V(3).Infof("error reading claim for volume %q: %v", volume.Name, err)
-		return
+		return nil
 	}
 	if !needsReclaim {
 		glog.V(3).Infof("volume %q no longer needs deletion, skipping", volume.Name)
-		return
+		return nil
 	}
 
 	if err = ctrl.doDeleteVolume(volume); err != nil {
 		// Delete failed, update the volume and emit an event.
 		glog.V(3).Infof("deletion of volume %q failed: %v", volume.Name, err)
-		if _, err = ctrl.updateVolumePhaseWithEvent(volume, api.VolumeFailed, api.EventTypeWarning, "VolumeFailedDelete", err.Error()); err != nil {
-			glog.V(4).Infof("deleteVolumeOperation [%s]: failed to mark volume as failed: %v", volume.Name, err)
+		if _, err2 := ctrl.updateVolumePhaseWithEvent(volume, api.VolumeFailed, api.EventTypeWarning, "VolumeFailedDelete", err.Error()); err2 != nil {
+			glog.V(4).Infof("deleteVolumeOperation [%s]: failed to mark volume as failed: %v", volume.Name, err2)
 			// Save failed, retry on the next deletion attempt
-			return
+			return err2
 		}
 		// Despite the volume being Failed, the controller will retry deleting
 		// the volume in every syncVolume() call.
-		return
+		return err
 	}
 
 	glog.V(4).Infof("deleteVolumeOperation [%s]: success", volume.Name)
@@ -1088,9 +1088,9 @@ func (ctrl *PersistentVolumeController) deleteVolumeOperation(arg interface{}) {
 		// cache of "recently deleted volumes" and avoid unnecessary deletion,
 		// this is left out as future optimization.
 		glog.V(3).Infof("failed to delete volume %q from database: %v", volume.Name, err)
-		return
+		return nil
 	}
-	return
+	return nil
 }
 
 // isVolumeReleased returns true if given volume is released and can be recycled

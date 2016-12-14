@@ -1132,12 +1132,13 @@ func createClients(ns *api.Namespace, t *testing.T, s *httptest.Server, syncPeri
 		nil, // alpha provisioner
 		plugins,
 		cloud,
-		"",   // cluster name
-		nil,  // volumeSource
-		nil,  // claimSource
-		nil,  // classSource
-		nil,  // eventRecorder
-		true) // enableDynamicProvisioning
+		"",    // cluster name
+		nil,   // volumeSource
+		nil,   // claimSource
+		nil,   // classSource
+		nil,   // eventRecorder
+		true,  // enableDynamicProvisioning
+		false) // enableExpBackoff
 
 	watchPV, err := testClient.PersistentVolumes().Watch(api.ListOptions{})
 	if err != nil {
