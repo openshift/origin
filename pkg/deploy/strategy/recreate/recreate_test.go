@@ -7,7 +7,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
@@ -32,13 +31,6 @@ func (c *fakeControllerClient) ReplicationControllers(ns string) kcoreclient.Rep
 
 type fakePodClient struct {
 	deployerName string
-	startTime    *unversioned.Time
-}
-
-var startTime = time.Now()
-
-func (c *fakePodClient) setTime(t time.Time) {
-	c.startTime = &unversioned.Time{Time: t}
 }
 
 func (c *fakePodClient) Pods(ns string) kcoreclient.PodInterface {
@@ -46,10 +38,6 @@ func (c *fakePodClient) Pods(ns string) kcoreclient.PodInterface {
 	deployerPod.Name = c.deployerName
 	deployerPod.Namespace = ns
 	deployerPod.Status = kapi.PodStatus{}
-	if c.startTime == nil {
-		c.setTime(startTime)
-	}
-	deployerPod.Status.StartTime = c.startTime
 	return fake.NewSimpleClientset(deployerPod).Core().Pods(ns)
 }
 
@@ -72,7 +60,6 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		getUpdateAcceptor: getUpdateAcceptor,
 		scaler:            scaler,
 		eventClient:       fake.NewSimpleClientset().Core(),
-		now:               func() time.Time { return startTime },
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -95,59 +82,6 @@ func TestRecreate_initialDeployment(t *testing.T) {
 	}
 }
 
-func TestRecreate_retryParams(t *testing.T) {
-	tests := []struct {
-		desc           string
-		timeoutSeconds int64
-		expect         time.Duration
-		startTime      func() time.Time
-	}{
-		{
-			desc:           "timeoutSeconds is defaulted to 2m but deployer took 5s to start",
-			timeoutSeconds: 120,
-			expect:         115 * time.Second,
-			startTime:      func() time.Time { t := startTime; return t.Add(5 * time.Second) },
-		},
-		{
-			desc:           "timeoutSeconds set to 50s and deployer took 5s to start",
-			timeoutSeconds: 50,
-			expect:         45 * time.Second,
-			startTime:      func() time.Time { t := startTime; return t.Add(5 * time.Second) },
-		},
-	}
-
-	for _, tc := range tests {
-		scaler := &cmdtest.FakeScaler{}
-		var deployment *kapi.ReplicationController
-		strategy := &RecreateDeploymentStrategy{
-			out:               &bytes.Buffer{},
-			errOut:            &bytes.Buffer{},
-			decoder:           kapi.Codecs.UniversalDecoder(),
-			retryPeriod:       1 * time.Millisecond,
-			getUpdateAcceptor: getUpdateAcceptor,
-			scaler:            scaler,
-			eventClient:       fake.NewSimpleClientset().Core(),
-			now:               func() time.Time { return startTime },
-		}
-		config := deploytest.OkDeploymentConfig(1)
-		config.Spec.Strategy = recreateParams(tc.timeoutSeconds, "", "", "")
-		deployment, _ = deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-		podClient := &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
-		podClient.setTime(tc.startTime())
-
-		strategy.podClient = podClient
-		strategy.rcClient = &fakeControllerClient{deployment: deployment}
-
-		err := strategy.Deploy(nil, deployment, 1)
-		if err != nil {
-			t.Fatalf("unexpected deploy error: %#v", err)
-		}
-		if strategy.retryParams.Timeout != tc.expect {
-			t.Errorf("%s: expect:%s timeoutSeconds:%s, got:%s", tc.desc, tc.expect, time.Duration(tc.timeoutSeconds)*time.Second, strategy.retryParams.Timeout)
-		}
-	}
-}
-
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
@@ -163,7 +97,6 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		getUpdateAcceptor: getUpdateAcceptor,
 		eventClient:       fake.NewSimpleClientset().Core(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
-		now:               func() time.Time { return startTime },
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -197,7 +130,6 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		getUpdateAcceptor: getUpdateAcceptor,
 		eventClient:       fake.NewSimpleClientset().Core(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
-		now:               func() time.Time { return startTime },
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
@@ -230,7 +162,6 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
-		now:               func() time.Time { return startTime },
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
@@ -263,7 +194,6 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
-		now:               func() time.Time { return startTime },
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -298,7 +228,6 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
-		now:               func() time.Time { return startTime },
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -329,7 +258,6 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		decoder:     kapi.Codecs.UniversalDecoder(),
 		retryPeriod: 1 * time.Millisecond,
 		scaler:      scaler,
-		now:         func() time.Time { return startTime },
 	}
 
 	acceptorCalled := false
@@ -376,7 +304,6 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		retryPeriod: 1 * time.Millisecond,
 		scaler:      scaler,
 		eventClient: fake.NewSimpleClientset().Core(),
-		now:         func() time.Time { return startTime },
 	}
 
 	acceptor := &testAcceptor{
