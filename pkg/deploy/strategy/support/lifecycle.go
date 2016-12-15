@@ -78,6 +78,17 @@ func NewHookExecutor(pods kcoreclient.PodsGetter, tags client.ImageStreamTagsNam
 	return executor
 }
 
+func describeHookCommand(exec *deployapi.ExecNewPodHook) string {
+	out := ""
+	if len(exec.Command) > 0 {
+		out = strings.Join(exec.Command, " ")
+	}
+	if len(exec.Args) > 0 {
+		out = strings.Join(exec.Args, " ")
+	}
+	return out
+}
+
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
 func (e *hookExecutor) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
@@ -96,7 +107,7 @@ func (e *hookExecutor) Execute(hook *deployapi.LifecycleHook, rc *kapi.Replicati
 		err = e.tagImages(hook, rc, suffix, label)
 	case hook.ExecNewPod != nil:
 		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeNormal, "Started",
-			fmt.Sprintf("Running %s-hook (%q) for rc %s/%s", label, strings.Join(hook.ExecNewPod.Command, " "), rc.Namespace, rc.Name))
+			fmt.Sprintf("Running %s-hook (%q) for rc %s/%s", label, describeHookCommand(hook.ExecNewPod), rc.Namespace, rc.Name))
 		err = e.executeExecNewPod(hook, rc, suffix, label)
 	}
 
@@ -407,6 +418,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 					Image:           baseContainer.Image,
 					ImagePullPolicy: baseContainer.ImagePullPolicy,
 					Command:         exec.Command,
+					Args:            exec.Args,
 					WorkingDir:      baseContainer.WorkingDir,
 					Env:             mergedEnv,
 					Resources:       resources,

@@ -330,7 +330,10 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 func validateExecNewPod(hook *deployapi.ExecNewPodHook, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
-	if len(hook.Command) == 0 {
+	// Only error when both entrypoint and arguments are not set.
+	// Having just arguments means we use the docker image entrypoint as a
+	// command.
+	if len(hook.Command) == 0 && len(hook.Args) == 0 {
 		errs = append(errs, field.Required(fldPath.Child("command"), ""))
 	}
 
