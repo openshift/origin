@@ -141,10 +141,12 @@ func (o ProjectsOptions) RunProjects() error {
 	if err == nil {
 		switch len(projects) {
 		case 0:
-			msg += "You are not a member of any projects. You can request a project to be created with the 'new-project' command."
+			if !o.DisplayShort {
+				msg += "You are not a member of any projects. You can request a project to be created with the 'new-project' command."
+			}
 		case 1:
 			if o.DisplayShort {
-				msg += fmt.Sprintf("%s", api.DisplayNameAndNameForProject(&projects[0]))
+				msg += fmt.Sprintf("%s", projects[0].Name)
 			} else {
 				msg += fmt.Sprintf("You have one project on this server: %q.", api.DisplayNameAndNameForProject(&projects[0]))
 			}
