@@ -37,7 +37,7 @@ func (m MySQL) IsReady(oc *util.CLI) (bool, error) {
 		return false, err
 	}
 	out, err := oc.Run("exec").Args(m.podName, "-c", conf.Container, "--", "bash", "-c",
-		"mysqladmin -h 127.0.0.1 -uroot ping").Output()
+		"mysqladmin -h localhost -uroot ping").Output()
 	if err != nil {
 		switch err.(type) {
 		case *util.ExitError, *exec.ExitError:

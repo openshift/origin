@@ -25,11 +25,12 @@ os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-cento
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.7'
 os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'image:\s*mysql'
 os::cmd::expect_success_and_not_text 'oc new-app mysql --dry-run' "runs as the 'root' user which may not be permitted by your cluster administrator"
 # trigger and output should say 5.6
-os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql:5.6'
-os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.6" for "mysql"'
+os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql:5.7'
+os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.7" for "mysql"'
 # test deployments are created with the boolean flag and printed in the UI
 os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
@@ -143,7 +144,7 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-
 os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
 
 # check search
-os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.5, 5.6, latest"
+os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.5, 5.6, 5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - partial matches
 os::cmd::expect_success_and_text 'oc new-app --search ruby-hellow' 'ruby-helloworld-sample'
@@ -165,12 +166,14 @@ os::cmd::try_until_success 'oc get imagestreamtags mongodb:3.2'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.7'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:4'
 os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
 os::cmd::try_until_success 'oc get imagestreamtags perl:5.16'
 os::cmd::try_until_success 'oc get imagestreamtags perl:5.20'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.24'
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
@@ -194,9 +197,9 @@ os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
 
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.4, 2.6, 3.2, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.5, 5.6, 5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+4, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.16, 5.20, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.16, 5.20, 5.24, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+5.5, 5.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.2, 9.4, 9.5, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.3, 3.4, 3.5, latest"
@@ -234,7 +237,7 @@ os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templat
 # verify partial match error
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a partial match was found for "mysq"'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
-os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.6\"\\) in project"
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.7\"\\) in project"
 
 # verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
 # new-app
