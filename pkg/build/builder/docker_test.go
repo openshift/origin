@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
+	"github.com/openshift/origin/test/util"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
@@ -136,7 +137,7 @@ RUN echo "hello world"
 	}
 }
 
-// TestDockerfilePath validates that we can use a Dockefile with a custom name, and in a sub-directory
+// TestDockerfilePath validates that we can use a Dockerfile with a custom name, and in a sub-directory
 func TestDockerfilePath(t *testing.T) {
 	tests := []struct {
 		contextDir     string
@@ -174,7 +175,7 @@ func TestDockerfilePath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		buildDir, err := ioutil.TempDir("", "dockerfile-path")
+		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue
@@ -251,6 +252,7 @@ func TestDockerfilePath(t *testing.T) {
 			t.Errorf("failed to build: %v", err)
 			continue
 		}
+		os.RemoveAll(buildDir)
 	}
 }
 
@@ -309,7 +311,7 @@ RUN echo "hello world"
 		},
 	}
 	for i, test := range tests {
-		buildDir, err := ioutil.TempDir("", "dockerfile-path")
+		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue
@@ -337,5 +339,6 @@ RUN echo "hello world"
 				break
 			}
 		}
+		os.RemoveAll(buildDir)
 	}
 }
