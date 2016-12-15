@@ -41,7 +41,7 @@ If a router does not exist with the given name, this command will create a deplo
 
 .PP
 \fB\-\-expose\-metrics\fP=false
-    This is a hint to run an extra container in the pod to expose metrics \- the image will either be set depending on the router implementation or provided with \-\-metrics\-image.
+    If true, attempts to run an extra container in the pod to expose metrics \- the image will either be set depending on the router implementation or provided with \-\-metrics\-image.
 
 .PP
 \fB\-\-external\-host\fP=""
@@ -129,7 +129,7 @@ If a router does not exist with the given name, this command will create a deplo
 
 .PP
 \fB\-\-secrets\-as\-env\fP=false
-    Use environment variables for master secrets.
+    If true, use environment variables for master secrets.
 
 .PP
 \fB\-\-selector\fP=""

@@ -78,7 +78,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
+	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "If true, build dependency tree for the specified image stream tag across all namespaces")
 	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
 	cmd.Flags().BoolVar(&options.reverse, "reverse", false, "If true, show the istags dependencies instead of its dependants.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")

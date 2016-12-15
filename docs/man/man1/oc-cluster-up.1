@@ -31,7 +31,7 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .SH OPTIONS
 .PP
 \fB\-\-create\-machine\fP=false
-    Create a Docker machine if one doesn't exist
+    If true, create a Docker machine if one doesn't exist
 
 .PP
 \fB\-\-docker\-machine\fP=""
@@ -43,7 +43,7 @@ A public hostname can also be specified for the server with the \-\-public\-host
 
 .PP
 \fB\-\-forward\-ports\fP=false
-    Use Docker port\-forwarding to communicate with origin container. Requires 'socat' locally.
+    If true, use Docker port\-forwarding to communicate with origin container. Requires 'socat' locally.
 
 .PP
 \fB\-\-host\-config\-dir\fP="/var/lib/origin/openshift.local.config"
@@ -63,11 +63,11 @@ A public hostname can also be specified for the server with the \-\-public\-host
 
 .PP
 \fB\-\-logging\fP=false
-    Install logging (experimental)
+    If true, install logging (experimental)
 
 .PP
 \fB\-\-metrics\fP=false
-    Install metrics (experimental)
+    If true, install metrics (experimental)
 
 .PP
 \fB\-\-public\-hostname\fP=""
@@ -83,11 +83,11 @@ A public hostname can also be specified for the server with the \-\-public\-host
 
 .PP
 \fB\-\-skip\-registry\-check\fP=false
-    Skip Docker daemon registry check
+    If true, skip Docker daemon registry check
 
 .PP
 \fB\-\-use\-existing\-config\fP=false
-    Use existing configuration if present
+    If true, use existing configuration if present
 
 .PP
 \fB\-\-version\fP=""

@@ -78,7 +78,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 
 	kcmdutil.AddPrinterFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().Bool("again", false, "Deploy the current pod template without updating state from triggers")
+	cmd.Flags().Bool("again", false, "If true, deploy the current pod template without updating state from triggers")
 
 	return cmd
 }

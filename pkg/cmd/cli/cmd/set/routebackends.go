@@ -117,12 +117,12 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Transform.Adjust, "adjust", options.Transform.Adjust, "Adjust a single backend using an absolute or relative weight. If the primary backend is selected and there is more than one alternate an error will be returned.")
-	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "Set the weight of all backends to zero.")
-	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "Set the weight of all backends to 100.")
+	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "If true, set the weight of all backends to zero.")
+	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "If true, set the weight of all backends to 100.")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 

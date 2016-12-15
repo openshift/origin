@@ -71,8 +71,8 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "Prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.")
+	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "If true, prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.")
 	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of a Build for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&opts.KeepComplete, "keep-complete", opts.KeepComplete, "Per BuildConfig, specify the number of builds whose status is complete that will be preserved.")
 	cmd.Flags().IntVar(&opts.KeepFailed, "keep-failed", opts.KeepFailed, "Per BuildConfig, specify the number of builds whose status is failed, error, or cancelled that will be preserved.")

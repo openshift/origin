@@ -74,8 +74,8 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *c
 	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "If true, only print the annotations that would be written, without annotating or idling the relevant objects")
 	cmd.Flags().StringVar(&o.filename, "resource-names-file", o.filename, "file containing list of services whose scalable resources to idle")
 	cmd.Flags().StringVarP(&o.selector, "selector", "l", o.selector, "Selector (label query) to use to select services")
-	cmd.Flags().BoolVar(&o.all, "all", o.all, "Select all services in the namespace")
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "Select services across all namespaces")
+	cmd.Flags().BoolVar(&o.all, "all", o.all, "if true, select all services in the namespace")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "if true, select services across all namespaces")
 	cmd.MarkFlagFilename("resource-names-file")
 
 	// TODO: take the `-o name` argument, and only print out names instead of the summary
