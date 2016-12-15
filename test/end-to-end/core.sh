@@ -363,9 +363,9 @@ os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post
 # test the pre hook on a rolling deployment
 os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
 os::cmd::try_until_success 'oc get rc/failing-dc-1'
-os::cmd::expect_success 'oc logs -f dc/failing-dc'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
+os::cmd::expect_success_and_text 'oc get po failing-dc-1-deploy -o jsonpath={.spec.activeDeadlineSeconds}' '3600'
 os::cmd::try_until_text 'oc rollout latest failing-dc --again -o revision' '2'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc'  'test pre hook executed'

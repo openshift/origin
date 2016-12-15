@@ -90,6 +90,10 @@ type DeploymentStrategy struct {
 	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,6,rep,name=labels"`
 	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,7,rep,name=annotations"`
+
+	// ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
+	// config may be active on a node before the system actively tries to terminate them.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.

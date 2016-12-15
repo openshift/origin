@@ -80,6 +80,7 @@ func OkStrategy() deployapi.DeploymentStrategy {
 		RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
+		ActiveDeadlineSeconds: mkintp(int(deployapi.MaxDeploymentDurationSeconds)),
 	}
 }
 
