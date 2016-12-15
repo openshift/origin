@@ -96,7 +96,7 @@ listen stats :1936
 
 {{ if .BindPorts }}
 frontend public
-  bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}
+  bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}{{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
@@ -145,7 +145,7 @@ frontend public
 # determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
 frontend public_ssl
-  bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}
+  bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}{{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
 
