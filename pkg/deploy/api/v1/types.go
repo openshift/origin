@@ -93,7 +93,7 @@ type DeploymentStrategy struct {
 
 	// ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
 	// config may be active on a node before the system actively tries to terminate them.
-	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty" protobuf:"varint,8,opt,name=activeDeadlineSeconds"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
