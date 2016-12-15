@@ -245,6 +245,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Informers:             informerFactory,
 		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
 		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+		GroupCache:            groupCache,
 	}
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer)
 	if err != nil {
@@ -331,6 +332,7 @@ var (
 	openshiftAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
+		"openshift.io/RestrictSubjectBindings",
 		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
@@ -372,6 +374,7 @@ var (
 		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
+		"openshift.io/RestrictSubjectBindings",
 		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",

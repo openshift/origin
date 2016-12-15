@@ -106,6 +106,16 @@ func (ClusterRoleList) SwaggerDoc() map[string]string {
 	return map_ClusterRoleList
 }
 
+var map_GroupRestriction = map[string]string{
+	"":       "GroupRestriction matches a group either by a string match on the group name or a label selector applied to group labels.",
+	"groups": "Groups is a list of groups used to match against an individual user's groups. If the user is a member of one of the whitelisted groups, the user is allowed to be bound to a role.",
+	"labels": "Selectors specifies a list of label selectors over group labels.",
+}
+
+func (GroupRestriction) SwaggerDoc() map[string]string {
+	return map_GroupRestriction
+}
+
 var map_IsPersonalSubjectAccessReview = map[string]string{
 	"": "IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed",
 }
@@ -283,6 +293,37 @@ func (RoleBindingList) SwaggerDoc() map[string]string {
 	return map_RoleBindingList
 }
 
+var map_RoleBindingRestriction = map[string]string{
+	"":         "RoleBindingRestriction is an object that can be matched against a subject (user, group, or service account) to determine whether rolebindings on that subject are allowed in the namespace to which the RoleBindingRestriction belongs.  If any one of those RoleBindingRestriction objects matches a subject, rolebindings on that subject in the namespace are allowed.",
+	"metadata": "Standard object's metadata.",
+	"spec":     "Spec defines the matcher.",
+}
+
+func (RoleBindingRestriction) SwaggerDoc() map[string]string {
+	return map_RoleBindingRestriction
+}
+
+var map_RoleBindingRestrictionList = map[string]string{
+	"":         "RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items is a list of RoleBindingRestriction objects.",
+}
+
+func (RoleBindingRestrictionList) SwaggerDoc() map[string]string {
+	return map_RoleBindingRestrictionList
+}
+
+var map_RoleBindingRestrictionSpec = map[string]string{
+	"":                          "RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one field must be non-nil.",
+	"userrestriction":           "UserRestriction matches against user subjects.",
+	"grouprestriction":          "GroupRestriction matches against group subjects.",
+	"serviceaccountrestriction": "ServiceAccountRestriction matches against service-account subjects.",
+}
+
+func (RoleBindingRestrictionSpec) SwaggerDoc() map[string]string {
+	return map_RoleBindingRestrictionSpec
+}
+
 var map_RoleList = map[string]string{
 	"":         "RoleList is a collection of Roles",
 	"metadata": "Standard object's metadata.",
@@ -310,6 +351,26 @@ var map_SelfSubjectRulesReviewSpec = map[string]string{
 
 func (SelfSubjectRulesReviewSpec) SwaggerDoc() map[string]string {
 	return map_SelfSubjectRulesReviewSpec
+}
+
+var map_ServiceAccountReference = map[string]string{
+	"":          "ServiceAccountReference specifies a service account and namespace by their names.",
+	"name":      "Name is the name of the service account.",
+	"namespace": "Namespace is the namespace of the service account.  Service accounts from inside the whitelisted namespaces are allowed to be bound to roles.  If Namespace is empty, then the namespace of the RoleBindingRestriction in which the ServiceAccountReference is embedded is used.",
+}
+
+func (ServiceAccountReference) SwaggerDoc() map[string]string {
+	return map_ServiceAccountReference
+}
+
+var map_ServiceAccountRestriction = map[string]string{
+	"":                "ServiceAccountRestriction matches a service account by a string match on either the service-account name or the name of the service account's namespace.",
+	"serviceaccounts": "ServiceAccounts specifies a list of literal service-account names.",
+	"namespaces":      "Namespaces specifies a list of literal namespace names.",
+}
+
+func (ServiceAccountRestriction) SwaggerDoc() map[string]string {
+	return map_ServiceAccountRestriction
 }
 
 var map_SubjectAccessReview = map[string]string{
@@ -364,4 +425,15 @@ var map_SubjectRulesReviewStatus = map[string]string{
 
 func (SubjectRulesReviewStatus) SwaggerDoc() map[string]string {
 	return map_SubjectRulesReviewStatus
+}
+
+var map_UserRestriction = map[string]string{
+	"":       "UserRestriction matches a user either by a string match on the user name, a string match on the name of a group to which the user belongs, or a label selector applied to the user labels.",
+	"users":  "Users specifies a list of literal user names.",
+	"groups": "Groups specifies a list of literal group names.",
+	"labels": "Selectors specifies a list of label selectors over user labels.",
+}
+
+func (UserRestriction) SwaggerDoc() map[string]string {
+	return map_UserRestriction
 }
