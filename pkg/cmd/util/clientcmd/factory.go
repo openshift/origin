@@ -976,6 +976,42 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		return pod.Name, nil
+	case extensions.Resource("deployments"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
+		d, err := kc.Extensions().Deployments(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("replicasets"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
+		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector, err := unversioned.LabelSelectorAsSelector(rs.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
 	case extensions.Resource("jobs"):
 		kc, err := f.Client()
 		if err != nil {
