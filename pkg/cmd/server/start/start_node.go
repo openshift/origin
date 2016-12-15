@@ -19,6 +19,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
@@ -28,7 +29,8 @@ import (
 )
 
 type NodeOptions struct {
-	NodeArgs *NodeArgs
+	NodeArgs   *NodeArgs
+	ExpireDays int
 
 	ConfigFile string
 	Output     io.Writer
@@ -46,7 +48,10 @@ var nodeLong = templates.LongDesc(`
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
 func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
-	options := &NodeOptions{Output: out}
+	options := &NodeOptions{
+		ExpireDays: crypto.DefaultCertificateLifetimeInDays,
+		Output:     out,
+	}
 
 	cmd := &cobra.Command{
 		Use:   "node",
@@ -60,6 +65,7 @@ func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command
 	flags := cmd.Flags()
 
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	options.NodeArgs = NewDefaultNodeArgs()
 
@@ -135,6 +141,10 @@ func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []strin
 func (o NodeOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported for start node")
+	}
+
+	if o.ExpireDays < 0 {
+		return errors.New("expire-days must be valid number of days")
 	}
 
 	if o.IsWriteConfigOnly() {
@@ -264,6 +274,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 		APIServerCAFiles: []string{admin.DefaultCABundleFile(o.NodeArgs.MasterCertDir)},
 
 		NodeClientCAFile: getSignerOptions.CertFile,
+		ExpireDays:       o.ExpireDays,
 		Output:           cmdutil.NewGLogWriterV(3),
 	}
 

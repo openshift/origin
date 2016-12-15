@@ -6,7 +6,10 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"testing"
+	"time"
 )
+
+const certificateLifetime = 365 * 2
 
 func TestCrypto(t *testing.T) {
 	roots := x509.NewCertPool()
@@ -78,10 +81,7 @@ func buildCA(t *testing.T) (crypto.PrivateKey, *x509.Certificate) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
 	}
-	caTemplate, err := newSigningCertificateTemplate(pkix.Name{CommonName: "CA"})
-	if err != nil {
-		t.Fatalf("Unexpected error: %#v", err)
-	}
+	caTemplate := newSigningCertificateTemplate(pkix.Name{CommonName: "CA"}, certificateLifetime, time.Now)
 	caCrt, err := signCertificate(caTemplate, caPublicKey, caTemplate, caPrivateKey)
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
@@ -94,10 +94,7 @@ func buildIntermediate(t *testing.T, signingKey crypto.PrivateKey, signingCrt *x
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
 	}
-	intermediateTemplate, err := newSigningCertificateTemplate(pkix.Name{CommonName: "Intermediate"})
-	if err != nil {
-		t.Fatalf("Unexpected error: %#v", err)
-	}
+	intermediateTemplate := newSigningCertificateTemplate(pkix.Name{CommonName: "Intermediate"}, certificateLifetime, time.Now)
 	intermediateCrt, err := signCertificate(intermediateTemplate, intermediatePublicKey, signingCrt, signingKey)
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
@@ -113,10 +110,8 @@ func buildServer(t *testing.T, signingKey crypto.PrivateKey, signingCrt *x509.Ce
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
 	}
-	serverTemplate, err := newServerCertificateTemplate(pkix.Name{CommonName: "Server"}, []string{"127.0.0.1", "localhost", "www.example.com"})
-	if err != nil {
-		t.Fatalf("Unexpected error: %#v", err)
-	}
+	hosts := []string{"127.0.0.1", "localhost", "www.example.com"}
+	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: "Server"}, hosts, certificateLifetime, time.Now)
 	serverCrt, err := signCertificate(serverTemplate, serverPublicKey, signingCrt, signingKey)
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
@@ -132,10 +127,7 @@ func buildClient(t *testing.T, signingKey crypto.PrivateKey, signingCrt *x509.Ce
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
 	}
-	clientTemplate, err := newClientCertificateTemplate(pkix.Name{CommonName: "Client"})
-	if err != nil {
-		t.Fatalf("Unexpected error: %#v", err)
-	}
+	clientTemplate := newClientCertificateTemplate(pkix.Name{CommonName: "Client"}, certificateLifetime, time.Now)
 	clientCrt, err := signCertificate(clientTemplate, clientPublicKey, signingCrt, signingKey)
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
@@ -167,11 +159,118 @@ func TestRandomSerialGenerator(t *testing.T) {
 	generator := &RandomSerialGenerator{}
 
 	hostnames := []string{"foo", "bar"}
-	template, err := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	template := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames, certificateLifetime, time.Now)
 	if _, err := generator.Next(template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidityPeriodOfClientCertificate(t *testing.T) {
+	currentTime := time.Now()
+
+	currentFakeTime := func() time.Time {
+		return currentTime
+	}
+
+	tests := []struct {
+		passedExpireDays int
+		realExpireDays   int
+	}{
+		{
+			passedExpireDays: 100,
+			realExpireDays:   100,
+		},
+		{
+			passedExpireDays: 0,
+			realExpireDays:   DefaultCertificateLifetimeInDays,
+		},
+		{
+			passedExpireDays: -1,
+			realExpireDays:   DefaultCertificateLifetimeInDays,
+		},
+	}
+
+	for _, test := range tests {
+		cert := newClientCertificateTemplate(pkix.Name{CommonName: "client"}, test.passedExpireDays, currentFakeTime)
+		expirationDate := cert.NotAfter
+		expectedExpirationDate := currentTime.Add(time.Duration(test.realExpireDays) * 24 * time.Hour)
+		if expectedExpirationDate != expirationDate {
+			t.Errorf("expected that client certificate will expire at %v but found %v", expectedExpirationDate, expirationDate)
+		}
+	}
+}
+
+func TestValidityPeriodOfServerCertificate(t *testing.T) {
+	currentTime := time.Now()
+
+	currentFakeTime := func() time.Time {
+		return currentTime
+	}
+
+	tests := []struct {
+		passedExpireDays int
+		realExpireDays   int
+	}{
+		{
+			passedExpireDays: 100,
+			realExpireDays:   100,
+		},
+		{
+			passedExpireDays: 0,
+			realExpireDays:   DefaultCertificateLifetimeInDays,
+		},
+		{
+			passedExpireDays: -1,
+			realExpireDays:   DefaultCertificateLifetimeInDays,
+		},
+	}
+
+	for _, test := range tests {
+		cert := newServerCertificateTemplate(
+			pkix.Name{CommonName: "server"},
+			[]string{"www.example.com"},
+			test.passedExpireDays,
+			currentFakeTime,
+		)
+		expirationDate := cert.NotAfter
+		expectedExpirationDate := currentTime.Add(time.Duration(test.realExpireDays) * 24 * time.Hour)
+		if expectedExpirationDate != expirationDate {
+			t.Errorf("expected that server certificate will expire at %v but found %v", expectedExpirationDate, expirationDate)
+		}
+	}
+}
+
+func TestValidityPeriodOfSigningCertificate(t *testing.T) {
+	currentTime := time.Now()
+
+	currentFakeTime := func() time.Time {
+		return currentTime
+	}
+
+	tests := []struct {
+		passedExpireDays int
+		realExpireDays   int
+	}{
+		{
+			passedExpireDays: 100,
+			realExpireDays:   100,
+		},
+		{
+			passedExpireDays: 0,
+			realExpireDays:   DefaultCACertificateLifetimeInDays,
+		},
+		{
+			passedExpireDays: -1,
+			realExpireDays:   DefaultCACertificateLifetimeInDays,
+		},
+	}
+
+	for _, test := range tests {
+		cert := newSigningCertificateTemplate(pkix.Name{CommonName: "CA"}, test.passedExpireDays, currentFakeTime)
+		expirationDate := cert.NotAfter
+		expectedExpirationDate := currentTime.Add(time.Duration(test.realExpireDays) * 24 * time.Hour)
+		if expectedExpirationDate != expirationDate {
+			t.Errorf("expected that CA certificate will expire at %v but found %v", expectedExpirationDate, expirationDate)
+		}
 	}
 }

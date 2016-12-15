@@ -75,6 +75,7 @@ func makeSignerCert(t *testing.T) (string, string, string) {
 		CertFile:   certFile.Name(),
 		KeyFile:    keyFile.Name(),
 		SerialFile: serialFile.Name(),
+		ExpireDays: 365,
 		Name:       "unit-test-signer",
 		Overwrite:  true,
 	}

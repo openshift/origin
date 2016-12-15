@@ -28,6 +28,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
@@ -177,6 +178,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		SignerName: admin.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
+		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+
 		APIServerURL:       masterURL.String(),
 		PublicAPIServerURL: publicMasterURL.String(),
 
@@ -227,7 +231,9 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
-	startOptions.Complete()
+	if err := startOptions.Complete(); err != nil {
+		return nil, nil, nil, err
+	}
 	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()

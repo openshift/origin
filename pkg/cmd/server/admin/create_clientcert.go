@@ -17,6 +17,8 @@ type CreateClientCertOptions struct {
 	CertFile string
 	KeyFile  string
 
+	ExpireDays int
+
 	User   string
 	Groups []string
 
@@ -33,6 +35,9 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 	}
 	if len(o.KeyFile) == 0 {
 		return errors.New("key must be provided")
+	}
+	if o.ExpireDays <= 0 {
+		return errors.New("expire-days must be valid number of days")
 	}
 	if len(o.User) == 0 {
 		return errors.New("user must be provided")
@@ -60,9 +65,9 @@ func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfi
 	written := true
 	userInfo := &user.DefaultInfo{Name: o.User, Groups: o.Groups}
 	if o.Overwrite {
-		cert, err = signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, err = signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo, o.ExpireDays)
 	} else {
-		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo, o.ExpireDays)
 	}
 	if written {
 		glog.V(3).Infof("Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
