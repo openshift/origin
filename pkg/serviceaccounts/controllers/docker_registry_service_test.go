@@ -7,9 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/client/testclient"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -28,11 +31,19 @@ var (
 			Ports:     []kapi.ServicePort{{Port: 1235}},
 		},
 	}
+	registryRoute = &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{Name: registryName, Namespace: registryNamespace},
+		Spec: routeapi.RouteSpec{
+			Host: "registry.local",
+			To:   routeapi.RouteTargetReference{Name: registryName},
+		},
+	}
 )
 
-func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clientset, *watch.FakeWatcher, *DockerRegistryServiceController) {
+func controllerSetup(startingObjects []runtime.Object, startingRoute runtime.Object, t *testing.T) (*fake.Clientset, *watch.FakeWatcher, *watch.FakeWatcher, *DockerRegistryServiceController) {
 	kubeclient := fake.NewSimpleClientset(startingObjects...)
 	fakeWatch := watch.NewFake()
+	fakeRouteWatch := watch.NewFake()
 	kubeclient.PrependReactor("create", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, action.(core.CreateAction).GetObject(), nil
 	})
@@ -41,7 +52,17 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 	})
 	kubeclient.PrependWatchReactor("services", core.DefaultWatchReactor(fakeWatch, nil))
 
-	controller := NewDockerRegistryServiceController(kubeclient, DockerRegistryServiceControllerOptions{
+	var routeClient *testclient.Fake
+	if startingRoute != nil {
+		routeClient = testclient.NewSimpleFake(startingRoute)
+	} else {
+		routeClient = testclient.NewSimpleFake()
+	}
+	routeClient.AddWatchReactor("routes", func(action ktestclient.Action) (bool, watch.Interface, error) {
+		return true, fakeRouteWatch, nil
+	})
+
+	controller := NewDockerRegistryServiceController(kubeclient, routeClient, DockerRegistryServiceControllerOptions{
 		Resync:               10 * time.Minute,
 		RegistryNamespace:    registryNamespace,
 		RegistryServiceName:  registryName,
@@ -49,7 +70,7 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 		DockerURLsIntialized: make(chan struct{}),
 	})
 
-	return kubeclient, fakeWatch, controller
+	return kubeclient, fakeWatch, fakeRouteWatch, controller
 }
 
 func wrapHandler(indicator chan bool, handler func(string) error, t *testing.T) func(string) error {
@@ -70,7 +91,7 @@ func TestNoChangeNoOp(t *testing.T) {
 	defer close(stopChannel)
 	received := make(chan bool)
 
-	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{registryService}, t)
+	kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{registryService}, nil, t)
 	kubeclient.PrependReactor("update", "secrets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, fmt.Errorf("%v unexpected", action)
 	})
@@ -115,7 +136,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 		Data: map[string][]byte{kapi.DockerConfigKey: []byte("{}")},
 	}
 
-	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{newStyleDockercfgSecret}, t)
+	kubeclient, fakeWatch, routeFakeWatch, controller := controllerSetup([]runtime.Object{newStyleDockercfgSecret}, nil, t)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
 	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
 	go controller.Run(5, stopChannel)
@@ -150,28 +171,92 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 		}
 	}
 
-	foundSecret := false
-	for _, action := range kubeclient.Actions() {
-		switch {
-		case action.Matches("update", "secrets"):
-			updateService := action.(core.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
-			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
-				t.Errorf("unexpected err %v", err)
-				continue
+	checkUpdatedSecrets := func(expected credentialprovider.DockerConfig) {
+		foundSecret := false
+		defer kubeclient.ClearActions()
+		for _, action := range kubeclient.Actions() {
+			switch {
+			case action.Matches("update", "secrets"):
+				updateService := action.(core.UpdateAction)
+				secret := updateService.GetObject().(*kapi.Secret)
+				actualDockercfg := &credentialprovider.DockerConfig{}
+				if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+					t.Errorf("unexpected err %v", err)
+					continue
+				}
+				if !reflect.DeepEqual(*actualDockercfg, expected) {
+					t.Errorf("expected %v, got %v", expected, *actualDockercfg)
+					continue
+				}
+				foundSecret = true
 			}
-			if !reflect.DeepEqual(*actualDockercfg, expectedDockercfgMap) {
-				t.Errorf("expected %v, got %v", expectedDockercfgMap, *actualDockercfg)
-				continue
-			}
-			foundSecret = true
+		}
+
+		if !foundSecret {
+			t.Errorf("secret wasn't updated.  Got %v\n", kubeclient.Actions())
 		}
 	}
 
-	if !foundSecret {
-		t.Errorf("secret wasn't updated.  Got %v\n", kubeclient.Actions())
+	checkUpdatedSecrets(expectedDockercfgMap)
+
+	t.Log("Adding registry.local route to registry service")
+	routeFakeWatch.Add(registryRoute)
+	t.Log("Waiting to reach syncRegistryLocationHandler")
+	select {
+	case <-received:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncRegistryLocationHandler")
 	}
+	t.Log("Waiting to update secret")
+	select {
+	case <-updatedSecret:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncSecret")
+	}
+
+	expectedDockercfgMap["registry.local"] = expectedDockercfgMap["172.16.123.123:1235"]
+	checkUpdatedSecrets(expectedDockercfgMap)
+
+	t.Log("Changing registry.local route to new-registry.local route")
+	modifiedRoute := registryRoute
+	modifiedRoute.Spec.Host = "new-registry.local"
+	routeFakeWatch.Modify(modifiedRoute)
+	t.Log("Waiting to reach syncRegistryLocationHandler")
+	select {
+	case <-received:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncRegistryLocationHandler")
+	}
+	t.Log("Waiting to update secret")
+	select {
+	case <-updatedSecret:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncSecret")
+	}
+
+	delete(expectedDockercfgMap, "registry.local")
+	expectedDockercfgMap["new-registry.local"] = expectedDockercfgMap["172.16.123.123:1235"]
+	checkUpdatedSecrets(expectedDockercfgMap)
+
+	t.Log("Using the OPENSHIFT_DEFAULT_REGISTRY")
+	controller.registryDefaultHost = "new-registry.local:5000"
+	routeFakeWatch.Modify(modifiedRoute)
+	t.Log("Waiting to reach syncRegistryLocationHandler")
+	select {
+	case <-received:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncRegistryLocationHandler")
+	}
+	t.Log("Waiting to update secret")
+	select {
+	case <-updatedSecret:
+	case <-time.After(time.Duration(45 * time.Second)):
+		t.Fatalf("failed to call into syncSecret")
+	}
+
+	delete(expectedDockercfgMap, "new-registry.local")
+	expectedDockercfgMap["new-registry.local:5000"] = expectedDockercfgMap["172.16.123.123:1235"]
+	checkUpdatedSecrets(expectedDockercfgMap)
 }
 
 func TestUpdateOldStyleSecretWithKey(t *testing.T) {
@@ -203,7 +288,7 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 		Data: map[string][]byte{kapi.DockerConfigKey: dockercfgContent},
 	}
 
-	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{oldStyleDockercfgSecret}, t)
+	kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{oldStyleDockercfgSecret}, nil, t)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
 	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
 	go controller.Run(5, stopChannel)
@@ -290,7 +375,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 		Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("the-sa-bearer-token")},
 	}
 
-	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{tokenSecret, oldStyleDockercfgSecret}, t)
+	kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{tokenSecret, oldStyleDockercfgSecret}, nil, t)
 	kubeclient.PrependReactor("get", "secrets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, tokenSecret, nil
 	})
@@ -383,7 +468,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 		Data: map[string][]byte{kapi.DockerConfigKey: dockercfgContent},
 	}
 
-	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{registryService, oldStyleDockercfgSecret}, t)
+	kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{registryService, oldStyleDockercfgSecret}, nil, t)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
 	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
 	go controller.Run(5, stopChannel)

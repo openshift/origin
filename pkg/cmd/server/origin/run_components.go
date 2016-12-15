@@ -3,6 +3,7 @@ package origin
 import (
 	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"sync"
 	"time"
@@ -171,6 +172,7 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
 		RegistryNamespace:    "default",
 		RegistryServiceName:  "docker-registry",
+		RegistryDefaultHost:  os.Getenv("OPENSHIFT_DEFAULT_REGISTRY"),
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}

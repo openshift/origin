@@ -35,6 +35,10 @@ type DockerRegistryServiceControllerOptions struct {
 	RegistryNamespace   string
 	RegistryServiceName string
 
+	// RegistryDefaultHost is normally set by OPENSHIFT_DEFAULT_REGISTRY variable on
+	// controller start.
+	RegistryDefaultHost string
+
 	DockercfgController *DockercfgController
 
 	// DockerURLsIntialized is used to send a signal to the DockercfgController that it has the correct set of docker urls
@@ -51,6 +55,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, rc osclient.Rou
 		secretsToUpdate:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		serviceName:           options.RegistryServiceName,
 		serviceNamespace:      options.RegistryNamespace,
+		registryDefaultHost:   options.RegistryDefaultHost,
 		dockerURLsIntialized:  options.DockerURLsIntialized,
 	}
 
@@ -134,8 +139,9 @@ type DockerRegistryServiceController struct {
 	client      kclientset.Interface
 	routeClient osclient.RoutesNamespacer
 
-	serviceName      string
-	serviceNamespace string
+	serviceName         string
+	serviceNamespace    string
+	registryDefaultHost string
 
 	dockercfgController *DockercfgController
 
@@ -289,13 +295,25 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 		}...)
 	}
 
+	// Generate dockercfg entry for value of OPENSHIFT_DEFAULT_REGISTRY (if set)
+	if len(e.registryDefaultHost) > 0 {
+		result = append(result, e.registryDefaultHost)
+	}
+
+	// If the 'docker-registry' service is exposed by a Route, add the dockercfg entry for
+	// the Route hostname only if the OPENSHIFT_DEFAULT_REGISTRY is not already set to the
+	// same hostname.  This prevents from having duplicate entry with no port.
+	//
+	// Note that this allows to expose the 'docker-registry' only on the 80 or 443 ports.
+	// If you have router that expose registry on non-standard port, you should set the
+	// OPENSHIFT_DEFAULT_REGISTRY instead.
 	if objs := e.routeCache.List(); len(objs) > 0 {
-		route := objs[0].(*routeapi.Route)
-		// TODO: Can a router have ports other than 80?
-		if route.Spec.TLS == nil {
-			result = append(result, net.JoinHostPort(route.Spec.Host, "80"))
-		} else {
-			result = append(result, net.JoinHostPort(route.Spec.Host, "443"))
+		registryHost, _, _ := net.SplitHostPort(e.registryDefaultHost)
+		for _, objs := range obj {
+			route := obj.(*routeapi.Route)
+			if registryHost != route.Spec.Host {
+				result = append(result, route.Spec.Host)
+			}
 		}
 	}
 
