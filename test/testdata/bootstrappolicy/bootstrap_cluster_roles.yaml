@@ -48,7 +48,6 @@ items:
     - bindings
     - componentstatuses
     - configmaps
-    - egressnetworkpolicies
     - endpoints
     - events
     - limitranges
@@ -277,6 +276,7 @@ items:
     attributeRestrictions: null
     resources:
     - clusternetworks
+    - egressnetworkpolicies
     - hostsubnets
     - netnamespaces
     verbs:
@@ -2088,6 +2088,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - egressnetworkpolicies
     - hostsubnets
     - netnamespaces
     verbs:
@@ -2100,15 +2101,6 @@ items:
     resources:
     - namespaces
     - nodes
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - egressnetworkpolicies
     verbs:
     - get
     - list
