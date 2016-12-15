@@ -347,7 +347,8 @@ func NewLimitRangeInformer(client clientset.Interface, resyncPeriod time.Duratio
 		},
 		&api.LimitRange{},
 		resyncPeriod,
-		cache.Indexers{})
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
 
 	return sharedIndexInformer
 }
