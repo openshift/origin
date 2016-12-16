@@ -123,6 +123,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdGet(fullName, f, out, errout),
 				cmd.NewCmdDescribe(fullName, f, out, errout),
 				cmd.NewCmdEdit(fullName, f, out, errout),
+				set.NewCmdEnv(fullName, f, in, out, errout),
 				set.NewCmdSet(fullName, f, in, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
