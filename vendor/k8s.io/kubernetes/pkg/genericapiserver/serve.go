@@ -78,11 +78,22 @@ func (s *GenericAPIServer) serveSecurely(stopCh <-chan struct{}) error {
 		secureServer.TLSConfig.Certificates = append(secureServer.TLSConfig.Certificates, *c)
 	}
 
+	var clientCAs *x509.CertPool
 	if len(s.SecureServingInfo.ClientCA) > 0 {
-		clientCAs, err := certutil.NewPool(s.SecureServingInfo.ClientCA)
+		clientCAs, err = certutil.NewPool(s.SecureServingInfo.ClientCA)
 		if err != nil {
 			return fmt.Errorf("unable to load client CA file: %v", err)
 		}
+	}
+	if len(s.SecureServingInfo.ExtraClientCACerts) > 0 {
+		if clientCAs == nil {
+			clientCAs = x509.NewCertPool()
+		}
+		for _, c := range s.SecureServingInfo.ExtraClientCACerts {
+			clientCAs.AddCert(c)
+		}
+	}
+	if clientCAs != nil {
 		// Populate PeerCertificates in requests, but don't reject connections without certificates
 		// This allows certificates to be validated by authenticators, while still allowing other auth types
 		secureServer.TLSConfig.ClientAuth = tls.RequestClientCert
