@@ -210,6 +210,7 @@ if [[ -n "${junit_report}" ]]; then
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
+    go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" \
         | tee "${test_output_file}"                                 \
         | junitreport --type gotest                                 \
@@ -255,6 +256,7 @@ if [[ -n "${junit_report}" ]]; then
 
 elif [[ -n "${coverage_output_dir}" ]]; then
     # we need to generate coverage reports
+    go test -i ${gotest_flags} ${test_packages}
     for test_package in ${test_packages}; do
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
@@ -279,5 +281,6 @@ elif [[ -n "${dlv_debug}" ]]; then
     dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
+    go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages}
 fi
