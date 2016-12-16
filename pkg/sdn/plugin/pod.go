@@ -33,9 +33,8 @@ type podManager struct {
 	runningPods map[string]*kubehostport.RunningPod
 
 	// Live pod setup/teardown stuff not used in testing code
-	multitenant     bool
 	kClient         *kclientset.Clientset
-	vnids           *nodeVNIDMap
+	policy          osdnPolicy
 	ipamConfig      []byte
 	mtu             uint32
 	hostportHandler kubehostport.HostportHandler
@@ -43,11 +42,10 @@ type podManager struct {
 }
 
 // Creates a new live podManager; used by node code
-func newPodManager(host knetwork.Host, multitenant bool, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, vnids *nodeVNIDMap, mtu uint32) (*podManager, error) {
+func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32) (*podManager, error) {
 	pm := newDefaultPodManager(host)
-	pm.multitenant = multitenant
 	pm.kClient = kClient
-	pm.vnids = vnids
+	pm.policy = policy
 	pm.mtu = mtu
 	pm.hostportHandler = kubehostport.NewHostportHandler()
 	pm.podHandler = pm

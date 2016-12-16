@@ -20,6 +20,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fields"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -29,8 +30,23 @@ import (
 	kwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
+type osdnPolicy interface {
+	Name() string
+	Start(node *OsdnNode) error
+
+	AddNetNamespace(netns *osapi.NetNamespace)
+	UpdateNetNamespace(netns *osapi.NetNamespace, oldNetID uint32)
+	DeleteNetNamespace(netns *osapi.NetNamespace)
+
+	GetVNID(namespace string) (uint32, error)
+	GetNamespaces(vnid uint32) []string
+
+	RefVNID(vnid uint32)
+	UnrefVNID(vnid uint32)
+}
+
 type OsdnNode struct {
-	multitenant        bool
+	policy             osdnPolicy
 	kClient            *kclientset.Clientset
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
@@ -41,7 +57,6 @@ type OsdnNode struct {
 	hostName           string
 	podNetworkReady    chan struct{}
 	kubeletInitReady   chan struct{}
-	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]osapi.EgressNetworkPolicy
@@ -54,7 +69,14 @@ type OsdnNode struct {
 
 // Called by higher layers to create the plugin SDN node instance
 func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
-	if !osapi.IsOpenShiftNetworkPlugin(pluginName) {
+	var policy osdnPolicy
+	switch strings.ToLower(pluginName) {
+	case osapi.SingleTenantPluginName:
+		policy = NewSingleTenantPlugin()
+	case osapi.MultiTenantPluginName:
+		policy = NewMultiTenantPlugin()
+	default:
+		// Not an OpenShift plugin
 		return nil, nil
 	}
 
@@ -88,13 +110,12 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 	}
 
 	plugin := &OsdnNode{
-		multitenant:        osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName),
+		policy:             policy,
 		kClient:            kClient,
 		osClient:           osClient,
 		ovs:                ovsif,
 		localIP:            selfIP,
 		hostName:           hostname,
-		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
 		kubeletInitReady:   make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
@@ -195,14 +216,10 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	if node.multitenant {
-		if err = node.VnidStartNode(); err != nil {
-			return err
-		}
-		if err = node.SetupEgressNetworkPolicy(); err != nil {
-			return err
-		}
+	if err = node.policy.Start(node); err != nil {
+		return err
 	}
+	go kwait.Forever(node.watchServices, 0)
 
 	// Wait for kubelet to init the plugin so we get a knetwork.Host
 	log.V(5).Infof("Waiting for kubelet network plugin initialization")
@@ -217,7 +234,7 @@ func (node *OsdnNode) Start() error {
 		})
 
 	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
-	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
+	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu)
 	if err != nil {
 		return err
 	}
@@ -235,6 +252,10 @@ func (node *OsdnNode) Start() error {
 			err = node.UpdatePod(p)
 			if err != nil {
 				log.Warningf("Could not update pod %q: %s", p.Name, err)
+				continue
+			}
+			if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
+				node.policy.RefVNID(vnid)
 			}
 		}
 	}
@@ -294,4 +315,61 @@ func (node *OsdnNode) IsPodNetworkReady() error {
 	default:
 		return fmt.Errorf("SDN pod network is not ready")
 	}
+}
+
+func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
+	if len(oldsvc.Spec.Ports) == len(newsvc.Spec.Ports) {
+		for i := range oldsvc.Spec.Ports {
+			if oldsvc.Spec.Ports[i].Protocol != newsvc.Spec.Ports[i].Protocol ||
+				oldsvc.Spec.Ports[i].Port != newsvc.Spec.Ports[i].Port {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func (node *OsdnNode) watchServices() {
+	services := make(map[string]*kapi.Service)
+	RunEventQueue(node.kClient.CoreClient, Services, func(delta cache.Delta) error {
+		serv := delta.Object.(*kapi.Service)
+
+		// Ignore headless services
+		if !kapi.IsServiceIPSet(serv) {
+			return nil
+		}
+
+		log.V(5).Infof("Watch %s event for Service %q", delta.Type, serv.ObjectMeta.Name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
+			oldsvc, exists := services[string(serv.UID)]
+			if exists {
+				if !isServiceChanged(oldsvc, serv) {
+					break
+				}
+				node.DeleteServiceRules(oldsvc)
+			}
+
+			netid, err := node.policy.GetVNID(serv.Namespace)
+			if err != nil {
+				return fmt.Errorf("skipped adding service rules for serviceEvent: %v, Error: %v", delta.Type, err)
+			}
+
+			node.AddServiceRules(serv, netid)
+			services[string(serv.UID)] = serv
+			if !exists {
+				node.policy.RefVNID(netid)
+			}
+		case cache.Deleted:
+			delete(services, string(serv.UID))
+			node.DeleteServiceRules(serv)
+
+			netid, err := node.policy.GetVNID(serv.Namespace)
+			if err == nil {
+				node.policy.UnrefVNID(netid)
+			}
+		}
+		return nil
+	})
 }

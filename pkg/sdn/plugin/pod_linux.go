@@ -91,11 +91,9 @@ func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.
 	var err error
 
 	config := &PodConfig{}
-	if m.multitenant {
-		config.vnid, err = m.vnids.GetVNID(req.PodNamespace)
-		if err != nil {
-			return nil, nil, err
-		}
+	config.vnid, err = m.policy.GetVNID(req.PodNamespace)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
@@ -449,6 +447,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 		return nil, nil, err
 	}
 
+	m.policy.RefVNID(podConfig.vnid)
 	success = true
 	return ipamResult, newPod, nil
 }
@@ -522,6 +521,9 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		} else if err != nil {
 			return err
 		}
+	}
+	if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
+		m.policy.UnrefVNID(vnid)
 	}
 
 	if err := m.ipamDel(req.ContainerId); err != nil {
