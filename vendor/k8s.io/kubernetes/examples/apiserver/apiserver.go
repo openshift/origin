@@ -74,6 +74,8 @@ func Run(serverOptions *genericoptions.ServerRunOptions, stopCh <-chan struct{})
 	}
 
 	config.Authorizer = authorizer.NewAlwaysAllowAuthorizer()
+	config.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+
 	s, err := config.New()
 	if err != nil {
 		return fmt.Errorf("Error in bringing up the server: %v", err)

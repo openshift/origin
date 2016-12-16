@@ -307,11 +307,11 @@ func Run(s *options.ServerRunOptions) error {
 	genericConfig.Authorizer = apiAuthorizer
 	genericConfig.AdmissionControl = admissionController
 	genericConfig.APIResourceConfigSource = storageFactory.APIResourceConfigSource
-	genericConfig.OpenAPIConfig.Info.Title = "Kubernetes"
-	genericConfig.OpenAPIConfig.Definitions = generatedopenapi.OpenAPIDefinitions
-	genericConfig.EnableOpenAPISupport = true
-	genericConfig.EnableMetrics = true
+	genericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.OpenAPIDefinitions)
 	genericConfig.OpenAPIConfig.SecurityDefinitions = securityDefinitions
+	genericConfig.OpenAPIConfig.Info.Title = "Kubernetes"
+	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+	genericConfig.EnableMetrics = true
 
 	config := &master.Config{
 		GenericConfig: genericConfig.Config,
