@@ -68,7 +68,7 @@ func SetDefaults_DeploymentStrategy(obj *DeploymentStrategy) {
 
 func SetDefaults_RecreateDeploymentStrategyParams(obj *RecreateDeploymentStrategyParams) {
 	if obj.TimeoutSeconds == nil {
-		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+		obj.TimeoutSeconds = mkintp(deployapi.DefaultRecreateTimeoutSeconds)
 	}
 }
 

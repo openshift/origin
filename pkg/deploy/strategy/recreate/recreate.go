@@ -98,7 +98,6 @@ func NewRecreateDeploymentStrategy(oldClient kclient.Interface, tagClient client
 		decoder:      decoder,
 		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
 		retryPeriod:  1 * time.Second,
-		now:          func() time.Time { return time.Now() },
 	}
 }
 
@@ -120,41 +119,24 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	var retryTimeout time.Duration
+	retryTimeout := time.Duration(deployapi.DefaultRecreateTimeoutSeconds) * time.Second
 	params := config.Spec.Strategy.RecreateParams
-
-	// for rolling strategy recreate might be the "initial strategy" and for that we need to
-	// set the TimeoutSeconds to rolling params.
 	rollingParams := config.Spec.Strategy.RollingParams
 
-	if params != nil {
-		if params.TimeoutSeconds != nil {
-			retryTimeout = time.Duration(*params.TimeoutSeconds) * time.Second
-		} else {
-			retryTimeout = time.Duration(deployapi.DefaultRecreateTimeoutSeconds) * time.Second
-		}
+	if params != nil && params.TimeoutSeconds != nil {
+		retryTimeout = time.Duration(*params.TimeoutSeconds) * time.Second
 	}
 
-	if retryTimeout == 0 && rollingParams != nil {
-		if rollingParams.TimeoutSeconds != nil {
-			retryTimeout = time.Duration(*rollingParams.TimeoutSeconds) * time.Second
-		} else {
-			retryTimeout = time.Duration(deployapi.DefaultRollingIntervalSeconds) * time.Second
-		}
+	// When doing the initial rollout for rolling strategy we use recreate and for that we
+	// have to set the TimeoutSecond based on the rollling strategy parameters.
+	if rollingParams != nil && rollingParams.TimeoutSeconds != nil {
+		retryTimeout = time.Duration(*rollingParams.TimeoutSeconds) * time.Second
 	}
-
-	deployerPod, err := s.podClient.Pods(to.Namespace).Get(deployutil.DeployerPodNameForDeployment(to.Name))
-	if err == nil {
-		deployerRunningSeconds := deployerPod.Status.StartTime.Time.Sub(s.now())
-		retryTimeout -= deployerRunningSeconds
-	}
-	fmt.Fprintf(s.out, "--> Waiting up to %s for rollout to finish\n", retryTimeout)
 
 	s.retryParams = kubectl.NewRetryParams(s.retryPeriod, retryTimeout)
 	waitParams := kubectl.NewRetryParams(s.retryPeriod, retryTimeout)
 
 	if updateAcceptor == nil {
-		// updateAcceptor = s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
 		updateAcceptor = s.getUpdateAcceptor(retryTimeout, config.Spec.MinReadySeconds)
 	}
 
