@@ -3,10 +3,12 @@ package docker
 import (
 	"errors"
 	"io"
-	"path/filepath"
+	"io/ioutil"
 
 	dockertypes "github.com/docker/engine-api/types"
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/tar"
+	"github.com/openshift/source-to-image/pkg/util"
 )
 
 // FakeDocker provides a fake docker interface
@@ -103,8 +105,20 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 	if f.RunContainerErrorBeforeStart {
 		return f.RunContainerError
 	}
+	if opts.Stdout != nil {
+		opts.Stdout.Close()
+	}
+	if opts.Stderr != nil {
+		opts.Stderr.Close()
+	}
 	if opts.OnStart != nil {
 		if err := opts.OnStart(""); err != nil {
+			return err
+		}
+	}
+	if opts.Stdin != nil {
+		_, err := io.Copy(ioutil.Discard, opts.Stdin)
+		if err != nil {
 			return err
 		}
 	}
@@ -115,12 +129,12 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 }
 
 // UploadToContainer uploads artifacts to the container.
-func (f *FakeDocker) UploadToContainer(srcPath, destPath, container string) error {
+func (f *FakeDocker) UploadToContainer(fs util.FileSystem, srcPath, destPath, container string) error {
 	return nil
 }
 
-// UploadToContainerWithCallback uploads artifacts to the container.
-func (f *FakeDocker) UploadToContainerWithCallback(srcPath, destPath, container string, walkFn filepath.WalkFunc, modifyInplace bool) error {
+// UploadToContainerWithTarWriter uploads artifacts to the container.
+func (f *FakeDocker) UploadToContainerWithTarWriter(fs util.FileSystem, srcPath, destPath, container string, makeTarWriter func(io.Writer) tar.Writer) error {
 	return errors.New("not implemented")
 }
 
@@ -182,6 +196,12 @@ func (f *FakeDocker) CheckAndPullImage(name string) (*api.Image, error) {
 // BuildImage builds image
 func (f *FakeDocker) BuildImage(opts BuildImageOptions) error {
 	f.BuildImageOpts = opts
+	if opts.Stdin != nil {
+		_, err := io.Copy(ioutil.Discard, opts.Stdin)
+		if err != nil {
+			return err
+		}
+	}
 	return f.BuildImageError
 }
 

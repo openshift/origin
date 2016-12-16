@@ -1,10 +1,13 @@
 package git
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -19,86 +22,94 @@ type Clone struct {
 func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
 	config.WorkingSourceDir = targetSourceDir
-	var info *api.SourceInfo
-	hasRef := len(config.Ref) > 0
-	cloneConfig := api.CloneConfig{Quiet: true, Recursive: !config.IgnoreSubmodules && !hasRef}
 
 	ok, err := c.ValidCloneSpec(config.Source)
 	if err != nil {
 		return nil, err
 	}
+	if !ok {
+		glog.Errorf("Clone.Download was passed an invalid source %s", config.Source)
+		return nil, fmt.Errorf("invalid source %s", config.Source)
+	}
 
-	if ok {
-		if len(config.ContextDir) > 0 {
-			targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
-			glog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)
-		} else {
-			glog.V(1).Infof("Downloading %q ...", config.Source)
-		}
+	ref := "HEAD"
+	if config.Ref != "" {
+		ref = config.Ref
+	}
 
-		// If we have a specific checkout ref, use submodule update instead of recursive
-		// Otherwise the versions will be incorrect.
-		if hasRef && !config.IgnoreSubmodules {
-			glog.V(2).Infof("Cloning sources (deferring submodule init) into %q", targetSourceDir)
-		} else if !hasRef && !config.IgnoreSubmodules {
-			glog.V(2).Infof("Cloning sources and all Git submodules (recursive) into %q", targetSourceDir)
-		} else {
-			glog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
-		}
+	if strings.HasPrefix(config.Source, "file://") {
+		s := strings.TrimPrefix(config.Source, "file://")
 
-		if err := c.Clone(config.Source, targetSourceDir, cloneConfig); err != nil {
-			glog.V(1).Infof("Git clone failed: %+v", err)
-			return nil, err
-		}
-
-		if hasRef {
-			if err := c.Checkout(targetSourceDir, config.Ref); err != nil {
-				return nil, err
-			}
-			glog.V(1).Infof("Checked out %q", config.Ref)
-			if !config.IgnoreSubmodules {
-				if err := c.SubmoduleUpdate(targetSourceDir, true, true); err != nil {
-					return nil, err
-				}
-				glog.V(1).Infof("Updated submodules for %q", config.Ref)
-			}
-		}
-
-		if len(config.ContextDir) > 0 {
-			originalTargetDir := filepath.Join(config.WorkingDir, api.Source)
-			c.RemoveDirectory(originalTargetDir)
-			// we want to copy entire dir contents, thus we need to use dir/. construct
-			path := filepath.Join(targetSourceDir, config.ContextDir) + string(filepath.Separator) + "."
-			err := c.Copy(path, originalTargetDir)
+		if util.UsingCygwinGit {
+			var err error
+			s, err = util.ToSlashCygwin(s)
 			if err != nil {
+				glog.V(0).Infof("error: Cygwin path conversion failed: %v", err)
 				return nil, err
 			}
-			info = c.GetInfo(targetSourceDir)
-			c.RemoveDirectory(targetSourceDir)
-		} else {
-			info = c.GetInfo(targetSourceDir)
 		}
-
-		if len(config.ContextDir) > 0 {
-			info.ContextDir = config.ContextDir
-		}
-
-		return info, nil
+		config.Source = "file://" + s
 	}
-	// we want to copy entire dir contents, thus we need to use dir/. construct
-	path := filepath.Join(config.Source, config.ContextDir) + string(filepath.Separator) + "."
-	if !c.Exists(path) {
-		return nil, errors.NewSourcePathError(path)
+
+	if len(config.ContextDir) > 0 {
+		targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
+		glog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)
+	} else {
+		glog.V(1).Infof("Downloading %q ...", config.Source)
 	}
-	if err := c.Copy(path, targetSourceDir); err != nil {
+
+	if !config.IgnoreSubmodules {
+		glog.V(2).Infof("Cloning sources into %q", targetSourceDir)
+	} else {
+		glog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
+	}
+
+	cloneConfig := api.CloneConfig{Quiet: true}
+	err = c.Clone(config.Source, targetSourceDir, cloneConfig)
+	if err != nil {
+		glog.V(0).Infof("error: git clone failed: %v", err)
 		return nil, err
 	}
 
-	// When building from a local directory (not using Git clone spec scheme) we
-	// skip gathering informations about the source as there is no guarantee that
-	// the folder is a Git repository or it requires context-dir to be set.
-	if !config.Quiet {
-		glog.Warning("You are using <source> location that is not valid Git repository. The source code information will not be stored into the output image. Use this image only for local testing and development.")
+	err = c.Checkout(targetSourceDir, ref)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	glog.V(1).Infof("Checked out %q", ref)
+	if !config.IgnoreSubmodules {
+		err = c.SubmoduleUpdate(targetSourceDir, true, true)
+		if err != nil {
+			return nil, err
+		}
+		glog.V(1).Infof("Updated submodules for %q", ref)
+	}
+
+	// Record Git's knowledge about file permissions
+	if runtime.GOOS == "windows" {
+		filemodes, err := c.LsTree(filepath.Join(targetSourceDir, config.ContextDir), ref, true)
+		if err != nil {
+			return nil, err
+		}
+		for _, filemode := range filemodes {
+			c.Chmod(filepath.Join(targetSourceDir, config.ContextDir, filemode.Name()), os.FileMode(filemode.Mode())&os.ModePerm)
+		}
+	}
+
+	info := c.GetInfo(targetSourceDir)
+	if len(config.ContextDir) > 0 {
+		originalTargetDir := filepath.Join(config.WorkingDir, api.Source)
+		c.RemoveDirectory(originalTargetDir)
+		path := filepath.Join(targetSourceDir, config.ContextDir)
+		err := c.CopyContents(path, originalTargetDir)
+		if err != nil {
+			return nil, err
+		}
+		c.RemoveDirectory(targetSourceDir)
+	}
+
+	if len(config.ContextDir) > 0 {
+		info.ContextDir = config.ContextDir
+	}
+
+	return info, nil
 }

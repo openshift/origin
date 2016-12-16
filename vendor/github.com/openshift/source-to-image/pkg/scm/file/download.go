@@ -19,34 +19,22 @@ type File struct {
 
 // Download copies sources from a local directory into the working directory
 func (f *File) Download(config *api.Config) (*api.SourceInfo, error) {
-	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
-	sourceDir := strings.TrimPrefix(config.Source, "file://")
-	config.WorkingSourceDir = targetSourceDir
+	config.WorkingSourceDir = filepath.Join(config.WorkingDir, api.Source)
+	source := strings.TrimPrefix(config.Source, "file://")
 
+	copySrc := source
 	if len(config.ContextDir) > 0 {
-		targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
+		copySrc = filepath.Join(source, config.ContextDir)
 	}
 
-	glog.V(1).Infof("Copying sources from %q to %q", sourceDir, targetSourceDir)
-	err := f.CopyContents(sourceDir, targetSourceDir)
+	glog.V(1).Infof("Copying sources from %q to %q", copySrc, config.WorkingSourceDir)
+	err := f.CopyContents(copySrc, config.WorkingSourceDir)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(config.ContextDir) > 0 {
-		originalTargetDir := filepath.Join(config.WorkingDir, api.Source)
-		f.RemoveDirectory(originalTargetDir)
-		// we want to copy entire dir contents, thus we need to use dir/. construct
-		path := filepath.Join(targetSourceDir, config.ContextDir) + string(filepath.Separator) + "."
-		err := f.Copy(path, originalTargetDir)
-		if err != nil {
-			return nil, err
-		}
-		f.RemoveDirectory(targetSourceDir)
-	}
-
 	return &api.SourceInfo{
-		Location:   sourceDir,
+		Location:   source,
 		ContextDir: config.ContextDir,
 	}, nil
 }
