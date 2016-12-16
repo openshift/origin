@@ -1494,8 +1494,16 @@ func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) 
 		return "", err
 	}
 
+	nsSelector := make([]interface{}, 0, quota.Status.Namespaces.OrderedKeys().Len())
+	ns := quota.Status.Namespaces.OrderedKeys().Front()
+	for ns != nil {
+		nsSelector = append(nsSelector, ns.Value)
+		ns = ns.Next()
+	}
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, quota.ObjectMeta)
+		fmt.Fprintf(out, "Namespace Selector: %q\n", nsSelector)
 		fmt.Fprintf(out, "Label Selector: %s\n", labelSelector)
 		fmt.Fprintf(out, "AnnotationSelector: %s\n", quota.Spec.Selector.AnnotationSelector)
 		if len(quota.Spec.Quota.Scopes) > 0 {
