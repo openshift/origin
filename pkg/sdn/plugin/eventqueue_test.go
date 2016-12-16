@@ -504,7 +504,7 @@ func TestEventQueueCompress(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		queue := NewEventQueue(testKeyFunc)
+		queue, _ := NewEventQueue(testKeyFunc)
 
 		panicked, msg := addInitialDeltas(queue, test.initial)
 		if panicked != test.expectPanic {
@@ -546,7 +546,7 @@ func TestEventQueueUncompressed(t *testing.T) {
 	obj := "obj1"
 
 	for _, dtype := range []cache.DeltaType{cache.Added, cache.Updated, cache.Deleted, cache.Sync} {
-		queue := NewEventQueue(testKeyFunc)
+		queue, _ := NewEventQueue(testKeyFunc)
 
 		// Deleted requires the object to already be in the known objects
 		// list, and we must pop that cache.Added off before testing
@@ -600,7 +600,7 @@ func TestEventQueueUncompressed(t *testing.T) {
 
 // Test that DeletedFinalStateUnknown objects are handled correctly
 func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
-	queue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
+	queue, _ := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 
 	obj1 := &api.ObjectMeta{Name: "obj1", Namespace: "namespace1"}
 	obj2 := &api.ObjectMeta{Name: "obj2", Namespace: "namespace1"}
@@ -635,7 +635,7 @@ func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
 	}
 
 	// Repeat but this time make sure we get the objects we want, not DeletedFinalStateUnknown
-	queue = NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
+	queue, _ = NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 	queue.knownObjects.Add(obj1)
 	queue.knownObjects.Add(obj2)
 

@@ -41,19 +41,39 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 		return err
 	}
 
+	master.subnetQueue, master.subnetStore = NewSDNEventQueue()
+
 	go utilwait.Forever(master.watchNodes, 0)
 	go utilwait.Forever(master.watchSubnets, 0)
 	return nil
 }
 
-func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string) error {
+func (master *OsdnMaster) getHostSubnetFromStore(nodeName string) (*osapi.HostSubnet, error) {
+	// Neither nodes or HostSubnets are namespaced, so we can abuse
+	// the fact that the Store's keyFunc uses only the name as the key
+	item, exists, err := master.subnetStore.GetByKey(nodeName)
+	if err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, fmt.Errorf("no HostSubnet found for node %s", nodeName)
+	}
+
+	subnet, ok := item.(*osapi.HostSubnet)
+	if !ok {
+		return nil, fmt.Errorf("expected HostSubnet %s but got %t %v", nodeName, item, item)
+	}
+
+	return subnet, nil
+}
+
+func (master *OsdnMaster) addHostSubnet(nodeName string, nodeIP string, hsAnnotations map[string]string) error {
 	// Validate node IP before proceeding
 	if err := master.networkInfo.validateNodeIP(nodeIP); err != nil {
 		return err
 	}
 
 	// Check if subnet needs to be created or updated
-	sub, err := master.osClient.HostSubnets().Get(nodeName)
+	sub, err := master.getHostSubnetFromStore(nodeName)
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nil
@@ -91,17 +111,23 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	return nil
 }
 
-func (master *OsdnMaster) deleteNode(nodeName string) error {
-	sub, err := master.osClient.HostSubnets().Get(nodeName)
-	if err != nil {
-		return fmt.Errorf("Error fetching subnet for node %q for deletion: %v", nodeName, err)
-	}
-	err = master.osClient.HostSubnets().Delete(nodeName)
-	if err != nil {
-		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
+func (master *OsdnMaster) deleteHostSubnet(nodeName string) error {
+	var subnet string
+
+	if hs, _ := master.getHostSubnetFromStore(nodeName); hs != nil {
+		// Remove from event queue store to ensure it doesn't exist locally
+		// after it's been deleted remotely
+		master.subnetStore.Delete(hs)
+		subnet = hostSubnetToString(hs)
 	}
 
-	log.Infof("Deleted HostSubnet %s", hostSubnetToString(sub))
+	// Even if we didn't have the subnet locally, still try to delete it
+	// from the API as clustered apiservers have different views of the world
+	if err := master.osClient.HostSubnets().Delete(nodeName); err != nil {
+		return fmt.Errorf("error deleting subnet %s for node %q: %v", subnet, nodeName, err)
+	}
+
+	log.Infof("Deleted HostSubnet %s for node %q", subnet, nodeName)
 	return nil
 }
 
@@ -164,7 +190,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	RunEventQueue(master.kClient.CoreClient, Nodes, func(delta cache.Delta) error {
+	RunEventQueue(nil, master.kClient.CoreClient, Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
@@ -184,7 +210,7 @@ func (master *OsdnMaster) watchNodes() {
 			// Node status is frequently updated by kubelet, so log only if the above condition is not met
 			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 
-			err = master.addNode(name, nodeIP, nil)
+			err = master.addHostSubnet(name, nodeIP, nil)
 			if err != nil {
 				return fmt.Errorf("error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
 			}
@@ -193,9 +219,9 @@ func (master *OsdnMaster) watchNodes() {
 			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 			delete(nodeAddressMap, uid)
 
-			err = master.deleteNode(name)
+			err = master.deleteHostSubnet(name)
 			if err != nil {
-				return fmt.Errorf("Error deleting node %s: %v", name, err)
+				return fmt.Errorf("Error deleting node %s subnet: %v", name, err)
 			}
 		}
 		return nil
@@ -210,7 +236,7 @@ func (node *OsdnNode) SubnetStartNode() error {
 // Only run on the master
 // Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
 func (master *OsdnMaster) watchSubnets() {
-	RunEventQueue(master.osClient, HostSubnets, func(delta cache.Delta) error {
+	RunEventQueue(master.subnetQueue, master.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		name := hs.ObjectMeta.Name
 		hostIP := hs.HostIP
@@ -225,11 +251,10 @@ func (master *OsdnMaster) watchSubnets() {
 				// will skip the event if it finds that the hostsubnet has the same host
 				// And we cannot fix the watchSubnets code for node because it will break migration if
 				// nodes are upgraded after the master
-				err := master.osClient.HostSubnets().Delete(name)
-				if err != nil {
-					log.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
-					return nil
+				if err := master.deleteHostSubnet(name); err != nil {
+					return err
 				}
+
 				var hsAnnotations map[string]string
 				if vnid, ok := hs.Annotations[osapi.FixedVnidHost]; ok {
 					vnidInt, err := strconv.Atoi(vnid)
@@ -240,10 +265,8 @@ func (master *OsdnMaster) watchSubnets() {
 						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVnidHost)
 					}
 				}
-				err = master.addNode(name, hostIP, hsAnnotations)
-				if err != nil {
-					log.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
-					return nil
+				if err := master.addHostSubnet(name, hostIP, hsAnnotations); err != nil {
+					return err
 				}
 			}
 		case cache.Deleted:
@@ -263,7 +286,7 @@ func (master *OsdnMaster) watchSubnets() {
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(map[string]*osapi.HostSubnet)
-	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
+	RunEventQueue(nil, node.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
 			return nil

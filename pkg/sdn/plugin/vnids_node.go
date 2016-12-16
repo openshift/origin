@@ -195,7 +195,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 }
 
 func (node *OsdnNode) watchNetNamespaces() {
-	RunEventQueue(node.osClient, NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(nil, node.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
@@ -240,7 +240,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	RunEventQueue(node.kClient.CoreClient, Services, func(delta cache.Delta) error {
+	RunEventQueue(nil, node.kClient.CoreClient, Services, func(delta cache.Delta) error {
 		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services

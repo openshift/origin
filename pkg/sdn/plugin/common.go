@@ -96,31 +96,25 @@ const (
 	EgressNetworkPolicies ResourceName = "EgressNetworkPolicies"
 )
 
-// Run event queue for the given resource. The 'process' function is called
+// Common function to ensure we create queues with DeletionHandlingMetaNamespaceKeyFunc
+func NewSDNEventQueue() (*EventQueue, kcache.Store) {
+	return NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
+}
+
+// Run event queue for the given resource.  The 'process' function is called
 // repeatedly with each available cache.Delta that describes state changes
 // to an object. If the process function returns an error queued changes
 // for that object are dropped but processing continues with the next available
 // object's cache.Deltas.  The error is logged with call stack information.
-func runEventQueueForResource(client kcache.Getter, resourceName ResourceName, expectedType interface{}, selector fields.Selector, process ProcessEventFunc) {
-	rn := strings.ToLower(string(resourceName))
-	lw := kcache.NewListWatchFromClient(client, rn, kapi.NamespaceAll, selector)
-	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
-	// Repopulate event queue every 30 mins
-	// Existing items in the event queue will have watch.Modified event type
-	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
-
-	// Run the queue
-	for {
-		eventQueue.Pop(process, expectedType)
-	}
-}
-
-// Run event queue for the given resource.
 // NOTE: this function will handle DeletedFinalStateUnknown delta objects
 // automatically, which may not always be what you want since the now-deleted
 // object may be stale.
-func RunEventQueue(client kcache.Getter, resourceName ResourceName, process ProcessEventFunc) {
+func RunEventQueue(queue *EventQueue, client kcache.Getter, resourceName ResourceName, process ProcessEventFunc) {
 	var expectedType interface{}
+
+	if queue == nil {
+		queue, _ = NewSDNEventQueue()
+	}
 
 	switch resourceName {
 	case HostSubnets:
@@ -141,5 +135,14 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	runEventQueueForResource(client, resourceName, expectedType, fields.Everything(), process)
+	rn := strings.ToLower(string(resourceName))
+	lw := kcache.NewListWatchFromClient(client, rn, kapi.NamespaceAll, fields.Everything())
+	// Repopulate event queue every 30 mins
+	// Existing items in the event queue will have watch.Modified event type
+	kcache.NewReflector(lw, expectedType, queue, 30*time.Minute).Run()
+
+	// Run the queue
+	for {
+		queue.Pop(process, expectedType)
+	}
 }

@@ -274,7 +274,7 @@ func (master *OsdnMaster) VnidStartMaster() error {
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	RunEventQueue(master.kClient.CoreClient, Namespaces, func(delta cache.Delta) error {
+	RunEventQueue(nil, master.kClient.CoreClient, Namespaces, func(delta cache.Delta) error {
 		ns := delta.Object.(*kapi.Namespace)
 		name := ns.ObjectMeta.Name
 
@@ -294,7 +294,7 @@ func (master *OsdnMaster) watchNamespaces() {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	RunEventQueue(master.osClient, NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(nil, master.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 
