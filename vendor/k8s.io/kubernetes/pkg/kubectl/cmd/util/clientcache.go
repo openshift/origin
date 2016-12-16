@@ -29,12 +29,13 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
 
-func NewClientCache(loader clientcmd.ClientConfig) *ClientCache {
+func NewClientCache(loader clientcmd.ClientConfig, discoveryClientFactory DiscoveryClientFactory) *ClientCache {
 	return &ClientCache{
-		clientsets:    make(map[unversioned.GroupVersion]*internalclientset.Clientset),
-		configs:       make(map[unversioned.GroupVersion]*restclient.Config),
-		fedClientSets: make(map[unversioned.GroupVersion]fed_clientset.Interface),
-		loader:        loader,
+		clientsets:             make(map[unversioned.GroupVersion]*internalclientset.Clientset),
+		configs:                make(map[unversioned.GroupVersion]*restclient.Config),
+		fedClientSets:          make(map[unversioned.GroupVersion]fed_clientset.Interface),
+		loader:                 loader,
+		discoveryClientFactory: discoveryClientFactory,
 	}
 }
 
@@ -50,7 +51,10 @@ type ClientCache struct {
 
 	defaultConfigLock sync.Mutex
 	defaultConfig     *restclient.Config
-	discoveryClient   discovery.DiscoveryInterface
+	// discoveryClientFactory comes as a factory method so that we can defer resolution until after
+	// argument evaluation
+	discoveryClientFactory DiscoveryClientFactory
+	discoveryClient        discovery.DiscoveryInterface
 }
 
 // also looks up the discovery client.  We can't do this during init because the flags won't have been set
@@ -67,7 +71,7 @@ func (c *ClientCache) getDefaultConfig() (restclient.Config, discovery.Discovery
 	if err != nil {
 		return restclient.Config{}, nil, err
 	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	discoveryClient, err := c.discoveryClientFactory.DiscoveryClient()
 	if err != nil {
 		return restclient.Config{}, nil, err
 	}
