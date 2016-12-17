@@ -176,14 +176,15 @@ func (DeploymentRequest) SwaggerDoc() map[string]string {
 }
 
 var map_DeploymentStrategy = map[string]string{
-	"":               "DeploymentStrategy describes how to perform a deployment.",
-	"type":           "Type is the name of a deployment strategy.",
-	"customParams":   "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
-	"recreateParams": "RecreateParams are the input to the Recreate deployment strategy.",
-	"rollingParams":  "RollingParams are the input to the Rolling deployment strategy.",
-	"resources":      "Resources contains resource requirements to execute the deployment and any hooks.",
-	"labels":         "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-	"annotations":    "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"":                      "DeploymentStrategy describes how to perform a deployment.",
+	"type":                  "Type is the name of a deployment strategy.",
+	"customParams":          "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
+	"recreateParams":        "RecreateParams are the input to the Recreate deployment strategy.",
+	"rollingParams":         "RollingParams are the input to the Rolling deployment strategy.",
+	"resources":             "Resources contains resource requirements to execute the deployment and any hooks.",
+	"labels":                "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"annotations":           "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"activeDeadlineSeconds": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
 }
 
 func (DeploymentStrategy) SwaggerDoc() map[string]string {

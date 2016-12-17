@@ -329,10 +329,15 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
+			randInt64 := func() *int64 {
+				p := int64(c.RandUint64())
+				return &p
+			}
 			c.FuzzNoCustom(j)
 			j.RecreateParams, j.RollingParams, j.CustomParams = nil, nil, nil
 			strategyTypes := []deploy.DeploymentStrategyType{deploy.DeploymentStrategyTypeRecreate, deploy.DeploymentStrategyTypeRolling, deploy.DeploymentStrategyTypeCustom}
 			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
+			j.ActiveDeadlineSeconds = randInt64()
 			switch j.Type {
 			case deploy.DeploymentStrategyTypeRecreate:
 				params := &deploy.RecreateDeploymentStrategyParams{}
@@ -344,10 +349,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.RecreateParams = params
 			case deploy.DeploymentStrategyTypeRolling:
 				params := &deploy.RollingDeploymentStrategyParams{}
-				randInt64 := func() *int64 {
-					p := int64(c.RandUint64())
-					return &p
-				}
 				params.TimeoutSeconds = randInt64()
 				params.IntervalSeconds = randInt64()
 				params.UpdatePeriodSeconds = randInt64()

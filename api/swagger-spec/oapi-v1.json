@@ -24094,6 +24094,11 @@
      "annotations": {
       "type": "object",
       "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods."
+     },
+     "activeDeadlineSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them."
      }
     }
    },

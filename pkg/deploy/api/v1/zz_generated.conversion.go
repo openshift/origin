@@ -668,6 +668,7 @@ func autoConvert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentS
 	}
 	out.Labels = in.Labels
 	out.Annotations = in.Annotations
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	return nil
 }
 
@@ -709,6 +710,7 @@ func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *api.Deploym
 	}
 	out.Labels = in.Labels
 	out.Annotations = in.Annotations
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	return nil
 }
 

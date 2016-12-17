@@ -414,6 +414,13 @@ func DeepCopy_api_DeploymentStrategy(in interface{}, out interface{}, c *convers
 		} else {
 			out.Annotations = nil
 		}
+		if in.ActiveDeadlineSeconds != nil {
+			in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds
+			*out = new(int64)
+			**out = **in
+		} else {
+			out.ActiveDeadlineSeconds = nil
+		}
 		return nil
 	}
 }

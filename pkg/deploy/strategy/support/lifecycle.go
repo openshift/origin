@@ -332,7 +332,11 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	}
 
 	// Assigning to a variable since its address is required
-	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds - int64(time.Since(deployerPod.Status.StartTime.Time).Seconds())
+	defaultActiveDeadline := deployapi.MaxDeploymentDurationSeconds
+	if strategy.ActiveDeadlineSeconds != nil {
+		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
+	}
+	maxDeploymentDurationSeconds := defaultActiveDeadline - int64(time.Since(deployerPod.Status.StartTime.Time).Seconds())
 
 	// Let the kubelet manage retries if requested
 	restartPolicy := kapi.RestartPolicyNever

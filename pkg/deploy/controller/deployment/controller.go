@@ -287,6 +287,9 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 
 	// Assigning to a variable since its address is required
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+	if deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds != nil {
+		maxDeploymentDurationSeconds = *(deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds)
+	}
 
 	gracePeriod := int64(10)
 

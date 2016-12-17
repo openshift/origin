@@ -195,6 +195,10 @@ type DeploymentStrategy struct {
 	Labels map[string]string
 	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Annotations map[string]string
+
+	// ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
+	// config may be active on a node before the system actively tries to terminate them.
+	ActiveDeadlineSeconds *int64
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
