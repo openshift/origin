@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
@@ -11,10 +12,10 @@ import (
 // image labels.
 func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) error {
 	if config == nil {
-		return fmt.Errorf("config must be provided to GenerateConfigFromLabels")
+		return errors.New("config must be provided to GenerateConfigFromLabels")
 	}
 	if metadata == nil {
-		return fmt.Errorf("image metadata must be provided to GenerateConfigFromLabels")
+		return errors.New("image metadata must be provided to GenerateConfigFromLabels")
 	}
 
 	labels := metadata.Image.Config.Labels

@@ -18,6 +18,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/source-to-image/pkg/tar"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -35,7 +38,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	oerrors "github.com/openshift/origin/pkg/util/errors"
-	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 var (
@@ -567,7 +569,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 			pr, pw := io.Pipe()
 			go func() {
 				w := gzip.NewWriter(pw)
-				if err := tar.New().CreateTarStream(path, false, w); err != nil {
+				if err := tar.New(s2iutil.NewFileSystem()).CreateTarStream(path, false, w); err != nil {
 					pw.CloseWithError(err)
 				} else {
 					w.Close()

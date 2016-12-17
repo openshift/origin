@@ -12,11 +12,13 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/source-to-image/pkg/tar"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/test/util"
-	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {
@@ -226,7 +228,7 @@ func TestDockerfilePath(t *testing.T) {
 			dockerClient: dockerClient,
 			build:        build,
 			gitClient:    git.NewRepository(),
-			tar:          tar.New(),
+			tar:          tar.New(s2iutil.NewFileSystem()),
 		}
 
 		// this will validate that the Dockerfile is readable

@@ -19,6 +19,7 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -49,7 +50,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		dockerClient: dockerClient,
 		build:        build,
 		gitClient:    gitClient,
-		tar:          tar.New(),
+		tar:          tar.New(s2iutil.NewFileSystem()),
 		urlTimeout:   initialURLCheckTimeout,
 		client:       buildsClient,
 		cgLimits:     cgLimits,
