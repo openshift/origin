@@ -36,6 +36,16 @@ os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
 os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
 
+os::cmd::expect_success "oc volume dc/test-deployment-config --add -t 'secret' --secret-name='asdf' --default-mode '765'"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[0]}' '501'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
+
+os::cmd::expect_failure "oc volume dc/test-deployment-config --add -t 'secret' --secret-name='asdf' --default-mode '888'"
+
+os::cmd::expect_success "oc volume dc/test-deployment-config --add -t 'configmap' --configmap-name='asdf' --default-mode '123'"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[0]}' '83'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
+
 os::cmd::expect_success_and_text 'oc get pvc --no-headers | wc -l' '0'
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --mount-path=/other --claim-size=1G'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --mount-path=/second --type=pvc --claim-size=1G --claim-mode=rwo'
