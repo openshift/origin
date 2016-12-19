@@ -74,10 +74,7 @@ func makeBuild() *api.Build {
 	return &api.Build{
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
-						URI: "http://localhost/123",
-					}},
+				Source: api.BuildSource{},
 				Strategy: api.BuildStrategy{
 					SourceStrategy: &api.SourceBuildStrategy{
 						Env: append([]kapi.EnvVar{},
@@ -184,6 +181,7 @@ func TestBuildEnvVars(t *testing.T) {
 	mockBuild := makeBuild()
 	mockBuild.Name = "openshift-test-1-build"
 	mockBuild.Namespace = "openshift-demo"
+	mockBuild.Spec.Source.Git = &api.GitBuildSource{URI: "http://localhost/123"}
 	resultedEnvList := buildEnvVars(mockBuild)
 	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
 		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
