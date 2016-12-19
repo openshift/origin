@@ -25,6 +25,9 @@ type ManifestHandler interface {
 	// Payload returns manifest's media type, complete payload with signatures and canonical payload without
 	// signatures or an error if the information could not be fetched.
 	Payload() (mediaType string, payload []byte, canonical []byte, err error)
+
+	// Verify returns an error if the contained manifest is not valid or has missing dependencies.
+	Verify(ctx context.Context, skipDependencyVerification bool) error
 }
 
 // NewManifestHandler creates a manifest handler for the given manifest.

@@ -88,11 +88,11 @@ func TestPullthroughServeBlob(t *testing.T) {
 
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
 
-	blob1Desc, blob1Content, err := registrytest.UploadTestBlob(serverURL, "user/app")
+	blob1Desc, blob1Content, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}
-	blob2Desc, blob2Content, err := registrytest.UploadTestBlob(serverURL, "user/app")
+	blob2Desc, blob2Content, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}
