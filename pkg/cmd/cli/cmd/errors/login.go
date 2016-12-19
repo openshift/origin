@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/openshift/origin/pkg/cmd/errors"
@@ -50,4 +51,16 @@ func kubeConfigSolution(isExplicitFile bool) string {
 		}
 		return KubeConfigSolutionUnix
 	}
+}
+
+// NoProjectsExistMessage returns a message indicating that no projects have been created by the current user.
+func NoProjectsExistMessage(canRequestProjects bool, commandName string) string {
+	if !canRequestProjects {
+		return fmt.Sprintf("You don't have any projects. Contact your system administrator to request a project.\n")
+	}
+	return fmt.Sprintf(`You don't have any projects. You can try to create a new project, by running
+
+    %s new-project <projectname>
+
+`, commandName)
 }

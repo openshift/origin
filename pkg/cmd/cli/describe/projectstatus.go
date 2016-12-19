@@ -16,6 +16,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -30,6 +31,8 @@ import (
 	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
+	loginerrors "github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
+	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deployanalysis "github.com/openshift/origin/pkg/deploy/graph/analysis"
@@ -60,6 +63,8 @@ type ProjectStatusDescriber struct {
 
 	// root command used when calling this command
 	CommandBaseName string
+
+	Config *restclient.Config
 
 	LogsCommandName             string
 	SecurityPolicyCommandFormat string
@@ -154,6 +159,13 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	if !allNamespaces {
 		p, err := d.C.Projects().Get(namespace)
 		if err != nil {
+			// a forbidden error here means that the user has not created
+			// any projects, and is therefore using a default namespace
+			// that they cannot list projects from.
+			if kapierrors.IsForbidden(err) {
+				canRequestProjects, _ := loginutil.CanRequestProjects(d.Config, namespace)
+				return loginerrors.NoProjectsExistMessage(canRequestProjects, d.CommandBaseName), nil
+			}
 			if !kapierrors.IsNotFound(err) {
 				return "", err
 			}
