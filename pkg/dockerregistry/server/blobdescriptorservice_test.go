@@ -90,7 +90,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	}
 	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
 
-	desc, _, err := registrytest.UploadTestBlob(serverURL, "user/app")
+	desc, _, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}

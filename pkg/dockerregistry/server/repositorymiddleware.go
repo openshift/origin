@@ -312,9 +312,16 @@ func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, op
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
 
+	// this is fast to check, let's do it before verification
 	if !r.acceptschema2 && mediaType == schema2.MediaTypeManifest {
 		err = fmt.Errorf("manifest V2 schema 2 not allowed")
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
+	}
+
+	// in order to stat the referenced blobs, repository need to be set on the context
+	ctx = WithRepository(ctx, r)
+	if err := mh.Verify(ctx, false); err != nil {
+		return "", err
 	}
 
 	// Calculate digest
