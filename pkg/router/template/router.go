@@ -651,7 +651,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 			return
 		}
 
-		glog.V(4).Infof("Updating route %v", route)
+		glog.V(4).Infof("Updating route %s/%s", route.Namespace, route.Name)
 
 		// Delete the route first, because modify is to be treated as delete+add
 		r.RemoveRoute(route)
@@ -662,7 +662,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 		// is having stale service units accumulate with the attendant
 		// cost to router memory usage.
 	} else {
-		glog.V(4).Infof("Adding route %v", route)
+		glog.V(4).Infof("Adding route %s/%s", route.Namespace, route.Name)
 	}
 
 	// Add service units referred to by the config

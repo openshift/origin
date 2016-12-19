@@ -186,7 +186,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	case watch.Added, watch.Modified:
 		p.Router.AddRoute(route)
 	case watch.Deleted:
-		glog.V(4).Infof("Deleting route %v", route)
+		glog.V(4).Infof("Deleting route %s/%s", route.Namespace, route.Name)
 		p.Router.RemoveRoute(route)
 	}
 	return nil
