@@ -870,7 +870,15 @@ func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *a
 	} else {
 		out.CustomStrategy = nil
 	}
-	out.JenkinsPipelineStrategy = (*api.JenkinsPipelineBuildStrategy)(unsafe.Pointer(in.JenkinsPipelineStrategy))
+	if in.JenkinsPipelineStrategy != nil {
+		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
+		*out = new(api.JenkinsPipelineBuildStrategy)
+		if err := Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -906,7 +914,15 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *api.BuildStrategy, ou
 	} else {
 		out.CustomStrategy = nil
 	}
-	out.JenkinsPipelineStrategy = (*JenkinsPipelineBuildStrategy)(unsafe.Pointer(in.JenkinsPipelineStrategy))
+	if in.JenkinsPipelineStrategy != nil {
+		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
+		*out = new(JenkinsPipelineBuildStrategy)
+		if err := Convert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -1623,6 +1639,17 @@ func Convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *api.ImageSourcePath, 
 func autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in *JenkinsPipelineBuildStrategy, out *api.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]pkg_api.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 
@@ -1633,6 +1660,17 @@ func Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy
 func autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in *api.JenkinsPipelineBuildStrategy, out *JenkinsPipelineBuildStrategy, s conversion.Scope) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]api_v1.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 
