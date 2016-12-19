@@ -119,6 +119,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	rolebindingrestrictionregistry "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
@@ -794,6 +795,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterResourceQuotas/status": updateInPeace(clusterresourcequotaregistry.NewStatusStorage(c.RESTOptionsGetter)),
 		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
 			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.Namespaces().Lister()),
+
+		"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewStorage(c.RESTOptionsGetter)),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
