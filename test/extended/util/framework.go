@@ -340,8 +340,8 @@ func (t *BuildResult) DumpLogs() {
 
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	ExamineDiskUsage()
-	ExaminePodDiskUsage(t.oc)
+	//ExamineDiskUsage()
+	//ExaminePodDiskUsage(t.oc)
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 }
