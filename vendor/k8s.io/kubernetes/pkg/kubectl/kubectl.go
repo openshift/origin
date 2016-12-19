@@ -102,6 +102,13 @@ var ShortForms = map[string]string{
 	"sa":     "serviceaccounts",
 	"scc":    "securitycontextconstraints",
 	"svc":    "services",
+
+	"dc":           "deploymentconfigs",
+	"bc":           "buildconfigs",
+	"is":           "imagestreams",
+	"istag":        "imagestreamtags",
+	"isimage":      "imagestreamimages",
+	"clusterquota": "clusterresourcequota",
 }
 
 // ResourceShortFormFor looks up for a short form of resource names.

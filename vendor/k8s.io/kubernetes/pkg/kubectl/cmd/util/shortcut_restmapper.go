@@ -108,14 +108,19 @@ func (e ShortcutExpander) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMa
 // userResources are the resource names that apply to the primary, user facing resources used by
 // client tools. They are in deletion-first order - dependent resources should be last.
 var userResources = []unversioned.GroupResource{
-	{Group: "", Resource: "pods"},
+	{Group: "", Resource: "buildconfigs"},
+	{Group: "", Resource: "builds"},
+	{Group: "", Resource: "imagestreams"},
+	{Group: "", Resource: "deploymentconfigs"},
+	{Group: "extensions", Resource: "deployments"},
+	{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 	{Group: "", Resource: "replicationcontrollers"},
+	{Group: "", Resource: "routes"},
 	{Group: "", Resource: "services"},
 	{Group: "apps", Resource: "statefulsets"},
-	{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 	{Group: "extensions", Resource: "jobs"},
-	{Group: "extensions", Resource: "deployments"},
 	{Group: "extensions", Resource: "replicasets"},
+	{Group: "", Resource: "pods"},
 }
 
 // AliasesForResource returns whether a resource has an alias or not
