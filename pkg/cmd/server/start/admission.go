@@ -13,6 +13,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
+	_ "github.com/openshift/origin/pkg/build/admission/secretinjector"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy"
@@ -51,6 +52,7 @@ var (
 	defaultOnPlugins = sets.NewString(
 		"OriginNamespaceLifecycle",
 		"openshift.io/JenkinsBootstrapper",
+		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		storageclassdefaultadmission.PluginName,
 		imageadmission.PluginName,
