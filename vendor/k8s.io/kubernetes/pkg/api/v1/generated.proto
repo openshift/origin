@@ -509,22 +509,11 @@ message DeleteOptions {
 // DeprecatedDownwardAPIVolumeFile represents information to create the file containing the pod field
 // This type is deprecated and should be replaced by use of the downwardAPI volume source.
 message DeprecatedDownwardAPIVolumeFile {
-  // Required: Name is the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
-  optional string name = 1;
-
-  // Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-  optional ObjectFieldSelector fieldRef = 2;
-
-  // Selects a resource of the container: only resources limits and requests
-  // (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
-  optional ResourceFieldSelector resourceFieldRef = 3;
 }
 
 // DeprecatedDownwardAPIVolumeSource represents a volume containing downward API info.
 // This type is deprecated and should be replaced by use of the downwardAPI volume source.
 message DeprecatedDownwardAPIVolumeSource {
-  // Items is a list of downward API volume file
-  repeated DeprecatedDownwardAPIVolumeFile items = 1;
 }
 
 // DownwardAPIVolumeFile represents information to create the file containing the pod field
@@ -2844,11 +2833,6 @@ message ServiceSpec {
   // More info: http://releases.k8s.io/release-1.3/docs/user-guide/services.md#overview
   map<string, string> selector = 2;
 
-  // The IP Address of the service.
-  // Deprecated: Use clusterIP instead.
-  // +genconversion=false
-  optional string portalIP = 10;
-
   // ClusterIP is usually assigned by the master and is the IP address of the service.
   // If specified, it will be allocated to the service if it is unused
   // or else creation of the service will fail.
@@ -3078,11 +3062,6 @@ message VolumeSource {
 
   // VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
   optional VsphereVirtualDiskVolumeSource vsphereVolume = 20;
-
-  // Metadata represents metadata about the pod that should populate this volume
-  // Deprecated: Use downwardAPI instead.
-  // +genconversion=false
-  optional DeprecatedDownwardAPIVolumeSource metadata = 21;
 }
 
 // Represents a vSphere volume resource.
