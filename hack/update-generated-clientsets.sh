@@ -18,9 +18,6 @@ if [[ ! "$clientgen" ]]; then
   exit 1
 fi
 
-os::build::os_version_vars
-origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
-
 exit 0
 
 packages=(
