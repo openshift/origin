@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,17 +10,14 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	regapi "github.com/docker/distribution/registry/api/v2"
 	repomw "github.com/docker/distribution/registry/middleware/repository"
-	"github.com/docker/libtrust"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -307,29 +303,25 @@ func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, op
 		return "", err
 	}
 
-	var canonical []byte
-
-	// Resolve the payload in the manifest.
-	mediatype, payload, err := manifest.Payload()
+	mh, err := NewManifestHandler(r, manifest)
 	if err != nil {
-		return "", err
+		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
-
-	switch manifest.(type) {
-	case *schema1.SignedManifest:
-		canonical = manifest.(*schema1.SignedManifest).Canonical
-	case *schema2.DeserializedManifest:
-		canonical = payload
-	default:
-		err = fmt.Errorf("unrecognized manifest type %T", manifest)
+	mediaType, payload, canonical, err := mh.Payload()
+	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
 
-	if !r.acceptschema2 {
-		if _, ok := manifest.(*schema1.SignedManifest); !ok {
-			err = fmt.Errorf("schema version 2 disabled")
-			return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
-		}
+	// this is fast to check, let's do it before verification
+	if !r.acceptschema2 && mediaType == schema2.MediaTypeManifest {
+		err = fmt.Errorf("manifest V2 schema 2 not allowed")
+		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
+	}
+
+	// in order to stat the referenced blobs, repository need to be set on the context
+	ctx = WithRepository(ctx, r)
+	if err := mh.Verify(ctx, false); err != nil {
+		return "", err
 	}
 
 	// Calculate digest
@@ -350,7 +342,7 @@ func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, op
 			},
 			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", r.registryAddr, r.namespace, r.name, dgst.String()),
 			DockerImageManifest:          string(payload),
-			DockerImageManifestMediaType: mediatype,
+			DockerImageManifestMediaType: mediaType,
 		},
 	}
 
@@ -361,7 +353,7 @@ func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, op
 		}
 	}
 
-	if err = r.fillImageWithMetadata(manifest, &ism.Image); err != nil {
+	if err = mh.FillImageMetadata(ctx, &ism.Image); err != nil {
 		return "", err
 	}
 
@@ -417,89 +409,6 @@ func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, op
 	}
 
 	return dgst, nil
-}
-
-// fillImageWithMetadata fills a given image with metadata.
-func (r *repository) fillImageWithMetadata(manifest distribution.Manifest, image *imageapi.Image) error {
-	if deserializedManifest, ok := manifest.(*schema2.DeserializedManifest); ok {
-		r.deserializedManifestFillImageMetadata(deserializedManifest, image)
-	} else if signedManifest, ok := manifest.(*schema1.SignedManifest); ok {
-		r.signedManifestFillImageMetadata(signedManifest, image)
-	} else {
-		return fmt.Errorf("unrecognized manifest type %T", manifest)
-	}
-
-	context.GetLogger(r.ctx).Infof("total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, image.DockerImageMetadata.Size)
-	return nil
-}
-
-// signedManifestFillImageMetadata fills a given image with metadata. It also corrects layer sizes with blob sizes. Newer
-// Docker client versions don't set layer sizes in the manifest at all. Origin master needs correct layer
-// sizes for proper image quota support. That's why we need to fill the metadata in the registry.
-func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedManifest, image *imageapi.Image) error {
-	signatures, err := manifest.Signatures()
-	if err != nil {
-		return err
-	}
-
-	for _, signDigest := range signatures {
-		image.DockerImageSignatures = append(image.DockerImageSignatures, signDigest)
-	}
-
-	if err := imageapi.ImageWithMetadata(image); err != nil {
-		return err
-	}
-
-	refs := manifest.References()
-
-	blobSet := sets.NewString()
-	image.DockerImageMetadata.Size = int64(0)
-
-	blobs := r.Blobs(r.ctx)
-	for i := range image.DockerImageLayers {
-		layer := &image.DockerImageLayers[i]
-		// DockerImageLayers represents manifest.Manifest.FSLayers in reversed order
-		desc, err := blobs.Stat(r.ctx, refs[len(image.DockerImageLayers)-i-1].Digest)
-		if err != nil {
-			context.GetLogger(r.ctx).Errorf("failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
-			return err
-		}
-		if layer.MediaType == "" {
-			if desc.MediaType != "" {
-				layer.MediaType = desc.MediaType
-			} else {
-				layer.MediaType = schema1.MediaTypeManifestLayer
-			}
-		}
-		layer.LayerSize = desc.Size
-		// count empty layer just once (empty layer may actually have non-zero size)
-		if !blobSet.Has(layer.Name) {
-			image.DockerImageMetadata.Size += desc.Size
-			blobSet.Insert(layer.Name)
-		}
-	}
-	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
-		blobSet.Insert(image.DockerImageMetadata.ID)
-		image.DockerImageMetadata.Size += int64(len(image.DockerImageConfig))
-	}
-
-	return nil
-}
-
-// deserializedManifestFillImageMetadata fills a given image with metadata.
-func (r *repository) deserializedManifestFillImageMetadata(manifest *schema2.DeserializedManifest, image *imageapi.Image) error {
-	configBytes, err := r.Blobs(r.ctx).Get(r.ctx, manifest.Config.Digest)
-	if err != nil {
-		context.GetLogger(r.ctx).Errorf("failed to get image config %s: %v", manifest.Config.Digest.String(), err)
-		return err
-	}
-	image.DockerImageConfig = string(configBytes)
-
-	if err := imageapi.ImageWithMetadata(image); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Delete deletes the manifest with digest `dgst`. Note: Image resources
@@ -564,12 +473,12 @@ func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName stri
 		return
 	}
 
-	manifest, err := r.getManifestFromImage(image)
+	mh, err := NewManifestHandlerFromImage(r, image)
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("cannot remember layers of image %q: %v", image.Name, err)
 		return
 	}
-	r.rememberLayersOfManifest(manifest, cacheName)
+	r.rememberLayersOfManifest(mh.Manifest(), cacheName)
 }
 
 // rememberLayersOfManifest caches the layer digests of given manifest
@@ -582,74 +491,14 @@ func (r *repository) rememberLayersOfManifest(manifest distribution.Manifest, ca
 
 // manifestFromImageWithCachedLayers loads the image and then caches any located layers
 func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, cacheName string) (manifest distribution.Manifest, err error) {
-	manifest, err = r.getManifestFromImage(image)
+	mh, err := NewManifestHandlerFromImage(r, image)
 	if err != nil {
 		return
 	}
 
+	manifest = mh.Manifest()
 	r.rememberLayersOfManifest(manifest, cacheName)
 	return
-}
-
-// getManifestFromImage returns a manifest object constructed from a blob stored in the given image.
-func (r *repository) getManifestFromImage(image *imageapi.Image) (manifest distribution.Manifest, err error) {
-	switch image.DockerImageManifestMediaType {
-	case schema2.MediaTypeManifest:
-		manifest, err = deserializedManifestFromImage(image)
-	case schema1.MediaTypeManifest, "":
-		manifest, err = r.signedManifestFromImage(image)
-	default:
-		err = regapi.ErrorCodeManifestInvalid.WithDetail(fmt.Errorf("unknown manifest media type %q", image.DockerImageManifestMediaType))
-	}
-	return
-}
-
-// signedManifestFromImage converts an Image to a SignedManifest.
-func (r *repository) signedManifestFromImage(image *imageapi.Image) (*schema1.SignedManifest, error) {
-	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest {
-		context.GetLogger(r.ctx).Errorf("old client pulling new image %s", image.DockerImageReference)
-		return nil, fmt.Errorf("unable to convert new image to old one")
-	}
-
-	raw := []byte(image.DockerImageManifest)
-	// prefer signatures from the manifest
-	if _, err := libtrust.ParsePrettySignature(raw, "signatures"); err == nil {
-		sm := schema1.SignedManifest{Canonical: raw}
-		if err = json.Unmarshal(raw, &sm); err == nil {
-			return &sm, nil
-		}
-	}
-
-	var signBytes [][]byte
-	for _, sign := range image.DockerImageSignatures {
-		signBytes = append(signBytes, sign)
-	}
-
-	jsig, err := libtrust.NewJSONSignature(raw, signBytes...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract the pretty JWS
-	raw, err = jsig.PrettySignature("signatures")
-	if err != nil {
-		return nil, err
-	}
-
-	var sm schema1.SignedManifest
-	if err = json.Unmarshal(raw, &sm); err != nil {
-		return nil, err
-	}
-	return &sm, err
-}
-
-// deserializedManifestFromImage converts an Image to a DeserializedManifest.
-func (r *repository) deserializedManifestFromImage(image *imageapi.Image) (*schema2.DeserializedManifest, error) {
-	var manifest schema2.DeserializedManifest
-	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-		return nil, err
-	}
-	return &manifest, nil
 }
 
 func (r *repository) checkPendingErrors(ctx context.Context) error {
