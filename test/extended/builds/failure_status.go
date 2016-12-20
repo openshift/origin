@@ -40,9 +40,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", postCommitHookFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-postcommithook")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-postcommithook", "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -56,9 +57,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", fetchDockerSrc).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcedocker")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcedocker", "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -72,9 +74,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", fetchS2ISrc).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcesourcetoimage")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchsourcesourcetoimage", "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -88,9 +91,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", builderImageFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-builderimage")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-builderimage", "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -104,9 +108,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", pushToRegistryFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-pushtoregistry")
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-pushtoregistry", "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -120,9 +125,10 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			err := oc.Run("create").Args("-f", failedAssembleFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			br, err := exutil.StartBuildAndWait(oc, "statusfail-assemblescript", fmt.Sprintf("--from-dir=%s", binaryBuildDir))
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-assemblescript", fmt.Sprintf("--from-dir=%s", binaryBuildDir), "--build-loglevel=5")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertFailure()
+			br.DumpLogs()
 
 			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
