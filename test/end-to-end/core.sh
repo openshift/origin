@@ -139,10 +139,10 @@ os::log::info "Pushed ruby-22-centos7"
 
 # get image's digest
 rubyimagedigest="$(oc get -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].image}' is/ruby-22-centos7)"
-os::log::info "Ruby image digest: $rubyimagedigest"
+os::log::info "Ruby image digest: ${rubyimagedigest}"
 # get a random, non-empty blob
 rubyimageblob="$(oc get isimage -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 1024.}}{{.name}},{{end}}{{end}}' "ruby-22-centos7@${rubyimagedigest}" | cut -d , -f 1)"
-os::log::info "Ruby's testing blob digest: $rubyimageblob"
+os::log::info "Ruby's testing blob digest: ${rubyimageblob}"
 
 # verify remote images can be pulled directly from the local registry
 os::log::info "Docker pullthrough"
@@ -153,6 +153,24 @@ mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if
 os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http://${DOCKER_REGISTRY}/v2/cache/mysql/blobs/${mysqlblob}' 1>/dev/null"
 # verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
 os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
+
+os::log::info "Docker registry refuses manifest with missing dependencies"
+os::cmd::expect_success 'oc new-project verify-manifest'
+os::cmd::expect_success "oc get -o jsonpath=$'{.dockerImageManifest}\n' 'image/${rubyimagedigest}' --context="${CLUSTER_ADMIN_CONTEXT}" >'${ARTIFACT_DIR}/rubyimagemanifest.json'"
+os::cmd::expect_success "curl --head                                                \
+    --silent                                                                        \
+    --request PUT                                                                   \
+    --header 'Content-Type: application/vnd.docker.distribution.manifest.v1+json'   \
+    --user 'e2e_user:${e2e_user_token}'                                             \
+    --upload-file '${ARTIFACT_DIR}/rubyimagemanifest.json'                          \
+    'http://${DOCKER_REGISTRY}/v2/verify-manifest/ruby-22-centos7/manifests/latest' \
+    >'${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'"
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '400 Bad Request'
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*MANIFEST_BLOB_UNKNOWN'
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*blob unknown to registry'
+os::log::info "Docker registry successfuly refused manifest with missing dependencies"
+
+os::cmd::expect_success 'oc project cache'
 
 os::log::info "Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
