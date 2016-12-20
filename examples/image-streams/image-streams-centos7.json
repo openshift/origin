@@ -241,7 +241,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "7.0"
             }
           },
           {
@@ -274,6 +274,22 @@
             "from": {
               "kind": "DockerImage",
               "name": "centos/php-56-centos7:latest"
+            }
+          },
+          {
+            "name": "7.0",
+            "annotations": {
+              "openshift.io/display-name": "PHP 7.0",
+              "description": "Build and run PHP 7.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.0/README.md.",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "supports":"php:7.0,php",
+              "version": "7.0",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/php-70-centos7:latest"
             }
           }
         ]
@@ -714,6 +730,47 @@
       }
     },
     {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis",
+        "annotations": {
+          "openshift.io/display-name": "Redis"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": "Redis (Latest)",
+              "description": "Provides a Redis database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Redis available on OpenShift, including major versions updates.",
+              "iconClass": "icon-redis",
+              "tags": "redis"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.2"
+            }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "openshift.io/display-name": "Redis 3.2",
+              "description": "Provides a Redis 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-redis",
+              "tags": "redis",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/redis-32-centos7:latest"
+            }
+          }
+        ]
+      }
+     },
+     {
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
