@@ -1,4 +1,6 @@
-package plugin
+// +build linux
+
+package main
 
 import (
 	"encoding/json"
@@ -10,13 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
-	cniplugin "github.com/openshift/origin/pkg/sdn/plugin/sdn-cni-plugin"
-
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
-
 	cniskel "github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+
+	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
 var expectedResult cnitypes.Result
@@ -68,7 +68,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 		t.Fatalf("error starting CNI server: %v", err)
 	}
 
-	cniPlugin := cniplugin.NewCNIPlugin(path)
+	cniPlugin := NewCNIPlugin(path)
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
 	expectedResult = cnitypes.Result{
