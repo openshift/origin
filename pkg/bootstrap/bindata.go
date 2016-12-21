@@ -105,7 +105,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Ruby 2.0",
               "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
               "iconClass": "icon-ruby",
-              "tags": "builder,ruby",
+              "tags": "hidden,builder,ruby",
               "supports": "ruby:2.0,ruby",
               "version": "2.0",
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
@@ -243,7 +243,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Perl 5.16",
               "description": "Build and run Perl 5.16 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
               "iconClass": "icon-perl",
-              "tags": "builder,perl",
+              "tags": "hidden,builder,perl",
               "supports":"perl:5.16,perl",
               "version": "5.16",
               "sampleRepo": "https://github.com/openshift/dancer-ex.git"
@@ -320,7 +320,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "PHP 5.5",
               "description": "Build and run PHP 5.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
               "iconClass": "icon-php",
-              "tags": "builder,php",
+              "tags": "hidden,builder,php",
               "supports":"php:5.5,php",
               "version": "5.5",
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
@@ -397,7 +397,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Python 3.3",
               "description": "Build and run Python 3.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
               "iconClass": "icon-python",
-              "tags": "builder,python",
+              "tags": "hidden,builder,python",
               "supports":"python:3.3,python",
               "version": "3.3",
               "sampleRepo": "https://github.com/openshift/django-ex.git"
@@ -581,7 +581,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "MySQL 5.5",
               "description": "Provides a MySQL 5.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
               "iconClass": "icon-mysql-database",
-              "tags": "mysql",
+              "tags": "hidden,mysql",
               "version": "5.5"
             },
             "from": {
@@ -691,7 +691,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "PostgreSQL 9.2",
               "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2.",
               "iconClass": "icon-postgresql",
-              "tags": "postgresql",
+              "tags": "hidden,postgresql",
               "version": "9.2"
             },
             "from": {
@@ -760,7 +760,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "MongoDB 2.4",
               "description": "Provides a MongoDB 2.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
               "iconClass": "icon-mongodb",
-              "tags": "mongodb",
+              "tags": "hidden,mongodb",
               "version": "2.4"
             },
             "from": {
@@ -951,7 +951,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "Ruby 2.0",
               "description": "Build and run Ruby 2.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
               "iconClass": "icon-ruby",
-              "tags": "builder,ruby",
+              "tags": "hidden,builder,ruby",
               "supports": "ruby:2.0,ruby",
               "version": "2.0",
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
@@ -1089,7 +1089,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "Perl 5.16",
               "description": "Build and run Perl 5.16 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
               "iconClass": "icon-perl",
-              "tags": "builder,perl",
+              "tags": "hidden,builder,perl",
               "supports":"perl:5.16,perl",
               "version": "5.16",
               "sampleRepo": "https://github.com/openshift/dancer-ex.git"
@@ -1166,7 +1166,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "PHP 5.5",
               "description": "Build and run PHP 5.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
               "iconClass": "icon-php",
-              "tags": "builder,php",
+              "tags": "hidden,builder,php",
               "supports":"php:5.5,php",
               "version": "5.5",
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git"              
@@ -1243,7 +1243,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "Python 3.3",
               "description": "Build and run Python 3.3 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
               "iconClass": "icon-python",
-              "tags": "builder,python",
+              "tags": "hidden,builder,python",
               "supports":"python:3.3,python",
               "version": "3.3",
               "sampleRepo": "https://github.com/openshift/django-ex.git"
@@ -1334,7 +1334,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "MySQL 5.5",
               "description": "Provides a MySQL 5.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
               "iconClass": "icon-mysql-database",
-              "tags": "mysql",
+              "tags": "hidden,mysql",
               "version": "5.5"
             },
             "from": {
@@ -1444,7 +1444,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "PostgreSQL 9.2",
               "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2.",
               "iconClass": "icon-postgresql",
-              "tags": "postgresql",
+              "tags": "hidden,postgresql",
               "version": "9.2"
             },
             "from": {
@@ -1513,7 +1513,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "MongoDB 2.4",
               "description": "Provides a MongoDB 2.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
               "iconClass": "icon-mongodb",
-              "tags": "mongodb",
+              "tags": "hidden,mongodb",
               "version": "2.4"
             },
             "from": {
