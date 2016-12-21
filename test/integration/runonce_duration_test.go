@@ -76,7 +76,7 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 		"RunOnceDuration": {
 			Configuration: pluginConfig,
 		},

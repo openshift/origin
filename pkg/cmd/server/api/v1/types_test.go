@@ -193,7 +193,7 @@ func TestMasterConfig(t *testing.T) {
 		},
 		KubernetesMasterConfig: &internal.KubernetesMasterConfig{
 			AdmissionConfig: internal.AdmissionConfig{
-				PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+				PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
 					"plugin": {
 						Configuration: &testtypes.AdmissionPluginTestConfig{},
 					},
@@ -229,7 +229,7 @@ func TestMasterConfig(t *testing.T) {
 		},
 		DNSConfig: &internal.DNSConfig{},
 		AdmissionConfig: internal.AdmissionConfig{
-			PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+			PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
 				"plugin": {
 					Configuration: &testtypes.AdmissionPluginTestConfig{},
 				},

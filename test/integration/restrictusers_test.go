@@ -23,7 +23,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 		"openshift.io/RestrictSubjectBindings": {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},

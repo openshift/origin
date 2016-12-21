@@ -23,7 +23,7 @@ func TestReadPluginConfig(t *testing.T) {
 		Item1: "hello",
 		Item2: []string{"foo", "bar"},
 	}
-	pluginCfg := map[string]configapi.AdmissionPluginConfig{"testconfig": {Location: "", Configuration: expected}}
+	pluginCfg := map[string]*configapi.AdmissionPluginConfig{"testconfig": {Location: "", Configuration: expected}}
 	// The config should match the expected config object
 	err := ReadPluginConfig(pluginCfg, "testconfig", config)
 	if err != nil {
@@ -34,7 +34,7 @@ func TestReadPluginConfig(t *testing.T) {
 	}
 
 	// Passing a nil cfg, should not get an error
-	pluginCfg = map[string]configapi.AdmissionPluginConfig{}
+	pluginCfg = map[string]*configapi.AdmissionPluginConfig{}
 	err = ReadPluginConfig(pluginCfg, "testconfig", &testtypes.TestConfig{})
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
@@ -42,7 +42,7 @@ func TestReadPluginConfig(t *testing.T) {
 
 	// Passing the wrong type of destination object should result in an error
 	config2 := &testtypes.OtherTestConfig2{}
-	pluginCfg = map[string]configapi.AdmissionPluginConfig{"testconfig": {Location: "", Configuration: expected}}
+	pluginCfg = map[string]*configapi.AdmissionPluginConfig{"testconfig": {Location: "", Configuration: expected}}
 	err = ReadPluginConfig(pluginCfg, "testconfig", config2)
 	if err == nil {
 		t.Fatalf("expected error")

@@ -115,11 +115,11 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 		masterConfig.KubernetesMasterConfig = &api.KubernetesMasterConfig{}
 	}
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
-		masterConfig.AdmissionConfig.PluginConfig = map[string]api.AdmissionPluginConfig{}
+		masterConfig.AdmissionConfig.PluginConfig = map[string]*api.AdmissionPluginConfig{}
 	}
 	// set our config as desired
 	masterConfig.AdmissionConfig.PluginConfig[overrideapi.PluginName] =
-		api.AdmissionPluginConfig{Configuration: pluginConfig}
+		&api.AdmissionPluginConfig{Configuration: pluginConfig}
 
 	// start up a server and return useful clients to that server
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
