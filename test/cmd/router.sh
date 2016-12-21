@@ -72,6 +72,9 @@ os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o name' 'deploymentconfig/ipfailover'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml' '1.2.3.4'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --iptables-chain="MY_CHAIN" --dry-run -o yaml' 'value: MY_CHAIN'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --check-interval=1177 --dry-run -o yaml' 'value: "1177"'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --check-script="ChkScript.sh" --dry-run -o yaml' 'value: ChkScript.sh'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --notify-script="NotScript.sh" --dry-run -o yaml' 'value: NotScript.sh'
 os::cmd::expect_success 'oadm policy remove-scc-from-user privileged -z ipfailover'
 # TODO add tests for normal ipfailover creation
 # os::cmd::expect_success_and_text 'oadm ipfailover' 'deploymentconfig "ipfailover" created'
