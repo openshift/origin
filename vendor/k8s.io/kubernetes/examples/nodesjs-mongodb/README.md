@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Node.js and MongoDB on Kubernetes
 
 The following document describes the deployment of a basic Node.js and MongoDB web stack on Kubernetes.  Currently this example does not use replica sets for MongoDB.
@@ -281,13 +276,6 @@ With Google Cloud Platform, get the IP address of all load balancers with the fo
 ```sh
 gcloud compute forwarding-rules list
 ```
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/nodesjs-mongodb/README.md?pixel)]()

@@ -1,7 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
 This is a simple web server pod which serves HTML from an AWS EBS
 volume.
 
@@ -34,13 +30,6 @@ You should now be able to query your web server:
   $ curl <Pod IP address>
   $ Hello World
 ```
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

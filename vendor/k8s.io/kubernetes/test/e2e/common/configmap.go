@@ -90,14 +90,8 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 		}
 
 		By(fmt.Sprintf("Creating configMap with name %s", configMap.Name))
-		defer func() {
-			By("Cleaning up the configMap")
-			if err := f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name); err != nil {
-				framework.Failf("unable to delete configMap %v: %v", configMap.Name, err)
-			}
-		}()
 		var err error
-		if configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+		if configMap, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
 			framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 		}
 
@@ -121,7 +115,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				Containers: []api.Container{
 					{
 						Name:    containerName,
-						Image:   "gcr.io/google_containers/mounttest:0.6",
+						Image:   "gcr.io/google_containers/mounttest:0.7",
 						Command: []string{"/mt", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=/etc/configmap-volume/data-1"},
 						VolumeMounts: []api.VolumeMount{
 							{
@@ -135,16 +129,11 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				RestartPolicy: api.RestartPolicyNever,
 			},
 		}
-
-		defer func() {
-			By("Deleting the pod")
-			f.PodClient().Delete(pod.Name, api.NewDeleteOptions(0))
-		}()
 		By("Creating the pod")
 		f.PodClient().CreateSync(pod)
 
 		pollLogs := func() (string, error) {
-			return framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, containerName)
+			return framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, containerName)
 		}
 
 		Eventually(pollLogs, podLogTimeout, framework.Poll).Should(ContainSubstring("value-1"))
@@ -152,8 +141,8 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 		By(fmt.Sprintf("Updating configmap %v", configMap.Name))
 		configMap.ResourceVersion = "" // to force update
 		configMap.Data["data-1"] = "value-2"
-		_, err = f.Client.ConfigMaps(f.Namespace.Name).Update(configMap)
-		Expect(err).NotTo(HaveOccurred())
+		_, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Update(configMap)
+		Expect(err).NotTo(HaveOccurred(), "Failed to update configmap %q in namespace %q", configMap.Name, f.Namespace.Name)
 
 		By("waiting to observe update in volume")
 		Eventually(pollLogs, podLogTimeout, framework.Poll).Should(ContainSubstring("value-2"))
@@ -163,14 +152,8 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 		name := "configmap-test-" + string(uuid.NewUUID())
 		configMap := newConfigMap(f, name)
 		By(fmt.Sprintf("Creating configMap %v/%v", f.Namespace.Name, configMap.Name))
-		defer func() {
-			By("Cleaning up the configMap")
-			if err := f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name); err != nil {
-				framework.Failf("unable to delete configMap %v: %v", configMap.Name, err)
-			}
-		}()
 		var err error
-		if configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+		if configMap, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
 			framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 		}
 
@@ -208,7 +191,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 		})
 	})
 
-	It("should be consumable in multiple volumes in the same pod", func() {
+	It("should be consumable in multiple volumes in the same pod [Conformance]", func() {
 		var (
 			name             = "configmap-test-volume-" + string(uuid.NewUUID())
 			volumeName       = "configmap-volume"
@@ -219,14 +202,8 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 		)
 
 		By(fmt.Sprintf("Creating configMap with name %s", configMap.Name))
-		defer func() {
-			By("Cleaning up the configMap")
-			if err := f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name); err != nil {
-				framework.Failf("unable to delete configMap %v: %v", configMap.Name, err)
-			}
-		}()
 		var err error
-		if configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+		if configMap, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
 			framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 		}
 
@@ -260,7 +237,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				Containers: []api.Container{
 					{
 						Name:  "configmap-volume-test",
-						Image: "gcr.io/google_containers/mounttest:0.6",
+						Image: "gcr.io/google_containers/mounttest:0.7",
 						Args:  []string{"--file_content=/etc/configmap-volume/data-1"},
 						VolumeMounts: []api.VolumeMount{
 							{
@@ -310,14 +287,8 @@ func doConfigMapE2EWithoutMappings(f *framework.Framework, uid, fsGroup int64, d
 	)
 
 	By(fmt.Sprintf("Creating configMap with name %s", configMap.Name))
-	defer func() {
-		By("Cleaning up the configMap")
-		if err := f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name); err != nil {
-			framework.Failf("unable to delete configMap %v: %v", configMap.Name, err)
-		}
-	}()
 	var err error
-	if configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+	if configMap, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
 		framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 	}
 
@@ -394,14 +365,9 @@ func doConfigMapE2EWithMappings(f *framework.Framework, uid, fsGroup int64, item
 	)
 
 	By(fmt.Sprintf("Creating configMap with name %s", configMap.Name))
-	defer func() {
-		By("Cleaning up the configMap")
-		if err := f.Client.ConfigMaps(f.Namespace.Name).Delete(configMap.Name); err != nil {
-			framework.Failf("unable to delete configMap %v: %v", configMap.Name, err)
-		}
-	}()
+
 	var err error
-	if configMap, err = f.Client.ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+	if configMap, err = f.ClientSet.Core().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
 		framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 	}
 

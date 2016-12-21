@@ -35,6 +35,8 @@ pin-godep 'v75'
 REQUIRED_BINS=(
   "github.com/elazarl/goproxy"
   "github.com/golang/mock/gomock"
+  "github.com/containernetworking/cni/plugins/ipam/host-local"
+  "github.com/containernetworking/cni/plugins/main/loopback"
   "k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo"
   "k8s.io/kubernetes/cmd/libs/go2idl/client-gen"
   "github.com/onsi/ginkgo/ginkgo"

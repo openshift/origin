@@ -291,7 +291,7 @@ func deleteAllContentForGroupVersionResource(
 	glog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - estimate - namespace: %s, gvr: %v, estimate: %v", namespace, gvr, estimate)
 
 	// get a client for this group version...
-	dynamicClient, err := clientPool.ClientForGroupVersion(gvr.GroupVersion())
+	dynamicClient, err := clientPool.ClientForGroupVersionResource(gvr)
 	if err != nil {
 		glog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - unable to get client - namespace: %s, gvr: %v, err: %v", namespace, gvr, err)
 		return estimate, err
@@ -371,7 +371,7 @@ func syncNamespace(
 	kubeClient clientset.Interface,
 	clientPool dynamic.ClientPool,
 	opCache *operationNotSupportedCache,
-	groupVersionResources []unversioned.GroupVersionResource,
+	groupVersionResourcesFn func() ([]unversioned.GroupVersionResource, error),
 	namespace *api.Namespace,
 	finalizerToken api.FinalizerName,
 ) error {
@@ -422,6 +422,10 @@ func syncNamespace(
 	}
 
 	// there may still be content for us to remove
+	groupVersionResources, err := groupVersionResourcesFn()
+	if err != nil {
+		return err
+	}
 	estimate, err := deleteAllContent(kubeClient, clientPool, opCache, groupVersionResources, namespace.Name, *namespace.DeletionTimestamp)
 	if err != nil {
 		return err

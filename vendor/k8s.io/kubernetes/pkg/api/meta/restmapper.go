@@ -224,8 +224,8 @@ func (m *DefaultRESTMapper) ResourcesFor(input unversioned.GroupVersionResource)
 
 	ret := []unversioned.GroupVersionResource{}
 	switch {
-	// fully qualified.  Find the exact match
 	case hasGroup && hasVersion:
+		// fully qualified.  Find the exact match
 		for plural, singular := range m.pluralToSingular {
 			if singular == resource {
 				ret = append(ret, plural)
@@ -238,14 +238,35 @@ func (m *DefaultRESTMapper) ResourcesFor(input unversioned.GroupVersionResource)
 		}
 
 	case hasGroup:
+		// given a group, prefer an exact match.  If you don't find one, resort to a prefix match on group
+		foundExactMatch := false
 		requestedGroupResource := resource.GroupResource()
 		for plural, singular := range m.pluralToSingular {
 			if singular.GroupResource() == requestedGroupResource {
+				foundExactMatch = true
 				ret = append(ret, plural)
 			}
 			if plural.GroupResource() == requestedGroupResource {
+				foundExactMatch = true
 				ret = append(ret, plural)
 			}
+		}
+
+		// if you didn't find an exact match, match on group prefixing. This allows storageclass.storage to match
+		// storageclass.storage.k8s.io
+		if !foundExactMatch {
+			for plural, singular := range m.pluralToSingular {
+				if !strings.HasPrefix(plural.Group, requestedGroupResource.Group) {
+					continue
+				}
+				if singular.Resource == requestedGroupResource.Resource {
+					ret = append(ret, plural)
+				}
+				if plural.Resource == requestedGroupResource.Resource {
+					ret = append(ret, plural)
+				}
+			}
+
 		}
 
 	case hasVersion:
@@ -310,11 +331,27 @@ func (m *DefaultRESTMapper) KindsFor(input unversioned.GroupVersionResource) ([]
 		}
 
 	case hasGroup:
+		foundExactMatch := false
 		requestedGroupResource := resource.GroupResource()
 		for currResource, currKind := range m.resourceToKind {
 			if currResource.GroupResource() == requestedGroupResource {
+				foundExactMatch = true
 				ret = append(ret, currKind)
 			}
+		}
+
+		// if you didn't find an exact match, match on group prefixing. This allows storageclass.storage to match
+		// storageclass.storage.k8s.io
+		if !foundExactMatch {
+			for currResource, currKind := range m.resourceToKind {
+				if !strings.HasPrefix(currResource.Group, requestedGroupResource.Group) {
+					continue
+				}
+				if currResource.Resource == requestedGroupResource.Resource {
+					ret = append(ret, currKind)
+				}
+			}
+
 		}
 
 	case hasVersion:
@@ -490,7 +527,7 @@ func (m *DefaultRESTMapper) RESTMapping(gk unversioned.GroupKind, versions ...st
 
 	interfaces, err := m.interfacesFunc(gvk.GroupVersion())
 	if err != nil {
-		return nil, fmt.Errorf("the provided version %q has no relevant versions", gvk.GroupVersion().String())
+		return nil, fmt.Errorf("the provided version %q has no relevant versions: %v", gvk.GroupVersion().String(), err)
 	}
 
 	retVal := &RESTMapping{
@@ -529,7 +566,7 @@ func (m *DefaultRESTMapper) RESTMappings(gk unversioned.GroupKind) ([]*RESTMappi
 
 		interfaces, err := m.interfacesFunc(gvk.GroupVersion())
 		if err != nil {
-			return nil, fmt.Errorf("the provided version %q has no relevant versions", gvk.GroupVersion().String())
+			return nil, fmt.Errorf("the provided version %q has no relevant versions: %v", gvk.GroupVersion().String(), err)
 		}
 
 		mappings = append(mappings, &RESTMapping{

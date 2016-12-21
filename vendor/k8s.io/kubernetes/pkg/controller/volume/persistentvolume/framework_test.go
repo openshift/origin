@@ -34,12 +34,13 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/storage"
+	storageutil "k8s.io/kubernetes/pkg/apis/storage/util"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/record"
+	fcache "k8s.io/kubernetes/pkg/client/testing/cache"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -125,8 +126,8 @@ type volumeReactor struct {
 	changedObjects       []interface{}
 	changedSinceLastSync int
 	ctrl                 *PersistentVolumeController
-	volumeSource         *framework.FakePVControllerSource
-	claimSource          *framework.FakePVCControllerSource
+	volumeSource         *fcache.FakePVControllerSource
+	claimSource          *fcache.FakePVCControllerSource
 	lock                 sync.Mutex
 	errors               []reactorError
 }
@@ -571,7 +572,7 @@ func (r *volumeReactor) addClaimEvent(claim *api.PersistentVolumeClaim) {
 	r.claimSource.Add(claim)
 }
 
-func newVolumeReactor(client *fake.Clientset, ctrl *PersistentVolumeController, volumeSource *framework.FakePVControllerSource, claimSource *framework.FakePVCControllerSource, errors []reactorError) *volumeReactor {
+func newVolumeReactor(client *fake.Clientset, ctrl *PersistentVolumeController, volumeSource *fcache.FakePVControllerSource, claimSource *fcache.FakePVCControllerSource, errors []reactorError) *volumeReactor {
 	reactor := &volumeReactor{
 		volumes:      make(map[string]*api.PersistentVolume),
 		claims:       make(map[string]*api.PersistentVolumeClaim),
@@ -586,27 +587,26 @@ func newVolumeReactor(client *fake.Clientset, ctrl *PersistentVolumeController, 
 
 func newTestController(kubeClient clientset.Interface, volumeSource, claimSource, classSource cache.ListerWatcher, enableDynamicProvisioning bool) *PersistentVolumeController {
 	if volumeSource == nil {
-		volumeSource = framework.NewFakePVControllerSource()
+		volumeSource = fcache.NewFakePVControllerSource()
 	}
 	if claimSource == nil {
-		claimSource = framework.NewFakePVCControllerSource()
+		claimSource = fcache.NewFakePVCControllerSource()
 	}
 	if classSource == nil {
-		classSource = framework.NewFakeControllerSource()
+		classSource = fcache.NewFakeControllerSource()
 	}
-	ctrl := NewPersistentVolumeController(
-		kubeClient,
-		5*time.Second,        // sync period
-		nil,                  // alpha provisioner
-		[]vol.VolumePlugin{}, // recyclers
-		nil,                  // cloud
-		"",
-		volumeSource,
-		claimSource,
-		classSource,
-		record.NewFakeRecorder(1000), // event recorder
-		enableDynamicProvisioning,
-	)
+
+	params := ControllerParameters{
+		KubeClient:                kubeClient,
+		SyncPeriod:                5 * time.Second,
+		VolumePlugins:             []vol.VolumePlugin{},
+		VolumeSource:              volumeSource,
+		ClaimSource:               claimSource,
+		ClassSource:               classSource,
+		EventRecorder:             record.NewFakeRecorder(1000),
+		EnableDynamicProvisioning: enableDynamicProvisioning,
+	}
+	ctrl := NewController(params)
 
 	// Speed up the test
 	ctrl.createProvisionedPVInterval = 5 * time.Millisecond
@@ -651,7 +651,7 @@ func newVolume(name, capacity, boundToClaimUID, boundToClaimName string, phase a
 			switch a {
 			case annDynamicallyProvisioned:
 				volume.Annotations[a] = mockPluginName
-			case annClass:
+			case storageutil.StorageClassAnnotation:
 				volume.Annotations[a] = "gold"
 			default:
 				volume.Annotations[a] = "yes"
@@ -700,13 +700,13 @@ func withMessage(message string, volumes []*api.PersistentVolume) []*api.Persist
 	return volumes
 }
 
-// volumeWithClass saves given class into annClass annotation.
+// volumeWithClass saves given class into storage.StorageClassAnnotation annotation.
 // Meant to be used to compose claims specified inline in a test.
 func volumeWithClass(className string, volumes []*api.PersistentVolume) []*api.PersistentVolume {
 	if volumes[0].Annotations == nil {
-		volumes[0].Annotations = map[string]string{annClass: className}
+		volumes[0].Annotations = map[string]string{storageutil.StorageClassAnnotation: className}
 	} else {
-		volumes[0].Annotations[annClass] = className
+		volumes[0].Annotations[storageutil.StorageClassAnnotation] = className
 	}
 	return volumes
 }
@@ -748,8 +748,10 @@ func newClaim(name, claimUID, capacity, boundToVolume string, phase api.Persiste
 		claim.Annotations = make(map[string]string)
 		for _, a := range annotations {
 			switch a {
-			case annClass:
+			case storageutil.StorageClassAnnotation:
 				claim.Annotations[a] = "gold"
+			case annStorageProvisioner:
+				claim.Annotations[a] = mockPluginName
 			default:
 				claim.Annotations[a] = "yes"
 			}
@@ -775,13 +777,24 @@ func newClaimArray(name, claimUID, capacity, boundToVolume string, phase api.Per
 	}
 }
 
-// claimWithClass saves given class into annClass annotation.
+// claimWithClass saves given class into storage.StorageClassAnnotation annotation.
 // Meant to be used to compose claims specified inline in a test.
 func claimWithClass(className string, claims []*api.PersistentVolumeClaim) []*api.PersistentVolumeClaim {
 	if claims[0].Annotations == nil {
-		claims[0].Annotations = map[string]string{annClass: className}
+		claims[0].Annotations = map[string]string{storageutil.StorageClassAnnotation: className}
 	} else {
-		claims[0].Annotations[annClass] = className
+		claims[0].Annotations[storageutil.StorageClassAnnotation] = className
+	}
+	return claims
+}
+
+// claimWithAnnotation saves given annotation into given claims.
+// Meant to be used to compose claims specified inline in a test.
+func claimWithAnnotation(name, value string, claims []*api.PersistentVolumeClaim) []*api.PersistentVolumeClaim {
+	if claims[0].Annotations == nil {
+		claims[0].Annotations = map[string]string{name: value}
+	} else {
+		claims[0].Annotations[name] = value
 	}
 	return claims
 }

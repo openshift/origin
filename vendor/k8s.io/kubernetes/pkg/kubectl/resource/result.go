@@ -238,7 +238,7 @@ func AsVersionedObject(infos []*Info, forceList bool, version unversioned.GroupV
 		if len(actualVersion.Version) > 0 {
 			defaultVersionInfo = fmt.Sprintf("Defaulting to %q", actualVersion.Version)
 		}
-		glog.V(1).Infof(" info: the output version specified is invalid. %s\n", defaultVersionInfo)
+		glog.V(1).Infof("info: the output version specified is invalid. %s\n", defaultVersionInfo)
 	}
 
 	return object, nil

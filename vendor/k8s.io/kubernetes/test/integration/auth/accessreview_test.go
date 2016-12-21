@@ -21,19 +21,17 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 	"k8s.io/kubernetes/test/integration/framework"
 )
@@ -57,23 +55,14 @@ func alwaysAlice(req *http.Request) (user.Info, bool, error) {
 }
 
 func TestSubjectAccessReview(t *testing.T) {
-	// Set up a master
-	var m *master.Master
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		m.Handler.ServeHTTP(w, req)
-	}))
+	masterConfig := framework.NewIntegrationTestMasterConfig()
+	masterConfig.GenericConfig.Authenticator = authenticator.RequestFunc(alwaysAlice)
+	masterConfig.GenericConfig.Authorizer = sarAuthorizer{}
+	masterConfig.GenericConfig.AdmissionControl = admit.NewAlwaysAdmit()
+	_, s := framework.RunAMaster(masterConfig)
 	defer s.Close()
 
-	masterConfig := framework.NewIntegrationTestMasterConfig()
-	masterConfig.Authenticator = authenticator.RequestFunc(alwaysAlice)
-	masterConfig.Authorizer = sarAuthorizer{}
-	masterConfig.AdmissionControl = admit.NewAlwaysAdmit()
-	m, err := master.New(masterConfig)
-	if err != nil {
-		t.Fatalf("error in bringing up the master: %v", err)
-	}
-
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &registered.GroupOrDie(api.GroupName).GroupVersion}})
 
 	tests := []struct {
 		name           string
@@ -153,7 +142,207 @@ func TestSubjectAccessReview(t *testing.T) {
 			t.Errorf("%s: expected %v, got %v", test.name, test.expectedStatus, response.Status)
 			continue
 		}
+	}
+}
 
+func TestSelfSubjectAccessReview(t *testing.T) {
+	username := "alice"
+	masterConfig := framework.NewIntegrationTestMasterConfig()
+	masterConfig.GenericConfig.Authenticator = authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
+		return &user.DefaultInfo{Name: username}, true, nil
+	})
+	masterConfig.GenericConfig.Authorizer = sarAuthorizer{}
+	masterConfig.GenericConfig.AdmissionControl = admit.NewAlwaysAdmit()
+	_, s := framework.RunAMaster(masterConfig)
+	defer s.Close()
+
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &registered.GroupOrDie(api.GroupName).GroupVersion}})
+
+	tests := []struct {
+		name           string
+		username       string
+		sar            *authorizationapi.SelfSubjectAccessReview
+		expectedError  string
+		expectedStatus authorizationapi.SubjectAccessReviewStatus
+	}{
+		{
+			name:     "simple allow",
+			username: "alice",
+			sar: &authorizationapi.SelfSubjectAccessReview{
+				Spec: authorizationapi.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:     "list",
+						Group:    api.GroupName,
+						Version:  "v1",
+						Resource: "pods",
+					},
+				},
+			},
+			expectedStatus: authorizationapi.SubjectAccessReviewStatus{
+				Allowed: true,
+				Reason:  "you're not dave",
+			},
+		},
+		{
+			name:     "simple deny",
+			username: "dave",
+			sar: &authorizationapi.SelfSubjectAccessReview{
+				Spec: authorizationapi.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:     "list",
+						Group:    api.GroupName,
+						Version:  "v1",
+						Resource: "pods",
+					},
+				},
+			},
+			expectedStatus: authorizationapi.SubjectAccessReviewStatus{
+				Allowed:         false,
+				Reason:          "no",
+				EvaluationError: "I'm sorry, Dave",
+			},
+		},
 	}
 
+	for _, test := range tests {
+		username = test.username
+
+		response, err := clientset.Authorization().SelfSubjectAccessReviews().Create(test.sar)
+		switch {
+		case err == nil && len(test.expectedError) == 0:
+
+		case err != nil && strings.Contains(err.Error(), test.expectedError):
+			continue
+
+		case err != nil && len(test.expectedError) != 0:
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		default:
+			t.Errorf("%s: expected %v, got %v", test.name, test.expectedError, err)
+			continue
+		}
+		if response.Status != test.expectedStatus {
+			t.Errorf("%s: expected %v, got %v", test.name, test.expectedStatus, response.Status)
+			continue
+		}
+	}
+}
+
+func TestLocalSubjectAccessReview(t *testing.T) {
+	masterConfig := framework.NewIntegrationTestMasterConfig()
+	masterConfig.GenericConfig.Authenticator = authenticator.RequestFunc(alwaysAlice)
+	masterConfig.GenericConfig.Authorizer = sarAuthorizer{}
+	masterConfig.GenericConfig.AdmissionControl = admit.NewAlwaysAdmit()
+	_, s := framework.RunAMaster(masterConfig)
+	defer s.Close()
+
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &registered.GroupOrDie(api.GroupName).GroupVersion}})
+
+	tests := []struct {
+		name           string
+		namespace      string
+		sar            *authorizationapi.LocalSubjectAccessReview
+		expectedError  string
+		expectedStatus authorizationapi.SubjectAccessReviewStatus
+	}{
+		{
+			name:      "simple allow",
+			namespace: "foo",
+			sar: &authorizationapi.LocalSubjectAccessReview{
+				ObjectMeta: api.ObjectMeta{Namespace: "foo"},
+				Spec: authorizationapi.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:      "list",
+						Group:     api.GroupName,
+						Version:   "v1",
+						Resource:  "pods",
+						Namespace: "foo",
+					},
+					User: "alice",
+				},
+			},
+			expectedStatus: authorizationapi.SubjectAccessReviewStatus{
+				Allowed: true,
+				Reason:  "you're not dave",
+			},
+		},
+		{
+			name:      "simple deny",
+			namespace: "foo",
+			sar: &authorizationapi.LocalSubjectAccessReview{
+				ObjectMeta: api.ObjectMeta{Namespace: "foo"},
+				Spec: authorizationapi.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:      "list",
+						Group:     api.GroupName,
+						Version:   "v1",
+						Resource:  "pods",
+						Namespace: "foo",
+					},
+					User: "dave",
+				},
+			},
+			expectedStatus: authorizationapi.SubjectAccessReviewStatus{
+				Allowed:         false,
+				Reason:          "no",
+				EvaluationError: "I'm sorry, Dave",
+			},
+		},
+		{
+			name:      "conflicting namespace",
+			namespace: "foo",
+			sar: &authorizationapi.LocalSubjectAccessReview{
+				ObjectMeta: api.ObjectMeta{Namespace: "foo"},
+				Spec: authorizationapi.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:      "list",
+						Group:     api.GroupName,
+						Version:   "v1",
+						Resource:  "pods",
+						Namespace: "bar",
+					},
+					User: "dave",
+				},
+			},
+			expectedError: "must match metadata.namespace",
+		},
+		{
+			name:      "missing namespace",
+			namespace: "foo",
+			sar: &authorizationapi.LocalSubjectAccessReview{
+				ObjectMeta: api.ObjectMeta{Namespace: "foo"},
+				Spec: authorizationapi.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Verb:     "list",
+						Group:    api.GroupName,
+						Version:  "v1",
+						Resource: "pods",
+					},
+					User: "dave",
+				},
+			},
+			expectedError: "must match metadata.namespace",
+		},
+	}
+
+	for _, test := range tests {
+		response, err := clientset.Authorization().LocalSubjectAccessReviews(test.namespace).Create(test.sar)
+		switch {
+		case err == nil && len(test.expectedError) == 0:
+
+		case err != nil && strings.Contains(err.Error(), test.expectedError):
+			continue
+
+		case err != nil && len(test.expectedError) != 0:
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		default:
+			t.Errorf("%s: expected %v, got %v", test.name, test.expectedError, err)
+			continue
+		}
+		if response.Status != test.expectedStatus {
+			t.Errorf("%s: expected %#v, got %#v", test.name, test.expectedStatus, response.Status)
+			continue
+		}
+	}
 }

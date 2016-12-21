@@ -23,12 +23,13 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/metricsutil"
 	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/golang/glog"
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,7 @@ type TopPodOptions struct {
 	Selector        string
 	AllNamespaces   bool
 	PrintContainers bool
+	PodClient       coreclient.PodsGetter
 	Client          *metricsutil.HeapsterMetricsClient
 	Printer         *metricsutil.TopCmdPrinter
 }
@@ -45,7 +47,7 @@ type TopPodOptions struct {
 const metricsCreationDelay = 2 * time.Minute
 
 var (
-	topPodLong = dedent.Dedent(`
+	topPodLong = templates.LongDesc(`
 		Display Resource (CPU/Memory/Storage) usage of pods.
 
 		The 'top pod' command allows you to see the resource consumption of pods.
@@ -53,21 +55,21 @@ var (
 		Due to the metrics pipeline delay, they may be unavailable for a few minutes
 		since pod creation.`)
 
-	topPodExample = dedent.Dedent(`
-		  # Show metrics for all pods in the default namespace
-		  kubectl top pod
+	topPodExample = templates.Examples(`
+		# Show metrics for all pods in the default namespace
+		kubectl top pod
 
-		  # Show metrics for all pods in the given namespace
-		  kubectl top pod --namespace=NAMESPACE
+		# Show metrics for all pods in the given namespace
+		kubectl top pod --namespace=NAMESPACE
 
-		  # Show metrics for a given pod and its containers
-		  kubectl top pod POD_NAME --containers
+		# Show metrics for a given pod and its containers
+		kubectl top pod POD_NAME --containers
 
-		  # Show metrics for the pods defined by label name=myLabel
-		  kubectl top pod -l name=myLabel`)
+		# Show metrics for the pods defined by label name=myLabel
+		kubectl top pod -l name=myLabel`)
 )
 
-func NewCmdTopPod(f *cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdTopPod(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &TopPodOptions{}
 
 	cmd := &cobra.Command{
@@ -78,6 +80,9 @@ func NewCmdTopPod(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, out); err != nil {
 				cmdutil.CheckErr(err)
+			}
+			if err := options.Validate(); err != nil {
+				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
 			}
 			if err := options.RunTopPod(); err != nil {
 				cmdutil.CheckErr(err)
@@ -91,7 +96,7 @@ func NewCmdTopPod(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (o *TopPodOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopPodOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	var err error
 	if len(args) == 1 {
 		o.ResourceName = args[0]
@@ -103,11 +108,12 @@ func (o *TopPodOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-	cli, err := f.Client()
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	o.Client = metricsutil.DefaultHeapsterMetricsClient(cli)
+	o.PodClient = clientset.Core()
+	o.Client = metricsutil.DefaultHeapsterMetricsClient(clientset.Core())
 	o.Printer = metricsutil.NewTopCmdPrinter(out)
 	return nil
 }
@@ -147,7 +153,7 @@ func (o TopPodOptions) RunTopPod() error {
 
 func verifyEmptyMetrics(o TopPodOptions, selector labels.Selector) error {
 	if len(o.ResourceName) > 0 {
-		pod, err := o.Client.Pods(o.Namespace).Get(o.ResourceName)
+		pod, err := o.PodClient.Pods(o.Namespace).Get(o.ResourceName)
 		if err != nil {
 			return err
 		}
@@ -155,7 +161,7 @@ func verifyEmptyMetrics(o TopPodOptions, selector labels.Selector) error {
 			return err
 		}
 	} else {
-		pods, err := o.Client.Pods(o.Namespace).List(api.ListOptions{
+		pods, err := o.PodClient.Pods(o.Namespace).List(api.ListOptions{
 			LabelSelector: selector,
 		})
 		if err != nil {

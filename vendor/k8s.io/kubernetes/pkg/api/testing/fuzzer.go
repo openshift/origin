@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"testing"
 
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -30,6 +31,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -169,7 +172,7 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				j.ManualSelector = nil
 			}
 		},
-		func(sj *batch.ScheduledJobSpec, c fuzz.Continue) {
+		func(sj *batch.CronJobSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(sj)
 			suspend := c.RandBool()
 			sj.Suspend = &suspend
@@ -498,6 +501,14 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				}
 			}
 		},
+		func(r *rbac.RoleRef, c fuzz.Continue) {
+			c.FuzzNoCustom(r) // fuzz self without calling this function again
+
+			// match defaulter
+			if len(r.APIGroup) == 0 {
+				r.APIGroup = rbac.GroupName
+			}
+		},
 		func(r *runtime.RawExtension, c fuzz.Continue) {
 			// Pick an arbitrary type and fuzz it
 			types := []runtime.Object{&api.Pod{}, &extensions.Deployment{}, &api.Service{}}
@@ -528,6 +539,23 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 
 			// Set the bytes field on the RawExtension
 			r.Raw = bytes
+		},
+		func(obj *kubeadm.MasterConfiguration, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			obj.KubernetesVersion = "v10"
+			obj.API.BindPort = 20
+			obj.Discovery.BindPort = 20
+			obj.Networking.ServiceSubnet = "foo"
+			obj.Networking.DNSDomain = "foo"
+		},
+		func(obj *kubeadm.NodeConfiguration, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			obj.APIPort = 20
+			obj.DiscoveryPort = 20
+		},
+		func(s *policy.PodDisruptionBudgetStatus, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
+			s.PodDisruptionsAllowed = int32(c.Rand.Intn(2))
 		},
 		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
 			c.FuzzNoCustom(scc) // fuzz self without calling this function again

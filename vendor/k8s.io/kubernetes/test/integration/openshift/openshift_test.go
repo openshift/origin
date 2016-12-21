@@ -27,15 +27,15 @@ import (
 // are not referenced directly by a master.
 func TestMasterExportsSymbols(t *testing.T) {
 	_ = &master.Config{
-		Config: &genericapiserver.Config{
-			EnableUISupport:      false,
+		GenericConfig: &genericapiserver.Config{
 			EnableSwaggerSupport: false,
-			RestfulContainer:     nil,
+			EnableMetrics:        true,
 		},
 		EnableCoreControllers: false,
+		EnableUISupport:       false,
+		EnableLogsSupport:     false,
 	}
-	m := &master.Master{
+	_ = &master.Master{
 		GenericAPIServer: &genericapiserver.GenericAPIServer{},
 	}
-	_ = (m).NewBootstrapController(master.EndpointReconcilerConfig{})
 }

@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## New Relic Server Monitoring Agent Example
 
 This example shows how to run a New Relic server monitoring agent as a pod in a DaemonSet on an existing Kubernetes cluster.
@@ -11,7 +6,7 @@ This example will create a DaemonSet which places the New Relic monitoring agent
 
 ### Step 0: Prerequisites
 
-This process will create priviliged containers which have full access to the host system for logging. Beware of the security implications of this.
+This process will create privileged containers which have full access to the host system for logging. Beware of the security implications of this.
 
 If you are using a Salt based KUBERNETES\_PROVIDER (**gce**, **vagrant**, **aws**), you should make sure the creation of privileged containers via the API is enabled. Check `cluster/saltbase/pillar/privilege.sls`.
 
@@ -145,13 +140,6 @@ The daemonset instructs Kubernetes to spawn pods on each node, mapping /dev/, /r
 ### Known issues
 
 It's a bit cludgy to define the environment variables like we do here in these config files. There is [another issue](https://github.com/kubernetes/kubernetes/issues/4710) to discuss adding mapping secrets to environment variables in Kubernetes.
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/newrelic/README.md?pixel)]()
