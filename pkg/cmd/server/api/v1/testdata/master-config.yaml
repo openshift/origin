@@ -12,7 +12,8 @@ aggregatorConfig:
   proxyClientInfo:
     certFile: ""
     keyFile: ""
-apiLevels: null
+apiLevels:
+- v1
 apiVersion: v1
 assetConfig:
   extensionDevelopment: false
@@ -30,7 +31,7 @@ assetConfig:
   publicURL: ""
   servingInfo:
     bindAddress: ""
-    bindNetwork: ""
+    bindNetwork: tcp4
     certFile: ""
     clientCA: ""
     keyFile: ""
@@ -51,18 +52,19 @@ auditConfig:
 authConfig:
   requestHeader: null
 controllerConfig:
-  controllers: null
+  controllers:
+  - '*'
   election: null
   serviceServingCert:
     signer: null
 controllerLeaseTTL: 0
-controllers: ""
+controllers: '*'
 corsAllowedOrigins: null
 disabledFeatures: null
 dnsConfig:
   allowRecursiveQueries: false
   bindAddress: ""
-  bindNetwork: ""
+  bindNetwork: tcp4
 etcdClientInfo:
   ca: ""
   certFile: ""
@@ -73,38 +75,38 @@ etcdConfig:
   peerAddress: ""
   peerServingInfo:
     bindAddress: ""
-    bindNetwork: ""
+    bindNetwork: tcp4
     certFile: ""
     clientCA: ""
     keyFile: ""
     namedCertificates: null
   servingInfo:
     bindAddress: ""
-    bindNetwork: ""
+    bindNetwork: tcp4
     certFile: ""
     clientCA: ""
     keyFile: ""
     namedCertificates: null
   storageDirectory: ""
 etcdStorageConfig:
-  kubernetesStoragePrefix: ""
-  kubernetesStorageVersion: ""
-  openShiftStoragePrefix: ""
-  openShiftStorageVersion: ""
+  kubernetesStoragePrefix: kubernetes.io
+  kubernetesStorageVersion: v1
+  openShiftStoragePrefix: openshift.io
+  openShiftStorageVersion: v1
 imageConfig:
   format: ""
   latest: false
 imagePolicyConfig:
   disableScheduledImport: false
-  maxImagesBulkImportedPerRepository: 0
-  maxScheduledImageImportsPerMinute: 0
-  scheduledImageImportMinimumIntervalSeconds: 0
+  maxImagesBulkImportedPerRepository: 5
+  maxScheduledImageImportsPerMinute: 60
+  scheduledImageImportMinimumIntervalSeconds: 900
 jenkinsPipelineConfig:
-  autoProvisionEnabled: null
+  autoProvisionEnabled: true
   parameters: null
-  serviceName: ""
-  templateName: ""
-  templateNamespace: ""
+  serviceName: jenkins
+  templateName: jenkins-ephemeral
+  templateNamespace: openshift
 kind: MasterConfig
 kubeletClientInfo:
   ca: ""
@@ -125,41 +127,49 @@ kubernetesMasterConfig:
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
-  disabledAPIGroupVersions: null
-  masterCount: 0
-  masterEndpointReconcileTTL: 0
+  disabledAPIGroupVersions: {}
+  masterCount: 1
+  masterEndpointReconcileTTL: 15
   masterIP: ""
-  podEvictionTimeout: ""
+  podEvictionTimeout: 5m
   proxyClientInfo:
     certFile: ""
     keyFile: ""
   schedulerArguments: null
   schedulerConfigFile: ""
-  servicesNodePortRange: ""
+  servicesNodePortRange: 30000-32767
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
-  externalKubernetesClientConnectionOverrides: null
+  externalKubernetesClientConnectionOverrides:
+    acceptContentTypes: application/json
+    burst: 200
+    contentType: application/json
+    qps: 100
   externalKubernetesKubeConfig: ""
-  openshiftLoopbackClientConnectionOverrides: null
+  openshiftLoopbackClientConnectionOverrides:
+    acceptContentTypes: application/json
+    burst: 300
+    contentType: application/json
+    qps: 150
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""
 networkConfig:
   clusterNetworks: null
   externalIPNetworkCIDRs: null
-  ingressIPNetworkCIDR: ""
+  ingressIPNetworkCIDR: 172.29.0.0/16
   networkPluginName: ""
-  serviceNetworkCIDR: ""
+  serviceNetworkCIDR: 10.0.0.0/24
 oauthConfig:
   alwaysShowProviderSelection: false
   assetPublicURL: ""
   grantConfig:
     method: ""
-    serviceAccountMethod: ""
+    serviceAccountMethod: prompt
   identityProviders:
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -170,21 +180,21 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
       kind: AllowAllPasswordIdentityProvider
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
       kind: DenyAllPasswordIdentityProvider
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -192,7 +202,7 @@ oauthConfig:
       kind: HTPasswdPasswordIdentityProvider
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -209,7 +219,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -230,7 +240,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -245,7 +255,7 @@ oauthConfig:
       preferredUsernameHeaders: null
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -257,7 +267,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -268,7 +278,7 @@ oauthConfig:
       teams: null
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -283,7 +293,7 @@ oauthConfig:
       teams: null
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -294,7 +304,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -309,7 +319,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -319,7 +329,7 @@ oauthConfig:
       kind: GoogleIdentityProvider
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -333,7 +343,7 @@ oauthConfig:
       kind: GoogleIdentityProvider
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -354,7 +364,7 @@ oauthConfig:
         userInfo: ""
   - challenge: false
     login: false
-    mappingMethod: ""
+    mappingMethod: claim
     name: ""
     provider:
       apiVersion: v1
@@ -377,7 +387,7 @@ oauthConfig:
         authorize: ""
         token: ""
         userInfo: ""
-  masterCA: null
+  masterCA: ""
   masterPublicURL: ""
   masterURL: ""
   sessionConfig:
@@ -394,7 +404,7 @@ oauthConfig:
 pauseControllers: false
 policyConfig:
   bootstrapPolicyFile: ""
-  openshiftInfrastructureNamespace: ""
+  openshiftInfrastructureNamespace: openshift-infra
   openshiftSharedResourcesNamespace: ""
   userAgentMatchingConfig:
     defaultRejectionMessage: ""
@@ -406,7 +416,7 @@ projectConfig:
   projectRequestTemplate: ""
   securityAllocator: null
 routingConfig:
-  subdomain: ""
+  subdomain: router.default.svc.cluster.local
 serviceAccountConfig:
   limitSecretReferences: false
   managedNames: null
@@ -415,15 +425,15 @@ serviceAccountConfig:
   publicKeyFiles: null
 servingInfo:
   bindAddress: ""
-  bindNetwork: ""
+  bindNetwork: tcp4
   certFile: ""
   clientCA: ""
   keyFile: ""
-  maxRequestsInFlight: 0
+  maxRequestsInFlight: 1200
   namedCertificates:
   - certFile: ""
     keyFile: ""
     names: null
-  requestTimeoutSeconds: 0
+  requestTimeoutSeconds: 3600
 volumeConfig:
   dynamicProvisioningEnabled: false

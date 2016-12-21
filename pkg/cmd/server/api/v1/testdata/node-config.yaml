@@ -1,29 +1,33 @@
 allowDisabledDocker: false
 apiVersion: v1
 authConfig:
-  authenticationCacheSize: 0
-  authenticationCacheTTL: ""
-  authorizationCacheSize: 0
-  authorizationCacheTTL: ""
+  authenticationCacheSize: 1000
+  authenticationCacheTTL: 5m
+  authorizationCacheSize: 1000
+  authorizationCacheTTL: 5m
 dnsBindAddress: ""
 dnsDomain: ""
 dnsIP: ""
 dnsNameservers: null
 dnsRecursiveResolvConf: ""
 dockerConfig:
-  dockerShimRootDirectory: ""
-  dockerShimSocket: ""
-  execHandlerName: ""
+  dockerShimRootDirectory: /var/lib/dockershim
+  dockerShimSocket: /var/run/dockershim.sock
+  execHandlerName: native
 enableUnidling: false
 imageConfig:
   format: ""
   latest: false
-iptablesSyncPeriod: ""
+iptablesSyncPeriod: 30s
 kind: NodeConfig
-masterClientConnectionOverrides: null
+masterClientConnectionOverrides:
+  acceptContentTypes: application/json
+  burst: 20
+  contentType: application/json
+  qps: 10
 masterKubeConfig: ""
 networkConfig:
-  mtu: 0
+  mtu: 1450
   networkPluginName: ""
 nodeIP: ""
 nodeName: ""
@@ -32,7 +36,7 @@ podManifestConfig:
   path: ""
 servingInfo:
   bindAddress: ""
-  bindNetwork: ""
+  bindNetwork: tcp4
   certFile: ""
   clientCA: ""
   keyFile: ""

@@ -272,8 +272,18 @@ func TestMasterConfig(t *testing.T) {
 }
 
 func writeYAML(obj runtime.Object) ([]byte, error) {
+	// Round-trip to pick up defaults
+	externalObj, err := internal.Scheme.ConvertToVersion(obj, v1.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	internal.Scheme.Default(externalObj)
+	internalObj, err := internal.Scheme.ConvertToVersion(externalObj, internal.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
 
-	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.SchemeGroupVersion), obj)
+	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.SchemeGroupVersion), internalObj)
 	if err != nil {
 		return nil, err
 	}
