@@ -173,6 +173,9 @@ type BuildStatus struct {
 
 	// config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
+
+	// output describes the Docker image the build has produced.
+	Output BuildStatusOutput `json:"output,omitempty" protobuf:"bytes,10,opt,name=output"`
 }
 
 // BuildPhase represents the status of a build at a point in time.
@@ -207,6 +210,24 @@ const (
 // permanent build error condition, meant for machine parsing and tidy display
 // in the CLI.
 type StatusReason string
+
+// BuildStatusOutput contains the status of the built image.
+type BuildStatusOutput struct {
+	// to describes the status of the built image being pushed to a registry.
+	To *BuildStatusOutputTo `json:"to,omitempty" protobuf:"bytes,1,opt,name=to"`
+}
+
+// BuildStatusOutputTo describes the status of the built image with regards to
+// image registry to which it was supposed to be pushed.
+type BuildStatusOutputTo struct {
+	// imageDigest is the digest of the built Docker image. The digest uniquely
+	// identifies the image in the registry to which it was pushed.
+	//
+	// Please note that this field may not always be set even if the push
+	// completes successfully - e.g. when the registry returns no digest or
+	// returns it in a format that the builder doesn't understand.
+	ImageDigest string `json:"imageDigest,omitempty" protobuf:"bytes,1,opt,name=imageDigest"`
+}
 
 // BuildSourceType is the type of SCM used.
 type BuildSourceType string
