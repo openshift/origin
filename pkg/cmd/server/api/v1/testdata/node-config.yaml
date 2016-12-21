@@ -1,0 +1,43 @@
+allowDisabledDocker: false
+apiVersion: v1
+authConfig:
+  authenticationCacheSize: 0
+  authenticationCacheTTL: ""
+  authorizationCacheSize: 0
+  authorizationCacheTTL: ""
+dnsBindAddress: ""
+dnsDomain: ""
+dnsIP: ""
+dnsNameservers: null
+dnsRecursiveResolvConf: ""
+dockerConfig:
+  dockerShimRootDirectory: ""
+  dockerShimSocket: ""
+  execHandlerName: ""
+enableUnidling: false
+imageConfig:
+  format: ""
+  latest: false
+iptablesSyncPeriod: ""
+kind: NodeConfig
+masterClientConnectionOverrides: null
+masterKubeConfig: ""
+networkConfig:
+  mtu: 0
+  networkPluginName: ""
+nodeIP: ""
+nodeName: ""
+podManifestConfig:
+  fileCheckIntervalSeconds: 0
+  path: ""
+servingInfo:
+  bindAddress: ""
+  bindNetwork: ""
+  certFile: ""
+  clientCA: ""
+  keyFile: ""
+  namedCertificates: null
+volumeConfig:
+  localQuota:
+    perFSGroup: null
+volumeDirectory: ""
