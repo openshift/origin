@@ -131,6 +131,8 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 
 		CommandBaseName: baseCLIName,
 
+		Config: config,
+
 		// TODO: Remove these and reference them inside the markers using constants.
 		LogsCommandName:             o.logsCommandName,
 		SecurityPolicyCommandFormat: o.securityPolicyCommandFormat,
