@@ -220,6 +220,9 @@ type BuildStatus struct {
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference
+
+	// Output describes the Docker image the build has produced.
+	Output BuildStatusOutput
 }
 
 // BuildPhase represents the status of a build at a point in time.
@@ -334,6 +337,24 @@ const (
 	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
 	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
 )
+
+// BuildStatusOutput contains the status of the built image.
+type BuildStatusOutput struct {
+	// To describes the status of the built image being pushed to a registry.
+	To *BuildStatusOutputTo
+}
+
+// BuildStatusOutputTo describes the status of the built image with regards to
+// image registry to which it was supposed to be pushed.
+type BuildStatusOutputTo struct {
+	// ImageDigest is the digest of the built Docker image. The digest uniquely
+	// identifies the image in the registry to which it was pushed.
+	//
+	// Please note that this field may not always be set even if the push
+	// completes successfully - e.g. when the registry returns no digest or
+	// returns it in a format that the builder doesn't understand.
+	ImageDigest string
+}
 
 // BuildSource is the input used for the build.
 type BuildSource struct {

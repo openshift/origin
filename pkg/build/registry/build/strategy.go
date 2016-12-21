@@ -127,10 +127,12 @@ func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 	revision := newBuild.Spec.Revision
 	message := newBuild.Status.Message
 	reason := newBuild.Status.Reason
+	outputTo := newBuild.Status.Output.To
 	*newBuild = *oldBuild
 	newBuild.Spec.Revision = revision
 	newBuild.Status.Reason = reason
 	newBuild.Status.Message = message
+	newBuild.Status.Output.To = outputTo
 }
 
 // Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank

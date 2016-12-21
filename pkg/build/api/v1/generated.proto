@@ -403,6 +403,27 @@ message BuildStatus {
 
   // config is an ObjectReference to the BuildConfig this Build is based on.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference config = 9;
+
+  // output describes the Docker image the build has produced.
+  optional BuildStatusOutput output = 10;
+}
+
+// BuildStatusOutput contains the status of the built image.
+message BuildStatusOutput {
+  // to describes the status of the built image being pushed to a registry.
+  optional BuildStatusOutputTo to = 1;
+}
+
+// BuildStatusOutputTo describes the status of the built image with regards to
+// image registry to which it was supposed to be pushed.
+message BuildStatusOutputTo {
+  // imageDigest is the digest of the built Docker image. The digest uniquely
+  // identifies the image in the registry to which it was pushed.
+  // 
+  // Please note that this field may not always be set even if the push
+  // completes successfully - e.g. when the registry returns no digest or
+  // returns it in a format that the builder doesn't understand.
+  optional string imageDigest = 1;
 }
 
 // BuildStrategy contains the details of how to perform a build.
