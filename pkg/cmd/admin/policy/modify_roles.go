@@ -43,6 +43,7 @@ type RoleModificationOptions struct {
 	RoleName            string
 	RoleBindingAccessor RoleBindingAccessor
 
+	Targets  []string
 	Users    []string
 	Groups   []string
 	Subjects []kapi.ObjectReference
@@ -63,7 +64,10 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 
 			if err := options.AddRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, true, "group", options.Targets, true, out)
+
 		},
 	}
 
@@ -89,7 +93,9 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 
 			if err := options.AddRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, true, "user", options.Targets, true, out)
 		},
 	}
 
@@ -114,7 +120,9 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 
 			if err := options.RemoveRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, false, "group", options.Targets, true, out)
 		},
 	}
 
@@ -139,7 +147,9 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 
 			if err := options.RemoveRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, false, "user", options.Targets, true, out)
 		},
 	}
 
@@ -164,7 +174,9 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 
 			if err := options.AddRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, true, "group", options.Targets, false, out)
 		},
 	}
 
@@ -186,7 +198,9 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 
 			if err := options.AddRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, true, "user", options.Targets, false, out)
 		},
 	}
 
@@ -208,7 +222,9 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 
 			if err := options.RemoveRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, false, "group", options.Targets, false, out)
 		},
 	}
 
@@ -230,7 +246,9 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 
 			if err := options.RemoveRole(); err != nil {
 				kcmdutil.CheckErr(err)
+				return
 			}
+			printSuccessForCommand(options.RoleName, false, "user", options.Targets, false, out)
 		},
 	}
 
@@ -246,6 +264,8 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	if len(args) > 1 {
 		o.Users = append(o.Users, args[1:]...)
 	}
+
+	o.Targets = o.Users
 
 	if (len(o.Users) == 0) && (len(saNames) == 0) {
 		return errors.New("you must specify at least one user or service account")
@@ -263,6 +283,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
 
 	for _, sa := range saNames {
+		o.Targets = append(o.Targets, sa)
 		o.Subjects = append(o.Subjects, kapi.ObjectReference{Namespace: roleBindingNamespace, Name: sa, Kind: "ServiceAccount"})
 	}
 
@@ -276,6 +297,8 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, 
 
 	o.RoleName = args[0]
 	*target = append(*target, args[1:]...)
+
+	o.Targets = *target
 
 	osClient, _, err := f.Clients()
 	if err != nil {
@@ -395,4 +418,24 @@ existingLoop:
 	}
 
 	return newSubjects
+}
+
+// prints affirmative output for role modification commands
+func printSuccessForCommand(role string, didAdd bool, targetName string, targets []string, isNamespaced bool, out io.Writer) {
+	verb := "removed"
+	clusterScope := "cluster "
+	allTargets := fmt.Sprintf("%q", targets)
+	if isNamespaced {
+		clusterScope = ""
+	}
+	if len(targets) > 1 {
+		targetName = fmt.Sprintf("%ss", targetName)
+	} else if len(targets) == 1 {
+		allTargets = fmt.Sprintf("%q", targets[0])
+	}
+	if didAdd {
+		verb = "added"
+	}
+
+	fmt.Fprintf(out, "%srole %q %s: %s\n", clusterScope, role, verb, allTargets)
 }
