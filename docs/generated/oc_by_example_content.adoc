@@ -649,7 +649,7 @@ Remove unreferenced images
   oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
   
   # See, what the prune command would delete if we're interested in removing images
-  # exceeding currently set limit ranges ('openshift.io/Image')
+  # exceeding currently set LimitRanges ('openshift.io/Image')
   oc adm prune images --prune-over-size-limit
   
   # To actually perform the prune operation, the confirm flag must be appended
@@ -2159,19 +2159,6 @@ Revert part of an application back to a previous deployment
 ====
 
 
-== oc rollout cancel
-cancel the in-progress deployment
-
-====
-
-[options="nowrap"]
-----
-  # Cancel the in-progress deployment based on 'nginx'
-  oc rollout cancel dc/nginx
-----
-====
-
-
 == oc rollout history
 View rollout history
 
@@ -2225,20 +2212,6 @@ Resume a paused resource
 ----
   # Resume an already paused deployment
   oc rollout resume dc/nginx
-----
-====
-
-
-== oc rollout retry
-Retry the latest failed rollout
-
-====
-
-[options="nowrap"]
-----
-  # Retry the latest failed deployment based on 'frontend'
-  # The deployer pod and any hook pods are deleted for the latest failed deployment
-  oc rollout retry dc/frontend
 ----
 ====
 

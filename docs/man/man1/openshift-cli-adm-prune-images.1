@@ -13,10 +13,7 @@ openshift cli adm prune images \- Remove unreferenced images
 
 .SH DESCRIPTION
 .PP
-Remove image stream tags, images, and image layers by age or usage
-
-.PP
-This command removes historical image stream tags, unused images, and unreferenced image layers from the integrated registry. It prefers images that have been directly pushed to the registry, but you may specify \-\-all to include images that were imported (if registry mirroring is enabled).
+Prune images no longer needed due to age and/or status
 
 .PP
 By default, the prune operation performs a dry run making no changes to internal registry. A \-\-confirm flag is needed for changes to be effective.
@@ -26,10 +23,6 @@ Only a user with a cluster role system:image\-pruner or higher who is logged\-in
 
 
 .SH OPTIONS
-.PP
-\fB\-\-all\fP=false
-    Include images that were not pushed to the registry but have been mirrored by pullthrough. Requires \-\-registry\-url
-
 .PP
 \fB\-\-certificate\-authority\fP=""
     The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file.
@@ -134,7 +127,7 @@ Only a user with a cluster role system:image\-pruner or higher who is logged\-in
   openshift cli adm prune images \-\-keep\-tag\-revisions=3 \-\-keep\-younger\-than=60m \-\-confirm
   
   # See, what the prune command would delete if we're interested in removing images
-  # exceeding currently set limit ranges ('openshift.io/Image')
+  # exceeding currently set LimitRanges ('openshift.io/Image')
   openshift cli adm prune images \-\-prune\-over\-size\-limit
   
   # To actually perform the prune operation, the confirm flag must be appended

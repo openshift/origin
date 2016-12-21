@@ -26,6 +26,10 @@ DEPRECATED: This command has been moved to "openshift cli set env"
     The names of containers in the selected pod templates to change \- may use wildcards
 
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-e\fP, \fB\-\-env\fP=[]
     Specify a key\-value pair for an environment variable to set into each container.
 
@@ -40,6 +44,10 @@ DEPRECATED: This command has been moved to "openshift cli set env"
 .PP
 \fB\-\-list\fP=false
     If true, display the environment and any changes in the standard format
+
+.PP
+\fB\-\-local\fP=false
+    If true, set image will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-no\-headers\fP=false

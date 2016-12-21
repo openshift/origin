@@ -45,6 +45,10 @@ Containers that take a variable amount of time to start should set generous init
     The names of containers in the selected pod templates to change \- may use wildcards
 
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-\-failure\-threshold\fP=0
     The number of failures before the probe is considered to have failed
 
@@ -63,6 +67,10 @@ Containers that take a variable amount of time to start should set generous init
 .PP
 \fB\-\-liveness\fP=false
     Set or remove a liveness probe to verify this container is running
+
+.PP
+\fB\-\-local\fP=false
+    If true, set image will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-no\-headers\fP=false

@@ -54,12 +54,20 @@ DEPRECATED: This command has been moved to "oc set volume"
     The names of containers in the selected pod templates to change \- may use wildcards
 
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
     Filename, directory, or URL to file to use to edit the resource.
 
 .PP
 \fB\-\-list\fP=false
     If true, list volumes and volume mounts for containers
+
+.PP
+\fB\-\-local\fP=false
+    If true, set image will NOT contact api\-server but run locally.
 
 .PP
 \fB\-m\fP, \fB\-\-mount\-path\fP=""

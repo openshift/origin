@@ -24,6 +24,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"time"
+
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/transport"
 	"k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
@@ -42,6 +44,7 @@ type StreamOptions struct {
 	Stderr             io.Writer
 	Tty                bool
 	TerminalSizeQueue  term.TerminalSizeQueue
+	StreamTimeout      time.Duration
 }
 
 // Executor is an interface for transporting shell-style streams.
