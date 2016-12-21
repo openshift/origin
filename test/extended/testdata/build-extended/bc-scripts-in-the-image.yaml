@@ -5,7 +5,7 @@ metadata:
 spec:
   source:
     git:
-      uri: "https://github.com/php-coder/java-maven-hello-world.git"
+      uri: "https://github.com/openshift/test-maven-app.git"
       ref: s2i-assemble-only
   strategy:
     sourceStrategy:
