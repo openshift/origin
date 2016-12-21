@@ -5491,6 +5491,27 @@ objects:
   status:
     dockerImageRepository: ""
 - apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: wildfly
+  spec:
+    tags:
+    - annotations:
+        supports: wildfly:10.1,jee,java
+        tags: builder,wildfly,java
+        version: "10.1"
+      from:
+        kind: DockerImage
+        name: openshift/wildfly-101-centos7:latest
+      name: "10.1"
+    - annotations:
+        supports: jee,java
+        tags: builder,wildfly,java
+      from:
+        kind: ImageStreamTag
+        name: "10.1"
+      name: latest
+- apiVersion: v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -5566,7 +5587,6 @@ objects:
         from:
           kind: ImageStreamTag
           name: wildfly:latest
-          namespace: openshift
       type: Docker
     triggers: {}
 - apiVersion: v1
