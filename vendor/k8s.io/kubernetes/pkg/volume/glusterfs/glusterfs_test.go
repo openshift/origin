@@ -270,7 +270,7 @@ func TestParseClassParameters(t *testing.T) {
 				userKey:     "password",
 				secretValue: "password",
 				gidMin:      2000,
-				gidMax:      2147483647,
+				gidMax:      4294967295,
 			},
 		},
 		{
@@ -290,7 +290,7 @@ func TestParseClassParameters(t *testing.T) {
 				secretNamespace: "default",
 				secretValue:     "mypassword",
 				gidMin:          2000,
-				gidMax:          2147483647,
+				gidMax:          4294967295,
 			},
 		},
 		{
@@ -304,7 +304,7 @@ func TestParseClassParameters(t *testing.T) {
 			&provisioningConfig{
 				url:    "https://localhost:8080",
 				gidMin: 2000,
-				gidMax: 2147483647,
+				gidMax: 4294967295,
 			},
 		},
 		{

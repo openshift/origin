@@ -75,8 +75,8 @@ const (
 	annGlusterUserKey         = "glusterfs.kubernetes.io/userkey"
 	annGlusterUser            = "glusterfs.kubernetes.io/userid"
 	defaultGidMin             = 2000
-	defaultGidMax             = math.MaxInt32
-	absoluteGidMax            = math.MaxInt32
+	defaultGidMax             = math.MaxUint32
+	absoluteGidMax            = math.MaxUint32
 )
 
 func (plugin *glusterfsPlugin) Init(host volume.VolumeHost) error {
@@ -380,8 +380,8 @@ type provisioningConfig struct {
 	secretNamespace string
 	secretName      string
 	secretValue     string
-	gidMin          int
-	gidMax          int
+	gidMin          uint32
+	gidMax          uint32
 }
 
 type glusterfsVolumeProvisioner struct {
@@ -390,20 +390,13 @@ type glusterfsVolumeProvisioner struct {
 	options volume.VolumeOptions
 }
 
-func convertGid(gidString string) (int, error) {
-	gid64, err := strconv.ParseInt(gidString, 10, 32)
+func convertGid(inputGid string) (uint32, error) {
+	inputGid32, err := strconv.ParseUint(inputGid, 10, 32)
 	if err != nil {
-		return 0, fmt.Errorf("glusterfs: failed to parse gid %v ", gidString)
+		return 0, fmt.Errorf("glusterfs: failed to parse gid %v ", inputGid)
 	}
-
-	if gid64 < 0 {
-		return 0, fmt.Errorf("glusterfs: negative GIDs are not allowed: %v", gidString)
-	}
-
-	// ParseInt returns a int64, but since we parsed only
-	// for 32 bit, we can cast to int without loss:
-	gid := int(gid64)
-	return gid, nil
+	outputGid := uint32(inputGid32)
+	return outputGid, nil
 }
 
 func (plugin *glusterfsPlugin) NewDeleter(spec *volume.Spec) (volume.Deleter, error) {
@@ -468,7 +461,7 @@ func (p *glusterfsPlugin) collectGids(className string, gidTable *MinMaxAllocato
 			continue
 		}
 
-		_, err = gidTable.Allocate(gid)
+		_, err = gidTable.Allocate(int(gid))
 		if err == ErrConflict {
 			glog.Warningf("glusterfs: gid %v found in pv %v was already allocated", gid)
 		} else if err != nil {
@@ -486,14 +479,14 @@ func (p *glusterfsPlugin) collectGids(className string, gidTable *MinMaxAllocato
 //   used in PVs of this storage class by traversing the PVs.
 // - Adapt the range of the table to the current range of the SC.
 //
-func (p *glusterfsPlugin) getGidTable(className string, min int, max int) (*MinMaxAllocator, error) {
+func (p *glusterfsPlugin) getGidTable(className string, min uint32, max uint32) (*MinMaxAllocator, error) {
 	var err error
 	p.gidTableLock.Lock()
 	gidTable, ok := p.gidTable[className]
 	p.gidTableLock.Unlock()
 
 	if ok {
-		err = gidTable.SetRange(min, max)
+		err = gidTable.SetRange(int(min), int(max))
 		if err != nil {
 			return nil, err
 		}
@@ -514,7 +507,7 @@ func (p *glusterfsPlugin) getGidTable(className string, min int, max int) (*MinM
 	}
 
 	// and only reduce the range afterwards
-	err = newGidTable.SetRange(min, max)
+	err = newGidTable.SetRange(int(min), int(max))
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +519,7 @@ func (p *glusterfsPlugin) getGidTable(className string, min int, max int) (*MinM
 
 	gidTable, ok = p.gidTable[className]
 	if ok {
-		err = gidTable.SetRange(min, max)
+		err = gidTable.SetRange(int(min), int(max))
 		if err != nil {
 			return nil, err
 		}
@@ -539,7 +532,7 @@ func (p *glusterfsPlugin) getGidTable(className string, min int, max int) (*MinM
 	return newGidTable, nil
 }
 
-func (d *glusterfsVolumeDeleter) getGid() (int, bool, error) {
+func (d *glusterfsVolumeDeleter) getGid() (uint32, bool, error) {
 	gidStr, ok := d.spec.Annotations[volumehelper.VolumeGidAnnotationKey]
 
 	if !ok {
@@ -578,7 +571,7 @@ func (d *glusterfsVolumeDeleter) Delete() error {
 			return fmt.Errorf("glusterfs: failed to get gidTable: %v", err)
 		}
 
-		err = gidTable.Release(gid)
+		err = gidTable.Release(int(gid))
 		if err != nil {
 			return fmt.Errorf("glusterfs: failed to release gid %v: %v", gid, err)
 		}
