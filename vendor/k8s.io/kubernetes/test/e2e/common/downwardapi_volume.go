@@ -81,21 +81,6 @@ var _ = framework.KubeDescribe("Downward API volume", func() {
 		})
 	})
 
-	It("should provide podname as non-root with fsgroup and defaultMode [Feature:FSGroup]", func() {
-		podName := "metadata-volume-" + string(uuid.NewUUID())
-		uid := int64(1001)
-		gid := int64(1234)
-		mode := int32(0440) /* setting fsGroup sets mode to at least 440 */
-		pod := downwardAPIVolumePodForModeTest(podName, "/etc/podname", &mode, nil)
-		pod.Spec.SecurityContext = &api.PodSecurityContext{
-			RunAsUser: &uid,
-			FSGroup:   &gid,
-		}
-		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
-			"mode of file \"/etc/podname\": -r--r-----",
-		})
-	})
-
 	// Mark the following 2 tests as [Flaky] because of https://github.com/kubernetes/kubernetes/issues/29633,
 	// we should re-enable these tests when the issue is fixed.
 	It("should update labels on modification [Conformance] [Flaky]", func() {
