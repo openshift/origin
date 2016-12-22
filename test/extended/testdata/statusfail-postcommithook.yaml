@@ -1,0 +1,17 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-postcommithook
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  postCommit:
+    args:
+      - failme
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+    type: Source

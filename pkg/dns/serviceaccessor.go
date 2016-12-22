@@ -7,8 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -16,7 +16,7 @@ import (
 // ServiceAccessor is the interface used by the ServiceResolver to access
 // services.
 type ServiceAccessor interface {
-	client.ServicesNamespacer
+	kcoreclient.ServicesGetter
 	ServiceByClusterIP(ip string) (*api.Service, error)
 }
 
@@ -70,7 +70,7 @@ func indexServiceByClusterIP(obj interface{}) ([]string, error) {
 	return []string{obj.(*api.Service).Spec.ClusterIP}, nil
 }
 
-func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {
+func (a *cachedServiceAccessor) Services(namespace string) kcoreclient.ServiceInterface {
 	return cachedServiceNamespacer{a, namespace}
 }
 
@@ -80,7 +80,7 @@ type cachedServiceNamespacer struct {
 	namespace string
 }
 
-var _ client.ServiceInterface = cachedServiceNamespacer{}
+var _ kcoreclient.ServiceInterface = cachedServiceNamespacer{}
 
 func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace, Name: name}})
@@ -120,10 +120,16 @@ func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) UpdateStatus(srv *api.Service) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Delete(name string) error {
+func (a cachedServiceNamespacer) Delete(name string, options *api.DeleteOptions) error {
+	return fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
 	return fmt.Errorf("not implemented")
 }
 func (a cachedServiceNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
@@ -136,12 +142,12 @@ type cachedEndpointsAccessor struct {
 	store cache.Store
 }
 
-func NewCachedEndpointsAccessorAndStore() (client.EndpointsNamespacer, cache.Store) {
+func NewCachedEndpointsAccessorAndStore() (kcoreclient.EndpointsGetter, cache.Store) {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	return &cachedEndpointsAccessor{store: store}, store
 }
 
-func (a *cachedEndpointsAccessor) Endpoints(namespace string) client.EndpointsInterface {
+func (a *cachedEndpointsAccessor) Endpoints(namespace string) kcoreclient.EndpointsInterface {
 	return cachedEndpointsNamespacer{accessor: a, namespace: namespace}
 }
 
@@ -151,7 +157,7 @@ type cachedEndpointsNamespacer struct {
 	namespace string
 }
 
-var _ client.EndpointsInterface = cachedEndpointsNamespacer{}
+var _ kcoreclient.EndpointsInterface = cachedEndpointsNamespacer{}
 
 func (a cachedEndpointsNamespacer) Get(name string) (*api.Endpoints, error) {
 	item, ok, err := a.accessor.store.Get(&api.Endpoints{ObjectMeta: api.ObjectMeta{Namespace: a.namespace, Name: name}})
@@ -173,9 +179,15 @@ func (a cachedEndpointsNamespacer) Create(srv *api.Endpoints) (*api.Endpoints, e
 func (a cachedEndpointsNamespacer) Update(srv *api.Endpoints) (*api.Endpoints, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedEndpointsNamespacer) Delete(name string) error {
+func (a cachedEndpointsNamespacer) Delete(name string, options *api.DeleteOptions) error {
+	return fmt.Errorf("not implemented")
+}
+func (a cachedEndpointsNamespacer) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
 	return fmt.Errorf("not implemented")
 }
 func (a cachedEndpointsNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (a cachedEndpointsNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Endpoints, error) {
 	return nil, fmt.Errorf("not implemented")
 }

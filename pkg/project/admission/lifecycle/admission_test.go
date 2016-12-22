@@ -8,8 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -38,14 +38,14 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
-	mockClient := &testclient.Fake{}
-	mockClient.AddReactor("*", "*", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient := &fake.Clientset{}
+	mockClient.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
-	cache := projectcache.NewFake(mockClient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+	cache := projectcache.NewFake(mockClient.Core().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 
-	mockClientset := clientsetfake.NewSimpleClientset()
+	mockClientset := fake.NewSimpleClientset()
 	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
@@ -81,13 +81,13 @@ func TestAdmissionExists(t *testing.T) {
 
 func TestSAR(t *testing.T) {
 	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
-	mockClient := &testclient.Fake{}
-	mockClient.AddReactor("get", "namespaces", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient := &fake.Clientset{}
+	mockClient.AddReactor("get", "namespaces", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
-	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
+	cache := projectcache.NewFake(mockClient.Core().Namespaces(), store, "")
 
-	mockClientset := clientsetfake.NewSimpleClientset()
+	mockClientset := fake.NewSimpleClientset()
 	handler := &lifecycle{client: mockClientset, creatableResources: recommendedCreatableResources}
 	handler.SetProjectCache(cache)
 

@@ -23,7 +23,8 @@ var (
 		Open a remote shell session to a container
 
 		This command will attempt to start a shell session in a pod for the specified resource.
-		It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
+		It works with pods, deployment configs, deployments, jobs, daemon sets, replication controllers
+		and replica sets.
 		Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
 		It will default to the first container if none is specified, and will attempt to use
 		'/bin/sh' as the default shell. You may pass any flags supported by this command before

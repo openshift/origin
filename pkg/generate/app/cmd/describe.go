@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -148,15 +149,9 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				}
 				matches = append(matches, t.Platform)
 			}
-			if len(matches) > 0 && !pipeline.Build.Strategy.IsDockerBuild {
+			if len(matches) > 0 && pipeline.Build.Strategy.Strategy == generate.StrategySource {
 				fmt.Fprintf(out, "    * The source repository appears to match: %s\n", strings.Join(matches, ", "))
 			}
-		}
-		var strategy string
-		if pipeline.Build.Strategy.IsDockerBuild {
-			strategy = "Docker"
-		} else {
-			strategy = "source"
 		}
 		noSource := false
 		var source string
@@ -175,7 +170,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			source = "<unknown>"
 		}
 
-		fmt.Fprintf(out, "    * A %s build using %s will be created\n", strategy, source)
+		fmt.Fprintf(out, "    * A %s build using %s will be created\n", pipeline.Build.Strategy.Strategy, source)
 		if buildOut, err := pipeline.Build.Output.BuildOutput(); err == nil && buildOut != nil && buildOut.To != nil {
 			switch to := buildOut.To; {
 			case to.Kind == "ImageStreamTag":

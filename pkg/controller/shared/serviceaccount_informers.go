@@ -36,10 +36,10 @@ func (s *serviceAccountInformer) Informer() framework.SharedIndexInformer {
 	informer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return s.kubeClient.ServiceAccounts(kapi.NamespaceAll).List(options)
+				return s.kubeClient.Core().ServiceAccounts(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return s.kubeClient.ServiceAccounts(kapi.NamespaceAll).Watch(options)
+				return s.kubeClient.Core().ServiceAccounts(kapi.NamespaceAll).Watch(options)
 			},
 		},
 		informerObj,

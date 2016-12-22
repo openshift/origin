@@ -5,30 +5,29 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	unversioned_extensions "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
 
 	"github.com/openshift/origin/pkg/api/latest"
 )
 
 type delegatingScaleInterface struct {
 	dcs    DeploymentConfigInterface
-	scales kclient.ScaleInterface
+	scales kextensionsclient.ScaleInterface
 }
 
 type delegatingScaleNamespacer struct {
 	dcNS    DeploymentConfigsNamespacer
-	scaleNS kclient.ScaleNamespacer
+	scaleNS kextensionsclient.ScalesGetter
 }
 
-func (c *delegatingScaleNamespacer) Scales(namespace string) unversioned_extensions.ScaleInterface {
+func (c *delegatingScaleNamespacer) Scales(namespace string) kextensionsclient.ScaleInterface {
 	return &delegatingScaleInterface{
 		dcs:    c.dcNS.DeploymentConfigs(namespace),
 		scales: c.scaleNS.Scales(namespace),
 	}
 }
 
-func NewDelegatingScaleNamespacer(dcNamespacer DeploymentConfigsNamespacer, sNamespacer kclient.ScaleNamespacer) unversioned_extensions.ScalesGetter {
+func NewDelegatingScaleNamespacer(dcNamespacer DeploymentConfigsNamespacer, sNamespacer kextensionsclient.ScalesGetter) kextensionsclient.ScalesGetter {
 	return &delegatingScaleNamespacer{
 		dcNS:    dcNamespacer,
 		scaleNS: sNamespacer,

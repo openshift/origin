@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterList>
+          <namespace>${PROJECT_NAME}</namespace>
+          <types>is,bc</types>                                                                                                                                                                                                             
+          <keys>forcepull-extended-test-builder,forcepull-bldr</keys>                                                                                                                                                                                                                 
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterList>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

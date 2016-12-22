@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAuditTest(t *testing.T) (*kclient.Client, *client.Client) {
+func setupAuditTest(t *testing.T) (*kclientset.Clientset, *client.Client) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -38,9 +38,9 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 	kubeClient, _ := setupAuditTest(t)
 	defer testutil.DumpEtcdOnFailure(t)
 
-	if _, err := kubeClient.Pods(kapi.NamespaceDefault).Watch(kapi.ListOptions{}); err != nil {
+	if _, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Watch(kapi.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 
-	// TOOD: test oc debug, exec, rsh, port-forward
+	// TODO: test oc debug, exec, rsh, port-forward
 }

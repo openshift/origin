@@ -4,7 +4,7 @@
 
 ##Purpose
 
-This example gives a basic template for attaching a persistent storage volume to a pod. It provides an end to end setup that begins with the _cluster-admin_ making the persistent volume availble and a _basic-user_ requesting storage from a **privileged** pod.
+This example gives a basic template for attaching a persistent storage volume to a pod. It provides an end to end setup that begins with the _cluster-admin_ making the persistent volume available and a _basic-user_ requesting storage from a **privileged** pod.
 
 _If the pod is not run as privileged, skip the **Edit Privileged scc** section_
 
@@ -109,7 +109,7 @@ Examine the output for the gluster volume.
 
 **That's it!**
 
-##Relevent Origin Docs
+##Relevant Origin Docs
 
 For more info on:
 

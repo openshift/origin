@@ -89,7 +89,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 		return nil, err
 	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient, c.KubeClient, c.OpenShiftClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.OpenShiftClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
 
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
 	if err != nil {
@@ -534,7 +534,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 		if err != nil {
 			return nil, err
 		}
-		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations), nil
+		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations, provider.Teams), nil
 
 	case (*configapi.GitLabIdentityProvider):
 		transport, err := cmdutil.TransportFor(provider.CA, "", "")

@@ -13,6 +13,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type PluginInitializer struct {
@@ -25,6 +26,7 @@ type PluginInitializer struct {
 	Informers             shared.InformerFactory
 	ClusterQuotaMapper    clusterquotamapping.ClusterQuotaMapper
 	DefaultRegistryFn     imageapi.DefaultRegistryFunc
+	GroupCache            *usercache.GroupCache
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -68,6 +70,9 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		}
 		if wantsDefaultRegistryFunc, ok := plugin.(WantsDefaultRegistryFunc); ok {
 			wantsDefaultRegistryFunc.SetDefaultRegistryFunc(i.DefaultRegistryFn)
+		}
+		if wantsGroupCache, ok := plugin.(WantsGroupCache); ok {
+			wantsGroupCache.SetGroupCache(i.GroupCache)
 		}
 	}
 }

@@ -170,6 +170,9 @@ func Convert_api_DeploymentCauseImageTrigger_To_v1_DeploymentCauseImageTrigger(i
 func autoConvert_v1_DeploymentCondition_To_api_DeploymentCondition(in *DeploymentCondition, out *api.DeploymentCondition, s conversion.Scope) error {
 	out.Type = api.DeploymentConditionType(in.Type)
 	out.Status = pkg_api.ConditionStatus(in.Status)
+	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastUpdateTime, &out.LastUpdateTime, s); err != nil {
+		return err
+	}
 	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
 		return err
 	}
@@ -185,6 +188,9 @@ func Convert_v1_DeploymentCondition_To_api_DeploymentCondition(in *DeploymentCon
 func autoConvert_api_DeploymentCondition_To_v1_DeploymentCondition(in *api.DeploymentCondition, out *DeploymentCondition, s conversion.Scope) error {
 	out.Type = DeploymentConditionType(in.Type)
 	out.Status = api_v1.ConditionStatus(in.Status)
+	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastUpdateTime, &out.LastUpdateTime, s); err != nil {
+		return err
+	}
 	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
 		return err
 	}
@@ -662,6 +668,7 @@ func autoConvert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentS
 	}
 	out.Labels = in.Labels
 	out.Annotations = in.Annotations
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	return nil
 }
 
@@ -703,6 +710,7 @@ func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *api.Deploym
 	}
 	out.Labels = in.Labels
 	out.Annotations = in.Annotations
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	return nil
 }
 

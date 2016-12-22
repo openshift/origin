@@ -13,9 +13,11 @@ func TestInjectUserVars(t *testing.T) {
 			{Name: "parameter_foo_bar_2", Value: "value_foo_bar_2"}},
 	}
 	oldParameterNum := len(template.Parameters)
-	testParam := []string{"parameter_foo_bar_exist=value_foo_bar_exist_new",
-		"parameter_foo_bar_no_exist=value_foo_bar_no_exist",
-		"parameter_foo_bar_error=value_foo_bar_error=value_foo_bar_error"}
+	testParam := map[string]string{
+		"parameter_foo_bar_exist":    "value_foo_bar_exist_new",
+		"parameter_foo_bar_no_exist": "value_foo_bar_no_exist",
+		"parameter_foo_bar_error":    "value_foo_bar_error=value_foo_bar_error",
+	}
 
 	errors := injectUserVars(testParam, template)
 	if len(errors) != 2 {

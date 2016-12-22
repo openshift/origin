@@ -3,13 +3,13 @@ package test
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -32,41 +32,48 @@ var (
 	}
 )
 
-func MockBuilderSecrets() (secrets []*kapi.Secret) {
-	i := 1
+func MockBuilderSecrets() []*kapi.Secret {
+	var secrets []*kapi.Secret
 	for name, conf := range SampleDockerConfigs {
 		secrets = append(secrets, &kapi.Secret{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: name,
+				Name:      name,
+				Namespace: kapi.NamespaceDefault,
 			},
 			Type: kapi.SecretTypeDockercfg,
 			Data: map[string][]byte{".dockercfg": conf},
 		})
-		i++
 	}
 	return secrets
 }
 
-func MockBuilderServiceAccount(secrets []*kapi.Secret) kclient.ServiceAccountsNamespacer {
+func MockBuilderServiceAccount(secrets []*kapi.Secret) kcoreclient.ServiceAccountsGetter {
 	var (
 		secretRefs  []kapi.ObjectReference
 		fakeObjects []runtime.Object
 	)
 	for _, secret := range secrets {
-		secretRefs = append(secretRefs, kapi.ObjectReference{Name: secret.Name, Kind: "Secret"})
+		secretRefs = append(secretRefs, kapi.ObjectReference{
+			Name: secret.Name,
+			Kind: "Secret",
+		})
 		fakeObjects = append(fakeObjects, secret)
 	}
 	fakeObjects = append(fakeObjects, &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName},
-		Secrets:    secretRefs,
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      bootstrappolicy.BuilderServiceAccountName,
+			Namespace: kapi.NamespaceDefault,
+		},
+		Secrets: secretRefs,
 	})
-	return testclient.NewSimpleFake(fakeObjects...)
+	return fake.NewSimpleClientset(fakeObjects...).Core()
 }
 
 func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+			Name:      "test-build-config",
+			Namespace: kapi.NamespaceDefault,
 			Labels: map[string]string{
 				"testbclabel": "testbcvalue",
 			},

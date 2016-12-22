@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -303,14 +305,14 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclient.Client, *restclient.Config, error) {
+func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclient.Client, *kclientset.Clientset, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 
 	kubeConfig, err := loader.ClientConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	applyClientConnectionOverrides(overrides, kubeConfig)
@@ -318,10 +320,11 @@ func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) 
 	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	kubeClientset := adapter.FromUnversionedClient(kubeClient)
 
-	return kubeClient, kubeConfig, nil
+	return kubeClient, kubeClientset, kubeConfig, nil
 }
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then

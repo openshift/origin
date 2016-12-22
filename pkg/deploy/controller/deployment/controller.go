@@ -8,8 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -41,9 +41,9 @@ func (e actionableError) Error() string { return string(e) }
 //   2. If the deployment failed, the deployer pod is not deleted.
 type DeploymentController struct {
 	// rn is used for updating replication controllers.
-	rn kclient.ReplicationControllersNamespacer
+	rn kcoreclient.ReplicationControllersGetter
 	// pn is used for creating, updating, and deleting deployer pods.
-	pn kclient.PodsNamespacer
+	pn kcoreclient.PodsGetter
 
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
@@ -106,14 +106,35 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			break
 		}
 
-		// If the pod already exists, it's possible that a previous CreatePod
-		// succeeded but the deployment state update failed and now we're re-
-		// entering. Ensure that the pod is the one we created by verifying the
-		// annotation on it, and throw a retryable error.
-		if deployerErr != nil && !kerrors.IsNotFound(deployerErr) {
+		switch {
+		case kerrors.IsNotFound(deployerErr):
+			if _, ok := deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
+				return nil
+			}
+
+			// Generate a deployer pod spec.
+			deployerPod, err := c.makeDeployerPod(deployment)
+			if err != nil {
+				return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+			}
+			// Create the deployer pod.
+			deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
+			// Retry on error.
+			if err != nil {
+				return actionableError(fmt.Sprintf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+			}
+			updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
+			nextStatus = deployapi.DeploymentStatusPending
+			glog.V(4).Infof("Created deployer pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
+
+		case deployerErr != nil:
+			// If the pod already exists, it's possible that a previous CreatePod
+			// succeeded but the deployment state update failed and now we're re-
+			// entering. Ensure that the pod is the one we created by verifying the
+			// annotation on it, and throw a retryable error.
 			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), deployerErr)
-		}
-		if deployerErr == nil && deployer != nil {
+
+		default: /* deployerErr == nil */
 			// Do a stronger check to validate that the existing deployer pod is
 			// actually for this deployment, and if not, fail this deployment.
 			//
@@ -133,28 +154,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				nextStatus = nextStatusComp(nextStatus, deployapi.DeploymentStatusPending)
 				glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", deployer.Name, deployutil.LabelForDeployment(deployment))
 			}
-			// Don't try and re-create the deployer pod.
-			break
 		}
-
-		if _, ok := deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
-			return nil
-		}
-
-		// Generate a deployer pod spec.
-		deployerPod, err := c.makeDeployerPod(deployment)
-		if err != nil {
-			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
-		}
-		// Create the deployer pod.
-		deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
-		// Retry on error.
-		if err != nil {
-			return actionableError(fmt.Sprintf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
-		}
-		updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
-		nextStatus = deployapi.DeploymentStatusPending
-		glog.V(4).Infof("Created deployer pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
 
 	case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 		switch {
@@ -287,6 +287,9 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 
 	// Assigning to a variable since its address is required
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+	if deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds != nil {
+		maxDeploymentDurationSeconds = *(deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds)
+	}
 
 	gracePeriod := int64(10)
 

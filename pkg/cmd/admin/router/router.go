@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -260,7 +261,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
 	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
-	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "Use environment variables for master secrets.")
+	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "If true, use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
@@ -269,7 +270,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
-	cmd.Flags().BoolVar(&cfg.ExposeMetrics, "expose-metrics", cfg.ExposeMetrics, "This is a hint to run an extra container in the pod to expose metrics - the image will either be set depending on the router implementation or provided with --metrics-image.")
+	cmd.Flags().BoolVar(&cfg.ExposeMetrics, "expose-metrics", cfg.ExposeMetrics, "If true, attempts to run an extra container in the pod to expose metrics - the image will either be set depending on the router implementation or provided with --metrics-image.")
 	cmd.Flags().StringVar(&cfg.MetricsImage, "metrics-image", cfg.MetricsImage, "If --expose-metrics is specified this is the image to use to run a sidecar container in the pod exposing metrics. If not set and --expose-metrics is true the image will depend on router implementation.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
 	cmd.Flags().BoolVar(&cfg.HostPorts, "host-ports", cfg.HostPorts, "If true (the default), when not using host networking host ports will be exposed.")
@@ -550,7 +551,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
-	_, kClient, err := f.Clients()
+	_, kClient, _, err := f.Clients()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
@@ -846,6 +847,7 @@ func generateRoleBindingName(name string) string {
 
 // generateStatsPassword creates a random password.
 func generateStatsPassword() string {
+	rand := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	allowableChars := []rune("abcdefghijlkmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	allowableCharLength := len(allowableChars)
 	password := []string{}

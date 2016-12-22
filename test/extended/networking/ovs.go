@@ -47,40 +47,14 @@ var _ = Describe("[networking] OVS", func() {
 				}
 			}
 
-			var otherFlows []string
-			var arpOut, ipOut, arpIn, ipInGeneric, ipInGlobal, ipInIsolated bool
+			foundPodFlow := false
 			for _, flow := range newFlows[deployNodeName] {
-				if strings.Contains(flow, ip) {
-					if strings.Contains(flow, "arp_spa="+ip) {
-						arpOut = true
-					} else if strings.Contains(flow, "arp_tpa="+ip) {
-						arpIn = true
-					} else if strings.Contains(flow, "nw_src="+ip) {
-						ipOut = true
-					} else if strings.Contains(flow, "nw_dst="+ip) {
-						if strings.Contains(flow, "reg0=0x") {
-							ipInIsolated = true
-						} else if strings.Contains(flow, "reg0=0") {
-							ipInGlobal = true
-						} else {
-							ipInGeneric = true
-						}
-					} else {
-						Fail("found unexpected OVS flow: " + flow)
-					}
-				} else {
-					otherFlows = append(otherFlows, flow)
+				if strings.Contains(flow, "="+ip+",") || strings.Contains(flow, "="+ip+" ") {
+					foundPodFlow = true
+					break
 				}
 			}
-			Expect(arpOut).To(BeTrue(), "Should have an outgoing ARP rule")
-			Expect(arpIn).To(BeTrue(), "Should have an incoming ARP rule")
-			Expect(ipOut).To(BeTrue(), "Should have an outgoing IP rule")
-			if pluginIsolatesNamespaces() {
-				Expect(ipInGlobal && ipInIsolated).To(BeTrue(), "Should have global and isolated incoming IP rules")
-			} else {
-				Expect(ipInGeneric).To(BeTrue(), "Should have a generic incoming IP rule")
-			}
-			Expect(reflect.DeepEqual(origFlows[deployNodeName], otherFlows)).To(BeTrue(), "Flows on deployed-to node should be unchanged except for the new pod")
+			Expect(foundPodFlow).To(BeTrue(), "Should have flows referring to pod IP address")
 
 			err := f1.Client.Pods(f1.Namespace.Name).Delete(podName, nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -150,29 +124,14 @@ var _ = Describe("[networking] OVS", func() {
 
 			newFlows := getFlowsForAllNodes(oc, nodes.Items)
 			for nodeName := range newFlows {
-				var otherFlows []string
-				var tunIn, arpTunOut, ipTunOut bool
-
+				foundNodeFlow := false
 				for _, flow := range newFlows[nodeName] {
-					if strings.Contains(flow, newNodeIP) {
-						if strings.Contains(flow, "tun_src="+newNodeIP) {
-							tunIn = true
-						} else if strings.Contains(flow, "arp,") && strings.Contains(flow, newNodeIP+"->tun_dst") {
-							arpTunOut = true
-						} else if strings.Contains(flow, "ip,") && strings.Contains(flow, newNodeIP+"->tun_dst") {
-							ipTunOut = true
-						} else {
-							Fail("found unexpected OVS flow: " + flow)
-						}
-					} else {
-						otherFlows = append(otherFlows, flow)
+					if strings.Contains(flow, "="+newNodeIP+",") || strings.Contains(flow, "="+newNodeIP+" ") {
+						foundNodeFlow = true
+						break
 					}
 				}
-
-				Expect(tunIn).To(BeTrue(), "Should have an incoming VXLAN tunnel rule")
-				Expect(arpTunOut).To(BeTrue(), "Should have an outgoing ARP VXLAN tunnel rule")
-				Expect(ipTunOut).To(BeTrue(), "Should have an outgoing IP VXLAN tunnel rule")
-				Expect(reflect.DeepEqual(origFlows[nodeName], otherFlows)).To(BeTrue(), "Flows should be unchanged except for the new node")
+				Expect(foundNodeFlow).To(BeTrue(), "Should have flows referring to node IP address")
 			}
 
 			err = f1.Client.Nodes().Delete(node.Name)
@@ -208,7 +167,7 @@ var _ = Describe("[networking] OVS", func() {
 			for _, node := range nodes.Items {
 				foundServiceFlow := false
 				for _, flow := range newFlows[node.Name] {
-					if strings.Contains(flow, "nw_dst="+ip) {
+					if strings.Contains(flow, "nw_dst="+ip+",") || strings.Contains(flow, "nw_dst="+ip+" ") {
 						foundServiceFlow = true
 						break
 					}

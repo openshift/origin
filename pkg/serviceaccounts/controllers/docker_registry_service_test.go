@@ -8,7 +8,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -29,16 +30,16 @@ var (
 	}
 )
 
-func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*ktestclient.Fake, *watch.FakeWatcher, *DockerRegistryServiceController) {
-	kubeclient := ktestclient.NewSimpleFake(startingObjects...)
+func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clientset, *watch.FakeWatcher, *DockerRegistryServiceController) {
+	kubeclient := fake.NewSimpleClientset(startingObjects...)
 	fakeWatch := watch.NewFake()
-	kubeclient.PrependReactor("create", "*", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, action.(ktestclient.CreateAction).GetObject(), nil
+	kubeclient.PrependReactor("create", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, action.(core.CreateAction).GetObject(), nil
 	})
-	kubeclient.PrependReactor("update", "*", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, action.(ktestclient.UpdateAction).GetObject(), nil
+	kubeclient.PrependReactor("update", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, action.(core.UpdateAction).GetObject(), nil
 	})
-	kubeclient.PrependWatchReactor("services", ktestclient.DefaultWatchReactor(fakeWatch, nil))
+	kubeclient.PrependWatchReactor("services", core.DefaultWatchReactor(fakeWatch, nil))
 
 	controller := NewDockerRegistryServiceController(kubeclient, DockerRegistryServiceControllerOptions{
 		Resync:               10 * time.Minute,
@@ -70,10 +71,10 @@ func TestNoChangeNoOp(t *testing.T) {
 	received := make(chan bool)
 
 	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{registryService}, t)
-	kubeclient.PrependReactor("update", "secrets", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kubeclient.PrependReactor("update", "secrets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, fmt.Errorf("%v unexpected", action)
 	})
-	kubeclient.PrependReactor("create", "secrets", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kubeclient.PrependReactor("create", "secrets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, fmt.Errorf("%v unexpected", action)
 	})
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
@@ -153,7 +154,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 	for _, action := range kubeclient.Actions() {
 		switch {
 		case action.Matches("update", "secrets"):
-			updateService := action.(ktestclient.UpdateAction)
+			updateService := action.(core.UpdateAction)
 			secret := updateService.GetObject().(*kapi.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
 			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
@@ -242,7 +243,7 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 	for _, action := range kubeclient.Actions() {
 		switch {
 		case action.Matches("update", "secrets"):
-			updateService := action.(ktestclient.UpdateAction)
+			updateService := action.(core.UpdateAction)
 			secret := updateService.GetObject().(*kapi.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
 			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
@@ -290,7 +291,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	}
 
 	kubeclient, fakeWatch, controller := controllerSetup([]runtime.Object{tokenSecret, oldStyleDockercfgSecret}, t)
-	kubeclient.PrependReactor("get", "secrets", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kubeclient.PrependReactor("get", "secrets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, tokenSecret, nil
 	})
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
@@ -332,7 +333,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	for _, action := range kubeclient.Actions() {
 		switch {
 		case action.Matches("update", "secrets"):
-			updateService := action.(ktestclient.UpdateAction)
+			updateService := action.(core.UpdateAction)
 			secret := updateService.GetObject().(*kapi.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
 			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
@@ -413,7 +414,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 	for _, action := range kubeclient.Actions() {
 		switch {
 		case action.Matches("update", "secrets"):
-			updateService := action.(ktestclient.UpdateAction)
+			updateService := action.(core.UpdateAction)
 			secret := updateService.GetObject().(*kapi.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
 			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
@@ -460,7 +461,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 	for _, action := range kubeclient.Actions() {
 		switch {
 		case action.Matches("update", "secrets"):
-			updateService := action.(ktestclient.UpdateAction)
+			updateService := action.(core.UpdateAction)
 			secret := updateService.GetObject().(*kapi.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
 			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {

@@ -14,6 +14,27 @@ function cleanup()
 	out=$?
 	docker rmi test/scratchimage
 	cleanup_openshift
+
+	# TODO(skuznets): un-hack this nonsense once traps are in a better state
+	if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+		# get the jUnit output file into a workable state in case we crashed in
+		# the middle of testing something
+		os::test::junit::reconcile_output
+
+		# check that we didn't mangle jUnit output
+		os::test::junit::check_test_counters
+
+		# use the junitreport tool to generate us a report
+		os::util::ensure::built_binary_exists 'junitreport'
+
+		cat "${JUNIT_REPORT_OUTPUT}" \
+			| junitreport --type oscmd \
+			--suites nested \
+			--roots github.com/openshift/origin \
+			--output "${ARTIFACT_DIR}/report.xml"
+		cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
+	fi
+
 	os::log::info "Exiting"
 	return "${out}"
 }
@@ -30,6 +51,11 @@ os::log::system::start
 
 os::start::configure_server
 os::start::server
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
@@ -112,26 +138,26 @@ os::cmd::expect_success "oc delete secrets --all"
 os::cmd::expect_success "oc secrets new image-ns-pull .dockerconfigjson=${DOCKER_CONFIG_JSON}"
 os::cmd::expect_success "oc secrets new-dockercfg image-ns-pull-old --docker-email=fake@example.org --docker-username=imagensbuilder --docker-server=${docker_registry} --docker-password=${token}"
 
-os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml --value=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
+os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc describe pod/no-pull-pod" "Back-off pulling image"
 os::cmd::expect_success "oc delete pods --all"
 
-os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
+os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/new-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete pods --all"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
-os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
+os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/old-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete pods --all"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
-os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml --value=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
+os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/my-dc-old-1-hook-pre -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete all --all"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
-os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml --value=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
+os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/my-dc-1-hook-pre -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete all --all"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
@@ -174,8 +200,6 @@ os::cmd::try_until_text 'oc get pods/centos -o jsonpath={.status.phase}' "Succee
 os::cmd::expect_success_and_text 'oc logs pods/centos' "Welcome to nginx"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "extended/cmd/oc-on-kube"
 os::cmd::expect_success "oc login -u system:admin -n default"
 os::cmd::expect_success "oc new-project kube"
@@ -187,3 +211,4 @@ kube_kubectl="${tmp}/kube-kubeconfig"
 os::cmd::try_until_text "oc login --config ${kube_kubectl}../kube-kubeconfig https://${kube_ip}:443 --token=secret --insecure-skip-tls-verify=true --loglevel=8" ' as "secret" using the token provided.'
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_end

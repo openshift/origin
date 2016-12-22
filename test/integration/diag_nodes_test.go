@@ -27,7 +27,7 @@ func TestDiagNodeConditions(t *testing.T) {
 	}
 	nodeDiag := clusterdiags.NodeDefinitions{KubeClient: client}
 	err = wait.Poll(200*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := client.Nodes().Get(nodeConfig.NodeName); kapierror.IsNotFound(err) {
+		if _, err := client.Core().Nodes().Get(nodeConfig.NodeName); kapierror.IsNotFound(err) {
 			return false, nil
 		}
 		return true, err
@@ -46,12 +46,12 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Make the node unschedulable and verify diagnostics notices
 	err = wait.Poll(200*time.Millisecond, time.Second, func() (bool, error) {
-		node, err := client.Nodes().Get(nodeConfig.NodeName)
+		node, err := client.Core().Nodes().Get(nodeConfig.NodeName)
 		if err != nil {
 			return false, err
 		}
 		node.Spec.Unschedulable = true
-		if _, err := client.Nodes().Update(node); kapierror.IsConflict(err) {
+		if _, err := client.Core().Nodes().Update(node); kapierror.IsConflict(err) {
 			return false, nil
 		}
 		return true, err
@@ -68,7 +68,7 @@ func TestDiagNodeConditions(t *testing.T) {
 	}
 
 	// delete it and check with no nodes defined; should get an error about that.
-	if err := client.Nodes().Delete(nodeConfig.NodeName); err != nil {
+	if err := client.Core().Nodes().Delete(nodeConfig.NodeName, nil); err != nil {
 		t.Errorf("unexpected error deleting node: %v", err)
 	}
 	if errors := nodeDiag.Check().Errors(); len(errors) != 1 ||
@@ -78,7 +78,7 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Next create a node and leave it in NotReady state. Should get a warning
 	// about that, plus the previous error as there are still no nodes available.
-	_, err = client.Nodes().Create(&kapi.Node{ObjectMeta: kapi.ObjectMeta{Name: "test-node"}})
+	_, err = client.Core().Nodes().Create(&kapi.Node{ObjectMeta: kapi.ObjectMeta{Name: "test-node"}})
 	if err != nil {
 		t.Fatalf("expected no errors creating a node: %#v", err)
 	}

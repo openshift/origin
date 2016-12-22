@@ -48,7 +48,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -69,7 +69,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the deployment of the gitserver to be in the Complete phase")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		sourceSecretName := secretFunc()
@@ -86,7 +86,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("expecting build %s to complete successfully", buildName))
-		err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 		if err != nil {
 			exutil.DumpBuildLogs(buildConfigName, oc)
 		}
@@ -118,7 +118,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the token secret name for the builder service account")
-				sa, err := oc.KubeREST().ServiceAccounts(oc.Namespace()).Get("builder")
+				sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				for _, s := range sa.Secrets {
 					if strings.Contains(s.Name, "token") {

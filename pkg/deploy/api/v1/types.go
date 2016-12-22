@@ -90,6 +90,10 @@ type DeploymentStrategy struct {
 	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,6,rep,name=labels"`
 	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,7,rep,name=annotations"`
+
+	// ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
+	// config may be active on a node before the system actively tries to terminate them.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty" protobuf:"varint,8,opt,name=activeDeadlineSeconds"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -146,7 +150,7 @@ type RollingDeploymentStrategyParams struct {
 	// MaxUnavailable is the maximum number of pods that can be unavailable
 	// during the update. Value can be an absolute number (ex: 5) or a
 	// percentage of total pods at the start of update (ex: 10%). Absolute
-	// number is calculated from percentage by rounding up.
+	// number is calculated from percentage by rounding down.
 	//
 	// This cannot be 0 if MaxSurge is 0. By default, 25% is used.
 	//
@@ -342,6 +346,8 @@ type DeploymentCondition struct {
 	Type DeploymentConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=DeploymentConditionType"`
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	// The last time this condition was updated.
+	LastUpdateTime unversioned.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
 	// The last time the condition transitioned from one status to another.
 	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.

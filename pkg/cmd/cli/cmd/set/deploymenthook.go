@@ -115,7 +115,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Container, "container", "c", options.Container, "The name of the container in the selected deployment config to use for the deployment hook")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter deployment configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all deployment configs in the namespace")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all deployment configs in the namespace")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified deployment hook(s).")

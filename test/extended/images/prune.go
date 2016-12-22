@@ -37,7 +37,7 @@ var _ = g.Describe("[images] prune images", func() {
 			originalAcceptSchema2 = &accepts
 		}
 
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("give a user %s a right to prune images with %s role", oc.Username(), "system:image-pruner"))
@@ -118,10 +118,10 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(pruneSize < keepSize).To(o.BeTrue())
 
 	g.By(fmt.Sprintf("ensure uploaded image is of schema %d", schemaVersion))
-	imgPrune, err := oc.AsAdmin().REST().Images().Get(imgPruneName)
+	imgPrune, err := oc.AsAdmin().Client().Images().Get(imgPruneName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(imgPrune.DockerImageManifestMediaType).To(o.Equal(mediaType))
-	imgKeep, err := oc.AsAdmin().REST().Images().Get(imgKeepName)
+	imgKeep, err := oc.AsAdmin().Client().Images().Get(imgKeepName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(imgKeep.DockerImageManifestMediaType).To(o.Equal(mediaType))
 
@@ -188,7 +188,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 
 func tearDownPruneImagesTest(oc *exutil.CLI, cleanUp *cleanUpContainer) {
 	for _, image := range cleanUp.imageNames {
-		err := oc.AsAdmin().REST().Images().Delete(image)
+		err := oc.AsAdmin().Client().Images().Delete(image)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image %q failed: %v\n", image, err)
 		}
@@ -248,7 +248,7 @@ func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 		return nil
 	}
 
-	dc, err := oc.REST().DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
+	dc, err := oc.Client().DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
 	if err != nil {
 		return err
 	}
@@ -259,5 +259,5 @@ func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to update registry's environment with %s: %v", &waitForVersion, err)
 	}
-	return exutil.WaitForRegistry(oc.AdminREST(), oc.AdminKubeREST(), &waitForVersion, oc)
+	return exutil.WaitForRegistry(oc.AdminClient(), oc.AdminKubeClient(), &waitForVersion, oc)
 }

@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
@@ -27,7 +27,7 @@ type AggregatedLogging struct {
 	masterConfig     *configapi.MasterConfig
 	MasterConfigFile string
 	OsClient         *client.Client
-	KubeClient       *kclient.Client
+	KubeClient       *kclientset.Clientset
 	result           types.DiagnosticResult
 }
 
@@ -45,7 +45,7 @@ const (
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
 
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
-func NewAggregatedLogging(masterConfigFile string, kclient *kclient.Client, osclient *client.Client) *AggregatedLogging {
+func NewAggregatedLogging(masterConfigFile string, kclient *kclientset.Clientset, osclient *client.Client) *AggregatedLogging {
 	return &AggregatedLogging{nil, masterConfigFile, osclient, kclient, types.NewDiagnosticResult(AggregatedLoggingName)}
 }
 
@@ -125,7 +125,10 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 	var err error
 	d.masterConfig, err = hostdiag.GetMasterConfig(d.result, d.MasterConfigFile)
 	if err != nil {
-		return false, errors.New("Unreadable master config; skipping this diagnostic.")
+		return false, errors.New("Master configuration is unreadable")
+	}
+	if d.masterConfig.AssetConfig.LoggingPublicURL == "" {
+		return false, errors.New("No LoggingPublicURL is defined in the master configuration")
 	}
 	return true, nil
 }
@@ -146,11 +149,11 @@ func (d *AggregatedLogging) Check() types.DiagnosticResult {
 }
 
 const projectNodeSelectorWarning = `
-The project '%[1]s' was found with either a missing or non-empty node selector annotation.  
-This could keep Fluentd from running on certain nodes and collecting logs from the entire cluster.  
+The project '%[1]s' was found with either a missing or non-empty node selector annotation.
+This could keep Fluentd from running on certain nodes and collecting logs from the entire cluster.
 You can correct it by editing the project:
 
-  oc edit namespace %[1]s
+  $ oc edit namespace %[1]s
 
 and updating the annotation:
 

@@ -100,7 +100,7 @@ func FindMissingLivenessProbes(g osgraph.Graph, f osgraph.Namer, setProbeCommand
 			Node:         podSpecNode,
 			RelatedNodes: []graph.Node{topLevelNode},
 
-			Severity: osgraph.WarningSeverity,
+			Severity: osgraph.InfoSeverity,
 			Key:      MissingLivenessProbeWarning,
 			Message: fmt.Sprintf("%s has no liveness probe to verify pods are still running.",
 				topLevelString),

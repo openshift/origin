@@ -1,0 +1,199 @@
+package rollout
+
+import (
+	"fmt"
+	"io"
+	"sort"
+	"strings"
+	"time"
+
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
+
+	units "github.com/docker/go-units"
+	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+)
+
+type CancelOptions struct {
+	Mapper  meta.RESTMapper
+	Typer   runtime.ObjectTyper
+	Encoder runtime.Encoder
+	Infos   []*resource.Info
+
+	Filenames []string
+	Out       io.Writer
+	Recursive bool
+
+	Clientset *kclientset.Clientset
+}
+
+var (
+	rolloutCancelLong = templates.LongDesc(`
+Cancel the in-progress deployment
+
+Running this command will cause the current in-progress deployment to be
+cancelled, but keep in mind that this is a best-effort operation and may take
+some time to complete. It’s possible the deployment will partially or totally
+complete before the cancellation is effective. In such a case an appropriate
+event will be emitted.`)
+
+	rolloutCancelExample = templates.Examples(`
+	# Cancel the in-progress deployment based on 'nginx'
+  %[1]s rollout cancel dc/nginx`)
+)
+
+func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	opts := &CancelOptions{}
+	cmd := &cobra.Command{
+		Use:     "cancel (TYPE NAME | TYPE/NAME) [flags]",
+		Long:    rolloutCancelLong,
+		Example: fmt.Sprintf(rolloutCancelExample, fullName),
+		Short:   "cancel the in-progress deployment",
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
+			kcmdutil.CheckErr(opts.Run())
+		},
+	}
+	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
+	kubectl.AddJsonFilenameFlag(cmd, &opts.Filenames, usage)
+	kcmdutil.AddRecursiveFlag(cmd, &opts.Recursive)
+	return cmd
+}
+
+func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+	if len(args) == 0 && len(o.Filenames) == 0 {
+		return kcmdutil.UsageError(cmd, cmd.Use)
+	}
+
+	o.Mapper, o.Typer = f.Object(false)
+	o.Encoder = f.JSONEncoder()
+	o.Out = out
+
+	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	_, _, o.Clientset, err = f.Clients()
+	if err != nil {
+		return err
+	}
+
+	r := resource.NewBuilder(o.Mapper, o.Typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+		NamespaceParam(cmdNamespace).DefaultNamespace().
+		FilenameParam(enforceNamespace, o.Recursive, o.Filenames...).
+		ResourceTypeOrNameArgs(true, args...).
+		ContinueOnError().
+		Latest().
+		Flatten().
+		Do()
+	err = r.Err()
+	if err != nil {
+		return err
+	}
+
+	o.Infos, err = r.Infos()
+	return err
+}
+
+func (o CancelOptions) Run() error {
+	allErrs := []error{}
+	for _, info := range o.Infos {
+		config, ok := info.Object.(*deployapi.DeploymentConfig)
+		if !ok {
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %T", info.Object)))
+		}
+		if config.Spec.Paused {
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("unable to cancel paused deployment %s/%s", config.Namespace, config.Name)))
+		}
+
+		mapping, err := o.Mapper.RESTMapping(kapi.Kind("ReplicationController"))
+		if err != nil {
+			return err
+		}
+
+		mutateFn := func(rc *kapi.ReplicationController) bool {
+			if deployutil.IsDeploymentCancelled(rc) {
+				kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already cancelled")
+				return false
+			}
+
+			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) (bool, error) {
+				rc.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+				rc.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
+				return true, nil
+			})
+
+			if len(patches) == 0 {
+				kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already cancelled")
+				return false
+			}
+
+			_, err := o.Clientset.ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch)
+			if err != nil {
+				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
+				return false
+			}
+			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "cancelling")
+			return true
+		}
+
+		deployments, cancelled, err := o.forEachControllerInConfig(config.Namespace, config.Name, mutateFn)
+		if err != nil {
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
+			continue
+		}
+
+		if !cancelled {
+			latest := &deployments[0]
+			maybeCancelling := ""
+			if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
+				maybeCancelling = " (cancelling)"
+			}
+			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
+			fmt.Fprintf(o.Out, "No rollout is in progress (latest rollout #%d %s%s %s ago)\n",
+				deployutil.DeploymentVersionFor(latest),
+				strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
+				maybeCancelling,
+				timeAt)
+		}
+
+	}
+	return utilerrors.NewAggregate(allErrs)
+}
+
+func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]kapi.ReplicationController, bool, error) {
+	deployments, err := o.Clientset.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+	if err != nil {
+		return nil, false, err
+	}
+	if len(deployments.Items) == 0 {
+		return nil, false, fmt.Errorf("there have been no replication controllers for %s/%s\n", namespace, name)
+	}
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
+	allErrs := []error{}
+	cancelled := false
+
+	for _, deployment := range deployments.Items {
+		status := deployutil.DeploymentStatusFor(&deployment)
+		switch status {
+		case deployapi.DeploymentStatusNew,
+			deployapi.DeploymentStatusPending,
+			deployapi.DeploymentStatusRunning:
+			cancelled = mutateFunc(&deployment)
+		}
+	}
+
+	return deployments.Items, cancelled, utilerrors.NewAggregate(allErrs)
+}

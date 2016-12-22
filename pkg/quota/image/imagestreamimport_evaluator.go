@@ -50,7 +50,7 @@ func imageStreamImportConstraintsFunc(required []kapi.ResourceName, object runti
 	return nil
 }
 
-// makeImageStreamImportAdmissionUsageFunc retuns a function for computing a usage of an image stream import.
+// makeImageStreamImportAdmissionUsageFunc returns a function for computing a usage of an image stream import.
 func makeImageStreamImportAdmissionUsageFunc(isNamespacer osclient.ImageStreamsNamespacer) generic.UsageFunc {
 	return func(object runtime.Object) kapi.ResourceList {
 		isi, ok := object.(*imageapi.ImageStreamImport)

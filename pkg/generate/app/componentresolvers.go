@@ -197,6 +197,19 @@ func (r UniqueExactOrInexactMatchResolver) Resolve(value string) (*ComponentMatc
 	}
 }
 
+// PipelineResolver returns a dummy ComponentMatch for any value input.  It is
+// used to provide a dummy component for for the pipeline/Jenkinsfile strategy.
+type PipelineResolver struct {
+}
+
+// Resolve returns a dummy ComponentMatch for any value input.
+func (r PipelineResolver) Resolve(value string) (*ComponentMatch, error) {
+	return &ComponentMatch{
+		Value:     value,
+		LocalOnly: true,
+	}, nil
+}
+
 // MultiSimpleSearcher is a set of searchers
 type MultiSimpleSearcher []Searcher
 

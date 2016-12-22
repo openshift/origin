@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -17,13 +17,15 @@ func NewUserReaper(
 	groupClient client.GroupsInterface,
 	clusterBindingClient client.ClusterRoleBindingsInterface,
 	bindingClient client.RoleBindingsNamespacer,
-	sccClient kclient.SecurityContextConstraintsInterface,
+	authorizationsClient client.OAuthClientAuthorizationsInterface,
+	sccClient kcoreclient.SecurityContextConstraintsGetter,
 ) kubectl.Reaper {
 	return &UserReaper{
 		userClient:           userClient,
 		groupClient:          groupClient,
 		clusterBindingClient: clusterBindingClient,
 		bindingClient:        bindingClient,
+		authorizationsClient: authorizationsClient,
 		sccClient:            sccClient,
 	}
 }
@@ -33,7 +35,8 @@ type UserReaper struct {
 	groupClient          client.GroupsInterface
 	clusterBindingClient client.ClusterRoleBindingsInterface
 	bindingClient        client.RoleBindingsNamespacer
-	sccClient            kclient.SecurityContextConstraintsInterface
+	authorizationsClient client.OAuthClientAuthorizationsInterface
+	sccClient            kcoreclient.SecurityContextConstraintsGetter
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,
@@ -87,6 +90,21 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 			updatedGroup.Users = retainedUsers
 			if _, err := r.groupClient.Groups().Update(&updatedGroup); err != nil && !kerrors.IsNotFound(err) {
 				glog.Infof("Cannot update groups/%s: %v", group.Name, err)
+			}
+		}
+	}
+
+	// Remove the user's OAuthClientAuthorizations
+	// Once https://github.com/kubernetes/kubernetes/pull/28112 is fixed, use a field selector
+	// to filter on the userName, rather than fetching all authorizations and filtering client-side
+	authorizations, err := r.authorizationsClient.OAuthClientAuthorizations().List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, authorization := range authorizations.Items {
+		if authorization.UserName == name {
+			if err := r.authorizationsClient.OAuthClientAuthorizations().Delete(authorization.Name); err != nil && !kerrors.IsNotFound(err) {
+				return err
 			}
 		}
 	}

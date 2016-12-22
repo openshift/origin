@@ -20,16 +20,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/client-go/1.4/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/controller"
@@ -310,7 +313,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	kDescriberFunc := w.Factory.Describer
 	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
 		if latest.OriginKind(mapping.GroupVersionKind) {
-			oClient, kClient, err := w.Clients()
+			oClient, kClient, _, err := w.Clients()
 			if err != nil {
 				return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 			}
@@ -332,7 +335,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	kScalerFunc := w.Factory.Scaler
 	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 		if mapping.GroupVersionKind.GroupKind() == deployapi.Kind("DeploymentConfig") {
-			oc, kc, err := w.Clients()
+			oc, _, kc, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -344,25 +347,25 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
-			oc, kc, err := w.Clients()
+			oc, kc, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
 			return deploycmd.NewDeploymentConfigReaper(oc, kc), nil
 		case authorizationapi.Kind("Role"):
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
 			return authorizationreaper.NewRoleReaper(oc, oc), nil
 		case authorizationapi.Kind("ClusterRole"):
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
 			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
 		case userapi.Kind("User"):
-			oc, kc, err := w.Clients()
+			oc, _, kc, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -371,10 +374,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				client.GroupsInterface(oc),
 				client.ClusterRoleBindingsInterface(oc),
 				client.RoleBindingsNamespacer(oc),
-				kclient.SecurityContextConstraintsInterface(kc),
+				client.OAuthClientAuthorizationsInterface(oc),
+				kc.Core(),
 			), nil
 		case userapi.Kind("Group"):
-			oc, kc, err := w.Clients()
+			oc, _, kc, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -382,10 +386,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				client.GroupsInterface(oc),
 				client.ClusterRoleBindingsInterface(oc),
 				client.RoleBindingsNamespacer(oc),
-				kclient.SecurityContextConstraintsInterface(kc),
+				kc.Core(),
 			), nil
 		case buildapi.Kind("BuildConfig"):
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -433,7 +437,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a DeploymentLogOptions")
 			}
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -446,7 +450,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if bopts.Version != nil {
 				return nil, errors.New("cannot specify a version and a build")
 			}
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -456,18 +460,35 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
-			builds, err := oc.Builds(t.Namespace).List(api.ListOptions{})
-			if err != nil {
-				return nil, err
-			}
-			builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+
+			hasConfigChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, t)
+
+			var builds *buildapi.BuildList
+			err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+				builds, err = oc.Builds(t.Namespace).List(api.ListOptions{})
+				if err != nil {
+					return false, err
+				}
+				builds.Items = buildapi.FilterBuilds(builds.Items, buildapi.ByBuildConfigPredicate(t.Name))
+				if len(builds.Items) > 0 || !hasConfigChangeTrigger {
+					return true, nil
+				}
+				// Wait for timeout before giving up on the first build from configchange trigger
+				return false, nil
+			})
+
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %q", t.Name)
 			}
+
+			if err != nil {
+				return nil, fmt.Errorf("error finding build for %q: %v", t.Name, err)
+			}
+
 			if bopts.Version != nil {
 				// If a version has been specified, try to get the logs from that build.
 				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
@@ -544,7 +565,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.AttachablePodForObject = func(object runtime.Object) (*api.Pod, error) {
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
-			_, kc, err := w.Clients()
+			_, kc, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -587,7 +608,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift
 		// group from the scheme.
-		oc, _, err := w.Clients()
+		oc, _, _, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
@@ -606,7 +627,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				return true, nil
 			}
 			t.Spec.Paused = true
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return false, err
 			}
@@ -625,7 +646,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				return true, nil
 			}
 			t.Spec.Paused = false
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return false, err
 			}
@@ -642,7 +663,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		if imageutil.IsDocker(options.Source) {
 			return kResolveImageFunc(image)
 		}
-		oc, _, err := w.Clients()
+		oc, _, _, err := w.Clients()
 		if err != nil {
 			return "", err
 		}
@@ -656,7 +677,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.Factory.HistoryViewer = func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
-			oc, kc, err := w.Clients()
+			oc, _, kc, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -668,7 +689,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.Factory.Rollbacker = func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
-			oc, _, err := w.Clients()
+			oc, _, _, err := w.Clients()
 			if err != nil {
 				return nil, err
 			}
@@ -678,7 +699,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kStatusViewerFunc := w.Factory.StatusViewer
 	w.Factory.StatusViewer = func(mapping *meta.RESTMapping) (kubectl.StatusViewer, error) {
-		oc, _, err := w.Clients()
+		oc, _, _, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
@@ -722,7 +743,7 @@ func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
 }
 
 // useDiscoveryRESTMapper checks the server version to see if its recent enough to have
-// enough discovery information avaiable to reliably build a RESTMapper.  If not, use the
+// enough discovery information available to reliably build a RESTMapper.  If not, use the
 // hardcoded mapper in this client (legacy behavior)
 func useDiscoveryRESTMapper(serverVersion string) bool {
 	serverSemVer, err := semver.Parse(serverVersion[1:])
@@ -841,7 +862,7 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 	case *deployapi.DeploymentConfig:
 		fallback := t.Spec.Template
 
-		_, kc, err := w.Clients()
+		_, kc, _, err := w.Clients()
 		if err != nil {
 			return fallback, err
 		}
@@ -923,7 +944,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case deployapi.Resource("deploymentconfigs"):
-		oc, kc, err := f.Clients()
+		oc, kc, _, err := f.Clients()
 		if err != nil {
 			return "", err
 		}
@@ -947,6 +968,42 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector, err := unversioned.LabelSelectorAsSelector(ds.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("deployments"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
+		d, err := kc.Extensions().Deployments(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := cmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("replicasets"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
+		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name)
+		if err != nil {
+			return "", err
+		}
+		selector, err := unversioned.LabelSelectorAsSelector(rs.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
@@ -993,16 +1050,17 @@ func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, so
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
+func (f *Factory) Clients() (*client.Client, *kclient.Client, *kclientset.Clientset, error) {
 	kClient, err := f.Client()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	kClientset := adapter.FromUnversionedClient(kClient)
 	osClient, err := f.clients.ClientForVersion(nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return osClient, kClient, nil
+	return osClient, kClient, kClientset, nil
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.

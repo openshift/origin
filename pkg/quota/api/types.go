@@ -51,7 +51,7 @@ type ClusterResourceQuotaStatus struct {
 	Total kapi.ResourceQuotaStatus
 
 	// Namespaces slices the usage by project.  This division allows for quick resolution of
-	// deletion reconcilation inside of a single project without requiring a recalculation
+	// deletion reconciliation inside of a single project without requiring a recalculation
 	// across all projects.  This map can be used to pull the deltas for a given project.
 	Namespaces ResourceQuotasStatusByNamespace
 }

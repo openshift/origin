@@ -1412,10 +1412,25 @@ func TestDockerImageReferenceEquality(t *testing.T) {
 }
 
 func TestPrioritizeTags(t *testing.T) {
-	tags := []string{"5", "other", "latest", "v5.5", "v6", "5.2.3", "v5.3.6-bother", "5.3.6-abba", "5.6"}
-	PrioritizeTags(tags)
-	if !reflect.DeepEqual(tags, []string{"latest", "v6", "5", "5.6", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"}) {
-		t.Errorf("unexpected order: %v", tags)
+	tests := []struct {
+		tags     []string
+		expected []string
+	}{
+		{
+			tags:     []string{"other", "latest", "v5.5", "5.2.3", "v5.3.6-bother", "5.3.6-abba", "5.6"},
+			expected: []string{"latest", "5.6", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"},
+		},
+		{
+			tags:     []string{"1.1-beta1", "1.2-rc1", "1.1-rc1", "1.1-beta2", "1.2-beta1", "1.2-alpha1", "1.2-beta4", "latest"},
+			expected: []string{"latest", "1.2-rc1", "1.2-beta4", "1.2-beta1", "1.2-alpha1", "1.1-rc1", "1.1-beta2", "1.1-beta1"},
+		},
+	}
+
+	for i, tc := range tests {
+		PrioritizeTags(tc.tags)
+		if !reflect.DeepEqual(tc.tags, tc.expected) {
+			t.Errorf("%d: unexpected order: %v", i, tc.tags)
+		}
 	}
 }
 

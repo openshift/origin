@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -17,7 +17,7 @@ type ServiceLookup interface {
 	LookupService(*api.Endpoints) (*api.Service, error)
 }
 
-func NewListWatchServiceLookup(svcGetter client.ServicesNamespacer, resync time.Duration) ServiceLookup {
+func NewListWatchServiceLookup(svcGetter kcoreclient.ServicesGetter, resync time.Duration) ServiceLookup {
 	svcStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	lw := &cache.ListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {

@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -58,7 +60,7 @@ type DockercfgControllerOptions struct {
 }
 
 // NewDockercfgController returns a new *DockercfgController.
-func NewDockercfgController(cl client.Interface, options DockercfgControllerOptions) *DockercfgController {
+func NewDockercfgController(cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
 		client:               cl,
 		queue:                workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
@@ -69,10 +71,10 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 	serviceAccountCache, e.serviceAccountController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).List(options)
+				return e.client.Core().ServiceAccounts(api.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).Watch(options)
+				return e.client.Core().ServiceAccounts(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.ServiceAccount{},
@@ -98,11 +100,11 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = tokenSecretSelector
-				return e.client.Secrets(api.NamespaceAll).List(options)
+				return e.client.Core().Secrets(api.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = tokenSecretSelector
-				return e.client.Secrets(api.NamespaceAll).Watch(options)
+				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.Secret{},
@@ -121,7 +123,7 @@ func NewDockercfgController(cl client.Interface, options DockercfgControllerOpti
 
 // DockercfgController manages dockercfg secrets for ServiceAccount objects
 type DockercfgController struct {
-	client client.Interface
+	client kclientset.Interface
 
 	dockerURLLock        sync.Mutex
 	dockerURLs           []string
@@ -349,7 +351,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// Clear the pending token annotation when updating
 		delete(serviceAccount.Annotations, PendingTokenAnnotation)
 
-		updatedSA, err := e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		if err == nil {
 			e.serviceAccountCache.Mutation(updatedSA)
 		}
@@ -366,7 +368,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 	}
 
 	first := true
-	err = client.RetryOnConflict(client.DefaultBackoff, func() error {
+	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
 		if !first {
 			obj, exists, err := e.serviceAccountCache.GetByKey(key)
 			if err != nil {
@@ -375,7 +377,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 			if !exists || !needsDockercfgSecret(obj.(*api.ServiceAccount)) || serviceAccount.UID != obj.(*api.ServiceAccount).UID {
 				// somehow a dockercfg secret appeared or the SA disappeared.  cleanup the secret we made and return
 				glog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
-				e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name)
+				e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 				return nil
 			}
 
@@ -392,7 +394,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// Clear the pending token annotation when updating
 		delete(serviceAccount.Annotations, PendingTokenAnnotation)
 
-		updatedSA, err := e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		if err == nil {
 			e.serviceAccountCache.Mutation(updatedSA)
 		}
@@ -403,7 +405,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
 		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
-		e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name)
+		e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 	}
 	return err
 }
@@ -419,7 +421,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 			serviceAccount.Annotations = map[string]string{}
 		}
 		serviceAccount.Annotations[PendingTokenAnnotation] = pendingTokenName
-		updatedServiceAccount, err := e.client.ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedServiceAccount, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		// Conflicts mean we'll get called to sync this service account again
 		if kapierrors.IsConflict(err) {
 			return nil, false, nil
@@ -456,7 +458,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 	}
 
 	glog.V(4).Infof("Creating token secret %q for service account %s/%s", tokenSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
-	token, err := e.client.Secrets(tokenSecret.Namespace).Create(tokenSecret)
+	token, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(tokenSecret)
 	// Already exists but not in cache means we'll get an add watch event and resync
 	if kapierrors.IsAlreadyExists(err) {
 		return nil, false, nil
@@ -513,7 +515,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 	dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent
 
 	// Save the secret
-	createdSecret, err := e.client.Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
+	createdSecret, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
 	return createdSecret, err == nil, err
 }
 

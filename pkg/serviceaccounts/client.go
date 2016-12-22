@@ -5,8 +5,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -18,7 +20,7 @@ type TokenRetriever interface {
 
 // ClientLookupTokenRetriever uses its client to look up a service account token
 type ClientLookupTokenRetriever struct {
-	Client kclient.Interface
+	Client kclientset.Interface
 }
 
 // GetToken returns a token for the named service account or an error if none existed after a timeout
@@ -30,7 +32,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		}
 
 		// Get the service account
-		serviceAccount, err := s.Client.ServiceAccounts(namespace).Get(name)
+		serviceAccount, err := s.Client.Core().ServiceAccounts(namespace).Get(name)
 		if err != nil {
 			continue
 		}
@@ -38,7 +40,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		// Get the secrets
 		// TODO: JTL: create one directly once we have that ability
 		for _, secretRef := range serviceAccount.Secrets {
-			secret, err2 := s.Client.Secrets(namespace).Get(secretRef.Name)
+			secret, err2 := s.Client.Core().Secrets(namespace).Get(secretRef.Name)
 			if err2 != nil {
 				// Tolerate fetch errors on a particular secret
 				continue
@@ -54,8 +56,8 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 }
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account
-// TODO: change return types to client.Interface/kclient.Interface to allow auto-reloading credentials
-func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclient.Client, error) {
+// TODO: change return types to client.Interface/kclientset.Interface to allow auto-reloading credentials
+func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclient.Client, *kclientset.Clientset, error) {
 	// Clear existing auth info
 	config.Username = ""
 	config.Password = ""
@@ -82,23 +84,24 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	// TODO: refetch the token if the client encounters 401 errors
 	token, err := tokenRetriever.GetToken(namespace, name)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	config.BearerToken = token
 
 	config.UserAgent = openshiftUserAgent
 	c, err := client.New(&config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	config.UserAgent = kubeUserAgent
 	kc, err := kclient.New(&config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
+	kcset := adapter.FromUnversionedClient(kc)
 
-	return &config, c, kc, nil
+	return &config, c, kc, kcset, nil
 }
 
 // IsValidServiceAccountToken returns true if the given secret contains a service account token valid for the given service account

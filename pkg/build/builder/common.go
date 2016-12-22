@@ -10,6 +10,8 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
 
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -20,7 +22,14 @@ import (
 // client facing libraries should not be using glog
 var glog = utilglog.ToFile(os.Stderr, 2)
 
-const OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
+const (
+	OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
+
+	// containerNamePrefix prefixes the name of containers launched by a build.
+	// We cannot reuse the prefix "k8s" because we don't want the containers to
+	// be managed by a kubelet.
+	containerNamePrefix = "openshift"
+)
 
 // KeyValue can be used to build ordered lists of key-value pairs.
 type KeyValue struct {
@@ -66,35 +75,6 @@ func buildInfo(build *api.Build) []KeyValue {
 	return kv
 }
 
-func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *git.SourceInfo) {
-	if build.Spec.Revision != nil {
-		return
-	}
-	build.Spec.Revision = &api.SourceRevision{
-		Git: &api.GitSourceRevision{
-			Commit:  sourceInfo.CommitID,
-			Message: sourceInfo.Message,
-			Author: api.SourceControlUser{
-				Name:  sourceInfo.AuthorName,
-				Email: sourceInfo.AuthorEmail,
-			},
-			Committer: api.SourceControlUser{
-				Name:  sourceInfo.CommitterName,
-				Email: sourceInfo.CommitterEmail,
-			},
-		},
-	}
-
-	// Reset ResourceVersion to avoid a conflict with other updates to the build
-	build.ResourceVersion = ""
-
-	glog.V(4).Infof("Setting build revision to %#v", build.Spec.Revision.Git)
-	_, err := c.UpdateDetails(build)
-	if err != nil {
-		glog.V(0).Infof("error: An error occurred saving build revision: %v", err)
-	}
-}
-
 // randomBuildTag generates a random tag used for building images in such a way
 // that the built image can be referred to unambiguously even in the face of
 // concurrent builds with the same name in the same namespace.
@@ -107,11 +87,6 @@ func randomBuildTag(namespace, name string) string {
 	}
 	return fmt.Sprintf("%s:%s", repo, randomTag)
 }
-
-// containerNamePrefix prefixes the name of containers launched by a build. We
-// cannot reuse the prefix "k8s" because we don't want the containers to be
-// managed by a kubelet.
-const containerNamePrefix = "openshift"
 
 // containerName creates names for Docker containers launched by a build. It is
 // meant to resemble Kubernetes' pkg/kubelet/dockertools.BuildDockerName.
@@ -178,5 +153,49 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		Follow:       true,
 		Stdout:       true,
 		Stderr:       true,
+	})
+}
+
+func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
+	if build.Spec.Revision != nil {
+		return build.Spec.Revision
+	}
+	return &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Commit:  sourceInfo.CommitID,
+			Message: sourceInfo.Message,
+			Author: api.SourceControlUser{
+				Name:  sourceInfo.AuthorName,
+				Email: sourceInfo.AuthorEmail,
+			},
+			Committer: api.SourceControlUser{
+				Name:  sourceInfo.CommitterName,
+				Email: sourceInfo.CommitterEmail,
+			},
+		},
+	}
+}
+
+func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) error {
+	return kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		// before updating, make sure we are using the latest version of the build
+		latestBuild, err := client.Get(build.Name)
+		if err != nil {
+			// usually this means we failed to get resources due to the missing
+			// privilleges
+			return err
+		}
+		if sourceRev != nil {
+			latestBuild.Spec.Revision = sourceRev
+			latestBuild.ResourceVersion = ""
+		}
+
+		latestBuild.Status.Reason = build.Status.Reason
+		latestBuild.Status.Message = build.Status.Message
+
+		if _, err := client.UpdateDetails(latestBuild); err != nil {
+			return err
+		}
+		return nil
 	})
 }

@@ -9,12 +9,14 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	image "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -155,7 +157,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
-		appCfg.KubeClient = ktestclient.NewSimpleFake()
+		appCfg.KubeClient = fake.NewSimpleClientset()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = []string{}
@@ -181,7 +183,7 @@ func TestBuildTemplates(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
 		}
-		_, _, err = appCfg.buildTemplates(components, app.Environment(parms))
+		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment(map[string]string{}))
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}
@@ -339,7 +341,7 @@ func mockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 		"https://github.com/openshift/ruby-hello-world.git",
 		file,
 	} {
-		s, err := app.NewSourceRepository(location)
+		s, err := app.NewSourceRepository(location, generate.StrategySource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -356,11 +358,10 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git")
+	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git", generate.StrategyDocker)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sourceRepo.BuildWithDocker()
 	sourceRepo.SetInfo(&app.SourceRepositoryInfo{
 		Dockerfile: dockerFile,
 	})
@@ -509,15 +510,15 @@ func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
 
 func TestAllowedNonNumericExposedPorts(t *testing.T) {
 	tests := []struct {
-		strategy             string
+		strategy             generate.Strategy
 		allowNonNumericPorts bool
 	}{
 		{
-			strategy:             "",
+			strategy:             generate.StrategyUnspecified,
 			allowNonNumericPorts: true,
 		},
 		{
-			strategy:             "source",
+			strategy:             generate.StrategySource,
 			allowNonNumericPorts: false,
 		},
 	}
@@ -543,15 +544,15 @@ func TestAllowedNonNumericExposedPorts(t *testing.T) {
 
 func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 	tests := []struct {
-		strategy             string
+		strategy             generate.Strategy
 		allowNonNumericPorts bool
 	}{
 		{
-			strategy:             "",
+			strategy:             generate.StrategyUnspecified,
 			allowNonNumericPorts: false,
 		},
 		{
-			strategy:             "docker",
+			strategy:             generate.StrategyDocker,
 			allowNonNumericPorts: false,
 		},
 	}

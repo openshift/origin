@@ -312,6 +312,6 @@ func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return a.plugin.HandleNamespaces(namespaces)
 }
 
-func (a *StatusAdmitter) SetLastSyncProcessed(processed bool) error {
-	return a.plugin.SetLastSyncProcessed(processed)
+func (a *StatusAdmitter) Commit() error {
+	return a.plugin.Commit()
 }

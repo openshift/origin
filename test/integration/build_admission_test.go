@@ -227,7 +227,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	// we need a template that doesn't create service accounts or rolebindings so editors can create
 	// pipeline buildconfig's successfully, so we're not using the standard jenkins template.
 	// but we do need a template that creates a service named jenkins.
-	template, err := testutil.GetTemplateFixture("../../examples/jenkins/master-slave/jenkins-master-template.json")
+	template, err := testutil.GetTemplateFixture("../testdata/jenkins-template.json")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

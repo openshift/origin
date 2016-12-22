@@ -17,8 +17,7 @@
 #  1 if the condition is not met before the timeout
 function os::util::wait-for-condition() {
   local msg=$1
-  # condition should be a string that can be eval'd.  When eval'd, it
-  # should not output anything to stderr or stdout.
+  # condition should be a string that can be eval'd.
   local condition=$2
   local timeout=${3:-}
 
@@ -26,7 +25,7 @@ function os::util::wait-for-condition() {
   local error_msg="[ERROR] Timeout waiting for ${msg}"
 
   local counter=0
-  while ! ${condition}; do
+  while ! ${condition} >& /dev/null; do
     if [[ "${counter}" = "0" ]]; then
       echo "${start_msg}"
     fi

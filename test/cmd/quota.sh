@@ -29,9 +29,9 @@ os::cmd::expect_success 'oc new-project asmail --as=deads@deads.io'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n bar --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n asmail --as deads@deads.io -o name' "for-deads-email-by-annotation"
-os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*[1-4][0-9]"
-
+os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*1[0-9]"
 os::cmd::expect_success 'oc delete project foo'
+os::cmd::try_until_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].Namespace}"' '^bar$'
 os::cmd::expect_success 'oc delete project bar'
 os::cmd::expect_success 'oc delete project asmail'
 

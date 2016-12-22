@@ -25,7 +25,7 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Select all resources in the namespace of the specified resource types
+    If true, select all resources in the namespace of the specified resource types
 
 .PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
@@ -41,11 +41,11 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 
 .PP
 \fB\-\-from\fP=""
-    The name of a resource from which to inject enviroment variables
+    The name of a resource from which to inject environment variables
 
 .PP
 \fB\-\-list\fP=false
-    Display the environment and any changes in the standard format
+    If true, display the environment and any changes in the standard format
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -72,7 +72,7 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 
 .PP
 \fB\-\-resolve\fP=false
-    Show secret or configmap references when listing variables
+    If true, show secret or configmap references when listing variables
 
 .PP
 \fB\-\-resource\-version\fP=""

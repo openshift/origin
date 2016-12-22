@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -35,7 +34,7 @@ var RepositoryNameComponentAnchoredRegexp = regexp.MustCompile(`^` + RepositoryN
 var RepositoryNameRegexp = regexp.MustCompile(`(?:` + RepositoryNameComponentRegexp.String() + `/)*` + RepositoryNameComponentRegexp.String())
 
 func ValidateImageStreamName(name string, prefix bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+	if reasons := validation.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -51,7 +50,7 @@ func ValidateImage(image *api.Image) field.ErrorList {
 }
 
 func validateImage(image *api.Image, fldPath *field.Path) field.ErrorList {
-	result := validation.ValidateObjectMeta(&image.ObjectMeta, false, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	result := validation.ValidateObjectMeta(&image.ObjectMeta, false, validation.ValidatePathSegmentName, fldPath.Child("metadata"))
 
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, field.Required(fldPath.Child("dockerImageReference"), ""))
@@ -81,7 +80,7 @@ func ValidateImageSignature(signature *api.ImageSignature) field.ErrorList {
 }
 
 func validateImageSignature(signature *api.ImageSignature, fldPath *field.Path) field.ErrorList {
-	allErrs := validation.ValidateObjectMeta(&signature.ObjectMeta, false, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	allErrs := validation.ValidateObjectMeta(&signature.ObjectMeta, false, validation.ValidatePathSegmentName, fldPath.Child("metadata"))
 	if len(signature.Labels) > 0 {
 		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("labels"), "signature labels cannot be set"))
 	}
@@ -227,7 +226,7 @@ func ValidateImageStreamStatusUpdate(newStream, oldStream *api.ImageStream) fiel
 
 // ValidateImageStreamMapping tests required fields for an ImageStreamMapping.
 func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) field.ErrorList {
-	result := validation.ValidateObjectMeta(&mapping.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	result := validation.ValidateObjectMeta(&mapping.ObjectMeta, true, validation.ValidatePathSegmentName, field.NewPath("metadata"))
 
 	hasRepository := len(mapping.DockerImageRepository) != 0
 	hasName := len(mapping.Name) != 0
@@ -256,7 +255,7 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) field.ErrorList
 
 // ValidateImageStreamTag validates a mutation of an image stream tag, which can happen on PUT
 func ValidateImageStreamTag(ist *api.ImageStreamTag) field.ErrorList {
-	result := validation.ValidateObjectMeta(&ist.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	result := validation.ValidateObjectMeta(&ist.ObjectMeta, true, validation.ValidatePathSegmentName, field.NewPath("metadata"))
 	if ist.Tag != nil {
 		result = append(result, ValidateImageStreamTagReference(*ist.Tag, field.NewPath("tag"))...)
 		if ist.Tag.Annotations != nil && !kapi.Semantic.DeepEqual(ist.Tag.Annotations, ist.ObjectMeta.Annotations) {

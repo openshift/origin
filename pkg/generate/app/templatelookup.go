@@ -107,7 +107,7 @@ type TemplateFileSearcher struct {
 	Namespace    string
 }
 
-// Search attemps to read template files and transform it into template objects
+// Search attempts to read template files and transform it into template objects
 func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	matches := ComponentMatches{}
 	var errs []error
@@ -128,6 +128,8 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		if err != nil {
 			switch {
 			case strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "the path"):
+				continue
+			case strings.Contains(err.Error(), "not a directory") && strings.Contains(err.Error(), "the path"):
 				continue
 			default:
 				if syntaxErr, ok := err.(*json.SyntaxError); ok {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -21,7 +21,7 @@ const (
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
 type DiagnosticPod struct {
-	KubeClient          kclient.Client
+	KubeClient          kclientset.Clientset
 	Namespace           string
 	Level               int
 	Factory             *osclientcmd.Factory
@@ -60,7 +60,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 		loglevel = 2 // need to show summary at least
 	}
 	imageName := d.ImageTemplate.ExpandOrDie("deployer")
-	pod, err := d.KubeClient.Pods(d.Namespace).Create(&kapi.Pod{
+	pod, err := d.KubeClient.Core().Pods(d.Namespace).Create(&kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{GenerateName: "pod-diagnostic-test-"},
 		Spec: kapi.PodSpec{
 			RestartPolicy: kapi.RestartPolicyNever,
@@ -80,11 +80,11 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 	defer func() { // delete what we created, or notify that we couldn't
 		zero := int64(0)
 		delOpts := kapi.DeleteOptions{TypeMeta: pod.TypeMeta, GracePeriodSeconds: &zero}
-		if err := d.KubeClient.Pods(d.Namespace).Delete(pod.ObjectMeta.Name, &delOpts); err != nil {
+		if err := d.KubeClient.Core().Pods(d.Namespace).Delete(pod.ObjectMeta.Name, &delOpts); err != nil {
 			r.Error("DCl2002", err, fmt.Sprintf("Deleting diagnostic pod '%s' failed. Error: %s", pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
 		}
 	}()
-	pod, err = d.KubeClient.Pods(d.Namespace).Get(pod.ObjectMeta.Name) // status is filled in post-create
+	pod, err = d.KubeClient.Core().Pods(d.Namespace).Get(pod.ObjectMeta.Name) // status is filled in post-create
 	if err != nil {
 		r.Error("DCli2003", err, fmt.Sprintf("Retrieving the diagnostic pod definition failed. Error: (%T) %[1]v", err))
 		return

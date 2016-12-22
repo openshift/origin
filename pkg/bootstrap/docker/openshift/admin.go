@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
@@ -31,8 +31,8 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images string, out, errout io.Writer) error {
-	_, err := kubeClient.Services(DefaultNamespace).Get(SvcDockerRegistry)
+func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images string, out, errout io.Writer) error {
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
 		return nil
@@ -69,8 +69,8 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
-	_, err := kubeClient.Services(DefaultNamespace).Get(SvcRouter)
+func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter)
 	if err == nil {
 		// Router service already exists, nothing to do
 		return nil
@@ -84,18 +84,18 @@ func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factor
 	// Create service account for router
 	routerSA := &kapi.ServiceAccount{}
 	routerSA.Name = "router"
-	_, err = kubeClient.ServiceAccounts("default").Create(routerSA)
+	_, err = kubeClient.Core().ServiceAccounts("default").Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create router service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add router SA to privileged SCC
-	privilegedSCC, err := kubeClient.SecurityContextConstraints().Get("privileged")
+	privilegedSCC, err := kubeClient.Core().SecurityContextConstraints().Get("privileged")
 	if err != nil {
 		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
 	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "router"))
-	_, err = kubeClient.SecurityContextConstraints().Update(privilegedSCC)
+	_, err = kubeClient.Core().SecurityContextConstraints().Update(privilegedSCC)
 	if err != nil {
 		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -186,10 +186,10 @@ func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace stri
 	return addRole.AddRole()
 }
 
-func AddSCCToServiceAccount(kubeClient kclient.Interface, scc, sa, namespace string) error {
+func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace string) error {
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
-		SCCInterface: kubeClient,
+		SCCInterface: kubeClient.Core(),
 		Subjects: []kapi.ObjectReference{
 			{
 				Namespace: namespace,

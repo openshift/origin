@@ -16,10 +16,7 @@ os::util::environment::setup_all_server_vars "${test_name}"
 
 os::log::system::start
 
-ensure_iptables_or_die
-
-# TODO(skuznets): Fix vagrant openshift so env vars can be passed to this script
-JUNIT_REPORT=true
+os::util::ensure::iptables_privileges_exist
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then
@@ -47,23 +44,14 @@ function cleanup() {
       os::test::junit::check_test_counters
 
       # use the junitreport tool to generate us a report
-      "${OS_ROOT}/hack/build-go.sh" tools/junitreport
-      junitreport="$(os::build::find-binary junitreport)"
+      os::util::ensure::built_binary_exists 'junitreport'
 
-      if [[ -z "${junitreport}" ]]; then
-          echo "It looks as if you don't have a compiled junitreport binary"
-          echo
-          echo "If you are running from a clone of the git repo, please run"
-          echo "'./hack/build-go.sh tools/junitreport'."
-          exit 1
-      fi
-
-      cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}"    \
-        | "${junitreport}" --type oscmd                        \
-                           --suites nested                     \
-                           --roots github.com/openshift/origin \
-                           --output "${ARTIFACT_DIR}/report.xml"
-      cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
+      cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}" \
+        | junitreport --type oscmd                          \
+                      --suites nested                       \
+                      --roots github.com/openshift/origin   \
+                      --output "${ARTIFACT_DIR}/report.xml"
+      cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
     fi
 
     endtime=$(date +%s); echo "$0 took $((endtime - starttime)) seconds"
@@ -85,6 +73,11 @@ oauth_patch="$(sed "s/HOST_NAME/${host}/" "${test_data_location}/config/oauth_co
 cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml"
 openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.tmp.yaml" --patch="${oauth_patch}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 os::start::server
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
 
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 

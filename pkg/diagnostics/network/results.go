@@ -10,11 +10,13 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/openshift/source-to-image/pkg/tar"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
-	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 func (d *NetworkDiagnostic) CollectNetworkPodLogs() error {
@@ -91,7 +93,7 @@ func (d *NetworkDiagnostic) copyNetworkPodInfo(pod *kapi.Pod) error {
 	}
 	defer tmp.Close()
 
-	tarHelper := tar.New()
+	tarHelper := tar.New(s2iutil.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 	logdir := filepath.Join(d.LogDir, util.NetworkDiagNodeLogDirPrefix, pod.Spec.NodeName)
 	err = tarHelper.ExtractTarStream(logdir, tmp)

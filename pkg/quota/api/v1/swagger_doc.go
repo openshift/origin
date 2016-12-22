@@ -70,7 +70,7 @@ func (ClusterResourceQuotaSpec) SwaggerDoc() map[string]string {
 var map_ClusterResourceQuotaStatus = map[string]string{
 	"":           "ClusterResourceQuotaStatus defines the actual enforced quota and its current usage",
 	"total":      "Total defines the actual enforced quota and its current usage across all projects",
-	"namespaces": "Namespaces slices the usage by project.  This division allows for quick resolution of deletion reconcilation inside of a single project without requiring a recalculation across all projects.  This can be used to pull the deltas for a given project.",
+	"namespaces": "Namespaces slices the usage by project.  This division allows for quick resolution of deletion reconciliation inside of a single project without requiring a recalculation across all projects.  This can be used to pull the deltas for a given project.",
 }
 
 func (ClusterResourceQuotaStatus) SwaggerDoc() map[string]string {

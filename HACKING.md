@@ -237,13 +237,17 @@ and can be run individually by specifying `--ginkgo.focus` and a regex filter:
 
     $ test/extended/core.sh --ginkgo.focus=<regex>
 
+In addition, the extended tests can be ran against an existing OpenShift
+cluster:
+
+    $ KUBECONFIG=/path/to/admin.kubeconfig TEST_ONLY=true test/extended/core.sh --ginkgo.focus=<regex>
+
 Extended tests should be Go tests in the `test/extended` directory that use
 the Ginkgo library. They must be able to be run remotely, and cannot depend on
 any local interaction with the filesystem or Docker.
 
 More information about running extended tests can be found in
 [test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
-
 
 ## Installing Godep
 

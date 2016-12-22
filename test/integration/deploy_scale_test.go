@@ -40,6 +40,7 @@ func TestDeployScale(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(0)
+	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	config.Spec.Replicas = 1
 

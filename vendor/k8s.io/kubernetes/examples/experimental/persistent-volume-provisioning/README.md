@@ -67,6 +67,8 @@ parameters:
   restuser: "admin"
   secretNamespace: "default"
   secretName: "heketi-secret"
+  gidMin: "40000"
+  gidMax: "50000"
 ```
 
 * `endpoint`: `glusterfs-cluster` is the endpoint name which includes GlusterFS trusted pool IP addresses. This parameter is mandatory. We need to also create a service for this endpoint, so that the endpoint will be persisted. This service can be without a selector to tell Kubernetes we want to add its endpoints manually.  Please note that, glusterfs plugin looks for the endpoint in the pod namespace, so it is mandatory that the endpoint and service have to be created in Pod's namespace for successful mount of gluster volumes in the pod.
@@ -80,6 +82,8 @@ parameters:
 When both `restuserkey` and `secretNamespace` + `secretName` is specified, the secret will be used.
 
 Example of a secret can be found in [glusterfs-provisioning-secret.yaml](glusterfs-provisioning-secret.yaml).
+
+* `gidMin` + `gidMax` : The minimum and maximum value of GID range for the storage class. A unique value (GID) in this range ( gidMin-gidMax ) will be used for dynamically provisioned volumes. These are optional values. If not specified, the volume will be provisioned with a value between 2000-2147483647 which are defaults for gidMin and gidMax respectively.
 
 Reference : ([How to configure Heketi](https://github.com/heketi/heketi/wiki/Setting-up-the-topology))
 

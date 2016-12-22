@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/registry/pod"
@@ -31,7 +31,7 @@ type REST struct {
 }
 
 type podGetter struct {
-	podsNamespacer unversioned.PodsNamespacer
+	kcoreclient.PodsGetter
 }
 
 func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
@@ -39,7 +39,7 @@ func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.podsNamespacer.Pods(ns).Get(name)
+	return g.Pods(ns).Get(name)
 }
 
 const defaultTimeout time.Duration = 10 * time.Second
@@ -47,7 +47,7 @@ const defaultTimeout time.Duration = 10 * time.Second
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(getter rest.Getter, watcher rest.Watcher, pn unversioned.PodsNamespacer, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
+func NewREST(getter rest.Getter, watcher rest.Watcher, pn kcoreclient.PodsGetter, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		Getter:         getter,
 		Watcher:        watcher,

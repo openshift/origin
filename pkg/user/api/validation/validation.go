@@ -7,12 +7,11 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
 )
 
 func ValidateUserName(name string, _ bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+	if reasons := kvalidation.ValidatePathSegmentName(name, false); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -26,7 +25,7 @@ func ValidateUserName(name string, _ bool) []string {
 }
 
 func ValidateIdentityName(name string, _ bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+	if reasons := kvalidation.ValidatePathSegmentName(name, false); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -44,7 +43,7 @@ func ValidateIdentityName(name string, _ bool) []string {
 }
 
 func ValidateGroupName(name string, _ bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+	if reasons := kvalidation.ValidatePathSegmentName(name, false); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -58,7 +57,7 @@ func ValidateGroupName(name string, _ bool) []string {
 }
 
 func ValidateIdentityProviderName(name string) []string {
-	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+	if reasons := kvalidation.ValidatePathSegmentName(name, false); len(reasons) != 0 {
 		return reasons
 	}
 

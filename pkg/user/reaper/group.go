@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -16,7 +16,7 @@ func NewGroupReaper(
 	groupClient client.GroupsInterface,
 	clusterBindingClient client.ClusterRoleBindingsInterface,
 	bindingClient client.RoleBindingsNamespacer,
-	sccClient kclient.SecurityContextConstraintsInterface,
+	sccClient kcoreclient.SecurityContextConstraintsGetter,
 ) kubectl.Reaper {
 	return &GroupReaper{
 		groupClient:          groupClient,
@@ -30,7 +30,7 @@ type GroupReaper struct {
 	groupClient          client.GroupsInterface
 	clusterBindingClient client.ClusterRoleBindingsInterface
 	bindingClient        client.RoleBindingsNamespacer
-	sccClient            kclient.SecurityContextConstraintsInterface
+	sccClient            kcoreclient.SecurityContextConstraintsGetter
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,

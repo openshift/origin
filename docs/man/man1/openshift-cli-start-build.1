@@ -19,7 +19,10 @@ Start a build
 This command starts a new build for the provided build config or copies an existing build using \-\-from\-build= <name>. Pass the \-\-follow flag to see output from the build.
 
 .PP
-In addition, you can pass a file, directory, or source code repository with the \-\-from\-file, \-\-from\-dir, or \-\-from\-repo flags directly to the build. The contents will be streamed to the build and override the current build source settings. When using \-\-from\-repo, the \-\-commit flag can be used to control which branch, tag, or commit is sent to the server. If you pass \-\-from\-file, the file is placed in the root of an empty directory with the same filename. Note that builds triggered from binary input will not preserve the source on the server, so rebuilds triggered by base image changes will use the source specified on the build config.
+In addition, you can pass a file, directory, or source code repository with the \-\-from\-file, \-\-from\-dir, or \-\-from\-repo flags directly to the build. The contents will be streamed to the build and override the current build source settings. When using \-\-from\-repo, the \-\-commit flag can be used to control which branch, tag, or commit is sent to the server. If you pass \-\-from\-file, the file is placed in the root of an empty directory with the same filename. It is also possible to pass a http or https url to \-\-from\-file and \-\-from\-archive, however authentication is not supported and in case of https the certificate must be valid and recognized by your system.
+
+.PP
+Note that builds triggered from binary input will not preserve the source on the server, so rebuilds triggered by base image changes will use the source specified on the build config.
 
 
 .SH OPTIONS
@@ -38,6 +41,10 @@ In addition, you can pass a file, directory, or source code repository with the 
 .PP
 \fB\-F\fP, \fB\-\-follow\fP=false
     Start a build and watch its logs until it completes or fails
+
+.PP
+\fB\-\-from\-archive\fP=""
+    An archive (tar, tar.gz, zip) to be extracted before the build and used as the binary input.
 
 .PP
 \fB\-\-from\-build\fP=""

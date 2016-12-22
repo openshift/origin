@@ -7,7 +7,7 @@ import (
 
 	"github.com/pborman/uuid"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -28,7 +28,7 @@ type AuthConfig struct {
 	AssetPublicAddresses []string
 
 	// KubeClient is kubeclient with enough permission for the auth API
-	KubeClient kclient.Interface
+	KubeClient kclientset.Interface
 
 	// OpenShiftClient is osclient with enough permission for the auth API
 	OpenShiftClient osclient.Interface

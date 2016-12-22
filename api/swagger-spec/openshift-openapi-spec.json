@@ -34925,6 +34925,345 @@
      }
     ]
    },
+   "/oapi/v1/namespaces/{namespace}/rolebindingrestrictions": {
+    "get": {
+     "description": "list or watch objects of kind RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "listNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestrictionList"
+       }
+      }
+     }
+    },
+    "post": {
+     "description": "create a RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     }
+    },
+    "delete": {
+     "description": "delete collection of RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "deletecollectionNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/unversioned.Status"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/namespaces/{namespace}/rolebindingrestrictions/{name}": {
+    "get": {
+     "description": "read the specified RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "readNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+       "name": "exact",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+       "name": "export",
+       "in": "query"
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     }
+    },
+    "put": {
+     "description": "replace the specified RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "replaceNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     }
+    },
+    "delete": {
+     "description": "delete a RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "deleteNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.DeleteOptions"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/unversioned.Status"
+       }
+      }
+     }
+    },
+    "patch": {
+     "description": "partially update the specified RoleBindingRestriction",
+     "consumes": [
+      "application/json-patch+json",
+      "application/merge-patch+json",
+      "application/strategic-merge-patch+json"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "patchNamespacedRoleBindingRestriction",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/unversioned.Patch"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "name of the RoleBindingRestriction",
+      "name": "name",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/namespaces/{namespace}/rolebindings": {
     "get": {
      "description": "list objects of kind RoleBinding",
@@ -38709,6 +39048,110 @@
      }
     ]
    },
+   "/oapi/v1/rolebindingrestrictions": {
+    "get": {
+     "description": "list or watch objects of kind RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "listRoleBindingRestrictionForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestrictionList"
+       }
+      }
+     }
+    },
+    "post": {
+     "description": "create a RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createRoleBindingRestrictionForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.RoleBindingRestriction"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/rolebindings": {
     "get": {
      "description": "list objects of kind RoleBinding",
@@ -42430,6 +42873,170 @@
      }
     ]
    },
+   "/oapi/v1/watch/namespaces/{namespace}/rolebindingrestrictions": {
+    "get": {
+     "description": "watch individual changes to a list of RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/json;stream=watch",
+      "application/vnd.kubernetes.protobuf",
+      "application/vnd.kubernetes.protobuf;stream=watch"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "watchNamespacedRoleBindingRestrictionList",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/versioned.Event"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+      "name": "fieldSelector",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+      "name": "labelSelector",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+      "name": "resourceVersion",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "integer",
+      "description": "Timeout for the list/watch call.",
+      "name": "timeoutSeconds",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "boolean",
+      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+      "name": "watch",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/watch/namespaces/{namespace}/rolebindingrestrictions/{name}": {
+    "get": {
+     "description": "watch changes to an object of kind RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/json;stream=watch",
+      "application/vnd.kubernetes.protobuf",
+      "application/vnd.kubernetes.protobuf;stream=watch"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "watchNamespacedRoleBindingRestriction",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/versioned.Event"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+      "name": "fieldSelector",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+      "name": "labelSelector",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "name of the RoleBindingRestriction",
+      "name": "name",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+      "name": "resourceVersion",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "integer",
+      "description": "Timeout for the list/watch call.",
+      "name": "timeoutSeconds",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "boolean",
+      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+      "name": "watch",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/watch/namespaces/{namespace}/routes": {
     "get": {
      "description": "watch individual changes to a list of Route",
@@ -43755,6 +44362,76 @@
       "name": "name",
       "in": "path",
       "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+      "name": "resourceVersion",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "integer",
+      "description": "Timeout for the list/watch call.",
+      "name": "timeoutSeconds",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "boolean",
+      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+      "name": "watch",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/watch/rolebindingrestrictions": {
+    "get": {
+     "description": "watch individual changes to a list of RoleBindingRestriction",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/json;stream=watch",
+      "application/vnd.kubernetes.protobuf",
+      "application/vnd.kubernetes.protobuf;stream=watch"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "watchRoleBindingRestrictionListForAllNamespaces",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/versioned.Event"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+      "name": "fieldSelector",
+      "in": "query"
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+      "name": "labelSelector",
+      "in": "query"
      },
      {
       "uniqueItems": true,
@@ -45419,7 +46096,7 @@
     ],
     "properties": {
      "namespaces": {
-      "description": "Namespaces slices the usage by project.  This division allows for quick resolution of deletion reconcilation inside of a single project without requiring a recalculation across all projects.  This can be used to pull the deltas for a given project.",
+      "description": "Namespaces slices the usage by project.  This division allows for quick resolution of deletion reconciliation inside of a single project without requiring a recalculation across all projects.  This can be used to pull the deltas for a given project.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.ResourceQuotaStatusByNamespace"
@@ -46155,6 +46832,10 @@
       "description": "The last time the condition transitioned from one status to another.",
       "type": "string"
      },
+     "lastUpdateTime": {
+      "description": "The last time this condition was updated.",
+      "type": "string"
+     },
      "message": {
       "description": "A human readable message indicating details about the transition.",
       "type": "string"
@@ -46450,6 +47131,11 @@
    "v1.DeploymentStrategy": {
     "description": "DeploymentStrategy describes how to perform a deployment.",
     "properties": {
+     "activeDeadlineSeconds": {
+      "description": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
+      "type": "integer",
+      "format": "int64"
+     },
      "annotations": {
       "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
       "type": "object"
@@ -47290,6 +47976,29 @@
      },
      "metadata": {
       "$ref": "#/definitions/unversioned.ListMeta"
+     }
+    }
+   },
+   "v1.GroupRestriction": {
+    "description": "GroupRestriction matches a group either by a string match on the group name or a label selector applied to group labels.",
+    "required": [
+     "groups",
+     "labels"
+    ],
+    "properties": {
+     "groups": {
+      "description": "Groups is a list of groups used to match against an individual user's groups. If the user is a member of one of the whitelisted groups, the user is allowed to be bound to a role.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "labels": {
+      "description": "Selectors specifies a list of label selectors over group labels.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/unversioned.LabelSelector"
+      }
      }
     }
    },
@@ -51148,6 +51857,74 @@
      }
     }
    },
+   "v1.RoleBindingRestriction": {
+    "description": "RoleBindingRestriction is an object that can be matched against a subject (user, group, or service account) to determine whether rolebindings on that subject are allowed in the namespace to which the RoleBindingRestriction belongs.  If any one of those RoleBindingRestriction objects matches a subject, rolebindings on that subject in the namespace are allowed.",
+    "required": [
+     "metadata",
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "$ref": "#/definitions/v1.ObjectMeta"
+     },
+     "spec": {
+      "$ref": "#/definitions/v1.RoleBindingRestrictionSpec"
+     }
+    }
+   },
+   "v1.RoleBindingRestrictionList": {
+    "description": "RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "Items is a list of RoleBindingRestriction objects.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.RoleBindingRestriction"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "$ref": "#/definitions/unversioned.ListMeta"
+     }
+    }
+   },
+   "v1.RoleBindingRestrictionSpec": {
+    "description": "RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one field must be non-nil.",
+    "required": [
+     "userrestriction",
+     "grouprestriction",
+     "serviceaccountrestriction"
+    ],
+    "properties": {
+     "grouprestriction": {
+      "$ref": "#/definitions/v1.GroupRestriction"
+     },
+     "serviceaccountrestriction": {
+      "$ref": "#/definitions/v1.ServiceAccountRestriction"
+     },
+     "userrestriction": {
+      "$ref": "#/definitions/v1.UserRestriction"
+     }
+    }
+   },
    "v1.RoleList": {
     "description": "RoleList is a collection of Roles",
     "required": [
@@ -51187,7 +51964,7 @@
       "type": "string"
      },
      "maxUnavailable": {
-      "description": "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
+      "description": "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
       "type": "string"
      },
      "post": {
@@ -51958,6 +52735,46 @@
      }
     }
    },
+   "v1.ServiceAccountReference": {
+    "description": "ServiceAccountReference specifies a service account and namespace by their names.",
+    "required": [
+     "name",
+     "namespace"
+    ],
+    "properties": {
+     "name": {
+      "description": "Name is the name of the service account.",
+      "type": "string"
+     },
+     "namespace": {
+      "description": "Namespace is the namespace of the service account.  Service accounts from inside the whitelisted namespaces are allowed to be bound to roles.  If Namespace is empty, then the namespace of the RoleBindingRestriction in which the ServiceAccountReference is embedded is used.",
+      "type": "string"
+     }
+    }
+   },
+   "v1.ServiceAccountRestriction": {
+    "description": "ServiceAccountRestriction matches a service account by a string match on either the service-account name or the name of the service account's namespace.",
+    "required": [
+     "serviceaccounts",
+     "namespaces"
+    ],
+    "properties": {
+     "namespaces": {
+      "description": "Namespaces specifies a list of literal namespace names.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "serviceaccounts": {
+      "description": "ServiceAccounts specifies a list of literal service-account names.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.ServiceAccountReference"
+      }
+     }
+    }
+   },
    "v1.ServiceList": {
     "description": "ServiceList holds a list of services.",
     "required": [
@@ -52694,6 +53511,37 @@
      },
      "metadata": {
       "$ref": "#/definitions/unversioned.ListMeta"
+     }
+    }
+   },
+   "v1.UserRestriction": {
+    "description": "UserRestriction matches a user either by a string match on the user name, a string match on the name of a group to which the user belongs, or a label selector applied to the user labels.",
+    "required": [
+     "users",
+     "groups",
+     "labels"
+    ],
+    "properties": {
+     "groups": {
+      "description": "Groups specifies a list of literal group names.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "labels": {
+      "description": "Selectors specifies a list of label selectors over user labels.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/unversioned.LabelSelector"
+      }
+     },
+     "users": {
+      "description": "Users specifies a list of literal user names.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
      }
     }
    },

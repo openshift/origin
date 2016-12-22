@@ -9,13 +9,14 @@ import (
 	"runtime"
 
 	"github.com/blang/semver"
+	"github.com/docker/docker/cliconfig"
 	dockerclient "github.com/docker/engine-api/client"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -100,7 +101,7 @@ var (
 		"rails quickstart":            "examples/quickstarts/rails-postgresql.json",
 		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
-		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
+		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 		"logging":                     "examples/logging/logging-deployer.yaml",
 	}
 	dockerVersion19  = semver.MustParse("1.9.0")
@@ -126,22 +127,22 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 			}
 		},
 	}
-	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
+	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "If true, create a Docker machine if one doesn't exist")
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	cmd.Flags().StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	cmd.Flags().StringVar(&config.Image, "image", "registry.access.redhat.com/openshift3/ose", "Specify the images to use for OpenShift")
-	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
+	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "If true, skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
-	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
+	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "If true, use existing configuration if present")
 	cmd.Flags().StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
 	cmd.Flags().StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
-	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
+	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "If true, use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
-	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "If true, install metrics (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "If true, install logging (experimental)")
 	return cmd
 }
 
@@ -423,10 +424,15 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 		return dockerClient, engineAPIClient, nil
 	}
 
+	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
+	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
+	if len(dockerTLSVerify) > 0 && len(dockerCertPath) == 0 {
+		dockerCertPath = cliconfig.ConfigDir()
+		os.Setenv("DOCKER_CERT_PATH", dockerCertPath)
+	}
+
 	if glog.V(4) {
 		dockerHost := os.Getenv("DOCKER_HOST")
-		dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
-		dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
 		if len(dockerHost) == 0 && len(dockerTLSVerify) == 0 && len(dockerCertPath) == 0 {
 			glog.Infof("No Docker environment variables found. Will attempt default socket.")
 		}
@@ -592,31 +598,32 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
-	for _, port := range openshift.RouterPorts {
-		err := c.OpenShiftHelper().TestPorts([]int{port})
-		if err != nil {
-			fmt.Fprintf(out, "WARNING: Port %d is already in use and may cause routing issues for applications.\n", port)
-		}
-	}
-	err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
+	c.DNSPort = openshift.DefaultDNSPort
+	err := c.OpenShiftHelper().TestPorts(openshift.AllPorts)
 	if err == nil {
-		c.DNSPort = openshift.DefaultDNSPort
 		return nil
 	}
 	if !openshift.IsPortsNotAvailableErr(err) {
 		return err
 	}
-	conflicts := openshift.UnavailablePorts(err)
-	if len(conflicts) == 1 && conflicts[0] == openshift.DefaultDNSPort {
-		err = c.OpenShiftHelper().TestPorts(openshift.PortsWithAlternateDNS)
-		if err == nil {
-			c.DNSPort = openshift.AlternateDNSPort
-			fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may not be resolvable from all clients.\n", openshift.AlternateDNSPort)
-			return nil
+	unavailable := sets.NewInt(openshift.UnavailablePorts(err)...)
+	if unavailable.HasAny(openshift.BasePorts...) {
+		return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	}
+	if unavailable.Has(openshift.DefaultDNSPort) {
+		if unavailable.Has(openshift.AlternateDNSPort) {
+			return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
 		}
+		c.DNSPort = openshift.AlternateDNSPort
+		fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may not be resolvable from all clients.\n", openshift.AlternateDNSPort)
 	}
 
-	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	for _, port := range openshift.RouterPorts {
+		if unavailable.Has(port) {
+			fmt.Fprintf(out, "WARNING: Port %d is already in use and may cause routing issues for applications.\n", port)
+		}
+	}
+	return nil
 }
 
 // DetermineServerIP gets an appropriate IP address to communicate with the OpenShift server
@@ -795,12 +802,16 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (*client.Client, *kclient.Client, error) {
+func (c *ClientStartConfig) Clients() (*client.Client, *kclientset.Clientset, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
 	}
-	return f.Clients()
+	oc, _, kcset, err := f.Clients()
+	if err != nil {
+		return nil, nil, err
+	}
+	return oc, kcset, nil
 }
 
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
@@ -943,7 +954,7 @@ func (c *ClientStartConfig) ShouldInitializeData() bool {
 			return true
 		}
 
-		if _, err = kclient.Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
+		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
 			return true
 		}
 

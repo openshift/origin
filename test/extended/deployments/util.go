@@ -257,18 +257,18 @@ func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []kapi.Replica
 }
 
 func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []kapi.ReplicationController, []kapi.Pod, error) {
-	dc, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+	dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	// get pods before RCs, so we see more RCs than pods.
-	pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{})
+	pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	rcs, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).List(kapi.ListOptions{
+	rcs, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).List(kapi.ListOptions{
 		LabelSelector: deployutil.ConfigSelector(name),
 	})
 	if err != nil {
@@ -304,7 +304,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 	}
 	generation := dc.Generation
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
-		config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+		config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 		if err != nil {
 			return false, err
 		}

@@ -50,7 +50,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	_, kc, err := f.Clients()
+	_, kc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

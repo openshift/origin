@@ -13,7 +13,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 )
 
 var (
@@ -39,7 +39,7 @@ var _ = g.Describe("[LocalNode][image_ecosystem][postgresql][Slow] openshift pos
 
 // CreatePostgreSQLReplicationHelpers creates a set of PostgreSQL helpers for master,
 // slave an en extra helper that is used for remote login test.
-func CreatePostgreSQLReplicationHelpers(c kclient.PodInterface, masterDeployment, slaveDeployment, helperDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
+func CreatePostgreSQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment, slaveDeployment, helperDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
 	podNames, err := exutil.WaitForPods(c, exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", masterDeployment)), exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	masterPod := podNames[0]
@@ -69,10 +69,10 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer cleanup(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
+		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err = testutil.WaitForPolicyUpdate(oc.Client(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
@@ -84,7 +84,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), postgreSQLHelperName, oc)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), postgreSQLHelperName, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.KubeFramework().WaitForAnEndpoint(postgreSQLHelperName)
@@ -103,7 +103,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 			tableCounter++
 			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
-			master, slaves, helper := CreatePostgreSQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", postgreSQLHelperName), slaveCount)
+			master, slaves, helper := CreatePostgreSQLReplicationHelpers(oc.KubeClient().Core().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", postgreSQLHelperName), slaveCount)
 			err := exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})
 			if err != nil {
 				exutil.DumpDeploymentLogs("postgresql-master", oc)
@@ -150,31 +150,31 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		g.By("after master is restarted by changing the Deployment Config")
 		err = oc.Run("env").Args("dc", "postgresql-master", "POSTGRESQL_ADMIN_PASSWORD=newpass").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
 		master, _, _ = assertReplicationIsWorking("postgresql-master-2", "postgresql-slave-1", 1)
 
 		g.By("after master is restarted by deleting the pod")
 		err = oc.Run("delete").Args("pod", "-l", "deployment=postgresql-master-2").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), master.PodName(), 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		_, slaves, _ := assertReplicationIsWorking("postgresql-master-2", "postgresql-slave-1", 1)
 
 		g.By("after slave is restarted by deleting the pod")
 		err = oc.Run("delete").Args("pod", "-l", "deployment=postgresql-slave-1").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), slaves[0].PodName(), 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), slaves[0].PodName(), 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		assertReplicationIsWorking("postgresql-master-2", "postgresql-slave-1", 1)
 
-		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=postgresql-slave-1")})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=postgresql-slave-1")})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(1))
 
 		g.By("after slave is scaled to 0 and then back to 4 replicas")
 		err = oc.Run("scale").Args("dc", "postgresql-slave", "--replicas=0").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
+		err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("scale").Args("dc", "postgresql-slave", "--replicas=4").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

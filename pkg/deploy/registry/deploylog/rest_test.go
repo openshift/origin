@@ -10,6 +10,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
@@ -103,26 +105,26 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 
 	// Fake deployments
 	fakeDeployments := makeDeploymentList(version)
-	fakeRn := ktestclient.NewSimpleFake(fakeDeployments)
-	fakeRn.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fakeRn := fake.NewSimpleClientset(fakeDeployments)
+	fakeRn.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &fakeDeployments.Items[desired-1], nil
 	})
 
 	// Fake watcher for deployments
 	fakeWatch := watch.NewFake()
-	fakeRn.PrependWatchReactor("replicationcontrollers", ktestclient.DefaultWatchReactor(fakeWatch, nil))
+	fakeRn.PrependWatchReactor("replicationcontrollers", core.DefaultWatchReactor(fakeWatch, nil))
 	obj := &fakeDeployments.Items[desired-1]
 	obj.Annotations[api.DeploymentStatusAnnotation] = string(status)
 	go fakeWatch.Add(obj)
 
-	fakePn := ktestclient.NewSimpleFake()
+	oldPn := ktestclient.NewSimpleFake()
 	if status == api.DeploymentStatusComplete {
 		// If the deployment is complete, we will try to get the logs from the oldest
 		// application pod...
-		fakePn.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oldPn.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			return true, fakePodList, nil
 		})
-		fakePn.PrependReactor("get", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oldPn.PrependReactor("get", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			return true, &fakePodList.Items[0], nil
 		})
 	} else {
@@ -144,15 +146,49 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 				Phase: kapi.PodRunning,
 			},
 		}
-		fakePn.PrependReactor("get", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oldPn.PrependReactor("get", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, fakeDeployer, nil
+		})
+	}
+	fakePn := fake.NewSimpleClientset()
+	if status == api.DeploymentStatusComplete {
+		// If the deployment is complete, we will try to get the logs from the oldest
+		// application pod...
+		fakePn.PrependReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			return true, fakePodList, nil
+		})
+		fakePn.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			return true, &fakePodList.Items[0], nil
+		})
+	} else {
+		// ...otherwise try to get the logs from the deployer pod.
+		fakeDeployer := &kapi.Pod{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      deployutil.DeployerPodNameForDeployment(obj.Name),
+				Namespace: kapi.NamespaceDefault,
+			},
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{
+					{
+						Name: deployutil.DeployerPodNameForDeployment(obj.Name) + "-container",
+					},
+				},
+				NodeName: "some-host",
+			},
+			Status: kapi.PodStatus{
+				Phase: kapi.PodRunning,
+			},
+		}
+		fakePn.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, fakeDeployer, nil
 		})
 	}
 
 	return &REST{
 		dn:       fakeDn,
-		rn:       fakeRn,
-		pn:       fakePn,
+		rn:       fakeRn.Core(),
+		pn:       fakePn.Core(),
+		oldPn:    oldPn,
 		connInfo: connectionInfo,
 		timeout:  defaultTimeout,
 	}

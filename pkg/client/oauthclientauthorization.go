@@ -32,33 +32,33 @@ func newOAuthClientAuthorizations(c *Client) *oauthClientAuthorizations {
 
 func (c *oauthClientAuthorizations) Create(obj *oauthapi.OAuthClientAuthorization) (result *oauthapi.OAuthClientAuthorization, err error) {
 	result = &oauthapi.OAuthClientAuthorization{}
-	err = c.r.Post().Resource("oAuthClientAuthorizations").Body(obj).Do().Into(result)
+	err = c.r.Post().Resource("oauthclientauthorizations").Body(obj).Do().Into(result)
 	return
 }
 
 func (c *oauthClientAuthorizations) Update(obj *oauthapi.OAuthClientAuthorization) (result *oauthapi.OAuthClientAuthorization, err error) {
 	result = &oauthapi.OAuthClientAuthorization{}
-	err = c.r.Put().Resource("oAuthClientAuthorizations").Name(obj.Name).Body(obj).Do().Into(result)
+	err = c.r.Put().Resource("oauthclientauthorizations").Name(obj.Name).Body(obj).Do().Into(result)
 	return
 }
 
 func (c *oauthClientAuthorizations) List(opts kapi.ListOptions) (result *oauthapi.OAuthClientAuthorizationList, err error) {
 	result = &oauthapi.OAuthClientAuthorizationList{}
-	err = c.r.Get().Resource("oAuthClientAuthorizations").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
+	err = c.r.Get().Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 func (c *oauthClientAuthorizations) Get(name string) (result *oauthapi.OAuthClientAuthorization, err error) {
 	result = &oauthapi.OAuthClientAuthorization{}
-	err = c.r.Get().Resource("oAuthClientAuthorizations").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("oauthclientauthorizations").Name(name).Do().Into(result)
 	return
 }
 
 func (c *oauthClientAuthorizations) Delete(name string) (err error) {
-	err = c.r.Delete().Resource("oAuthClientAuthorizations").Name(name).Do().Error()
+	err = c.r.Delete().Resource("oauthclientauthorizations").Name(name).Do().Error()
 	return
 }
 
 func (c *oauthClientAuthorizations) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.r.Get().Prefix("watch").Resource("oAuthClientAuthorizations").VersionedParams(&opts, kapi.ParameterCodec).Watch()
+	return c.r.Get().Prefix("watch").Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

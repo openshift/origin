@@ -200,16 +200,7 @@ fi
 # Run 'go test' with the accumulated arguments and packages:
 if [[ -n "${junit_report}" ]]; then
     # we need to generate jUnit xml
-    "${OS_ROOT}/hack/build-go.sh" tools/junitreport
-    junitreport="$(os::build::find-binary junitreport)"
-
-    if [[ -z "${junitreport}" ]]; then
-        echo "It looks as if you don't have a compiled junitreport binary"
-        echo
-        echo "If you are running from a clone of the git repo, please run"
-        echo "'./hack/build-go.sh tools/junitreport'."
-        exit 1
-    fi
+    os::util::ensure::built_binary_exists 'junitreport'
 
     test_output_file="${LOG_DIR}/test-go.log"
     test_error_file="${LOG_DIR}/test-go-err.log"
@@ -219,20 +210,21 @@ if [[ -n "${junit_report}" ]]; then
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
+    go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" \
         | tee "${test_output_file}"                                 \
-        | "${junitreport}" --type gotest                            \
-                           --suites nested                          \
-                           --roots github.com/openshift/origin      \
-                           --stream                                 \
-                           --output "${junit_report_file}"
+        | junitreport --type gotest                                 \
+                      --suites nested                               \
+                      --roots github.com/openshift/origin           \
+                      --stream                                      \
+                      --output "${junit_report_file}"
 
     test_return_code="${PIPESTATUS[0]}"
 
     set -o pipefail
 
     echo
-    summary="$( "${junitreport}" summarize < "${junit_report_file}" )"
+    summary="$( junitreport summarize < "${junit_report_file}" )"
     echo "${summary}"
 
     if echo "${summary}" | grep -q ', 0 failed,'; then
@@ -264,6 +256,7 @@ if [[ -n "${junit_report}" ]]; then
 
 elif [[ -n "${coverage_output_dir}" ]]; then
     # we need to generate coverage reports
+    go test -i ${gotest_flags} ${test_packages}
     for test_package in ${test_packages}; do
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
@@ -288,5 +281,6 @@ elif [[ -n "${dlv_debug}" ]]; then
     dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
+    go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages}
 fi

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/probe"
 	httpprobe "k8s.io/kubernetes/pkg/probe/http"
 	"k8s.io/kubernetes/pkg/watch"
@@ -98,7 +98,7 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 	}
 }
 
-func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclient.Client, t *testing.T) {
+func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclientset.Clientset, t *testing.T) {
 	// list namespaces in order to determine correct resourceVersion
 	namespaces, err := cluster1AdminKubeClient.Namespaces().List(kapi.ListOptions{})
 

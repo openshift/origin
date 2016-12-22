@@ -8,6 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -362,8 +363,8 @@ type projectCount struct {
 }
 
 func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectCache {
-	kclient := &ktestclient.Fake{}
-	pCache := projectcache.NewFake(kclient.Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+	kclientset := &fake.Clientset{}
+	pCache := projectcache.NewFake(kclientset.Core().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
 	for requester, count := range requesters {
 		for i := 0; i < count.active; i++ {
 			pCache.Store.Add(fakeNs(requester, false))

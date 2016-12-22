@@ -3,7 +3,6 @@ package test
 import (
 	"errors"
 	"io"
-	"path/filepath"
 	"regexp"
 	"sync"
 
@@ -73,29 +72,9 @@ func (f *FakeTar) ExtractTarStream(dir string, reader io.Reader) error {
 func (f *FakeTar) SetExclusionPattern(*regexp.Regexp) {
 }
 
-// StreamFileAsTar streams a single file as a TAR archive into specified writer.
-func (f *FakeTar) StreamFileAsTar(string, string, io.Writer) error {
-	return nil
-}
-
-// StreamFileAsTarWithCallback streams a single file as a TAR archive into specified writer.
-func (f *FakeTar) StreamFileAsTarWithCallback(source, name string, writer io.Writer, walkFn filepath.WalkFunc, modifyInplace bool) error {
-	return errors.New("not implemented")
-}
-
-// StreamDirAsTar streams a directory as a TAR archive into specified writer.
-func (f *FakeTar) StreamDirAsTar(string, string, io.Writer) error {
-	return nil
-}
-
-// StreamDirAsTarWithCallback streams a directory as a TAR archive into specified writer.
-func (f *FakeTar) StreamDirAsTarWithCallback(source string, writer io.Writer, walkFn filepath.WalkFunc, modifyInplace bool) error {
-	return errors.New("not implemented")
-}
-
-// CreateTarStreamWithLogging creates a tar from the given directory and streams
+// CreateTarStreamToTarWriter creates a tar from the given directory and streams
 // it to the given writer.
-func (f *FakeTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, writer io.Writer, logger io.Writer) error {
+func (f *FakeTar) CreateTarStreamToTarWriter(dir string, includeDirInPath bool, writer tar.Writer, logger io.Writer) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	f.CreateTarDir = dir
@@ -105,5 +84,14 @@ func (f *FakeTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, 
 // CreateTarStream creates a tar from the given directory and streams it to the
 // given writer.
 func (f *FakeTar) CreateTarStream(dir string, includeDirInPath bool, writer io.Writer) error {
-	return f.CreateTarStreamWithLogging(dir, includeDirInPath, writer, nil)
+	return f.CreateTarStreamToTarWriter(dir, includeDirInPath, nil, nil)
+}
+
+// CreateTarStreamReader returns an io.ReadCloser from which a tar stream can be
+// read.  The tar stream is created using CreateTarStream.
+func (f *FakeTar) CreateTarStreamReader(dir string, includeDirInPath bool) io.ReadCloser {
+	f.CreateTarStreamToTarWriter(dir, includeDirInPath, nil, nil)
+	r, w := io.Pipe()
+	go w.CloseWithError(f.CreateTarError)
+	return r
 }

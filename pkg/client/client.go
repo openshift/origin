@@ -65,6 +65,7 @@ type Interface interface {
 	ClusterRoleBindingsInterface
 	ClusterResourceQuotasInterface
 	AppliedClusterResourceQuotasNamespacer
+	RoleBindingRestrictionsNamespacer
 }
 
 // Builds provides a REST client for Builds
@@ -288,6 +289,10 @@ func (c *Client) ClusterResourceQuotas() ClusterResourceQuotaInterface {
 
 func (c *Client) AppliedClusterResourceQuotas(namespace string) AppliedClusterResourceQuotaInterface {
 	return newAppliedClusterResourceQuotas(c, namespace)
+}
+
+func (c *Client) RoleBindingRestrictions(namespace string) RoleBindingRestrictionInterface {
+	return newRoleBindingRestrictions(c, namespace)
 }
 
 // Client is an OpenShift client object

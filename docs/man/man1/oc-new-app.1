@@ -56,7 +56,11 @@ If you provide source code, a new build will be automatically triggered. You can
 
 .PP
 \fB\-e\fP, \fB\-\-env\fP=[]
-    Specify a key\-value pair for an environment variable to set into each container. This doesn't apply to objects created from a template, use parameters instead.
+    Specify a key\-value pair for an environment variable to set into each container.
+
+.PP
+\fB\-\-env\-file\fP=[]
+    File containing key\-value pairs of environment variables to set into each container.
 
 .PP
 \fB\-f\fP, \fB\-\-file\fP=[]
@@ -111,12 +115,16 @@ If you provide source code, a new build will be automatically triggered. You can
     Specify a key\-value pair (e.g., \-p FOO=BAR) to set/override a parameter value in the template.
 
 .PP
+\fB\-\-param\-file\fP=[]
+    File containing parameter values to set/override in the template.
+
+.PP
 \fB\-S\fP, \fB\-\-search\fP=false
     Search all templates, image streams, and Docker images that match the arguments provided.
 
 .PP
-\fB\-\-strategy\fP=""
-    Specify the build strategy to use if you don't want to detect (docker|source).
+\fB\-\-strategy\fP=
+    Specify the build strategy to use if you don't want to detect (docker|pipeline|source).
 
 .PP
 \fB\-\-template\fP=[]

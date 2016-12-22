@@ -1,19 +1,19 @@
 package sti
 
 import (
+	"archive/tar"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
-	"github.com/openshift/source-to-image/pkg/tar"
+	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -129,9 +129,22 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 		entrypoint = []string{}
 	}
 
-	ctx.imageID, err = commitContainer(step.docker, ctx.containerID, cmd, user, step.builder.config.Tag, step.builder.env, entrypoint, ctx.labels)
+	ctx.imageID, err = commitContainer(
+		step.docker,
+		ctx.containerID,
+		cmd,
+		user,
+		step.builder.config.Tag,
+		step.builder.env,
+		entrypoint,
+		ctx.labels,
+	)
+
 	if err != nil {
-		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonCommitContainerFailed, utilstatus.ReasonMessageCommitContainerFailed)
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonCommitContainerFailed,
+			utilstatus.ReasonMessageCommitContainerFailed,
+		)
 		return err
 	}
 
@@ -142,7 +155,7 @@ type downloadFilesFromBuilderImageStep struct {
 	builder *STI
 	docker  dockerpkg.Docker
 	fs      util.FileSystem
-	tar     tar.Tar
+	tar     s2itar.Tar
 }
 
 func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepContext) error {
@@ -150,11 +163,19 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 
 	artifactsDir := filepath.Join(step.builder.config.WorkingDir, api.RuntimeArtifactsDir)
 	if err := step.fs.Mkdir(artifactsDir); err != nil {
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonFSOperationFailed,
+			utilstatus.ReasonMessageFSOperationFailed,
+		)
 		return fmt.Errorf("Couldn't create directory %q: %v", artifactsDir, err)
 	}
 
 	for _, artifact := range step.builder.config.RuntimeArtifacts {
 		if err := step.downloadAndExtractFile(artifact.Source, artifactsDir, ctx.containerID); err != nil {
+			step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonGenericS2IBuildFailed,
+				utilstatus.ReasonMessageGenericS2iBuildFailed,
+			)
 			return err
 		}
 
@@ -164,6 +185,10 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 			dstDir := filepath.Join(artifactsDir, dstSubDir)
 			glog.V(5).Infof("Creating directory %q", dstDir)
 			if err := step.fs.MkdirAll(dstDir); err != nil {
+				step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+					utilstatus.ReasonFSOperationFailed,
+					utilstatus.ReasonMessageFSOperationFailed,
+				)
 				return fmt.Errorf("Couldn't create directory %q: %v", dstDir, err)
 			}
 
@@ -172,6 +197,10 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 			new := filepath.Join(artifactsDir, dstSubDir, file)
 			glog.V(5).Infof("Renaming %q to %q", old, new)
 			if err := step.fs.Rename(old, new); err != nil {
+				step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+					utilstatus.ReasonFSOperationFailed,
+					utilstatus.ReasonMessageFSOperationFailed,
+				)
 				return fmt.Errorf("Couldn't rename %q -> %q: %v", old, new, err)
 			}
 		}
@@ -230,12 +259,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	lastFileDstPath := "/tmp/" + filepath.Base(lastFilePath)
 
 	outReader, outWriter := io.Pipe()
-	defer outReader.Close()
-	defer outWriter.Close()
-
 	errReader, errWriter := io.Pipe()
-	defer errReader.Close()
-	defer errWriter.Close()
 
 	artifactsDir := filepath.Join(step.builder.config.WorkingDir, api.RuntimeArtifactsDir)
 
@@ -243,7 +267,8 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	for _, script := range []string{api.AssembleRuntime, api.Run} {
 		// scripts must be inside of "scripts" subdir, see createCommandForExecutingRunScript()
 		destinationDir := filepath.Join(artifactsDir, "scripts")
-		if err := step.copyScriptIfNeeded(script, destinationDir); err != nil {
+		err = step.copyScriptIfNeeded(script, destinationDir)
+		if err != nil {
 			return err
 		}
 	}
@@ -258,7 +283,8 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	useExternalAssembleScript := step.builder.externalScripts[api.AssembleRuntime]
 	if !useExternalAssembleScript {
 		// script already inside of the image
-		scriptsURL, err := step.docker.GetScriptsURL(image)
+		var scriptsURL string
+		scriptsURL, err = step.docker.GetScriptsURL(image)
 		if err != nil {
 			return err
 		}
@@ -289,61 +315,41 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	}
 
 	opts.OnStart = func(containerID string) error {
-		setStandardPerms := func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			// chmod does nothing on windows anyway.
-			if runtime.GOOS == "windows" {
-				return nil
-			}
-			// Skip chmod for symlinks
-			if info.Mode()&os.ModeSymlink != 0 {
-				return nil
-			}
-			// file should be writable by owner (u=w) and readable by other users (a=r),
-			// executable bit should be left as is
-			mode := os.FileMode(0644)
-			// syscall.S_IEXEC == 0x40 but we can't reference the constant if we want
-			// to build releases for windows.
-			if info.IsDir() || info.Mode()&0x40 != 0 {
-				mode = 0755
-			}
-			return step.fs.Chmod(path, mode)
+		setStandardPerms := func(writer io.Writer) s2itar.Writer {
+			return s2itar.ChmodAdapter{Writer: tar.NewWriter(writer), NewFileMode: 0644, NewExecFileMode: 0755, NewDirMode: 0755}
 		}
 
 		glog.V(5).Infof("Uploading directory %q -> %q", artifactsDir, workDir)
-		if err := step.docker.UploadToContainerWithCallback(artifactsDir, workDir, containerID, setStandardPerms, true); err != nil {
+		onStartErr := step.docker.UploadToContainerWithTarWriter(step.fs, artifactsDir, workDir, containerID, setStandardPerms)
+		if onStartErr != nil {
 			return fmt.Errorf("Couldn't upload directory (%q -> %q) into container %s: %v", artifactsDir, workDir, containerID, err)
 		}
 
 		glog.V(5).Infof("Uploading file %q -> %q", lastFilePath, lastFileDstPath)
-		if err := step.docker.UploadToContainerWithCallback(lastFilePath, lastFileDstPath, containerID, setStandardPerms, true); err != nil {
+		onStartErr = step.docker.UploadToContainerWithTarWriter(step.fs, lastFilePath, lastFileDstPath, containerID, setStandardPerms)
+		if onStartErr != nil {
 			return fmt.Errorf("Couldn't upload file (%q -> %q) into container %s: %v", lastFilePath, lastFileDstPath, containerID, err)
 		}
 
-		return err
+		return onStartErr
 	}
 
-	go dockerpkg.StreamContainerIO(outReader, nil, func(a ...interface{}) { glog.V(0).Info(a...) })
+	dockerpkg.StreamContainerIO(outReader, nil, func(s string) { glog.V(0).Info(s) })
 
 	errOutput := ""
-	go dockerpkg.StreamContainerIO(errReader, &errOutput, func(a ...interface{}) { glog.Info(a...) })
+	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { glog.Info(s) })
 
 	// switch to the next stage of post executors steps
 	step.builder.postExecutorStage++
 
 	err = step.docker.RunContainer(opts)
-	// close so we avoid data race condition on errOutput
-	errReader.Close()
 	if e, ok := err.(errors.ContainerError); ok {
-		// even with deferred close above, close errReader now so we avoid data race condition on errOutput;
-		// closing will cause StreamContainerIO to exit, thus releasing the writer in the equation
-		errReader.Close()
-		return errors.NewContainerError(image, e.ErrorCode, errOutput)
+		// Must wait for StreamContainerIO goroutine above to exit before reading errOutput.
+		<-c
+		err = errors.NewContainerError(image, e.ErrorCode, errOutput)
 	}
 
-	return nil
+	return err
 }
 
 func (step *startRuntimeImageAndUploadFilesStep) copyScriptIfNeeded(script, destinationDir string) error {

@@ -22,7 +22,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/quota"
@@ -47,7 +49,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
 		for _, lang := range langs {
-			is, err := oc.REST().ImageStreams("openshift").Get(lang)
+			is, err := oc.Client().ImageStreams("openshift").Get(lang)
 			if err != nil {
 				return false
 			}
@@ -82,7 +84,7 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 	missing := false
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	for _, lang := range langs {
-		_, err := oc.REST().ImageStreams("openshift").Get(lang)
+		_, err := oc.Client().ImageStreams("openshift").Get(lang)
 		if err != nil {
 			missing = true
 			break
@@ -150,47 +152,44 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	ExaminePodDiskUsage(oc)
 }
 
+func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapi.PodList, error) {
+	return oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName))})
+}
+
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dc string, oc *CLI) {
-	out, err := oc.Run("get").Args("pods", "-o", "json").Output()
-	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n Pod JSON dump: \n%s\n\n", out)
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on Pod JSON dump: %+v\n\n", err)
-	}
-	// pod logs were proving redundant .. leaving code that dumps them commented out for now in case we want to pull back in
-	if err == nil {
-		b := []byte(out)
-		var list kapi.PodList
-		err = json.Unmarshal(b, &list)
-		if err == nil {
-			for _, pod := range list.Items {
-				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s to see if it is affiliated with %s \n\n", pod.ObjectMeta.Name, dc)
-				if strings.Contains(pod.ObjectMeta.Name, dc) {
-					podName := pod.ObjectMeta.Name
-					fmt.Fprintf(g.GinkgoWriter, "\n\n Describing pod %s \n\n", podName)
-					descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
-					if err == nil {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  description for pod %s : %s\n\n", podName, descOutput)
-					} else {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on describing %s:  %v\n\n", podName, err)
-					}
+	fmt.Fprintf(g.GinkgoWriter, "\n\nDumping logs for deploymentconfig %q in namespace %q\n\n", dc, oc.Namespace())
 
-					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
-					depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
-					if err == nil {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOutput)
-					} else {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on dep logs for %s:  %v\n\n", podName, err)
-					}
-				}
-			}
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
-		}
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	pods, err := GetDeploymentConfigPods(oc, dc)
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q: %+v\n\n", dc, err)
+		return
 	}
+
+	if pods == nil || pods.Items == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q. No pods found: %+v\n\n", dc, pods)
+		return
+	}
+
+	for _, pod := range pods.Items {
+		podName := pod.ObjectMeta.Name
+		fmt.Fprintf(g.GinkgoWriter, "\n\nDescribing deploymentconfig %q pod %q\n", dc, podName)
+		descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "%s\n\n", descOutput)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "Error retrieving pod description: %v\n\n", err)
+		}
+
+		fmt.Fprintf(g.GinkgoWriter, "\n\nLog for deploymentconfig %q pod %q\n---->\n", dc, podName)
+		depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "%s\n<----end of log for %q\n", depOutput, podName)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n<----unable to retrieve logs: %v\n", err)
+		}
+	}
+
 }
 
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
@@ -258,12 +257,16 @@ func WriteObjectToFile(obj runtime.Object, filename string) error {
 	return ioutil.WriteFile(filename, []byte(content), 0644)
 }
 
-// VarSubOnFile reads in srcFile, finds instances inf varToSub, changes it to var, and writes out to destFile
-func VarSubOnFile(srcFile, destFile, varToSub, val string) error {
+// VarSubOnFile reads in srcFile, finds instances of ${key} from the map
+// and replaces them with their associated values.
+func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error {
 	srcData, err := ioutil.ReadFile(srcFile)
 	if err == nil {
 		srcString := string(srcData)
-		srcString = strings.Replace(srcString, varToSub, val, -1) // -1 means unlimited replacements
+		for k, v := range vars {
+			k = "${" + k + "}"
+			srcString = strings.Replace(srcString, k, v, -1) // -1 means unlimited replacements
+		}
 		err = ioutil.WriteFile(destFile, []byte(srcString), 0644)
 	}
 	return err
@@ -337,8 +340,8 @@ func (t *BuildResult) DumpLogs() {
 
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	ExamineDiskUsage()
-	ExaminePodDiskUsage(t.oc)
+	//ExamineDiskUsage()
+	//ExaminePodDiskUsage(t.oc)
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 }
@@ -351,7 +354,7 @@ func (t *BuildResult) Logs() (string, error) {
 
 	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
 	if err != nil {
-		return "", fmt.Errorf("Error retieving logs for %#v: %v", *t, err)
+		return "", fmt.Errorf("Error retrieving logs for %#v: %v", *t, err)
 	}
 
 	return buildOuput, nil
@@ -414,7 +417,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	buildName := matches[1]
 
 	fmt.Fprintf(g.GinkgoWriter, "Waiting for %s to complete\n", buildPath)
-	err = WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
+	err = WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName,
 		func(b *buildapi.Build) bool {
 			result.Build = b
 			result.BuildSuccess = CheckBuildSuccessFn(b)
@@ -488,7 +491,7 @@ var CheckBuildFailedFn = func(b *buildapi.Build) bool {
 
 // WaitForBuilderAccount waits until the builder service account gets fully
 // provisioned
-func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
 	waitFn := func() (bool, error) {
 		sc, err := c.Get("builder")
 		if err != nil {
@@ -568,7 +571,7 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 	c := make(chan error)
 	go func() {
 		err := WaitForAnImageStream(
-			oc.REST().ImageStreams(namespace),
+			oc.Client().ImageStreams(namespace),
 			name,
 			func(is *imageapi.ImageStream) bool {
 				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
@@ -642,7 +645,7 @@ func compareResourceControllerNames(a, b string) int {
 // When isOK returns true, WaitForADeployment returns nil, when isFailed returns
 // true, WaitForADeployment returns an error including the deployment status.
 // WaitForADeployment waits for at most a certain timeout (non-configurable).
-func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool, oc *CLI) error {
+func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool, oc *CLI) error {
 	timeout := 15 * time.Minute
 
 	// closing done signals that any pending operation should be aborted.
@@ -754,7 +757,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 }
 
 // WaitForADeploymentToComplete waits for a deployment to complete.
-func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string, oc *CLI) error {
+func WaitForADeploymentToComplete(client kcoreclient.ReplicationControllerInterface, name string, oc *CLI) error {
 	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn, oc)
 }
 
@@ -763,7 +766,7 @@ func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface,
 // registry's deployment config will be fetched from etcd.
 func WaitForRegistry(
 	dcNamespacer client.DeploymentConfigsNamespacer,
-	kubeClient kclient.Interface,
+	kubeClient kclientset.Interface,
 	waitForDCVersion *int64,
 	oc *CLI,
 ) error {
@@ -781,7 +784,7 @@ func WaitForRegistry(
 	}
 	fmt.Fprintf(g.GinkgoWriter, "waiting for deployment of version %d to complete\n", latestVersion)
 
-	err := WaitForADeployment(kubeClient.ReplicationControllers(kapi.NamespaceDefault), "docker-registry",
+	err := WaitForADeployment(kubeClient.Core().ReplicationControllers(kapi.NamespaceDefault), "docker-registry",
 		func(rc *kapi.ReplicationController) bool {
 			if !CheckDeploymentCompletedFn(rc) {
 				return false
@@ -809,7 +812,7 @@ func WaitForRegistry(
 	}
 
 	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, sets.NewString(fmt.Sprintf("docker-registry-%d", latestVersion)))
-	pods, err := WaitForPods(kubeClient.Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
+	pods, err := WaitForPods(kubeClient.Core().Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
 	now := time.Now()
 	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
 	return err
@@ -839,7 +842,7 @@ func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bo
 // or equal to quota's usage, which is useful for expected usage increment. Otherwise expected usage must
 // compare lower or equal to quota's usage, which is useful for expected usage decrement.
 func WaitForResourceQuotaSync(
-	client kclient.ResourceQuotaInterface,
+	client kcoreclient.ResourceQuotaInterface,
 	name string,
 	expectedUsage kapi.ResourceList,
 	expectedIsUpperLimit bool,
@@ -901,7 +904,7 @@ var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
 }
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
-func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
+func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
 	podList, err := c.List(kapi.ListOptions{LabelSelector: label})
 	if err != nil {
 		return nil, err
@@ -914,7 +917,7 @@ func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicat
 	return podNames, nil
 }
 
-func WaitForAJob(c kclient.JobInterface, name string, timeout time.Duration) error {
+func WaitForAJob(c kbatchclient.JobInterface, name string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		j, e := c.Get(name)
 		if e != nil {
@@ -933,7 +936,7 @@ func WaitForAJob(c kclient.JobInterface, name string, timeout time.Duration) err
 
 // WaitForPods waits until given number of pods that match the label selector and
 // satisfy the predicate are found
-func WaitForPods(c kclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool, count int, timeout time.Duration) ([]string, error) {
+func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool, count int, timeout time.Duration) ([]string, error) {
 	var podNames []string
 	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		p, e := GetPodNamesByFilter(c, label, predicate)
@@ -974,7 +977,7 @@ var CheckPodIsReadyFn = func(pod kapi.Pod) bool {
 }
 
 // WaitUntilPodIsGone waits until the named Pod will disappear
-func WaitUntilPodIsGone(c kclient.PodInterface, podName string, timeout time.Duration) error {
+func WaitUntilPodIsGone(c kcoreclient.PodInterface, podName string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		_, err := c.Get(podName)
 		if err != nil {
@@ -1053,7 +1056,7 @@ func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVol
 }
 
 // SetupHostPathVolumes will create multiple PersistentVolumes with given capacity
-func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapi.PersistentVolume, err error) {
+func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapi.PersistentVolume, err error) {
 	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
 	if err != nil {
 		return volumes, err
@@ -1083,7 +1086,7 @@ func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity 
 
 // CleanupHostPathVolumes removes all PersistentVolumes created by
 // SetupHostPathVolumes, with a given prefix
-func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) error {
+func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix string) error {
 	pvs, err := c.List(kapi.ListOptions{})
 	if err != nil {
 		return err
@@ -1100,7 +1103,7 @@ func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) 
 			continue
 		}
 
-		if err = c.Delete(pv.Name); err != nil {
+		if err = c.Delete(pv.Name, nil); err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
 			continue
 		}
@@ -1198,7 +1201,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	endpoint, err := oc.KubeREST().Endpoints(oc.Namespace()).Get(name)
+	endpoint, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(name)
 	if err != nil {
 		return "", err
 	}

@@ -10,7 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -23,9 +24,9 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func NewREST(store registry.Store, oc client.Interface, kc kclient.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
+func NewREST(store registry.Store, oc client.Interface, kc kclientset.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, isn: oc, rn: kc, decoder: decoder, admit: admission}
+	return &REST{store: &store, isn: oc, rn: kc.Core(), decoder: decoder, admit: admission}
 }
 
 // REST implements the Creater interface.
@@ -34,7 +35,7 @@ var _ = rest.Creater(&REST{})
 type REST struct {
 	store   *registry.Store
 	isn     client.ImageStreamsNamespacer
-	rn      kclient.ReplicationControllersNamespacer
+	rn      kcoreclient.ReplicationControllersGetter
 	decoder runtime.Decoder
 	admit   admission.Interface
 }
@@ -173,7 +174,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 // canTrigger determines if we can trigger a new deployment for config based on the various deployment triggers.
 func canTrigger(
 	config *deployapi.DeploymentConfig,
-	rn kclient.ReplicationControllersNamespacer,
+	rn kcoreclient.ReplicationControllersGetter,
 	decoder runtime.Decoder,
 	force bool,
 ) (bool, []deployapi.DeploymentCause, error) {
@@ -251,7 +252,7 @@ func canTrigger(
 // decodeFromLatestDeployment will try to return the decoded version of the current deploymentconfig
 // found in the annotations of its latest deployment. If there is no previous deploymentconfig (ie.
 // latestVersion == 0), the returned deploymentconfig will be the same.
-func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kclient.ReplicationControllersNamespacer, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
+func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}

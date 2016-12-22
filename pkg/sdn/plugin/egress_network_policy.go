@@ -19,19 +19,16 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 	}
 
 	for _, policy := range policies.Items {
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
 			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 			continue
 		}
-		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], &policy)
+		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], policy)
 	}
 
 	for vnid := range plugin.egressPolicies {
-		err := plugin.updateEgressNetworkPolicyRules(vnid)
-		if err != nil {
-			return err
-		}
+		plugin.updateEgressNetworkPolicyRules(vnid)
 	}
 
 	go utilwait.Forever(plugin.watchEgressNetworkPolicies, 0)
@@ -42,7 +39,7 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
 			return fmt.Errorf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 		}
@@ -55,41 +52,30 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 			}
 		}
 		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
-			policies = append(policies, policy)
+			policies = append(policies, *policy)
 		}
 		plugin.egressPolicies[vnid] = policies
 
-		err = plugin.updateEgressNetworkPolicyRules(vnid)
-		if err != nil {
-			return err
-		}
+		plugin.updateEgressNetworkPolicyRules(vnid)
 		return nil
 	})
 }
 
-func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) error {
+func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) {
 	var policy *osapi.EgressNetworkPolicy
 
 	policies := plugin.egressPolicies[oldVnid]
 	for i, oldPolicy := range policies {
 		if oldPolicy.Namespace == namespace {
-			policy = oldPolicy
+			policy = &oldPolicy
 			plugin.egressPolicies[oldVnid] = append(policies[:i], policies[i+1:]...)
-			err := plugin.updateEgressNetworkPolicyRules(oldVnid)
-			if err != nil {
-				return err
-			}
+			plugin.updateEgressNetworkPolicyRules(oldVnid)
 			break
 		}
 	}
 
 	if policy != nil {
-		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], policy)
-		err := plugin.updateEgressNetworkPolicyRules(newVnid)
-		if err != nil {
-			return err
-		}
+		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], *policy)
+		plugin.updateEgressNetworkPolicyRules(newVnid)
 	}
-
-	return nil
 }

@@ -7,119 +7,6 @@
 			"kind": "BuildConfig",
 			"apiVersion": "v1",
 			"metadata": {
-				"name": "ruby-sample-build-fc",
-				"creationTimestamp": null,
-				"labels": {
-					"name": "ruby-sample-build-fc"
-				}
-			},
-			"spec": {
-				"triggers": [],
-				"source": {
-					"type": "Git",
-					"git": {
-						"uri": "https://github.com/openshift/ruby-hello-world.git"
-					}
-				},
-				"strategy": {
-					"type": "Custom",
-					"customStrategy": {
-						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
-						},
-						"env": [
-							{
-								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
-								"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
-							},
-							{
-								"name": "BUILD_LOGLEVEL",
-								"value": "5"
-							}
-						],
-						"exposeDockerSocket": true,
-						"forcePull": false
-					}
-				}
-			}
-		},
-		{
-			"kind": "BuildConfig",
-			"apiVersion": "v1",
-			"metadata": {
-				"name": "ruby-sample-build-fd",
-				"creationTimestamp": null,
-				"labels": {
-					"name": "ruby-sample-build-fd"
-				}
-			},
-			"spec": {
-				"triggers": [],
-				"source": {
-					"type": "Git",
-					"git": {
-						"uri": "https://github.com/openshift/ruby-hello-world.git"
-					}
-				},
-				"strategy": {
-					"type": "Docker",
-					"dockerStrategy": {
-						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
-						},
-						"env": [
-							{
-								"name": "BUILD_LOGLEVEL",
-								"value": "5"
-							}
-						],
-						"forcePull": false
-					}
-				}
-			}
-		},
-		{
-			"kind": "BuildConfig",
-			"apiVersion": "v1",
-			"metadata": {
-				"name": "ruby-sample-build-fs",
-				"creationTimestamp": null,
-				"labels": {
-					"name": "ruby-sample-build-fs"
-				}
-			},
-			"spec": {
-				"triggers": [],
-				"source": {
-					"type": "Git",
-					"git": {
-						"uri": "https://github.com/openshift/ruby-hello-world.git"
-					}
-				},
-				"strategy": {
-					"type": "Source",
-					"sourceStrategy": {
-						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
-						},
-						"env": [
-							{
-								"name": "BUILD_LOGLEVEL",
-								"value": "5"
-							}
-						],
-						"forcePull": false
-					}
-				}
-			}
-		},
-		{
-			"kind": "BuildConfig",
-			"apiVersion": "v1",
-			"metadata": {
 				"name": "ruby-sample-build-tc",
 				"creationTimestamp": null,
 				"labels": {
@@ -138,13 +25,14 @@
 					"type": "Custom",
 					"customStrategy": {
 						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
 						},
 						"env": [
 							{
 								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
-								"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+								"value": "ruby:latest"
 							},
 							{
 								"name": "BUILD_LOGLEVEL",
@@ -179,8 +67,9 @@
 					"type": "Docker",
 					"dockerStrategy": {
 						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
 						},
 						"env": [
 							{
@@ -215,8 +104,9 @@
 					"type": "Source",
 					"sourceStrategy": {
 						"from": {
-							"kind": "DockerImage",
-							"name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
 						},
 						"env": [
 							{

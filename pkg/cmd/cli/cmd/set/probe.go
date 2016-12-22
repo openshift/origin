@@ -139,7 +139,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", options.ContainerSelector, "The names of containers in the selected pod templates to change - may use wildcards")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified probe(s).")

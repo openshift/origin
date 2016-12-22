@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/onbuild"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
+	"github.com/openshift/source-to-image/pkg/util"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
@@ -21,9 +22,14 @@ func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, api
 	var builder build.Builder
 	var buildInfo api.BuildInfo
 
+	fs := util.NewFileSystem()
+
 	image, err := docker.GetBuilderImage(config)
 	if err != nil {
-		buildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonPullBuilderImageFailed, utilstatus.ReasonMessagePullBuilderImageFailed)
+		buildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonPullBuilderImageFailed,
+			utilstatus.ReasonMessagePullBuilderImageFailed,
+		)
 		return nil, buildInfo, err
 	}
 	config.HasOnBuild = image.OnBuild
@@ -31,17 +37,23 @@ func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, api
 	// if we're blocking onbuild, just do a normal s2i build flow
 	// which won't do a docker build and invoke the onbuild commands
 	if image.OnBuild && !config.BlockOnBuild {
-		builder, err = onbuild.New(config, overrides)
+		builder, err = onbuild.New(config, fs, overrides)
 		if err != nil {
-			buildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+			buildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonGenericS2IBuildFailed,
+				utilstatus.ReasonMessageGenericS2iBuildFailed,
+			)
 			return nil, buildInfo, err
 		}
 		return builder, buildInfo, nil
 	}
 
-	builder, err = sti.New(config, overrides)
+	builder, err = sti.New(config, fs, overrides)
 	if err != nil {
-		buildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+		buildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
 		return nil, buildInfo, err
 	}
 	return builder, buildInfo, err

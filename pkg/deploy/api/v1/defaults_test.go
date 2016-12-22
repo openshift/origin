@@ -42,6 +42,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            &defaultIntOrString,
 							MaxUnavailable:      &defaultIntOrString,
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
@@ -127,6 +128,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            &differentIntOrString,
 							MaxUnavailable:      &differentIntOrString,
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
@@ -165,6 +167,7 @@ func TestDefaults(t *testing.T) {
 							TimeoutSeconds:      newInt64(7),
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 						},
+						ActiveDeadlineSeconds: newInt64(3600),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
@@ -184,6 +187,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
+						ActiveDeadlineSeconds: newInt64(3600),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
@@ -223,6 +227,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
@@ -260,6 +265,7 @@ func TestDefaults(t *testing.T) {
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},

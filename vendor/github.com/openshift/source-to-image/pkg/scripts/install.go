@@ -37,7 +37,7 @@ type URLScriptHandler struct {
 }
 
 const (
-	sourcesRootAbbrev = "<source-dir>/"
+	sourcesRootAbbrev = "<source-dir>"
 
 	// ScriptURLHandler is the name of the script URL handler
 	ScriptURLHandler = "script URL handler"
@@ -52,7 +52,7 @@ const (
 // SetDestinationDir sets the destination where the scripts should be
 // downloaded.
 func (s *URLScriptHandler) SetDestinationDir(baseDir string) {
-	s.DestinationDir = filepath.Join(baseDir, api.UploadScripts)
+	s.DestinationDir = baseDir
 }
 
 // String implements the String() function.
@@ -82,7 +82,7 @@ func (s *URLScriptHandler) Install(r *api.InstallResult) error {
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(s.DestinationDir, r.Script)
+	dst := filepath.Join(s.DestinationDir, api.UploadScripts, r.Script)
 	if _, err := s.download.Download(downloadURL, dst); err != nil {
 		if e, ok := err.(errors.Error); ok {
 			if e.ErrorCode == errors.ScriptsInsideImageError {
@@ -116,7 +116,7 @@ func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
 	}
 	// TODO: The '.sti/bin' path inside the source code directory is deprecated
 	// and this should (and will) be removed soon.
-	location = strings.Replace(location, "s2i/bin", "sti/bin", 1)
+	location = filepath.FromSlash(strings.Replace(filepath.ToSlash(location), "s2i/bin", "sti/bin", 1))
 	if s.fs.Exists(location) {
 		glog.Info("DEPRECATED: Use .s2i/bin instead of .sti/bin")
 		return &api.InstallResult{Script: script, URL: location}
@@ -139,9 +139,9 @@ func (s *SourceScriptHandler) Install(r *api.InstallResult) error {
 		return err
 	}
 	// Make the path to scripts nicer in logs
-	parts := strings.Split(r.URL, "/")
+	parts := strings.Split(filepath.ToSlash(r.URL), "/")
 	if len(parts) > 3 {
-		r.URL = sourcesRootAbbrev + strings.Join(parts[len(parts)-3:], "/")
+		r.URL = filepath.FromSlash(sourcesRootAbbrev + "/" + strings.Join(parts[len(parts)-3:], "/"))
 	}
 	r.Installed = true
 	r.Downloaded = true
@@ -151,7 +151,7 @@ func (s *SourceScriptHandler) Install(r *api.InstallResult) error {
 // SetDestinationDir sets the directory where the scripts should be uploaded.
 // In case of SourceScriptHandler this is a source directory root.
 func (s *SourceScriptHandler) SetDestinationDir(baseDir string) {
-	s.DestinationDir = filepath.Join(baseDir)
+	s.DestinationDir = baseDir
 }
 
 // ScriptSourceManager manages various script handlers.
@@ -182,13 +182,13 @@ func (m *DefaultScriptSourceManager) Add(s ScriptHandler) {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig) Installer {
+func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig, fs util.FileSystem) Installer {
 	m := DefaultScriptSourceManager{
 		Image:      image,
 		ScriptsURL: scriptsURL,
 		dockerAuth: auth,
 		docker:     docker,
-		fs:         util.NewFileSystem(),
+		fs:         fs,
 		download:   NewDownloader(proxyConfig),
 	}
 	// Order is important here, first we try to get the scripts from provided URL,

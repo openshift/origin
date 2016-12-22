@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -17,7 +17,7 @@ import (
 
 // RecordConfigEvent records an event for the deployment config referenced by the
 // deployment.
-func RecordConfigEvent(client kclient.EventNamespacer, deployment *kapi.ReplicationController, decoder runtime.Decoder, eventType, reason, msg string) {
+func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, decoder runtime.Decoder, eventType, reason, msg string) {
 	t := unversioned.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
 	if config, err := deployutil.DecodeDeploymentConfig(deployment, decoder); err == nil {
@@ -53,7 +53,7 @@ func RecordConfigEvent(client kclient.EventNamespacer, deployment *kapi.Replicat
 
 // RecordConfigWarnings records all warning events from the replication controller to the
 // associated deployment config.
-func RecordConfigWarnings(client kclient.EventNamespacer, rc *kapi.ReplicationController, decoder runtime.Decoder, out io.Writer) {
+func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationController, decoder runtime.Decoder, out io.Writer) {
 	if rc == nil {
 		return
 	}

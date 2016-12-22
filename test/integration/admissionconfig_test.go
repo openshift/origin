@@ -11,8 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
@@ -32,7 +31,7 @@ type TestPluginConfig struct {
 
 func (obj *TestPluginConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
 
-func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclient.Client, *client.Client) {
+func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclientset.Clientset, *client.Client) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -87,7 +86,7 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 func registerAdmissionPlugins(t *testing.T, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+		admission.RegisterPlugin(pluginName, func(client kclientset.Interface, config io.Reader) (admission.Interface, error) {
 			plugin := &testAdmissionPlugin{
 				name: pluginName,
 			}
@@ -193,7 +192,7 @@ func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
 
-	createdPod, err := kubeClient.Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
 	if err != nil {
 		t.Fatalf("Unexpected error creating pod: %v", err)
 	}
@@ -215,7 +214,7 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 			},
 		}
 	})
-	createdPod, err := kubeClient.Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
 	if err = checkAdmissionObjectLabelValues(createdPod.Labels, map[string]string{"plugin1": "plugin1configvalue", "plugin2": "default"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -235,7 +234,7 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 			},
 		}
 	})
-	createdPod, err := kubeClient.Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
 	if err = checkAdmissionObjectLabelValues(createdPod.Labels, map[string]string{"plugin1": "embeddedvalue1", "plugin2": "default"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -313,18 +312,18 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
 
 	ns := &kapi.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClient.Namespaces().Create(ns)
+	_, err = kubeClientset.Core().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
-	if err := testserver.WaitForPodCreationServiceAccounts(kubeClient, testutil.Namespace()); err != nil {
+	if err := testserver.WaitForPodCreationServiceAccounts(kubeClientset, testutil.Namespace()); err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
@@ -338,7 +337,7 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 		},
 	}
 
-	actualPod, err := kubeClient.Pods(testutil.Namespace()).Create(testPod)
+	actualPod, err := kubeClientset.Core().Pods(testutil.Namespace()).Create(testPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -355,18 +354,18 @@ func TestAlwaysPullImagesOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
 
 	ns := &kapi.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClient.Namespaces().Create(ns)
+	_, err = kubeClientset.Core().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
-	if err := testserver.WaitForPodCreationServiceAccounts(kubeClient, testutil.Namespace()); err != nil {
+	if err := testserver.WaitForPodCreationServiceAccounts(kubeClientset, testutil.Namespace()); err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
@@ -380,7 +379,7 @@ func TestAlwaysPullImagesOff(t *testing.T) {
 		},
 	}
 
-	actualPod, err := kubeClient.Pods(testutil.Namespace()).Create(testPod)
+	actualPod, err := kubeClientset.Core().Pods(testutil.Namespace()).Create(testPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

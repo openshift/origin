@@ -95,9 +95,12 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().StringVar(&options.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&options.ServiceAccount, "service-account", options.ServiceAccount, "Name of the service account to use to run the ipfailover pod.")
 
-	cmd.Flags().BoolVar(&options.Create, "create", options.Create, "Create the configuration if it does not exist.")
+	cmd.Flags().BoolVar(&options.Create, "create", options.Create, "If true, create the configuration if it does not exist.")
 
 	cmd.Flags().StringVar(&options.VirtualIPs, "virtual-ips", "", "A set of virtual IP ranges and/or addresses that the routers bind and serve on and provide IP failover capability for.")
+	cmd.Flags().StringVar(&options.NotifyScript, "notify-script", "", "Run this script when state changes.")
+	cmd.Flags().StringVar(&options.CheckScript, "check-script", "", "Run this script at the check-interval to verify service is OK")
+	cmd.Flags().IntVar(&options.CheckInterval, "check-interval", ipfailover.DefaultCheckInterval, "Run the check-script at this interval (seconds)")
 	cmd.Flags().StringVar(&options.IptablesChain, "iptables-chain", ipfailover.DefaultIptablesChain, "Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables-chain is empty do not change iptables.")
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
@@ -177,7 +180,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	if err != nil {
 		return err
 	}
-	_, kClient, err := f.Clients()
+	_, kClient, _, err := f.Clients()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}

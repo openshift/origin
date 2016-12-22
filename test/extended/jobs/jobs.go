@@ -29,16 +29,16 @@ var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for a pod...")
-				podNames, err := exeutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie(labels), exeutil.CheckPodIsSucceededFn, 1, 2*time.Minute)
+				podNames, err := exeutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie(labels), exeutil.CheckPodIsSucceededFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(podNames)).Should(o.Equal(1))
 
 				g.By("waiting for a job...")
-				err = exeutil.WaitForAJob(oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()), name, 2*time.Minute)
+				err = exeutil.WaitForAJob(oc.KubeClient().Batch().Jobs(oc.Namespace()), name, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking job status...")
-				jobs, err := oc.KubeREST().ExtensionsClient.Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
+				jobs, err := oc.KubeClient().Batch().Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				o.Expect(len(jobs.Items)).Should(o.Equal(1))
