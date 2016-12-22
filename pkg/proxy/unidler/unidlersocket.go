@@ -212,7 +212,7 @@ func (tcp *tcpUnidlerSocket) acceptConns(ch chan<- net.Conn, svcInfo *userspace.
 }
 
 // awaitAwakening collects new connections and signals once that pods are needed to fulfill them.  The function
-// will return when the listening socket is closed, which indicates that endpoints have succesfully appeared
+// will return when the listening socket is closed, which indicates that endpoints have successfully appeared
 // (and thus the hybrid proxy has switched this service over to using the normal proxy).  Connections will
 // be gradually timed out and dropped off the list of connections on a per-connection basis.  The list of current
 // connections is returned, in addition to whether or not we should retry this method.

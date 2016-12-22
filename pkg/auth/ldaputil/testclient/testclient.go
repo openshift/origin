@@ -2,6 +2,7 @@ package testclient
 
 import (
 	"crypto/tls"
+	"time"
 
 	"gopkg.in/ldap.v2"
 )
@@ -93,6 +94,10 @@ func (c *Fake) Search(searchRequest *ldap.SearchRequest) (*ldap.SearchResult, er
 // SearchWithPaging forwards a search request to the LDAP server and pages the response
 func (c *Fake) SearchWithPaging(searchRequest *ldap.SearchRequest, pagingSize uint32) (*ldap.SearchResult, error) {
 	return c.SearchResponse, nil
+}
+
+// SetTimeout sets a timeout on the client
+func (c *Fake) SetTimeout(d time.Duration) {
 }
 
 // NewMatchingSearchErrorClient returns a new MatchingSearchError client sitting on top of the parent

@@ -264,13 +264,7 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *fie
 		return nil
 	}
 
-	// Ensure insecure is set only for edge terminated routes.
-	if routeapi.TLSTerminationEdge != tls.Termination {
-		// tls.InsecureEdgeTerminationPolicy option is not supported for a non edge-terminated routes.
-		return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, "InsecureEdgeTerminationPolicy is only allowed for edge-terminated routes")
-	}
-
-	// It is an edge-terminated route, check insecure option value is
+	// It is an edge-terminated or reencrypt route, check insecure option value is
 	// one of None(for disable), Allow or Redirect.
 	allowedValues := map[routeapi.InsecureEdgeTerminationPolicyType]struct{}{
 		routeapi.InsecureEdgeTerminationPolicyNone:     {},
@@ -278,9 +272,19 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *fie
 		routeapi.InsecureEdgeTerminationPolicyRedirect: {},
 	}
 
-	if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {
-		msg := fmt.Sprintf("invalid value for InsecureEdgeTerminationPolicy option, acceptable values are %s, %s, %s, or empty", routeapi.InsecureEdgeTerminationPolicyNone, routeapi.InsecureEdgeTerminationPolicyAllow, routeapi.InsecureEdgeTerminationPolicyRedirect)
-		return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, msg)
+	switch tls.Termination {
+	case routeapi.TLSTerminationReencrypt:
+		fallthrough
+	case routeapi.TLSTerminationEdge:
+		if _, ok := allowedValues[tls.InsecureEdgeTerminationPolicy]; !ok {
+			msg := fmt.Sprintf("invalid value for InsecureEdgeTerminationPolicy option, acceptable values are %s, %s, %s, or empty", routeapi.InsecureEdgeTerminationPolicyNone, routeapi.InsecureEdgeTerminationPolicyAllow, routeapi.InsecureEdgeTerminationPolicyRedirect)
+			return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, msg)
+		}
+	case routeapi.TLSTerminationPassthrough:
+		if routeapi.InsecureEdgeTerminationPolicyNone != tls.InsecureEdgeTerminationPolicy && routeapi.InsecureEdgeTerminationPolicyRedirect != tls.InsecureEdgeTerminationPolicy {
+			msg := fmt.Sprintf("invalid value for InsecureEdgeTerminationPolicy option, acceptable values are %s, %s, or empty", routeapi.InsecureEdgeTerminationPolicyNone, routeapi.InsecureEdgeTerminationPolicyRedirect)
+			return field.Invalid(fldPath, tls.InsecureEdgeTerminationPolicy, msg)
+		}
 	}
 
 	return nil

@@ -49,6 +49,10 @@ type EventQueue struct {
 	// item it refers to is explicitly deleted from the store or the
 	// event is read via Pop().
 	lastReplaceKey string
+	// Tracks whether the Replace() method has been called at least once.
+	replaceCalled bool
+	// Tracks the number of items queued by the last Replace() call.
+	replaceCount int
 }
 
 // EventQueue implements kcache.Store
@@ -322,6 +326,9 @@ func (eq *EventQueue) Replace(objects []interface{}, resourceVersion string) err
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
+	eq.replaceCalled = true
+	eq.replaceCount = len(objects)
+
 	eq.events = map[string]watch.EventType{}
 	eq.queue = eq.queue[:0]
 
@@ -344,6 +351,23 @@ func (eq *EventQueue) Replace(objects []interface{}, resourceVersion string) err
 		eq.lastReplaceKey = ""
 	}
 	return nil
+}
+
+// ListSuccessfulAtLeastOnce indicates whether a List operation was
+// successfully completed regardless of whether any items were queued.
+func (eq *EventQueue) ListSuccessfulAtLeastOnce() bool {
+	eq.lock.Lock()
+	defer eq.lock.Unlock()
+
+	return eq.replaceCalled
+}
+
+// ListCount returns how many objects were queued by the most recent List operation.
+func (eq *EventQueue) ListCount() int {
+	eq.lock.Lock()
+	defer eq.lock.Unlock()
+
+	return eq.replaceCount
 }
 
 // ListConsumed indicates whether the items queued by a List/Relist

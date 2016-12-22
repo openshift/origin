@@ -11,7 +11,7 @@ function os::test::extended::focus {
 			os::log::error "No tests would be run"
 			exit 1
 		fi
-		${EXTENDEDTEST} "$@"
+		extended.test "$@"
 		exit $?
 	fi
 }
@@ -22,34 +22,49 @@ function os::test::extended::focus {
 #		be done in other contexts.
 function os::test::extended::setup () {
 	# build binaries
-	if [[ -z "$(os::build::find-binary ginkgo)" ]]; then
-		hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-	fi
-	if [[ -z "$(os::build::find-binary extended.test)" ]]; then
-		hack/build-go.sh test/extended/extended.test
-	fi
-	if [[ -z "$(os::build::find-binary openshift)" ]]; then
-		hack/build-go.sh
-	fi
+	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
+	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
+	os::util::ensure::built_binary_exists 'openshift'
+	os::util::ensure::built_binary_exists 'oadm'
+	os::util::ensure::built_binary_exists 'oc'
 
 	os::util::environment::setup_time_vars
+	os::util::environment::use_sudo
 	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	# ensure proper relative directories are set
-	GINKGO="$(os::build::find-binary ginkgo)"
-	EXTENDEDTEST="$(os::build::find-binary extended.test)"
-	export GINKGO
-	export EXTENDEDTEST
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	# allow setup to be skipped
 	if [[ -z "${TEST_ONLY+x}" ]]; then
-		ensure_iptables_or_die
+		os::util::ensure::iptables_privileges_exist
 
 		function cleanup() {
 			out=$?
 			cleanup_openshift
+
+			# TODO(skuznets): un-hack this nonsense once traps are in a better
+			# state
+			if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+				# get the jUnit output file into a workable state in case we
+				# crashed in the middle of testing something
+				os::test::junit::reconcile_output
+
+				# check that we didn't mangle jUnit output
+				os::test::junit::check_test_counters
+
+				# use the junitreport tool to generate us a report
+				os::util::ensure::built_binary_exists 'junitreport'
+
+				cat "${JUNIT_REPORT_OUTPUT}" \
+					| junitreport --type oscmd \
+					--suites nested \
+					--roots github.com/openshift/origin \
+					--output "${ARTIFACT_DIR}/report.xml"
+				cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
+			fi
+
 			os::log::info "Exiting"
 			return $out
 		}
@@ -58,7 +73,6 @@ function os::test::extended::setup () {
 		trap "cleanup" EXIT
 		os::log::info "Starting server"
 
-		os::util::environment::use_sudo
 		os::util::environment::setup_images_vars
 
 		local sudo=${USE_SUDO:+sudo}
@@ -72,6 +86,13 @@ function os::test::extended::setup () {
 			export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
 		else
 			os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
+		fi
+
+		# Allow setting $JUNIT_REPORT to toggle output behavior
+		if [[ -n "${JUNIT_REPORT:-}" ]]; then
+			export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+			# the Ginkgo tests also generate jUnit but expect different envars
+			export TEST_REPORT_DIR="${ARTIFACT_DIR}"
 		fi
 
 		os::log::system::start
@@ -122,7 +143,7 @@ function os::test::extended::setup () {
 		if [[ -z "${SKIP_NODE:-}" ]]; then
 			oc rollout status dc/docker-registry
 		fi
-		DROP_SYN_DURING_RESTART=1 CREATE_ROUTER_CERT=1 os::start::router
+		DROP_SYN_DURING_RESTART=true CREATE_ROUTER_CERT=true os::start::router
 
 		os::log::info "Creating image streams"
 		oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
@@ -163,7 +184,7 @@ function os::test::extended::run () {
 		return
 	fi
 
-	"${GINKGO}" -v "${runArgs[@]}" "${EXTENDEDTEST}" "$@"
+	ginkgo -v "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
 }
 
 # Create a list of extended tests to be run with the given arguments
@@ -179,7 +200,7 @@ function os::test::extended::test_list () {
 
 	while IFS= read -r; do
 		full_test_list+=( "${REPLY}" )
-	done < <(TEST_OUTPUT_QUIET=true "${EXTENDEDTEST}" "$@" --ginkgo.dryRun --ginkgo.noColor )
+	done < <(TEST_OUTPUT_QUIET=true extended.test "$@" --ginkgo.dryRun --ginkgo.noColor )
 	if [[ "{$REPLY}" ]]; then lines+=( "$REPLY" ); fi
 
 	for test in "${full_test_list[@]}"; do
@@ -230,12 +251,12 @@ readonly EXCLUDED_TESTS=(
 	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
-	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
+	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 	"should check that the kubernetes-dashboard instance is alive" # we don't create this
 	"\[Feature:ManualPerformance\]" # requires /resetMetrics which we don't expose
 
 	# See the CanSupport implementation in upstream to determine wether these work.
-	"Ceph RBD"      # Works if ceph-common Binary installed (but we can't gaurantee this on all clusters).
+	"Ceph RBD"      # Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
 	"GlusterFS" # May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
 	"should support r/w" # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 

@@ -842,6 +842,8 @@ type GitHubIdentityProvider struct {
 	ClientSecret StringSource `json:"clientSecret"`
 	// Organizations optionally restricts which organizations are allowed to log in
 	Organizations []string `json:"organizations"`
+	// Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
+	Teams []string `json:"teams"`
 }
 
 // GitLabIdentityProvider provides identities for users authenticating using GitLab credentials

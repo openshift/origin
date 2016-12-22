@@ -35,6 +35,9 @@ const (
 	// containerImageEntrypointAnnotationFormatKey is a format used to identify the entrypoint of a particular
 	// container in a pod template. It is a JSON array of strings.
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
+
+	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
+	TagReferenceAnnotationTagHidden = "hidden"
 )
 
 // DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
@@ -858,17 +861,17 @@ func LatestObservedTagGeneration(stream *ImageStream, tag string) int64 {
 }
 
 var (
-	reMajorSemantic = regexp.MustCompile(`^[\d]+$`)
-	reMinorSemantic = regexp.MustCompile(`^[\d]+\.[\d]+$`)
+	reMinorSemantic    = regexp.MustCompile(`^[\d]+\.[\d]+$`)
+	reMinorReplacement = regexp.MustCompile(`[\d]+\.[\d]+`)
+	reMinorWithPatch   = regexp.MustCompile(`^[\d]+\.[\d]+-\w+$`)
 )
 
 // PrioritizeTags orders a set of image tags with a few conventions:
 //
 // 1. the "latest" tag, if present, should be first
-// 2. any tags that represent a semantic major version ("5", "v5") should be next, in descending order
-// 3. any tags that represent a semantic minor version ("5.1", "v5.1") should be next, in descending order
-// 4. any tags that represent a full semantic version ("5.1.3-other", "v5.1.3-other") should be next, in descending order
-// 5. any remaining tags should be sorted in lexicographic order
+// 2. any tags that represent a semantic minor version ("5.1", "v5.1", "v5.1-rc1") should be next, in descending order
+// 3. any tags that represent a full semantic version ("5.1.3-other", "v5.1.3-other") should be next, in descending order
+// 4. any remaining tags should be sorted in lexicographic order
 //
 // The method updates the tags in place.
 func PrioritizeTags(tags []string) {
@@ -884,7 +887,7 @@ func PrioritizeTags(tags []string) {
 	}
 
 	exact := make(map[string]string)
-	var major, minor, micro semver.Versions
+	var minor, micro semver.Versions
 	other := make([]string, 0, len(remaining))
 	for _, tag := range remaining {
 		short := strings.TrimLeft(tag, "v")
@@ -894,14 +897,15 @@ func PrioritizeTags(tags []string) {
 			exact[v.String()] = tag
 			micro = append(micro, v)
 			continue
-		case reMajorSemantic.MatchString(short):
-			if v, err = semver.Parse(short + ".0.0"); err == nil {
-				exact[v.String()] = tag
-				major = append(major, v)
-				continue
-			}
 		case reMinorSemantic.MatchString(short):
 			if v, err = semver.Parse(short + ".0"); err == nil {
+				exact[v.String()] = tag
+				minor = append(minor, v)
+				continue
+			}
+		case reMinorWithPatch.MatchString(short):
+			repl := reMinorReplacement.FindString(short)
+			if v, err = semver.Parse(strings.Replace(short, repl, repl+".0", 1)); err == nil {
 				exact[v.String()] = tag
 				minor = append(minor, v)
 				continue
@@ -909,13 +913,9 @@ func PrioritizeTags(tags []string) {
 		}
 		other = append(other, tag)
 	}
-	sort.Sort(sort.Reverse(major))
 	sort.Sort(sort.Reverse(minor))
 	sort.Sort(sort.Reverse(micro))
 	sort.Sort(sort.StringSlice(other))
-	for _, v := range major {
-		finalTags = append(finalTags, exact[v.String()])
-	}
 	for _, v := range minor {
 		finalTags = append(finalTags, exact[v.String()])
 	}
@@ -1004,4 +1004,13 @@ func IndexOfImageSignature(signatures []ImageSignature, sType string, sContent [
 		}
 	}
 	return -1
+}
+
+func (tagref TagReference) HasAnnotationTag(searchTag string) bool {
+	for _, tag := range strings.Split(tagref.Annotations["tags"], ",") {
+		if tag == searchTag {
+			return true
+		}
+	}
+	return false
 }

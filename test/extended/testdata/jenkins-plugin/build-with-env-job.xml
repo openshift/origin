@@ -15,10 +15,10 @@
         <com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <bldCfg>frontend</bldCfg>
-            <namespace>PROJECT_NAME</namespace>
+            <namespace>${PROJECT_NAME}</namespace>
             <authToken></authToken>
             <followLog>true</followLog>
-            <checkForTriggeredDeployments>true</checkForTriggeredDeployments>
+            <checkForTriggeredDeployments>false</checkForTriggeredDeployments>
 
             <envVars>
                 <com.openshift.jenkins.plugins.pipeline.NameValuePair>

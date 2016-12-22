@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -27,7 +27,7 @@ to proxy to pods over the Open vSwitch SDN.
 // This is currently required to have the master on the Open vSwitch SDN and able to communicate
 // with other nodes.
 type MasterNode struct {
-	KubeClient       *kclient.Client
+	KubeClient       *kclientset.Clientset
 	OsClient         *osclient.Client
 	ServerUrl        string
 	MasterConfigFile string // may often be empty if not being run on the host
@@ -82,7 +82,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 func (d *MasterNode) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 
-	nodes, err := d.KubeClient.Nodes().List(kapi.ListOptions{})
+	nodes, err := d.KubeClient.Core().Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		r.Error("DClu3002", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r

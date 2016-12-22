@@ -354,8 +354,9 @@ func TestCanTransitionPhase(t *testing.T) {
 }
 
 var (
-	now   = unversioned.Now()
-	later = unversioned.Time{Time: now.Add(time.Minute)}
+	now     = unversioned.Now()
+	later   = unversioned.Time{Time: now.Add(time.Minute)}
+	earlier = unversioned.Time{Time: now.Add(-time.Minute)}
 
 	condProgressing = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
@@ -386,9 +387,11 @@ var (
 
 	condNotProgressing = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
-			Type:   deployapi.DeploymentProgressing,
-			Status: kapi.ConditionFalse,
-			Reason: "NotYet",
+			Type:               deployapi.DeploymentProgressing,
+			Status:             kapi.ConditionFalse,
+			LastUpdateTime:     earlier,
+			LastTransitionTime: earlier,
+			Reason:             "NotYet",
 		}
 	}
 
@@ -532,9 +535,10 @@ func TestSetCondition(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		t.Logf("running test %q", test.name)
 		SetDeploymentCondition(test.status, test.cond)
 		if !reflect.DeepEqual(test.status, test.expectedStatus) {
-			t.Errorf("%s: expected status: %v, got: %v", test.name, test.expectedStatus, test.status)
+			t.Errorf("expected status: %v, got: %v", test.expectedStatus, test.status)
 		}
 	}
 }

@@ -5,6 +5,7 @@
 package v1
 
 import (
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
@@ -28,6 +29,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ClusterRoleBinding, InType: reflect.TypeOf(&ClusterRoleBinding{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ClusterRoleBindingList, InType: reflect.TypeOf(&ClusterRoleBindingList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ClusterRoleList, InType: reflect.TypeOf(&ClusterRoleList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_GroupRestriction, InType: reflect.TypeOf(&GroupRestriction{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_IsPersonalSubjectAccessReview, InType: reflect.TypeOf(&IsPersonalSubjectAccessReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_LocalResourceAccessReview, InType: reflect.TypeOf(&LocalResourceAccessReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_LocalSubjectAccessReview, InType: reflect.TypeOf(&LocalSubjectAccessReview{})},
@@ -45,14 +47,20 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Role, InType: reflect.TypeOf(&Role{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleBinding, InType: reflect.TypeOf(&RoleBinding{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleBindingList, InType: reflect.TypeOf(&RoleBindingList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleBindingRestriction, InType: reflect.TypeOf(&RoleBindingRestriction{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleBindingRestrictionList, InType: reflect.TypeOf(&RoleBindingRestrictionList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleBindingRestrictionSpec, InType: reflect.TypeOf(&RoleBindingRestrictionSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RoleList, InType: reflect.TypeOf(&RoleList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SelfSubjectRulesReview, InType: reflect.TypeOf(&SelfSubjectRulesReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SelfSubjectRulesReviewSpec, InType: reflect.TypeOf(&SelfSubjectRulesReviewSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ServiceAccountReference, InType: reflect.TypeOf(&ServiceAccountReference{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ServiceAccountRestriction, InType: reflect.TypeOf(&ServiceAccountRestriction{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectAccessReview, InType: reflect.TypeOf(&SubjectAccessReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectAccessReviewResponse, InType: reflect.TypeOf(&SubjectAccessReviewResponse{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReview, InType: reflect.TypeOf(&SubjectRulesReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReviewSpec, InType: reflect.TypeOf(&SubjectRulesReviewSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReviewStatus, InType: reflect.TypeOf(&SubjectRulesReviewStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_UserRestriction, InType: reflect.TypeOf(&UserRestriction{})},
 	)
 }
 
@@ -260,6 +268,32 @@ func DeepCopy_v1_ClusterRoleList(in interface{}, out interface{}, c *conversion.
 			}
 		} else {
 			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_GroupRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*GroupRestriction)
+		out := out.(*GroupRestriction)
+		if in.Groups != nil {
+			in, out := &in.Groups, &out.Groups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Groups = nil
+		}
+		if in.Selectors != nil {
+			in, out := &in.Selectors, &out.Selectors
+			*out = make([]unversioned.LabelSelector, len(*in))
+			for i := range *in {
+				if err := unversioned.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Selectors = nil
 		}
 		return nil
 	}
@@ -615,6 +649,77 @@ func DeepCopy_v1_RoleBindingList(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+func DeepCopy_v1_RoleBindingRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RoleBindingRestriction)
+		out := out.(*RoleBindingRestriction)
+		out.TypeMeta = in.TypeMeta
+		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_RoleBindingRestrictionList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RoleBindingRestrictionList)
+		out := out.(*RoleBindingRestrictionList)
+		out.TypeMeta = in.TypeMeta
+		out.ListMeta = in.ListMeta
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]RoleBindingRestriction, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_RoleBindingRestriction(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_RoleBindingRestrictionSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RoleBindingRestrictionSpec)
+		out := out.(*RoleBindingRestrictionSpec)
+		if in.UserRestriction != nil {
+			in, out := &in.UserRestriction, &out.UserRestriction
+			*out = new(UserRestriction)
+			if err := DeepCopy_v1_UserRestriction(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.UserRestriction = nil
+		}
+		if in.GroupRestriction != nil {
+			in, out := &in.GroupRestriction, &out.GroupRestriction
+			*out = new(GroupRestriction)
+			if err := DeepCopy_v1_GroupRestriction(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.GroupRestriction = nil
+		}
+		if in.ServiceAccountRestriction != nil {
+			in, out := &in.ServiceAccountRestriction, &out.ServiceAccountRestriction
+			*out = new(ServiceAccountRestriction)
+			if err := DeepCopy_v1_ServiceAccountRestriction(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.ServiceAccountRestriction = nil
+		}
+		return nil
+	}
+}
+
 func DeepCopy_v1_RoleList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RoleList)
@@ -661,6 +766,40 @@ func DeepCopy_v1_SelfSubjectRulesReviewSpec(in interface{}, out interface{}, c *
 			copy(*out, *in)
 		} else {
 			out.Scopes = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_ServiceAccountReference(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceAccountReference)
+		out := out.(*ServiceAccountReference)
+		out.Name = in.Name
+		out.Namespace = in.Namespace
+		return nil
+	}
+}
+
+func DeepCopy_v1_ServiceAccountRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceAccountRestriction)
+		out := out.(*ServiceAccountRestriction)
+		if in.ServiceAccounts != nil {
+			in, out := &in.ServiceAccounts, &out.ServiceAccounts
+			*out = make([]ServiceAccountReference, len(*in))
+			for i := range *in {
+				(*out)[i] = (*in)[i]
+			}
+		} else {
+			out.ServiceAccounts = nil
+		}
+		if in.Namespaces != nil {
+			in, out := &in.Namespaces, &out.Namespaces
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Namespaces = nil
 		}
 		return nil
 	}
@@ -760,6 +899,39 @@ func DeepCopy_v1_SubjectRulesReviewStatus(in interface{}, out interface{}, c *co
 			out.Rules = nil
 		}
 		out.EvaluationError = in.EvaluationError
+		return nil
+	}
+}
+
+func DeepCopy_v1_UserRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*UserRestriction)
+		out := out.(*UserRestriction)
+		if in.Users != nil {
+			in, out := &in.Users, &out.Users
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Users = nil
+		}
+		if in.Groups != nil {
+			in, out := &in.Groups, &out.Groups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Groups = nil
+		}
+		if in.Selectors != nil {
+			in, out := &in.Selectors, &out.Selectors
+			*out = make([]unversioned.LabelSelector, len(*in))
+			for i := range *in {
+				if err := unversioned.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Selectors = nil
+		}
 		return nil
 	}
 }

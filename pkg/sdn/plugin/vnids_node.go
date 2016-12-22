@@ -9,7 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
@@ -18,14 +17,19 @@ import (
 )
 
 type nodeVNIDMap struct {
+	policy   osdnPolicy
+	osClient *osclient.Client
+
 	// Synchronizes add or remove ids/namespaces
 	lock       sync.Mutex
 	ids        map[string]uint32
 	namespaces map[uint32]sets.String
 }
 
-func newNodeVNIDMap() *nodeVNIDMap {
+func newNodeVNIDMap(policy osdnPolicy, osClient *osclient.Client) *nodeVNIDMap {
 	return &nodeVNIDMap{
+		policy:     policy,
+		osClient:   osClient,
 		ids:        make(map[string]uint32),
 		namespaces: make(map[uint32]sets.String),
 	}
@@ -122,8 +126,8 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	return id, nil
 }
 
-func (vmap *nodeVNIDMap) populateVNIDs(osClient *osclient.Client) error {
-	nets, err := osClient.NetNamespaces().List(kapi.ListOptions{})
+func (vmap *nodeVNIDMap) populateVNIDs() error {
+	nets, err := vmap.osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -134,147 +138,39 @@ func (vmap *nodeVNIDMap) populateVNIDs(osClient *osclient.Client) error {
 	return nil
 }
 
-//------------------ Node Methods --------------------
-
-func (node *OsdnNode) VnidStartNode() error {
+func (vmap *nodeVNIDMap) Start() error {
 	// Populate vnid map synchronously so that existing services can fetch vnid
-	err := node.vnids.populateVNIDs(node.osClient)
+	err := vmap.populateVNIDs()
 	if err != nil {
 		return err
 	}
 
-	go utilwait.Forever(node.watchNetNamespaces, 0)
-	go utilwait.Forever(node.watchServices, 0)
+	go utilwait.Forever(vmap.watchNetNamespaces, 0)
 	return nil
 }
 
-func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32) error {
-	// FIXME: this is racy; traffic coming from the pods gets switched to the new
-	// VNID before the service and firewall rules are updated to match. We need
-	// to do the updates as a single transaction (ovs-ofctl --bundle).
-
-	pods, err := node.GetLocalPods(namespace)
-	if err != nil {
-		return err
-	}
-	services, err := node.kClient.Services(namespace).List(kapi.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	errList := []error{}
-
-	// Update OF rules for the existing/old pods in the namespace
-	for _, pod := range pods {
-		err = node.UpdatePod(pod)
-		if err != nil {
-			errList = append(errList, err)
-		}
-	}
-
-	// Update OF rules for the old services in the namespace
-	for _, svc := range services.Items {
-		if !kapi.IsServiceIPSet(&svc) {
-			continue
-		}
-
-		if err = node.DeleteServiceRules(&svc); err != nil {
-			log.Error(err)
-		}
-		if err = node.AddServiceRules(&svc, netID); err != nil {
-			errList = append(errList, err)
-		}
-	}
-
-	// Update namespace references in egress firewall rules
-	if err = node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID); err != nil {
-		errList = append(errList, err)
-	}
-
-	return kerrors.NewAggregate(errList)
-}
-
-func (node *OsdnNode) watchNetNamespaces() {
-	RunEventQueue(node.osClient, NetNamespaces, func(delta cache.Delta) error {
+func (vmap *nodeVNIDMap) watchNetNamespaces() {
+	RunEventQueue(vmap.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			// Skip this event if the old and new network ids are same
-			oldNetID, err := node.vnids.GetVNID(netns.NetName)
+			oldNetID, err := vmap.GetVNID(netns.NetName)
 			if (err == nil) && (oldNetID == netns.NetID) {
 				break
 			}
-			node.vnids.setVNID(netns.NetName, netns.NetID)
+			vmap.setVNID(netns.NetName, netns.NetID)
 
-			err = node.updatePodNetwork(netns.NetName, oldNetID, netns.NetID)
-			if err != nil {
-				node.vnids.setVNID(netns.NetName, oldNetID)
-				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
+			if delta.Type == cache.Added {
+				vmap.policy.AddNetNamespace(netns)
+			} else {
+				vmap.policy.UpdateNetNamespace(netns, oldNetID)
 			}
 		case cache.Deleted:
-			// updatePodNetwork needs vnid, so unset vnid after this call
-			err := node.updatePodNetwork(netns.NetName, netns.NetID, osapi.GlobalVNID)
-			if err != nil {
-				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
-			}
-			node.vnids.unsetVNID(netns.NetName)
-		}
-		return nil
-	})
-}
-
-func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
-	if len(oldsvc.Spec.Ports) == len(newsvc.Spec.Ports) {
-		for i := range oldsvc.Spec.Ports {
-			if oldsvc.Spec.Ports[i].Protocol != newsvc.Spec.Ports[i].Protocol ||
-				oldsvc.Spec.Ports[i].Port != newsvc.Spec.Ports[i].Port {
-				return true
-			}
-		}
-		return false
-	}
-	return true
-}
-
-func (node *OsdnNode) watchServices() {
-	services := make(map[string]*kapi.Service)
-	RunEventQueue(node.kClient, Services, func(delta cache.Delta) error {
-		serv := delta.Object.(*kapi.Service)
-
-		// Ignore headless services
-		if !kapi.IsServiceIPSet(serv) {
-			return nil
-		}
-
-		log.V(5).Infof("Watch %s event for Service %q", delta.Type, serv.ObjectMeta.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			oldsvc, exists := services[string(serv.UID)]
-			if exists {
-				if !isServiceChanged(oldsvc, serv) {
-					break
-				}
-				if err := node.DeleteServiceRules(oldsvc); err != nil {
-					log.Error(err)
-				}
-			}
-
-			netid, err := node.vnids.WaitAndGetVNID(serv.Namespace)
-			if err != nil {
-				return fmt.Errorf("skipped adding service rules for serviceEvent: %v, Error: %v", delta.Type, err)
-			}
-
-			if err = node.AddServiceRules(serv, netid); err != nil {
-				return err
-			}
-			services[string(serv.UID)] = serv
-		case cache.Deleted:
-			delete(services, string(serv.UID))
-			if err := node.DeleteServiceRules(serv); err != nil {
-				return err
-			}
+			vmap.policy.DeleteNetNamespace(netns)
+			vmap.unsetVNID(netns.NetName)
 		}
 		return nil
 	})

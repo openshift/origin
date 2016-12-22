@@ -129,7 +129,7 @@ func (o *MigrateImageReferenceOptions) Complete(f *clientcmd.Factory, c *cobra.C
 		return err
 	}
 
-	osclient, _, err := f.Clients()
+	osclient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

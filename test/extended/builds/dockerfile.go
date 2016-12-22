@@ -26,7 +26,7 @@ USER 1001
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 	})
@@ -38,7 +38,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.REST().BuildConfigs(oc.Namespace()).Get("jenkins")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("jenkins")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(bc.Spec.Source.Dockerfile).NotTo(o.BeNil())
@@ -46,7 +46,7 @@ USER 1001
 
 			buildName := "jenkins-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			//debug for failures on jenkins
 			if err != nil {
 				exutil.DumpBuildLogs("jenkins", oc)
@@ -54,7 +54,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
-			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("jenkins", "custom")
+			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("jenkins", "custom")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 		})
@@ -65,7 +65,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.REST().BuildConfigs(oc.Namespace()).Get("centos")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("centos")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(bc.Spec.Source.Dockerfile).NotTo(o.BeNil())
@@ -75,7 +75,7 @@ USER 1001
 
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			//debug for failures on jenkins
 			if err != nil {
 				exutil.DumpBuildLogs("centos", oc)
@@ -83,12 +83,12 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the built Docker image reference from ImageStream")
-			image, err := oc.REST().ImageStreamTags(oc.Namespace()).Get("centos", "latest")
+			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("centos", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 
 			g.By("checking for the imported tag")
-			_, err = oc.REST().ImageStreamTags(oc.Namespace()).Get("centos", "7")
+			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("centos", "7")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

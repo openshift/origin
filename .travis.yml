@@ -8,7 +8,8 @@ install:
   - make install-travis
 
 script:
-  - PERMISSIVE_GO=y make verify
+  - PROTO_OPTIONAL=1 PERMISSIVE_GO=y make verify
+  - make verify-commits
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

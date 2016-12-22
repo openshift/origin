@@ -10,8 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
-
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -239,7 +238,7 @@ func TestInstantiateGenerateBuildError(t *testing.T) {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
@@ -339,6 +338,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	source := mocks.MockSource()
 	for _, tc := range tests {
 		bc := &buildapi.BuildConfig{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
 			Spec: buildapi.BuildConfigSpec{
 				CommonSpec: buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
@@ -741,7 +741,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: "test-namespace",
+			Namespace: kapi.NamespaceDefault,
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -829,7 +829,8 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+			Name:      "test-build-config",
+			Namespace: kapi.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -849,7 +850,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
@@ -907,7 +908,8 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+			Name:      "test-build-config",
+			Namespace: kapi.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -927,7 +929,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
@@ -984,7 +986,8 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+			Name:      "test-build-config",
+			Namespace: kapi.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1004,7 +1007,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
@@ -1562,7 +1565,7 @@ func mockBuildGenerator() *BuildGenerator {
 	}
 	var b *buildapi.Build
 	return &BuildGenerator{
-		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {

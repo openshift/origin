@@ -22,7 +22,9 @@ const (
 func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "config",
+			Name:      "config",
+			Namespace: kapi.NamespaceDefault,
+			SelfLink:  "/oapi/v1/namespaces/default/deploymentconfig/config",
 		},
 		Spec:   OkDeploymentConfigSpec(),
 		Status: OkDeploymentConfigStatus(version),
@@ -78,6 +80,7 @@ func OkStrategy() deployapi.DeploymentStrategy {
 		RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
+		ActiveDeadlineSeconds: mkintp(int(deployapi.MaxDeploymentDurationSeconds)),
 	}
 }
 
@@ -174,7 +177,7 @@ func OkPodTemplateMissingImage(missing ...string) *kapi.PodTemplateSpec {
 	template := OkPodTemplate()
 	for i, c := range template.Spec.Containers {
 		if set.Has(c.Name) {
-			// rememeber that slices use copies, so have to ref array entry explicitly
+			// remember that slices use copies, so have to ref array entry explicitly
 			template.Spec.Containers[i].Image = ""
 		}
 	}

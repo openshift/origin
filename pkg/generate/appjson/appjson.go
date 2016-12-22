@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
@@ -178,7 +179,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		return nil, fmt.Errorf("app.json did not contain a repository URL and no local path was specified")
 	}
 
-	repo, err := app.NewSourceRepository(buildPath)
+	repo, err := app.NewSourceRepository(buildPath, generate.StrategyDocker)
 	if err != nil {
 		return nil, err
 	}
@@ -206,8 +207,6 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		ports = dockerfile.LastExposedPorts(df.AST())
 	}
 	// TODO: look for procfile for more info?
-
-	repo.BuildWithDocker()
 
 	image, err := imageGen.FromNameAndPorts(baseImage, ports)
 	if err != nil {

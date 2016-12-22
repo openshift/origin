@@ -476,3 +476,92 @@ type ClusterRoleList struct {
 	// Items is a list of ClusterRoles
 	Items []ClusterRole `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// RoleBindingRestriction is an object that can be matched against a subject
+// (user, group, or service account) to determine whether rolebindings on that
+// subject are allowed in the namespace to which the RoleBindingRestriction
+// belongs.  If any one of those RoleBindingRestriction objects matches
+// a subject, rolebindings on that subject in the namespace are allowed.
+type RoleBindingRestriction struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Spec defines the matcher.
+	Spec RoleBindingRestrictionSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
+}
+
+// RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one
+// field must be non-nil.
+type RoleBindingRestrictionSpec struct {
+	// UserRestriction matches against user subjects.
+	UserRestriction *UserRestriction `json:"userrestriction" protobuf:"bytes,1,opt,name=userrestriction"`
+
+	// GroupRestriction matches against group subjects.
+	GroupRestriction *GroupRestriction `json:"grouprestriction" protobuf:"bytes,2,opt,name=grouprestriction"`
+
+	// ServiceAccountRestriction matches against service-account subjects.
+	ServiceAccountRestriction *ServiceAccountRestriction `json:"serviceaccountrestriction" protobuf:"bytes,3,opt,name=serviceaccountrestriction"`
+}
+
+// RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.
+type RoleBindingRestrictionList struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Standard object's metadata.
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Items is a list of RoleBindingRestriction objects.
+	Items []RoleBindingRestriction `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// UserRestriction matches a user either by a string match on the user name,
+// a string match on the name of a group to which the user belongs, or a label
+// selector applied to the user labels.
+type UserRestriction struct {
+	// Users specifies a list of literal user names.
+	Users []string `json:"users" protobuf:"bytes,1,rep,name=users"`
+
+	// Groups specifies a list of literal group names.
+	Groups []string `json:"groups" protobuf:"bytes,2,rep,name=groups"`
+
+	// Selectors specifies a list of label selectors over user labels.
+	Selectors []unversioned.LabelSelector `json:"labels" protobuf:"bytes,3,rep,name=labels"`
+}
+
+// GroupRestriction matches a group either by a string match on the group name
+// or a label selector applied to group labels.
+type GroupRestriction struct {
+	// Groups is a list of groups used to match against an individual user's
+	// groups. If the user is a member of one of the whitelisted groups, the user
+	// is allowed to be bound to a role.
+	Groups []string `json:"groups" protobuf:"bytes,1,rep,name=groups"`
+
+	// Selectors specifies a list of label selectors over group labels.
+	Selectors []unversioned.LabelSelector `json:"labels" protobuf:"bytes,2,rep,name=labels"`
+}
+
+// ServiceAccountRestriction matches a service account by a string match on
+// either the service-account name or the name of the service account's
+// namespace.
+type ServiceAccountRestriction struct {
+	// ServiceAccounts specifies a list of literal service-account names.
+	ServiceAccounts []ServiceAccountReference `json:"serviceaccounts" protobuf:"bytes,1,rep,name=serviceaccounts"`
+
+	// Namespaces specifies a list of literal namespace names.
+	Namespaces []string `json:"namespaces" protobuf:"bytes,2,rep,name=namespaces"`
+}
+
+// ServiceAccountReference specifies a service account and namespace by their
+// names.
+type ServiceAccountReference struct {
+	// Name is the name of the service account.
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+
+	// Namespace is the namespace of the service account.  Service accounts from
+	// inside the whitelisted namespaces are allowed to be bound to roles.  If
+	// Namespace is empty, then the namespace of the RoleBindingRestriction in
+	// which the ServiceAccountReference is embedded is used.
+	Namespace string `json:"namespace" protobuf:"bytes,2,opt,name=namespace"`
+}

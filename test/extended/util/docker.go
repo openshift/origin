@@ -14,55 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
-//TagImage will apply the "tagor" tag string to the image current tagged by "tagee"
-func TagImage(tagee, tagor string) error {
-	client, dcerr := tutil.NewDockerClient()
-	if dcerr != nil {
-		return dcerr
-	}
-	opts := dockerClient.TagImageOptions{
-		Repo:  tagee,
-		Tag:   "latest",
-		Force: true,
-	}
-	return client.TagImage(tagor, opts)
-}
-
-//InspectImage initiates the equivalent of a `docker inspect` for the "name" parameter
-func InspectImage(name string) (*dockerClient.Image, error) {
-	client, err := tutil.NewDockerClient()
-	if err != nil {
-		return nil, err
-	}
-	return client.InspectImage(name)
-}
-
-//PullImage initiates the equivalent of a `docker pull` for the "name" parameter
-func PullImage(name string, authCfg dockerClient.AuthConfiguration) error {
-	client, err := tutil.NewDockerClient()
-	if err != nil {
-		return err
-	}
-	opts := dockerClient.PullImageOptions{
-		Repository: name,
-		Tag:        "latest",
-	}
-	return client.PullImage(opts, authCfg)
-}
-
-//PushImage initiates the equivalent of a `docker push` for the "name" parameter to the local registry
-func PushImage(name string, authCfg dockerClient.AuthConfiguration) error {
-	client, err := tutil.NewDockerClient()
-	if err != nil {
-		return err
-	}
-	opts := dockerClient.PushImageOptions{
-		Name: name,
-		Tag:  "latest",
-	}
-	return client.PushImage(opts, authCfg)
-}
-
 //ListImages initiates the equivalent of a `docker images`
 func ListImages() ([]string, error) {
 	client, err := tutil.NewDockerClient()
@@ -85,7 +36,7 @@ func ListImages() ([]string, error) {
 //BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
 func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
 	authCfg := &dockerClient.AuthConfiguration{}
-	secretList, err := oc.AdminKubeREST().Secrets(oc.Namespace()).List(kapi.ListOptions{})
+	secretList, err := oc.AdminKubeClient().Core().Secrets(oc.Namespace()).List(kapi.ListOptions{})
 
 	g.By(fmt.Sprintf("get secret list err %v ", err))
 	if err == nil {

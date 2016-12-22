@@ -7,7 +7,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -25,9 +26,9 @@ import (
 // controller. It supports optional scoping on Namespace, Labels, and Fields of routes.
 // If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
-	KClient        kclient.EndpointsNamespacer
+	KClient        kcoreclient.EndpointsGetter
 	OSClient       osclient.RoutesNamespacer
-	NodeClient     kclient.NodesInterface
+	NodeClient     kcoreclient.NodesGetter
 	Namespaces     controller.NamespaceLister
 	ResyncInterval time.Duration
 	Namespace      string
@@ -36,11 +37,11 @@ type RouterControllerFactory struct {
 }
 
 // NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclient.Interface) *RouterControllerFactory {
+func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclientset.Interface) *RouterControllerFactory {
 	return &RouterControllerFactory{
-		KClient:        kc,
+		KClient:        kc.Core(),
 		OSClient:       oc,
-		NodeClient:     kc,
+		NodeClient:     kc.Core(),
 		ResyncInterval: 10 * time.Minute,
 
 		Namespace: kapi.NamespaceAll,
@@ -98,6 +99,18 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes 
 				return watch.Error, nil, err
 			}
 			return eventType, obj.(*kapi.Node), nil
+		},
+		EndpointsListCount: func() int {
+			return endpointsEventQueue.ListCount()
+		},
+		RoutesListCount: func() int {
+			return routeEventQueue.ListCount()
+		},
+		EndpointsListSuccessfulAtLeastOnce: func() bool {
+			return endpointsEventQueue.ListSuccessfulAtLeastOnce()
+		},
+		RoutesListSuccessfulAtLeastOnce: func() bool {
+			return routeEventQueue.ListSuccessfulAtLeastOnce()
 		},
 		EndpointsListConsumed: func() bool {
 			return endpointsEventQueue.ListConsumed()
@@ -257,7 +270,7 @@ func (lw *routeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
 
 // endpointsLW is a list watcher for routes.
 type endpointsLW struct {
-	client    kclient.EndpointsNamespacer
+	client    kcoreclient.EndpointsGetter
 	label     labels.Selector
 	field     fields.Selector
 	namespace string
@@ -278,7 +291,7 @@ func (lw *endpointsLW) Watch(options kapi.ListOptions) (watch.Interface, error) 
 
 // nodeLW is a list watcher for nodes.
 type nodeLW struct {
-	client kclient.NodesInterface
+	client kcoreclient.NodesGetter
 	label  labels.Selector
 	field  fields.Selector
 }

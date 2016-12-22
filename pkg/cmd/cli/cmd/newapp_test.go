@@ -72,7 +72,7 @@ func TestNewAppDefaultFlags(t *testing.T) {
 		},
 		"strategy": {
 			flagName:   "strategy",
-			defaultVal: config.Strategy,
+			defaultVal: "",
 		},
 		"labels": {
 			flagName:   "labels",
@@ -112,7 +112,7 @@ func TestNewAppDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, nil, nil)
+	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, nil, nil, nil)
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

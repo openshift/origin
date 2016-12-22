@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -44,15 +44,15 @@ func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) 
 	return cn.PluginName, sdnapi.IsOpenShiftNetworkPlugin(cn.PluginName), nil
 }
 
-func GetNodes(kubeClient *kclient.Client) ([]kapi.Node, error) {
-	nodeList, err := kubeClient.Nodes().List(kapi.ListOptions{})
+func GetNodes(kubeClient *kclientset.Clientset) ([]kapi.Node, error) {
+	nodeList, err := kubeClient.Core().Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Listing nodes in the cluster failed. Error: %s", err)
 	}
 	return nodeList.Items, nil
 }
 
-func GetSchedulableNodes(kubeClient *kclient.Client) ([]kapi.Node, error) {
+func GetSchedulableNodes(kubeClient *kclientset.Clientset) ([]kapi.Node, error) {
 	filteredNodes := []kapi.Node{}
 	nodes, err := GetNodes(kubeClient)
 	if err != nil {
@@ -83,8 +83,8 @@ func GetSchedulableNodes(kubeClient *kclient.Client) ([]kapi.Node, error) {
 	return filteredNodes, nil
 }
 
-func GetLocalNode(kubeClient *kclient.Client) (string, string, error) {
-	nodeList, err := kubeClient.Nodes().List(kapi.ListOptions{})
+func GetLocalNode(kubeClient *kclientset.Clientset) (string, string, error) {
+	nodeList, err := kubeClient.Core().Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		return "", "", err
 	}
@@ -109,7 +109,7 @@ func GetLocalNode(kubeClient *kclient.Client) (string, string, error) {
 }
 
 // Get local/non-local pods in network diagnostic namespaces
-func GetLocalAndNonLocalDiagnosticPods(kubeClient *kclient.Client) ([]kapi.Pod, []kapi.Pod, error) {
+func GetLocalAndNonLocalDiagnosticPods(kubeClient *kclientset.Clientset) ([]kapi.Pod, []kapi.Pod, error) {
 	pods, err := getSDNRunningPods(kubeClient)
 	if err != nil {
 		return nil, nil, err
@@ -210,8 +210,8 @@ func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in i
 	return execOptions.Run()
 }
 
-func getSDNRunningPods(kubeClient *kclient.Client) ([]kapi.Pod, error) {
-	podList, err := kubeClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
+func getSDNRunningPods(kubeClient *kclientset.Clientset) ([]kapi.Pod, error) {
+	podList, err := kubeClient.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

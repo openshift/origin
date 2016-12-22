@@ -4,7 +4,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -13,16 +14,16 @@ import (
 )
 
 // NewDeploymentConfigScaler returns a new scaler for deploymentConfigs
-func NewDeploymentConfigScaler(oc client.Interface, kc kclient.Interface) kubectl.Scaler {
-	return &DeploymentConfigScaler{rcClient: kc, dcClient: oc, clientInterface: kc}
+func NewDeploymentConfigScaler(oc client.Interface, kc kclientset.Interface) kubectl.Scaler {
+	return &DeploymentConfigScaler{rcClient: kc.Core(), dcClient: oc, clientInterface: kc}
 }
 
 // DeploymentConfigScaler is a wrapper for the kubectl Scaler client
 type DeploymentConfigScaler struct {
-	rcClient kclient.ReplicationControllersNamespacer
+	rcClient kcoreclient.ReplicationControllersGetter
 	dcClient client.DeploymentConfigsNamespacer
 
-	clientInterface kclient.Interface
+	clientInterface kclientset.Interface
 }
 
 // Scale updates the DeploymentConfig with the provided namespace/name, to a
@@ -79,13 +80,13 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 // unversioned.ControllerHasDesiredReplicas. This  is necessary because when
 // scaling an RC via a DC, the RC spec replica count is not immediately
 // updated to match the owning DC.
-func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {
+func controllerHasSpecifiedReplicas(c kclientset.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {
 	// If we're given a controller where the status lags the spec, it either means that the controller is stale,
 	// or that the rc manager hasn't noticed the update yet. Polling status.Replicas is not safe in the latter case.
 	desiredGeneration := controller.Generation
 
 	return func() (bool, error) {
-		ctrl, err := c.ReplicationControllers(controller.Namespace).Get(controller.Name)
+		ctrl, err := c.Core().ReplicationControllers(controller.Namespace).Get(controller.Name)
 		if err != nil {
 			return false, err
 		}

@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
@@ -48,7 +49,7 @@ type DeploymentConfigController struct {
 	// dn provides access to deploymentconfigs.
 	dn osclient.DeploymentConfigsNamespacer
 	// rn provides access to replication controllers.
-	rn kclient.ReplicationControllersNamespacer
+	rn kcoreclient.ReplicationControllersGetter
 
 	// queue contains deployment configs that need to be synced.
 	queue workqueue.RateLimitingInterface
@@ -351,24 +352,24 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 	if latestRC != nil {
 		switch deployutil.DeploymentStatusFor(latestRC) {
 		case deployapi.DeploymentStatusPending:
-			msg := fmt.Sprintf("Replication controller %q is waiting for pod %q to run", latestRC.Name, deployutil.DeployerPodNameForDeployment(latestRC.Name))
+			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, deployutil.DeployerPodNameForDeployment(latestRC.Name))
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusRunning:
 			if deployutil.IsProgressing(config, *newStatus) {
 				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
-				msg := fmt.Sprintf("Replication controller %q is progressing", latestRC.Name)
+				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
 				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
 				deployutil.SetDeploymentCondition(newStatus, *condition)
 			}
 		case deployapi.DeploymentStatusFailed:
-			msg := fmt.Sprintf("Replication controller %q has failed progressing", latestRC.Name)
+			msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusComplete:
-			msg := fmt.Sprintf("Replication controller %q has completed progressing", latestRC.Name)
+			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		}

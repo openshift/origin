@@ -212,10 +212,11 @@ function run-extended-tests() {
 
   if [[ -n "${dlv_debug}" ]]; then
     # run tests using delve debugger
-    local test_cmd="dlv exec ${TEST_BINARY} -- ${test_args}"
+    local extended_test; extended_test="$( os::util::find::built_binary extended.test )"
+    local test_cmd="dlv exec ${extended_test} -- ${test_args}"
   else
     # run tests normally
-    local test_cmd="${TEST_BINARY} ${test_args}"
+    local test_cmd="extended.test ${test_args}"
   fi
 
   if [[ -n "${log_path}" ]]; then
@@ -261,13 +262,12 @@ esac
 TEST_EXTRA_ARGS="$@"
 
 if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
-     [[ -n $(os::build::find-binary extended.test) ]]; then
+     os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
   os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
 else
   # cgo must be disabled to have the symbol table available
   CGO_ENABLED=0 hack/build-go.sh test/extended/extended.test
 fi
-TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
 # enable-selinux/disable-selinux use the shared control variable
 # SELINUX_DISABLED to determine whether to re-enable selinux after it

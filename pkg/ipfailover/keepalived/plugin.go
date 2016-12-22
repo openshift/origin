@@ -84,7 +84,7 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 
 // GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
-	osClient, _, err := p.Factory.Clients()
+	osClient, _, _, err := p.Factory.Clients()
 	if err != nil {
 		return nil, fmt.Errorf("error getting client: %v", err)
 	}

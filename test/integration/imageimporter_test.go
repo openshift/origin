@@ -445,7 +445,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Logf("testing %s host", host)
 
 		// add secrets for subsequent checks
-		_, err = kc.Secrets(testutil.Namespace()).Create(&kapi.Secret{
+		_, err = kc.Core().Secrets(testutil.Namespace()).Create(&kapi.Secret{
 			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
 			Type:       kapi.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
@@ -579,7 +579,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	}
 	for i, image := range isi.Status.Repository.Images {
 		switch i {
-		case 2:
+		case 1:
 			if image.Status.Status != unversioned.StatusSuccess {
 				t.Errorf("import of image %d did not succeed: %#v", i, image.Status)
 			}
@@ -599,7 +599,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 			if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonInternalError {
 				t.Fatalf("import of image %d did not report internal server error: %#v", i, image.Status)
 			}
-			expectedTags := []string{"latest", "v2"}[i]
+			expectedTags := []string{"latest", "", "v2"}[i]
 			if image.Tag != expectedTags {
 				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags)
 			}

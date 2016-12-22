@@ -5,7 +5,7 @@ metadata:
 spec:
   source:
     git:
-      uri: "https://github.com/php-coder/java-maven-hello-world.git"
+      uri: "https://github.com/openshift/test-maven-app.git"
   strategy:
     sourceStrategy:
       from:
@@ -20,4 +20,4 @@ spec:
       env:
         - name: USING_ENV_FROM_BUILD_CONFIG
           value: "yes"
-      scripts: "https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin"
+      scripts: "https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin"

@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
@@ -61,7 +61,7 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 	return s.generator.Instantiate(ctx, request)
 }
 
-func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient unversioned.PodsNamespacer, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
+func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
 	return &BinaryInstantiateREST{
 		Generator:      generator,
 		Watcher:        watcher,
@@ -230,7 +230,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 }
 
 type podGetter struct {
-	podsNamespacer unversioned.PodsNamespacer
+	podsNamespacer kcoreclient.PodsGetter
 }
 
 func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {

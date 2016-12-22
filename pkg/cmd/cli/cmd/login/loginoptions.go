@@ -19,9 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
+	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -243,28 +243,6 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	return nil
 }
 
-func (o *LoginOptions) canRequestProjects() (bool, error) {
-	oClient, err := client.New(o.Config)
-	if err != nil {
-		return false, err
-	}
-
-	sar := &authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.Action{
-			Namespace: o.DefaultNamespace,
-			Verb:      "create",
-			Resource:  "projectrequests",
-		},
-	}
-
-	response, err := oClient.SubjectAccessReviews().Create(sar)
-	if err != nil {
-		return false, err
-	}
-
-	return response.Allowed, nil
-}
-
 // Discover the projects available for the established session and take one to use. It
 // fails in case of no existing projects, and print out useful information in case of
 // multiple projects.
@@ -286,7 +264,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
 	// if we're running on kube (or likely kube), just set it to "default"
-	if kerrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with '%s project <projectname>':\n\n", o.CommandName)
 		o.Project = "default"
 		return nil
@@ -312,19 +290,12 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	switch len(projectsItems) {
 	case 0:
-		canRequest, err := o.canRequestProjects()
+		canRequest, err := loginutil.CanRequestProjects(o.Config, o.DefaultNamespace)
 		if err != nil {
 			return err
 		}
-		if !canRequest {
-			fmt.Fprintf(o.Out, "You do not have access to create new projects, contact your system administrator to request a project.\n")
-			return nil
-		}
-		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
-
-    %s new-project <projectname>
-
-`, o.CommandName)
+		msg := errors.NoProjectsExistMessage(canRequest, o.CommandName)
+		fmt.Fprintf(o.Out, msg)
 		o.Project = ""
 
 	case 1:

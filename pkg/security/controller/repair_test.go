@@ -5,7 +5,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/security"
@@ -29,8 +30,8 @@ func (r *fakeRange) CreateOrUpdate(update *kapi.RangeAllocation) error {
 }
 
 func TestRepair(t *testing.T) {
-	client := &testclient.Fake{}
-	client.AddReactor("*", "*", func(a testclient.Action) (bool, runtime.Object, error) {
+	client := &fake.Clientset{}
+	client.AddReactor("*", "*", func(a core.Action) (bool, runtime.Object, error) {
 		list := &kapi.NamespaceList{
 			Items: []kapi.Namespace{
 				{ObjectMeta: kapi.ObjectMeta{Name: "default"}},
@@ -44,7 +45,7 @@ func TestRepair(t *testing.T) {
 	}
 
 	uidr, _ := uid.NewRange(10, 20, 2)
-	repair := NewRepair(0*time.Second, client.Namespaces(), uidr, alloc)
+	repair := NewRepair(0*time.Second, client.Core().Namespaces(), uidr, alloc)
 
 	err := repair.RunOnce()
 	if err != nil {
@@ -62,8 +63,8 @@ func TestRepair(t *testing.T) {
 }
 
 func TestRepairIgnoresMismatch(t *testing.T) {
-	client := &testclient.Fake{}
-	client.AddReactor("*", "*", func(a testclient.Action) (bool, runtime.Object, error) {
+	client := &fake.Clientset{}
+	client.AddReactor("*", "*", func(a core.Action) (bool, runtime.Object, error) {
 		list := &kapi.NamespaceList{
 			Items: []kapi.Namespace{
 				{
@@ -82,7 +83,7 @@ func TestRepairIgnoresMismatch(t *testing.T) {
 	}
 
 	uidr, _ := uid.NewRange(10, 20, 2)
-	repair := NewRepair(0*time.Second, client.Namespaces(), uidr, alloc)
+	repair := NewRepair(0*time.Second, client.Core().Namespaces(), uidr, alloc)
 
 	err := repair.RunOnce()
 	if err != nil {

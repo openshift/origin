@@ -24,7 +24,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// we have to wait until image stream tag will be available, otherwise
@@ -97,7 +97,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			}
 
 			g.By("expecting that .s2i/bin/assemble-runtime was executed")
-			o.Expect(buildLog).To(o.ContainSubstring(`Using "assemble-runtime" installed from "https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime"`))
+			o.Expect(buildLog).To(o.ContainSubstring(`Using "assemble-runtime" installed from "https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime"`))
 			o.Expect(buildLog).To(o.ContainSubstring(".s2i/bin/assemble-runtime: assembling app within runtime image"))
 
 			g.By("expecting that environment variable from BuildConfig is available")

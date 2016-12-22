@@ -105,6 +105,7 @@ os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_R
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
 os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
+registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
@@ -138,18 +139,44 @@ os::log::info "Pushed ruby-22-centos7"
 
 # get image's digest
 rubyimagedigest="$(oc get -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].image}' is/ruby-22-centos7)"
-os::log::info "Ruby image digest: $rubyimagedigest"
+os::log::info "Ruby image digest: ${rubyimagedigest}"
 # get a random, non-empty blob
 rubyimageblob="$(oc get isimage -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 1024.}}{{.name}},{{end}}{{end}}' "ruby-22-centos7@${rubyimagedigest}" | cut -d , -f 1)"
-os::log::info "Ruby's testing blob digest: $rubyimageblob"
+os::log::info "Ruby's testing blob digest: ${rubyimageblob}"
 
 # verify remote images can be pulled directly from the local registry
 os::log::info "Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
+mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "mysql:pullthrough" | cut -d , -f 1)"
+# directly hit the image to trigger mirroring in case the layer already exists on disk
+os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http://${DOCKER_REGISTRY}/v2/cache/mysql/blobs/${mysqlblob}' 1>/dev/null"
+# verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
+os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
+
+os::log::info "Docker registry refuses manifest with missing dependencies"
+os::cmd::expect_success 'oc new-project verify-manifest'
+os::cmd::expect_success "oc get -o jsonpath=$'{.dockerImageManifest}\n' 'image/${rubyimagedigest}' --context="${CLUSTER_ADMIN_CONTEXT}" >'${ARTIFACT_DIR}/rubyimagemanifest.json'"
+os::cmd::expect_success "curl --head                                                \
+    --silent                                                                        \
+    --request PUT                                                                   \
+    --header 'Content-Type: application/vnd.docker.distribution.manifest.v1+json'   \
+    --user 'e2e_user:${e2e_user_token}'                                             \
+    --upload-file '${ARTIFACT_DIR}/rubyimagemanifest.json'                          \
+    'http://${DOCKER_REGISTRY}/v2/verify-manifest/ruby-22-centos7/manifests/latest' \
+    >'${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'"
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '400 Bad Request'
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*MANIFEST_BLOB_UNKNOWN'
+os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*blob unknown to registry'
+os::log::info "Docker registry successfuly refused manifest with missing dependencies"
+
+os::cmd::expect_success 'oc project cache'
 
 os::log::info "Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
+
+os::log::info "Docker registry start with OSS"
+os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"oss: {}\" openshift/origin-docker-registry:${TAG}" "No accesskeyid parameter provided"
 
 os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
@@ -271,7 +298,7 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:a
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
-os::log::info "Anonymous registry access successfull"
+os::log::info "Anonymous registry access successful"
 
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
@@ -354,10 +381,10 @@ os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post
 # test the pre hook on a rolling deployment
 os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
 os::cmd::try_until_success 'oc get rc/failing-dc-1'
-os::cmd::expect_success 'oc logs -f dc/failing-dc'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
-os::cmd::expect_success_and_text 'oc rollout latest failing-dc --again -o revision' '2'
+os::cmd::expect_success_and_text 'oc get po failing-dc-1-deploy -o jsonpath={.spec.activeDeadlineSeconds}' '3600'
+os::cmd::try_until_text 'oc rollout latest failing-dc --again -o revision' '2'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc'  'test pre hook executed'
 # Make sure --since-time adds the right query param, and actually returns logs
@@ -519,23 +546,35 @@ os::cmd::expect_success "docker tag gcr.io/google_containers/pause ${DOCKER_REGI
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # record the storage before pruning
-registry_pod=$(oc get pod -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')
+registry_pod=$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.before.txt'"
 
 # set up pruner user
-os::cmd::expect_success 'oadm policy add-cluster-role-to-user system:image-pruner e2e-pruner'
-os::cmd::try_until_text 'oadm policy who-can list images' 'e2e-pruner'
-os::cmd::expect_success 'oc login -u e2e-pruner -p pass'
+os::cmd::expect_success 'oadm policy add-cluster-role-to-user system:image-pruner system:serviceaccount:cache:builder'
+os::cmd::try_until_text 'oadm policy who-can list images' 'system:serviceaccount:cache:builder'
 
 # run image pruning
-os::cmd::expect_success_and_not_text "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
+os::cmd::expect_success_and_not_text "oadm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
 
-os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 # record the storage after pruning
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.after.txt'"
 
 # make sure there were changes to the registry's storage
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 1
+
+# prune a mirror, external image that is no longer referenced
+os::cmd::expect_success "oc import-image nginx --confirm -n cache"
+nginxblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "nginx:latest" -n cache | cut -d , -f 1)"
+# directly hit the image to trigger mirroring in case the layer already exists on disk
+os::cmd::expect_success "curl -H 'Authorization: bearer $(oc sa get-token builder -n cache)' 'http://${DOCKER_REGISTRY}/v2/cache/nginx/blobs/${nginxblob}' 1>/dev/null"
+# verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
+os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${nginxblob:7:100}' | grep blobs"
+os::cmd::expect_success "oc delete is nginx -n cache"
+os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.before.txt'"
+os::cmd::expect_success_and_not_text "oadm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --confirm --all --registry-url='${DOCKER_REGISTRY}'" 'error'
+os::cmd::expect_failure "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${nginxblob:7:100}' | grep blobs"
+os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.after.txt'"
+os::cmd::expect_code "diff '${LOG_DIR}/prune-images.before.txt' '${LOG_DIR}/prune-images.after.txt'" 1
 os::log::info "Validated image pruning"
 
 # with registry's re-deployment we loose all the blobs stored in its storage until now

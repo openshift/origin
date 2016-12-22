@@ -5,8 +5,8 @@ import (
 	"io"
 	"sort"
 
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -24,7 +24,7 @@ type ProjectsOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	Client       *client.Client
-	KubeClient   kclient.Interface
+	KubeClient   kclientset.Interface
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -98,7 +98,7 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 		return err
 	}
 
-	o.Client, o.KubeClient, err = f.Clients()
+	o.Client, _, o.KubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -141,10 +141,12 @@ func (o ProjectsOptions) RunProjects() error {
 	if err == nil {
 		switch len(projects) {
 		case 0:
-			msg += "You are not a member of any projects. You can request a project to be created with the 'new-project' command."
+			if !o.DisplayShort {
+				msg += "You are not a member of any projects. You can request a project to be created with the 'new-project' command."
+			}
 		case 1:
 			if o.DisplayShort {
-				msg += fmt.Sprintf("%s", api.DisplayNameAndNameForProject(&projects[0]))
+				msg += fmt.Sprintf("%s", projects[0].Name)
 			} else {
 				msg += fmt.Sprintf("You have one project on this server: %q.", api.DisplayNameAndNameForProject(&projects[0]))
 			}

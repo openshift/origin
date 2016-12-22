@@ -20,6 +20,10 @@ export OS_OUTPUT_GOPATH
 # mounting secrets specific to a build environment.
 export OS_BUILD_IMAGE_ARGS
 
+# Tests run using `make` are most often run by the CI system, so we are OK to
+# assume the user wants jUnit output and will turn it off if they don't.
+JUNIT_REPORT ?= true
+
 # Build code.
 #
 # Args:
@@ -60,21 +64,32 @@ check: | build verify
 # Example:
 #   make verify
 verify: build
-	# build-tests is disabled until we can determine why memory usage is so high
-	hack/verify-upstream-commits.sh
-	hack/verify-gofmt.sh
-	hack/verify-govet.sh
-	hack/verify-generated-bootstrap-bindata.sh
-	hack/verify-generated-deep-copies.sh
-	hack/verify-generated-conversions.sh
-	hack/verify-generated-clientsets.sh
-	hack/verify-generated-completions.sh
-	hack/verify-generated-docs.sh
-	hack/verify-cli-conventions.sh
-	PROTO_OPTIONAL=1 hack/verify-generated-protobuf.sh
-	hack/verify-generated-swagger-descriptions.sh
-	hack/verify-generated-swagger-spec.sh
+	# build-tests task has been disabled until we can determine why memory usage is so high
+	{ \
+	hack/verify-gofmt.sh ||r=1;\
+	hack/verify-govet.sh ||r=1;\
+	hack/verify-generated-bootstrap-bindata.sh ||r=1;\
+	hack/verify-generated-deep-copies.sh ||r=1;\
+	hack/verify-generated-conversions.sh ||r=1;\
+	hack/verify-generated-clientsets.sh ||r=1;\
+	hack/verify-generated-completions.sh ||r=1;\
+	hack/verify-generated-docs.sh ||r=1;\
+	hack/verify-cli-conventions.sh ||r=1;\
+	hack/verify-generated-protobuf.sh ||r=1;\
+	hack/verify-generated-swagger-descriptions.sh ||r=1;\
+	hack/verify-generated-swagger-spec.sh ||r=1;\
+	exit $$r ;\
+	}
 .PHONY: verify
+
+
+# Verify commit comments.
+#
+# Example:
+#   make verify-commits
+verify-commits:
+	hack/verify-upstream-commits.sh
+.PHONY: verify-commits
 
 # Update all generated artifacts.
 #
@@ -87,10 +102,17 @@ update: build
 	hack/update-generated-clientsets.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
-	PROTO_OPTIONAL=1 hack/update-generated-protobuf.sh
+	hack/update-generated-protobuf.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
+
+# Build and run the complete test-suite.
+#
+# Example:
+#   make test
+test: test-tools test-integration test-assets test-end-to-end
+.PHONY: test
 
 # Run unit tests.
 #
@@ -130,7 +152,6 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
-	hack/env hack/verify-generated-protobuf.sh # Test the protobuf serializations when we know Docker is available
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
@@ -152,14 +173,21 @@ ifeq ($(TEST_ASSETS),true)
 endif
 .PHONY: test-assets
 
-# Build and run the complete test-suite.
+# Run extended tests.
+#
+# Args:
+#   SUITE: Which Bash entrypoint under test/extended/ to use. Don't include the
+#          ending `.sh`. Ex: `core`.
+#   FOCUS: Literal string to pass to `--ginkgo.focus=`
 #
 # Example:
-#   make test
-test: check
-	$(MAKE) test-tools test-integration test-assets -o build
-	$(MAKE) test-end-to-end -o build
-.PHONY: test
+#   make test-extended SUITE=core
+#   make test-extended SUITE=conformance FOCUS=pods
+SUITE ?= conformance
+FOCUS ?= .
+test-extended:
+	test/extended/$(SUITE).sh --ginkgo.focus="$(FOCUS)"
+.PHONY: test-extended
 
 # Run All-in-one OpenShift server.
 #
@@ -197,27 +225,6 @@ release-binaries: clean
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release-binaries
-
-# Release the integrated components for OpenShift, origin, logging, and metrics.
-# The current tag in the Origin release (the tag that points to HEAD) is used to
-# clone and build each component. Components must have a hack/release.sh script
-# which must accept env var OS_TAG as the tag to build. Each component should push
-# its own images. See hack/release.sh and hack/push-release.sh for an example of
-# the appropriate behavior.
-#
-# Prerequisites:
-# * you must be logged into the remote registry with the appropriate
-#   credentials to push.
-# * all repositories must have a Git tag equal to the current repositories tag of
-#   HEAD
-#
-# TODO: consider making hack/release.sh be a make target (make official-release).
-#
-# Example:
-#   make release-components
-release-components: clean
-	hack/release-components.sh
-.PHONY: release-components
 
 # Build the cross compiled release binaries
 #

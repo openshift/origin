@@ -220,7 +220,7 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 		return err
 	}
 
-	osClient, _, err := f.Clients()
+	osClient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

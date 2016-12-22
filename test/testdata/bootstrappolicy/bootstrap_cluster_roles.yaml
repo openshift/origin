@@ -48,7 +48,6 @@ items:
     - bindings
     - componentstatuses
     - configmaps
-    - egressnetworkpolicies
     - endpoints
     - events
     - limitranges
@@ -179,6 +178,7 @@ items:
     - clusterroles
     - policies
     - policybindings
+    - rolebindingrestrictions
     - rolebindings
     - roles
     verbs:
@@ -276,6 +276,7 @@ items:
     attributeRestrictions: null
     resources:
     - clusternetworks
+    - egressnetworkpolicies
     - hostsubnets
     - netnamespaces
     verbs:
@@ -653,6 +654,7 @@ items:
     resources:
     - policies
     - policybindings
+    - rolebindingrestrictions
     verbs:
     - get
     - list
@@ -1637,6 +1639,13 @@ items:
     - builds/details
     verbs:
     - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -2079,6 +2088,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - egressnetworkpolicies
     - hostsubnets
     - netnamespaces
     verbs:
@@ -2091,15 +2101,6 @@ items:
     resources:
     - namespaces
     - nodes
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - egressnetworkpolicies
     verbs:
     - get
     - list
@@ -3455,6 +3456,9 @@ items:
     verbs:
     - create
     - get
+    - list
+    - update
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -3510,6 +3514,7 @@ items:
     - replicationcontrollers
     verbs:
     - get
+    - patch
     - update
   - apiGroups:
     - ""
@@ -3518,6 +3523,7 @@ items:
     - deploymentconfigs
     verbs:
     - get
+    - patch
     - update
 kind: List
 metadata: {}

@@ -182,7 +182,6 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 			errs = append(errs, err)
 			continue
 		}
-		repo.BuildWithDocker()
 
 		info := repo.Info()
 		if info == nil || info.Dockerfile == nil {
@@ -281,7 +280,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 				if len(v.WorkingDir) > 0 {
 					c.WorkingDir = v.WorkingDir
 				}
-				c.Env = append(c.Env, app.ParseEnvironment(v.Environment.Slice()...).List()...)
+				c.Env = append(c.Env, app.ParseEnvironmentAllowEmpty(v.Environment.Slice()...).List()...)
 				if uid, err := strconv.Atoi(v.User); err == nil {
 					uid64 := int64(uid)
 					if c.SecurityContext == nil {

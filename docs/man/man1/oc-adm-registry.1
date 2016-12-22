@@ -39,7 +39,7 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 
 .PP
 \fB\-\-daemonset\fP=false
-    Use a daemonset instead of a deployment config.
+    If true, use a daemonset instead of a deployment config.
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -47,7 +47,7 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 
 .PP
 \fB\-\-enforce\-quota\fP=false
-    If set, the registry will refuse to write blobs if they exceed quota limits
+    If true, the registry will refuse to write blobs if they exceed quota limits
 
 .PP
 \fB\-\-images\fP="openshift3/ose\-${component}:${version}"

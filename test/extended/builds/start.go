@@ -18,15 +18,17 @@ import (
 var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture   = exutil.FixturePath("testdata", "test-build.json")
-		exampleGemfile = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
-		exampleBuild   = exutil.FixturePath("testdata", "test-build-app")
-		oc             = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
+		buildFixture      = exutil.FixturePath("testdata", "test-build.json")
+		exampleGemfile    = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
+		exampleBuild      = exutil.FixturePath("testdata", "test-build-app")
+		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
+		exampleArchiveURL = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
+		oc                = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
@@ -168,6 +170,27 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			br, err = exutil.StartBuildAndWait(oc, "sample-build-binary", fmt.Sprintf("--from-build=%s", "sample-build-binary-1"))
 			o.Expect(br.StartBuildErr).To(o.HaveOccurred())
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
+		})
+
+		g.It("shoud accept --from-file with https URL as an input", func() {
+			g.By("starting a valid build with input file served by https")
+			br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading file from %q as binary input for the build", exampleGemfileURL)))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+		})
+
+		g.It("shoud accept --from-archive with https URL as an input", func() {
+			g.By("starting a valid build with input archive served by https")
+			// can't use sample-build-binary because we need contextDir due to github archives containing the top-level directory
+			br, err := exutil.StartBuildAndWait(oc, "sample-build-github-archive", fmt.Sprintf("--from-archive=%s", exampleArchiveURL))
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading archive from %q as binary input for the build", exampleArchiveURL)))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 		})
 	})
 

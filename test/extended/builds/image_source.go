@@ -20,11 +20,11 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for imagestreams to be imported")
-		err = exutil.WaitForAnImageStream(oc.AdminREST().ImageStreams("openshift"), "jenkins", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
+		err = exutil.WaitForAnImageStream(oc.AdminClient().ImageStreams("openshift"), "jenkins", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -39,10 +39,10 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			br.AssertSuccess()
 
 			g.By("expecting the pod to deploy successfully")
-			pods, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), imageSourceLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
+			pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), imageSourceLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods)).To(o.Equal(1))
-			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(pods[0])
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0])
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")
@@ -62,10 +62,10 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			br.AssertSuccess()
 
 			g.By("expect the pod to deploy successfully")
-			pods, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), imageDockerLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
+			pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), imageDockerLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods)).To(o.Equal(1))
-			pod, err := oc.KubeREST().Pods(oc.Namespace()).Get(pods[0])
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0])
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")

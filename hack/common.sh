@@ -3,7 +3,7 @@
 # This script provides common script functions for the hacks
 # Requires OS_ROOT to be set
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.6}"
+readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.7}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 
 readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
@@ -34,7 +34,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
   cmd/gitserver
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
-readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
+readonly OS_IMAGE_COMPILE_GOFLAGS="-tags 'include_gcs include_oss'"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
   examples/deployment
@@ -816,6 +816,41 @@ function os::build::ldflags() {
 }
 readonly -f os::build::ldflags
 
+# os::build::image builds an image from a directory, to a tag, with an optional dockerfile to
+# use as the third argument. The environment variable OS_BUILD_IMAGE_ARGS adds additional
+# options to the command. The default is to use the imagebuilder binary if it is available
+# on the path with fallback to docker build if it is not available.
+function os::build::image() {
+  local directory=$1
+  local tag=$2
+  local dockerfile="${3-}"
+  local options="${OS_BUILD_IMAGE_ARGS-}"
+  local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
+
+  if [[ "${mode}" == "imagebuilder" ]]; then
+    if os::util::find::system_binary 'imagebuilder'; then
+      if [[ -n "${dockerfile}" ]]; then
+        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+        return $?
+      fi
+      eval "imagebuilder -t '${tag}' ${options} '${directory}'"
+      return $?
+    fi
+
+    os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+    # clear options since we were unable to select imagebuilder
+    options=""
+  fi
+
+  if [[ -n "${dockerfile}" ]]; then
+    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    return $?
+  fi
+  eval "docker build -t '${tag}' ${options} '${directory}'"
+  return $?
+}
+readonly -f os::build::image
+
 # os::build::enable_swap attempts to enable swap for the system if a) this is Linux and b)
 # the amount of physical memory is less than 10GB. This is a stopgap until we have
 # better control over memory use in Go 1.7+.
@@ -1005,84 +1040,6 @@ function os::build::gen-completions() {
 }
 readonly -f os::build::gen-completions
 
-function os::build::gen-man() {
-  local cmd="$1"
-  local dest="$2"
-  local cmdName="$3"
-  local filestore=".files_generated_$3"
-  local skipprefix="${4:-}"
-
-  # We do this in a tmpdir in case the dest has other non-autogenned files
-  # We don't want to include them in the list of gen'd files
-  local tmpdir="${OS_ROOT}/_tmp/gen_man"
-  mkdir -p "${tmpdir}"
-  # generate the new files
-  ${cmd} "${tmpdir}" "${cmdName}"
-  # create the list of generated files
-  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/${filestore}"
-
-  # remove all old generated file from the destination
-  while read file; do
-    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
-      local original generated
-      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
-      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
-      if [[ "${original}" == "${generated}" ]]; then
-        # overwrite generated with original.
-        mv "${dest}/${file}" "${tmpdir}/${file}"
-      fi
-    else
-      rm "${dest}/${file}" || true
-    fi
-  done <"${dest}/${filestore}"
-
-  # put the new generated file into the destination
-  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
-  #cleanup
-  rm -rf "${tmpdir}"
-
-  echo "Assets generated in ${dest}"
-}
-readonly -f os::build::gen-man
-
-function os::build::gen-docs() {
-  local cmd="$1"
-  local dest="$2"
-  local skipprefix="${3:-}"
-
-  # We do this in a tmpdir in case the dest has other non-autogenned files
-  # We don't want to include them in the list of gen'd files
-  local tmpdir="${OS_ROOT}/_tmp/gen_doc"
-  mkdir -p "${tmpdir}"
-  # generate the new files
-  ${cmd} "${tmpdir}"
-  # create the list of generated files
-  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
-
-  # remove all old generated file from the destination
-  while read file; do
-    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
-      local original generated
-      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
-      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
-      if [[ "${original}" == "${generated}" ]]; then
-        # overwrite generated with original.
-        mv "${dest}/${file}" "${tmpdir}/${file}"
-      fi
-    else
-      rm "${dest}/${file}" || true
-    fi
-  done <"${dest}/.files_generated"
-
-  # put the new generated file into the destination
-  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
-  #cleanup
-  rm -rf "${tmpdir}"
-
-  echo "Assets generated in ${dest}"
-}
-readonly -f os::build::gen-docs
-
 function os::build::get-bin-output-path() {
   local os_root="${1:-}"
 
@@ -1092,175 +1049,3 @@ function os::build::get-bin-output-path() {
   echo ${os_root}_output/local/bin/$(os::build::host_platform)
 }
 readonly -f os::build::get-bin-output-path
-
-# os::build::find-binary locates a locally built binary for the current
-# platform and returns the path to the binary.  The base path to search
-# from will default to the current working directory but can be
-# overridden via the optional second argument.
-function os::build::find-binary() {
-  local bin="$1"
-  local os_root="${2:-}"
-
-  local path=$( (ls -t $(os::build::get-bin-output-path "${os_root}")/${bin}) 2>/dev/null || true | head -1 )
-  echo "$path"
-}
-readonly -f os::build::find-binary
-
-# os::build::environment::create creates a docker container with the default variables.
-# arguments are passed directly to the container, OS_BUILD_ENV_GOLANG, OS_BUILD_ENV_IMAGE,
-# and OS_RELEASE_DOCKER_ARGS can be used to customize the container. The docker socket
-# is mounted by default and the output of the command is the container id.
-function os::build::environment::create() {
-  set -o errexit
-  local release_image="${OS_BUILD_ENV_IMAGE}"
-  local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
-  if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
-    additional_context+="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
-
-    if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
-      # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
-      # and set the running user to the current user
-      local workingdir
-      workingdir=$( os::build::environment::release::workingdir )
-      additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
-    elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
-      # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
-      # successive iterations can reuse shared code.
-      local workingdir
-      workingdir=$( os::build::environment::release::workingdir )
-      name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-      docker volume create --name "${name}" > /dev/null
-      additional_context+=" -v ${name}:${workingdir}"
-    fi
-  fi
-
-  local args
-  if [[ $# -eq 0 ]]; then
-    args=( "echo" "docker create ${additional_context} ${release_image}" )
-  else
-    args=( "$@" )
-  fi
-
-  # Create a new container to from the release environment
-  docker create ${additional_context} "${release_image}" "${args[@]}"
-}
-readonly -f os::build::environment::create
-
-# os::build::environment::release::workingdir calculates the working directory for the current
-# release image.
-function os::build::environment::release::workingdir() {
-  set -o errexit
-  # get working directory
-  local container
-  container="$(docker create "${release_image}")"
-  local workingdir
-  workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-  docker rm "${container}" > /dev/null
-  echo "${workingdir}"
-}
-readonly -f os::build::environment::release::workingdir
-
-# os::build::environment::cleanup stops and removes the container named in the argument
-# (unless OS_BUILD_ENV_LEAVE_CONTAINER is set, in which case it will only stop the container).
-function os::build::environment::cleanup() {
-  local container=$1
-  docker stop --time=0 "${container}" > /dev/null || true
-  if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
-    docker rm "${container}" > /dev/null
-  fi
-}
-readonly -f os::build::environment::cleanup
-
-# os::build::environment::start starts the container provided as the first argument
-# using whatever content exists in the container already.
-function os::build::environment::start() {
-  local container=$1
-
-  docker start "${container}" > /dev/null
-  docker logs -f "${container}"
-
-  local exitcode
-  exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
-
-  # extract content from the image
-  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    local oldIFS="${IFS}"
-    IFS=:
-    for path in ${OS_BUILD_ENV_PRESERVE}; do
-      local parent=.
-      if [[ "${path}" != "." ]]; then
-        parent="$( dirname ${path} )"
-        mkdir -p "${parent}"
-      fi
-      docker cp "${container}:${workingdir}/${path}" "${parent}"
-    done
-    IFS="${oldIFS}"
-  fi
-  return $exitcode
-}
-readonly -f os::build::environment::start
-
-# os::build::environment::withsource starts the container provided as the first argument
-# after copying in the contents of the current Git repository at HEAD (or, if specified,
-# the ref specified in the second argument).
-function os::build::environment::withsource() {
-  local container=$1
-  local commit=${2:-HEAD}
-
-  if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER-}" ]]; then
-    # running locally, no change necessary
-    os::build::get_version_vars
-    os::build::save_version_vars "${OS_ROOT}/os-version-defs"
-  else
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    if [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
-      local excluded=()
-      local oldIFS="${IFS}"
-      IFS=:
-      for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
-        excluded+=("--exclude=${exclude}")
-      done
-      IFS="${oldIFS}"
-      if which rsync &>/dev/null; then
-        local name
-        name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-        if ! rsync -a --blocking-io ${excluded[@]} --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
-          # fall back to a tar if rsync is not in container
-          tar -cf - ${excluded[@]} . | docker cp - "${container}:${workingdir}"
-        fi
-      else
-        tar -cf - ${excluded[@]} . | docker cp - "${container}:${workingdir}"
-      fi
-    else
-      # Generate version definitions. Tree state is clean because we are pulling from git directly.
-      OS_GIT_TREE_STATE=clean os::build::get_version_vars
-      os::build::save_version_vars "/tmp/os-version-defs"
-
-      tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
-      git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
-    fi
-  fi
-
-  os::build::environment::start "${container}"
-}
-readonly -f os::build::environment::withsource
-
-# os::build::environment::run launches the container with the provided arguments and
-# the current commit (defaults to HEAD). The container is automatically cleaned up.
-function os::build::environment::run() {
-  local commit="${OS_GIT_COMMIT:-HEAD}"
-  local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
-  if [[ -z "${volume}" ]]; then
-    volume="origin-build-$( git rev-parse "${commit}" )"
-  fi
-
-  local container
-  container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
-  trap "os::build::environment::cleanup ${container}" EXIT
-
-  os::build::environment::withsource "${container}" "${commit}"
-}
-readonly -f os::build::environment::run

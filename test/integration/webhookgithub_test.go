@@ -238,7 +238,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 		t.Fatalf("unable to get osClient: %v", err)
 	}
 
-	kubeClient.Namespaces().Create(&kapi.Namespace{
+	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
 
@@ -265,7 +265,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		postFile(kubeClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(kubeClient.CoreClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second / 2)

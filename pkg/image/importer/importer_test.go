@@ -239,13 +239,13 @@ func TestImport(t *testing.T) {
 				},
 			},
 			expect: func(isi *api.ImageStreamImport, t *testing.T) {
-				if !reflect.DeepEqual(isi.Status.Repository.AdditionalTags, []string{"other"}) {
+				if !reflect.DeepEqual(isi.Status.Repository.AdditionalTags, []string{"v2"}) {
 					t.Errorf("unexpected additional tags: %#v", isi.Status.Repository)
 				}
 				if len(isi.Status.Repository.Images) != 5 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
-				expectedTags := []string{"3", "v2", "v1", "3.1", "abc"}
+				expectedTags := []string{"3.1", "3", "abc", "other", "v1"}
 				for i, image := range isi.Status.Repository.Images {
 					if image.Status.Status != unversioned.StatusFailure || image.Status.Message != "Internal error occurred: no such manifest tag" {
 						t.Errorf("unexpected status %d: %#v", i, isi.Status.Repository.Images)

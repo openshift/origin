@@ -20,7 +20,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -54,7 +54,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 						Name:    "test",
 						Command: []string{"/usr/bin/sleep", "infinity"},
 					})
-					_, err := oc.KubeREST().Pods(oc.Namespace()).Create(pod)
+					_, err := oc.KubeClient().Core().Pods(oc.Namespace()).Create(pod)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					err = oc.KubeFramework().WaitForPodRunning(pod.Name)

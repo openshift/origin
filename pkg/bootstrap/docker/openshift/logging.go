@@ -51,12 +51,12 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
-	osClient, kubeClient, err := f.Clients()
+	osClient, _, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Namespaces().Get(loggingNamespace)
+	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace)
 	if err == nil {
 		// If there's no error, the logging namespace already exists and we won't initialize it
 		return nil
@@ -91,7 +91,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Label all nodes with default fluentd label
-	nodeList, err := kubeClient.Nodes().List(kapi.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(kapi.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -99,7 +99,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	// Iterate through all nodes (there should only be one)
 	for _, node := range nodeList.Items {
 		node.Labels["logging-infra-fluentd"] = "true"
-		if _, err = kubeClient.Nodes().Update(&node); err != nil {
+		if _, err = kubeClient.Core().Nodes().Update(&node); err != nil {
 			return errors.NewError("cannot update labels on node %s", node.Name).WithCause(err)
 		}
 	}
@@ -113,7 +113,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		"es-cluster-size":   "1",
 		"es-instance-ram":   "1024M",
 	}
-	kubeClient.ConfigMaps(loggingNamespace).Create(loggingConfig)
+	kubeClient.Core().ConfigMaps(loggingNamespace).Create(loggingConfig)
 
 	// Instantiate logging deployer
 	deployerParams := map[string]string{

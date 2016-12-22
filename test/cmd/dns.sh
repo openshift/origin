@@ -15,7 +15,7 @@ os::test::junit::declare_suite_start "cmd/dns"
 
 ns="$(oc project -q)"
 dig="dig @${API_HOST} -p 8053"
-if [[ -z "$(which dig)" ]]; then
+if ! os::util::ensure::system_binary_exists 'dig'; then
   dig="echo SKIPPED TEST: dig is not installed: "
 fi
 

@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
 # Constants.
 readonly CHECK_SCRIPT_NAME="chk_${HA_CONFIG_NAME//-/_}"
-readonly CHECK_INTERVAL_SECS=2
+readonly CHECK_INTERVAL_SECS="${HA_CHECK_INTERVAL}"
 readonly VRRP_SLAVE_PRIORITY=42
 
 readonly DEFAULT_PREEMPTION_STRATEGY="preempt_delay 300"
@@ -59,6 +59,11 @@ function generate_script_config() {
   if [ "$port" = "0" ]; then
     echo "   script \"true\""
   else
+    if [[ -n "${HA_CHECK_SCRIPT}" ]]; then
+      echo "   if [[ -f ${HA_CHECK_SCRIPT} ]]; then"
+      echo "       script \"${HA_CHECK_SCRIPT}\""
+      echo "   fi"
+    fi
     echo "   script \"</dev/tcp/${serviceip}/${port}\""
   fi
 
@@ -156,6 +161,11 @@ function generate_vrrp_sync_groups() {
   done
 
   echo "   }"
+
+  if [[ -n $HA_NOTIFY_SCRIPT ]]; then
+      echo "   notify \"$HA_NOTIFY_SCRIPT\""
+  fi
+
   echo "}"
 }
 

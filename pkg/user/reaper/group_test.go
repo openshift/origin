@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -108,7 +111,7 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				ktestclient.UpdateActionImpl{ActionImpl: ktestclient.ActionImpl{Verb: "update", Resource: "securitycontextconstraints"}, Object: &kapi.SecurityContextConstraints{
+				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
 					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},
@@ -119,20 +122,24 @@ func TestGroupReaper(t *testing.T) {
 
 	for _, test := range tests {
 		tc := testclient.NewSimpleFake(test.objects...)
-		ktc := ktestclient.NewSimpleFake(test.objects...)
+		ktc := fake.NewSimpleClientset(test.objects...)
 
 		actual := []interface{}{}
-		reactor := func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oreactor := func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			actual = append(actual, action)
+			return false, nil, nil
+		}
+		kreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}
 
-		tc.PrependReactor("update", "*", reactor)
-		tc.PrependReactor("delete", "*", reactor)
-		ktc.PrependReactor("update", "*", reactor)
-		ktc.PrependReactor("delete", "*", reactor)
+		tc.PrependReactor("update", "*", oreactor)
+		tc.PrependReactor("delete", "*", oreactor)
+		ktc.PrependReactor("update", "*", kreactor)
+		ktc.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewGroupReaper(tc, tc, tc, ktc)
+		reaper := NewGroupReaper(tc, tc, tc, ktc.Core())
 		err := reaper.Stop("", test.group, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

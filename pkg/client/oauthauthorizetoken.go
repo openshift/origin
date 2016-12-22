@@ -24,12 +24,12 @@ func newOAuthAuthorizeTokens(c *Client) *oauthAuthorizeTokenInterface {
 }
 
 func (c *oauthAuthorizeTokenInterface) Delete(name string) (err error) {
-	err = c.r.Delete().Resource("oAuthAuthorizeTokens").Name(name).Do().Error()
+	err = c.r.Delete().Resource("oauthauthorizetokens").Name(name).Do().Error()
 	return
 }
 
 func (c *oauthAuthorizeTokenInterface) Create(token *oauthapi.OAuthAuthorizeToken) (result *oauthapi.OAuthAuthorizeToken, err error) {
 	result = &oauthapi.OAuthAuthorizeToken{}
-	err = c.r.Post().Resource("oAuthAuthorizeTokens").Body(token).Do().Into(result)
+	err = c.r.Post().Resource("oauthauthorizetokens").Body(token).Do().Into(result)
 	return
 }

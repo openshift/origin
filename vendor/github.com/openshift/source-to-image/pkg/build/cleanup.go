@@ -28,7 +28,7 @@ func NewDefaultCleaner(fs util.FileSystem, docker docker.Docker) Cleaner {
 // Cleanup removes the temporary directories where the sources were stored for build.
 func (c *DefaultCleaner) Cleanup(config *api.Config) {
 	if config.PreserveWorkingDir {
-		glog.Infof("Temporary directory %q will be saved, not deleted", config.WorkingDir)
+		glog.V(2).Infof("Temporary directory %q will be saved, not deleted", config.WorkingDir)
 	} else {
 		glog.V(2).Infof("Removing temporary directory %s", config.WorkingDir)
 		if err := c.fs.RemoveDirectory(config.WorkingDir); err != nil {

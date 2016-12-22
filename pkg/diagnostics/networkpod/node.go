@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
@@ -20,7 +20,7 @@ const (
 
 // CheckNodeNetwork is a Diagnostic to check that pods in the cluster can access its own node
 type CheckNodeNetwork struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 }
 
 // Name is part of the Diagnostic interface and just returns name.

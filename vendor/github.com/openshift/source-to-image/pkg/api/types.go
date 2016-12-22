@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -21,7 +22,7 @@ const (
 
 // invalidFilenameCharacters contains a list of character we consider malicious
 // when injecting the directories into containers.
-const invalidFilenameCharacters = `\:;*?"<>|%#$!+{}&[],"'` + "`"
+const invalidFilenameCharacters = `;*?"<>|%#$!+{}&[],"'` + "`"
 
 const (
 	// PullAlways means that we always attempt to pull the latest image.
@@ -497,20 +498,18 @@ func IsInvalidFilename(name string) bool {
 // working directory in container.
 func (l *VolumeList) Set(value string) error {
 	if len(value) == 0 {
-		return fmt.Errorf("invalid format, must be source:destination")
+		return errors.New("invalid format, must be source:destination")
 	}
-	mount := strings.Split(value, ":")
-	switch len(mount) {
-	case 1:
-		mount = append(mount, "")
-		fallthrough
-	case 2:
-		mount[0] = strings.Trim(mount[0], `"'`)
-		mount[1] = strings.Trim(mount[1], `"'`)
-	default:
-		return fmt.Errorf("invalid source:path definition")
+	var mount []string
+	pos := strings.LastIndex(value, ":")
+	if pos == -1 {
+		mount = []string{value, ""}
+	} else {
+		mount = []string{value[:pos], value[pos+1:]}
 	}
-	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.Clean(mount[1])}
+	mount[0] = strings.Trim(mount[0], `"'`)
+	mount[1] = strings.Trim(mount[1], `"'`)
+	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.ToSlash(filepath.Clean(mount[1]))}
 	if IsInvalidFilename(s.Source) || IsInvalidFilename(s.Destination) {
 		return fmt.Errorf("invalid characters in filename: %q", value)
 	}

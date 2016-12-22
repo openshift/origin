@@ -11,6 +11,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 // WantsOpenshiftClient should be implemented by admission plugins that need
@@ -68,4 +69,10 @@ type WantsClusterQuotaMapper interface {
 // address.
 type WantsDefaultRegistryFunc interface {
 	SetDefaultRegistryFunc(imageapi.DefaultRegistryFunc)
+}
+
+// WantsGroupCache should be implemented by admission plugins that need a
+// group cache.
+type WantsGroupCache interface {
+	SetGroupCache(*usercache.GroupCache)
 }

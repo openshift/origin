@@ -25,7 +25,7 @@ import (
 
 const (
 	// rule versioning; increment each time flow rules change
-	VERSION        = 1
+	VERSION        = 2
 	VERSION_TABLE  = "table=253"
 	VERSION_ACTION = "actions=note:"
 
@@ -36,16 +36,21 @@ const (
 	VXLAN_PORT = "4789"
 )
 
-func getPluginVersion(multitenant bool) []string {
+func (plugin *OsdnNode) getPluginVersion() []string {
 	if VERSION > 254 {
 		panic("Version too large!")
 	}
 	version := fmt.Sprintf("%02X", VERSION)
-	if multitenant {
-		return []string{"01", version}
+	pluginId := ""
+	switch plugin.policy.(type) {
+	case *singleTenantPlugin:
+		pluginId = "00"
+	case *multiTenantPlugin:
+		pluginId = "01"
+	default:
+		panic("Not an OpenShift-SDN plugin")
 	}
-	// single-tenant
-	return []string{"00", version}
+	return []string{pluginId, version}
 }
 
 func (plugin *OsdnNode) getLocalSubnet() (string, error) {
@@ -133,7 +138,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 		// OVS note action format hex bytes separated by '.'; first
 		// byte is plugin type (multi-tenant/single-tenant) and second
 		// byte is flow rule version
-		expected := getPluginVersion(plugin.multitenant)
+		expected := plugin.getPluginVersion()
 		existing := strings.Split(flow[idx+len(VERSION_ACTION):], ".")
 		if len(existing) >= 2 && existing[0] == expected[0] && existing[1] == expected[1] {
 			found = true
@@ -232,64 +237,68 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx := plugin.ovs.NewTransaction()
 	// Table 0: initial dispatch based on in_port
 	// vxlan0
-	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1", clusterNetworkCIDR, localSubnetCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:1", clusterNetworkCIDR, localSubnetCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
-	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:5")
+	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:30", localSubnetGateway, clusterNetworkCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:30")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
 	// else, from a container
-	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:2")
-	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:2")
+	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:20")
+	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:20")
 	otx.AddFlow("table=0, priority=0, actions=drop")
 
-	// Table 1: VXLAN ingress filtering; filled in by AddHostSubnetRules()
-	// eg, "table=1, priority=100, tun_src=${remote_node_ip}, actions=goto_table:5"
-	otx.AddFlow("table=1, priority=0, actions=drop")
+	// Table 10: VXLAN ingress filtering; filled in by AddHostSubnetRules()
+	// eg, "table=10, priority=100, tun_src=${remote_node_ip}, actions=goto_table:30"
+	otx.AddFlow("table=10, priority=0, actions=drop")
 
-	// Table 2: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
-	// eg, "table=2, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:5"
-	//     "table=2, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:3"
+	// Table 20: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
+	// eg, "table=20, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
+	//     "table=20, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
 	// (${tenant_id} is always 0 for single-tenant)
-	otx.AddFlow("table=2, priority=0, actions=drop")
+	otx.AddFlow("table=20, priority=0, actions=drop")
 
-	// Table 3: from OpenShift container; service vs non-service
-	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", serviceNetworkCIDR)
-	otx.AddFlow("table=3, priority=0, actions=goto_table:5")
+	// Table 30: general routing
+	otx.AddFlow("table=30, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
+	otx.AddFlow("table=30, priority=200, arp, nw_dst=%s, actions=goto_table:40", localSubnetCIDR)
+	otx.AddFlow("table=30, priority=100, arp, nw_dst=%s, actions=goto_table:50", clusterNetworkCIDR)
+	otx.AddFlow("table=30, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
+	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:60", serviceNetworkCIDR)
+	otx.AddFlow("table=30, priority=200, ip, nw_dst=%s, actions=goto_table:70", localSubnetCIDR)
+	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterNetworkCIDR)
+	otx.AddFlow("table=30, priority=0, ip, actions=goto_table:100")
+	otx.AddFlow("table=30, priority=0, arp, actions=drop")
 
-	// Table 4: from OpenShift container; service dispatch; filled in by AddServiceRules()
-	otx.AddFlow("table=4, priority=200, reg0=0, actions=output:2")
-	// eg, "table=4, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
-	otx.AddFlow("table=4, priority=0, actions=drop")
+	// Table 40: ARP to local container, filled in by openshift-sdn-ovs
+	// eg, "table=40, priority=100, arp, nw_dst=${container_ip}, actions=output:${ovs_port}"
+	otx.AddFlow("table=40, priority=0, actions=drop")
 
-	// Table 5: general routing
-	otx.AddFlow("table=5, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
-	otx.AddFlow("table=5, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
-	otx.AddFlow("table=5, priority=200, arp, nw_dst=%s, actions=goto_table:6", localSubnetCIDR)
-	otx.AddFlow("table=5, priority=200, ip, nw_dst=%s, actions=goto_table:7", localSubnetCIDR)
-	otx.AddFlow("table=5, priority=100, arp, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
-	otx.AddFlow("table=5, priority=100, ip, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
-	otx.AddFlow("table=5, priority=0, ip, actions=goto_table:9")
-	otx.AddFlow("table=5, priority=0, arp, actions=drop")
+	// Table 50: ARP to remote container; filled in by AddHostSubnetRules()
+	// eg, "table=50, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
+	otx.AddFlow("table=50, priority=0, actions=drop")
 
-	// Table 6: ARP to container, filled in by openshift-sdn-ovs
-	// eg, "table=6, priority=100, arp, nw_dst=${container_ip}, actions=output:${ovs_port}"
-	otx.AddFlow("table=6, priority=0, actions=drop")
+	// Table 60: IP to service: vnid/port mappings; filled in by AddServiceRules()
+	otx.AddFlow("table=60, priority=200, reg0=0, actions=output:2")
+	// eg, "table=60, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=load:${tenant_id}->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80"
+	otx.AddFlow("table=60, priority=0, actions=drop")
 
-	// Table 7: IP to container; filled in by openshift-sdn-ovs
-	// eg, "table=7, priority=100, reg0=0, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
-	// eg, "table=7, priority=100, reg0=${tenant_id}, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
-	otx.AddFlow("table=7, priority=0, actions=drop")
+	// Table 70: IP to local container: vnid/port mappings; filled in by openshift-sdn-ovs
+	// eg, "table=70, priority=100, ip, nw_dst=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG1[], load:${ovs_port}->NXM_NX_REG2[], goto_table:80"
+	otx.AddFlow("table=70, priority=0, actions=drop")
 
-	// Table 8: to remote container; filled in by AddHostSubnetRules()
-	// eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
-	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
-	otx.AddFlow("table=8, priority=0, actions=drop")
+	// Table 80: IP policy enforcement; mostly managed by the osdnPolicy
+	otx.AddFlow("table=80, priority=300, ip, nw_src=%s/32, actions=output:NXM_NX_REG2[]", localSubnetGateway)
+	// eg, "table=80, priority=100, reg0=${tenant_id}, reg1=${tenant_id}, actions=output:NXM_NX_REG2[]"
+	otx.AddFlow("table=80, priority=0, actions=drop")
 
-	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicyRules()
-	// eg, "table=9, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
-	otx.AddFlow("table=9, priority=0, actions=output:2")
+	// Table 90: IP to remote container; filled in by AddHostSubnetRules()
+	// eg, "table=90, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
+	otx.AddFlow("table=90, priority=0, actions=drop")
+
+	// Table 100: egress network policy dispatch; edited by UpdateEgressNetworkPolicy()
+	// eg, "table=100, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
+	otx.AddFlow("table=100, priority=0, actions=output:2")
 
 	err = otx.EndTransaction()
 	if err != nil {
@@ -322,7 +331,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	// Table 253: rule version; note action is hex bytes separated by '.'
 	otx = plugin.ovs.NewTransaction()
-	pluginVersion := getPluginVersion(plugin.multitenant)
+	pluginVersion := plugin.getPluginVersion()
 	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
 	err = otx.EndTransaction()
 	if err != nil {
@@ -332,7 +341,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	return true, nil
 }
 
-func policyNames(policies []*osapi.EgressNetworkPolicy) string {
+func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	names := make([]string, len(policies))
 	for i, policy := range policies {
 		names[i] = policy.Namespace + ":" + policy.Name
@@ -340,27 +349,27 @@ func policyNames(policies []*osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
+func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	otx := plugin.ovs.NewTransaction()
 
 	policies := plugin.egressPolicies[vnid]
-	namespaces := plugin.vnids.GetNamespaces(vnid)
+	namespaces := plugin.policy.GetNamespaces(vnid)
 	if len(policies) == 0 {
-		otx.DeleteFlows("table=9, reg0=%d", vnid)
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
 	} else if vnid == 0 {
 		glog.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
 	} else if len(namespaces) > 1 {
 		glog.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
-		otx.DeleteFlows("table=9, reg0=%d", vnid)
-		otx.AddFlow("table=9, reg0=%d, priority=1, actions=drop", vnid)
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
+		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
 	} else if len(policies) > 1 {
 		glog.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
-		otx.DeleteFlows("table=9, reg0=%d", vnid)
-		otx.AddFlow("table=9, reg0=%d, priority=1, actions=drop", vnid)
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
+		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
 	} else /* vnid != 0 && len(policies) == 1 */ {
 		// Temporarily drop all outgoing traffic, to avoid race conditions while modifying the other rules
-		otx.AddFlow("table=9, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
-		otx.DeleteFlows("table=9, reg0=%d, cookie=0/1", vnid)
+		otx.AddFlow("table=100, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
+		otx.DeleteFlows("table=100, reg0=%d, cookie=0/1", vnid)
 
 		for i, rule := range policies[0].Spec.Egress {
 			priority := len(policies[0].Spec.Egress) - i
@@ -379,99 +388,77 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
 				dst = fmt.Sprintf(", nw_dst=%s", rule.To.CIDRSelector)
 			}
 
-			otx.AddFlow("table=9, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+			otx.AddFlow("table=100, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
 		}
-		otx.DeleteFlows("table=9, reg0=%d, cookie=1/1", vnid)
+		otx.DeleteFlows("table=100, reg0=%d, cookie=1/1", vnid)
 	}
 
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
 	otx := plugin.ovs.NewTransaction()
 
-	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
+	otx.AddFlow("table=10, priority=100, tun_src=%s, actions=goto_table:30", subnet.HostIP)
 	if vnid, ok := subnet.Annotations[osapi.FixedVnidHost]; ok {
-		otx.AddFlow("table=8, priority=100, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
-		otx.AddFlow("table=8, priority=100, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
+		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
+		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
 	} else {
-		otx.AddFlow("table=8, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
-		otx.AddFlow("table=8, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
+		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
+		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
 	}
 
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error adding OVS flows for subnet: %v, %v", subnet, err)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
 
 	otx := plugin.ovs.NewTransaction()
-	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
-	otx.DeleteFlows("table=8, ip, nw_dst=%s", subnet.Subnet)
-	otx.DeleteFlows("table=8, arp, nw_dst=%s", subnet.Subnet)
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error deleting OVS flows for subnet: %v, %v", subnet, err)
+	otx.DeleteFlows("table=10, tun_src=%s", subnet.HostIP)
+	otx.DeleteFlows("table=50, arp, nw_dst=%s", subnet.Subnet)
+	otx.DeleteFlows("table=90, ip, nw_dst=%s", subnet.Subnet)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) error {
-	if !plugin.multitenant {
-		return nil
-	}
-
+func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
 	glog.V(5).Infof("AddServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()
 	for _, port := range service.Spec.Ports {
 		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
-		err := otx.EndTransaction()
-		if err != nil {
-			return fmt.Errorf("Error adding OVS flows for service: %v, netid: %d, %v", service, netID, err)
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err)
 		}
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
-	if !plugin.multitenant {
-		return nil
-	}
-
+func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()
 	for _, port := range service.Spec.Ports {
 		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
-		err := otx.EndTransaction()
-		if err != nil {
-			return fmt.Errorf("Error deleting OVS flows for service: %v, %v", service, err)
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error deleting OVS flows for service %v: %v", service, err)
 		}
 	}
-	return nil
 }
 
 func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string {
-	return fmt.Sprintf("table=4, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
+	return fmt.Sprintf("table=60, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
 }
 
 func generateAddServiceRule(netID uint32, IP string, protocol kapi.Protocol, port int) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
-	if netID == 0 {
-		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)
-	} else {
-		return fmt.Sprintf("%s, priority=100, reg0=%d, actions=output:2", baseRule, netID)
-	}
+	return fmt.Sprintf("%s, priority=100, actions=load:%d->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80", baseRule, netID)
 }
 
 func generateDeleteServiceRule(IP string, protocol kapi.Protocol, port int) string {

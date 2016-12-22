@@ -46,7 +46,7 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			br.AssertSuccess()
 
 			g.By("getting the image name")
-			image, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
+			image, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the build secrets were available during build and not present in the output image")
@@ -81,7 +81,7 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			br.AssertSuccess()
 
 			g.By("getting the image name")
-			image, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
+			image, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the secrets are present in container output")

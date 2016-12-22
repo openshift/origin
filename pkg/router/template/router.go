@@ -84,8 +84,12 @@ type templateRouter struct {
 	rateLimitedCommitStopChannel chan struct{}
 	// lock is a mutex used to prevent concurrent router reloads.
 	lock sync.Mutex
-	// the router should only reload when the value is false
-	skipCommit bool
+	// If true, haproxy should only bind ports when it has route and endpoint state
+	bindPortsAfterSync bool
+	// whether the router state has been read from the api at least once
+	synced bool
+	// whether a state change has occurred
+	stateChanged bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -103,6 +107,7 @@ type templateRouterCfg struct {
 	allowWildcardRoutes    bool
 	peerEndpointsKey       string
 	includeUDP             bool
+	bindPortsAfterSync     bool
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -124,6 +129,8 @@ type templateData struct {
 	StatsPassword string
 	//port to expose stats with (if the template supports it)
 	StatsPort int
+	// whether the router should bind the default ports
+	BindPorts bool
 }
 
 func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
@@ -162,6 +169,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		allowWildcardRoutes:    cfg.allowWildcardRoutes,
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
+		bindPortsAfterSync:     cfg.bindPortsAfterSync,
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
@@ -178,7 +186,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return nil, err
 	}
 	glog.V(4).Infof("Committing state")
-	router.Commit()
+	// Bypass the rate limiter to ensure the first sync will be
+	// committed without delay.
+	router.commitAndReload()
 	return router, nil
 }
 
@@ -338,10 +348,18 @@ func (r *templateRouter) readState() error {
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
 func (r *templateRouter) Commit() {
-	if r.skipCommit {
-		glog.V(4).Infof("Skipping router commit until last sync has been processed")
-	} else {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.synced {
+		glog.V(4).Infof("Router state synchronized for the first time")
+		r.synced = true
+		r.stateChanged = true
+	}
+
+	if r.stateChanged {
 		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+		r.stateChanged = false
 	}
 }
 
@@ -406,6 +424,7 @@ func (r *templateRouter) writeConfig() error {
 			StatsUser:          r.statsUser,
 			StatsPassword:      r.statsPassword,
 			StatsPort:          r.statsPort,
+			BindPorts:          !r.bindPortsAfterSync || r.synced,
 		}
 		if err := template.Execute(file, data); err != nil {
 			file.Close()
@@ -445,6 +464,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceAliasConfig)
 		r.serviceUnits = make(map[string]ServiceUnit)
+		r.stateChanged = true
 	}
 	for k := range r.serviceUnits {
 		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
@@ -454,6 +474,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 			continue
 		}
 		delete(r.serviceUnits, k)
+		r.stateChanged = true
 	}
 
 	for k := range r.state {
@@ -462,6 +483,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 			continue
 		}
 		delete(r.state, k)
+		r.stateChanged = true
 	}
 }
 
@@ -476,6 +498,7 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 	defer r.lock.Unlock()
 
 	r.serviceUnits[id] = service
+	r.stateChanged = true
 }
 
 // findMatchingServiceUnit finds the service with the given id - internal
@@ -504,6 +527,7 @@ func (r *templateRouter) DeleteServiceUnit(id string) {
 	}
 
 	delete(r.serviceUnits, id)
+	r.stateChanged = true
 }
 
 // DeleteEndpoints deletes the endpoints for the service with the given id.
@@ -526,6 +550,8 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 		r.peerEndpoints = []Endpoint{}
 		glog.V(4).Infof("Peer endpoint table has been cleared")
 	}
+
+	r.stateChanged = true
 }
 
 // routeKey generates route key in form of Namespace_Name.  This is NOT the normal key structure of ns/name because
@@ -543,92 +569,115 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s_%s", route.Namespace, route.Name)
 }
 
-// AddRoute adds a route for the given service id
-func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeapi.Route, host string) bool {
-	backendKey := r.routeKey(route)
+// createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.
+// The router state is not modified in the process, so referenced ServiceUnits may not exist.
+func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKey string) *ServiceAliasConfig {
 	wantsWildcardSupport := (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
 
 	// The router config trumps what the route asks for/wants.
 	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
 
-	config, ok := r.state[backendKey]
+	config := ServiceAliasConfig{
+		Name:             route.Name,
+		Namespace:        route.Namespace,
+		Host:             route.Spec.Host,
+		Path:             route.Spec.Path,
+		IsWildcard:       wildcard,
+		Annotations:      route.Annotations,
+		ServiceUnitNames: getServiceUnits(route),
+	}
 
-	if !ok {
-		config = ServiceAliasConfig{
-			Name:             route.Name,
-			Namespace:        route.Namespace,
-			Host:             host,
-			Path:             route.Spec.Path,
-			IsWildcard:       wildcard,
-			Annotations:      route.Annotations,
-			ServiceUnitNames: make(map[string]int32),
-		}
+	if route.Spec.Port != nil {
+		config.PreferPort = route.Spec.Port.TargetPort.String()
+	}
 
-		if route.Spec.Port != nil {
-			config.PreferPort = route.Spec.Port.TargetPort.String()
-		}
+	key := fmt.Sprintf("%s %s", config.TLSTermination, routeKey)
+	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
 
-		tls := route.Spec.TLS
-		if tls != nil && len(tls.Termination) > 0 {
-			config.TLSTermination = tls.Termination
+	tls := route.Spec.TLS
+	if tls != nil && len(tls.Termination) > 0 {
+		config.TLSTermination = tls.Termination
 
-			if tls.Termination == routeapi.TLSTerminationEdge {
-				config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
+		config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
+
+		if tls.Termination != routeapi.TLSTerminationPassthrough {
+			config.Certificates = make(map[string]Certificate)
+
+			if len(tls.Certificate) > 0 {
+				certKey := generateCertKey(&config)
+				cert := Certificate{
+					ID:         routeKey,
+					Contents:   tls.Certificate,
+					PrivateKey: tls.Key,
+				}
+
+				config.Certificates[certKey] = cert
 			}
 
-			if tls.Termination != routeapi.TLSTerminationPassthrough {
-				if config.Certificates == nil {
-					config.Certificates = make(map[string]Certificate)
+			if len(tls.CACertificate) > 0 {
+				caCertKey := generateCACertKey(&config)
+				caCert := Certificate{
+					ID:       routeKey,
+					Contents: tls.CACertificate,
 				}
 
-				if len(tls.Certificate) > 0 {
-					certKey := generateCertKey(&config)
-					cert := Certificate{
-						ID:         backendKey,
-						Contents:   tls.Certificate,
-						PrivateKey: tls.Key,
-					}
+				config.Certificates[caCertKey] = caCert
+			}
 
-					config.Certificates[certKey] = cert
+			if len(tls.DestinationCACertificate) > 0 {
+				destCertKey := generateDestCertKey(&config)
+				destCert := Certificate{
+					ID:       routeKey,
+					Contents: tls.DestinationCACertificate,
 				}
 
-				if len(tls.CACertificate) > 0 {
-					caCertKey := generateCACertKey(&config)
-					caCert := Certificate{
-						ID:       backendKey,
-						Contents: tls.CACertificate,
-					}
-
-					config.Certificates[caCertKey] = caCert
-				}
-
-				if len(tls.DestinationCACertificate) > 0 {
-					destCertKey := generateDestCertKey(&config)
-					destCert := Certificate{
-						ID:       backendKey,
-						Contents: tls.DestinationCACertificate,
-					}
-
-					config.Certificates[destCertKey] = destCert
-				}
+				config.Certificates[destCertKey] = destCert
 			}
 		}
 	}
 
-	key := fmt.Sprintf("%s %s", config.TLSTermination, backendKey)
-	config.RoutingKeyName = fmt.Sprintf("%x", md5.Sum([]byte(key)))
+	return &config
+}
+
+// AddRoute adds the given route to the router state if the route
+// hasn't been seen before or has changed since it was last seen.
+func (r *templateRouter) AddRoute(route *routeapi.Route) {
+	backendKey := r.routeKey(route)
+
+	newConfig := r.createServiceAliasConfig(route, backendKey)
+
+	if existingConfig, exists := r.state[backendKey]; exists {
+		if configsAreEqual(newConfig, &existingConfig) {
+			return
+		}
+
+		glog.V(4).Infof("Updating route %s/%s", route.Namespace, route.Name)
+
+		// Delete the route first, because modify is to be treated as delete+add
+		r.RemoveRoute(route)
+
+		// TODO - clean up service units that are no longer
+		// referenced.  This may be challenging if a service unit can
+		// be referenced by more than one route, but the alternative
+		// is having stale service units accumulate with the attendant
+		// cost to router memory usage.
+	} else {
+		glog.V(4).Infof("Adding route %s/%s", route.Namespace, route.Name)
+	}
+
+	// Add service units referred to by the config
+	for key := range newConfig.ServiceUnitNames {
+		if _, ok := r.FindServiceUnit(key); !ok {
+			glog.V(4).Infof("Creating new frontend for key: %v", key)
+			r.CreateServiceUnit(key)
+		}
+	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	frontend, _ := r.findMatchingServiceUnit(serviceID)
-
-	//create or replace
-	config.ServiceUnitNames[frontend.Name] = weight
-	r.state[backendKey] = config
-	r.serviceUnits[serviceID] = frontend
-	//r.cleanUpdates(serviceID, backendKey)
-	return true
+	r.state[backendKey] = *newConfig
+	r.stateChanged = true
 }
 
 // RemoveRoute removes the given route
@@ -644,10 +693,11 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
 	delete(r.state, routeKey)
+	r.stateChanged = true
 }
 
 // AddEndpoints adds new Endpoints for the given id.
-func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
+func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	frontend, _ := r.findMatchingServiceUnit(id)
@@ -655,7 +705,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 	//only make the change if there is a difference
 	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
 		glog.V(4).Infof("Ignoring change for %s, endpoints are the same", id)
-		return false
+		return
 	}
 
 	frontend.EndpointTable = endpoints
@@ -666,7 +716,7 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 		glog.V(4).Infof("Peer endpoints updated to: %#v", r.peerEndpoints)
 	}
 
-	return true
+	r.stateChanged = true
 }
 
 // cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from
@@ -732,21 +782,12 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 	return false
 }
 
-// SetSkipCommit indicates to the router whether requests to
-// commit/reload should be skipped.
-func (r *templateRouter) SetSkipCommit(skipCommit bool) {
-	if r.skipCommit != skipCommit {
-		glog.V(4).Infof("Updating skip commit to: %t", skipCommit)
-		r.skipCommit = skipCommit
-	}
-}
-
-// HasServiceUnit attempts to retrieve a service unit for the given
-// key, returning a boolean indication of whether the key is known.
-func (r *templateRouter) HasServiceUnit(key string) bool {
+// HasRoute indicates whether the given route is known to this router.
+func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	_, ok := r.findMatchingServiceUnit(key)
+	key := r.routeKey(route)
+	_, ok := r.state[key]
 	return ok
 }
 
@@ -774,4 +815,47 @@ func generateCACertKey(config *ServiceAliasConfig) string {
 
 func generateDestCertKey(config *ServiceAliasConfig) string {
 	return config.Host + destCertPostfix
+}
+
+// getServiceUnits returns a map of service keys to their weights.
+// Weight suggests the % of traffic that a given service will receive
+// compared to other services pointed to by the route.
+func getServiceUnits(route *routeapi.Route) map[string]int32 {
+	serviceUnits := make(map[string]int32)
+	key := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+	if route.Spec.To.Weight == nil {
+		serviceUnits[key] = 0
+	} else {
+		serviceUnits[key] = *route.Spec.To.Weight
+	}
+	for _, svc := range route.Spec.AlternateBackends {
+		key = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
+		if svc.Weight == nil {
+			serviceUnits[key] = 0
+		} else {
+			serviceUnits[key] = *svc.Weight
+		}
+	}
+	return serviceUnits
+}
+
+// configsAreEqual determines whether the given service alias configs can be considered equal.
+// This may be useful in determining whether a new service alias config is the same as an
+// existing one or represents an update to its state.
+func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
+	return config1.Name == config2.Name &&
+		config1.Namespace == config2.Namespace &&
+		config1.Host == config2.Host &&
+		config1.Path == config2.Path &&
+		config1.TLSTermination == config2.TLSTermination &&
+		reflect.DeepEqual(config1.Certificates, config2.Certificates) &&
+		// Status isn't compared since whether certs have been written
+		// to disk or not isn't relevant in determining whether a
+		// route needs to be updated.
+		config1.PreferPort == config2.PreferPort &&
+		config1.InsecureEdgeTerminationPolicy == config2.InsecureEdgeTerminationPolicy &&
+		config1.RoutingKeyName == config2.RoutingKeyName &&
+		config1.IsWildcard == config2.IsWildcard &&
+		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
+		reflect.DeepEqual(config1.ServiceUnitNames, config2.ServiceUnitNames)
 }

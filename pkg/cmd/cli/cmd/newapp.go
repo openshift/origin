@@ -17,8 +17,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	"github.com/openshift/origin/pkg/generate"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -43,10 +44,6 @@ import (
 
 // NewAppRecommendedCommandName is the recommended command name.
 const NewAppRecommendedCommandName = "new-app"
-
-type usage interface {
-	UsageError(baseName string) string
-}
 
 var (
 	newAppLong = templates.LongDesc(`
@@ -128,6 +125,7 @@ type NewAppOptions struct {
 	CommandPath string
 	CommandName string
 
+	In            io.Reader
 	Out, ErrOut   io.Writer
 	Output        string
 	PrintObject   func(obj runtime.Object) error
@@ -135,7 +133,7 @@ type NewAppOptions struct {
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{Config: config}
@@ -147,7 +145,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
 			err := o.RunNewApp()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -167,10 +165,14 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
 	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
 	cmd.Flags().StringArrayVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().StringArrayVar(&config.TemplateParameterFiles, "param-file", config.TemplateParameterFiles, "File containing parameter values to set/override in the template.")
+	cmd.MarkFlagFilename("param-file")
 	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container. This doesn't apply to objects created from a template, use parameters instead.")
+	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container.")
+	cmd.Flags().StringArrayVar(&config.EnvironmentFiles, "env-file", config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.MarkFlagFilename("env-file")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
-	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
+	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
 	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
@@ -187,12 +189,14 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, erro
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
+	o.Config.In = o.In
 	if len(o.Output) == 0 {
 		o.Config.Out = o.Out
 	} else {
@@ -347,8 +351,8 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 
 	// we cannot retrieve logs until the pod is out of pending
 	// TODO: move this to the server side
-	podClient := config.KubeClient.Pods(pod.Namespace)
-	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, config.KubeClient.Secrets(pod.Namespace))); err != nil {
+	podClient := config.KubeClient.Core().Pods(pod.Namespace)
+	if err := wait.PollImmediate(500*time.Millisecond, 60*time.Second, installationStarted(podClient, pod.Name, config.KubeClient.Core().Secrets(pod.Namespace))); err != nil {
 		return err
 	}
 
@@ -383,7 +387,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 	return nil
 }
 
-func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsInterface) wait.ConditionFunc {
+func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.SecretInterface) wait.ConditionFunc {
 	return func() (bool, error) {
 		pod, err := c.Get(name)
 		if err != nil {
@@ -396,7 +400,7 @@ func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsI
 		if secret, err := s.Get(name); err == nil {
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
-				if err := s.Delete(name); err != nil {
+				if err := s.Delete(name, nil); err != nil {
 					glog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
 				}
 			}
@@ -405,7 +409,7 @@ func installationStarted(c kclient.PodInterface, name string, s kclient.SecretsI
 	}
 }
 
-func installationComplete(c kclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
+func installationComplete(c kcoreclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
 	return func() (bool, error) {
 		pod, err := c.Get(name)
 		if err != nil {
@@ -474,7 +478,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 		return err
 	}
 
-	osclient, kclient, err := f.Clients()
+	osclient, _, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -505,6 +509,11 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
 		return kcmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
 	}
+
+	if config.BinaryBuild && config.Strategy == generate.StrategyPipeline {
+		return kcmdutil.UsageError(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
+	}
+
 	return nil
 }
 
@@ -803,7 +812,9 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 			if len(imageStream.Status.Tags) > 0 {
 				set := sets.NewString()
 				for tag := range imageStream.Status.Tags {
-					set.Insert(tag)
+					if !imageStream.Spec.Tags[tag].HasAnnotationTag(imageapi.TagReferenceAnnotationTagHidden) {
+						set.Insert(tag)
+					}
 				}
 				tags = strings.Join(set.List(), ", ")
 			}

@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/controller/framework/informers"
 
@@ -57,7 +57,7 @@ func (o DefaultListerWatcherOverrides) GetListerWatcher(resource unversioned.Gro
 	return o[resource]
 }
 
-func NewInformerFactory(kubeClient kclient.Interface, originClient oclient.Interface, customListerWatchers ListerWatcherOverrides, defaultResync time.Duration) InformerFactory {
+func NewInformerFactory(kubeClient kclientset.Interface, originClient oclient.Interface, customListerWatchers ListerWatcherOverrides, defaultResync time.Duration) InformerFactory {
 	return &sharedInformerFactory{
 		kubeClient:           kubeClient,
 		originClient:         originClient,
@@ -72,7 +72,7 @@ func NewInformerFactory(kubeClient kclient.Interface, originClient oclient.Inter
 }
 
 type sharedInformerFactory struct {
-	kubeClient           kclient.Interface
+	kubeClient           kclientset.Interface
 	originClient         oclient.Interface
 	customListerWatchers ListerWatcherOverrides
 	defaultResync        time.Duration

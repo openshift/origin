@@ -47,3 +47,8 @@ unset library_files library_file init_source
 # all of our Bash scripts need to have the stacktrace
 # handler installed to deal with errors
 os::log::stacktrace::install
+
+# All of our Bash scripts need to have access to the
+# binaries that we build so we don't have to find
+# them before every invocation.
+os::util::environment::update_path_var

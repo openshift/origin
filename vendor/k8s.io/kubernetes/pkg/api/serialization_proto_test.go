@@ -70,6 +70,11 @@ func TestProtobufRoundTrip(t *testing.T) {
 	// InitContainers are turned into annotations by conversion.
 	obj.Spec.InitContainers = nil
 	obj.Status.InitContainerStatuses = nil
+	// We don't round trip VolumeSource.Metadata (it's a deprecated OpenShift
+	// carry) for protobuf, so we need to nil it out here to make the test pass.
+	for i := range obj.Spec.Volumes {
+		obj.Spec.Volumes[i].VolumeSource.Metadata = nil
+	}
 	data, err := obj.Marshal()
 	if err != nil {
 		t.Fatal(err)

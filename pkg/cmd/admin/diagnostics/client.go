@@ -22,7 +22,7 @@ var (
 func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
 	available := availableClientDiagnostics
 
-	osClient, kubeClient, clientErr := o.Factory.Clients()
+	osClient, _, kubeClient, clientErr := o.Factory.Clients()
 	if clientErr != nil {
 		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)

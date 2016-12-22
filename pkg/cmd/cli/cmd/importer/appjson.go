@@ -137,7 +137,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 	o.Namespace = ns
 
-	o.Client, _, err = f.Clients()
+	o.Client, _, _, err = f.Clients()
 	return err
 }
 

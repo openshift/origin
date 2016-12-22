@@ -26,7 +26,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("Waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -34,7 +34,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 	// is destroyed
 	tearDown := func(oc *exutil.CLI) {
 		g.By(fmt.Sprintf("Deleting limit range %s", limitRangeName))
-		oc.AdminKubeREST().LimitRanges(oc.Namespace()).Delete(limitRangeName)
+		oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Delete(limitRangeName, nil)
 
 		deleteTestImagesAndStreams(oc)
 	}
@@ -113,7 +113,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
-		err = oc.REST().ImageStreamTags(oc.Namespace()).Delete("another", "second")
+		err = oc.Client().ImageStreamTags(oc.Namespace()).Delete("another", "second")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -148,7 +148,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
-		is, err := oc.REST().ImageStreams(oc.Namespace()).Get("stream")
+		is, err := oc.Client().ImageStreams(oc.Namespace()).Get("stream")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["foo"] = imageapi.TagReference{
 			Name: "foo",
@@ -160,12 +160,12 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 				Insecure: true,
 			},
 		}
-		_, err = oc.REST().ImageStreams(oc.Namespace()).Update(is)
+		_, err = oc.Client().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
-		is, err = oc.REST().ImageStreams(oc.Namespace()).Get("stream")
+		is, err = oc.Client().ImageStreams(oc.Namespace()).Get("stream")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["duplicate"] = imageapi.TagReference{
 			Name: "duplicate",
@@ -177,7 +177,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 				Insecure: true,
 			},
 		}
-		_, err = oc.REST().ImageStreams(oc.Namespace()).Update(is)
+		_, err = oc.Client().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -238,7 +238,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 		if err != nil {
 			return nil, err
 		}
-		ist, err := oc.REST().ImageStreamTags(oc.Namespace()).Get(isName, tag)
+		ist, err := oc.Client().ImageStreamTags(oc.Namespace()).Get(isName, tag)
 		if err != nil {
 			return nil, err
 		}
@@ -268,14 +268,14 @@ func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits 
 	}
 
 	g.By(fmt.Sprintf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits))
-	lr, err := oc.AdminKubeREST().LimitRanges(oc.Namespace()).Create(lr)
+	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(lr)
 	return lr, err
 }
 
 // bumpLimit changes the limit value for given resource for all the limit types of limit range object
 func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump a limit on resource %q to %s", resourceName, limit))
-	lr, err := oc.AdminKubeREST().LimitRanges(oc.Namespace()).Get(limitRangeName)
+	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 	if !change {
 		return res, nil
 	}
-	_, err = oc.AdminKubeREST().LimitRanges(oc.Namespace()).Update(lr)
+	_, err = oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Update(lr)
 	return res, err
 }
 

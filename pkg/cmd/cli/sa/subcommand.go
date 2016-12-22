@@ -29,6 +29,7 @@ func NewCmdServiceAccounts(name, fullName string, f *clientcmd.Factory, out, err
 		Run:     cmdutil.DefaultSubCommandRun(errOut),
 	}
 
+	cmds.AddCommand(NewCommandCreateKubeconfig(CreateKubeconfigRecommendedName, fullName+" "+CreateKubeconfigRecommendedName, f, out))
 	cmds.AddCommand(NewCommandGetServiceAccountToken(GetServiceAccountTokenRecommendedName, fullName+" "+GetServiceAccountTokenRecommendedName, f, out))
 	cmds.AddCommand(NewCommandNewServiceAccountToken(NewServiceAccountTokenRecommendedName, fullName+" "+NewServiceAccountTokenRecommendedName, f, out))
 

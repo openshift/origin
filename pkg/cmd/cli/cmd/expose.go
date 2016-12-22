@@ -76,7 +76,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return err
 	}
 
-	_, kc, err := f.Clients()
+	_, kc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

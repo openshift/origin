@@ -92,6 +92,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		path.Join(fakecadir, "fakeclient.crt"),
 		path.Join(fakecadir, "fakeclient.key"),
 		&user.DefaultInfo{Name: "fakeuser"},
+		365*2, /* 2 years */
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

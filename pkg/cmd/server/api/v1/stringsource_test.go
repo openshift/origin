@@ -135,7 +135,7 @@ func TestStringSourceMarshaling(t *testing.T) {
 		}
 
 		// Wrap in a dummy JSON from the surrounding object
-		input := fmt.Sprintf(`{"kind":"GitHubIdentityProvider","apiVersion":"v1","clientID":"","clientSecret":%s,"organizations":null}`, tc.ExpectedJSON)
+		input := fmt.Sprintf(`{"kind":"GitHubIdentityProvider","apiVersion":"v1","clientID":"","clientSecret":%s,"organizations":null,"teams":null}`, tc.ExpectedJSON)
 		if strings.TrimSpace(string(json)) != input {
 			t.Log(len(input), len(json))
 			t.Errorf("%s: expected\n%s\ngot\n%s", k, input, string(json))

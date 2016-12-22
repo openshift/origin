@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -20,7 +20,7 @@ type LogInterface struct {
 	Logdir string
 }
 
-func (l *LogInterface) LogNode(kubeClient *kclient.Client) {
+func (l *LogInterface) LogNode(kubeClient *kclientset.Clientset) {
 	l.LogSystem()
 	l.LogServices()
 
@@ -163,7 +163,7 @@ func (l *LogInterface) logNetworkInterfaces() {
 	})
 }
 
-func (l *LogInterface) logPodInfo(kubeClient *kclient.Client) {
+func (l *LogInterface) logPodInfo(kubeClient *kclientset.Clientset) {
 	pods, _, err := GetLocalAndNonLocalDiagnosticPods(kubeClient)
 	if err != nil {
 		l.Result.Error("DLogNet1003", err, err.Error())

@@ -123,7 +123,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	client, _, err := f.Clients()
+	client, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

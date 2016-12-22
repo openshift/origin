@@ -38,6 +38,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList,
 		Convert_v1_ClusterRoleList_To_api_ClusterRoleList,
 		Convert_api_ClusterRoleList_To_v1_ClusterRoleList,
+		Convert_v1_GroupRestriction_To_api_GroupRestriction,
+		Convert_api_GroupRestriction_To_v1_GroupRestriction,
 		Convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
 		Convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview,
 		Convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
@@ -64,12 +66,22 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_RoleBinding_To_v1_RoleBinding,
 		Convert_v1_RoleBindingList_To_api_RoleBindingList,
 		Convert_api_RoleBindingList_To_v1_RoleBindingList,
+		Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction,
+		Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction,
+		Convert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList,
+		Convert_api_RoleBindingRestrictionList_To_v1_RoleBindingRestrictionList,
+		Convert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec,
+		Convert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec,
 		Convert_v1_RoleList_To_api_RoleList,
 		Convert_api_RoleList_To_v1_RoleList,
 		Convert_v1_SelfSubjectRulesReview_To_api_SelfSubjectRulesReview,
 		Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview,
 		Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec,
 		Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec,
+		Convert_v1_ServiceAccountReference_To_api_ServiceAccountReference,
+		Convert_api_ServiceAccountReference_To_v1_ServiceAccountReference,
+		Convert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction,
+		Convert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction,
 		Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		Convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
@@ -80,6 +92,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec,
 		Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus,
 		Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus,
+		Convert_v1_UserRestriction_To_api_UserRestriction,
+		Convert_api_UserRestriction_To_v1_UserRestriction,
 	)
 }
 
@@ -491,6 +505,26 @@ func autoConvert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleLi
 
 func Convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleList, out *ClusterRoleList, s conversion.Scope) error {
 	return autoConvert_api_ClusterRoleList_To_v1_ClusterRoleList(in, out, s)
+}
+
+func autoConvert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, out *api.GroupRestriction, s conversion.Scope) error {
+	out.Groups = in.Groups
+	out.Selectors = in.Selectors
+	return nil
+}
+
+func Convert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, out *api.GroupRestriction, s conversion.Scope) error {
+	return autoConvert_v1_GroupRestriction_To_api_GroupRestriction(in, out, s)
+}
+
+func autoConvert_api_GroupRestriction_To_v1_GroupRestriction(in *api.GroupRestriction, out *GroupRestriction, s conversion.Scope) error {
+	out.Groups = in.Groups
+	out.Selectors = in.Selectors
+	return nil
+}
+
+func Convert_api_GroupRestriction_To_v1_GroupRestriction(in *api.GroupRestriction, out *GroupRestriction, s conversion.Scope) error {
+	return autoConvert_api_GroupRestriction_To_v1_GroupRestriction(in, out, s)
 }
 
 func autoConvert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
@@ -951,6 +985,160 @@ func Convert_api_RoleBindingList_To_v1_RoleBindingList(in *api.RoleBindingList, 
 	return autoConvert_api_RoleBindingList_To_v1_RoleBindingList(in, out, s)
 }
 
+func autoConvert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(in *RoleBindingRestriction, out *api.RoleBindingRestriction, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(in *RoleBindingRestriction, out *api.RoleBindingRestriction, s conversion.Scope) error {
+	return autoConvert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(in, out, s)
+}
+
+func autoConvert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(in *api.RoleBindingRestriction, out *RoleBindingRestriction, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(in *api.RoleBindingRestriction, out *RoleBindingRestriction, s conversion.Scope) error {
+	return autoConvert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(in, out, s)
+}
+
+func autoConvert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList(in *RoleBindingRestrictionList, out *api.RoleBindingRestrictionList, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]api.RoleBindingRestriction, len(*in))
+		for i := range *in {
+			if err := Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList(in *RoleBindingRestrictionList, out *api.RoleBindingRestrictionList, s conversion.Scope) error {
+	return autoConvert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList(in, out, s)
+}
+
+func autoConvert_api_RoleBindingRestrictionList_To_v1_RoleBindingRestrictionList(in *api.RoleBindingRestrictionList, out *RoleBindingRestrictionList, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]RoleBindingRestriction, len(*in))
+		for i := range *in {
+			if err := Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_api_RoleBindingRestrictionList_To_v1_RoleBindingRestrictionList(in *api.RoleBindingRestrictionList, out *RoleBindingRestrictionList, s conversion.Scope) error {
+	return autoConvert_api_RoleBindingRestrictionList_To_v1_RoleBindingRestrictionList(in, out, s)
+}
+
+func autoConvert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec(in *RoleBindingRestrictionSpec, out *api.RoleBindingRestrictionSpec, s conversion.Scope) error {
+	if in.UserRestriction != nil {
+		in, out := &in.UserRestriction, &out.UserRestriction
+		*out = new(api.UserRestriction)
+		if err := Convert_v1_UserRestriction_To_api_UserRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.UserRestriction = nil
+	}
+	if in.GroupRestriction != nil {
+		in, out := &in.GroupRestriction, &out.GroupRestriction
+		*out = new(api.GroupRestriction)
+		if err := Convert_v1_GroupRestriction_To_api_GroupRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GroupRestriction = nil
+	}
+	if in.ServiceAccountRestriction != nil {
+		in, out := &in.ServiceAccountRestriction, &out.ServiceAccountRestriction
+		*out = new(api.ServiceAccountRestriction)
+		if err := Convert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ServiceAccountRestriction = nil
+	}
+	return nil
+}
+
+func Convert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec(in *RoleBindingRestrictionSpec, out *api.RoleBindingRestrictionSpec, s conversion.Scope) error {
+	return autoConvert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec(in, out, s)
+}
+
+func autoConvert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec(in *api.RoleBindingRestrictionSpec, out *RoleBindingRestrictionSpec, s conversion.Scope) error {
+	if in.UserRestriction != nil {
+		in, out := &in.UserRestriction, &out.UserRestriction
+		*out = new(UserRestriction)
+		if err := Convert_api_UserRestriction_To_v1_UserRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.UserRestriction = nil
+	}
+	if in.GroupRestriction != nil {
+		in, out := &in.GroupRestriction, &out.GroupRestriction
+		*out = new(GroupRestriction)
+		if err := Convert_api_GroupRestriction_To_v1_GroupRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GroupRestriction = nil
+	}
+	if in.ServiceAccountRestriction != nil {
+		in, out := &in.ServiceAccountRestriction, &out.ServiceAccountRestriction
+		*out = new(ServiceAccountRestriction)
+		if err := Convert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ServiceAccountRestriction = nil
+	}
+	return nil
+}
+
+func Convert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec(in *api.RoleBindingRestrictionSpec, out *RoleBindingRestrictionSpec, s conversion.Scope) error {
+	return autoConvert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec(in, out, s)
+}
+
 func autoConvert_v1_RoleList_To_api_RoleList(in *RoleList, out *api.RoleList, s conversion.Scope) error {
 	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1063,6 +1251,66 @@ func autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec
 
 func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
 	return autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s)
+}
+
+func autoConvert_v1_ServiceAccountReference_To_api_ServiceAccountReference(in *ServiceAccountReference, out *api.ServiceAccountReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	return nil
+}
+
+func Convert_v1_ServiceAccountReference_To_api_ServiceAccountReference(in *ServiceAccountReference, out *api.ServiceAccountReference, s conversion.Scope) error {
+	return autoConvert_v1_ServiceAccountReference_To_api_ServiceAccountReference(in, out, s)
+}
+
+func autoConvert_api_ServiceAccountReference_To_v1_ServiceAccountReference(in *api.ServiceAccountReference, out *ServiceAccountReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	return nil
+}
+
+func Convert_api_ServiceAccountReference_To_v1_ServiceAccountReference(in *api.ServiceAccountReference, out *ServiceAccountReference, s conversion.Scope) error {
+	return autoConvert_api_ServiceAccountReference_To_v1_ServiceAccountReference(in, out, s)
+}
+
+func autoConvert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction(in *ServiceAccountRestriction, out *api.ServiceAccountRestriction, s conversion.Scope) error {
+	if in.ServiceAccounts != nil {
+		in, out := &in.ServiceAccounts, &out.ServiceAccounts
+		*out = make([]api.ServiceAccountReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ServiceAccountReference_To_api_ServiceAccountReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ServiceAccounts = nil
+	}
+	out.Namespaces = in.Namespaces
+	return nil
+}
+
+func Convert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction(in *ServiceAccountRestriction, out *api.ServiceAccountRestriction, s conversion.Scope) error {
+	return autoConvert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction(in, out, s)
+}
+
+func autoConvert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction(in *api.ServiceAccountRestriction, out *ServiceAccountRestriction, s conversion.Scope) error {
+	if in.ServiceAccounts != nil {
+		in, out := &in.ServiceAccounts, &out.ServiceAccounts
+		*out = make([]ServiceAccountReference, len(*in))
+		for i := range *in {
+			if err := Convert_api_ServiceAccountReference_To_v1_ServiceAccountReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ServiceAccounts = nil
+	}
+	out.Namespaces = in.Namespaces
+	return nil
+}
+
+func Convert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction(in *api.ServiceAccountRestriction, out *ServiceAccountRestriction, s conversion.Scope) error {
+	return autoConvert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction(in, out, s)
 }
 
 func autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *api.SubjectAccessReview, s conversion.Scope) error {
@@ -1237,4 +1485,26 @@ func autoConvert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in 
 
 func Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in *api.SubjectRulesReviewStatus, out *SubjectRulesReviewStatus, s conversion.Scope) error {
 	return autoConvert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in, out, s)
+}
+
+func autoConvert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out *api.UserRestriction, s conversion.Scope) error {
+	out.Users = in.Users
+	out.Groups = in.Groups
+	out.Selectors = in.Selectors
+	return nil
+}
+
+func Convert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out *api.UserRestriction, s conversion.Scope) error {
+	return autoConvert_v1_UserRestriction_To_api_UserRestriction(in, out, s)
+}
+
+func autoConvert_api_UserRestriction_To_v1_UserRestriction(in *api.UserRestriction, out *UserRestriction, s conversion.Scope) error {
+	out.Users = in.Users
+	out.Groups = in.Groups
+	out.Selectors = in.Selectors
+	return nil
+}
+
+func Convert_api_UserRestriction_To_v1_UserRestriction(in *api.UserRestriction, out *UserRestriction, s conversion.Scope) error {
+	return autoConvert_api_UserRestriction_To_v1_UserRestriction(in, out, s)
 }

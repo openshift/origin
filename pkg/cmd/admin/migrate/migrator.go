@@ -131,7 +131,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		}
 	}
 
-	oclient, _, err := f.Clients()
+	oclient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

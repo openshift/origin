@@ -36,7 +36,7 @@ func negotiateVersion(client *kclient.Client, config *restclient.Config, request
 	// Get server versions
 	serverGVs, err := serverAPIVersions(client, "/oapi")
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if errors.IsNotFound(err) || errors.IsForbidden(err) {
 			glog.V(4).Infof("Server path /oapi was not found, returning the requested group version %v", preferredGV)
 			return preferredGV, nil
 		}

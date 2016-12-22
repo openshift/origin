@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -22,7 +22,7 @@ import (
 
 // ClusterRouter is a Diagnostic to check that there is a working router.
 type ClusterRouter struct {
-	KubeClient *kclient.Client
+	KubeClient *kclientset.Clientset
 	OsClient   *osclient.Client
 }
 
@@ -137,7 +137,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.Deploym
 }
 
 func (d *ClusterRouter) getRouterPods(dc *deployapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
-	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))
 		return nil
@@ -170,7 +170,7 @@ func (s *lineScanner) Text() string { return s.Scanner.Text() }
 func (s *lineScanner) Close() error { return s.ReadCloser.Close() }
 
 func (d *ClusterRouter) getPodLogScanner(pod *kapi.Pod) (*lineScanner, error) {
-	readCloser, err := d.KubeClient.RESTClient.Get().
+	readCloser, err := d.KubeClient.CoreClient.RESTClient.Get().
 		Namespace(pod.ObjectMeta.Namespace).
 		Name(pod.ObjectMeta.Name).
 		Resource("pods").SubResource("log").

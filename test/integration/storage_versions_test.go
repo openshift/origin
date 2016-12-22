@@ -16,8 +16,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
+	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/unversioned"
+	kclientset14 "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_4"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -40,7 +42,7 @@ func TestStorageVersionsUnified(t *testing.T) {
 }
 
 type legacyExtensionsAutoscaling struct {
-	kclient.HorizontalPodAutoscalerInterface
+	kautoscalingclient.HorizontalPodAutoscalerInterface
 	client    *restclient.RESTClient
 	namespace string
 }
@@ -103,16 +105,17 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, ns, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	projectAdminClient, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	projectAdminClient, projectAdminKubeClient, projectAdminKubeConfig, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
+	projectAdminKubeClient14 := kclientset14.NewForConfigOrDie(projectAdminKubeConfig)
 	if err := testutil.WaitForPolicyUpdate(projectAdminClient, ns, "get", extensions.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
 
 	jobTestcases := map[string]struct {
-		creator kclient.JobInterface
+		creator kbatchclient.JobInterface
 	}{
 		"batch": {creator: projectAdminKubeClient.Batch().Jobs(ns)},
 	}
@@ -145,7 +148,7 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 		if _, err := projectAdminKubeClient.Batch().Jobs(ns).Get(job.Name); err != nil {
 			t.Errorf("%s: Error reading Job from the batch client: %#v", name, err)
 		}
-		if _, err := projectAdminKubeClient.Extensions().Jobs(ns).Get(job.Name); err != nil {
+		if _, err := projectAdminKubeClient14.Extensions().Jobs(ns).Get(job.Name); err != nil {
 			t.Errorf("%s: Error reading Job from the extensions client: %#v", name, err)
 		}
 	}
@@ -156,7 +159,7 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 		ns,
 	}
 	hpaTestcases := map[string]struct {
-		creator kclient.HorizontalPodAutoscalerInterface
+		creator kautoscalingclient.HorizontalPodAutoscalerInterface
 	}{
 		"autoscaling": {creator: projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(ns)},
 		"extensions": {

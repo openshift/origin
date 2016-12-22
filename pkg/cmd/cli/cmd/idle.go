@@ -10,13 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	clientset "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -25,11 +22,13 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
+	utilerrors "github.com/openshift/origin/pkg/util/errors"
 )
 
 var (
@@ -75,8 +74,8 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *c
 	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "If true, only print the annotations that would be written, without annotating or idling the relevant objects")
 	cmd.Flags().StringVar(&o.filename, "resource-names-file", o.filename, "file containing list of services whose scalable resources to idle")
 	cmd.Flags().StringVarP(&o.selector, "selector", "l", o.selector, "Selector (label query) to use to select services")
-	cmd.Flags().BoolVar(&o.all, "all", o.all, "Select all services in the namespace")
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "Select services across all namespaces")
+	cmd.Flags().BoolVar(&o.all, "all", o.all, "if true, select all services in the namespace")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "if true, select services across all namespaces")
 	cmd.MarkFlagFilename("resource-names-file")
 
 	// TODO: take the `-o name` argument, and only print out names instead of the summary
@@ -523,19 +522,18 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		if len(byService) == 0 || len(byScalable) == 0 {
 			return fmt.Errorf("no valid scalable resources found to idle: %v", err)
 		}
-		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occured while finding scalable resources to idle: %v", err)
+		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	oclient, kclient, err := f.Clients()
+	oclient, _, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
 
-	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient)
+	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient.Extensions())
 	dcGetter := deployclient.New(oclient.RESTClient)
-	rcGetter := clientset.FromUnversionedClient(kclient)
 
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, rcGetter, func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -623,16 +621,20 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	// actually "idle" the scalable resources by scaling them down to zero
 	// (scale down to zero *after* we've applied the annotation so that we don't miss any traffic)
 	for scaleRef, info := range toScale {
+		idled := ""
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			if err := scaleAnnotater.UpdateObjectScale(info.namespace, scaleRef, info.obj, info.scale); err != nil {
+			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, dcGetter, kclient.Core())
+			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
 				continue
 			}
+		} else {
+			idled = "(dry run)"
 		}
 
-		fmt.Fprintf(o.out, "Idled %s %s/%s (dry run)\n", scaleRef.Kind, info.namespace, scaleRef.Name)
+		fmt.Fprintf(o.out, "Idled %s %s/%s %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, idled)
 	}
 
 	if hadError {

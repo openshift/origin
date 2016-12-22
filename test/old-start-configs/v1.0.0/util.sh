@@ -83,7 +83,7 @@ function wait_for_url_timed {
 #
 # $1 - The file to check for existence
 # $2 - Optional time to sleep between attempts (Default: 0.2s)
-# $3 - Optional number of attemps to make (Default: 10)
+# $3 - Optional number of attempts to make (Default: 10)
 function wait_for_file {
   file=$1
   wait=${2:-0.2}
@@ -104,7 +104,7 @@ function wait_for_file {
 # $1 - The URL to check
 # $2 - Optional prefix to use when echoing a successful result
 # $3 - Optional time to sleep between attempts (Default: 0.2s)
-# $4 - Optional number of attemps to make (Default: 10)
+# $4 - Optional number of attempts to make (Default: 10)
 function wait_for_url {
   url=$1
   prefix=${2:-}
@@ -137,7 +137,7 @@ function wait_for_url {
 # form).
 #
 # $1 - Optional time to sleep between attempts (Default: 0.2s)
-# $2 - Optional number of attemps to make (Default: 10)
+# $2 - Optional number of attempts to make (Default: 10)
 function set_curl_args {
   wait=${1:-0.2}
   times=${2:-10}

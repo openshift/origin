@@ -81,10 +81,6 @@ function os::text::clear_string() {
     fi
 }
 
-# If $TERM is set but not exported, we will not be able to call
-# tput. Therefore, we export whatever is present in $TERM.
-export TERM
-
 # os::text::internal::is_tty determines if we are outputting to a TTY
 function os::text::internal::is_tty() {
 	[[ -t 1 && -n "${TERM:-}" ]]

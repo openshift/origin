@@ -13,19 +13,19 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type OsdnMaster struct {
-	kClient         *kclient.Client
+	kClient         *kclientset.Clientset
 	osClient        *osclient.Client
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclient.Client) error {
+func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclientset.Clientset) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
@@ -145,7 +145,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.kClient.Services(kapi.NamespaceAll).List(kapi.ListOptions{})
+	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

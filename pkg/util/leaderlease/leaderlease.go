@@ -161,7 +161,7 @@ func (e *Etcd) Release() {
 // If the lease hold fails, is deleted, or changed to another user. The provided
 // index is used to watch from.
 // TODO: currently if we miss the watch window, we will error and try to recreate
-//   the lock. It's likely we will lose the lease due to that.
+// the lock. It's likely we will lose the lease due to that.
 func (e *Etcd) tryHold(ttl, index uint64) error {
 	// watch for termination
 	stop := make(chan struct{})

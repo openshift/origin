@@ -12,15 +12,18 @@ import (
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
@@ -64,16 +67,16 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 type UnidlingController struct {
 	controller          *framework.Controller
 	scaleNamespacer     kextclient.ScalesGetter
-	endpointsNamespacer kclient.EndpointsGetter
+	endpointsNamespacer kcoreclient.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
 	lastFiredCache      *lastFiredCache
 
 	// TODO: remove these once we get the scale-source functionality in the scale endpoints
 	dcNamespacer deployclient.DeploymentConfigsGetter
-	rcNamespacer kclient.ReplicationControllersGetter
+	rcNamespacer kcoreclient.ReplicationControllersGetter
 }
 
-func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kclient.EndpointsGetter, evtNS kclient.EventsGetter, dcNamespacer deployclient.DeploymentConfigsGetter, rcNamespacer kclient.ReplicationControllersGetter, resyncPeriod time.Duration) *UnidlingController {
+func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient.EndpointsGetter, evtNS kcoreclient.EventsGetter, dcNamespacer deployclient.DeploymentConfigsGetter, rcNamespacer kcoreclient.ReplicationControllersGetter, resyncPeriod time.Duration) *UnidlingController {
 	fieldSet := fields.Set{}
 	fieldSet["reason"] = unidlingapi.NeedPodsReason
 	fieldSelector := fieldSet.AsSelector()
@@ -234,7 +237,7 @@ func (c *UnidlingController) awaitRequest() bool {
 		return true
 	}
 
-	// Otherwise, if we have an error, we were at least partially unsucessful in unidling, so
+	// Otherwise, if we have an error, we were at least partially unsuccessful in unidling, so
 	// we requeue the event to process later
 
 	// don't try to process failing requests forever
@@ -326,7 +329,8 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 
 		scale.Spec.Replicas = scalableRef.Replicas
 
-		if err = scaleAnnotater.UpdateObjectScale(info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
+		updater := unidlingutil.NewScaleUpdater(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
+		if err = scaleAnnotater.UpdateObjectScale(updater, info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
 			if errors.IsNotFound(err) {
 				utilruntime.HandleError(fmt.Errorf("%s %q does not exist, removing from list of scalables while unidling service %s/%s: %v", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name, err))
 				delete(targetScalablesSet, scalableRef)

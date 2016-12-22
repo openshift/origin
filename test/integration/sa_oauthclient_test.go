@@ -60,7 +60,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, projectName, []string{"default"}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, projectName, []string{"default"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -93,7 +93,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
-		defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Get("default")
+		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default")
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		}
 		defaultSA.Annotations[saoauth.OAuthRedirectModelAnnotationURIPrefix+"one"] = redirectURL
 		defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
-		defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Update(defaultSA)
+		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Update(defaultSA)
 		return err
 	})
 	if err != nil {
@@ -112,7 +112,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := clusterAdminKubeClient.Secrets(projectName).List(kapi.ListOptions{})
+		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(kapi.ListOptions{})
 		if err != nil {
 			return false, err
 		}

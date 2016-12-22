@@ -10,6 +10,7 @@ import (
 	etcdversion "github.com/coreos/etcd/version"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -33,7 +34,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, *kclient.Client, error)
+	Clients      func() (*client.Client, *kclient.Client, *kclientset.Clientset, error)
 
 	Timeout time.Duration
 
@@ -136,7 +137,7 @@ func (o VersionOptions) RunVersion() error {
 		}
 		versionHost = clientConfig.Host
 
-		oClient, kClient, err := o.Clients()
+		oClient, kClient, _, err := o.Clients()
 		if err != nil {
 			done <- err
 			return

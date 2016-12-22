@@ -16,7 +16,7 @@ import (
 type FileSearcher struct {
 }
 
-// Search attemps to read template files and transform it into template objects
+// Search attempts to read template files and transform it into template objects
 func (r *FileSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
 	matches := app.ComponentMatches{}
 	var errs []error

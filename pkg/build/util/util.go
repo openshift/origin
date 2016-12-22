@@ -74,7 +74,7 @@ func BuildRunPolicy(build *buildapi.Build) buildapi.BuildRunPolicy {
 			return buildapi.BuildRunPolicySerialLatestOnly
 		}
 	}
-	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)")
+	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)", build.Namespace, build.Name)
 	return buildapi.BuildRunPolicySerial
 }
 

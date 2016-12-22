@@ -8,3 +8,5 @@ parameters:
   restauthenabled: "true"
   restuser: "admin"
   restuserkey: "password"
+  gidMin: "40000"
+  gidMax: "50000"

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -47,7 +47,7 @@ type PruneDeploymentsOptions struct {
 	Namespace       string
 
 	OSClient client.Interface
-	KClient  kclient.Interface
+	KClient  kclientset.Interface
 	Out      io.Writer
 }
 
@@ -73,8 +73,8 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
+	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&opts.Orphans, "orphans", opts.Orphans, "If true, prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
 	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of a deployment for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&opts.KeepComplete, "keep-complete", opts.KeepComplete, "Per DeploymentConfig, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.")
 	cmd.Flags().IntVar(&opts.KeepFailed, "keep-failed", opts.KeepFailed, "Per DeploymentConfig, specify the number of deployments whose status is failed that will be preserved whose replica size is 0.")
@@ -99,7 +99,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	}
 	o.Out = out
 
-	osClient, kClient, err := f.Clients()
+	osClient, _, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (o PruneDeploymentsOptions) Run() error {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := o.KClient.ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
+	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (o PruneDeploymentsOptions) Run() error {
 	deploymentDeleter := &describingDeploymentDeleter{w: w}
 
 	if o.Confirm {
-		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KClient, o.KClient)
+		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KClient.Core(), o.KClient.Core())
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
 	}

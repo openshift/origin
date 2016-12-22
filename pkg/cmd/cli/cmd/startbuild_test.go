@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,8 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 type FakeClientConfig struct {
@@ -143,5 +146,169 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	}
 	if event.Git.Refs[0].Commit != "2384" {
 		t.Fatalf("unexpected ref: %#v", event.Git.Refs[0])
+	}
+}
+
+type FakeBuildConfigs struct {
+	client.BuildConfigInterface
+	t            *testing.T
+	expectAsFile bool
+}
+
+func (c FakeBuildConfigs) InstantiateBinary(options *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
+	if binary, err := ioutil.ReadAll(r); err != nil {
+		c.t.Errorf("Error while reading binary over HTTP: %v", err)
+	} else if string(binary) != "hi" {
+		c.t.Errorf("Wrong value while reading binary over HTTP: %q", binary)
+	}
+
+	if c.expectAsFile && options.AsFile == "" {
+		c.t.Errorf("Expecting file, got archive")
+	} else if !c.expectAsFile && options.AsFile != "" {
+		c.t.Errorf("Expecting archive, got file")
+	}
+
+	return &buildapi.Build{}, nil
+}
+
+func TestHttpBinary(t *testing.T) {
+	tests := []struct {
+		description        string
+		fromFile           bool // true = --from-file, false = --from-dir/--from-archive
+		urlPath            string
+		statusCode         int  // server status code, 200 if not set
+		contentDisposition bool // will server send Content-Disposition with filename?
+		networkError       bool
+		tlsBadCert         bool
+		expectedError      string
+		expectWarning      bool
+	}{
+		{
+			description:        "--from-file, filename in header",
+			fromFile:           true,
+			urlPath:            "/",
+			contentDisposition: true,
+		},
+		{
+			description: "--from-file, filename in URL",
+			fromFile:    true,
+			urlPath:     "/hi.txt",
+		},
+		{
+			description:   "--from-file, no filename",
+			fromFile:      true,
+			urlPath:       "",
+			expectedError: "unable to determine filename",
+		},
+		{
+			description:   "--from-file, http error",
+			fromFile:      true,
+			urlPath:       "/",
+			statusCode:    404,
+			expectedError: "unable to download file",
+		},
+		{
+			description:   "--from-file, network error",
+			fromFile:      true,
+			urlPath:       "/hi.txt",
+			networkError:  true,
+			expectedError: "invalid port",
+		},
+		{
+			description:   "--from-file, https with invalid certificate",
+			fromFile:      true,
+			urlPath:       "/hi.txt",
+			tlsBadCert:    true,
+			expectedError: "certificate signed by unknown authority",
+		},
+		{
+			description:        "--from-dir, filename in header",
+			fromFile:           false,
+			contentDisposition: true,
+			expectWarning:      true,
+		},
+		{
+			description:   "--from-dir, filename in URL",
+			fromFile:      false,
+			urlPath:       "/hi.tar.gz",
+			expectWarning: true,
+		},
+		{
+			description:   "--from-dir, no filename",
+			fromFile:      false,
+			expectWarning: true,
+		},
+		{
+			description:   "--from-dir, http error",
+			statusCode:    503,
+			fromFile:      false,
+			expectedError: "unable to download file",
+		},
+	}
+
+	for _, tc := range tests {
+		stdin := bytes.NewReader([]byte{})
+		stdout := &bytes.Buffer{}
+		options := buildapi.BinaryBuildRequestOptions{}
+		fakeclient := testclient.NewSimpleFake()
+		buildconfigs := FakeBuildConfigs{fakeclient.BuildConfigs("default"), t, tc.fromFile}
+
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			if tc.contentDisposition {
+				w.Header().Add("Content-Disposition", "attachment; filename=hi.txt")
+			}
+			if tc.statusCode > 0 {
+				w.WriteHeader(tc.statusCode)
+			}
+			w.Write([]byte("hi"))
+		}
+		var server *httptest.Server
+		if tc.tlsBadCert {
+			// uses self-signed certificate
+			server = httptest.NewTLSServer(http.HandlerFunc(handler))
+		} else {
+			server = httptest.NewServer(http.HandlerFunc(handler))
+		}
+		defer server.Close()
+
+		if tc.networkError {
+			server.URL = "http://localhost:999999"
+		}
+
+		var fromDir, fromFile string
+		if tc.fromFile {
+			fromFile = server.URL + tc.urlPath
+		} else {
+			fromDir = server.URL + tc.urlPath
+		}
+
+		build, err := streamPathToBuild(nil, stdin, stdout, buildconfigs, fromDir, fromFile, "", &options)
+
+		if len(tc.expectedError) > 0 {
+			if err == nil {
+				t.Errorf("[%s] Expected error: %q, got success", tc.description, tc.expectedError)
+			} else if !strings.Contains(err.Error(), tc.expectedError) {
+				t.Errorf("[%s] Expected error: %q, got: %v", tc.description, tc.expectedError, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("[%s] Unexpected error: %v", tc.description, err)
+				continue
+			}
+
+			if build == nil {
+				t.Errorf("[%s] No error and no build?", tc.description)
+			}
+
+			if tc.fromFile && options.AsFile != "hi.txt" {
+				t.Errorf("[%s] Wrong asFile: %q", tc.description, options.AsFile)
+			} else if !tc.fromFile && options.AsFile != "" {
+				t.Errorf("[%s] asFile set when using --from-dir: %q", tc.description, options.AsFile)
+			}
+		}
+
+		if out := stdout.String(); tc.expectWarning != strings.Contains(out, "may not be an archive") {
+			t.Errorf("[%s] Expected archive warning: %v, got: %q", tc.description, tc.expectWarning, out)
+		}
 	}
 }

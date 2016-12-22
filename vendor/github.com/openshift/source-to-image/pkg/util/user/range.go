@@ -83,6 +83,7 @@ func (b *rangeBuilder) setBound(num int, err error, bound **int) *rangeBuilder {
 	return b
 }
 
+// Range returns the completed Range from the rangeBuilder.
 func (b *rangeBuilder) Range() (*Range, error) {
 	if b.err != nil {
 		return nil, b.err

@@ -47,7 +47,7 @@ pods and service accounts within a project
 
 ## Requirements
 
-1.  Provide a set of restrictions that controlls how a security context is created as a new, cluster-scoped, object
+1.  Provide a set of restrictions that controls how a security context is created as a new, cluster-scoped, object
 called SecurityContextConstraints.
 1.  User information in `user.Info` must be available to admission controllers. (Completed in
 https://github.com/kubernetes/kubernetes/pull/8203)

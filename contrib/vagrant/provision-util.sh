@@ -14,8 +14,8 @@ os::provision::build-origin() {
 
   # This optimization is intended for devcluster use so hard-coding the
   # arch in the path should be ok.
-  if [[ -f "$(os::build::find-binary oc "${origin_root}")" &&
-          "${skip_build}" = "true" ]]; then
+  if OS_ROOT="${origin_root}" os::util::find::built_binary oc >/dev/null 2>&1 &&
+          [[ "${skip_build}" = "true" ]]; then
     echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
   else
     echo "Building openshift"
@@ -378,13 +378,13 @@ os::provision::disable-node() {
   local config="$(os::provision::get-admin-config "${config_root}")"
 
   local msg="${node_name} to register with the master"
-  local oc="$(os::build::find-binary oc "${origin_root}")"
+  local oc="$(OS_ROOT="${origin_root}" os::util::find::built_binary oc)"
   local condition="os::provision::is-node-registered ${oc} ${config} \
       ${node_name}"
   os::provision::wait-for-condition "${msg}" "${condition}"
 
   echo "Disabling scheduling for node ${node_name}"
-  "$(os::build::find-binary osadm "${origin_root}")" --config="${config}" \
+  "$(OS_ROOT="${origin_root}" os::util::find::built_binary osadm)" --config="${config}" \
       manage-node "${node_name}" --schedulable=false > /dev/null
 }
 

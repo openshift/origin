@@ -130,7 +130,7 @@ func whoAmI(clientConfig *restclient.Config) (*api.User, error) {
 	me, err := client.Users().Get("~")
 
 	// if we're talking to kube (or likely talking to kube),
-	if kerrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		switch {
 		case len(clientConfig.BearerToken) > 0:
 			// the user has already been willing to provide the token on the CLI, so they probably

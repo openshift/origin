@@ -8,6 +8,7 @@ trap os::test::junit::reconcile_output EXIT
   oc delete all,templates,secrets,pods,jobs --all
   oc delete image v1-image
   oc delete group patch-group
+  oc delete project test-project-admin
   exit 0
 ) &>/dev/null
 
@@ -297,9 +298,10 @@ os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
 temp_config="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > '${temp_config}'"
 export KUBECONFIG="${temp_config}"
-os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
-os::cmd::expect_success 'oc login -u test-user -p anything'
-os::cmd::try_until_success "oc project '$(oc project -q)'"
+os::cmd::expect_success 'oc policy add-role-to-user admin project-admin'
+os::cmd::expect_success 'oc login -u project-admin -p anything'
+os::cmd::expect_success 'oc new-project test-project-admin'
+os::cmd::try_until_success "oc project test-project-admin"
 
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'

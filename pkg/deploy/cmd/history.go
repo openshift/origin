@@ -7,7 +7,8 @@ import (
 	"text/tabwriter"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -15,14 +16,14 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func NewDeploymentConfigHistoryViewer(oc client.Interface, kc kclient.Interface) kubectl.HistoryViewer {
-	return &DeploymentConfigHistoryViewer{dn: oc, rn: kc}
+func NewDeploymentConfigHistoryViewer(oc client.Interface, kc kclientset.Interface) kubectl.HistoryViewer {
+	return &DeploymentConfigHistoryViewer{dn: oc, rn: kc.Core()}
 }
 
 // DeploymentConfigHistoryViewer is an implementation of the kubectl HistoryViewer interface
 // for deployment configs.
 type DeploymentConfigHistoryViewer struct {
-	rn kclient.ReplicationControllersNamespacer
+	rn kcoreclient.ReplicationControllersGetter
 	dn client.DeploymentConfigsNamespacer
 }
 

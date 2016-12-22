@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	watchapi "k8s.io/kubernetes/pkg/watch"
@@ -82,7 +83,7 @@ func mockBuild() *buildapi.Build {
 	}
 }
 
-func RunBuildControllerTest(t testingT, osClient *client.Client, kClient *kclient.Client) {
+func RunBuildControllerTest(t testingT, osClient *client.Client, kClientset *kclientset.Clientset) {
 	// Setup an error channel
 	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
 
@@ -120,7 +121,7 @@ func RunBuildControllerTest(t testingT, osClient *client.Client, kClient *kclien
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClient.Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
+	podWatch, err := kClientset.Core().Pods(ns).Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +159,7 @@ type buildControllerPodTest struct {
 	States []buildControllerPodState
 }
 
-func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kclient.Client) {
+func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kclientset.Clientset) {
 	ns := testutil.Namespace()
 	waitTime := BuildPodControllerTestWait
 
@@ -501,7 +502,7 @@ WaitLoop3:
 	}
 }
 
-func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
@@ -514,7 +515,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAd
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -566,7 +567,7 @@ func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watc
 	return nil
 }
 
-func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
@@ -579,7 +580,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -622,7 +623,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -633,7 +634,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 	}
 }
 
-func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
@@ -646,7 +647,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -686,7 +687,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name)
 	if err != nil {
@@ -697,7 +698,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 	}
 }
 
-func RunBuildConfigChangeControllerTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+func RunBuildConfigChangeControllerTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
 	config := configChangeBuildConfig()
 	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {

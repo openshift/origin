@@ -49,6 +49,7 @@ var (
 	RouterPorts           = []int{80, 443}
 	DefaultPorts          = append(BasePorts, DefaultDNSPort)
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
+	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
 	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
 )
 
@@ -100,14 +101,14 @@ func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, contai
 }
 
 func (h *Helper) TestPorts(ports []int) error {
-	portData, _, err := h.runHelper.New().Image(h.image).
+	portData, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
 		HostPid().
 		Entrypoint("/bin/bash").
 		Command("-c", "cat /proc/net/tcp && ( [ -e /proc/net/tcp6 ] && cat /proc/net/tcp6 || true)").
-		CombinedOutput()
+		Output()
 	if err != nil {
 		return errors.NewError("Cannot get TCP port information from Kubernetes host").WithCause(err)
 	}
@@ -135,7 +136,7 @@ func (h *Helper) TestIP(ip string) error {
 		Entrypoint("socat").
 		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
 	if err != nil {
-		return errors.NewError("cannnot start simple server on Docker host").WithCause(err)
+		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
 	}
 	defer func() {
 		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))
@@ -150,7 +151,7 @@ func (h *Helper) TestForwardedIP(ip string) error {
 		Entrypoint("socat").
 		Command("TCP-LISTEN:8443,crlf,reuseaddr,fork", "SYSTEM:\"echo 'hello world'\"").Start()
 	if err != nil {
-		return errors.NewError("cannnot start simple server on Docker host").WithCause(err)
+		return errors.NewError("cannot start simple server on Docker host").WithCause(err)
 	}
 	defer func() {
 		errors.LogError(h.dockerHelper.StopAndRemoveContainer(id))
@@ -234,6 +235,10 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	}
 	env = append(env, opt.Environment...)
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))
+
+	// Kubelet needs to be able to write to
+	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
+	binds = append(binds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
 
 	// Check if a configuration exists before creating one if UseExistingConfig
 	// was specified

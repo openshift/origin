@@ -12,8 +12,8 @@ import (
 	registryauth "github.com/docker/distribution/registry/auth"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -47,7 +47,7 @@ const (
 // RegistryClient encapsulates getting access to the OpenShift API.
 type RegistryClient interface {
 	// Clients return the authenticated clients to use with the server.
-	Clients() (client.Interface, kclient.Interface, error)
+	Clients() (client.Interface, kclientset.Interface, error)
 	// SafeClientConfig returns a client config without authentication info.
 	SafeClientConfig() restclient.Config
 }
@@ -68,8 +68,9 @@ func NewRegistryClient(config *clientcmd.Config) RegistryClient {
 }
 
 // Client returns the authenticated client to use with the server.
-func (r *registryClient) Clients() (client.Interface, kclient.Interface, error) {
-	return r.config.Clients()
+func (r *registryClient) Clients() (client.Interface, kclientset.Interface, error) {
+	oc, _, kc, err := r.config.Clients()
+	return oc, kc, err
 }
 
 // SafeClientConfig returns a client config without authentication info.

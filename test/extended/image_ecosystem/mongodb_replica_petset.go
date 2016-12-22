@@ -19,12 +19,23 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
 
 	g.Describe("creating from a template", func() {
+		g.AfterEach(func() {
+			for i := 0; i < 3; i++ {
+				pod := fmt.Sprintf("mongodb-replicaset-%d", i)
+				podLogs, err := oc.Run("logs").Args(pod, "--timestamps").Output()
+				if err != nil {
+					ginkgolog("error retrieving pod logs for %s: %v", pod, err)
+					continue
+				}
+				ginkgolog("pod logs for %s:\n%s", podLogs, err)
+			}
+		})
 		g.It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By("creating persistent volumes")
 			_, err := exutil.SetupHostPathVolumes(
-				oc.AdminKubeREST().PersistentVolumes(),
+				oc.AdminKubeClient().Core().PersistentVolumes(),
 				oc.Namespace(),
 				"256Mi",
 				3,
@@ -34,9 +45,9 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 			defer func() {
 				// We're removing only PVs because all other things will be removed
 				// together with namespace.
-				err := exutil.CleanupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace())
+				err := exutil.CleanupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace())
 				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't cleanup persistent volumes: %v", err)
+					ginkgolog("WARNING: couldn't cleanup persistent volumes: %v", err)
 				}
 			}()
 
@@ -53,19 +64,27 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 
 			g.By("waiting for pods to running")
 			podNames, err := exutil.WaitForPods(
-				oc.KubeREST().Pods(oc.Namespace()),
+				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,
 				2*time.Minute,
 			)
+			if err != nil {
+				desc, _ := oc.Run("describe", "petset").Output()
+				ginkgolog("\n\nPetset at failure:\n%s\n\n", desc)
+				desc, _ = oc.Run("describe", "pods").Output()
+				ginkgolog("\n\nPods at petset failure:\n%s\n\n", desc)
+
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(podNames).Should(o.HaveLen(3))
 
 			g.By("expecting that we can insert a new record on primary node")
 			mongo := dbutil.NewMongoDB(podNames[0])
 			replicaSet := mongo.(exutil.ReplicaSet)
-			_, err = replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
+			out, err := replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
+			ginkgolog("save result: %s\n", out)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting that we can read a record from all members")
@@ -79,7 +98,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 
 			g.By("waiting for restarting of the pods")
 			podNames, err = exutil.WaitForPods(
-				oc.KubeREST().Pods(oc.Namespace()),
+				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,

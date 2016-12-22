@@ -132,6 +132,45 @@
       "status": {
         "lastVersion": 0
       }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-github-archive",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Binary",
+          "binary": {},
+          "contextDir": "ruby-hello-world-master"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
     }
   ]
 }

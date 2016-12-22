@@ -38,6 +38,9 @@ type BuildDefaultsConfig struct {
 
 	// annotations are annotations that will be added to the build pod
 	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// resources defines resource requirements to execute the build.
+	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the

@@ -98,7 +98,7 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Namespace = namespace
 
-	osClient, _, err := f.Clients()
+	osClient, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

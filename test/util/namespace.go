@@ -5,7 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -37,12 +37,12 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 	return err
 }
 
-func DeleteAndWaitForNamespaceTermination(c *kclient.Client, name string) error {
-	w, err := c.Namespaces().Watch(kapi.ListOptions{})
+func DeleteAndWaitForNamespaceTermination(c *kclientset.Clientset, name string) error {
+	w, err := c.Core().Namespaces().Watch(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
-	if err := c.Namespaces().Delete(name); err != nil {
+	if err := c.Core().Namespaces().Delete(name, nil); err != nil {
 		return err
 	}
 	_, err = watch.Until(30*time.Second, w, func(event watch.Event) (bool, error) {

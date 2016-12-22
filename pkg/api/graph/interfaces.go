@@ -28,7 +28,7 @@ type Severity string
 
 const (
 	// InfoSeverity is interesting
-	// TODO: Consider what to do with this once we revisit the graph api - currently not used.
+	// Currently used in missing probe markers
 	InfoSeverity Severity = "info"
 	// WarningSeverity is probably wrong, but we aren't certain
 	WarningSeverity Severity = "warning"

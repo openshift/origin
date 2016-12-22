@@ -12,7 +12,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 
@@ -39,9 +39,9 @@ func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultN
 }
 
 func setDefaultCache(p *imagePolicyPlugin) kcache.Indexer {
-	kclient := ktestclient.NewSimpleFake()
+	kclient := fake.NewSimpleClientset()
 	store := cache.NewCacheStore(kcache.MetaNamespaceKeyFunc)
-	p.SetProjectCache(cache.NewFake(kclient.Namespaces(), store, ""))
+	p.SetProjectCache(cache.NewFake(kclient.Core().Namespaces(), store, ""))
 	return store
 }
 

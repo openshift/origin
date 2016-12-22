@@ -13,18 +13,18 @@ There are no nodes that match the selector for DaemonSet '%[1]s'. This
 means Fluentd is not running and is not gathering logs from any nodes.
 An example of a command to target a specific node for this DaemonSet:
 
-  oc label node/node1.example.com %[2]s
+  $ oc label node/node1.example.com %[2]s
 
 or to label them all:
 
-  oc label node --all %[2]s
+  $ oc label node --all %[2]s
 `
 
 const daemonSetPartialNodesLabeled = `
 There are some nodes that match the selector for DaemonSet '%s'.  
 A list of matching nodes can be discovered by running:
 
-  oc get nodes -l %s
+  $ oc get nodes -l %s
 `
 const daemonSetNoPodsFound = `
 There were no pods found that match DaemonSet '%s' with matchLabels '%s'
@@ -36,9 +36,9 @@ Depending upon the state, this could mean there is an error running the image
 for one or more pod containers, the node could be pulling images, etc.  Try running
 the following commands to get additional information:
 
-  oc describe pod %[1]s -n %[5]s
-  oc logs %[1]s -n %[5]s
-  oc get events -n %[5]s
+  $ oc describe pod %[1]s -n %[5]s
+  $ oc logs %[1]s -n %[5]s
+  $ oc get events -n %[5]s
 `
 const daemonSetNotFound = `
 There were no DaemonSets in project '%s' that included label '%s'.  This implies

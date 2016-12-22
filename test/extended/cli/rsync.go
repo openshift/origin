@@ -44,7 +44,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 		g.By("Getting the jenkins pod name")
 		selector, _ := labels.Parse("name=jenkins")
-		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: selector})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: selector})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).ToNot(o.BeZero())
 		podName = pods.Items[0].Name

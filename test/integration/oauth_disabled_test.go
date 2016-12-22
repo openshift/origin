@@ -40,7 +40,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Make sure cert auth still works
-	namespaces, err := client.Namespaces().List(kapi.ListOptions{})
+	namespaces, err := client.Core().Namespaces().List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

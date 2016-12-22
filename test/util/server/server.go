@@ -12,8 +12,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
@@ -28,6 +28,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
@@ -177,6 +178,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		SignerName: admin.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
+		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+
 		APIServerURL:       masterURL.String(),
 		PublicAPIServerURL: publicMasterURL.String(),
 
@@ -227,7 +231,9 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
-	startOptions.Complete()
+	if err := startOptions.Complete(); err != nil {
+		return nil, nil, nil, err
+	}
 	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
@@ -380,7 +386,7 @@ func StartTestMasterAPI() (*configapi.MasterConfig, string, error) {
 
 // serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg
 // secret associated with it.
-func serviceAccountSecretsExist(client *kclient.Client, namespace string, sa *kapi.ServiceAccount) bool {
+func serviceAccountSecretsExist(clientset *kclientset.Clientset, namespace string, sa *kapi.ServiceAccount) bool {
 	foundTokenSecret := false
 	foundDockercfgSecret := false
 	for _, secret := range sa.Secrets {
@@ -388,7 +394,7 @@ func serviceAccountSecretsExist(client *kclient.Client, namespace string, sa *ka
 		if len(secret.Namespace) > 0 {
 			ns = secret.Namespace
 		}
-		secret, err := client.Secrets(ns).Get(secret.Name)
+		secret, err := clientset.Core().Secrets(ns).Get(secret.Name)
 		if err == nil {
 			switch secret.Type {
 			case kapi.SecretTypeServiceAccountToken:
@@ -404,8 +410,8 @@ func serviceAccountSecretsExist(client *kclient.Client, namespace string, sa *ka
 // WaitForPodCreationServiceAccounts ensures that the service account needed for pod creation exists
 // and that the cache for the admission control that checks for pod tokens has caught up to allow
 // pod creation.
-func WaitForPodCreationServiceAccounts(client *kclient.Client, namespace string) error {
-	if err := WaitForServiceAccounts(client, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+func WaitForPodCreationServiceAccounts(clientset *kclientset.Clientset, namespace string) error {
+	if err := WaitForServiceAccounts(clientset, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		return err
 	}
 
@@ -419,12 +425,12 @@ func WaitForPodCreationServiceAccounts(client *kclient.Client, namespace string)
 	}
 
 	return wait.PollImmediate(time.Second, PodCreationWaitTimeout, func() (bool, error) {
-		pod, err := client.Pods(namespace).Create(testPod)
+		pod, err := clientset.Core().Pods(namespace).Create(testPod)
 		if err != nil {
 			glog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
 		}
-		err = client.Pods(namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		err = clientset.Core().Pods(namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
 		if err != nil {
 			return false, err
 		}
@@ -434,12 +440,12 @@ func WaitForPodCreationServiceAccounts(client *kclient.Client, namespace string)
 
 // WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
 // The extra controllers tend to starve the service account controller
-func WaitForServiceAccounts(client *kclient.Client, namespace string, accounts []string) error {
-	serviceAccounts := client.ServiceAccounts(namespace)
+func WaitForServiceAccounts(clientset *kclientset.Clientset, namespace string, accounts []string) error {
+	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
 			if sa, err := serviceAccounts.Get(account); err != nil {
-				if !serviceAccountSecretsExist(client, namespace, sa) {
+				if !serviceAccountSecretsExist(clientset, namespace, sa) {
 					continue
 				}
 				return false, nil

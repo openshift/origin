@@ -120,12 +120,14 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "Start a new deployment now.")
+	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "If true, start a new deployment now.")
 	cmd.Flags().MarkDeprecated("latest", fmt.Sprintf("use '%s rollout latest' instead", fullName))
-	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "Retry the latest failed deployment.")
-	cmd.Flags().BoolVar(&options.cancelDeploy, "cancel", false, "Cancel the in-progress deployment.")
-	cmd.Flags().BoolVar(&options.enableTriggers, "enable-triggers", false, "Enables all image triggers for the deployment config.")
-	cmd.Flags().BoolVar(&options.follow, "follow", false, "Follow the logs of a deployment")
+	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "If true, retry the latest failed deployment.")
+	cmd.Flags().BoolVar(&options.cancelDeploy, "cancel", false, "If true, cancel the in-progress deployment.")
+	cmd.Flags().MarkDeprecated("cancel", fmt.Sprintf("use '%s rollout cancel' instead", fullName))
+	cmd.Flags().BoolVar(&options.enableTriggers, "enable-triggers", false, "If true, enables all image triggers for the deployment config.")
+	cmd.Flags().MarkDeprecated("enable-triggers", fmt.Sprintf("use '%s set triggers' instead", fullName))
+	cmd.Flags().BoolVar(&options.follow, "follow", false, "If true, follow the logs of a deployment")
 
 	return cmd
 }
@@ -136,7 +138,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 	var err error
 
-	o.osClient, o.kubeClient, err = f.Clients()
+	o.osClient, o.kubeClient, _, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -241,8 +243,8 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
-		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.",
-			config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment))
+		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
+			config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment), deployment.Name)
 	}
 	if err != nil && !kerrors.IsNotFound(err) {
 		return err
@@ -304,7 +306,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 		if deployutil.IsCompleteDeployment(deployment) {
 			message += fmt.Sprintf("You can start a new deployment with 'oc deploy --latest dc/%s'.", config.Name)
 		} else {
-			message += fmt.Sprintf("Optionally, you can cancel this deployment with 'oc deploy --cancel dc/%s'.", config.Name)
+			message += fmt.Sprintf("Optionally, you can cancel this deployment with 'oc rollout cancel dc/%s'.", config.Name)
 		}
 
 		return fmt.Errorf(message)
@@ -339,6 +341,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 }
 
 // cancel cancels any deployment process in progress for config.
+// TODO: this code will be deprecated
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")

@@ -5,7 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -19,7 +19,7 @@ import (
 type AllocationFactory struct {
 	UIDAllocator uidallocator.Interface
 	MCSAllocator MCSAllocationFunc
-	Client       kclient.NamespaceInterface
+	Client       kcoreclient.NamespaceInterface
 	// Queue may be a FIFO queue of namespaces. If nil, will be initialized using
 	// the client.
 	Queue controller.ReQueue

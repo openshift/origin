@@ -9,7 +9,7 @@ import (
 )
 
 func TestNodeVNIDMap(t *testing.T) {
-	vmap := newNodeVNIDMap()
+	vmap := newNodeVNIDMap(nil, nil)
 
 	// empty vmap
 

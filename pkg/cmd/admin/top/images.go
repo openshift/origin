@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -68,13 +68,13 @@ type TopImagesOptions struct {
 	// helpers
 	out      io.Writer
 	osClient client.Interface
-	kClient  kclient.Interface
+	kClient  kclientset.Interface
 }
 
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	osClient, kClient, err := f.Clients()
+	osClient, _, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 	}
 	o.Streams = allStreams
 
-	allPods, err := kClient.Pods(namespace).List(kapi.ListOptions{})
+	allPods, err := kClient.Core().Pods(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

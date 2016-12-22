@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -24,37 +27,37 @@ func TestGetClient(t *testing.T) {
 	testCases := []struct {
 		name       string
 		clientName string
-		kubeClient *ktestclient.Fake
+		kubeClient *fake.Clientset
 		osClient   *ostestclient.Fake
 
 		expectedDelegation  bool
 		expectedErr         string
 		expectedClient      *oauthapi.OAuthClient
-		expectedKubeActions []ktestclient.Action
+		expectedKubeActions []core.Action
 		expectedOSActions   []ktestclient.Action
 	}{
 		{
 			name:                "delegate",
 			clientName:          "not:serviceaccount",
-			kubeClient:          ktestclient.NewSimpleFake(),
+			kubeClient:          fake.NewSimpleClientset(),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedDelegation:  true,
-			expectedKubeActions: []ktestclient.Action{},
+			expectedKubeActions: []core.Action{},
 			expectedOSActions:   []ktestclient.Action{},
 		},
 		{
 			name:                "missing sa",
 			clientName:          "system:serviceaccount:ns-01:missing-sa",
-			kubeClient:          ktestclient.NewSimpleFake(),
+			kubeClient:          fake.NewSimpleClientset(),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `ServiceAccount "missing-sa" not found`,
-			expectedKubeActions: []ktestclient.Action{ktestclient.NewGetAction("serviceaccounts", "ns-01", "missing-sa")},
+			expectedKubeActions: []core.Action{core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "missing-sa")},
 			expectedOSActions:   []ktestclient.Action{},
 		},
 		{
 			name:       "sa no redirects",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace:   "ns-01",
@@ -64,13 +67,13 @@ func TestGetClient(t *testing.T) {
 				}),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
-			expectedKubeActions: []ktestclient.Action{ktestclient.NewGetAction("serviceaccounts", "ns-01", "default")},
+			expectedKubeActions: []core.Action{core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default")},
 			expectedOSActions:   []ktestclient.Action{},
 		},
 		{
 			name:       "sa no tokens",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace:   "ns-01",
@@ -80,16 +83,16 @@ func TestGetClient(t *testing.T) {
 				}),
 			osClient:    ostestclient.NewSimpleFake(),
 			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{},
 		},
 		{
 			name:       "good SA",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace:   "ns-01",
@@ -118,16 +121,16 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{},
 		},
 		{
 			name:       "good SA with valid, simple route redirects",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -176,9 +179,9 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere", "https://example1.com/defaultpath"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{
 				ktestclient.NewGetAction("routes", "ns-01", "route1"),
@@ -187,7 +190,7 @@ func TestGetClient(t *testing.T) {
 		{
 			name:       "good SA with invalid route redirects",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -239,16 +242,16 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{},
 		},
 		{
 			name:       "good SA with a route that don't have a host",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -297,9 +300,9 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{
 				ktestclient.NewGetAction("routes", "ns-01", "route1"),
@@ -308,7 +311,7 @@ func TestGetClient(t *testing.T) {
 		{
 			name:       "good SA with routes that don't have hosts, some of which are empty or duplicates",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -383,9 +386,9 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere", "https://a.com/defaultpath", "https://a.com/path2", "https://b.com/defaultpath", "https://b.com/path2"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{
 				ktestclient.NewListAction("routes", "ns-01", kapi.ListOptions{}),
@@ -394,7 +397,7 @@ func TestGetClient(t *testing.T) {
 		{
 			name:       "host overrides route data",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -462,9 +465,9 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"https://google.com/otherpath", "https://redhat.com/defaultpath"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{
 				ktestclient.NewListAction("routes", "ns-01", kapi.ListOptions{}),
@@ -473,7 +476,7 @@ func TestGetClient(t *testing.T) {
 		{
 			name:       "good SA with valid, route redirects using the same route twice",
 			clientName: "system:serviceaccount:ns-01:default",
-			kubeClient: ktestclient.NewSimpleFake(
+			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "ns-01",
@@ -523,9 +526,9 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"https://woot.com/awesomepath", "https://woot.com:8000"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []ktestclient.Action{
-				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
-				ktestclient.NewListAction("secrets", "ns-01", kapi.ListOptions{}),
+			expectedKubeActions: []core.Action{
+				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
+				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
 			},
 			expectedOSActions: []ktestclient.Action{
 				ktestclient.NewGetAction("routes", "ns-01", "route1"),
@@ -535,7 +538,7 @@ func TestGetClient(t *testing.T) {
 
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
-		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient, tc.kubeClient, tc.osClient, delegate, oauthapi.GrantHandlerPrompt)
+		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient.Core(), tc.kubeClient.Core(), tc.osClient, delegate, oauthapi.GrantHandlerPrompt)
 		client, err := getter.GetClient(kapi.NewContext(), tc.clientName)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:

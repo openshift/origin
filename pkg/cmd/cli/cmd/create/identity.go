@@ -87,7 +87,7 @@ func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f *clientcmd.Factor
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	client, _, err := f.Clients()
+	client, _, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

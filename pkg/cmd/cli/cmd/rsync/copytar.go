@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -35,7 +37,7 @@ type tarStrategy struct {
 
 func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 
-	tarHelper := tar.New()
+	tarHelper := tar.New(s2iutil.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 
 	ignoredFlags := rsyncSpecificFlags(o)

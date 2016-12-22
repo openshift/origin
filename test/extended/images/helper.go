@@ -71,13 +71,13 @@ func BuildAndPushImageOfSizeWithBuilder(
 		istName += ":" + tag
 	}
 
-	bc, err := oc.REST().BuildConfigs(namespace).Get(name)
+	bc, err := oc.Client().BuildConfigs(namespace).Get(name)
 	if err == nil {
 		if bc.Spec.CommonSpec.Output.To.Kind != "ImageStreamTag" {
 			return fmt.Errorf("Unexpected kind of buildspec's output (%s != %s)", bc.Spec.CommonSpec.Output.To.Kind, "ImageStreamTag")
 		}
 		bc.Spec.CommonSpec.Output.To.Name = istName
-		if _, err = oc.REST().BuildConfigs(namespace).Update(bc); err != nil {
+		if _, err = oc.Client().BuildConfigs(namespace).Update(bc); err != nil {
 			return err
 		}
 	} else {
@@ -240,7 +240,7 @@ func BuildAndPushImageOfSizeWithDocker(
 
 // GetDockerRegistryURL returns a cluster URL of internal docker registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
-	svc, err := oc.AdminKubeREST().Services("default").Get("docker-registry")
+	svc, err := oc.AdminKubeClient().Core().Services("default").Get("docker-registry")
 	if err != nil {
 		return "", err
 	}
