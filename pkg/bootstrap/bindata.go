@@ -4894,9 +4894,9 @@ objects:
           node {
             project = env.PROJECT_NAME
             stage("Initialize") {
-              sh "oc get route ${appName} -n ${project} -o jsonpath='{ .spec.to.weight }' > blueweight"
-              blueWeight = readFile('blueweight').trim()
-              if (blueWeight == "100") {
+              sh "oc get route ${appName} -n ${project} -o jsonpath='{ .spec.to.name }' > activeservice"
+              activeService = readFile('activeservice').trim()
+              if (activeService == "${appName}-blue") {
                 tag = "green"
                 altTag = "blue"
               }
@@ -4915,7 +4915,7 @@ objects:
             }
 
             stage("Test") {
-              input "Test deployment: http://${routeHost}. Approve?"
+              input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
             }
 
             stage("Go Live") {
