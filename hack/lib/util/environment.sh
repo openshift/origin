@@ -146,7 +146,7 @@ function os::util::environment::setup_tmpdir_vars() {
     export HOME
 
     # ensure that the directories are clean
-    if os::util::find::system_binary "findmnt"; then
+    if os::util::find::system_binary "findmnt" &>/dev/null; then
         for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
             if [[ "${target}" == "${BASETMPDIR}"* ]]; then
                 ${USE_SUDO:+sudo} umount "${target}"
