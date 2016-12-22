@@ -9,7 +9,7 @@ import (
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	unidlingutil "github.com/openshift/origin/pkg/unidling/util"
 
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
+	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 
