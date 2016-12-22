@@ -21,7 +21,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 )
 
 // Return the body from a response as a string
@@ -40,5 +39,5 @@ func GetErrorFromResponse(r *http.Response) error {
 	if err != nil {
 		return err
 	}
-	return errors.New(strings.TrimSpace(s))
+	return errors.New(s)
 }

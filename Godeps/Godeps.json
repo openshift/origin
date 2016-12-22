@@ -1910,15 +1910,18 @@
 		},
 		{
 			"ImportPath": "github.com/heketi/heketi/client/api/go-client",
-			"Rev": "28b5cc4cc6d2b9bdfa91ed1b93efaab4931aa697"
+			"Comment": "v2.1.0-dev-2-gcb07059",
+			"Rev": "cb07059aed8760ef857a58d37598b9e51c36a9ae"
 		},
 		{
 			"ImportPath": "github.com/heketi/heketi/pkg/glusterfs/api",
-			"Rev": "28b5cc4cc6d2b9bdfa91ed1b93efaab4931aa697"
+			"Comment": "v2.1.0-dev-2-gcb07059",
+			"Rev": "cb07059aed8760ef857a58d37598b9e51c36a9ae"
 		},
 		{
 			"ImportPath": "github.com/heketi/heketi/pkg/utils",
-			"Rev": "28b5cc4cc6d2b9bdfa91ed1b93efaab4931aa697"
+			"Comment": "v2.1.0-dev-2-gcb07059",
+			"Rev": "cb07059aed8760ef857a58d37598b9e51c36a9ae"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
