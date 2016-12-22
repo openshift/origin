@@ -2932,11 +2932,11 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "8d1157a435470616f975ff9bb013bea8d0962067"
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/windows",
-			"Rev": "8d1157a435470616f975ff9bb013bea8d0962067"
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		},
 		{
 			"ImportPath": "golang.org/x/text/cases",
