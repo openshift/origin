@@ -12,17 +12,20 @@ if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
       filtered+=("${platform}")
     fi
   done
+  if [[ ${OS_ONLY_BUILD_PLATFORMS} == "linux/ppc64le" ]]; then
+    filtered+=("${OS_ONLY_BUILD_PLATFORMS}")
+  elif [[ ${OS_ONLY_BUILD_PLATFORMS} == "linux/arm64" ]]; then
+    filtered+=("${OS_ONLY_BUILD_PLATFORMS}")
+  fi
   platforms=("${filtered[@]}")
 fi
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${platforms[@]}")
 host_platform=$(os::build::host_platform)
-if [[ $host_platform == "linux/ppc64le" ]]; then
-  OS_GOFLAGS_LINUX_PPC64LE="-tags=gssapi" os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
-else
-  OS_GOFLAGS_LINUX_AMD64="-tags=gssapi" os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
-fi
+platform_goflags_envvar="OS_GOFLAGS_$(echo ${host_platform} | tr '[:lower:]/' '[:upper:]_')"
+declare "${platform_goflags_envvar}=-tags=gssapi"
+os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
 # Build image binaries for a subset of platforms. Image binaries are currently
 # linux-only, and are compiled with flags to make them static for use in Docker
