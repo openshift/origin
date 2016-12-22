@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -46,8 +46,8 @@ var (
 
 type CreateKubeconfigOptions struct {
 	SAName           string
-	SAClient         unversioned.ServiceAccountsInterface
-	SecretsClient    unversioned.SecretsInterface
+	SAClient         kcoreclient.ServiceAccountInterface
+	SecretsClient    kcoreclient.SecretInterface
 	RawConfig        clientcmdapi.Config
 	ContextNamespace string
 
@@ -83,7 +83,7 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, 
 
 	o.SAName = args[0]
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, 
 		return err
 	}
 
-	o.RawConfig, err = f.OpenShiftClientConfig.RawConfig()
+	o.RawConfig, err = f.OpenShiftClientConfig().RawConfig()
 	if err != nil {
 		return err
 	}
