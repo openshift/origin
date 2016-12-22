@@ -352,24 +352,24 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 	if latestRC != nil {
 		switch deployutil.DeploymentStatusFor(latestRC) {
 		case deployapi.DeploymentStatusPending:
-			msg := fmt.Sprintf("Replication controller %q is waiting for pod %q to run", latestRC.Name, deployutil.DeployerPodNameForDeployment(latestRC.Name))
+			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, deployutil.DeployerPodNameForDeployment(latestRC.Name))
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusRunning:
 			if deployutil.IsProgressing(config, *newStatus) {
 				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
-				msg := fmt.Sprintf("Replication controller %q is progressing", latestRC.Name)
+				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
 				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
 				deployutil.SetDeploymentCondition(newStatus, *condition)
 			}
 		case deployapi.DeploymentStatusFailed:
-			msg := fmt.Sprintf("Replication controller %q has failed progressing", latestRC.Name)
+			msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusComplete:
-			msg := fmt.Sprintf("Replication controller %q has completed progressing", latestRC.Name)
+			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		}
