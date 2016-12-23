@@ -296,6 +296,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            newIntOrString(intstr.FromString("25%")),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},
@@ -323,6 +324,7 @@ func TestDefaults(t *testing.T) {
 						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
 							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},
@@ -349,6 +351,7 @@ func TestDefaults(t *testing.T) {
 						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
 							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},
@@ -422,6 +425,7 @@ func TestDefaults(t *testing.T) {
 								ExecNewPod: &deployv1.ExecNewPodHook{ContainerName: "first"},
 							},
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},
@@ -491,6 +495,7 @@ func TestDefaults(t *testing.T) {
 								ExecNewPod: &deployv1.ExecNewPodHook{ContainerName: "first"},
 							},
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{},
@@ -520,6 +525,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            &defaultIntOrString,
 							MaxUnavailable:      &defaultIntOrString,
 						},
+						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
 						{
