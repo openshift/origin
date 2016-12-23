@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -297,9 +298,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
-			var out string
+			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
+				istag, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("sample-stream", "deployed")
 				if errors.IsNotFound(err) {
 					return false, nil
 				}
@@ -313,8 +314,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			}
 			o.Expect(pollErr).NotTo(o.HaveOccurred())
 
-			if !strings.Contains(out, "origin-pod") {
-				err = fmt.Errorf("expected %q to be part of the image reference in %q", "origin-pod", out)
+			if istag.Tag == nil || istag.Tag.From == nil || istag.Tag.From.Name != "openshift/origin-pod" {
+				err = fmt.Errorf("expected %q to be part of the image reference in %#v", "openshift/origin-pod", istag)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
