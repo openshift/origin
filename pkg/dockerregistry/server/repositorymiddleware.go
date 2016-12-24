@@ -174,7 +174,7 @@ func newRepositoryWithClient(
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
-	pullthrough, err := getBoolOption(PullthroughEnvVar, "pullthrough", false, options)
+	pullthrough, err := getBoolOption(PullthroughEnvVar, "pullthrough", true, options)
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}

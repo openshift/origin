@@ -256,6 +256,28 @@ func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []kapi.Replica
 	return preHook.Status.ContainerStatuses[0].RestartCount > 0, nil
 }
 
+func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+	return func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+		expect := 0
+		for _, t := range dc.Spec.Triggers {
+			if t.Type != deployapi.DeploymentTriggerOnImageChange {
+				continue
+			}
+			if expect >= expectTriggers {
+				return false, fmt.Errorf("dc %s had too many image change triggers: %#v", dc.Name, dc.Spec.Triggers)
+			}
+			if t.ImageChangeParams == nil {
+				return false, nil
+			}
+			if len(t.ImageChangeParams.LastTriggeredImage) == 0 {
+				return false, nil
+			}
+			expect++
+		}
+		return expect == expectTriggers, nil
+	}
+}
+
 func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []kapi.ReplicationController, []kapi.Pod, error) {
 	dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 	if err != nil {
