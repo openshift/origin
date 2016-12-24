@@ -35,7 +35,7 @@ func NewClaimError(user *userapi.User, identity *userapi.Identity) error {
 }
 
 func (c claimError) Error() string {
-	return fmt.Sprintf("user %q cannot be claimed by identity %q because it is already mapped to %v", c.User.Name, c.Identity.Name, c.User.Identities)
+	return fmt.Sprintf("User %q cannot be claimed by identity %q because it is already mapped to %v", c.User.Name, c.Identity.Name, c.User.Identities)
 }
 
 func NewStrategyClaim(user userregistry.Registry, initializer user.Initializer) UserForNewIdentityGetter {

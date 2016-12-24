@@ -47,7 +47,7 @@ func GetTopLevelContainerNode(g Graph, containedNode graph.Node) graph.Node {
 			return prevContainingNode
 		}
 		if _, alreadyVisited := visited[currContainingNode.ID()]; alreadyVisited {
-			panic(fmt.Sprintf("contains cycle in %v", visited))
+			panic(fmt.Sprintf("Contains cycle in %v", visited))
 		}
 
 		prevContainingNode = currContainingNode

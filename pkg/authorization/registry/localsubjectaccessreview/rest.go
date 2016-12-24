@@ -31,15 +31,15 @@ func (r *REST) New() runtime.Object {
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	localSAR, ok := obj.(*authorizationapi.LocalSubjectAccessReview)
 	if !ok {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localSubjectAccessReview: %#v", obj))
+		return nil, kapierrors.NewBadRequest(fmt.Sprintf("Not a localSubjectAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateLocalSubjectAccessReview(localSAR); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(authorizationapi.Kind(localSAR.Kind), "", errs)
 	}
 	if namespace := kapi.NamespaceValue(ctx); len(namespace) == 0 {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
+		return nil, kapierrors.NewBadRequest(fmt.Sprintf("Namespace is required on this type: %v", namespace))
 	} else if (len(localSAR.Action.Namespace) > 0) && (namespace != localSAR.Action.Namespace) {
-		return nil, field.Invalid(field.NewPath("namespace"), localSAR.Action.Namespace, fmt.Sprintf("namespace must be: %v", namespace))
+		return nil, field.Invalid(field.NewPath("namespace"), localSAR.Action.Namespace, fmt.Sprintf("Namespace must be: %v", namespace))
 	}
 
 	// transform this into a SubjectAccessReview

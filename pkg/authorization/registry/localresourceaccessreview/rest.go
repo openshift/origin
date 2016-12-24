@@ -31,15 +31,15 @@ func (r *REST) New() runtime.Object {
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	localRAR, ok := obj.(*authorizationapi.LocalResourceAccessReview)
 	if !ok {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localResourceAccessReview: %#v", obj))
+		return nil, kapierrors.NewBadRequest(fmt.Sprintf("Not a localResourceAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateLocalResourceAccessReview(localRAR); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(authorizationapi.Kind(localRAR.Kind), "", errs)
 	}
 	if namespace := kapi.NamespaceValue(ctx); len(namespace) == 0 {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
+		return nil, kapierrors.NewBadRequest(fmt.Sprintf("Namespace is required on this type: %v", namespace))
 	} else if (len(localRAR.Action.Namespace) > 0) && (namespace != localRAR.Action.Namespace) {
-		return nil, field.Invalid(field.NewPath("namespace"), localRAR.Action.Namespace, fmt.Sprintf("namespace must be: %v", namespace))
+		return nil, field.Invalid(field.NewPath("namespace"), localRAR.Action.Namespace, fmt.Sprintf("Namespace must be: %v", namespace))
 	}
 
 	// transform this into a ResourceAccessReview
