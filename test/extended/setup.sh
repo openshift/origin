@@ -28,16 +28,16 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
 
-	os::util::environment::setup_time_vars
-	os::util::environment::use_sudo
-	os::util::environment::setup_all_server_vars "test-extended/core"
-
 	# ensure proper relative directories are set
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	# allow setup to be skipped
 	if [[ -z "${TEST_ONLY+x}" ]]; then
+		os::util::environment::setup_time_vars
+		os::util::environment::use_sudo
+		os::util::environment::setup_all_server_vars "test-extended/core"
+
 		os::util::ensure::iptables_privileges_exist
 
 		function cleanup() {

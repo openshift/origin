@@ -30,10 +30,10 @@ exitstatus=0
 # run parallel tests
 nodes="${PARALLEL_NODES:-5}"
 os::log::info "Running parallel tests N=${nodes}"
-TEST_REPORT_FILE_NAME=conformance_parallel ginkgo -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.v -test.timeout 6h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_parallel ginkgo -noColor -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.noColor -ginkgo.v -test.timeout 6h || exitstatus=$?
 
 # run tests in serial
 os::log::info "Running serial tests"
-TEST_REPORT_FILE_NAME=conformance_serial ginkgo -v "-focus=${sf}" "-skip=${ss}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.v -test.timeout 2h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_serial ginkgo -noColor -v "-focus=${sf}" "-skip=${ss}" "$( os::util::find::built_binary extended.test )" -- -ginkgo.noColor -ginkgo.v -test.timeout 2h || exitstatus=$?
 
 exit $exitstatus
