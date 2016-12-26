@@ -181,6 +181,10 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
+	if isPackage("/kubernetes/test/e2e/scheduler_predicates.go") {
+		allowAllNodeScheduling(c, ns.Name)
+	}
+
 	return ns, err
 }
 
@@ -199,6 +203,25 @@ func checkSuiteSkips() {
 }
 
 var longRetry = wait.Backoff{Steps: 100}
+
+// allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
+func allowAllNodeScheduling(c *kclient.Client, namespace string) {
+	err := kclient.RetryOnConflict(longRetry, func() error {
+		ns, err := c.Namespaces().Get(namespace)
+		if err != nil {
+			return err
+		}
+		if ns.Annotations == nil {
+			ns.Annotations = make(map[string]string)
+		}
+		ns.Annotations["openshift.io/node-selector"] = ""
+		_, err = c.Namespaces().Update(ns)
+		return err
+	})
+	if err != nil {
+		FatalErr(err)
+	}
+}
 
 func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
