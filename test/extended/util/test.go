@@ -19,6 +19,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
@@ -197,8 +198,12 @@ func checkSuiteSkips() {
 	}
 }
 
+var longRetry = wait.Backoff{Steps: 100}
+
 func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, sccName string) {
-	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	// Because updates can race, we need to set the backoff retries to be > than the number of possible
+	// parallel jobs starting at once. Set very high to allow future high parallelism.
+	err := kclient.RetryOnConflict(longRetry, func() error {
 		scc, err := c.SecurityContextConstraints().Get(sccName)
 		if err != nil {
 			if apierrs.IsNotFound(err) {
@@ -223,7 +228,7 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, 
 }
 
 func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapi.Namespace, roleName string) {
-	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	err := kclient.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
