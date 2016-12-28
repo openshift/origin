@@ -3,7 +3,7 @@
 # This abstracts starting up an extended server.
 
 # If invoked with arguments, executes the test directly.
-function os::test::extended::focus {
+function os::test::extended::focus () {
 	if [[ $# -ne 0 ]]; then
 		os::log::info "Running custom: $*"
 		os::test::extended::test_list "$@"
@@ -27,6 +27,7 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'openshift'
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
+	os::util::ensure::built_binary_exists 'junitmerge' 'tools/junitmerge'
 
 	# ensure proper relative directories are set
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
@@ -243,6 +244,18 @@ function os::test::extended::test_list () {
 	export TEST_COUNT=${#selected_tests[@]}
 }
 readonly -f os::test::extended::test_list
+
+# Merge all of the JUnit output files in the TEST_REPORT_DIR into a single file.
+# This works around a gap in Jenkins JUnit reporter output that double counts skipped
+# files until https://github.com/jenkinsci/junit-plugin/pull/54 is merged.
+function os::test::extended::merge_junit () {
+	local output
+	output="$( mktemp )"
+	"$( os::util::find::built_binary junitmerge )" "${TEST_REPORT_DIR}"/*.xml > "${output}"
+	rm "${TEST_REPORT_DIR}"/*.xml
+	mv "${output}" "${TEST_REPORT_DIR}/junit.xml"
+}
+readonly -f os::test::extended::merge_junit
 
 # Not run by any suite
 readonly EXCLUDED_TESTS=(
