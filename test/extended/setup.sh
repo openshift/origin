@@ -33,145 +33,164 @@ function os::test::extended::setup () {
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	# allow setup to be skipped
-	if [[ -z "${TEST_ONLY+x}" ]]; then
-		os::util::environment::setup_time_vars
-		os::util::environment::use_sudo
-		os::util::environment::setup_all_server_vars "test-extended/core"
-
-		os::util::ensure::iptables_privileges_exist
-
-		function cleanup() {
-			out=$?
-			cleanup_openshift
-
-			# TODO(skuznets): un-hack this nonsense once traps are in a better
-			# state
-			if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-				# get the jUnit output file into a workable state in case we
-				# crashed in the middle of testing something
-				os::test::junit::reconcile_output
-
-				# check that we didn't mangle jUnit output
-				os::test::junit::check_test_counters
-
-				# use the junitreport tool to generate us a report
-				os::util::ensure::built_binary_exists 'junitreport'
-
-				cat "${JUNIT_REPORT_OUTPUT}" \
-					| junitreport --type oscmd \
-					--suites nested \
-					--roots github.com/openshift/origin \
-					--output "${ARTIFACT_DIR}/report.xml"
-				cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
-			fi
-
-			os::log::info "Exiting"
-			return $out
-		}
-
-		trap "exit" INT TERM
-		trap "cleanup" EXIT
-		os::log::info "Starting server"
-
-		os::util::environment::setup_images_vars
-
-		local sudo=${USE_SUDO:+sudo}
-
-		# If the current system has the XFS volume dir mount point we configure
-		# in the test images, assume to use it which will allow the local storage
-		# quota tests to pass.
-		LOCAL_STORAGE_QUOTA=""
-		if [[ -d "/mnt/openshift-xfs-vol-dir" ]] && ${sudo} lvs | grep -q "xfs"; then
-			LOCAL_STORAGE_QUOTA="1"
-			export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
-		else
-			os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
-		fi
-
-		# Allow setting $JUNIT_REPORT to toggle output behavior
-		if [[ -n "${JUNIT_REPORT:-}" ]]; then
-			export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-			# the Ginkgo tests also generate jUnit but expect different envars
-			export TEST_REPORT_DIR="${ARTIFACT_DIR}"
-		fi
-
-		os::log::system::start
-
-		if [[ -n "${SHOW_ALL:-}" ]]; then
-			SKIP_NODE=1
-		fi
-
-		# when selinux is enforcing, the volume dir selinux label needs to be
-		# svirt_sandbox_file_t
-		#
-		# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
-		# or to default the volume dir to svirt_sandbox_file_t.
-		if selinuxenabled; then
-			${sudo} chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
-		fi
-		CONFIG_VERSION=""
-		if [[ -n "${API_SERVER_VERSION:-}" ]]; then
-			CONFIG_VERSION="${API_SERVER_VERSION}"
-		elif [[ -n "${CONTROLLER_VERSION:-}" ]]; then
-			CONFIG_VERSION="${CONTROLLER_VERSION}"
-		fi
-		os::start::configure_server "${CONFIG_VERSION}"
-		#turn on audit logging for extended tests ... mimic what is done in os::start::configure_server, but don't
-		# put change there - only want this for extended tests
-		os::log::info "Turn on audit logging"
-		cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
-		openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-
-		# If the XFS volume dir mount point exists enable local storage quota in node-config.yaml so these tests can pass:
-		if [[ -n "${LOCAL_STORAGE_QUOTA}" ]]; then
-			# The ec2 images usually have ~5Gi of space defined for the xfs vol for the registry; want to give /registry a good chunk of that
-			# to store the images created when the extended tests run
-			cp "${NODE_CONFIG_DIR}/node-config.yaml" "${NODE_CONFIG_DIR}/node-config.orig2.yaml"
-			openshift ex config patch "${NODE_CONFIG_DIR}/node-config.orig2.yaml" --patch='{"volumeConfig":{"localQuota":{"perFSGroup":"4480Mi"}}}' > "${NODE_CONFIG_DIR}/node-config.yaml"
-		fi
-		os::log::info "Using VOLUME_DIR=${VOLUME_DIR}"
-
-		# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
-		cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
-		openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-
-		os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
-
-		export KUBECONFIG="${ADMIN_KUBECONFIG}"
-
-		os::start::registry
-		if [[ -z "${SKIP_NODE:-}" ]]; then
-			oc rollout status dc/docker-registry
-		fi
-		DROP_SYN_DURING_RESTART=true CREATE_ROUTER_CERT=true os::start::router
-
-		os::log::info "Creating image streams"
-		oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
-	else
+	if [[ -n "${TEST_ONLY+x}" ]]; then
 		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
 		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
+		return 0
 	fi
+
+	os::util::environment::setup_time_vars
+	os::util::environment::use_sudo
+	os::util::environment::setup_all_server_vars "test-extended/core"
+
+	os::util::ensure::iptables_privileges_exist
+
+	function cleanup() {
+		out=$?
+		cleanup_openshift
+
+		# TODO(skuznets): un-hack this nonsense once traps are in a better
+		# state
+		if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+			# get the jUnit output file into a workable state in case we
+			# crashed in the middle of testing something
+			os::test::junit::reconcile_output
+
+			# check that we didn't mangle jUnit output
+			os::test::junit::check_test_counters
+
+			# use the junitreport tool to generate us a report
+			os::util::ensure::built_binary_exists 'junitreport'
+
+			cat "${JUNIT_REPORT_OUTPUT}" \
+				| junitreport --type oscmd \
+				--suites nested \
+				--roots github.com/openshift/origin \
+				--output "${ARTIFACT_DIR}/report.xml"
+			cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
+		fi
+
+		os::log::info "Exiting"
+		return $out
+	}
+
+	trap "exit" INT TERM
+	trap "cleanup" EXIT
+	os::log::info "Starting server"
+
+	os::util::environment::setup_images_vars
+
+	local sudo=${USE_SUDO:+sudo}
+
+	# If the current system has the XFS volume dir mount point we configure
+	# in the test images, assume to use it which will allow the local storage
+	# quota tests to pass.
+	LOCAL_STORAGE_QUOTA=""
+	if [[ -d "/mnt/openshift-xfs-vol-dir" ]] && ${sudo} lvs | grep -q "xfs"; then
+		LOCAL_STORAGE_QUOTA="1"
+		export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
+	else
+		os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
+	fi
+
+	# Allow setting $JUNIT_REPORT to toggle output behavior
+	if [[ -n "${JUNIT_REPORT:-}" ]]; then
+		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+		# the Ginkgo tests also generate jUnit but expect different envars
+		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+	fi
+
+	os::log::system::start
+
+	if [[ -n "${SHOW_ALL:-}" ]]; then
+		SKIP_NODE=1
+	fi
+
+	# when selinux is enforcing, the volume dir selinux label needs to be
+	# svirt_sandbox_file_t
+	#
+	# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
+	# or to default the volume dir to svirt_sandbox_file_t.
+	if selinuxenabled; then
+		${sudo} chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
+	fi
+	CONFIG_VERSION=""
+	if [[ -n "${API_SERVER_VERSION:-}" ]]; then
+		CONFIG_VERSION="${API_SERVER_VERSION}"
+	elif [[ -n "${CONTROLLER_VERSION:-}" ]]; then
+		CONFIG_VERSION="${CONTROLLER_VERSION}"
+	fi
+	os::start::configure_server "${CONFIG_VERSION}"
+	#turn on audit logging for extended tests ... mimic what is done in os::start::configure_server, but don't
+	# put change there - only want this for extended tests
+	os::log::info "Turn on audit logging"
+	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+
+	# If the XFS volume dir mount point exists enable local storage quota in node-config.yaml so these tests can pass:
+	if [[ -n "${LOCAL_STORAGE_QUOTA}" ]]; then
+		# The ec2 images usually have ~5Gi of space defined for the xfs vol for the registry; want to give /registry a good chunk of that
+		# to store the images created when the extended tests run
+		cp "${NODE_CONFIG_DIR}/node-config.yaml" "${NODE_CONFIG_DIR}/node-config.orig2.yaml"
+		openshift ex config patch "${NODE_CONFIG_DIR}/node-config.orig2.yaml" --patch='{"volumeConfig":{"localQuota":{"perFSGroup":"4480Mi"}}}' > "${NODE_CONFIG_DIR}/node-config.yaml"
+	fi
+	os::log::info "Using VOLUME_DIR=${VOLUME_DIR}"
+
+	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
+	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+
+	os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
+
+	export KUBECONFIG="${ADMIN_KUBECONFIG}"
+
+	os::start::registry
+	if [[ -z "${SKIP_NODE:-}" ]]; then
+		oc rollout status dc/docker-registry
+	fi
+	DROP_SYN_DURING_RESTART=true CREATE_ROUTER_CERT=true os::start::router
+
+	os::log::info "Creating image streams"
+	oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
 }
 
 # Run extended tests or print out a list of tests that need to be run
 # Input:
 # - FOCUS - the extended test focus
 # - SKIP - the tests to skip
+# - TEST_EXTENDED_SKIP - a global filter that allows additional tests to be omitted, will
+#     be joined with SKIP
 # - SHOW_ALL - if set, then only print out tests to be run
+# - TEST_PARALLEL - if set, run the tests in parallel with the specified number of nodes
 # - Arguments - arguments to pass to ginkgo
 function os::test::extended::run () {
-        local listArgs=()
-        local runArgs=()
-        if [[ -n "${FOCUS:-}" ]]; then
-          listArgs+=("--ginkgo.focus=${FOCUS}")
-          runArgs+=("-focus=${FOCUS}")
-        fi
-        if [[ -n "${SKIP:-}" ]]; then
-          listArgs+=("--ginkgo.skip=${SKIP}")
-          runArgs+=("-skip=${SKIP}")
-        fi
+	local listArgs=()
+	local runArgs=()
 
-	if [[ -n "${SHOW_ALL:-}" ]]; then
+	if [[ -n "${FOCUS-}" ]]; then
+		listArgs+=("--ginkgo.focus=${FOCUS}")
+		runArgs+=("-focus=${FOCUS}")
+	fi
+
+	local skip="${SKIP-}"
+	# Allow additional skips to be provided on the command line
+	if [[ -n "${TEST_EXTENDED_SKIP-}" ]]; then
+		if [[ -n "${skip}" ]]; then
+			skip="${skip}|${TEST_EXTENDED_SKIP}"
+		else
+			skip="${TEST_EXTENDED_SKIP}"
+		fi
+	fi
+	if [[ -n "${skip}" ]]; then
+		listArgs+=("--ginkgo.skip=${skip}")
+		runArgs+=("-skip=${skip}")
+	fi
+
+	if [[ -n "${TEST_PARALLEL-}" ]]; then
+		runArgs+=("-p" "-nodes=${TEST_PARALLEL}")
+	fi
+
+	if [[ -n "${SHOW_ALL-}" ]]; then
 		PRINT_TESTS=1
 		os::test::extended::test_list "${listArgs[@]}"
 		return
