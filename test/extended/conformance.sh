@@ -29,4 +29,6 @@ TEST_PARALLEL="${PARALLEL_NODES:-5}" FOCUS="${pf}" SKIP="${ps}" TEST_REPORT_FILE
 os::log::info "Running serial tests"
 FOCUS="${sf}" SKIP="${ss}" TEST_REPORT_FILE_NAME=conformance_serial os::test::extended::run -- -ginkgo.noColor -ginkgo.v -test.timeout 2h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
+os::test::extended::merge_junit
+
 exit $exitstatus
