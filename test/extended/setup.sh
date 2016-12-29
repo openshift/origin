@@ -27,7 +27,7 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'openshift'
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
-	os::util::ensure::built_binary_exists 'junitmerge' 'tools/junitmerge'
+	os::util::ensure::built_binary_exists 'junitmerge'
 
 	# ensure proper relative directories are set
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
@@ -276,11 +276,10 @@ readonly EXCLUDED_TESTS=(
 	Kibana                  # Not installed
 	Ubernetes               # Can't set zone labels today
 	kube-ui                 # Not installed by default
-	"^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
+	"^Kubernetes Dashboard"  # Not installed by default (also probably slow image pull)
 
 	"\[Feature:Federation\]"   # Not enabled yet
 	"\[Feature:Federation12\]"   # Not enabled yet
-	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
 	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
@@ -292,11 +291,11 @@ readonly EXCLUDED_TESTS=(
 	"GlusterFS" # May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
 	"should support r/w" # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 
-	"should allow starting 95 pods per node" # needs cherry-pick of https://github.com/kubernetes/kubernetes/pull/23945
+	# Failing because of https://github.com/openshift/origin/issues/12365 against a real cluster
+	"should allow starting 95 pods per node"
 
 	# Need fixing
 	"Horizontal pod autoscaling" # needs heapster
-	"should provide Internet connection for containers" # Needs recursive DNS
 	PersistentVolume           # https://github.com/openshift/origin/pull/6884 for recycler
 	"mount an API token into pods" # We add 6 secrets, not 1
 	"ServiceAccounts should ensure a single API token exists" # We create lots of secrets
@@ -305,7 +304,6 @@ readonly EXCLUDED_TESTS=(
 	"authentication: OpenLDAP"   # needs separate setup and bucketing for openldap bootstrapping
 	"NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
 	"\[Feature:Example\]"      # may need to pre-pull images
-	"ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
 	"NodeProblemDetector"        # requires a non-master node to run on
 	"unchanging, static URL paths for kubernetes api services" # the test needs to exclude URLs that are not part of conformance (/logs)
 
@@ -323,6 +321,9 @@ readonly EXCLUDED_TESTS=(
 	# Need to relax security restrictions
 	"validates that InterPod Affinity and AntiAffinity is respected if matching" # this *may* now be safe
 
+	# Requires too many pods per node for the per core defaults
+	"should ensure that critical pod is scheduled in case there is no resources available"
+
 	# Need multiple nodes
 	"validates that InterPodAntiAffinity is respected if matching 2"
 
@@ -332,6 +333,9 @@ readonly EXCLUDED_TESTS=(
 
 	# tested by networking.sh and requires the environment that script sets up
 	"\[networking\] OVS"
+
+	# We don't install KubeDNS
+	"should check if Kubernetes master services is included in cluster-info"
 )
 
 readonly SERIAL_TESTS=(
@@ -351,6 +355,7 @@ readonly CONFORMANCE_TESTS=(
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
 	"PetSet"
+	"Downward API"
 	"DNS for ExternalName services"
 	"DNS for pods for Hostname and Subdomain annotation"
 	"PrivilegedPod should test privileged pod"
@@ -369,4 +374,6 @@ readonly CONFORMANCE_TESTS=(
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
 	"\[Feature\:PodDisruptionbudget\]"
+	"should create a pod that reads a secret"
+	"should create a pod that prints his name and namespace"
 )

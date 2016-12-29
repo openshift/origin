@@ -181,7 +181,7 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
-	if isPackage("/kubernetes/test/e2e/scheduler_predicates.go") {
+	if isPackage("/kubernetes/test/e2e/scheduler_predicates.go") || isPackage("/kubernetes/test/e2e/rescheduler.go") {
 		allowAllNodeScheduling(c, ns.Name)
 	}
 
