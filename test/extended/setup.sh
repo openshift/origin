@@ -281,7 +281,6 @@ readonly EXCLUDED_TESTS=(
 
 	"\[Feature:Federation\]"   # Not enabled yet
 	"\[Feature:Federation12\]"   # Not enabled yet
-	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
 	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
@@ -298,7 +297,6 @@ readonly EXCLUDED_TESTS=(
 
 	# Need fixing
 	"Horizontal pod autoscaling" # needs heapster
-	"should provide Internet connection for containers" # Needs recursive DNS
 	PersistentVolume           # https://github.com/openshift/origin/pull/6884 for recycler
 	"mount an API token into pods" # We add 6 secrets, not 1
 	"ServiceAccounts should ensure a single API token exists" # We create lots of secrets
@@ -307,7 +305,6 @@ readonly EXCLUDED_TESTS=(
 	"authentication: OpenLDAP"   # needs separate setup and bucketing for openldap bootstrapping
 	"NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
 	"\[Feature:Example\]"      # may need to pre-pull images
-	"ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
 	"NodeProblemDetector"        # requires a non-master node to run on
 	"unchanging, static URL paths for kubernetes api services" # the test needs to exclude URLs that are not part of conformance (/logs)
 
@@ -362,6 +359,7 @@ readonly CONFORMANCE_TESTS=(
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
 	"PetSet"
+	"Downward API"
 	"DNS for ExternalName services"
 	"DNS for pods for Hostname and Subdomain annotation"
 	"PrivilegedPod should test privileged pod"
@@ -380,4 +378,6 @@ readonly CONFORMANCE_TESTS=(
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
 	"\[Feature\:PodDisruptionbudget\]"
+	"should create a pod that reads a secret"
+	"should create a pod that prints his name and namespace"
 )

@@ -279,7 +279,7 @@ var _ = g.Describe("idling and unidling", func() {
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled) [Conformance]", func() {
+		g.It("should work with TCP (when fully idled) [Conformance] [local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -308,7 +308,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling)", func() {
+		g.It("should work with TCP (while idling) [local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -332,7 +332,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should handle many TCP connections by dropping those under a certain bound", func() {
+		g.It("should handle many TCP connections by dropping those under a certain bound [local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -382,7 +382,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP", func() {
+		g.It("should work with UDP [local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -412,7 +412,7 @@ var _ = g.Describe("idling and unidling", func() {
 		})
 
 		// TODO: Work out how to make this test work correctly when run on AWS
-		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor)", func() {
+		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
