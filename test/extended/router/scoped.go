@@ -106,8 +106,6 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, 60*2)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			oc.KubeFramework().Client.Pods(ns)
-
 			g.By("waiting for the valid route to respond")
 			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, fmt.Sprintf(pattern, "route-1", ns), 60*2)
 			o.Expect(err).NotTo(o.HaveOccurred())
