@@ -672,7 +672,7 @@ func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path)
 
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		addError("must be a valid CIDR notation IP range (e.g. 172.46.0.0/16)")
+		addError(fmt.Sprintf("must be a valid CIDR notation IP range (e.g. %s)", api.DefaultIngressIPNetworkCIDR))
 		return
 	}
 
