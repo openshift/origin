@@ -6502,11 +6502,6 @@
 			"Rev": "225eecce40065518f2eabc3b52020365db012384"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/pkg/util/codeinspector",
-			"Comment": "v1.5.0-beta.2-30-g225eecc",
-			"Rev": "225eecce40065518f2eabc3b52020365db012384"
-		},
-		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/config",
 			"Comment": "v1.5.0-beta.2-30-g225eecc",
 			"Rev": "225eecce40065518f2eabc3b52020365db012384"
