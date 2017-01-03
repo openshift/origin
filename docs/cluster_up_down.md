@@ -40,6 +40,7 @@ a URL to access the management console for your cluster.
 | WARNING |
 | ------- |
 | In some cases, networking for pods will not work for containers in your cluster, especially in Fedora 24. To fix this, flush your iptables rules by running `$ sudo iptables -F` before running `oc cluster up`. |
+| Check that `sysctl net.ipv4.ip_forward` is set to 1. |
 
 1. Install Docker with your platform's package manager.
 2. Configure the Docker daemon with an insecure registry parameter of `172.30.0.0/16`
