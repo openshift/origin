@@ -74,7 +74,7 @@ func visitValue(v reflect.Value, visitor func(string) (string, bool)) error {
 		}
 		v.SetString(s)
 	default:
-		glog.V(5).Infof("Unknown field type '%s': %v", v.Kind(), v)
+		glog.V(5).Infof("Ignoring non-parameterizable field type '%s': %v", v.Kind(), v)
 		return nil
 	}
 	return nil
