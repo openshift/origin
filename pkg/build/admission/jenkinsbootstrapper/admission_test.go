@@ -122,6 +122,21 @@ func TestAdmission(t *testing.T) {
 			},
 			expectedErr: "Jenkins pipeline template / not found",
 		},
+		{
+			name:           "autoProvisionEnabled false",
+			attributes:     admission.NewAttributesRecord(&kapi.Service{}, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.SchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			jenkinsEnabled: boolptr(true),
+			objects: []runtime.Object{
+				&kapi.ConfigMap{
+					ObjectMeta: kapi.ObjectMeta{
+						Annotations: map[string]string{"project.openshift.io/configuration": "true"},
+						Namespace:   "namespace",
+						Name:        "jenkins-pipeline-config",
+					},
+					Data: map[string]string{"autoProvisionEnabled": "false"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
