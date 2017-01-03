@@ -2,12 +2,10 @@ package image_ecosystem
 
 import (
 	"bytes"
-	"encoding/xml"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -18,20 +16,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
 
-	"os"
-	"os/exec"
-
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/jenkins"
 )
-
-type JenkinsRef struct {
-	oc   *exutil.CLI
-	host string
-	port string
-	// The namespace in which the Jenkins server is running
-	namespace string
-	password  string
-}
 
 const (
 	useLocalPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_IMAGE"
@@ -39,310 +26,9 @@ const (
 	localPluginSnapshotImage         = "openshift/jenkins-plugin-snapshot-test:latest"
 )
 
-// Struct can be marshalled into XML to represent a Jenkins workflow job definition.
-type FlowDefinition struct {
-	XMLName          xml.Name `xml:"flow-definition"`
-	Plugin           string   `xml:"plugin,attr"`
-	KeepDependencies bool     `xml:"keepDependencies"`
-	Definition       Definition
-}
-
-type Definition struct {
-	XMLName xml.Name `xml:"definition"`
-	Class   string   `xml:"class,attr"`
-	Plugin  string   `xml:"plugin,attr"`
-	Script  string   `xml:"script"`
-}
-
-// Builds a URI for the Jenkins server.
-func (j *JenkinsRef) buildURI(resourcePathFormat string, a ...interface{}) string {
-	resourcePath := fmt.Sprintf(resourcePathFormat, a...)
-	return fmt.Sprintf("http://%s:%v/%s", j.host, j.port, resourcePath)
-}
-
-// Submits a GET request to this Jenkins server.
-// Returns a response body and status code or an error.
-func (j *JenkinsRef) getResource(resourcePathFormat string, a ...interface{}) (string, int, error) {
-	uri := j.buildURI(resourcePathFormat, a...)
-	ginkgolog("Retrieving Jenkins resource: %q", uri)
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		return "", 0, fmt.Errorf("Unable to build request for uri %q: %v", uri, err)
-	}
-
-	// http://stackoverflow.com/questions/17714494/golang-http-request-results-in-eof-errors-when-making-multiple-requests-successi
-	req.Close = true
-
-	req.SetBasicAuth("admin", j.password)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return "", 0, fmt.Errorf("Unable to GET uri %q: %v", uri, err)
-	}
-
-	defer resp.Body.Close()
-	status := resp.StatusCode
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error reading GET response %q: %v", uri, err)
-	}
-
-	return string(body), status, nil
-}
-
-// Sends a POST to the Jenkins server. If a body is specified, it should be XML.
-// Returns response body and status code or an error.
-func (j *JenkinsRef) postXML(reqBody io.Reader, resourcePathFormat string, a ...interface{}) (string, int, error) {
-	return j.post(reqBody, resourcePathFormat, "application/xml", a...)
-}
-
-// Sends a POST to the Jenkins server. Returns response body and status code or an error.
-func (j *JenkinsRef) post(reqBody io.Reader, resourcePathFormat, contentType string, a ...interface{}) (string, int, error) {
-	uri := j.buildURI(resourcePathFormat, a...)
-
-	req, err := http.NewRequest("POST", uri, reqBody)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	// http://stackoverflow.com/questions/17714494/golang-http-request-results-in-eof-errors-when-making-multiple-requests-successi
-	req.Close = true
-
-	if reqBody != nil {
-		req.Header.Set("Content-Type", contentType)
-		req.Header.Del("Expect") // jenkins will return 417 if we have an expect hdr
-	}
-	req.SetBasicAuth("admin", j.password)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error posting request to %q: %v", uri, err)
-	}
-
-	defer resp.Body.Close()
-	status := resp.StatusCode
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", 0, fmt.Errorf("Error reading post response body %q: %v", uri, err)
-	}
-
-	return string(body), status, nil
-}
-
-// Creates simple entry in the GinkgoWriter.
+// ginkgolog creates simple entry in the GinkgoWriter.
 func ginkgolog(format string, a ...interface{}) {
 	fmt.Fprintf(g.GinkgoWriter, format+"\n", a...)
-}
-
-// Repeatedly tries to GET a jenkins resource with an acceptable
-// HTTP status. Retries for the specified duration.
-func (j *JenkinsRef) getResourceWithStatus(validStatusList []int, timeout time.Duration, resourcePathFormat string, a ...interface{}) (string, int, error) {
-	var retBody string
-	var retStatus int
-	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
-		body, status, err := j.getResource(resourcePathFormat, a...)
-		if err != nil {
-			ginkgolog("Error accessing resource: %v", err)
-			return false, nil
-		}
-		var found bool
-		for _, s := range validStatusList {
-			if status == s {
-				found = true
-				break
-			}
-		}
-		if !found {
-			ginkgolog("Expected http status [%v] during GET by recevied [%v]", validStatusList, status)
-			return false, nil
-		}
-		retBody = body
-		retStatus = status
-		return true, nil
-	})
-	if err != nil {
-		uri := j.buildURI(resourcePathFormat, a...)
-		return "", retStatus, fmt.Errorf("Error waiting for status %v from resource path %s: %v", validStatusList, uri, err)
-	}
-	return retBody, retStatus, nil
-}
-
-// Waits for a particular HTTP status and HTML matching a particular
-// pattern to be returned by this Jenkins server. An error will be returned
-// if the condition is not matched within the timeout period.
-func (j *JenkinsRef) waitForContent(verificationRegEx string, verificationStatus int, timeout time.Duration, resourcePathFormat string, a ...interface{}) (string, error) {
-	var matchingContent = ""
-	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
-
-		content, _, err := j.getResourceWithStatus([]int{verificationStatus}, timeout, resourcePathFormat, a...)
-		if err != nil {
-			return false, nil
-		}
-
-		if len(verificationRegEx) > 0 {
-			re := regexp.MustCompile(verificationRegEx)
-			if re.MatchString(content) {
-				matchingContent = content
-				return true, nil
-			} else {
-				ginkgolog("Content did not match verification regex %q:\n %v", verificationRegEx, content)
-				return false, nil
-			}
-		} else {
-			matchingContent = content
-			return true, nil
-		}
-	})
-
-	if err != nil {
-		uri := j.buildURI(resourcePathFormat, a...)
-		return "", fmt.Errorf("Error waiting for status %v and verification regex %q from resource path %s: %v", verificationStatus, verificationRegEx, uri, err)
-	} else {
-		return matchingContent, nil
-	}
-}
-
-// Submits XML to create a named item on the Jenkins server.
-func (j *JenkinsRef) createItem(name string, itemDefXML string) {
-	g.By(fmt.Sprintf("Creating new jenkins item: %s", name))
-	_, status, err := j.postXML(bytes.NewBufferString(itemDefXML), "createItem?name=%s", name)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-	o.ExpectWithOffset(1, status).To(o.Equal(200))
-}
-
-type JobMon struct {
-	j               *JenkinsRef
-	lastBuildNumber string
-	buildNumber     string
-	jobName         string
-}
-
-// Returns the current buildNumber on the named project OR "new" if
-// there are no builds against a job yet.
-func (j *JenkinsRef) getJobBuildNumber(name string, timeout time.Duration) (string, error) {
-	body, status, err := j.getResourceWithStatus([]int{200, 404}, timeout, "job/%s/lastBuild/buildNumber", name)
-	if err != nil {
-		return "", err
-	}
-	if status != 200 {
-		return "new", nil
-	}
-	return body, nil
-}
-
-// Waits for the timestamp on the Jenkins job to change. Returns
-// and error if the timeout expires.
-func (jmon *JobMon) await(timeout time.Duration) error {
-	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
-
-		buildNumber, err := jmon.j.getJobBuildNumber(jmon.jobName, time.Minute)
-		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-		ginkgolog("Checking build number for job %q current[%v] vs last[%v]", jmon.jobName, buildNumber, jmon.lastBuildNumber)
-		if buildNumber == jmon.lastBuildNumber {
-			return false, nil
-		}
-
-		if jmon.buildNumber == "" {
-			jmon.buildNumber = buildNumber
-		}
-		body, status, err := jmon.j.getResource("job/%s/%s/api/json?depth=1", jmon.jobName, jmon.buildNumber)
-		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-		o.ExpectWithOffset(1, status).To(o.Equal(200))
-
-		body = strings.ToLower(body)
-		if strings.Contains(body, "\"building\":true") {
-			ginkgolog("Jenkins job %q still building:\n%s\n\n", jmon.jobName, body)
-			return false, nil
-		}
-
-		if strings.Contains(body, "\"result\":null") {
-			ginkgolog("Jenkins job %q still building result:\n%s\n\n", jmon.jobName, body)
-			return false, nil
-		}
-
-		ginkgolog("Jenkins job %q build complete:\n%s\n\n", jmon.jobName, body)
-		return true, nil
-	})
-	return err
-}
-
-// Triggers a named Jenkins job. The job can be monitored with the
-// returned object.
-func (j *JenkinsRef) startJob(jobName string) *JobMon {
-	lastBuildNumber, err := j.getJobBuildNumber(jobName, time.Minute)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	jmon := &JobMon{
-		j:               j,
-		lastBuildNumber: lastBuildNumber,
-		buildNumber:     "",
-		jobName:         jobName,
-	}
-
-	ginkgolog("Current timestamp for [%s]: %q", jobName, jmon.lastBuildNumber)
-	g.By(fmt.Sprintf("Starting jenkins job: %s", jobName))
-	_, status, err := j.postXML(nil, "job/%s/build?delay=0sec", jobName)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-	o.ExpectWithOffset(1, status).To(o.Equal(201))
-
-	return jmon
-}
-
-// Returns the content of a Jenkins job XML file. Instances of the
-// string "PROJECT_NAME" are replaced with the specified namespace.
-// Variables named in the vars map will also be replaced with their
-// corresponding value.
-func (j *JenkinsRef) readJenkinsJobUsingVars(filename, namespace string, vars map[string]string) string {
-	pre := exutil.FixturePath("testdata", "jenkins-plugin", filename)
-	post := exutil.ArtifactPath(filename)
-
-	if vars == nil {
-		vars = map[string]string{}
-	}
-	vars["PROJECT_NAME"] = namespace
-	err := exutil.VarSubOnFile(pre, post, vars)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	data, err := ioutil.ReadFile(post)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-	return string(data)
-}
-
-// Returns the content of a Jenkins job XML file. Instances of the
-// string "PROJECT_NAME" are replaced with the specified namespace.
-func (j *JenkinsRef) readJenkinsJob(filename, namespace string) string {
-	return j.readJenkinsJobUsingVars(filename, namespace, nil)
-}
-
-// Returns an XML string defining a Jenkins workflow/pipeline DSL job. Instances of the
-// string "PROJECT_NAME" are replaced with the specified namespace.
-func (j *JenkinsRef) buildDSLJob(namespace string, scriptLines ...string) (string, error) {
-	script := strings.Join(scriptLines, "\n")
-	script = strings.Replace(script, "PROJECT_NAME", namespace, -1)
-	fd := FlowDefinition{
-		Plugin: "workflow-job@2.7",
-		Definition: Definition{
-			Class:  "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition",
-			Plugin: "workflow-cps@2.18",
-			Script: script,
-		},
-	}
-	output, err := xml.MarshalIndent(fd, "  ", "    ")
-	ginkgolog("Formulated DSL Project XML:\n%s\n\n", output)
-	return string(output), err
-}
-
-// Returns the console logs of a particular buildNumber.
-func (j *JenkinsRef) getJobConsoleLogs(jobName, buildNumber string) (string, error) {
-	return j.waitForContent("", 200, 10*time.Minute, "job/%s/%s/consoleText", jobName, buildNumber)
-}
-
-// Returns the last build associated with a Jenkins job.
-func (j *JenkinsRef) getLastJobConsoleLogs(jobName string) (string, error) {
-	return j.getJobConsoleLogs(jobName, "lastBuild")
 }
 
 // Loads a Jenkins related template using new-app.
@@ -383,33 +69,6 @@ func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]str
 			}
 		}
 	}
-}
-
-func getAdminPassword(oc *exutil.CLI) string {
-	envs, err := oc.Run("set").Args("env", "dc/jenkins", "--list").Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	kvs := strings.Split(envs, "\n")
-	for _, kv := range kvs {
-		if strings.HasPrefix(kv, "JENKINS_PASSWORD=") {
-			s := strings.Split(kv, "=")
-			fmt.Fprintf(g.GinkgoWriter, "\nJenkins admin password %s\n", s[1])
-			return s[1]
-		}
-	}
-	return "password"
-}
-
-// Finds the pod running Jenkins
-func findJenkinsPod(oc *exutil.CLI) *kapi.Pod {
-	pods, err := exutil.GetDeploymentConfigPods(oc, "jenkins")
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	if pods == nil || pods.Items == nil {
-		g.Fail("No pods matching jenkins deploymentconfig in namespace " + oc.Namespace())
-	}
-
-	o.ExpectWithOffset(1, len(pods.Items)).To(o.Equal(1))
-	return &pods.Items[0]
 }
 
 // Stands up a simple pod which can be used for exec commands
@@ -456,7 +115,7 @@ var memoryOverragePattern = regexp.MustCompile(`\s+rss\s+5\d\d\d\d\d\d\d\d`)
 var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
-	var j *JenkinsRef
+	var j *jenkins.JenkinsRef
 	var dcLogFollow *exec.Cmd
 	var dcLogStdOut, dcLogStdErr *bytes.Buffer
 	var ticker *time.Ticker
@@ -467,12 +126,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			ticker.Stop()
 		}
 
-		oc.SetNamespace(j.namespace)
+		oc.SetNamespace(j.Namespace())
 		ginkgolog("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
 		exutil.DumpDeploymentLogs("jenkins", oc)
 
 		// Destroy the Jenkins namespace
-		oc.Run("delete").Args("project", j.namespace).Execute()
+		oc.Run("delete").Args("project", j.Namespace()).Execute()
 		if dcLogFollow != nil && dcLogStdOut != nil && dcLogStdErr != nil {
 			ginkgolog("Waiting for Jenkins DC log follow to terminate")
 			dcLogFollow.Process.Wait()
@@ -548,26 +207,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("get ip and port for jenkins service")
-		serviceIP, err := oc.Run("get").Args("svc", "jenkins", "--config", exutil.KubeConfigPath()).Template("{{.spec.clusterIP}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		port, err := oc.Run("get").Args("svc", "jenkins", "--config", exutil.KubeConfigPath()).Template("{{ $x := index .spec.ports 0}}{{$x.port}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("get admin password")
-		password := getAdminPassword(oc)
-		o.Expect(password).ShouldNot(o.BeEmpty())
-
-		j = &JenkinsRef{
-			oc:        oc,
-			host:      serviceIP,
-			port:      port,
-			namespace: jenkinsNamespace,
-			password:  password,
-		}
+		j = jenkins.NewRef(oc)
 
 		g.By("wait for jenkins to come up")
-		_, err = j.waitForContent("", 200, 10*time.Minute, "")
+		_, err = j.WaitForContent("", 200, 10*time.Minute, "")
 
 		if err != nil {
 			exutil.DumpDeploymentLogs("jenkins", oc)
@@ -578,11 +221,11 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		if useSnapshotImage {
 			g.By("verifying the test image is being used")
 			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
-			_, err = j.waitForContent(`About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses")
+			_, err = j.WaitForContent(`About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		jenkinsPod := findJenkinsPod(oc)
+		jenkinsPod := jenkins.FindJenkinsPod(oc)
 
 		if os.Getenv(disableJenkinsMemoryStats) == "" {
 			ticker = time.NewTicker(10 * time.Second)
@@ -630,7 +273,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		oc.SetNamespace(testNamespace)
 
 		g.By("set up policy for jenkins jobs in " + oc.Namespace())
-		err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+j.namespace+":jenkins").Execute()
+		err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+j.Namespace()+":jenkins").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Populate shared Jenkins namespace with artifacts that can be used by all tests
@@ -646,10 +289,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.It("jenkins-plugin test trigger build including clone", func() {
 
 			jobName := "test-build-job"
-			data := j.readJenkinsJob("build-job.xml", oc.Namespace())
-			j.createItem(jobName, data)
-			jmon := j.startJob(jobName)
-			jmon.await(10 * time.Minute)
+			data := j.ReadJenkinsJob("build-job.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
+			jmon := j.StartJob(jobName)
+			jmon.Await(10 * time.Minute)
 
 			// the build and deployment is by far the most time consuming portion of the test jenkins job;
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
@@ -661,7 +304,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -671,12 +314,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(strings.Contains(out, "Jenkins job")).To(o.BeTrue())
 
 			jobName = "test-build-clone-job"
-			data = j.readJenkinsJob("build-job-clone.xml", oc.Namespace())
-			j.createItem(jobName, data)
-			jmon = j.startJob(jobName)
-			jmon.await(10 * time.Minute)
+			data = j.ReadJenkinsJob("build-job-clone.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
+			jmon = j.StartJob(jobName)
+			jmon.Await(10 * time.Minute)
 			g.By("get clone build console logs and see if succeeded")
-			logs, err = j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			logs, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -693,10 +336,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.It("jenkins-plugin test trigger build with slave", func() {
 
 			jobName := "test-build-job-slave"
-			data := j.readJenkinsJob("build-job-slave.xml", oc.Namespace())
-			j.createItem(jobName, data)
-			jmon := j.startJob(jobName)
-			jmon.await(10 * time.Minute)
+			data := j.ReadJenkinsJob("build-job-slave.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
+			jmon := j.StartJob(jobName)
+			jmon.Await(10 * time.Minute)
 
 			// the build and deployment is by far the most time consuming portion of the test jenkins job;
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
@@ -708,12 +351,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and confirm ran on slave")
-			logs, err = j.waitForContent("Building remotely on", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			logs, err = j.WaitForContent("Building remotely on", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -723,17 +366,17 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			jobsToCreate := map[string]string{"test-create-obj": "create-job.xml", "test-delete-obj": "delete-job.xml", "test-delete-obj-labels": "delete-job-labels.xml", "test-delete-obj-keys": "delete-job-keys.xml"}
 			for jobName, jobConfig := range jobsToCreate {
-				data := j.readJenkinsJob(jobConfig, oc.Namespace())
-				j.createItem(jobName, data)
+				data := j.ReadJenkinsJob(jobConfig, oc.Namespace())
+				j.CreateItem(jobName, data)
 			}
 
 			jobsToRun := []apiObjJob{{"test-create-obj", true}, {"test-delete-obj", false}, {"test-create-obj", true}, {"test-delete-obj-labels", false}, {"test-create-obj", true}, {"test-delete-obj-keys", false}}
 			for _, job := range jobsToRun {
-				jmon := j.startJob(job.jobName)
-				jmon.await(10 * time.Minute)
+				jmon := j.StartJob(job.jobName)
+				jmon.Await(10 * time.Minute)
 
 				g.By("get build console logs and see if succeeded")
-				logs, err := j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
+				logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
 				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				out, err := oc.Run("get").Args("bc", "forcepull-bldr").Output()
@@ -747,12 +390,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.It("jenkins-plugin test trigger build with envs", func() {
 
 			jobName := "test-build-with-env-job"
-			data := j.readJenkinsJob("build-with-env-job.xml", oc.Namespace())
-			j.createItem(jobName, data)
-			jmon := j.startJob(jobName)
-			jmon.await(10 * time.Minute)
+			data := j.ReadJenkinsJob("build-with-env-job.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
+			jmon := j.StartJob(jobName)
+			jmon.Await(10 * time.Minute)
 
-			logs, err := j.getLastJobConsoleLogs(jobName)
+			logs, err := j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -764,7 +407,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			_, err = j.waitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
+			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
 
 			assertEnvVars(oc, "frontend-", map[string]string{
 				"a": "b",
@@ -779,16 +422,16 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			data, err := j.buildDSLJob(oc.Namespace(),
+			data, err := j.BuildDSLJob(oc.Namespace(),
 				"node{",
 				"openshiftBuild( namespace:'PROJECT_NAME', bldCfg: 'frontend', env: [ [ name : 'a', value : 'b' ], [ name : 'C', value : 'D' ], [ name : 'e', value : '' ] ] )",
 				"}",
 			)
 
 			jobName := "test-build-dsl-job"
-			j.createItem(jobName, data)
-			monitor := j.startJob(jobName)
-			err = monitor.await(10 * time.Minute)
+			j.CreateItem(jobName, data)
+			monitor := j.StartJob(jobName)
+			err = monitor.Await(10 * time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
@@ -801,7 +444,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 
-			log, err := j.getLastJobConsoleLogs(jobName)
+			log, err := j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("Job logs>>\n%s\n\n", log)
 
 			assertEnvVars(oc, "frontend-", map[string]string{
@@ -817,7 +460,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			targetPod := initExecPod(oc)
 			targetContainer := targetPod.Spec.Containers[0]
 
-			data, err := j.buildDSLJob(oc.Namespace(),
+			data, err := j.BuildDSLJob(oc.Namespace(),
 				"node{",
 				fmt.Sprintf("openshiftExec( namespace:'PROJECT_NAME', pod: '%s', command: [ 'echo', 'hello', 'world', '1' ] )", targetPod.Name),
 				fmt.Sprintf("openshiftExec( namespace:'PROJECT_NAME', pod: '%s', command: 'echo', arguments : [ 'hello', 'world', '2' ] )", targetPod.Name),
@@ -829,12 +472,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			)
 
 			jobName := "test-exec-dsl-job"
-			j.createItem(jobName, data)
-			monitor := j.startJob(jobName)
-			err = monitor.await(10 * time.Minute)
+			j.CreateItem(jobName, data)
+			monitor := j.StartJob(jobName)
+			err = monitor.Await(10 * time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			log, err := j.getLastJobConsoleLogs(jobName)
+			log, err := j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("Job logs>>\n%s\n\n", log)
 
 			o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
@@ -851,16 +494,16 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			targetContainer := targetPod.Spec.Containers[0]
 
 			jobName := "test-build-with-env-steps"
-			data := j.readJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+			data := j.ReadJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
 				"POD_NAME":       targetPod.Name,
 				"CONTAINER_NAME": targetContainer.Name,
 			})
 
-			j.createItem(jobName, data)
-			jmon := j.startJob(jobName)
-			jmon.await(2 * time.Minute)
+			j.CreateItem(jobName, data)
+			jmon := j.StartJob(jobName)
+			jmon.Await(2 * time.Minute)
 
-			log, err := j.getLastJobConsoleLogs(jobName)
+			log, err := j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -868,16 +511,16 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			// Now run without specifying container
 			jobName = "test-build-with-env-steps-no-container"
-			data = j.readJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
+			data = j.ReadJenkinsJobUsingVars("build-with-exec-steps.xml", oc.Namespace(), map[string]string{
 				"POD_NAME":       targetPod.Name,
 				"CONTAINER_NAME": "",
 			})
 
-			j.createItem(jobName, data)
-			jmon = j.startJob(jobName)
-			jmon.await(2 * time.Minute)
+			j.CreateItem(jobName, data)
+			jmon = j.StartJob(jobName)
+			jmon.Await(2 * time.Minute)
 
-			log, err = j.getLastJobConsoleLogs(jobName)
+			log, err = j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -898,13 +541,13 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			jobName := "test-multitag-job"
-			data := j.readJenkinsJob("multitag-job.xml", oc.Namespace())
-			j.createItem(jobName, data)
-			monitor := j.startJob(jobName)
-			err = monitor.await(10 * time.Minute)
+			data := j.ReadJenkinsJob("multitag-job.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
+			monitor := j.StartJob(jobName)
+			err = monitor.Await(10 * time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			log, err := j.getLastJobConsoleLogs(jobName)
+			log, err := j.GetLastJobConsoleLogs(jobName)
 			ginkgolog("Job logs>>\n%s\n\n", log)
 
 			// Assert stream tagging results
@@ -966,14 +609,14 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			// Allow jenkins service account to edit the new namespace
 			oc.SetNamespace(anotherNamespace)
-			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+j.namespace+":jenkins").Execute()
+			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+j.Namespace()+":jenkins").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			oc.SetNamespace(testNamespace)
 
 			ginkgolog("Using testNamespace: %q and currentNamespace: %q", testNamespace, oc.Namespace())
 
-			data, err := j.buildDSLJob(oc.Namespace(),
+			data, err := j.BuildDSLJob(oc.Namespace(),
 				"node{",
 				"openshiftTag( namespace:'PROJECT_NAME', srcStream: 'multitag', srcTag: 'orig', destStream: 'multitag', destTag: 'prod' )",
 				"openshiftTag( namespace:'PROJECT_NAME', srcStream: 'multitag', srcTag: 'orig', destStream: 'multitag2', destTag: 'prod1, prod2, prod3' )",
@@ -987,14 +630,14 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			)
 
 			jobName := "test-multitag-dsl-job"
-			j.createItem(jobName, data)
-			monitor := j.startJob(jobName)
-			err = monitor.await(10 * time.Minute)
+			j.CreateItem(jobName, data)
+			monitor := j.StartJob(jobName)
+			err = monitor.Await(10 * time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			time.Sleep(10 * time.Second)
 
-			log, err := j.getLastJobConsoleLogs(jobName)
+			log, err := j.GetLastJobConsoleLogs(jobName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ginkgolog("Job logs>>\n%s\n\n", log)
 
@@ -1028,8 +671,8 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		testImageStreamSCM := func(jobXMLFile string) {
 			jobName := "test-imagestream-scm"
 			g.By("creating a jenkins job with an imagestream SCM")
-			data := j.readJenkinsJob(jobXMLFile, oc.Namespace())
-			j.createItem(jobName, data)
+			data := j.ReadJenkinsJob(jobXMLFile, oc.Namespace())
+			j.CreateItem(jobName, data)
 
 			// Because polling is enabled, a job should start automatically and fail
 			// Wait for it to run and fail
@@ -1038,7 +681,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			jobStatusURI := "api/xml?tree=%s&xpath=%s"
 			g.By("waiting for initial job to complete")
 			wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-				result, status, err := j.getResource(jobStatusURI, tree, xpath)
+				result, status, err := j.GetResource(jobStatusURI, tree, xpath)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if status == 200 && strings.Contains(result, "red") {
 					return true, nil
@@ -1069,12 +712,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.It("jenkins-plugin test connection test", func() {
 
 			jobName := "test-build-job"
-			data := j.readJenkinsJob("build-job.xml", oc.Namespace())
-			j.createItem(jobName, data)
+			data := j.ReadJenkinsJob("build-job.xml", oc.Namespace())
+			j.CreateItem(jobName, data)
 
 			g.By("trigger test connection logic, check for success")
 			testConnectionBody := bytes.NewBufferString("apiURL=&authToken=")
-			result, code, err := j.post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+			result, code, err := j.Post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
 			if code != 200 {
 				err = fmt.Errorf("Expected return code of 200")
 			}
@@ -1085,7 +728,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 			g.By("trigger test connection logic, check for failure")
 			testConnectionBody = bytes.NewBufferString("apiURL=https%3A%2F%2F1.2.3.4&authToken=")
-			result, code, err = j.post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
+			result, code, err = j.Post(testConnectionBody, "job/test-build-job/descriptorByName/com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder/testConnection", "application/x-www-form-urlencoded")
 			if code != 200 {
 				err = fmt.Errorf("Expected return code of 200")
 			}
