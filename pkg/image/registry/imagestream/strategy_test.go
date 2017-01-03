@@ -460,6 +460,9 @@ func TestLimitVerifier(t *testing.T) {
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "is", testutil.ChildImageWith2LayersDigest),
 							},
+							ReferencePolicy: api.TagReferencePolicy{
+								Type: api.SourceTagReferencePolicy,
+							},
 						},
 					},
 				},
@@ -482,6 +485,9 @@ func TestLimitVerifier(t *testing.T) {
 							From: &kapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "other", testutil.BaseImageWith1LayerDigest),
+							},
+							ReferencePolicy: api.TagReferencePolicy{
+								Type: api.SourceTagReferencePolicy,
 							},
 						},
 					},
