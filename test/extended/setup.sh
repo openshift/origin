@@ -50,6 +50,11 @@ function os::test::extended::setup () {
 		out=$?
 		cleanup_openshift
 
+		if [[ -n "${TEST_REPORT_DIR:-}" ]]; then
+			# merge the jUnit reports created by Ginkgo
+			os::test::extended::merge_junit
+		fi
+
 		# TODO(skuznets): un-hack this nonsense once traps are in a better
 		# state
 		if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
