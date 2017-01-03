@@ -23,8 +23,8 @@
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${POSTGRESQL_USER}",
-        "databasePassword" : "${POSTGRESQL_PASSWORD}"
+        "database-user" : "${POSTGRESQL_USER}",
+        "database-password" : "${POSTGRESQL_PASSWORD}"
       }
     },
     {
@@ -127,7 +127,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -136,7 +136,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },

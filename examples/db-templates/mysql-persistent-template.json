@@ -22,9 +22,9 @@
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MYSQL_USER}",
-        "databasePassword" : "${MYSQL_PASSWORD}",
-        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
       }
     },
     {
@@ -132,7 +132,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -141,7 +141,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -150,7 +150,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseRootPassword"
+                        "key" : "database-root-password"
                       }
                     }
                   },

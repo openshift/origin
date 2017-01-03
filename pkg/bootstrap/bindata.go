@@ -1691,9 +1691,9 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MYSQL_USER}",
-        "databasePassword" : "${MYSQL_PASSWORD}",
-        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
       }
     },
     {
@@ -1784,7 +1784,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -1793,7 +1793,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -1802,7 +1802,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseRootPassword"
+                        "key" : "database-root-password"
                       }
                     }
                   },
@@ -1933,9 +1933,9 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MYSQL_USER}",
-        "databasePassword" : "${MYSQL_PASSWORD}",
-        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
       }
     },
     {
@@ -2043,7 +2043,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -2052,7 +2052,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -2061,7 +2061,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseRootPassword"
+                        "key" : "database-root-password"
                       }
                     }
                   },
@@ -2200,9 +2200,9 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MONGODB_USER}",
-        "databasePassword" : "${MONGODB_PASSWORD}",
-        "databaseAdminPassword" : "${MONGODB_ADMIN_PASSWORD}"
+        "database-user" : "${MONGODB_USER}",
+        "database-password" : "${MONGODB_PASSWORD}",
+        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}"
       }
     },
     {
@@ -2305,7 +2305,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -2314,7 +2314,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -2323,7 +2323,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseAdminPassword"
+                        "key" : "database-admin-password"
                       }
                     }
                   },
@@ -2470,9 +2470,9 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MONGODB_USER}",
-        "databasePassword" : "${MONGODB_PASSWORD}",
-        "databaseAdminPassword" : "${MONGODB_ADMIN_PASSWORD}"
+        "database-user" : "${MONGODB_USER}",
+        "database-password" : "${MONGODB_PASSWORD}",
+        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}"
       }
     },
     {
@@ -2592,7 +2592,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -2601,7 +2601,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -2610,7 +2610,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseAdminPassword"
+                        "key" : "database-admin-password"
                       }
                     }
                   },
@@ -2763,9 +2763,9 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MYSQL_USER}",
-        "databasePassword" : "${MYSQL_PASSWORD}",
-        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
       }
     },
     {
@@ -2869,7 +2869,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -2878,7 +2878,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -2887,7 +2887,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseRootPassword"
+                        "key" : "database-root-password"
                       }
                     }
                   },
@@ -3033,9 +3033,9 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${MYSQL_USER}",
-        "databasePassword" : "${MYSQL_PASSWORD}",
-        "databaseRootPassword" : "${MYSQL_ROOT_PASSWORD}"
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
       }
     },
     {
@@ -3143,7 +3143,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -3152,7 +3152,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -3161,7 +3161,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseRootPassword"
+                        "key" : "database-root-password"
                       }
                     }
                   },
@@ -3307,8 +3307,8 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${POSTGRESQL_USER}",
-        "databasePassword" : "${POSTGRESQL_PASSWORD}"
+        "database-user" : "${POSTGRESQL_USER}",
+        "database-password" : "${POSTGRESQL_PASSWORD}"
       }
     },
     {
@@ -3411,7 +3411,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -3420,7 +3420,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -3559,8 +3559,8 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${POSTGRESQL_USER}",
-        "databasePassword" : "${POSTGRESQL_PASSWORD}"
+        "database-user" : "${POSTGRESQL_USER}",
+        "database-password" : "${POSTGRESQL_PASSWORD}"
       }
     },
     {
@@ -3680,7 +3680,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -3689,7 +3689,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
