@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
@@ -680,6 +681,7 @@ func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (run
 	if err != nil {
 		return nil, err
 	}
+	kapi.Scheme.Default(ext)
 	return configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 }
 

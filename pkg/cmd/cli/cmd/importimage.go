@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
 )
 
 var (
@@ -285,6 +286,18 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 			return nil, nil, fmt.Errorf("no image stream named %q exists, pass --confirm to create and import", o.Name)
 		}
 		stream, isi = o.newImageStream()
+		// ensure defaulting is applied by round trip converting
+		// TODO: convert to using versioned types.
+		external, err := kapi.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+		if err != nil {
+			return nil, nil, err
+		}
+		kapi.Scheme.Default(external)
+		internal, err := kapi.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+		if err != nil {
+			return nil, nil, err
+		}
+		stream = internal.(*imageapi.ImageStream)
 		return stream, isi, nil
 	}
 

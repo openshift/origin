@@ -244,6 +244,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err != nil {
 		return nil, err
 	}
+	kapi.Scheme.Default(external)
 	internal, err := kapi.Scheme.ConvertToVersion(external, api.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
