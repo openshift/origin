@@ -7,8 +7,12 @@
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete project test-cmd-images-2
-  oc delete all,templates --all
+  original_context="$( oc config current-context )"
+  os::cmd::expect_success 'oc login -u system:admin'
+  cluster_admin_context="$( oc config current-context )"
+  os::cmd::expect_success "oc config use-context '${original_context}'"
+  oc delete project test-cmd-images-2 --context=${cluster_admin_context}
+  oc delete all,templates --all --context=${cluster_admin_context}
 
   exit 0
 ) &> /dev/null

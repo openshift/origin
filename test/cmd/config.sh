@@ -24,7 +24,7 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   export HOME=/tmp
   unset KUBECONFIG
   unset KUBERNETES_MASTER
-  
+
   os::cmd::expect_failure_and_text 'oc get bc --user=""' 'Missing or incomplete configuration info'
   os::cmd::expect_failure_and_text 'oc get bc --context=""' 'Missing or incomplete configuration info'
   os::cmd::expect_failure_and_text 'oc get bc --cluster=""' 'Missing or incomplete configuration info'
