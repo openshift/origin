@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/docker/distribution/registry/api/errcode"
@@ -252,16 +253,8 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 // Also automatically remove any image layer that is no longer referenced by any
 // images.
 func NewPruner(options PrunerOptions) Pruner {
-	keepTagRevisions := "<nil>"
-	if options.KeepTagRevisions != nil {
-		keepTagRevisions = fmt.Sprintf("%d", *options.KeepTagRevisions)
-	}
-	pruneOverSizeLimit := "<nil>"
-	if options.PruneOverSizeLimit != nil {
-		pruneOverSizeLimit = fmt.Sprintf("%v", *options.PruneOverSizeLimit)
-	}
-	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%t",
-		options.KeepYoungerThan, keepTagRevisions, pruneOverSizeLimit, options.AllImages)
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%s",
+		options.KeepYoungerThan, getValue(options.KeepTagRevisions), getValue(options.PruneOverSizeLimit), getValue(options.AllImages))
 
 	algorithm := pruneAlgorithm{}
 	if options.KeepYoungerThan != nil {
@@ -301,6 +294,13 @@ func NewPruner(options PrunerOptions) Pruner {
 		registryClient: options.RegistryClient,
 		registryURL:    options.RegistryURL,
 	}
+}
+
+func getValue(option interface{}) string {
+	if v := reflect.ValueOf(option); !v.IsNil() {
+		return fmt.Sprintf("%v", v.Elem())
+	}
+	return "<nil>"
 }
 
 // addImagesToGraph adds all images to the graph that belong to one of the
