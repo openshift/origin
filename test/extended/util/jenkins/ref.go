@@ -227,7 +227,7 @@ func (j *JenkinsRef) WaitForContent(verificationRegEx string, verificationStatus
 // CreateItem submits XML to create a named item on the Jenkins server.
 func (j *JenkinsRef) CreateItem(name string, itemDefXML string) {
 	g.By(fmt.Sprintf("Creating new jenkins item: %s", name))
-	_, status, err := j.PostXML(bytes.NewBufferString(itemDefXML), "CreateItem?name=%s", name)
+	_, status, err := j.PostXML(bytes.NewBufferString(itemDefXML), "createItem?name=%s", name)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	o.ExpectWithOffset(1, status).To(o.Equal(200))
 }
