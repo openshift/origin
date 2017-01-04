@@ -64,6 +64,8 @@ mkdir -p ${LOG_DIR}
 os::log::info "Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 ps -ef | grep openshift
 
+os::test::junit::declare_suite_start "extended/alternate_launches"
+
 os::log::info "Starting etcdserver"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start etcd \
  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -156,6 +158,8 @@ os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBE
 os::cmd::try_until_success "oc get --raw /api/v1/nodes/${KUBELET_HOST} --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 80 * second )) 0.25
 os::log::info "OpenShift node health checks done at: "
 date
+
+os::test::junit::declare_suite_end
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
