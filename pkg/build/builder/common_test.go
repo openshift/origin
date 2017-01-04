@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 func TestBuildInfo(t *testing.T) {
@@ -32,15 +33,12 @@ func TestBuildInfo(t *testing.T) {
 						},
 					},
 				},
-				Revision: &api.SourceRevision{
-					Git: &api.GitSourceRevision{
-						Commit: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
-					},
-				},
 			},
 		},
 	}
-	got := buildInfo(b)
+	sourceInfo := &git.SourceInfo{}
+	sourceInfo.CommitID = "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"
+	got := buildInfo(b, sourceInfo)
 	want := []KeyValue{
 		{"OPENSHIFT_BUILD_NAME", "sample-app"},
 		{"OPENSHIFT_BUILD_NAMESPACE", "default"},
@@ -52,6 +50,17 @@ func TestBuildInfo(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("buildInfo(%+v) = %+v; want %+v", b, got, want)
 	}
+
+	b.Spec.Revision = &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Commit: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+		},
+	}
+	got = buildInfo(b, nil)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("buildInfo(%+v) = %+v; want %+v", b, got, want)
+	}
+
 }
 
 func TestRandomBuildTag(t *testing.T) {

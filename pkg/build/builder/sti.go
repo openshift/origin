@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
@@ -182,7 +183,7 @@ func (s *S2IBuilder) Build() error {
 		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
-		Environment:       buildEnvVars(s.build),
+		Environment:       buildEnvVars(s.build, sourceInfo),
 		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
@@ -337,8 +338,8 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 // 2. In case of repeated Keys, the last Value takes precedence right here,
 //    instead of deferring what to do with repeated environment variables to the
 //    Docker runtime.
-func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
-	bi := buildInfo(build)
+func buildEnvVars(build *api.Build, sourceInfo *git.SourceInfo) s2iapi.EnvironmentList {
+	bi := buildInfo(build, sourceInfo)
 	envVars := &s2iapi.EnvironmentList{}
 	for _, item := range bi {
 		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))
