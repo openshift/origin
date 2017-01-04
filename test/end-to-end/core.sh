@@ -447,6 +447,14 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
 os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
+
+# test that rsh inherits the TERM variable by default
+# this must be done as an echo and not an argument to rsh because rsh only sets the TERM if
+# no arguments are supplied.
+TERM=test_terminal os::cmd::expect_success_and_text "echo 'echo $TERM' | oc rsh ${frontend_pod}" $TERM
+# and does not inherit it when the user provides a command.
+TERM=test_terminal os::cmd::expect_success_and_not_text "oc rsh ${frontend_pod} echo \$TERM" $TERM
+
 # Wait for the rollout to finish
 os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
 # Test retrieving application logs from dc
