@@ -71,9 +71,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Example: fmt.Sprintf(buildChainExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(f, cmd, args, out))
-
 			cmdutil.CheckErr(options.Validate())
-
 			cmdutil.CheckErr(options.RunBuildChain())
 		},
 	}
