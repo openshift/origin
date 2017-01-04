@@ -59,6 +59,17 @@ func TestCreateImageImport(t *testing.T) {
 				To:   &kapi.LocalObjectReference{Name: "latest"},
 			}},
 		},
+		"import from .spec.dockerImageRepository non-existing tag": {
+			name: "testis:nonexisting",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			err: `"nonexisting" does not exist on the image stream`,
+		},
 		"import all from .spec.dockerImageRepository": {
 			name: "testis",
 			all:  true,
