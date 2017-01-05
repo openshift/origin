@@ -33,6 +33,10 @@ var (
 	  # Create a route and specify a hostname
 	  %[1]s expose service nginx --hostname=www.example.com
 
+	  # Create a route with wildcard
+	  %[1]s expose service nginx --hostname=x.example.com --wildcard=Subdomain
+	  This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
+
 	  # Expose a deployment configuration as a service and use the specified port
 	  %[1]s expose dc ruby-hello-world --port=8080
 
