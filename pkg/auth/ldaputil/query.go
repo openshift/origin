@@ -118,9 +118,9 @@ func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attribute
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil
 
-	} else {
-		return o.buildAttributeQuery(attributeValue, attributes), nil
 	}
+	return o.buildAttributeQuery(attributeValue, attributes), nil
+
 }
 
 // buildDNQuery builds the query that finds an LDAP entry with the given DN
@@ -188,10 +188,9 @@ func QueryForUniqueEntry(clientConfig ldapclient.Config, query *ldap.SearchReque
 		if query.Scope == ldap.ScopeBaseObject {
 			return nil, fmt.Errorf("multiple entries found matching dn=%q:\n%s",
 				query.BaseDN, formatResult(result))
-		} else {
-			return nil, fmt.Errorf("multiple entries found matching filter %s:\n%s",
-				query.Filter, formatResult(result))
 		}
+		return nil, fmt.Errorf("multiple entries found matching filter %s:\n%s",
+			query.Filter, formatResult(result))
 	}
 
 	entry := result[0]
