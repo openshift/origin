@@ -208,6 +208,46 @@ func TestValidateAddOptions(t *testing.T) {
 			&AddVolumeOptions{Type: "persistentVolumeClaim", ClaimName: "sandbox-pvc", ClaimClass: "slow", ClaimSize: "5G"},
 			nil,
 		},
+		{
+			"creating secret with good default-mode",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "0644"},
+			nil,
+		},
+		{
+			"creating secret with good default-mode, three number variant",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "777"},
+			nil,
+		},
+		{
+			"creating secret with bad default-mode, bad bits",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "0888"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating secret with bad default-mode, too long",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "07777"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating configmap with good default-mode",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "0644"},
+			nil,
+		},
+		{
+			"creating configmap with good default-mode, three number variant",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "777"},
+			nil,
+		},
+		{
+			"creating configmap with bad default-mode, bad bits",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "0888"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating configmap with bad default-mode, too long",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "07777"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
 	}
 
 	for _, testCase := range tests {
