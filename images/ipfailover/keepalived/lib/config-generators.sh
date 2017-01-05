@@ -23,7 +23,7 @@ readonly DEFAULT_PREEMPTION_STRATEGY="preempt_delay 300"
 #     generate_global_config  arparp
 #
 function generate_global_config() {
-  local routername=$(scrub "$1")
+  local routername ; routername=$(scrub "$1")
 
   echo "global_defs {"
   echo "   notification_email {"
@@ -37,7 +37,7 @@ function generate_global_config() {
   echo "   notification_email_from ${EMAIL_FROM:-"ipfailover@openshift.local"}"
   echo "   smtp_server ${SMTP_SERVER:-"127.0.0.1"}"
   echo "   smtp_connect_timeout ${SMTP_CONNECT_TIMEOUT:-"30"}"
-  echo "   router_id $routername"
+  echo "   router_id ${routername}"
   echo "}"
 }
 
@@ -50,24 +50,22 @@ function generate_global_config() {
 #      generate_script_config "10.1.2.3" 8080
 #
 function generate_script_config() {
-  local serviceip=${1:-"127.0.0.1"}
+  local serviceip ; serviceip=${1:-"127.0.0.1"}
   local port=${2:-80}
 
   echo ""
-  echo "vrrp_script $CHECK_SCRIPT_NAME {"
+  echo "vrrp_script ${CHECK_SCRIPT_NAME} {"
 
-  if [ "$port" = "0" ]; then
+  if [[ "${port}" == "0" ]]; then
     echo "   script \"true\""
   else
     if [[ -n "${HA_CHECK_SCRIPT}" ]]; then
-      echo "   if [[ -f ${HA_CHECK_SCRIPT} ]]; then"
-      echo "       script \"${HA_CHECK_SCRIPT}\""
-      echo "   fi"
+      echo "   script \"${HA_CHECK_SCRIPT}\""
     fi
     echo "   script \"</dev/tcp/${serviceip}/${port}\""
   fi
 
-  echo "   interval $CHECK_INTERVAL_SECS"
+  echo "   interval ${CHECK_INTERVAL_SECS}"
   echo "}"
 }
 
@@ -83,7 +81,7 @@ function generate_authentication_info() {
   echo ""
   echo "   authentication {"
   echo "      auth_type PASS"
-  echo "      auth_pass $creds"
+  echo "      auth_pass ${creds}"
   echo "   }"
 }
 
@@ -97,7 +95,7 @@ function generate_authentication_info() {
 function generate_track_script() {
   echo ""
   echo "   track_script {"
-  echo "      $CHECK_SCRIPT_NAME"
+  echo "      ${CHECK_SCRIPT_NAME}"
   echo "   }"
 }
 
@@ -116,58 +114,29 @@ function generate_track_script() {
 function generate_mucast_options() {
   echo ""
 
-  if [ -n "$MULTICAST_SOURCE_IPADDRESS" ]; then
-    echo "    mcast_src_ip $MULTICAST_SOURCE_IPADDRESS"
+  if [[ -n "${MULTICAST_SOURCE_IPADDRESS}" ]]; then
+    echo "    mcast_src_ip ${MULTICAST_SOURCE_IPADDRESS}"
   fi
 
-  if [ -n "$UNICAST_SOURCE_IPADDRESS" ]; then
-    echo "    unicast_src_ip $UNICAST_SOURCE_IPADDRESS"
+  if [[ -n "${UNICAST_SOURCE_IPADDRESS}" ]]; then
+    echo "    unicast_src_ip ${UNICAST_SOURCE_IPADDRESS}"
   fi
 
-  if [ -n "$UNICAST_PEERS" ]; then
+  if [[ -n "${UNICAST_PEERS}" ]]; then
     echo ""
     echo "    unicast_peer {"
 
-    for ip in $(echo "$UNICAST_PEERS" | tr "," " "); do
-      echo "        $ip"
+    OLD_IFS=$IFS
+    IFS=","
+    for ip in ${UNICAST_PEERS}; do
+      echo "        ${ip}"
     done
+    IFS=$OLD_IFS
 
     echo "    }"
   fi
 }
 
-
-#
-#  Generate VRRP sync groups section.
-#
-#  Examples:
-#      generate_vrrp_sync_groups "ipf-1" "10.1.1.1 10.1.2.2"
-#
-#      generate_vrrp_sync_groups "arparp" "10.42.42.42-45, 10.9.1.1"
-#
-function generate_vrrp_sync_groups() {
-  local servicename=$(scrub "$1")
-
-  echo ""
-  echo "vrrp_sync_group group_${servicename} {"
-  echo "   group {"
-
-  local prefix="$(vrrp_instance_basename "$1")"
-  local counter=1
-
-  for ip in $(expand_ip_ranges "$2"); do
-    echo "      ${prefix}_${counter}   # VIP $ip"
-    counter=$((counter + 1))
-  done
-
-  echo "   }"
-
-  if [[ -n $HA_NOTIFY_SCRIPT ]]; then
-      echo "   notify \"$HA_NOTIFY_SCRIPT\""
-  fi
-
-  echo "}"
-}
 
 
 #
@@ -181,13 +150,13 @@ function generate_vrrp_sync_groups() {
 #      generate_vip_section "10.42.42.42-45, 10.9.1.1"
 #
 function generate_vip_section() {
-  local interface=${2:-"$(get_network_device)"}
+  local interface ; interface=${2:-"$(get_network_device)"}
 
   echo ""
   echo "   virtual_ipaddress {"
 
   for ip in $(expand_ip_ranges "$1"); do
-    echo "      ${ip} dev $interface"
+    echo "      ${ip} dev ${interface}"
   done
 
   echo "   }"
@@ -196,6 +165,8 @@ function generate_vip_section() {
 
 #
 #  Generate vrrpd instance configuration section.
+#    This generates the vrrp_sync_group and vrrp_instance
+#    There is one VIP per vrrp_sync_group
 #
 #  Examples:
 #      generate_vrrpd_instance_config arp 1 "10.1.2.3" enp0s8 "252" "master"
@@ -212,17 +183,18 @@ function generate_vrrpd_instance_config() {
   local priority=${5:-"10"}
   local instancetype=${6:-"slave"}
 
-  local vipname=$(scrub "$1")
+  local vipname ; vipname=$(scrub "$1")
   local initialstate=""
-  local preempt=${PREEMPTION:-"$DEFAULT_PREEMPTION_STRATEGY"}
+  local preempt=${PREEMPTION:-"${DEFAULT_PREEMPTION_STRATEGY}"}
   local vrrpidoffset=${HA_VRRP_ID_OFFSET:-0}
 
-  [ "$instancetype" = "master" ] && initialstate="state MASTER"
+  [ "${instancetype}" = "master" ] && initialstate="state MASTER"
 
-  local instance_name=$(generate_vrrp_instance_name "$servicename" "$iid")
+  local instance_name ; instance_name=$(generate_vrrp_instance_name "${servicename}" "${iid}")
 
-  local auth_section=$(generate_authentication_info "$servicename")
-  local vip_section=$(generate_vip_section "$vips" "$interface")
+  local auth_section ; auth_section=$(generate_authentication_info "${servicename}")
+  local vip_section ; vip_section=$(generate_vip_section "${vips}" "${interface}")
+  # Emit instance
   echo "
 vrrp_instance ${instance_name} {
    interface ${interface}
@@ -232,7 +204,11 @@ vrrp_instance ${instance_name} {
    ${preempt}
    ${auth_section}
    $(generate_track_script)
-   $(generate_mucast_options)
+   "
+  if [[ -n $HA_NOTIFY_SCRIPT ]]; then
+      echo "   notify \"${HA_NOTIFY_SCRIPT}\""
+  fi
+  echo " $(generate_mucast_options)
    ${vip_section}
 }
 "
@@ -247,23 +223,28 @@ vrrp_instance ${instance_name} {
 #      generate_failover_configuration
 #
 function generate_failover_config() {
-  local vips=$(expand_ip_ranges "$HA_VIPS")
-  local interface=$(get_network_device "$NETWORK_INTERFACE")
-  local ipaddr=$(get_device_ip_address "$interface")
-  local port=$(echo "$HA_MONITOR_PORT" | sed 's/[^0-9]//g')
+  local vips ; vips=$(expand_ip_ranges "${HA_VIPS}")
+  local interface ; interface=$(get_network_device "${NETWORK_INTERFACE}")
+  local ipaddr ; ipaddr=$(get_device_ip_address "${interface}")
+  local port="${HA_MONITOR_PORT//[^0-9]/}"
 
   echo "! Configuration File for keepalived
 
-$(generate_global_config "$HA_CONFIG_NAME")
-$(generate_script_config "$ipaddr" "$port")
-$(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$HA_VIPS")
+$(generate_global_config "${HA_CONFIG_NAME}")
+$(generate_script_config "${ipaddr}" "${port}")
 "
 
-  local ipkey=$(echo "$ipaddr" | cut -f 4 -d '.')
+  local ipkey ; ipkey=$(echo "${ipaddr}" | cut -f 4 -d '.')
   local ipslot=$((ipkey % 128))
 
-  local nodecount=$(($HA_REPLICA_COUNT > 0 ? $HA_REPLICA_COUNT : 1))
-  local idx=$((ipslot % $nodecount))
+  local nodecount
+  if [[ "${HA_REPLICA_COUNT}" -gt 0 ]]; then
+      nodecount="${HA_REPLICA_COUNT}"
+  else
+      nodecount="1"
+  fi
+
+  local idx=$((ipslot % nodecount))
   idx=$((idx + 1))
 
   local counter=1
@@ -271,24 +252,24 @@ $(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$HA_VIPS")
 
   for vip in ${vips}; do
     local offset=$((RANDOM % 32))
-    local priority=$(($((ipslot % 64)) + $offset))
+    local priority=$((ipslot % 64 + offset))
     local instancetype="slave"
-    local n=$((counter % $idx))
+    local n=$((counter % idx))
 
-    if [ $n -eq 0 ]; then
+    if [[ ${n} -eq 0 ]]; then
       instancetype="master"
-      if [ "$previous" = "master" ]; then
+      if [[ "${previous}" == "master" ]]; then
         #  Inverse priority + reset, so that we can flip-flop priorities.
         priority=$((ipslot + 1))
         previous="flip-flop"
       else
-        priority=$((255 - $ipslot))
-        previous=$instancetype
+        priority=$((255 - ipslot))
+        previous=${instancetype}
       fi
     fi
 
-    generate_vrrpd_instance_config "$HA_CONFIG_NAME" "$counter" "$vip"  \
-        "$interface" "$priority" "$instancetype"
+    generate_vrrpd_instance_config "${HA_CONFIG_NAME}" "${counter}" "${vip}"  \
+        "${interface}" "${priority}" "${instancetype}"
 
     counter=$((counter + 1))
   done
