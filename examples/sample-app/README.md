@@ -58,7 +58,7 @@ First, you'll need to configure the Docker daemon on your host to trust the Dock
 
 To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
 
-    $ docker -d --insecure-registry 172.30.0.0/16
+    $ docker daemon --insecure-registry 172.30.0.0/16
 
 Note that you need to have installed Docker 1.3.2 or higher in order to use the `--insecure-registry` flag.
 

@@ -64,7 +64,7 @@ One issue seen sometimes is not being able to resolve any hostname (for example 
 If this shows up in your build logs, restart docker and then resubmit a build:
 
     $ sudo systemctl restart docker
-    $ oc start-build <your build identifier>
+    $ oc start-build --from-build=<your build identifier>
 
 Another item seen stems from how OpenShift operates in a SELinux environment.  The SELinux policy requires that host directories that are bind mounted have the svirt_sandbox_file_t label.  Generally
 this simply happens for you under the covers, but there is a growing list of user operations which hamper the registry deployment to the point where the svrt_sandbox_file_t label ends up missing, and you can see
