@@ -5610,8 +5610,6 @@ objects:
       type: Rolling
     template:
       metadata:
-        annotations:
-          openshift.io/container.${APP_NAME}.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
         labels:
           app: ${APP_NAME}
           deploymentconfig: ${APP_NAME}

@@ -1,0 +1,69 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: busybox
+  spec:
+    tags:
+    - name: latest
+      from:
+        name: busybox
+        kind: DockerImage
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: busybox1
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: busybox1
+    template:
+      metadata:
+        labels:
+          deploymentconfig: busybox1
+      spec:
+        containers:
+        - name: busybox
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - busybox
+        from:
+          name: busybox:latest
+          kind: ImageStreamTag
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: busybox2
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: busybox2
+    template:
+      metadata:
+        labels:
+          deploymentconfig: busybox2
+      spec:
+        containers:
+        - name: busybox
+          command:
+          - foo
+          - bar
+          args:
+          - baz
+          - qux
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - busybox
+        from:
+          name: busybox:latest
+          kind: ImageStreamTag
