@@ -1,8 +1,6 @@
 package builds
 
 import (
-	"fmt"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -14,12 +12,11 @@ var _ = g.Describe("[builds][Slow] build can have Dockerfile input", func() {
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
 		testDockerfile = `
-FROM openshift/jenkins-1-centos7
+FROM library/busybox
 USER 1001
 `
 		testDockerfile2 = `
 FROM centos:7
-RUN yum install -y httpd
 USER 1001
 `
 	)
@@ -33,34 +30,34 @@ USER 1001
 
 	g.Describe("being created from new-build", func() {
 		g.It("should create a image via new-build", func() {
-			g.By(fmt.Sprintf("calling oc new-build with Dockerfile"))
-			err := oc.Run("new-build").Args("-D", "-", "--to", "jenkins:custom").InputString(testDockerfile).Execute()
+			g.By("calling oc new-build with Dockerfile")
+			err := oc.Run("new-build").Args("-D", "-", "--to", "busybox:custom").InputString(testDockerfile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("jenkins")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("busybox")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(bc.Spec.Source.Dockerfile).NotTo(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
-			buildName := "jenkins-1"
+			buildName := "busybox-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
-			//debug for failures on jenkins
+			//debug for failures
 			if err != nil {
-				exutil.DumpBuildLogs("jenkins", oc)
+				exutil.DumpBuildLogs("busybox", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
-			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("jenkins", "custom")
+			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("busybox", "custom")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 		})
 
 		g.It("should create a image via new-build and infer the origin tag", func() {
-			g.By(fmt.Sprintf("calling oc new-build with Dockerfile that uses the same tag as the output"))
+			g.By("calling oc new-build with Dockerfile that uses the same tag as the output")
 			err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile2).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -76,7 +73,7 @@ USER 1001
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
 			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
-			//debug for failures on jenkins
+			//debug for failures
 			if err != nil {
 				exutil.DumpBuildLogs("centos", oc)
 			}
