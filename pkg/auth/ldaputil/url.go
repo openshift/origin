@@ -205,7 +205,7 @@ func SplitLDAPQuery(query string) (attributes, scope, filter, extensions string,
 	}
 }
 
-// DeterminmeLDAPScope determines the LDAP search scope. Scope is one of "sub", "one", or "base"
+// DetermineLDAPScope determines the LDAP search scope. Scope is one of "sub", "one", or "base"
 // Default to "sub" to match mod_auth_ldap
 func DetermineLDAPScope(scope string) (Scope, error) {
 	switch scope {
