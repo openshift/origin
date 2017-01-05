@@ -41,7 +41,7 @@ HA_REPLICA_COUNT="${OPENSHIFT_HA_REPLICA_COUNT:-"1"}"
 #  same cluster. Range 1..255
 #     HA_VRRP_ID_OFFSET=30
 #
-HA_VRRP_ID_OFFSET="${OPENSHIFT_HA_VRRP_ID_OFFSET:-"0""}"
+HA_VRRP_ID_OFFSET="${OPENSHIFT_HA_VRRP_ID_OFFSET:-"0"}"
 
 # When the DC supplies an (non null) iptables chain
 # (OPENSHIFT_HA_IPTABLES_CHAIN) make sure the rule to pass keepalived
