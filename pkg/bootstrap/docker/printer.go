@@ -73,13 +73,12 @@ func PrintError(err error, out io.Writer) {
 	if d, ok := err.(hasDetails); ok && len(d.Details()) > 0 {
 		fmt.Fprintf(out, "Details:\n")
 		w := prefixwriter.New("  ", out)
-		fmt.Fprintf(w, d.Details())
+		fmt.Fprintf(w, "%s\n", d.Details())
 	}
 	if s, ok := err.(hasSolution); ok && len(s.Solution()) > 0 {
 		fmt.Fprintf(out, "Solution:\n")
 		w := prefixwriter.New("  ", out)
-		fmt.Fprintf(w, s.Solution())
-		fmt.Fprintf(w, "\n")
+		fmt.Fprintf(w, "%s\n", s.Solution())
 	}
 	if c, ok := err.(hasCause); ok && c.Cause() != nil {
 		fmt.Fprintf(out, "Caused By:\n")
