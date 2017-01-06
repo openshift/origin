@@ -63,8 +63,12 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 		return nil
 	}
 
-	// we want to verify that referenced blobs exist locally - thus using upstream repository object directly
-	repo := h.repo.Repository
+	// we want to verify that referenced blobs exist locally or are accessible via
+	// pullthroughBlobStore. The base image of this image can be remote repository
+	// and since we use pullthroughBlobStore all the layer existence checks will be
+	// successful. This means that the docker client will not attempt to send them
+	// to us as it will assume that the registry has them.
+	repo := h.repo
 
 	target := h.manifest.Target()
 	_, err := repo.Blobs(ctx).Stat(ctx, target.Digest)

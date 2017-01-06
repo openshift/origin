@@ -108,8 +108,12 @@ func (h *manifestSchema1Handler) Payload() (mediaType string, payload []byte, ca
 func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerification bool) error {
 	var errs distribution.ErrManifestVerification
 
-	// we want to verify that referenced blobs exist locally - thus using upstream repository object directly
-	repo := h.repo.Repository
+	// we want to verify that referenced blobs exist locally or are accessible via
+	// pullthroughBlobStore. The base image of this image can be remote repository
+	// and since we use pullthroughBlobStore all the layer existence checks will be
+	// successful. This means that the docker client will not attempt to send them
+	// to us as it will assume that the registry has them.
+	repo := h.repo
 
 	if len(path.Join(h.repo.registryAddr, h.manifest.Name)) > reference.NameTotalLengthMax {
 		errs = append(errs,
