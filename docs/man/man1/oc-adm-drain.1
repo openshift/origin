@@ -16,14 +16,14 @@ oc adm drain \- Drain node in preparation for maintenance
 Drain node in preparation for maintenance.
 
 .PP
-The given node will be marked unschedulable to prevent new pods from arriving. Then drain deletes all pods except mirror pods (which cannot be deleted through the API server).  If there are DaemonSet\-managed pods, drain will not proceed without \-\-ignore\-daemonsets, and regardless it will not delete any DaemonSet\-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed\-\-by ReplicationController, ReplicaSet, DaemonSet or Job\-\-, then drain will not delete any pods unless you use \-\-force.
+The given node will be marked unschedulable to prevent new pods from arriving. The 'drain' deletes all pods except mirror pods (which cannot be deleted through the API server).  If there are DaemonSet\-managed pods, drain will not proceed without \-\-ignore\-daemonsets, and regardless it will not delete any DaemonSet\-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed by ReplicationController, ReplicaSet, DaemonSet or Job, then drain will not delete any pods unless you use \-\-force.
 
 .PP
 When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
 
 .PP
 ! 
-\[la]http://kubernetes.io/images/docs/kubectl_drain.svg\[ra]
+\[la]http://kubernetes.io/images/docs/kubectl\[ra] \_drain.svg
 
 
 .SH OPTIONS
@@ -42,6 +42,10 @@ When you are ready to put the node back into service, use kubectl uncordon, whic
 .PP
 \fB\-\-ignore\-daemonsets\fP=false
     Ignore DaemonSet\-managed pods.
+
+.PP
+\fB\-\-timeout\fP=0
+    The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

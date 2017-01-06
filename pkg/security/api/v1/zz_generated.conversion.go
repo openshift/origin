@@ -10,6 +10,7 @@ import (
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -42,9 +43,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSecurityPolicyReview, out *api.PodSecurityPolicyReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -59,9 +57,6 @@ func Convert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSe
 }
 
 func autoConvert_api_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *api.PodSecurityPolicyReview, out *PodSecurityPolicyReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -79,7 +74,7 @@ func autoConvert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSp
 	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.ServiceAccountNames = in.ServiceAccountNames
+	out.ServiceAccountNames = *(*[]string)(unsafe.Pointer(&in.ServiceAccountNames))
 	return nil
 }
 
@@ -91,7 +86,7 @@ func autoConvert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSp
 	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	out.ServiceAccountNames = in.ServiceAccountNames
+	out.ServiceAccountNames = *(*[]string)(unsafe.Pointer(&in.ServiceAccountNames))
 	return nil
 }
 
@@ -138,9 +133,6 @@ func Convert_api_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyReviewStat
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicySelfSubjectReview, out *api.PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -155,9 +147,6 @@ func Convert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfS
 }
 
 func autoConvert_api_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicySelfSubjectReview(in *api.PodSecurityPolicySelfSubjectReview, out *PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -194,9 +183,6 @@ func Convert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicyS
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubjectReview, out *api.PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -211,9 +197,6 @@ func Convert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectRe
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubjectReview(in *api.PodSecurityPolicySubjectReview, out *PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := Convert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -232,7 +215,7 @@ func autoConvert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicyS
 		return err
 	}
 	out.User = in.User
-	out.Groups = in.Groups
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
 }
 
@@ -245,7 +228,7 @@ func autoConvert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicyS
 		return err
 	}
 	out.User = in.User
-	out.Groups = in.Groups
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
 }
 

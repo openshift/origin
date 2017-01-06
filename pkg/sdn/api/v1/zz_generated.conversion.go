@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/sdn/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -46,9 +46,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *api.ClusterNetwork, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -64,9 +61,6 @@ func Convert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *ap
 }
 
 func autoConvert_api_ClusterNetwork_To_v1_ClusterNetwork(in *api.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -82,12 +76,7 @@ func Convert_api_ClusterNetwork_To_v1_ClusterNetwork(in *api.ClusterNetwork, out
 }
 
 func autoConvert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkList, out *api.ClusterNetworkList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.ClusterNetwork, len(*in))
@@ -107,12 +96,7 @@ func Convert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkL
 }
 
 func autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *api.ClusterNetworkList, out *ClusterNetworkList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ClusterNetwork, len(*in))
@@ -132,9 +116,6 @@ func Convert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *api.ClusterNetw
 }
 
 func autoConvert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetworkPolicy, out *api.EgressNetworkPolicy, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -149,9 +130,6 @@ func Convert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetwork
 }
 
 func autoConvert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *api.EgressNetworkPolicy, out *EgressNetworkPolicy, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -166,12 +144,7 @@ func Convert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *api.EgressNet
 }
 
 func autoConvert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *EgressNetworkPolicyList, out *api.EgressNetworkPolicyList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.EgressNetworkPolicy, len(*in))
@@ -191,12 +164,7 @@ func Convert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *Egres
 }
 
 func autoConvert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *api.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]EgressNetworkPolicy, len(*in))
@@ -258,17 +226,7 @@ func Convert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(in *api.E
 }
 
 func autoConvert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in *EgressNetworkPolicySpec, out *api.EgressNetworkPolicySpec, s conversion.Scope) error {
-	if in.Egress != nil {
-		in, out := &in.Egress, &out.Egress
-		*out = make([]api.EgressNetworkPolicyRule, len(*in))
-		for i := range *in {
-			if err := Convert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Egress = nil
-	}
+	out.Egress = *(*[]api.EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
 	return nil
 }
 
@@ -277,17 +235,7 @@ func Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in *Egres
 }
 
 func autoConvert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *api.EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, s conversion.Scope) error {
-	if in.Egress != nil {
-		in, out := &in.Egress, &out.Egress
-		*out = make([]EgressNetworkPolicyRule, len(*in))
-		for i := range *in {
-			if err := Convert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Egress = nil
-	}
+	out.Egress = *(*[]EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
 	return nil
 }
 
@@ -296,9 +244,6 @@ func Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *api.E
 }
 
 func autoConvert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *api.HostSubnet, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -313,9 +258,6 @@ func Convert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *api.HostSubnet
 }
 
 func autoConvert_api_HostSubnet_To_v1_HostSubnet(in *api.HostSubnet, out *HostSubnet, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -330,12 +272,7 @@ func Convert_api_HostSubnet_To_v1_HostSubnet(in *api.HostSubnet, out *HostSubnet
 }
 
 func autoConvert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *api.HostSubnetList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.HostSubnet, len(*in))
@@ -355,12 +292,7 @@ func Convert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *ap
 }
 
 func autoConvert_api_HostSubnetList_To_v1_HostSubnetList(in *api.HostSubnetList, out *HostSubnetList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]HostSubnet, len(*in))
@@ -380,9 +312,6 @@ func Convert_api_HostSubnetList_To_v1_HostSubnetList(in *api.HostSubnetList, out
 }
 
 func autoConvert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *api.NetNamespace, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -396,9 +325,6 @@ func Convert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *api.NetN
 }
 
 func autoConvert_api_NetNamespace_To_v1_NetNamespace(in *api.NetNamespace, out *NetNamespace, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -412,12 +338,7 @@ func Convert_api_NetNamespace_To_v1_NetNamespace(in *api.NetNamespace, out *NetN
 }
 
 func autoConvert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, out *api.NetNamespaceList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.NetNamespace, len(*in))
@@ -437,12 +358,7 @@ func Convert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, o
 }
 
 func autoConvert_api_NetNamespaceList_To_v1_NetNamespaceList(in *api.NetNamespaceList, out *NetNamespaceList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]NetNamespace, len(*in))

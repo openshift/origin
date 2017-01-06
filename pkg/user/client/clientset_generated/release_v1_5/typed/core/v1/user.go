@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/user/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type UsersGetter interface {
 type UserInterface interface {
 	Create(*v1.User) (*v1.User, error)
 	Update(*v1.User) (*v1.User, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.User, error)
-	List(opts api.ListOptions) (*v1.UserList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.UserList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.User, err error)
 	UserExpansion
 }
 
 // users implements UserInterface
 type users struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newUsers returns a Users
-func newUsers(c *CoreClient, namespace string) *users {
+func newUsers(c *CoreV1Client, namespace string) *users {
 	return &users{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *users) Update(user *v1.User) (result *v1.User, err error) {
 }
 
 // Delete takes name of the user and deletes it. Returns an error if one occurs.
-func (c *users) Delete(name string, options *api.DeleteOptions) error {
+func (c *users) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("users").
@@ -76,7 +78,7 @@ func (c *users) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *users) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *users) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("users").
@@ -99,7 +101,7 @@ func (c *users) Get(name string) (result *v1.User, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Users that match those selectors.
-func (c *users) List(opts api.ListOptions) (result *v1.UserList, err error) {
+func (c *users) List(opts api_v1.ListOptions) (result *v1.UserList, err error) {
 	result = &v1.UserList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *users) List(opts api.ListOptions) (result *v1.UserList, err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested users.
-func (c *users) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *users) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

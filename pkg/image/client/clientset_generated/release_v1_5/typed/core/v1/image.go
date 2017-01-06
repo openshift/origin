@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type ImagesGetter interface {
 type ImageInterface interface {
 	Create(*v1.Image) (*v1.Image, error)
 	Update(*v1.Image) (*v1.Image, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Image, error)
-	List(opts api.ListOptions) (*v1.ImageList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.ImageList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Image, err error)
 	ImageExpansion
 }
 
 // images implements ImageInterface
 type images struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newImages returns a Images
-func newImages(c *CoreClient, namespace string) *images {
+func newImages(c *CoreV1Client, namespace string) *images {
 	return &images{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *images) Update(image *v1.Image) (result *v1.Image, err error) {
 }
 
 // Delete takes name of the image and deletes it. Returns an error if one occurs.
-func (c *images) Delete(name string, options *api.DeleteOptions) error {
+func (c *images) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("images").
@@ -76,7 +78,7 @@ func (c *images) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *images) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *images) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("images").
@@ -99,7 +101,7 @@ func (c *images) Get(name string) (result *v1.Image, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Images that match those selectors.
-func (c *images) List(opts api.ListOptions) (result *v1.ImageList, err error) {
+func (c *images) List(opts api_v1.ListOptions) (result *v1.ImageList, err error) {
 	result = &v1.ImageList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *images) List(opts api.ListOptions) (result *v1.ImageList, err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested images.
-func (c *images) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *images) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

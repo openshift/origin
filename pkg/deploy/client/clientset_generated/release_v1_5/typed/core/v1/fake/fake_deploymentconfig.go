@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeDeploymentConfigs implements DeploymentConfigInterface
 type FakeDeploymentConfigs struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -47,14 +48,14 @@ func (c *FakeDeploymentConfigs) UpdateStatus(deploymentConfig *v1.DeploymentConf
 	return obj.(*v1.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeDeploymentConfigs) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(deploymentconfigsResource, c.ns, name), &v1.DeploymentConfig{})
 
 	return err
 }
 
-func (c *FakeDeploymentConfigs) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeDeploymentConfigs) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(deploymentconfigsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.DeploymentConfigList{})
@@ -71,7 +72,7 @@ func (c *FakeDeploymentConfigs) Get(name string) (result *v1.DeploymentConfig, e
 	return obj.(*v1.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(opts api.ListOptions) (result *v1.DeploymentConfigList, err error) {
+func (c *FakeDeploymentConfigs) List(opts api_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(deploymentconfigsResource, c.ns, opts), &v1.DeploymentConfigList{})
 
@@ -79,7 +80,7 @@ func (c *FakeDeploymentConfigs) List(opts api.ListOptions) (result *v1.Deploymen
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -93,7 +94,7 @@ func (c *FakeDeploymentConfigs) List(opts api.ListOptions) (result *v1.Deploymen
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *FakeDeploymentConfigs) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeDeploymentConfigs) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(deploymentconfigsResource, c.ns, opts))
 

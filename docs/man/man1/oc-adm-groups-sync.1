@@ -21,6 +21,10 @@ In order to sync OpenShift Group records with those from an external provider, d
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-blacklist\fP=""
     path to the group blacklist file
 

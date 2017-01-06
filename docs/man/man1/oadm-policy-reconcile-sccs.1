@@ -28,6 +28,10 @@ You can see which cluster SCCs have recommended changes by choosing an output ty
     If true, preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-confirm\fP=false
     If true, specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.
 

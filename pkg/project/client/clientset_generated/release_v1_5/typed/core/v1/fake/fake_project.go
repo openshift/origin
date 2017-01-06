@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/project/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeProjects implements ProjectInterface
 type FakeProjects struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 }
 
 var projectsResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "projects"}
@@ -43,13 +44,13 @@ func (c *FakeProjects) UpdateStatus(project *v1.Project) (*v1.Project, error) {
 	return obj.(*v1.Project), err
 }
 
-func (c *FakeProjects) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeProjects) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(projectsResource, name), &v1.Project{})
 	return err
 }
 
-func (c *FakeProjects) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeProjects) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(projectsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ProjectList{})
@@ -65,14 +66,14 @@ func (c *FakeProjects) Get(name string) (result *v1.Project, err error) {
 	return obj.(*v1.Project), err
 }
 
-func (c *FakeProjects) List(opts api.ListOptions) (result *v1.ProjectList, err error) {
+func (c *FakeProjects) List(opts api_v1.ListOptions) (result *v1.ProjectList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(projectsResource, opts), &v1.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -86,7 +87,7 @@ func (c *FakeProjects) List(opts api.ListOptions) (result *v1.ProjectList, err e
 }
 
 // Watch returns a watch.Interface that watches the requested projects.
-func (c *FakeProjects) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeProjects) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(projectsResource, opts))
 }

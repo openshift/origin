@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeImages implements ImageInterface
 type FakeImages struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -37,14 +38,14 @@ func (c *FakeImages) Update(image *v1.Image) (result *v1.Image, err error) {
 	return obj.(*v1.Image), err
 }
 
-func (c *FakeImages) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeImages) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(imagesResource, c.ns, name), &v1.Image{})
 
 	return err
 }
 
-func (c *FakeImages) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeImages) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(imagesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ImageList{})
@@ -61,7 +62,7 @@ func (c *FakeImages) Get(name string) (result *v1.Image, err error) {
 	return obj.(*v1.Image), err
 }
 
-func (c *FakeImages) List(opts api.ListOptions) (result *v1.ImageList, err error) {
+func (c *FakeImages) List(opts api_v1.ListOptions) (result *v1.ImageList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(imagesResource, c.ns, opts), &v1.ImageList{})
 
@@ -69,7 +70,7 @@ func (c *FakeImages) List(opts api.ListOptions) (result *v1.ImageList, err error
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,7 +84,7 @@ func (c *FakeImages) List(opts api.ListOptions) (result *v1.ImageList, err error
 }
 
 // Watch returns a watch.Interface that watches the requested images.
-func (c *FakeImages) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeImages) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(imagesResource, c.ns, opts))
 
