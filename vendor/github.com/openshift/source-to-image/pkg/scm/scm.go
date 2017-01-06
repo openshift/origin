@@ -3,7 +3,7 @@ package scm
 import (
 	"fmt"
 
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/build"
@@ -27,7 +27,7 @@ func DownloaderForSource(fs util.FileSystem, s string, forceCopy bool) (build.Do
 	details, mods, err := git.ParseFile(fs, s)
 	glog.V(4).Infof("return from ParseFile file exists %v proto specified %v use copy %v", details.FileExists, details.ProtoSpecified, details.UseCopy)
 	if err != nil {
-		if e, ok := err.(errors.Error); !forceCopy || !(ok && (e.ErrorCode == errors.EmptyGitRepositoryError)) {
+		if e, ok := err.(s2ierr.Error); !forceCopy || !(ok && (e.ErrorCode == s2ierr.EmptyGitRepositoryError)) {
 			return nil, s, err
 		}
 	}

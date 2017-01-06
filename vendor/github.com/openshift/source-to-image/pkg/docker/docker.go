@@ -28,7 +28,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 	"github.com/openshift/source-to-image/pkg/util/interrupt"
@@ -418,7 +418,7 @@ func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
 		return true, nil
 	}
 	if err != nil && !dockerapi.IsErrImageNotFound(err) {
-		return false, errors.NewInspectImageError(name, err)
+		return false, s2ierr.NewInspectImageError(name, err)
 	}
 	return false, nil
 }
@@ -430,7 +430,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 	resp, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
-		return "", errors.NewInspectImageError(name, err)
+		return "", s2ierr.NewInspectImageError(name, err)
 	}
 	user := resp.ContainerConfig.User
 	if len(user) == 0 {
@@ -460,7 +460,7 @@ func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 	resp, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
-		return nil, errors.NewInspectImageError(name, err)
+		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	return resp.Config.OnBuild, nil
 }
@@ -484,7 +484,7 @@ func (d *stiDocker) CheckAndPullImage(name string) (*api.Image, error) {
 	}
 
 	image, err := d.CheckImage(name)
-	if err != nil && !strings.Contains(err.(errors.Error).Details.Error(), "No such image") {
+	if err != nil && !strings.Contains(err.(s2ierr.Error).Details.Error(), "No such image") {
 		return nil, err
 	}
 	if image == nil {
@@ -502,7 +502,7 @@ func (d *stiDocker) CheckImage(name string) (*api.Image, error) {
 	inspect, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
-		return nil, errors.NewInspectImageError(name, err)
+		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	if inspect != nil {
 		image := &api.Image{}
@@ -528,7 +528,7 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 	// RegistryAuth is the base64 encoded credentials for the registry
 	base64Auth, err := base64EncodeAuth(d.pullAuth)
 	if err != nil {
-		return nil, errors.NewPullImageError(name, err)
+		return nil, s2ierr.NewPullImageError(name, err)
 	}
 
 	err = util.TimeoutAfter(DefaultDockerTimeout, fmt.Sprintf("pulling image %q", name), func(timer *time.Timer) error {
@@ -563,12 +563,12 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 		}
 	})
 	if err != nil {
-		return nil, errors.NewPullImageError(name, err)
+		return nil, s2ierr.NewPullImageError(name, err)
 	}
 
 	inspectResp, err := d.InspectImage(name)
 	if err != nil {
-		return nil, errors.NewPullImageError(name, err)
+		return nil, s2ierr.NewPullImageError(name, err)
 	}
 	if inspectResp != nil {
 		image := &api.Image{}
@@ -611,7 +611,7 @@ func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
 	resp, err := d.InspectImage(name)
 	if err != nil {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
-		return nil, errors.NewInspectImageError(name, err)
+		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	return resp.Config.Labels, nil
 }
@@ -886,7 +886,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	entrypoint, err := d.GetImageEntrypoint(image)
 	if err != nil {
-		return fmt.Errorf("Couldn't get entrypoint of %q image: %v", image, err)
+		return fmt.Errorf("could not  get entrypoint of %q image: %v", image, err)
 	}
 
 	// If the image has an entrypoint already defined,
@@ -994,7 +994,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			return fmt.Errorf("waiting for container %q to stop: %v", container.ID, err)
 		}
 		if exitCode != 0 {
-			return errors.NewContainerError(container.ID, exitCode, "")
+			return s2ierr.NewContainerError(container.ID, exitCode, "")
 		}
 
 		// OnStart must be done before we move on.

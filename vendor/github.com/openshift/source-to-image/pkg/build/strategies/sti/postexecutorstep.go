@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
@@ -110,7 +110,7 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 
 	user, err := step.docker.GetImageUser(step.image)
 	if err != nil {
-		return fmt.Errorf("Couldn't get user of %q image: %v", step.image, err)
+		return fmt.Errorf("could not get user of %q image: %v", step.image, err)
 	}
 
 	cmd := createCommandForExecutingRunScript(step.builder.scriptsURL, ctx.destination)
@@ -121,7 +121,7 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 	// container has "env" as its entrypoint and we don't want to commit that.
 	entrypoint, err := step.docker.GetImageEntrypoint(step.image)
 	if err != nil {
-		return fmt.Errorf("Couldn't get entrypoint of %q image: %v", step.image, err)
+		return fmt.Errorf("could not get entrypoint of %q image: %v", step.image, err)
 	}
 	// If the image has no explicit entrypoint, set it to an empty array
 	// so we don't default to leaving the entrypoint as "env" upon commit.
@@ -167,14 +167,14 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 			utilstatus.ReasonFSOperationFailed,
 			utilstatus.ReasonMessageFSOperationFailed,
 		)
-		return fmt.Errorf("Couldn't create directory %q: %v", artifactsDir, err)
+		return fmt.Errorf("could not create directory %q: %v", artifactsDir, err)
 	}
 
 	for _, artifact := range step.builder.config.RuntimeArtifacts {
 		if err := step.downloadAndExtractFile(artifact.Source, artifactsDir, ctx.containerID); err != nil {
 			step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-				utilstatus.ReasonGenericS2IBuildFailed,
-				utilstatus.ReasonMessageGenericS2iBuildFailed,
+				utilstatus.ReasonRuntimeArtifactsFetchFailed,
+				utilstatus.ReasonMessageRuntimeArtifactsFetchFailed,
 			)
 			return err
 		}
@@ -189,7 +189,7 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 					utilstatus.ReasonFSOperationFailed,
 					utilstatus.ReasonMessageFSOperationFailed,
 				)
-				return fmt.Errorf("Couldn't create directory %q: %v", dstDir, err)
+				return fmt.Errorf("could not create directory %q: %v", dstDir, err)
 			}
 
 			file := filepath.Base(artifact.Source)
@@ -201,7 +201,7 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 					utilstatus.ReasonFSOperationFailed,
 					utilstatus.ReasonMessageFSOperationFailed,
 				)
-				return fmt.Errorf("Couldn't rename %q -> %q: %v", old, new, err)
+				return fmt.Errorf("could not rename %q -> %q: %v", old, new, err)
 			}
 		}
 	}
@@ -214,7 +214,11 @@ func (step *downloadFilesFromBuilderImageStep) downloadAndExtractFile(artifactPa
 
 	fd, err := ioutil.TempFile(artifactsDir, "s2i-runtime-artifact")
 	if err != nil {
-		return fmt.Errorf("Couldn't create temporary file for runtime artifact: %v", err)
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonFSOperationFailed,
+			utilstatus.ReasonMessageFSOperationFailed,
+		)
+		return fmt.Errorf("could not create temporary file for runtime artifact: %v", err)
 	}
 	defer func() {
 		fd.Close()
@@ -222,16 +226,24 @@ func (step *downloadFilesFromBuilderImageStep) downloadAndExtractFile(artifactPa
 	}()
 
 	if err := step.docker.DownloadFromContainer(artifactPath, fd, containerID); err != nil {
-		return fmt.Errorf("Couldn't download file (%q -> %q) from container %s: %v", artifactPath, fd.Name(), containerID, err)
+		return fmt.Errorf("could not download file (%q -> %q) from container %s: %v", artifactPath, fd.Name(), containerID, err)
 	}
 
 	// after writing to the file descriptor we need to rewind pointer to the beginning of the file before next reading
 	if _, err := fd.Seek(0, os.SEEK_SET); err != nil {
-		return fmt.Errorf("Couldn't seek to the beginning of the file %q: %v", fd.Name(), err)
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
+		return fmt.Errorf("could not seek to the beginning of the file %q: %v", fd.Name(), err)
 	}
 
 	if err := step.tar.ExtractTarStream(artifactsDir, fd); err != nil {
-		return fmt.Errorf("Couldn't extract runtime artifact %q into the directory %q: %v", artifactPath, artifactsDir, err)
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
+		return fmt.Errorf("could not extract runtime artifact %q into the directory %q: %v", artifactPath, artifactsDir, err)
 	}
 
 	return nil
@@ -276,7 +288,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	image := step.builder.config.RuntimeImage
 	workDir, err := step.docker.GetImageWorkdir(image)
 	if err != nil {
-		return fmt.Errorf("Couldn't get working dir of %q image: %v", image, err)
+		return fmt.Errorf("could not get working dir of %q image: %v", image, err)
 	}
 
 	commandBaseDir := filepath.Join(workDir, "scripts")
@@ -289,7 +301,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 			return err
 		}
 		if len(scriptsURL) == 0 {
-			return fmt.Errorf("Couldn't determine scripts URL for image %q", image)
+			return fmt.Errorf("could not determine scripts URL for image %q", image)
 		}
 		commandBaseDir = strings.TrimPrefix(scriptsURL, "image://")
 	}
@@ -322,13 +334,13 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		glog.V(5).Infof("Uploading directory %q -> %q", artifactsDir, workDir)
 		onStartErr := step.docker.UploadToContainerWithTarWriter(step.fs, artifactsDir, workDir, containerID, setStandardPerms)
 		if onStartErr != nil {
-			return fmt.Errorf("Couldn't upload directory (%q -> %q) into container %s: %v", artifactsDir, workDir, containerID, err)
+			return fmt.Errorf("could not upload directory (%q -> %q) into container %s: %v", artifactsDir, workDir, containerID, err)
 		}
 
 		glog.V(5).Infof("Uploading file %q -> %q", lastFilePath, lastFileDstPath)
 		onStartErr = step.docker.UploadToContainerWithTarWriter(step.fs, lastFilePath, lastFileDstPath, containerID, setStandardPerms)
 		if onStartErr != nil {
-			return fmt.Errorf("Couldn't upload file (%q -> %q) into container %s: %v", lastFilePath, lastFileDstPath, containerID, err)
+			return fmt.Errorf("could not upload file (%q -> %q) into container %s: %v", lastFilePath, lastFileDstPath, containerID, err)
 		}
 
 		return onStartErr
@@ -343,10 +355,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	step.builder.postExecutorStage++
 
 	err = step.docker.RunContainer(opts)
-	if e, ok := err.(errors.ContainerError); ok {
+	if e, ok := err.(s2ierr.ContainerError); ok {
 		// Must wait for StreamContainerIO goroutine above to exit before reading errOutput.
 		<-c
-		err = errors.NewContainerError(image, e.ErrorCode, errOutput)
+		err = s2ierr.NewContainerError(image, e.ErrorCode, errOutput)
 	}
 
 	return err
@@ -359,10 +371,10 @@ func (step *startRuntimeImageAndUploadFilesStep) copyScriptIfNeeded(script, dest
 		dst := filepath.Join(destinationDir, script)
 		glog.V(5).Infof("Copying file %q -> %q", src, dst)
 		if err := step.fs.MkdirAll(destinationDir); err != nil {
-			return fmt.Errorf("Couldn't create directory %q: %v", destinationDir, err)
+			return fmt.Errorf("could not create directory %q: %v", destinationDir, err)
 		}
 		if err := step.fs.Copy(src, dst); err != nil {
-			return fmt.Errorf("Couldn't copy file (%q -> %q): %v", src, dst, err)
+			return fmt.Errorf("could not copy file (%q -> %q): %v", src, dst, err)
 		}
 	}
 	return nil
@@ -398,7 +410,7 @@ func commitContainer(docker dockerpkg.Docker, containerID, cmd, user, tag string
 
 	imageID, err := docker.CommitContainer(opts)
 	if err != nil {
-		return "", errors.NewCommitError(tag, err)
+		return "", s2ierr.NewCommitError(tag, err)
 	}
 
 	return imageID, nil

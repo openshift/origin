@@ -105,7 +105,7 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	buffer.WriteString(fmt.Sprintf("COPY src %s\n", filepath.ToSlash(sourcesDir)))
 
 	//TODO: We need to account for images that may not have chown. There is a proposal
-	//      to specify the owner for COPY here: https://github.com/docker/docker/pull/9934
+	//      to specify the owner for COPY here: https://github.com/docker/docker/pull/28499
 	if len(user) > 0 {
 		buffer.WriteString("USER root\n")
 		if scriptsIncluded {
