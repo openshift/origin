@@ -39,6 +39,7 @@ func SetDefaults_RouteIngress(obj *RouteIngress) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_RouteSpec,
 		SetDefaults_RouteTargetReference,

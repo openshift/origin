@@ -36,6 +36,7 @@ func SetDefaults_PolicyRule(obj *PolicyRule) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_PolicyRule,
 	)

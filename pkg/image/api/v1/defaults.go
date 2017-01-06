@@ -23,6 +23,7 @@ func SetDefaults_TagReferencePolicy(obj *TagReferencePolicy) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_ImageImportSpec,
 		SetDefaults_TagReferencePolicy,
