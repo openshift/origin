@@ -8,7 +8,7 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -84,8 +84,8 @@ func (s *URLScriptHandler) Install(r *api.InstallResult) error {
 	}
 	dst := filepath.Join(s.DestinationDir, api.UploadScripts, r.Script)
 	if _, err := s.download.Download(downloadURL, dst); err != nil {
-		if e, ok := err.(errors.Error); ok {
-			if e.ErrorCode == errors.ScriptsInsideImageError {
+		if e, ok := err.(s2ierr.Error); ok {
+			if e.ErrorCode == s2ierr.ScriptsInsideImageError {
 				r.Installed = true
 				return nil
 			}
@@ -221,7 +221,7 @@ func (m *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir st
 		}
 	}
 	if len(failedScripts) > 0 {
-		err = errors.NewInstallRequiredError(failedScripts, docker.ScriptsURLLabel)
+		err = s2ierr.NewInstallRequiredError(failedScripts, docker.ScriptsURLLabel)
 	}
 	return result, err
 }

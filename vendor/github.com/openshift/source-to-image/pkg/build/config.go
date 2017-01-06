@@ -37,13 +37,13 @@ func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) e
 	if builder, ok := labels[api.DefaultNamespace+"build.image"]; ok {
 		config.BuilderImage = builder
 	} else {
-		return fmt.Errorf("Required label %q not found in image", api.DefaultNamespace+"build.image")
+		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"build.image")
 	}
 
 	if repo, ok := labels[api.DefaultNamespace+"build.source-location"]; ok {
 		config.Source = repo
 	} else {
-		return fmt.Errorf("Required label %q not found in image", api.DefaultNamespace+"source-location")
+		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"source-location")
 	}
 
 	config.ContextDir = labels[api.DefaultNamespace+"build.source-context-dir"]

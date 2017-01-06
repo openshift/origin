@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
@@ -463,7 +463,7 @@ func isValidGitRepository(fs util.FileSystem, dir string) (bool, error) {
 
 	// Since we know there's a .git directory, but there is nothing in it, we
 	// throw an error
-	return true, errors.NewEmptyGitRepositoryError(dir)
+	return true, s2ierr.NewEmptyGitRepositoryError(dir)
 }
 
 // hasGitBinary checks if the 'git' binary is available on the system
