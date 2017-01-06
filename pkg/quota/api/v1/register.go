@@ -20,7 +20,7 @@ func Resource(resource string) unversioned.GroupResource {
 }
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addDefaultingFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
