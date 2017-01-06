@@ -176,6 +176,22 @@ func TestDockerfilePath(t *testing.T) {
 		},
 	}
 
+	from := "FROM openshift/origin-base"
+	expected := []string{
+		from,
+		// expected env variables
+		"\"OPENSHIFT_BUILD_NAME\"=\"name\"",
+		"\"OPENSHIFT_BUILD_NAMESPACE\"=\"namespace\"",
+		"\"OPENSHIFT_BUILD_SOURCE\"=\"http://github.com/openshift/origin.git\"",
+		"\"OPENSHIFT_BUILD_COMMIT\"=\"commitid\"",
+		// expected labels
+		"\"io.openshift.build.commit.author\"=\"test user \\u003ctest@email.com\\u003e\"",
+		"\"io.openshift.build.commit.date\"=\"date\"",
+		"\"io.openshift.build.commit.id\"=\"commitid\"",
+		"\"io.openshift.build.commit.ref\"=\"ref\"",
+		"\"io.openshift.build.commit.message\"=\"message\"",
+	}
+
 	for _, test := range tests {
 		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
@@ -183,12 +199,11 @@ func TestDockerfilePath(t *testing.T) {
 			continue
 		}
 		absoluteDockerfilePath := filepath.Join(buildDir, test.contextDir, test.dockerfilePath)
-		dockerfileContent := "FROM openshift/origin-base"
 		if err = os.MkdirAll(filepath.Dir(absoluteDockerfilePath), os.FileMode(0750)); err != nil {
 			t.Errorf("failed to create directory %s: %v", filepath.Dir(absoluteDockerfilePath), err)
 			continue
 		}
-		if err = ioutil.WriteFile(absoluteDockerfilePath, []byte(dockerfileContent), os.FileMode(0644)); err != nil {
+		if err = ioutil.WriteFile(absoluteDockerfilePath, []byte(from), os.FileMode(0644)); err != nil {
 			t.Errorf("failed to write dockerfile to %s: %v", absoluteDockerfilePath, err)
 			continue
 		}
@@ -214,7 +229,16 @@ func TestDockerfilePath(t *testing.T) {
 				},
 			},
 		}
+		build.Name = "name"
+		build.Namespace = "namespace"
 
+		sourceInfo := &git.SourceInfo{}
+		sourceInfo.AuthorName = "test user"
+		sourceInfo.AuthorEmail = "test@email.com"
+		sourceInfo.Date = "date"
+		sourceInfo.CommitID = "commitid"
+		sourceInfo.Ref = "ref"
+		sourceInfo.Message = "message"
 		dockerClient := &FakeDocker{
 			buildImageFunc: func(opts docker.BuildImageOptions) error {
 				if opts.Dockerfile != test.dockerfilePath {
@@ -233,7 +257,7 @@ func TestDockerfilePath(t *testing.T) {
 
 		// this will validate that the Dockerfile is readable
 		// and append some labels to the Dockerfile
-		if err = dockerBuilder.addBuildParameters(buildDir); err != nil {
+		if err = dockerBuilder.addBuildParameters(buildDir, sourceInfo); err != nil {
 			t.Errorf("failed to add build parameters: %v", err)
 			continue
 		}
@@ -244,9 +268,11 @@ func TestDockerfilePath(t *testing.T) {
 			t.Errorf("failed to read dockerfile %s: %v", absoluteDockerfilePath, err)
 			continue
 		}
-		if !strings.Contains(string(dockerfileData), dockerfileContent) {
-			t.Errorf("Updated Dockerfile content does not contains the original Dockerfile content.\n\nOriginal content:\n%s\n\nUpdated content:\n%s\n", dockerfileContent, string(dockerfileData))
-			continue
+		for _, value := range expected {
+			if !strings.Contains(string(dockerfileData), value) {
+				t.Errorf("Updated Dockerfile content does not contain expected value:\n%s\n\nUpdated content:\n%s\n", value, string(dockerfileData))
+
+			}
 		}
 
 		// check that the docker client is called with the right Dockerfile parameter
