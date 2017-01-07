@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 )
 
 const (
@@ -197,7 +198,11 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	dnsName := service.Name + "." + service.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix
 	certificateLifetime := 365 * 2 // 2 years
-	servingCert, err := sc.ca.MakeServerCert(sets.NewString(dnsName, fqDNSName), certificateLifetime)
+	servingCert, err := sc.ca.MakeServerCert(
+		sets.NewString(dnsName, fqDNSName),
+		certificateLifetime,
+		extensions.ServiceServerCertificateExtension(service),
+	)
 	if err != nil {
 		return err
 	}
