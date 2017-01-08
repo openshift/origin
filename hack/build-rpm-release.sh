@@ -5,6 +5,7 @@
 # be running `hack/build-cross.sh` under the covers, so we transitively
 # consume all of the relevant envars. We also consume:
 #  - BUILD_TESTS: whether or not to build a test RPM, off by default
+#  - INSTALL_REPO: whether or not to install the RPM repo, off by default
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "build-rpm-release"
@@ -67,7 +68,11 @@ name = OpenShift Origin Release from Local Source
 " > "${repo_path}/origin-local-release.repo"
 
 	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
-	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
+	if [[ -n "${INSTALL_REPO:-}" ]]; then
+		sudo mv "${repo_path}/origin-local-release.repo" '/etc/yum.repos.d'
+	else
+		os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d'"
+	fi
 else
 	os::log::warn "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
 fi
