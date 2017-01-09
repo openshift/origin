@@ -324,7 +324,7 @@ os::build::internal::build_binaries() {
         eval "platform_goflags=(${!platform_goflags_envvar:-})"
 
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          -pkgdir "${OS_OUTPUT_PKGDIR}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${nonstatics[@]}"
@@ -339,7 +339,7 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -pkgdir "${OS_OUTPUT_PKGDIR}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
