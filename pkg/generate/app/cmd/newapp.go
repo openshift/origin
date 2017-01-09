@@ -263,8 +263,11 @@ func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
 }
 
 func validateEnforcedName(name string) error {
-	if reasons := validation.ValidateServiceName(name, false); len(reasons) != 0 && !app.IsParameterizableValue(name) {
-		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
+	// up to 63 characters is nominally possible, however "-1" gets added on the
+	// end later for the deployment controller.  Deduct 5 from 63 to at least
+	// cover us up to -9999.
+	if reasons := validation.ValidateServiceName(name, false); (len(reasons) != 0 || len(name) > 58) && !app.IsParameterizableValue(name) {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 58 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", name)
 	}
 	return nil
 }
