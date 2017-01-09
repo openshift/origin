@@ -117,7 +117,7 @@ To search templates, image streams, and Docker images that match the arguments p
 `
 )
 
-type NewAppOptions struct {
+type BaseOptions struct {
 	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
@@ -131,12 +131,57 @@ type NewAppOptions struct {
 	PrintObject   func(obj runtime.Object) error
 	LogsForObject LogsForObjectFunc
 }
+type NewAppOptions struct {
+	AppOptions *BaseOptions
+}
+
+//Complete set all common default options for commands (new-app and new-build)
+func (o *BaseOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+
+	o.In = in
+	o.Out = out
+	o.ErrOut = errout
+	o.Output = kcmdutil.GetFlagString(c, "output")
+	// Only output="" should print descriptions of intermediate steps. Everything
+	// else should print only some specific output (json, yaml, go-template, ...)
+	o.Config.In = o.In
+	if len(o.Output) == 0 {
+		o.Config.Out = o.Out
+	} else {
+		o.Config.Out = ioutil.Discard
+	}
+	o.Config.ErrOut = o.ErrOut
+
+	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
+	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	o.Action.Bulk.Op = configcmd.Create
+	// Retry is used to support previous versions of the API server that will
+	// consider the presence of an unknown trigger type to be an error.
+	o.Action.Bulk.Retry = retryBuildConfig
+
+	o.Config.DryRun = o.Action.DryRun
+	o.CommandPath = c.CommandPath()
+	o.BaseName = baseName
+	o.CommandName = commandName
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
+
+	mapper, _ := f.Object(false)
+	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
+	o.LogsForObject = f.LogsForObject
+	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+		return err
+	}
+	if err := setAppConfigLabels(c, o.Config); err != nil {
+		return err
+	}
+	return nil
+}
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
 func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
-	o := &NewAppOptions{Config: config}
+	o := &NewAppOptions{AppOptions: &BaseOptions{Config: config}}
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)", name),
@@ -182,77 +227,47 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
 
-	o.Action.BindForOutput(cmd.Flags())
+	o.AppOptions.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	o.In = in
-	o.Out = out
-	o.ErrOut = errout
-	o.Output = kcmdutil.GetFlagString(c, "output")
-	// Only output="" should print descriptions of intermediate steps. Everything
-	// else should print only some specific output (json, yaml, go-template, ...)
-	o.Config.In = o.In
-	if len(o.Output) == 0 {
-		o.Config.Out = o.Out
-	} else {
-		o.Config.Out = ioutil.Discard
-	}
-	o.Config.ErrOut = o.ErrOut
-
-	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
-	// Retry is used to support previous versions of the API server that will
-	// consider the presence of an unknown trigger type to be an error.
-	o.Action.Bulk.Retry = retryBuildConfig
-
-	o.Config.DryRun = o.Action.DryRun
-
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.TemplateParameters, "--param")
-
-	o.CommandPath = c.CommandPath()
-	o.BaseName = baseName
-	o.CommandName = name
-	mapper, _ := f.Object(false)
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
-	o.LogsForObject = f.LogsForObject
-	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+	ao := o.AppOptions
+	err := ao.Complete(baseName, commandName, f, c, args, in, out, errout)
+	if err != nil {
 		return err
 	}
-	if err := setAppConfigLabels(c, o.Config); err != nil {
-		return err
-	}
+	ao.Config.AllowNonNumericExposedPorts = false
+	cmdutil.WarnAboutCommaSeparation(ao.ErrOut, ao.Config.TemplateParameters, "--param")
 	return nil
 }
 
 // RunNewApp contains all the necessary functionality for the OpenShift cli new-app command
 func (o *NewAppOptions) RunNewApp() error {
-	config := o.Config
-	out := o.Out
+	ao := o.AppOptions
+	config := ao.Config
+	out := ao.Out
 
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
-			return handleRunError(err, o.BaseName, o.CommandName, o.CommandPath)
+			return handleRunError(err, ao.BaseName, ao.CommandName, ao.CommandPath)
 		}
 
-		if o.Action.ShouldPrint() {
-			return o.PrintObject(result.List)
+		if ao.Action.ShouldPrint() {
+			return ao.PrintObject(result.List)
 		}
 
-		return printHumanReadableQueryResult(result, out, o.BaseName, o.CommandName)
+		return printHumanReadableQueryResult(result, out, ao.BaseName, ao.CommandName)
 	}
 
 	checkGitInstalled(out)
 
 	result, err := config.Run()
-	if err := handleRunError(err, o.BaseName, o.CommandName, o.CommandPath); err != nil {
+	if err := handleRunError(err, ao.BaseName, ao.CommandName, ao.CommandPath); err != nil {
 		return err
 	}
 
@@ -280,25 +295,25 @@ func (o *NewAppOptions) RunNewApp() error {
 		return err
 	}
 
-	if o.Action.ShouldPrint() {
-		return o.PrintObject(result.List)
+	if ao.Action.ShouldPrint() {
+		return ao.PrintObject(result.List)
 	}
 
 	if result.GeneratedJobs {
-		o.Action.Compact()
+		ao.Action.Compact()
 	}
 
-	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
+	if errs := ao.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 
-	if !o.Action.Verbose() || o.Action.DryRun {
+	if !ao.Action.Verbose() || ao.Action.DryRun {
 		return nil
 	}
 
 	hasMissingRepo := false
 	installing := []*kapi.Pod{}
-	indent := o.Action.DefaultIndent()
+	indent := ao.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *kapi.Pod:
@@ -315,9 +330,9 @@ func (o *NewAppOptions) RunNewApp() error {
 				}
 			}
 			if triggered {
-				fmt.Fprintf(out, "%[1]sBuild scheduled, use '%[3]s logs -f bc/%[2]s' to track its progress.\n", indent, t.Name, o.BaseName)
+				fmt.Fprintf(out, "%[1]sBuild scheduled, use '%[3]s logs -f bc/%[2]s' to track its progress.\n", indent, t.Name, ao.BaseName)
 			} else {
-				fmt.Fprintf(out, "%[1]sUse '%[3]s start-build %[2]s' to start a build.\n", indent, t.Name, o.BaseName)
+				fmt.Fprintf(out, "%[1]sUse '%[3]s start-build %[2]s' to start a build.\n", indent, t.Name, ao.BaseName)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -333,13 +348,13 @@ func (o *NewAppOptions) RunNewApp() error {
 	switch {
 	case len(installing) == 1:
 		jobInput := installing[0].Annotations[newcmd.GeneratedForJobFor]
-		return followInstallation(config, jobInput, installing[0], o.LogsForObject)
+		return followInstallation(config, jobInput, installing[0], ao.LogsForObject)
 	case len(installing) > 1:
 		for i := range installing {
-			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.BaseName, installing[i].Name)
+			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, ao.BaseName, installing[i].Name)
 		}
 	case len(result.List.Items) > 0:
-		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, o.BaseName, StatusRecommendedName)
+		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, ao.BaseName, StatusRecommendedName)
 	}
 	return nil
 }

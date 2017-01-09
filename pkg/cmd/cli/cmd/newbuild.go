@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -83,18 +82,7 @@ on the Docker Hub.
 )
 
 type NewBuildOptions struct {
-	Action configcmd.BulkAction
-	Config *newcmd.AppConfig
-
-	BaseName    string
-	CommandPath string
-	CommandName string
-
-	In            io.Reader
-	Out, ErrOut   io.Writer
-	Output        string
-	PrintObject   func(obj runtime.Object) error
-	LogsForObject LogsForObjectFunc
+	BuildOptions *BaseOptions
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
@@ -102,7 +90,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
 	config.AddEnvironmentToBuild = true
-	o := &NewBuildOptions{Config: config}
+	o := &NewBuildOptions{BuildOptions: &BaseOptions{Config: config}}
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | PATH | URL ...)", name),
@@ -111,7 +99,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 		Example:    fmt.Sprintf(newBuildExample, baseName, name),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout, in))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
 			err := o.RunNewBuild()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -143,73 +131,45 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
 	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
 
-	o.Action.BindForOutput(cmd.Flags())
+	o.BuildOptions.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer, in io.Reader) error {
-	o.In = in
-	o.Out = out
-	o.ErrOut = errout
-	o.Output = kcmdutil.GetFlagString(c, "output")
-	// Only output="" should print descriptions of intermediate steps. Everything
-	// else should print only some specific output (json, yaml, go-template, ...)
-	o.Config.In = in
-	if len(o.Output) == 0 {
-		o.Config.Out = o.Out
-	} else {
-		o.Config.Out = ioutil.Discard
-	}
-	o.Config.ErrOut = o.ErrOut
+func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 
-	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
-	// Retry is used to support previous versions of the API server that will
-	// consider the presence of an unknown trigger type to be an error.
-	o.Action.Bulk.Retry = retryBuildConfig
-
-	o.Config.DryRun = o.Action.DryRun
-	o.Config.AllowNonNumericExposedPorts = true
-
-	o.BaseName = baseName
-	o.CommandPath = c.CommandPath()
-	o.CommandName = commandName
-
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
-
-	mapper, _ := f.Object(false)
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
-	o.LogsForObject = f.LogsForObject
-	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+	bo := o.BuildOptions
+	err := bo.Complete(baseName, commandName, f, c, args, in, out, errout)
+	if err != nil {
 		return err
 	}
-	if o.Config.Dockerfile == "-" {
+
+	bo.Config.AllowNonNumericExposedPorts = true
+
+	if bo.Config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
 		if err != nil {
 			return err
 		}
-		o.Config.Dockerfile = string(data)
+		bo.Config.Dockerfile = string(data)
 	}
-	if err := setAppConfigLabels(c, o.Config); err != nil {
-		return err
-	}
+
 	return nil
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
 func (o *NewBuildOptions) RunNewBuild() error {
-	config := o.Config
-	out := o.Out
+	bo := o.BuildOptions
+	config := bo.Config
+	out := bo.Out
 
 	checkGitInstalled(out)
 
 	result, err := config.Run()
 	if err != nil {
-		return handleBuildError(err, o.BaseName, o.CommandName, o.CommandPath)
+		return handleBuildError(err, bo.BaseName, bo.CommandName, bo.CommandPath)
 	}
 
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
@@ -223,25 +183,25 @@ func (o *NewBuildOptions) RunNewBuild() error {
 		return err
 	}
 
-	if o.Action.ShouldPrint() {
-		return o.PrintObject(result.List)
+	if bo.Action.ShouldPrint() {
+		return bo.PrintObject(result.List)
 	}
 
-	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
+	if errs := bo.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 
-	if !o.Action.Verbose() || o.Action.DryRun {
+	if !bo.Action.Verbose() || bo.Action.DryRun {
 		return nil
 	}
 
-	indent := o.Action.DefaultIndent()
+	indent := bo.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
 			if len(t.Spec.Triggers) > 0 && t.Spec.Source.Binary == nil {
 				fmt.Fprintf(out, "%sBuild configuration %q created and build triggered.\n", indent, t.Name)
-				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, o.BaseName, t.Name)
+				fmt.Fprintf(out, "%sRun '%s logs -f bc/%s' to stream the build progress.\n", indent, bo.BaseName, t.Name)
 			}
 		}
 	}
