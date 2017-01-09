@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 470fd2bd28428f4ac2a18167ded1388aa95322aa
+%global commit 2164157659bf4746dbdcfb41804919b6e73c3b14
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.30+470fd2b-589 OS_GIT_COMMIT=470fd2b OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.1+2164157-101 OS_GIT_COMMIT=2164157 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.1
+Version:        3.5.0.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,97 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Jan 09 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.2
+- Merge remote-tracking branch upstream/master, bump origin-web-console 6f48eb0
+  (tdawson@redhat.com)
+- remove openshift.io/container.%%s.image.entrypoint annotation and clarify
+  new-app maximum name length (jminter@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6f48eb058bdf5e1e8b0fe75f124530be44acd1aa (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  abdc02074315ba9b3a7e26c2ca081aacbfa9c173 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1bea253df7f420ee7a27478e6c7f1b38bad4bf17 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6f0b723c2f9c6473dab380f8b77c93e80774660a (dmcphers+openshiftbot@redhat.com)
+- Implement secret injector admission controller for buildconfigs
+  (jminter@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  8de9f04445c8a58f244df30f0798d1d1fdb3023a (ipalade@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  81127a4039a90ce5e790b3a12b602aaf6950de91 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3656be70e9d4c88a91818ca148ce3aa3cc000cbd (dmcphers+openshiftbot@redhat.com)
+- always set the commitid env variable in the output image (bparees@redhat.com)
+- cluster up: do not ignore public-hostname on Mac with Docker for Mac
+  (cewong@redhat.com)
+- ipfailover - fix typo in script (pcameron@redhat.com)
+- Fix manifest verification if pullthrough enabled (agladkov@redhat.com)
+- fix typo and  drop = nil drop []string (yu.peng36@zte.com.cn)
+- bump(github.com/openshift/origin-web-console):
+  f0e8144f93ef69e996933c572fc6ecee619d2ebe (dmcphers+openshiftbot@redhat.com)
+- Add --default-mode flag to oc set volume (rymurphy@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b55a35d8f6f7aed63de5a2d6e19e52c9053e841e (dmcphers+openshiftbot@redhat.com)
+- Ensure default ingress cidr is a private range (marun@redhat.com)
+- Fix 404 error in Jenkins plugin extended tests (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  025ded5e81d0bba659e5b88ba1d458bc751808eb (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  76040f12bbb6849467bec657bdd1d9ab20835ffd (dmcphers+openshiftbot@redhat.com)
+- Ensure an invalid bearer token returns an error (jliggitt@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ddceed94f956f73363f3113eaaa73341e6f40fa2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ac02e04d55d69d23c2f4b701bca729d00dd2dfd8 (dmcphers+openshiftbot@redhat.com)
+- Bug 1348174 - error on non-existing tag when importing from
+  .spec.dockerImageRepository (maszulik@redhat.com)
+- enable hostpath provisioning (somalley@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0b1435e239c27e3c52ad745a76ea29b5f8ee1ffd (dmcphers+openshiftbot@redhat.com)
+- reduce some empty line && code, add some TODO comments (shiywang@redhat.com)
+- clarify unknown type log message (bparees@redhat.com)
+- Fix printing args in image pruning (maszulik@redhat.com)
+- Disable registry test that compares sha256 checksum of layers due to
+  go1.6/1.7 incompatibility (mfojtik@redhat.com)
+- Label idling tests [local] for now, add more tests to suite
+  (ccoleman@redhat.com)
+- Use [local] consistently (ccoleman@redhat.com)
+- note about net.ipv4.ip_forward=1 (Oleksii.Prudkyi@gmail.com)
+- Merge extended test suite JUnit files to avoid duplicate skips
+  (ccoleman@redhat.com)
+- Allow additional extended tests to be skipped with TEST_EXTENDED_SKIP
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  34536058a2d795587040db3a16505360b1e9eb1b (dmcphers+openshiftbot@redhat.com)
+- adapt secret key names to new policy (raaflaub@puzzle.ch)
+- These tests require local access (ccoleman@redhat.com)
+- Router tests should not assume access to pod network (ccoleman@redhat.com)
+- Scheduler predicates test should run without node constraints
+  (ccoleman@redhat.com)
+- Fixing typos (mmahut@redhat.com)
+- Allow much higher extended test bursting by increasing retry
+  (ccoleman@redhat.com)
+- Disable color on extended test suite (ccoleman@redhat.com)
+- UPSTREAM: onsi/ginkgo: 318: Capture test output (ccoleman@redhat.com)
+- Disable pullthrough in test case (ccoleman@redhat.com)
+- Remove backup files (maszulik@redhat.com)
+- Apply defaulting in image stream import (ccoleman@redhat.com)
+- generated: swagger (ccoleman@redhat.com)
+- Add an extended test for deployment resolution (ccoleman@redhat.com)
+- Add reference policy to describe output (ccoleman@redhat.com)
+- Respect tag referencePolicy in builds and deployments (ccoleman@redhat.com)
+- Enable pullthrough by default (ccoleman@redhat.com)
+- generated: api changes (ccoleman@redhat.com)
+- Support a new image stream tag reference policy (ccoleman@redhat.com)
+- Add extended tests for pipeline examples (cewong@redhat.com)
+- Do not print findmnt on startup (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6bd844376083142cc89c7ce64ef39d49a887a8d0 (dmcphers+openshiftbot@redhat.com)
+- Pass no focus spec in `make test-extended` when unset (skuznets@redhat.com)
+- update debugging doc and sample-app README (li.guangxu@zte.com.cn)
+- Fix hard coded binary path (tdawson@redhat.com)
+
 * Thu Dec 22 2016 Troy Dawson <tdawson@redhat.com> 3.5.0.1
 - Update version to 3.5.0.0 (tdawson@redhat.com)
 - bump(github.com/openshift/origin-web-console):
