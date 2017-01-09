@@ -111,7 +111,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}

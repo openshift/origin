@@ -277,7 +277,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 			Flatten()
 
 		one := false
-		infos, err := b.Do().IntoSingular(&one).Infos()
+		infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 		if err != nil {
 			return err
 		}
@@ -336,7 +336,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}

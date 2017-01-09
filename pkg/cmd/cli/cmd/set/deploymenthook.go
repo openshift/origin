@@ -243,9 +243,9 @@ func (o *DeploymentHookOptions) Validate() error {
 
 func (o *DeploymentHookOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func (o *DeploymentHookOptions) Run() error {
 		return updated, err
 	})
 
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or does not have an applicable strategy", infos[0].Mapping.Resource, infos[0].Name)
 	}
 

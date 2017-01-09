@@ -117,12 +117,12 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 			continue
 		}
 
-		var isSingular bool
+		var isSingleItemImplied bool
 		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(r.Namespace).RequireNamespace().
 			FilenameParam(false, false, term).
 			Do().
-			IntoSingular(&isSingular).
+			IntoSingleItemImplied(&isSingleItemImplied).
 			Object()
 
 		if err != nil {
@@ -140,14 +140,14 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 			}
 		}
 
-		if list, isList := obj.(*kapi.List); isList && !isSingular {
+		if list, isList := obj.(*kapi.List); isList && !isSingleItemImplied {
 			if len(list.Items) == 1 {
 				obj = list.Items[0]
-				isSingular = true
+				isSingleItemImplied = true
 			}
 		}
 
-		if !isSingular {
+		if !isSingleItemImplied {
 			errs = append(errs, fmt.Errorf("there is more than one object in %q", term))
 			continue
 		}

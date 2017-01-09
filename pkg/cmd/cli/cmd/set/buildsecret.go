@@ -223,9 +223,9 @@ func (o *BuildSecretOptions) Validate() error {
 
 func (o *BuildSecretOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -236,7 +236,7 @@ func (o *BuildSecretOptions) Run() error {
 		return o.setBuildSecret(info.Object)
 	})
 
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("cannot set a build secret on %s/%s", infos[0].Mapping.Resource, infos[0].Name)
 	}
 

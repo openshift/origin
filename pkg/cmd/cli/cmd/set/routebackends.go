@@ -195,9 +195,9 @@ func (o *BackendsOptions) Validate() error {
 // Run executes the BackendOptions or returns an error.
 func (o *BackendsOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -211,11 +211,11 @@ func (o *BackendsOptions) Run() error {
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
 		return UpdateBackendsForObject(info.Object, o.Transform.Apply)
 	})
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

@@ -264,9 +264,9 @@ func (o *TriggersOptions) Validate() error {
 
 func (o *TriggersOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func (o *TriggersOptions) Run() error {
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
 		return UpdateTriggersForObject(info.Object, updateTriggerFn)
 	})
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {

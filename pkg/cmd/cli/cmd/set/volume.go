@@ -437,8 +437,8 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
 
-	singular := false
-	infos, err := b.Do().IntoSingular(&singular).Infos()
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		updateInfos = append(updateInfos, info)
 	}
 
-	patches, patchError := v.getVolumeUpdatePatches(infos, singular)
+	patches, patchError := v.getVolumeUpdatePatches(infos, singleItemImplied)
 
 	if patchError != nil {
 		return patchError
@@ -529,7 +529,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	return nil
 }
 
-func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular bool) ([]*Patch, error) {
+func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
 	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
@@ -537,7 +537,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 			var e error
 			switch {
 			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singular)
+				e = v.addVolumeToSpec(spec, info, singleItemImplied)
 				transformed = true
 			case v.Remove:
 				e = v.removeVolumeFromSpec(spec, info)
@@ -550,7 +550,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 		}
 		return transformed, err
 	})
-	if singular && skipped == len(infos) {
+	if singleItemImplied && skipped == len(infos) {
 		patchError := fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 		return patches, patchError
 	}
