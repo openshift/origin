@@ -27,7 +27,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[LocalNode][image_ecosystem][postgresql][Slow] openshift postgresql replication", func() {
+var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
 
 	for i, image := range postgreSQLImages {

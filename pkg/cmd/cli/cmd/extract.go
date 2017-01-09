@@ -69,6 +69,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, in, out, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
+			// TODO: move me to kcmdutil
 			err := options.Run()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)

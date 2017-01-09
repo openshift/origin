@@ -212,6 +212,15 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			j.IssuedBy = nil
 			j.IssuedTo = nil
 		},
+		func(j *image.ImageStream, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			for k, v := range j.Spec.Tags {
+				if len(v.ReferencePolicy.Type) == 0 {
+					v.ReferencePolicy.Type = image.SourceTagReferencePolicy
+					j.Spec.Tags[k] = v
+				}
+			}
+		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.DockerImageRepository = ""

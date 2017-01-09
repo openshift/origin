@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -1215,4 +1216,44 @@ func GetPodForImage(dockerImageReference string) *kapi.Pod {
 		Name:  "test",
 		Image: dockerImageReference,
 	})
+}
+
+// CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
+// vessel for kubectl exec commands.
+// Returns the name of the created pod.
+// TODO: expose upstream
+func CreateExecPodOrFail(client kcoreclient.CoreInterface, ns, name string) string {
+	framework.Logf("Creating new exec pod")
+	execPod := framework.NewHostExecPodSpec(ns, name)
+	created, err := client.Pods(ns).Create(execPod)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		if err != nil {
+			return false, nil
+		}
+		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return created.Name
+}
+
+// CreateExecPodOnNode launches a exec pod in the given namespace and node
+// waits until it's Running, created pod name would be returned
+// TODO: expose upstream
+func CreateExecPodOnNode(client kcoreclient.CoreInterface, ns, nodeName, name string) string {
+	framework.Logf("Creating exec pod %q in namespace %q", name, ns)
+	execPod := framework.NewHostExecPodSpec(ns, name)
+	execPod.Spec.NodeName = nodeName
+	created, err := client.Pods(ns).Create(execPod)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		if err != nil {
+			return false, nil
+		}
+		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return created.Name
 }

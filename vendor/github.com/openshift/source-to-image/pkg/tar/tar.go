@@ -13,7 +13,7 @@ import (
 
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -359,7 +359,7 @@ func (t *stiTar) ExtractTarStreamFromTarReader(dir string, tarReader Reader, log
 	}
 
 	if util.IsTimeoutError(err) {
-		err = errors.NewTarTimeoutError()
+		err = s2ierr.NewTarTimeoutError()
 	}
 
 	return err

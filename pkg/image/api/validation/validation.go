@@ -208,6 +208,11 @@ func ValidateImageStreamTagReference(tagRef api.TagReference, fldPath *field.Pat
 			errs = append(errs, field.Required(fldPath.Child("from", "kind"), "valid values are 'DockerImage', 'ImageStreamImage', 'ImageStreamTag'"))
 		}
 	}
+	switch tagRef.ReferencePolicy.Type {
+	case api.SourceTagReferencePolicy, api.LocalTagReferencePolicy:
+	default:
+		errs = append(errs, field.Invalid(fldPath.Child("referencePolicy", "type"), tagRef.ReferencePolicy.Type, fmt.Sprintf("valid values are %q, %q", api.SourceTagReferencePolicy, api.LocalTagReferencePolicy)))
+	}
 	return errs
 }
 

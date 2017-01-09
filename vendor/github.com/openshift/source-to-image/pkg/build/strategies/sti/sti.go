@@ -1,6 +1,7 @@
 package sti
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -184,8 +185,12 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 
 	if len(builder.config.CallbackURL) > 0 {
 		defer func() {
-			builder.result.Messages = builder.callbackInvoker.ExecuteCallback(builder.config.CallbackURL,
-				builder.result.Success, builder.postExecutorStepsContext.labels, builder.result.Messages)
+			builder.result.Messages = builder.callbackInvoker.ExecuteCallback(
+				builder.config.CallbackURL,
+				builder.result.Success,
+				builder.postExecutorStepsContext.labels,
+				builder.result.Messages,
+			)
 		}()
 	}
 	defer builder.garbage.Cleanup(config)
@@ -285,7 +290,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 					utilstatus.ReasonGenericS2IBuildFailed,
 					utilstatus.ReasonMessageGenericS2iBuildFailed,
 				)
-				return fmt.Errorf("No runtime artifacts to copy were specified")
+				return errors.New("no runtime artifacts to copy were specified")
 			}
 			for _, value := range strings.Split(mapping, ";") {
 				if err = builder.config.RuntimeArtifacts.Set(value); err != nil {
@@ -293,7 +298,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 						utilstatus.ReasonGenericS2IBuildFailed,
 						utilstatus.ReasonMessageGenericS2iBuildFailed,
 					)
-					return fmt.Errorf("Couldn't parse %q label with value %q on image %q: %v",
+					return fmt.Errorf("could not  parse %q label with value %q on image %q: %v",
 						dockerpkg.AssembleInputFilesLabel, mapping, config.RuntimeImage, err)
 				}
 			}
@@ -305,11 +310,11 @@ func (builder *STI) Prepare(config *api.Config) error {
 
 			switch {
 			case !path.IsAbs(filepath.ToSlash(volumeSpec.Source)):
-				volumeErr = fmt.Errorf("Invalid runtime artifacts mapping: %q -> %q: source must be an absolute path", volumeSpec.Source, volumeSpec.Destination)
+				volumeErr = fmt.Errorf("invalid runtime artifacts mapping: %q -> %q: source must be an absolute path", volumeSpec.Source, volumeSpec.Destination)
 			case path.IsAbs(volumeSpec.Destination):
-				volumeErr = fmt.Errorf("Invalid runtime artifacts mapping: %q -> %q: destination must be a relative path", volumeSpec.Source, volumeSpec.Destination)
+				volumeErr = fmt.Errorf("invalid runtime artifacts mapping: %q -> %q: destination must be a relative path", volumeSpec.Source, volumeSpec.Destination)
 			case strings.HasPrefix(volumeSpec.Destination, ".."):
-				volumeErr = fmt.Errorf("Invalid runtime artifacts mapping: %q -> %q: destination cannot start with '..'", volumeSpec.Source, volumeSpec.Destination)
+				volumeErr = fmt.Errorf("invalid runtime artifacts mapping: %q -> %q: destination cannot start with '..'", volumeSpec.Source, volumeSpec.Destination)
 			default:
 				continue
 			}
@@ -373,10 +378,10 @@ func (builder *STI) Prepare(config *api.Config) error {
 		}
 		if failedCount == len(requiredAndOptional) {
 			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-				utilstatus.ReasonArtifactsFetchFailed,
-				utilstatus.ReasonMessageArtifactsFetchFailed,
+				utilstatus.ReasonScriptsFetchFailed,
+				utilstatus.ReasonMessageScriptsFetchFailed,
 			)
-			return fmt.Errorf("Could not download any scripts from URL %v", config.ScriptsURL)
+			return fmt.Errorf("could not download any scripts from URL %v", config.ScriptsURL)
 		}
 	}
 

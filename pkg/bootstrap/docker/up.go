@@ -767,9 +767,13 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 		loggingInfo = fmt.Sprintf("The kibana logging UI is available at:\n"+
 			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
 	}
+	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
+	if len(c.PublicHostname) > 0 {
+		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
+	}
 	msg := fmt.Sprintf("OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n%s%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo, loggingInfo)
+		"    %s\n\n%s%s", masterURL, metricsInfo, loggingInfo)
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+

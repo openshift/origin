@@ -84,7 +84,7 @@ func (d *DockerBuilder) Build() error {
 			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
 		}
 	}
-	if err = d.addBuildParameters(buildDir); err != nil {
+	if err = d.addBuildParameters(buildDir, sourceInfo); err != nil {
 		return err
 	}
 
@@ -211,7 +211,7 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables and labels in the Dockerfile.
-func (d *DockerBuilder) addBuildParameters(dir string) error {
+func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInfo) error {
 	dockerfilePath := d.getDockerfilePath(dir)
 	node, err := parseDockerfile(dockerfilePath)
 	if err != nil {
@@ -232,13 +232,13 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	// Append build info as environment variables.
-	err = appendEnv(node, d.buildInfo())
+	err = appendEnv(node, d.buildEnv(sourceInfo))
 	if err != nil {
 		return err
 	}
 
 	// Append build labels.
-	err = appendLabel(node, d.buildLabels(dir))
+	err = appendLabel(node, d.buildLabels(sourceInfo))
 	if err != nil {
 		return err
 	}
@@ -259,10 +259,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	return ioutil.WriteFile(dockerfilePath, instructions, fi.Mode())
 }
 
-// buildInfo converts the buildInfo output to a format that appendEnv can
+// buildEnv converts the buildInfo output to a format that appendEnv can
 // consume.
-func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
-	bi := buildInfo(d.build)
+func (d *DockerBuilder) buildEnv(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
+	bi := buildInfo(d.build, sourceInfo)
 	kv := make([]dockerfile.KeyValue, len(bi))
 	for i, item := range bi {
 		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
@@ -272,18 +272,10 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 
 // buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
 // consume.
-func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
+func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
 	labels := map[string]string{}
-	// TODO: allow source info to be overridden by build
-	sourceInfo := &git.SourceInfo{}
-	if d.build.Spec.Source.Git != nil {
-		var errors []error
-		sourceInfo, errors = d.gitClient.GetInfo(dir)
-		if len(errors) > 0 {
-			for _, e := range errors {
-				glog.V(0).Infof("warning: Unable to retrieve Git info: %v", e.Error())
-			}
-		}
+	if sourceInfo == nil {
+		sourceInfo = &git.SourceInfo{}
 	}
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir

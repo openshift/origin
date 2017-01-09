@@ -104,7 +104,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			kubeConfig := obj.KubernetesMasterConfig
 			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
-				cidr := "172.46.0.0/16"
+				cidr := configapi.DefaultIngressIPNetworkCIDR
 				if !(configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
 					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}

@@ -21,8 +21,8 @@ const (
 	DefaultQueryAttribute string       = "uid"
 )
 
-var DefaultAttributes []string = []string{"dn", "cn", "uid"}
-var DefaultControls []ldap.Control = nil
+var DefaultAttributes = []string{"dn", "cn", "uid"}
+var DefaultControls []ldap.Control
 
 func TestNewSearchRequest(t *testing.T) {
 	var testCases = []struct {

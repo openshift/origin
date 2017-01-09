@@ -100,7 +100,7 @@ func TestImageStreamImport(t *testing.T) {
 		},
 	})
 	if err != nil || isi == nil || isi.Status.Import == nil {
-		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
+		t.Fatalf("unexpected responses: %v %#v", err, isi)
 	}
 
 	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {

@@ -118,6 +118,10 @@ func (r *pullthroughBlobStore) proxyStat(ctx context.Context, retriever importer
 }
 
 // ServeBlob attempts to serve the requested digest onto w, using a remote proxy store if necessary.
+// Important! This function is called for GET and HEAD requests. Docker client uses[1] HEAD request
+// to check existence of a layer. If the layer with the digest is available, this function MUST return
+// success response with no actual body content.
+// [1] https://docs.docker.com/registry/spec/api/#existing-layers
 func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	store, ok := pbs.digestToStore[dgst.String()]
 	if !ok {

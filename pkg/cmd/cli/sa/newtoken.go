@@ -79,9 +79,7 @@ func NewCommandNewServiceAccountToken(name, fullname string, f *clientcmd.Factor
 		Example: fmt.Sprintf(newServiceAccountTokenExamples, fullname),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(args, requestedLabels, f, cmd))
-
 			cmdutil.CheckErr(options.Validate())
-
 			cmdutil.CheckErr(options.Run())
 		},
 	}

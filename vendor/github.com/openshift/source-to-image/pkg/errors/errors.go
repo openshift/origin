@@ -277,3 +277,8 @@ func CheckError(err error) {
 		os.Exit(1)
 	}
 }
+
+// UsageError checks command usage error.
+func UsageError(msg string) error {
+	return fmt.Errorf("%s", msg)
+}

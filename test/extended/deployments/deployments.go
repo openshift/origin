@@ -37,6 +37,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployments", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployments", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployments", "deployment-example.yaml")
+		resolutionFixture               = exutil.FixturePath("testdata", "deployments", "deployment-image-resolution.yaml")
 		anotherMultiICTFixture          = exutil.FixturePath("testdata", "deployments", "multi-ict-deployment.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
@@ -195,6 +196,37 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.It("should respect image stream tag reference policy [Conformance]", func() {
+		o.Expect(oc.Run("create").Args("-f", resolutionFixture).Execute()).NotTo(o.HaveOccurred())
+
+		name := "deployment-image-resolution"
+		o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
+
+		is, err := oc.Client().ImageStreams(oc.Namespace()).Get(name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
+		o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
+		o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
+
+		dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
+
+		imageID := is.Status.Tags["pullthrough"].Items[0].Image
+		resolvedReference := fmt.Sprintf("%s@%s", is.Status.DockerImageRepository, imageID)
+		directReference := is.Status.Tags["direct"].Items[0].DockerImageReference
+
+		// controller should be using pullthrough for this (pointing to local registry)
+		o.Expect(dc.Spec.Triggers[1].ImageChangeParams).NotTo(o.BeNil())
+		o.Expect(dc.Spec.Triggers[1].ImageChangeParams.LastTriggeredImage).To(o.Equal(resolvedReference))
+		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(resolvedReference))
+
+		// controller should have preferred the base image
+		o.Expect(dc.Spec.Triggers[2].ImageChangeParams).NotTo(o.BeNil())
+		o.Expect(dc.Spec.Triggers[2].ImageChangeParams.LastTriggeredImage).To(o.Equal(directReference))
+		o.Expect(dc.Spec.Template.Spec.Containers[1].Image).To(o.Equal(directReference))
+	})
+
 	g.Describe("with test deployments [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-test", g.CurrentGinkgoTestDescription().Failed)
@@ -290,7 +322,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 	g.Describe("with env in params referencing the configmap [Conformance]", func() {
 		g.AfterEach(func() {
-			failureTrap(oc, "deploymenty-simple", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 		g.It("should expand the config map key to a value", func() {
 			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()

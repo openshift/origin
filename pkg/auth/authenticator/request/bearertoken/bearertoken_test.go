@@ -77,7 +77,7 @@ func TestBearerToken(t *testing.T) {
 			RemoveHeader:                 true,
 			ExpectedUserName:             "",
 			ExpectedOK:                   false,
-			ExpectedErr:                  false,
+			ExpectedErr:                  true,
 			ExpectedAuthorizationHeaders: []string{"Bearer 123"},
 		},
 		"error bearer token": {

@@ -66,7 +66,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 		},
 		Middleware: map[string][]configuration.Middleware{
 			"registry":   {{Name: "openshift"}},
-			"repository": {{Name: "openshift"}},
+			"repository": {{Name: "openshift", Options: configuration.Parameters{"pullthrough": false}}},
 			"storage":    {{Name: "openshift"}},
 		},
 	})

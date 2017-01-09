@@ -419,6 +419,9 @@ func TestDeleteImageStreamTag(t *testing.T) {
 						Name: "test:foo",
 					},
 					Generation: &three,
+					ReferencePolicy: api.TagReferencePolicy{
+						Type: api.SourceTagReferencePolicy,
+					},
 				},
 			}
 			expectedStreamStatus := map[string]api.TagEventList{

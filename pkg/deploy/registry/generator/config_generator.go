@@ -56,8 +56,8 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		}
 
 		// Find the latest tag event for the trigger tag
-		latestEvent := imageapi.LatestTaggedImage(imageStream, tag)
-		if latestEvent == nil {
+		latestReference, ok := imageapi.ResolveLatestTaggedImage(imageStream, tag)
+		if !ok {
 			f := field.NewPath("triggers").Index(i).Child("imageChange", "tag")
 			errs = append(errs, field.Invalid(f, tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, tag)))
 			continue
@@ -72,12 +72,12 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 			if !names.Has(container.Name) {
 				continue
 			}
-			if len(latestEvent.DockerImageReference) > 0 &&
-				container.Image != latestEvent.DockerImageReference {
+			if len(latestReference) > 0 &&
+				container.Image != latestReference {
 				// Update the image
-				container.Image = latestEvent.DockerImageReference
+				container.Image = latestReference
 				// Log the last triggered image ID
-				params.LastTriggeredImage = latestEvent.DockerImageReference
+				params.LastTriggeredImage = latestReference
 				containerChanged = true
 			}
 		}

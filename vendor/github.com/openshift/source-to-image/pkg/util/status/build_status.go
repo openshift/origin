@@ -69,12 +69,20 @@ const (
 	// invalid artifacts mapping of files that need to be copied.
 	ReasonMessageInvalidArtifactsMapping api.StepFailureMessage = "Invalid artifacts mapping specified."
 
-	// ReasonArtifactsFetchFailed is the reason associated with a failure to
+	// ReasonScriptsFetchFailed is the reason associated with a failure to
 	// download specified scripts in the application image.
-	ReasonArtifactsFetchFailed api.StepFailureReason = "FetchScriptsFailed"
-	// ReasonMessageArtifactsFetchFailed is the message associated with a failure to
+	ReasonScriptsFetchFailed api.StepFailureReason = "FetchScriptsFailed"
+	// ReasonMessageScriptsFetchFailed is the message associated with a failure to
 	// download specified scripts in the application image.
-	ReasonMessageArtifactsFetchFailed api.StepFailureMessage = "Failed to fetch scripts specified scripts."
+	ReasonMessageScriptsFetchFailed api.StepFailureMessage = "Failed to fetch specified scripts."
+
+	// ReasonRuntimeArtifactsFetchFailed is the reason associated with a failure
+	// to download the specified runtime scripts.
+	ReasonRuntimeArtifactsFetchFailed api.StepFailureReason = "FetchRuntimeArtifactsFailed"
+	// ReasonMessageRuntimeArtifactsFetchFailed is the message associated with a
+	// failure to download the specified runtime scripts in the application
+	// image.
+	ReasonMessageRuntimeArtifactsFetchFailed api.StepFailureMessage = "Failed to fetch specified runtime artifacts."
 
 	// ReasonFSOperationFailed is the reason associated with a failed fs
 	// operation. Create, remove directory, copy file, etc.

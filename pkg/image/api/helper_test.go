@@ -839,6 +839,158 @@ func TestLatestTaggedImage(t *testing.T) {
 	}
 }
 
+func TestResolveLatestTaggedImage(t *testing.T) {
+	tests := []struct {
+		tag            string
+		statusRef      string
+		refs           map[string]TagReference
+		tags           map[string]TagEventList
+		expected       string
+		expectNotFound bool
+	}{
+		{
+			tag:            "foo",
+			tags:           map[string]TagEventList{},
+			expectNotFound: true,
+		},
+		{
+			tag: "foo",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expectNotFound: true,
+		},
+		{
+			tag: "",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "latest-ref",
+		},
+		{
+			tag: "foo",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+				"foo": {
+					Items: []TagEvent{
+						{DockerImageReference: "foo-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "foo-ref",
+		},
+
+		// the default reference policy does nothing
+		{
+			refs: map[string]TagReference{
+				"latest": {
+					ReferencePolicy: TagReferencePolicy{Type: SourceTagReferencePolicy},
+				},
+			},
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref", Image: "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "latest-ref",
+		},
+
+		// the local reference policy does nothing unless reference is set
+		{
+			refs: map[string]TagReference{
+				"latest": {
+					ReferencePolicy: TagReferencePolicy{Type: LocalTagReferencePolicy},
+				},
+			},
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref", Image: "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "latest-ref",
+		},
+
+		// the local reference policy does nothing unless the image id is set
+		{
+			statusRef: "test.server/a/b",
+			refs: map[string]TagReference{
+				"latest": {
+					ReferencePolicy: TagReferencePolicy{Type: LocalTagReferencePolicy},
+				},
+			},
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "latest-ref",
+		},
+
+		// the local reference policy uses the output status reference and the image id
+		// and returns a pullthrough spec
+		{
+			statusRef: "test.server/a/b",
+			refs: map[string]TagReference{
+				"latest": {
+					ReferencePolicy: TagReferencePolicy{Type: LocalTagReferencePolicy},
+				},
+			},
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref", Image: "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "test.server/a/b@sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246",
+		},
+	}
+
+	for i, test := range tests {
+		stream := &ImageStream{}
+		stream.Status.DockerImageRepository = test.statusRef
+		stream.Status.Tags = test.tags
+		stream.Spec.Tags = test.refs
+
+		actual, ok := ResolveLatestTaggedImage(stream, test.tag)
+		if !ok {
+			if !test.expectNotFound {
+				t.Errorf("%d: unexpected nil result", i)
+			}
+			continue
+		}
+		if e, a := test.expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+}
+
 func TestAddTagEventToImageStream(t *testing.T) {
 	tests := map[string]struct {
 		tags           map[string]TagEventList

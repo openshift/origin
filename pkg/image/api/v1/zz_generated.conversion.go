@@ -76,6 +76,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_TagImportPolicy_To_v1_TagImportPolicy,
 		Convert_v1_TagReference_To_api_TagReference,
 		Convert_api_TagReference_To_v1_TagReference,
+		Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy,
+		Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy,
 	)
 }
 
@@ -1085,6 +1087,9 @@ func autoConvert_v1_TagReference_To_api_TagReference(in *TagReference, out *api.
 	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
 		return err
 	}
+	if err := Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1109,9 +1114,31 @@ func autoConvert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *
 	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
 		return err
 	}
+	if err := Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
+		return err
+	}
 	return nil
 }
 
 func Convert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *TagReference, s conversion.Scope) error {
 	return autoConvert_api_TagReference_To_v1_TagReference(in, out, s)
+}
+
+func autoConvert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in *TagReferencePolicy, out *api.TagReferencePolicy, s conversion.Scope) error {
+	SetDefaults_TagReferencePolicy(in)
+	out.Type = api.TagReferencePolicyType(in.Type)
+	return nil
+}
+
+func Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in *TagReferencePolicy, out *api.TagReferencePolicy, s conversion.Scope) error {
+	return autoConvert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in, out, s)
+}
+
+func autoConvert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in *api.TagReferencePolicy, out *TagReferencePolicy, s conversion.Scope) error {
+	out.Type = TagReferencePolicyType(in.Type)
+	return nil
+}
+
+func Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in *api.TagReferencePolicy, out *TagReferencePolicy, s conversion.Scope) error {
+	return autoConvert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in, out, s)
 }

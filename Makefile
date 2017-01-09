@@ -184,9 +184,13 @@ endif
 #   make test-extended SUITE=core
 #   make test-extended SUITE=conformance FOCUS=pods
 SUITE ?= conformance
-FOCUS ?= .
+ifneq ($(strip $(FOCUS)),)
+	FOCUS_ARG=--ginkgo.focus="$(FOCUS)"
+else
+	FOCUS_ARG=
+endif
 test-extended:
-	test/extended/$(SUITE).sh --ginkgo.focus="$(FOCUS)"
+	test/extended/$(SUITE).sh $(FOCUS_ARG)
 .PHONY: test-extended
 
 # Run All-in-one OpenShift server.
