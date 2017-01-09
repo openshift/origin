@@ -62,6 +62,10 @@ A public hostname can also be specified for the server with the \-\-public\-host
     Specify the images to use for OpenShift
 
 .PP
+\fB\-\-image\-streams\fP="centos7"
+    Specify which image streams to use, centos7|rhel7
+
+.PP
 \fB\-\-logging\fP=false
     If true, install logging (experimental)
 
@@ -180,6 +184,9 @@ A public hostname can also be specified for the server with the \-\-public\-host
   
   # Use a different set of images
   openshift cli cluster up \-\-image="registry.example.com/origin" \-\-version="v1.1"
+  
+  # Specify which set of image streams to use
+  openshift cli cluster up \-\-image\-streams=centos7
 
 .fi
 .RE
