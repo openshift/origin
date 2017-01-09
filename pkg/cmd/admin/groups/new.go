@@ -89,7 +89,8 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 	templateFile := kcmdutil.GetFlagString(cmd, "template")
 	noHeaders := kcmdutil.GetFlagBool(cmd, "no-headers")
-	printer, _, err := kubectl.GetPrinter(outputFormat, templateFile, noHeaders)
+	allowMissingTemplateKeys := kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
+	printer, _, err := kubectl.GetPrinter(outputFormat, templateFile, noHeaders, allowMissingTemplateKeys)
 	if err != nil {
 		return err
 	}

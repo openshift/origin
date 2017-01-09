@@ -258,7 +258,7 @@ func (o *RollbackOptions) Run() error {
 
 	// If an output format is specified, print and exit.
 	if len(o.Format) > 0 {
-		printer, _, err := kubectl.GetPrinter(o.Format, o.Template, false)
+		printer, _, err := kubectl.GetPrinter(o.Format, o.Template, false, true)
 		if err != nil {
 			return err
 		}
