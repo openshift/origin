@@ -32,10 +32,6 @@ const (
 	// DockerDefaultV2Registry is the host name of the default v2 registry
 	DockerDefaultV2Registry = "registry-1." + DockerDefaultRegistry
 
-	// containerImageEntrypointAnnotationFormatKey is a format used to identify the entrypoint of a particular
-	// container in a pod template. It is a JSON array of strings.
-	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
-
 	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
 	TagReferenceAnnotationTagHidden = "hidden"
 )
@@ -565,6 +561,55 @@ func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 	return nil
 }
 
+// ResolveLatestTaggedImage returns the appropriate pull spec for a given tag in
+// the image stream, handling the tag's reference policy if necessary to return
+// a resolved image. Callers that transform an ImageStreamTag into a pull spec
+// should use this method instead of LatestTaggedImage.
+func ResolveLatestTaggedImage(stream *ImageStream, tag string) (string, bool) {
+	if len(tag) == 0 {
+		tag = DefaultImageTag
+	}
+
+	// retrieve event
+	latest := LatestTaggedImage(stream, tag)
+	if latest == nil {
+		return "", false
+	}
+
+	// retrieve spec policy - if not found, we use the latest spec
+	ref, ok := stream.Spec.Tags[tag]
+	if !ok {
+		return latest.DockerImageReference, true
+	}
+
+	switch ref.ReferencePolicy.Type {
+	// the local reference policy attempts to use image pull through on the integrated
+	// registry if possible
+	case LocalTagReferencePolicy:
+		local := stream.Status.DockerImageRepository
+		if len(local) == 0 || len(latest.Image) == 0 {
+			// fallback to the originating reference if no local docker registry defined or we
+			// lack an image ID
+			return latest.DockerImageReference, true
+		}
+
+		ref, err := ParseDockerImageReference(local)
+		if err != nil {
+			// fallback to the originating reference if the reported local repository spec is not valid
+			return latest.DockerImageReference, true
+		}
+
+		// create a local pullthrough URL
+		ref.Tag = ""
+		ref.ID = latest.Image
+		return ref.Exact(), true
+
+	// the default policy is to use the originating image
+	default:
+		return latest.DockerImageReference, true
+	}
+}
+
 // DifferentTagEvent returns true if the supplied tag event matches the current stream tag event.
 // Generation is not compared.
 func DifferentTagEvent(stream *ImageStream, tag string, next TagEvent) bool {
@@ -926,28 +971,6 @@ func PrioritizeTags(tags []string) {
 		finalTags = append(finalTags, v)
 	}
 	copy(tags, finalTags)
-}
-
-func ContainerImageEntrypointByAnnotation(annotations map[string]string, containerName string) ([]string, bool) {
-	s, ok := annotations[fmt.Sprintf(containerImageEntrypointAnnotationFormatKey, containerName)]
-	if !ok {
-		return nil, false
-	}
-	var arr []string
-	if err := json.Unmarshal([]byte(s), &arr); err != nil {
-		return nil, false
-	}
-	return arr, true
-}
-
-func SetContainerImageEntrypointAnnotation(annotations map[string]string, containerName string, cmd []string) {
-	key := fmt.Sprintf(containerImageEntrypointAnnotationFormatKey, containerName)
-	if len(cmd) == 0 {
-		delete(annotations, key)
-		return
-	}
-	s, _ := json.Marshal(cmd)
-	annotations[key] = string(s)
 }
 
 func LabelForStream(stream *ImageStream) string {

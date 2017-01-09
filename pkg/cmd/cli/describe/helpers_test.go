@@ -39,7 +39,8 @@ func TestFormatImageStreamTags(t *testing.T) {
 					ImportPolicy: imageapi.TagImportPolicy{
 						Scheduled: true,
 					},
-					Generation: &three,
+					Generation:      &three,
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
 				},
 				"spec4": {
 					From: &kapi.ObjectReference{
@@ -126,6 +127,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 		"tagged from mysql/latest@sha256:e52c65",
 		"updates automatically from registry mysql",
 		"reference to registry mysql:2",
+		"prefer registry pullthrough when referencing this tag",
 		"~ importing latest image ...",
 		"! error: Import failed (NotFound): Image not found due to error",
 	} {

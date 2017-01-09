@@ -170,6 +170,9 @@ func TestBuildEnvVars(t *testing.T) {
 			Name:  "OPENSHIFT_BUILD_SOURCE",
 			Value: "http://localhost/123",
 		}, s2iapi.EnvironmentSpec{
+			Name:  "OPENSHIFT_BUILD_COMMIT",
+			Value: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+		}, s2iapi.EnvironmentSpec{
 			Name:  "HTTPS_PROXY",
 			Value: "https://test/secure:8443",
 		}, s2iapi.EnvironmentSpec{
@@ -182,7 +185,9 @@ func TestBuildEnvVars(t *testing.T) {
 	mockBuild.Name = "openshift-test-1-build"
 	mockBuild.Namespace = "openshift-demo"
 	mockBuild.Spec.Source.Git = &api.GitBuildSource{URI: "http://localhost/123"}
-	resultedEnvList := buildEnvVars(mockBuild)
+	sourceInfo := &git.SourceInfo{}
+	sourceInfo.CommitID = "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"
+	resultedEnvList := buildEnvVars(mockBuild, sourceInfo)
 	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
 		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
 	}

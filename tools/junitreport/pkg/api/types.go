@@ -60,6 +60,9 @@ type TestCase struct {
 	// Name is the name of the test case
 	Name string `xml:"name,attr"`
 
+	// Classname is an attribute set by the package type and is required
+	Classname string `xml:"classname,attr,omitempty"`
+
 	// Duration is the time taken in seconds to run the test
 	Duration float64 `xml:"time,attr"`
 
@@ -68,6 +71,12 @@ type TestCase struct {
 
 	// FailureOutput holds the output from a failing test
 	FailureOutput *FailureOutput `xml:"failure"`
+
+	// SystemOut is output written to stdout during the execution of this test case
+	SystemOut string `xml:"system-out,omitempty"`
+
+	// SystemErr is output written to stderr during the execution of this test case
+	SystemErr string `xml:"system-err,omitempty"`
 }
 
 // SkipMessage holds a message explaining why a test was skipped
@@ -75,7 +84,7 @@ type SkipMessage struct {
 	XMLName xml.Name `xml:"skipped"`
 
 	// Message explains why the test was skipped
-	Message string `xml:"message,attr"`
+	Message string `xml:"message,attr,omitempty"`
 }
 
 // FailureOutput holds the output from a failing test

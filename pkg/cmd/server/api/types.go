@@ -16,6 +16,10 @@ const (
 	AllVersions = "*"
 )
 
+const (
+	DefaultIngressIPNetworkCIDR = "172.29.0.0/16"
+)
+
 var (
 	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
 	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}

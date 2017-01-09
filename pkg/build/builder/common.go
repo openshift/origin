@@ -48,7 +48,7 @@ type GitClient interface {
 
 // buildInfo returns a slice of KeyValue pairs with build metadata to be
 // inserted into Docker images produced by build.
-func buildInfo(build *api.Build) []KeyValue {
+func buildInfo(build *api.Build, sourceInfo *git.SourceInfo) []KeyValue {
 	kv := []KeyValue{
 		{"OPENSHIFT_BUILD_NAME", build.Name},
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
@@ -62,7 +62,10 @@ func buildInfo(build *api.Build) []KeyValue {
 		if build.Spec.Source.Git.Ref != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_REFERENCE", build.Spec.Source.Git.Ref})
 		}
-		if build.Spec.Revision != nil && build.Spec.Revision.Git != nil && build.Spec.Revision.Git.Commit != "" {
+
+		if sourceInfo != nil && len(sourceInfo.CommitID) != 0 {
+			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_COMMIT", sourceInfo.CommitID})
+		} else if build.Spec.Revision != nil && build.Spec.Revision.Git != nil && build.Spec.Revision.Git.Commit != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_COMMIT", build.Spec.Revision.Git.Commit})
 		}
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
+	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
@@ -237,6 +238,20 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	clearManifests(isi)
 
+	// ensure defaulting is applied by round trip converting
+	// TODO: convert to using versioned types.
+	external, err := kapi.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	internal, err := kapi.Scheme.ConvertToVersion(external, api.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	stream = internal.(*api.ImageStream)
+
+	// if and only if we have changes between the original and the imported stream, trigger
+	// an import
 	hasChanges := !kapi.Semantic.DeepEqual(original, stream)
 	if create {
 		stream.Annotations[api.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)

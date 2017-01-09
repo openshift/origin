@@ -276,7 +276,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 			}
 			nodeHost = internalIP
 			createConfigCmd = append(createConfigCmd, fmt.Sprintf("--master=%s", internalIP))
-			createConfigCmd = append(createConfigCmd, fmt.Sprintf("--public-master=https://%s:8443", opt.ServerIP))
+			createConfigCmd = append(createConfigCmd, fmt.Sprintf("--public-master=https://%s:8443", h.publicHost))
 		} else {
 			nodeHost = opt.ServerIP
 			createConfigCmd = append(createConfigCmd, fmt.Sprintf("--master=%s", opt.ServerIP))

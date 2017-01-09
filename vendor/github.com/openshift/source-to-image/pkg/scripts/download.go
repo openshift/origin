@@ -10,7 +10,7 @@ import (
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 )
 
 var glog = utilglog.StderrLog
@@ -50,7 +50,7 @@ func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo,
 	info := &api.SourceInfo{}
 	if r == nil {
 		glog.Errorf("No URL handler found for %s", url.String())
-		return nil, errors.NewURLHandlerError(url.String())
+		return nil, s2ierr.NewURLHandlerError(url.String())
 	}
 
 	reader, err := r.Read(url)
@@ -115,7 +115,7 @@ func (h *HTTPURLReader) Read(url *url.URL) (io.ReadCloser, error) {
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
 		return resp.Body, nil
 	}
-	return nil, errors.NewDownloadError(url.String(), resp.StatusCode)
+	return nil, s2ierr.NewDownloadError(url.String(), resp.StatusCode)
 }
 
 // FileURLReader opens a specified file and returns its stream
@@ -133,5 +133,5 @@ type ImageReader struct{}
 
 // Read throws Not implemented error
 func (*ImageReader) Read(url *url.URL) (io.ReadCloser, error) {
-	return nil, errors.NewScriptsInsideImageError(url.String())
+	return nil, s2ierr.NewScriptsInsideImageError(url.String())
 }

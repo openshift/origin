@@ -14,7 +14,7 @@ import (
 
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
-	"github.com/openshift/source-to-image/pkg/errors"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 )
 
 var glog = utilglog.StderrLog
@@ -259,7 +259,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 func (h *fs) CreateWorkingDirectory() (directory string, err error) {
 	directory, err = ioutil.TempDir("", "s2i")
 	if err != nil {
-		return "", errors.NewWorkDirError(directory, err)
+		return "", s2ierr.NewWorkDirError(directory, err)
 	}
 
 	return directory, err
