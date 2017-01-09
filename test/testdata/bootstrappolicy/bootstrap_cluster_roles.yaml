@@ -875,6 +875,15 @@ items:
     - subjectaccessreviews
     verbs:
     - create
+  - apiGroups:
+    - alpha.metrics.k8s.io
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1216,6 +1225,15 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - alpha.metrics.k8s.io
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1433,6 +1451,15 @@ items:
     attributeRestrictions: null
     resources:
     - resourcequotausages
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - alpha.metrics.k8s.io
+    attributeRestrictions: null
+    resources:
+    - pods
     verbs:
     - get
     - list

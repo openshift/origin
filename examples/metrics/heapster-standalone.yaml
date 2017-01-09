@@ -1,0 +1,98 @@
+id: heapster-standalone
+kind: Template
+apiVersion: v1
+name: Heapster
+description: >
+  Configures an instance of heapster to be used with autoscaling. You must grant appropriate
+  permissions to the 'heapster' service account to view nodes and pods - the 'cluster-reader'
+  role is appropriate.
+metadata:
+  name: heapster-standalone
+  labels:
+    metrics-infra: heapster
+parameters:
+- description: Internal URL for the master, for authentication retrieval
+  name: MASTER_URL
+  value: https://kubernetes.default.svc:443
+- description: Specify prefix for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1",
+    set prefix "openshift/origin-"
+  name: IMAGE_PREFIX
+  value: openshift/origin-
+- description: Specify version for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1",
+    set version "v1.1"
+  name: IMAGE_VERSION
+  value: "latest"
+- description: "How often metrics should be gathered. Defaults value of '15s' for 15 seconds"
+  name: METRIC_RESOLUTION
+  value: "15s"
+- description: How long in seconds we should wait until Heapster starts up before attempting a restart
+  name: STARTUP_TIMEOUT
+  value: "500"
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: heapster
+    labels:
+      metrics-infra: support
+  secrets:
+  - name: heapster-secrets
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: heapster
+    labels:
+      metrics-infra: heapster
+      name: heapster
+    annotations:
+      "service.alpha.openshift.io/serving-cert-secret-name": heapster-secrets
+  spec:
+    selector:
+      name: heapster
+    ports:
+    - port: 80
+      targetPort: http-endpoint
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: heapster
+    labels:
+      metrics-infra: heapster
+      name: heapster
+  spec:
+    selector:
+      name: heapster
+    replicas: 1
+    template:
+      version: v1
+      metadata:
+        labels:
+          metrics-infra: heapster
+          name: heapster
+      spec:
+        containers:
+        - image: "${IMAGE_PREFIX}metrics-heapster:${IMAGE_VERSION}"
+          name: heapster
+          ports:
+          - name: http-endpoint
+            containerPort: 8082
+          command:
+          - "heapster-wrapper.sh"
+          - "--source=kubernetes:${MASTER_URL}?useServiceAccount=true&kubeletHttps=true&kubeletPort=10250"
+          - "--tls_cert=/secrets/tls.crt"
+          - "--tls_key=/secrets/tls.key"
+          - "--tls_client_ca=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+          - "--allowed_users=system:master-proxy"
+          - "--metric_resolution=${METRIC_RESOLUTION}"
+          env:
+          - name: STARTUP_TIMEOUT
+            value: ${STARTUP_TIMEOUT}
+          volumeMounts:
+          - name: heapster-secrets
+            mountPath: "/secrets"
+        volumes:
+        - name: heapster-secrets
+          secret:
+            secretName: heapster-secrets
+        serviceAccount: heapster
+

@@ -28,10 +28,13 @@ type UpgradeAwareSingleHostReverseProxy struct {
 	backendAddr  *url.URL
 	transport    http.RoundTripper
 	reverseProxy *httputil.ReverseProxy
+	// urlRewriteFn is an optional function that alters the URL for the target
+	urlRewriteFn func(url *url.URL)
 }
 
-// NewUpgradeAwareSingleHostReverseProxy creates a new UpgradeAwareSingleHostReverseProxy.
-func NewUpgradeAwareSingleHostReverseProxy(clientConfig *restclient.Config, backendAddr *url.URL) (*UpgradeAwareSingleHostReverseProxy, error) {
+// NewUpgradeAwareSingleHostReverseProxy creates a new UpgradeAwareSingleHostReverseProxy. urlRewriteFn is optional and
+// is passed the backend address that will be invoked and allowed to modify the path or query fields.
+func NewUpgradeAwareSingleHostReverseProxy(clientConfig *restclient.Config, backendAddr *url.URL, urlRewriteFn func(*url.URL)) (*UpgradeAwareSingleHostReverseProxy, error) {
 	transport, err := restclient.TransportFor(clientConfig)
 	if err != nil {
 		return nil, err
@@ -43,6 +46,7 @@ func NewUpgradeAwareSingleHostReverseProxy(clientConfig *restclient.Config, back
 		backendAddr:  backendAddr,
 		transport:    transport,
 		reverseProxy: reverseProxy,
+		urlRewriteFn: urlRewriteFn,
 	}
 	p.reverseProxy.Transport = p
 	return p, nil
@@ -89,27 +93,36 @@ func singleJoiningSlash(a, b string) string {
 	return a + b
 }
 
+// newProxyRequest crafts a new request, ensuring that the original request is not modified as required
+// by http.RoundTripper
 func (p *UpgradeAwareSingleHostReverseProxy) newProxyRequest(req *http.Request) (*http.Request, error) {
-	// TODO is this the best way to clone the original request and create
-	// the new request for the backend? Do we need to copy anything else?
-	//
 	backendURL := *p.backendAddr
+
 	// if backendAddr is http://host/base and req is for /foo, the resulting path
 	// for backendURL should be /base/foo
 	backendURL.Path = singleJoiningSlash(backendURL.Path, req.URL.Path)
 	backendURL.RawQuery = req.URL.RawQuery
 
-	newReq, err := http.NewRequest(req.Method, backendURL.String(), req.Body)
-	if err != nil {
-		return nil, err
+	// give the caller a chance to alter the destination URL
+	if p.urlRewriteFn != nil {
+		p.urlRewriteFn(&backendURL)
+		glog.Infof("Rewrote proxy request path: %s -> %s", req.URL.Path, backendURL.Path)
 	}
-	// TODO is this the right way to copy headers?
-	newReq.Header = req.Header
 
-	// TODO do we need to exclude any other headers?
-	removeAuthHeaders(newReq)
+	copied := *req
+	copied.URL = &backendURL
 
-	return newReq, nil
+	// copy the headers first removing the Auth headers
+	if len(req.Header) > 0 {
+		copied.Header = make(http.Header, len(req.Header))
+		for k, v := range req.Header {
+			copied.Header[k] = v
+		}
+		// TODO do we need to exclude any other headers?
+		removeAuthHeaders(&copied)
+	}
+
+	return &copied, nil
 }
 
 func (p *UpgradeAwareSingleHostReverseProxy) isUpgradeRequest(req *http.Request) bool {
