@@ -20,7 +20,7 @@ RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproje
     INSTALL_PKGS="libmnl libnetfilter_conntrack openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
-      ceph-common iscsi-initiator-utils" && \
+      iscsi-initiator-utils" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
