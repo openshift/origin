@@ -59,11 +59,7 @@ type MasterOptions struct {
 	DisabledFeatures   []string
 }
 
-func (o *MasterOptions) DefaultsFromName(basename string) {
-	if cmdutil.GetProductName(basename) == cmdutil.ProductAtomicEnterprise {
-		o.DisabledFeatures = configapi.AtomicDisabledFeatures
-	}
-}
+func (o *MasterOptions) DefaultsFromName(basename string) {}
 
 var masterLong = templates.LongDesc(`
 	Start a master server

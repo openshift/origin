@@ -82,11 +82,13 @@ Obsoletes:      openshift < %{package_refector_version}
 ### AUTO-BUNDLED-GEN-ENTRY-POINT
 
 %description
-Origin is a distribution of Kubernetes optimized for enterprise application
-development and deployment, used by OpenShift 3 and Atomic Enterprise. Origin
-adds developer and operational centric tools on top of Kubernetes to enable
-rapid application development, easy deployment and scaling, and long-term
-lifecycle maintenance for small and large teams and applications.
+OpenShift is a distribution of Kubernetes optimized for enterprise application
+development and deployment. OpenShift adds developer and operational centric
+tools on top of Kubernetes to enable rapid application development, easy
+deployment and scaling, and long-term lifecycle maintenance for small and large
+teams and applications. It provides a secure and multi-tenant configuration for
+Kubernetes allowing you to safely host many different applications and workloads
+on a unified cluster.
 
 %package master
 Summary:        %{product_name} Master
@@ -237,7 +239,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    atomic-enterprise \
     kube-apiserver \
     kube-controller-manager \
     kube-proxy \
@@ -305,7 +306,7 @@ install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oadm oc openshift atomic-enterprise
+for bin in oadm oc openshift
 do
   echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
   %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
@@ -339,7 +340,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/atomic-enterprise
 %{_bindir}/kube-apiserver
 %{_bindir}/kube-controller-manager
 %{_bindir}/kube-proxy
@@ -355,7 +355,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
 %{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -538,12 +537,12 @@ fi
 /usr/sbin/%{name}-docker-excluder
 
 %post docker-excluder
-# we always want to run this, since the 
+# we always want to run this, since the
 #   package-list may be different with each version
 %{name}-docker-excluder exclude
 
 %preun docker-excluder
-# we always want to clear this out, since the 
+# we always want to clear this out, since the
 #   package-list may be different with each version
 /usr/sbin/%{name}-docker-excluder unexclude
 
