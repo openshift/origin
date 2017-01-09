@@ -19,8 +19,10 @@
 ## COMMON VARIABLES ##
 #source ose.conf
 
+
 ## LOCAL VARIABLES ##
-MAJOR_RELEASE="3.3"
+MASTER_RELEASE="3.5"
+MAJOR_RELEASE="3.4"
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -72,6 +74,7 @@ usage() {
   echo "  --errata_pv [version] :: errata product version to use  default[${ERRATA_PRODUCT_VERSION}]" >&2
   echo "  --pull_reg [registry] :: docker registry to pull from  default[${PULL_REGISTRY}]" >&2
   echo "  --push_reg [registry] :: docker registry to push to  default[${PUSH_REGISTRY}]" >&2
+  echo "  --prebuilt [package]  :: Package has already been prebuilt correctly" >&2
   echo >&2
   echo "Note: --group and --package can be used multiple times" >&2
   popd &>/dev/null
@@ -198,6 +201,10 @@ setup_dockerfile() {
   mkdir -p "${container}" &>/dev/null
   pushd ${container} >/dev/null
   wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/Dockerfile?h=${branch} &>/dev/null
+  if ! [ -s Dockerfile ] ; then
+    rm -f Dockerfile
+    wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/Dockerfile.product?h=${branch} &>/dev/null
+  fi
   popd >/dev/null
 }
 
@@ -205,9 +212,14 @@ setup_git_repo() {
   if [ "${VERBOSE}" == "TRUE" ] ; then
     echo "  ** setup_git_repo **"
     echo " git_repo: ${git_repo} "
+    echo " git_path: ${git_path} "
+    echo " git_branch: ${git_branch} "
   fi
   pushd "${workingdir}" >/dev/null
   git clone -q ${git_repo} 2>/dev/null
+  pushd "${git_path}" >/dev/null
+  git checkout ${git_branch} 2>/dev/null
+  popd >/dev/null
   popd >/dev/null
 
 }
@@ -219,9 +231,16 @@ check_builds() {
     if grep -q -e "buildContainer (noarch) failed" -e "server startup error" ${line} ; then
       package=`echo ${line} | cut -d'.' -f1`
       echo "=== ${package} IMAGE BUILD FAILED ==="
+      if grep -q -e "already exists" ${line} ; then
+        grep -e "already exists" ${line} | cut -d':' -f4-
+        echo "Package with same NVR has already been built"
+      fi
       mv ${line} ${package}.watchlog done/
       echo "::${package}::" >> ${workingdir}/logs/finished
       echo "::${package}::" >> ${workingdir}/logs/buildfailed
+      sed -i '/::${package}::/d' ${workingdir}/logs/working
+      echo "Failed logs"
+      ls -1 ${workingdir}/logs/done/${package}.*
     else
       if grep -q -e "completed successfully" ${line} ; then
         package=`echo ${line} | cut -d'.' -f1`
@@ -232,6 +251,7 @@ check_builds() {
         #  echo "::${package}::" >> ${workingdir}/logs/buildfailed
         #fi
         echo "::${package}::" >> ${workingdir}/logs/finished
+        sed -i '/::${package}::/d' ${workingdir}/logs/working
         mv ${line} ${package}.watchlog done/
       fi
     fi
@@ -253,6 +273,15 @@ wait_for_all_builds() {
 }
 
 check_build_dependencies() {
+  if ! grep -q ::${build_dependency}:: ${workingdir}/logs/finished && ! grep -q ::${build_dependency}:: ${workingdir}/logs/working  ; then
+    echo "  ERROR: build dependency ${build_dependency} is not built, nor scheduled to be built."
+    echo "         Failing ${build_dependency}"
+    echo "  ERROR INFO: If you know the proper version of ${build_dependency}"
+    echo "              has already been built add the following to your build command line"
+    echo "                  --prebuilt ${build_dependency}"
+    echo "::${build_dependency}::" >> ${workingdir}/logs/finished
+    echo "::${build_dependency}::" >> ${workingdir}/logs/buildfailed
+  fi
   depcheck=`grep ::${build_dependency}:: ${workingdir}/logs/finished`
   while [ "${depcheck}" == "" ]
   do
@@ -266,6 +295,12 @@ check_build_dependencies() {
 
 build_image() {
     rhpkg container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-unsigned-errata-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-signed-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-container-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
@@ -274,18 +309,21 @@ build_image() {
     #rhpkg container-build --repo http://file.rdu.redhat.com/tdawson/repo/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     echo -n "  Waiting for build to start ."
     sleep 10
-    taskid=`grep 'free -> open' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+    taskid=`grep 'Watching tasks' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
     while [ "${taskid}" == "" ]
     do
       echo -n "."
       sleep 10
-      taskid=`grep 'free -> open' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
-      if grep -q -e "Unknown build target:" -e "buildContainer (noarch) failed" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
+      taskid=`grep 'Watching tasks' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+      if grep -q -e "Unknown build target:" -e "buildContainer (noarch) failed" -e "is not a valid repo" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
         echo " error"
         echo "=== ${container} IMAGE BUILD FAILED ==="
         mv ${workingdir}/logs/${container}.buildlog ${workingdir}/logs/done/
         echo "::${container}::" >> ${workingdir}/logs/finished
         echo "::${container}::" >> ${workingdir}/logs/buildfailed
+        sed -i '/::${package}::/d' ${workingdir}/logs/working
+        echo "Failed logs"
+        ls -1 ${workingdir}/logs/done/${container}.*
         taskid="FAILED"
       fi
     done
@@ -309,6 +347,7 @@ start_build_image() {
       echo "=== ${container} IMAGE BUILD FAILED ==="
       echo "::${container}::" >> ${workingdir}/logs/finished
       echo "::${container}::" >> ${workingdir}/logs/buildfailed
+      sed -i '/::${package}::/d' ${workingdir}/logs/working
     fi
   fi
   popd >/dev/null
@@ -329,6 +368,10 @@ update_dockerfile() {
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
       let new_release_version=$old_release_version+1
       sed -i -e "s/release=\".*\"/release=\"${new_release_version}\"/" ${line}
+      if [ "${VERBOSE}" == "TRUE" ] ; then
+        echo "old_release_version: ${old_release_version} new_release_version: ${new_release_version} file: ${line}"
+        grep release= ${line}
+      fi
     fi
     if [ "${update_rhel}" == "TRUE" ] ; then
       sed -i -e "s/FROM rhel7.*/FROM ${rhel_version}/" ${line}
@@ -363,24 +406,29 @@ show_git_diffs() {
     fi
     if ! [ "${old_file}" == "" ] ; then
       echo "  ---- Removed Non-Docker files ----"
+      #echo "${old_file}"
+      working_path="${workingdir}/${container}"
       echo "${old_file}" | while read old_file_line
       do
         myold_file=$(echo "${old_file_line}" | awk '{print $4}')
-        # echo "Removing: ${myold_file}"
-        git rm ${myold_file}
+        myold_dir=$(echo "${old_file_line}" | awk '{print $3}' | cut -d':' -f1)
+        myold_dir_file="${myold_dir}/${myold_file}"
+        myold_dir_file_trim="${myold_dir_file#$working_path}"
+        git rm ${myold_dir_file_trim}
       done
     fi
     if ! [ "${new_file}" == "" ] ; then
       echo "  ---- New Non-Docker files ----"
-      #echo " New files must be added by hand - sorry about that"
-      echo "${new_file}"
+      #echo "${new_file}"
       working_path="${workingdir}/${git_path}"
       echo "${new_file}" | while read new_file_line
       do
         mynew_file=$(echo "${new_file_line}" | awk '{print $4}')
-        mynew_file_trim="${mynew_file#$working_path}"
-        cp -rv ${workingdir}/${git_path}/${mynew_file} ${workingdir}/${container}/${mynew_file}
-        git add ${workingdir}/${container}/${mynew_file}
+        mynew_dir=$(echo "${new_file_line}" | awk '{print $3}' | cut -d':' -f1)
+        mynew_dir_file="${mynew_dir}/${mynew_file}"
+        mynew_dir_file_trim="${mynew_dir_file#$working_path}"
+        cp -rv ${working_path}/${mynew_dir_file_trim} ${workingdir}/${container}/${mynew_dir_file_trim}
+        git add ${workingdir}/${container}/${mynew_dir_file_trim}
       done
     fi
   fi
@@ -551,9 +599,11 @@ To login, visit https://api.qe.openshift.com/oauth/token/request then
   docker login -e USERID@redhat.com -u USERID@redhat.com -p TOKEN https://registry.qe.redhat.com
 "
      echo "::${1}::" >> ${workingdir}/logs/buildfailed
+     sed -i '/::${package}::/d' ${workingdir}/logs/working
      exit 1
    fi
    echo "::${1}::" >> ${workingdir}/logs/finished
+   sed -i '/::${package}::/d' ${workingdir}/logs/working
 }
 
 start_push_image() {
@@ -834,6 +884,10 @@ case $key in
       COMMIT_MESSAGE="$2"
       shift
       ;;
+    --prebuilt)
+      export prebuilt_list="${prebuilt_list} $2"
+      shift
+      ;;
     -d|--dep|--deps|--dependents)
       export DEPENDENTS="TRUE"
       ;;
@@ -904,9 +958,15 @@ if ! [ "${action}" == "test" ] && ! [ "${action}" == "list" ] ; then
   pushd "${workingdir}" &>/dev/null
   mkdir -p logs/done
   echo "::None::" >> logs/finished
-  touch logs/buildfailed
+  touch logs/buildfailed logs/working
   echo "Using working directory: ${workingdir}"
 fi
+
+# Setup prebuilts
+for prebuilt_package in ${prebuilt_list}
+do
+  echo "::${prebuilt_package}::" >> logs/finished
+done
 
 # Setup dependents
 if [ "${DEPENDENTS}" == "TRUE" ] ; then
@@ -940,9 +1000,15 @@ do
   case "$action" in
     build_container )
       echo "=== ${container} ==="
+      echo "::${container}::" >> ${workingdir}/logs/working
       build_container
       ;;
     compare_git | git_compare )
+      if [ "${MASTER_RELEASE}" == "${MAJOR_RELEASE}" ] ; then
+        export git_branch="master"
+      else
+        export git_branch="enterprise-${MAJOR_RELEASE}"
+      fi
       export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
       export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
@@ -975,6 +1041,11 @@ do
       docker_backfill
       ;;
     update_compare )
+      if [ "${MASTER_RELEASE}" == "${MAJOR_RELEASE}" ] ; then
+        export git_branch="master"
+      else
+        export git_branch="enterprise-${MAJOR_RELEASE}"
+      fi
       if [ "${REALLYFORCE}" == "TRUE" ] ; then
         export FORCE="TRUE"
       fi
@@ -1036,6 +1107,7 @@ do
       export alt_name=$(echo "${dict_image_name[${container}]}" | awk '{print $2}')
       export tag_list="${dict_image_tags[${container}]}"
       if ! [ "${brew_name}" == "" ] ; then
+        echo "::${container}::" >> ${workingdir}/logs/working
         push_images
       else
         echo "  Skipping ${container} - Image for building only"
