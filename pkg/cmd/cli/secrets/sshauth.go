@@ -95,7 +95,7 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 	cmd.Flags().StringVar(&o.GitConfigPath, "gitconfig", "", "Path to a .gitconfig file")
 	cmd.MarkFlagFilename("gitconfig")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddOutputFlags(cmd)
 
 	return cmd
 }
