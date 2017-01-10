@@ -14,7 +14,7 @@ func (h *Helper) TestContainerNetworking(ip string) error {
 	testCmd := fmt.Sprintf("echo 'Testing connectivity to master API' && "+
 		"curl -s -S -k https://%s:8443 && "+
 		"echo 'Testing connectivity to master DNS server' && "+
-		"for i in {1..5}; do "+
+		"for i in {1..10}; do "+
 		"   if curl -s -S -k https://kubernetes.default.svc.cluster.local; then "+
 		"      exit 0;"+
 		"   fi; "+
