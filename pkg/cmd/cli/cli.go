@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/sa"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
+	"github.com/openshift/origin/pkg/cmd/experimental/images"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -197,6 +198,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	}
 	experimental.AddCommand(
 		dockerbuild.NewCmdDockerbuild(fullName, f, out, errout),
+		images.NewCmdImages(fullName, f, out, errout),
 	)
 	cmds.AddCommand(experimental)
 

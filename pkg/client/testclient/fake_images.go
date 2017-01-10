@@ -3,6 +3,7 @@ package testclient
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -56,4 +57,8 @@ func (c *FakeImages) Update(inObj *imageapi.Image) (*imageapi.Image, error) {
 func (c *FakeImages) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("images", name), &imageapi.Image{})
 	return err
+}
+
+func (c *FakeImages) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("images", kapi.NamespaceAll, opts))
 }
