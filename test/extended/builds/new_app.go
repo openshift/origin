@@ -10,8 +10,8 @@ import (
 var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 	// Previously, the maximum length of app names creatable by new-app has
 	// inadvertently been decreased, e.g. by creating an annotation somewhere
-	// whose name itself includes the app name.  Ensure we can create and deploy
-	// an app with a 58 character name [63 maximum - len('-9999' suffix)].
+	// whose name itself includes the app name.  Ensure we can create and fully
+	// deploy an app with a 58 character name [63 maximum - len('-9999' suffix)].
 
 	oc := exutil.NewCLI("new-app", exutil.KubeConfigPath())
 

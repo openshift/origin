@@ -395,17 +395,36 @@ func (o *DebugOptions) Debug() error {
 }
 
 func (o *DebugOptions) getContainerImageCommand(container *kapi.Container) ([]string, error) {
-	image := container.Image[strings.LastIndex(container.Image, "/")+1:]
-	name, id, ok := imageapi.SplitImageStreamImage(image)
-	if !ok {
-		return nil, errors.New("container image did not contain an id")
+	isi := &imageapi.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "oc-debug",
+		},
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
+				{
+					From: kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: container.Image,
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: true,
+					},
+				},
+			},
+		},
 	}
-	isimage, err := o.Client.ImageStreamImages(o.Attach.Pod.Namespace).Get(name, id)
+
+	isi, err := o.Client.ImageStreams(o.Attach.Pod.Namespace).Import(isi)
 	if err != nil {
 		return nil, err
 	}
+	if len(isi.Status.Images) != 1 ||
+		isi.Status.Images[0].Image == nil ||
+		isi.Status.Images[0].Image.DockerImageMetadata.Config == nil {
+		return nil, errors.New("error: returned ImageStreamImport not usable")
+	}
 
-	config := isimage.Image.DockerImageMetadata.Config
+	config := isi.Status.Images[0].Image.DockerImageMetadata.Config
 	return append(config.Entrypoint, config.Cmd...), nil
 }
 
