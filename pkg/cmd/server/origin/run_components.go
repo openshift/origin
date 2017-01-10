@@ -3,6 +3,7 @@ package origin
 import (
 	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"sync"
 	"time"
@@ -171,10 +172,12 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
 		RegistryNamespace:    "default",
 		RegistryServiceName:  "docker-registry",
+		RegistryDefaultHost:  os.Getenv("OPENSHIFT_DEFAULT_REGISTRY"),
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	routeClient, _ := c.RouteAllocatorClients()
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), routeClient, dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

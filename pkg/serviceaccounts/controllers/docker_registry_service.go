@@ -9,6 +9,8 @@ import (
 
 	"github.com/golang/glog"
 
+	osclient "github.com/openshift/origin/pkg/client"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -33,6 +35,10 @@ type DockerRegistryServiceControllerOptions struct {
 	RegistryNamespace   string
 	RegistryServiceName string
 
+	// RegistryDefaultHost is normally set by OPENSHIFT_DEFAULT_REGISTRY variable on
+	// controller start.
+	RegistryDefaultHost string
+
 	DockercfgController *DockercfgController
 
 	// DockerURLsIntialized is used to send a signal to the DockercfgController that it has the correct set of docker urls
@@ -40,14 +46,16 @@ type DockerRegistryServiceControllerOptions struct {
 }
 
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
-func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
+func NewDockerRegistryServiceController(cl kclientset.Interface, rc osclient.RoutesNamespacer, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
 		client:                cl,
+		routeClient:           rc,
 		dockercfgController:   options.DockercfgController,
 		registryLocationQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		secretsToUpdate:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		serviceName:           options.RegistryServiceName,
 		serviceNamespace:      options.RegistryNamespace,
+		registryDefaultHost:   options.RegistryDefaultHost,
 		dockerURLsIntialized:  options.DockerURLsIntialized,
 	}
 
@@ -79,6 +87,33 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
+	e.routeCache, e.routeController = framework.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("spec.to.name", options.RegistryServiceName)
+				return e.routeClient.Routes(options.RegistryNamespace).List(opts)
+			},
+			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("spec.to.name", options.RegistryServiceName)
+				return e.routeClient.Routes(options.RegistryNamespace).Watch(opts)
+			},
+		},
+		&routeapi.Route{},
+		options.Resync,
+		framework.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				e.enqueueRegistryLocationQueue()
+			},
+			UpdateFunc: func(old, cur interface{}) {
+				e.enqueueRegistryLocationQueue()
+			},
+			DeleteFunc: func(obj interface{}) {
+				e.enqueueRegistryLocationQueue()
+			},
+		},
+	)
+	e.routeSynced = e.routeController.HasSynced
+
 	dockercfgOptions := kapi.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
 	e.secretCache, e.secretController = framework.NewInformer(
 		&cache.ListWatch{
@@ -101,16 +136,23 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 
 // DockerRegistryServiceController manages ServiceToken secrets for Service objects
 type DockerRegistryServiceController struct {
-	client kclientset.Interface
+	client      kclientset.Interface
+	routeClient osclient.RoutesNamespacer
 
-	serviceName      string
-	serviceNamespace string
+	serviceName         string
+	serviceNamespace    string
+	registryDefaultHost string
 
 	dockercfgController *DockercfgController
 
-	serviceController           *framework.Controller
-	serviceCache                cache.Store
-	servicesSynced              func() bool
+	serviceController *framework.Controller
+	serviceCache      cache.Store
+	servicesSynced    func() bool
+
+	routeController *framework.Controller
+	routeCache      cache.Store
+	routeSynced     func() bool
+
 	syncRegistryLocationHandler func(key string) error
 
 	secretController  *framework.Controller
@@ -132,6 +174,7 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 
 	go e.serviceController.Run(stopCh)
 	go e.secretController.Run(stopCh)
+	go e.routeController.Run(stopCh)
 
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
@@ -164,7 +207,7 @@ func (e *DockerRegistryServiceController) enqueueRegistryLocationQueue() {
 func (e *DockerRegistryServiceController) waitForDockerURLs(ready chan<- struct{}, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 
-	for !e.servicesSynced() || !e.secretsSynced() {
+	for !e.servicesSynced() || !e.secretsSynced() || !e.routeSynced() {
 		// wait for the initialization to complete to be informed of a stop
 		select {
 		case <-time.After(100 * time.Millisecond):
@@ -242,16 +285,39 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 		return []string{}
 	}
 	service := obj.(*kapi.Service)
+	result := []string{}
 
 	hasClusterIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasClusterIP && len(service.Spec.Ports) > 0 {
-		return []string{
+		result = append(result, []string{
 			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
 			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
+		}...)
+	}
+
+	// Generate dockercfg entry for value of OPENSHIFT_DEFAULT_REGISTRY (if set)
+	if len(e.registryDefaultHost) > 0 {
+		result = append(result, e.registryDefaultHost)
+	}
+
+	// If the 'docker-registry' service is exposed by a Route, add the dockercfg entry for
+	// the Route hostname only if the OPENSHIFT_DEFAULT_REGISTRY is not already set to the
+	// same hostname.  This prevents from having duplicate entry with no port.
+	//
+	// Note that this allows to expose the 'docker-registry' only on the 80 or 443 ports.
+	// If you have router that expose registry on non-standard port, you should set the
+	// OPENSHIFT_DEFAULT_REGISTRY instead.
+	if objs := e.routeCache.List(); len(objs) > 0 {
+		registryHost, _, _ := net.SplitHostPort(e.registryDefaultHost)
+		for _, objs := range obj {
+			route := obj.(*routeapi.Route)
+			if registryHost != route.Spec.Host {
+				result = append(result, route.Spec.Host)
+			}
 		}
 	}
 
-	return []string{}
+	return result
 }
 
 // syncRegistryLocationChange goes through all service account dockercfg secrets and updates them to point at a new docker-registry location
