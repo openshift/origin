@@ -74,6 +74,22 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
 	}
 
+	if claims, err := api.ClaimsFromToken(accessToken.Name); err == nil {
+		if api.VerifyUserHash(accessToken.UserName, claims.UserHash) != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata.name"), accessToken.Name, "does not match userName"))
+		}
+	}
+
+	if len(accessToken.SaltedHash) == 0 {
+		if len(accessToken.Salt) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("salt"), accessToken.Salt, "only allowed when saltedHash is set"))
+		}
+	} else {
+		if len(accessToken.Salt) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("salt"), "required when saltedHash is set"))
+		}
+	}
+
 	return allErrs
 }
 
@@ -114,6 +130,22 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 			// no-op, good
 		default:
 			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, CodeChallengeMethodsSupported))
+		}
+	}
+
+	if claims, err := api.ClaimsFromToken(authorizeToken.Name); err == nil {
+		if api.VerifyUserHash(authorizeToken.UserName, claims.UserHash) != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata.name"), authorizeToken.Name, "does not match userName"))
+		}
+	}
+
+	if len(authorizeToken.SaltedHash) == 0 {
+		if len(authorizeToken.Salt) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("salt"), authorizeToken.Salt, "only allowed when saltedHash is set"))
+		}
+	} else {
+		if len(authorizeToken.Salt) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("salt"), "required when saltedHash is set"))
 		}
 	}
 
