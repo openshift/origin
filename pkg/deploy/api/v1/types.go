@@ -297,6 +297,8 @@ type DeploymentConfigStatus struct {
 	Details *DeploymentDetails `json:"details,omitempty" protobuf:"bytes,7,opt,name=details"`
 	// Conditions represents the latest available observations of a deployment config's current state.
 	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,8,rep,name=conditions"`
+	// Total number of ready pods targeted by this deployment.
+	ReadyReplicas int32 `json:"readyReplicas,omitempty" protobuf:"varint,9,opt,name=readyReplicas"`
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
