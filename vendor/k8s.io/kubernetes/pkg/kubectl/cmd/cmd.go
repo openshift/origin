@@ -180,6 +180,7 @@ __custom_func() {
    * events (aka 'ev')
    * endpoints (aka 'ep')
    * horizontalpodautoscalers (aka 'hpa')
+   * images
    * imagestreamimages (aka 'isimage')
    * imagestreams (aka 'is')
    * imagestreamtags (aka 'istag')
