@@ -98,7 +98,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *kcmdutil.Factory, 
 	cmd.Flags().StringVar(&o.Password, "docker-password", "", "Password for Docker registry authentication")
 	cmd.Flags().StringVar(&o.EmailAddress, "docker-email", "", "Email for Docker registry")
 	cmd.Flags().StringVar(&o.RegistryLocation, "docker-server", "https://index.docker.io/v1/", "Server location for Docker registry")
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddOutputFlags(cmd)
 
 	return cmd
 }

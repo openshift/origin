@@ -105,7 +105,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "If true, suppress warnings")
 	cmd.Flags().BoolVar(&options.AllowUnknownTypes, "confirm", options.AllowUnknownTypes, "If true, allow unknown secret types.")
 	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddOutputFlags(cmd)
 
 	return cmd
 }

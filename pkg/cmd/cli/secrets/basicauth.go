@@ -101,7 +101,7 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, rea
 	cmd.MarkFlagFilename("gitconfig")
 	cmd.Flags().BoolVarP(&o.PromptForPassword, "prompt", "", false, "If true, prompt for password or token")
 
-	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddOutputFlags(cmd)
 
 	return cmd
 }
