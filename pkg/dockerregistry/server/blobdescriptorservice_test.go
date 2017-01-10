@@ -198,10 +198,10 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 				"reference", "latest",
 			},
 			unsetRepository: true,
-			// succeed because blob store is not involved
-			expectedStatus: http.StatusOK,
-			// manifest is retrieved from etcd
-			expectedMethodInvocations: map[string]int{"Stat": 0},
+			// failed because we trying to get manifest from storage driver first.
+			expectedStatus: http.StatusNotFound,
+			// manifest can't be retrieved from etcd
+			expectedMethodInvocations: map[string]int{"Stat": 1},
 		},
 
 		{
@@ -214,7 +214,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			// manifest is retrieved from etcd
-			expectedMethodInvocations: map[string]int{"Stat": 0},
+			expectedMethodInvocations: map[string]int{"Stat": 3},
 		},
 
 		{

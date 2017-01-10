@@ -1884,6 +1884,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - images
     - imagestreams
     verbs:
     - get

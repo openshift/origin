@@ -82,30 +82,36 @@ func (s imageStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 		}
 	}
 
+	var err error
+
 	// allow an image update that results in the manifest matching the digest (the name)
-	newManifest := newImage.DockerImageManifest
-	newImage.DockerImageManifest = oldImage.DockerImageManifest
-	if newManifest != oldImage.DockerImageManifest && len(newManifest) > 0 {
-		ok, err := api.ManifestMatchesImage(oldImage, []byte(newManifest))
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
-		} else if ok {
-			newImage.DockerImageManifest = newManifest
+	if newImage.DockerImageManifest != oldImage.DockerImageManifest {
+		ok := true
+		if len(newImage.DockerImageManifest) > 0 {
+			ok, err = api.ManifestMatchesImage(oldImage, []byte(newImage.DockerImageManifest))
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
+			}
+		}
+		if !ok {
+			newImage.DockerImageManifest = oldImage.DockerImageManifest
 		}
 	}
 
-	newImageConfig := newImage.DockerImageConfig
-	newImage.DockerImageConfig = oldImage.DockerImageConfig
-	if newImageConfig != oldImage.DockerImageConfig && len(newImageConfig) > 0 {
-		ok, err := api.ImageConfigMatchesImage(newImage, []byte(newImageConfig))
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("attempted to validate that a new config for %q mentioned in the manifest, but failed: %v", oldImage.Name, err))
-		} else if ok {
-			newImage.DockerImageConfig = newImageConfig
+	if newImage.DockerImageConfig != oldImage.DockerImageConfig {
+		ok := true
+		if len(newImage.DockerImageConfig) > 0 {
+			ok, err = api.ImageConfigMatchesImage(newImage, []byte(newImage.DockerImageConfig))
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("attempted to validate that a new config for %q mentioned in the manifest, but failed: %v", oldImage.Name, err))
+			}
+		}
+		if !ok {
+			newImage.DockerImageConfig = oldImage.DockerImageConfig
 		}
 	}
 
-	if err := api.ImageWithMetadata(newImage); err != nil {
+	if err = api.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 

@@ -556,7 +556,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule("get", "delete").Groups(imageGroup).Resources("images", "imagestreamtags").RuleOrDie(),
 				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreamimages", "imagestreams/secrets").RuleOrDie(),
-				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams").RuleOrDie(),
+				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("images", "imagestreams").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreammappings").RuleOrDie(),
 			},
 		},
