@@ -18,6 +18,7 @@ import (
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	"github.com/openshift/origin/pkg/util/hash"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -45,6 +46,8 @@ type AuthConfig struct {
 	IdentityRegistry identityregistry.Registry
 
 	SessionAuth *session.Authenticator
+
+	TokenHashOptions hash.HashOptions
 
 	HandlerWrapper handlerWrapper
 }
@@ -98,10 +101,16 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 
 		SessionAuth: sessionAuth,
 
+		TokenHashOptions: masterConfig.TokenHashOptions,
+
 		HandlerWrapper: sessionHandlerWrapper,
 	}
 
 	return ret, nil
+}
+
+func buildTokenHashOptions(hashOnWrite bool) hash.HashOptions {
+	return hash.NewHashOptions(hash.NewSHA256Hasher(), hashOnWrite)
 }
 
 func buildSessionAuth(secure bool, config *configapi.SessionConfig) (*session.Authenticator, handlerWrapper, error) {

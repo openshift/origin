@@ -21,6 +21,7 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	"github.com/openshift/origin/pkg/util/hash"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -60,6 +61,8 @@ func TestOAuthStorage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	hashOptions := hash.NewHashOptions(hash.NewSHA256Hasher(), true)
+
 	optsGetter := originrest.StorageOptions(*masterOptions)
 
 	clientStorage, err := clientetcd.NewREST(optsGetter)
@@ -68,13 +71,13 @@ func TestOAuthStorage(t *testing.T) {
 	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, clientRegistry)
+	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, hashOptions, clientRegistry)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter, clientRegistry)
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter, hashOptions, clientRegistry)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -189,5 +192,8 @@ func TestOAuthStorage(t *testing.T) {
 	}
 	if actualToken.UserUID != "1" || actualToken.UserName != "test" {
 		t.Errorf("unexpected stored token: %#v", actualToken)
+	}
+	if len(actualToken.SaltedHash) == 0 || actualToken.Name == token.AccessToken {
+		t.Errorf("unexpected unhashed token: %#v", actualToken)
 	}
 }
