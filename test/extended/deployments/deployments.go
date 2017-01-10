@@ -10,7 +10,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -300,10 +299,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 			var out string
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
 				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
-				if errors.IsNotFound(err) {
-					return false, nil
-				}
 				if err != nil {
+					// TODO: It would be nice if the cli framework supported api errors.
+					if strings.Contains(err.Error(), "not found") {
+						return false, nil
+					}
 					return false, err
 				}
 				return true, nil
