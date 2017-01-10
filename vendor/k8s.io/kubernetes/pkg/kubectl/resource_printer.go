@@ -2243,6 +2243,18 @@ func (h *HumanReadablePrinter) PrintObj(obj runtime.Object, output io.Writer) er
 		w = GetNewTabWriter(output)
 		defer w.Flush()
 	}
+
+	// check if the object is unstructured.  If so, let's attempt to convert it to a type we can understand before
+	// trying to print, since the printers are keyed by type.  This is extremely expensive.
+	switch obj.(type) {
+	case *runtime.UnstructuredList, *runtime.Unstructured, *runtime.Unknown:
+		if objBytes, err := runtime.Encode(api.Codecs.LegacyCodec(), obj); err == nil {
+			if decodedObj, err := runtime.Decode(api.Codecs.UniversalDecoder(), objBytes); err == nil {
+				obj = decodedObj
+			}
+		}
+	}
+
 	t := reflect.TypeOf(obj)
 	if handler := h.handlerMap[t]; handler != nil {
 		if !h.options.NoHeaders && t != h.lastType {
