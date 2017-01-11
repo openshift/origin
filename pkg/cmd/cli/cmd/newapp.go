@@ -189,7 +189,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout
@@ -218,7 +218,7 @@ func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c 
 
 	o.CommandPath = c.CommandPath()
 	o.BaseName = baseName
-	o.CommandName = name
+	o.CommandName = commandName
 	mapper, _ := f.Object()
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
