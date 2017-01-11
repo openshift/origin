@@ -962,6 +962,9 @@ Start OpenShift on Docker with reasonable defaults
   
   # Use a different set of images
   oc cluster up --image="registry.example.com/origin" --version="v1.1"
+  
+  # Specify which set of image streams to use
+  oc cluster up --image-streams=centos7
 ----
 ====
 
