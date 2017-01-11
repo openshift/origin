@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -31,7 +32,7 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images string, out, errout io.Writer) error {
+func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -40,6 +41,12 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
+
+	err = AddSCCToServiceAccount(kubeClient, "privileged", "registry", "default")
+	if err != nil {
+		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
+	}
+
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = images
 	opts := &registry.RegistryOptions{
@@ -52,6 +59,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 			Labels:         "docker-registry=default",
 			Volume:         "/registry",
 			ServiceAccount: "registry",
+			HostMount:      path.Join(pvDir, "registry"),
 		},
 	}
 	cmd := registry.NewCmdRegistry(f, "", "registry", out, errout)
