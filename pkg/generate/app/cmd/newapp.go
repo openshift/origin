@@ -52,12 +52,12 @@ const (
 type GenerationInputs struct {
 	TemplateParameters []string
 	Environment        []string
+	BuildEnvironment   []string
 	Labels             map[string]string
 
 	TemplateParameterFiles []string
 	EnvironmentFiles       []string
-
-	AddEnvironmentToBuild bool
+	BuildEnvironmentFiles  []string
 
 	InsecureRegistry bool
 
@@ -282,7 +282,7 @@ func validateOutputImageReference(ref string) error {
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
-	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(environment), c.OutputDocker).To(c.To)
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}
@@ -503,7 +503,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 
 // RunQuery executes the provided config and returns the result of the resolution.
 func (c *AppConfig) RunQuery() (*QueryResult, error) {
-	environment, parameters, err := c.validate()
+	environment, buildEnvironment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
@@ -538,6 +538,9 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}
 	if len(environment) > 0 {
 		errs = append(errs, errors.New("--search can't be used with --env"))
+	}
+	if len(buildEnvironment) > 0 {
+		errs = append(errs, errors.New("--search can't be used with --build-env"))
 	}
 	if len(parameters) > 0 {
 		errs = append(errs, errors.New("--search can't be used with --param"))
@@ -576,7 +579,7 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}, nil
 }
 
-func (c *AppConfig) validate() (app.Environment, app.Environment, error) {
+func (c *AppConfig) validate() (app.Environment, app.Environment, app.Environment, error) {
 	env, err := app.ParseAndCombineEnvironment(c.Environment, c.EnvironmentFiles, c.In, func(key, file string) error {
 		if file == "" {
 			fmt.Fprintf(c.ErrOut, "warning: Environment variable %q was overwritten\n", key)
@@ -586,7 +589,18 @@ func (c *AppConfig) validate() (app.Environment, app.Environment, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+	buildEnv, err := app.ParseAndCombineEnvironment(c.BuildEnvironment, c.BuildEnvironmentFiles, c.In, func(key, file string) error {
+		if file == "" {
+			fmt.Fprintf(c.ErrOut, "warning: Build Environment variable %q was overwritten\n", key)
+		} else {
+			fmt.Fprintf(c.ErrOut, "warning: Build Environment variable %q already defined, ignoring value from file %q\n", key, file)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, nil, err
 	}
 	params, err := app.ParseAndCombineEnvironment(c.TemplateParameters, c.TemplateParameterFiles, c.In, func(key, file string) error {
 		if file == "" {
@@ -597,14 +611,14 @@ func (c *AppConfig) validate() (app.Environment, app.Environment, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return env, params, nil
+	return env, buildEnv, params, nil
 }
 
 // Run executes the provided config to generate objects.
 func (c *AppConfig) Run() (*AppResult, error) {
-	env, parameters, err := c.validate()
+	env, _, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
@@ -921,11 +935,10 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.TemplateFiles) > 0
 }
 
-func (c *AppConfig) GetBuildEnvironment(environment app.Environment) app.Environment {
-	if c.AddEnvironmentToBuild {
-		return environment
-	}
-	return app.Environment{}
+func (c *AppConfig) GetBuildEnvironment() app.Environment {
+	_, buildEnv, _, _ := c.validate()
+	return buildEnv
+
 }
 
 func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRepositories) error {

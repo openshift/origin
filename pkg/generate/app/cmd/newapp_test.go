@@ -31,6 +31,7 @@ func TestValidate(t *testing.T) {
 		componentValues     []string
 		sourceRepoLocations []string
 		env                 map[string]string
+		buildEnv            map[string]string
 		parms               map[string]string
 	}{
 		"components": {
@@ -42,6 +43,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"one", "two", "three/four"},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{},
+			buildEnv:            map[string]string{},
 			parms:               map[string]string{},
 		},
 		"envs": {
@@ -53,6 +55,19 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{"one": "first", "two": "second", "three": "third"},
+			buildEnv:            map[string]string{},
+			parms:               map[string]string{},
+		},
+		"build-envs": {
+			cfg: AppConfig{
+				GenerationInputs: GenerationInputs{
+					BuildEnvironment: []string{"one=first", "two=second", "three=third"},
+				},
+			},
+			componentValues:     []string{},
+			sourceRepoLocations: []string{},
+			env:                 map[string]string{},
+			buildEnv:            map[string]string{"one": "first", "two": "second", "three": "third"},
 			parms:               map[string]string{},
 		},
 		"component+source": {
@@ -64,6 +79,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"one"},
 			sourceRepoLocations: []string{"https://server/repo.git"},
 			env:                 map[string]string{},
+			buildEnv:            map[string]string{},
 			parms:               map[string]string{},
 		},
 		"components+source": {
@@ -75,6 +91,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"mysql", "ruby"},
 			sourceRepoLocations: []string{"git://github.com/namespace/repo.git"},
 			env:                 map[string]string{},
+			buildEnv:            map[string]string{},
 			parms:               map[string]string{},
 		},
 		"components+parms": {
@@ -89,15 +106,13 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"ruby-helloworld-sample"},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{},
-			parms: map[string]string{
-				"one": "first",
-				"two": "second",
-			},
+			buildEnv:            map[string]string{},
+			parms:               map[string]string{"one": "first", "two": "second"},
 		},
 	}
 	for n, c := range tests {
 		b := &app.ReferenceBuilder{}
-		env, parms, err := c.cfg.validate()
+		env, buildEnv, parms, err := c.cfg.validate()
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
@@ -126,6 +141,15 @@ func TestValidate(t *testing.T) {
 		for e, v := range env {
 			if c.env[e] != v {
 				t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.env, env)
+				break
+			}
+		}
+		if len(buildEnv) != len(c.buildEnv) {
+			t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.buildEnv, buildEnv)
+		}
+		for e, v := range buildEnv {
+			if c.buildEnv[e] != v {
+				t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.buildEnv, buildEnv)
 				break
 			}
 		}
@@ -165,7 +189,7 @@ func TestBuildTemplates(t *testing.T) {
 			appCfg.TemplateParameters = append(appCfg.TemplateParameters, fmt.Sprintf("%v=%v", k, v))
 		}
 
-		_, parms, err := appCfg.validate()
+		_, _, parms, err := appCfg.validate()
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
