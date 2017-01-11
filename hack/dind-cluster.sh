@@ -359,9 +359,9 @@ case "${1:-""}" in
     build-images "${OS_ROOT}"
     ;;
   *)
-    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images}
+    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images} [options]
 
-start accepts the following arguments:
+start accepts the following options:
 
  -n [net plugin]   the name of the network plugin to deploy
 
