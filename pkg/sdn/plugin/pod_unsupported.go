@@ -12,7 +12,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 )
 
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.RunningPod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.ActivePod, error) {
 	return nil, nil, fmt.Errorf("openshift-sdn is unsupported on this OS!")
 }
 

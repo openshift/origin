@@ -87,12 +87,12 @@ Update existing container image(s) of resources.`)
 
 // NewCmdImage is a wrapper for the Kubernetes CLI set image command
 func NewCmdImage(fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
-	cmd := set.NewCmdImage(f.Factory, out, err)
+	cmd := set.NewCmdImage(f, out, err)
 	cmd.Long = setImageLong
 	cmd.Example = fmt.Sprintf(setImageExample, fullName)
 
 	flags := cmd.Flags()
-	f.ImageResolutionOptions.Bind(flags)
+	f.ImageResolutionOptions().Bind(flags)
 
 	return cmd
 }
@@ -127,7 +127,7 @@ Possible resources include (case insensitive):
 
 // NewCmdResources is a wrapper for the Kubernetes CLI set resources command
 func NewCmdResources(fullName string, f *clientcmd.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
-	cmd := set.NewCmdResources(f.Factory, out, errOut)
+	cmd := set.NewCmdResources(f, out, errOut)
 	cmd.Long = setResourcesLong
 	cmd.Example = fmt.Sprintf(setResourcesExample, fullName)
 

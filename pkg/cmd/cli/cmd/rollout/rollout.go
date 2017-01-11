@@ -71,7 +71,7 @@ var (
 
 // NewCmdRolloutHistory is a wrapper for the Kubernetes cli rollout history command
 func NewCmdRolloutHistory(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutHistory(f.Factory, out)
+	cmd := rollout.NewCmdRolloutHistory(f, out)
 	cmd.Long = rolloutHistoryLong
 	cmd.Example = fmt.Sprintf(rolloutHistoryExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -94,7 +94,7 @@ var (
 
 // NewCmdRolloutPause is a wrapper for the Kubernetes cli rollout pause command
 func NewCmdRolloutPause(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutPause(f.Factory, out)
+	cmd := rollout.NewCmdRolloutPause(f, out)
 	cmd.Long = rolloutPauseLong
 	cmd.Example = fmt.Sprintf(rolloutPauseExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -115,7 +115,7 @@ var (
 
 // NewCmdRolloutResume is a wrapper for the Kubernetes cli rollout resume command
 func NewCmdRolloutResume(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutResume(f.Factory, out)
+	cmd := rollout.NewCmdRolloutResume(f, out)
 	cmd.Long = rolloutResumeLong
 	cmd.Example = fmt.Sprintf(rolloutResumeExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -153,7 +153,7 @@ var (
 
 // NewCmdRolloutUndo is a wrapper for the Kubernetes cli rollout undo command
 func NewCmdRolloutUndo(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutUndo(f.Factory, out)
+	cmd := rollout.NewCmdRolloutUndo(f, out)
 	cmd.Long = rolloutUndoLong
 	cmd.Example = fmt.Sprintf(rolloutUndoExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -171,7 +171,7 @@ var (
 
 // NewCmdRolloutStatus is a wrapper for the Kubernetes cli rollout status command
 func NewCmdRolloutStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutStatus(f.Factory, out)
+	cmd := rollout.NewCmdRolloutStatus(f, out)
 	cmd.Long = rolloutStatusLong
 	cmd.Example = fmt.Sprintf(rolloutStatusExample, fullName)
 	return cmd

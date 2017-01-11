@@ -3,7 +3,7 @@ package testclient
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -14,8 +14,10 @@ type FakeProjectRequests struct {
 	Fake *Fake
 }
 
+var newProjectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
+
 func (c *FakeProjectRequests) List(opts kapi.ListOptions) (*unversioned.Status, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("newprojects", opts), &unversioned.Status{})
+	obj, err := c.Fake.Invokes(core.NewRootListAction(newProjectsResource, opts), &unversioned.Status{})
 	if obj == nil {
 		return nil, err
 	}
@@ -24,7 +26,7 @@ func (c *FakeProjectRequests) List(opts kapi.ListOptions) (*unversioned.Status, 
 }
 
 func (c *FakeProjectRequests) Create(inObj *projectapi.ProjectRequest) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("newprojects", inObj), &projectapi.Project{})
+	obj, err := c.Fake.Invokes(core.NewRootCreateAction(newProjectsResource, inObj), &projectapi.Project{})
 	if obj == nil {
 		return nil, err
 	}

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -69,8 +69,8 @@ func TestClusterRoleReaper(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "clusterrolebindings", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(ktestclient.DeleteAction).GetName())
+		tc.PrependReactor("delete", "clusterrolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
 			return true, nil, nil
 		})
 
@@ -138,8 +138,8 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "rolebindings", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(ktestclient.DeleteAction).GetName())
+		tc.PrependReactor("delete", "rolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
 			return true, nil, nil
 		})
 

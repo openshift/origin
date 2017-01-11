@@ -16,9 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
-	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/unversioned"
-	kclientset14 "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_4"
+	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
+	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
+	kclientset15 "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -43,7 +43,7 @@ func TestStorageVersionsUnified(t *testing.T) {
 
 type legacyExtensionsAutoscaling struct {
 	kautoscalingclient.HorizontalPodAutoscalerInterface
-	client    *restclient.RESTClient
+	client    restclient.Interface
 	namespace string
 }
 
@@ -109,7 +109,7 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	projectAdminKubeClient14 := kclientset14.NewForConfigOrDie(projectAdminKubeConfig)
+	projectAdminKubeClient14 := kclientset15.NewForConfigOrDie(projectAdminKubeConfig)
 	if err := testutil.WaitForPolicyUpdate(projectAdminClient, ns, "get", extensions.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
@@ -155,7 +155,7 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 
 	legacyClient := legacyExtensionsAutoscaling{
 		projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(ns),
-		projectAdminKubeClient.AutoscalingClient.RESTClient,
+		projectAdminKubeClient.Autoscaling().RESTClient(),
 		ns,
 	}
 	hpaTestcases := map[string]struct {

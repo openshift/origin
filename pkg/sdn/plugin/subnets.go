@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -131,7 +131,7 @@ func getNodeIP(node *kapi.Node) (string, error) {
 func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi.Node) {
 	knode := node
 	cleared := false
-	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 
 		if knode != node {
@@ -164,7 +164,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	RunEventQueue(master.kClient.CoreClient, Nodes, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient.CoreClient.RESTClient(), Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID

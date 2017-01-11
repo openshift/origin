@@ -5,6 +5,7 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
@@ -28,6 +29,9 @@ type ManifestHandler interface {
 
 	// Verify returns an error if the contained manifest is not valid or has missing dependencies.
 	Verify(ctx context.Context, skipDependencyVerification bool) error
+
+	// Digest returns manifest's digest
+	Digest() (manifestDigest digest.Digest, err error)
 }
 
 // NewManifestHandler creates a manifest handler for the given manifest.

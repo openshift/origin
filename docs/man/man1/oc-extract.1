@@ -24,6 +24,10 @@ You can limit which keys are extracted with the \-\-keys=NAME flag, or set the d
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-confirm\fP=false
     If true, overwrite files that already exist.
 

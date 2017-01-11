@@ -8,7 +8,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -30,11 +29,10 @@ type RetryOptions struct {
 	Encoder runtime.Encoder
 	Infos   []*resource.Info
 
-	Filenames []string
-	Out       io.Writer
-	Recursive bool
+	Out             io.Writer
+	FilenameOptions resource.FilenameOptions
 
-	Clientset *kclientset.Clientset
+	Clientset kclientset.Interface
 }
 
 var (
@@ -67,17 +65,16 @@ func NewCmdRolloutRetry(fullName string, f *clientcmd.Factory, out io.Writer) *c
 		},
 	}
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
-	kubectl.AddJsonFilenameFlag(cmd, &opts.Filenames, usage)
-	kcmdutil.AddRecursiveFlag(cmd, &opts.Recursive)
+	kcmdutil.AddFilenameOptionFlags(cmd, &opts.FilenameOptions, usage)
 	return cmd
 }
 
 func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
-	if len(args) == 0 && len(o.Filenames) == 0 {
+	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object(false)
+	o.Mapper, o.Typer = f.Object()
 	o.Encoder = f.JSONEncoder()
 	o.Out = out
 
@@ -86,14 +83,14 @@ func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io
 		return err
 	}
 
-	_, _, o.Clientset, err = f.Clients()
+	o.Clientset, err = f.ClientSet()
 	if err != nil {
 		return err
 	}
 
 	r := resource.NewBuilder(o.Mapper, o.Typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, o.Recursive, o.Filenames...).
+		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).
 		ContinueOnError().
 		Latest().
@@ -130,7 +127,7 @@ func (o RetryOptions) Run() error {
 		}
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
-		rc, err := o.Clientset.ReplicationControllers(config.Namespace).Get(latestDeploymentName)
+		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName)
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("unable to find the latest rollout (#%d).\nYou can start a new rollout with 'oc rollout latest dc/%s'.", config.Status.LatestVersion, config.Name)))
@@ -152,14 +149,14 @@ func (o RetryOptions) Run() error {
 		}
 
 		// Delete the deployer pod as well as the deployment hooks pods, if any
-		pods, err := o.Clientset.Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName)})
+		pods, err := o.Clientset.Core().Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName)})
 		if err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)))
 			continue
 		}
 		hasError := false
 		for _, pod := range pods.Items {
-			err := o.Clientset.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+			err := o.Clientset.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)))
 				hasError = true
@@ -181,7 +178,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if _, err := o.Clientset.ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch); err != nil {
+		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch); err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}

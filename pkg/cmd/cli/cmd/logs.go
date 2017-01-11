@@ -70,7 +70,7 @@ func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cob
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
 
-	cmd := kcmd.NewCmdLogs(f.Factory, out)
+	cmd := kcmd.NewCmdLogs(f, out)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
@@ -94,7 +94,7 @@ func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cob
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
 func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	if err := o.KubeLogOptions.Complete(f.Factory, out, cmd, args); err != nil {
+	if err := o.KubeLogOptions.Complete(f, out, cmd, args); err != nil {
 		return err
 	}
 	namespace, _, err := f.DefaultNamespace()
@@ -104,7 +104,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	infos, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).DefaultNamespace().
 		ResourceNames("pods", args...).

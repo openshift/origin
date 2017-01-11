@@ -1,16 +1,11 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ### explorer
 
-Explorer is a little container for examining the runtime environment kubernetes produces for your pods.
+Explorer is a little container for examining the runtime environment Kubernetes produces for your pods.
 
 The intended use is to substitute gcr.io/google_containers/explorer for your intended container, and then visit it via the proxy.
 
 Currently, you can look at:
- * The environment variables to make sure kubernetes is doing what you expect.
+ * The environment variables to make sure Kubernetes is doing what you expect.
  * The filesystem to make sure the mounted volumes and files are also what you expect.
  * Perform DNS lookups, to see how DNS works.
 
@@ -131,13 +126,6 @@ Error: &lt;*&gt;lookup elasticsearch-logging: no such host
 
 </body></html>
 ```
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

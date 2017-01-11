@@ -41,6 +41,10 @@ Containers that take a variable amount of time to start should set generous init
     If true, select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
     The names of containers in the selected pod templates to change \- may use wildcards
 

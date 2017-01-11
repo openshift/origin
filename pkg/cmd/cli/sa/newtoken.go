@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -53,8 +53,8 @@ var (
 
 type NewServiceAccountTokenOptions struct {
 	SAName        string
-	SAClient      unversioned.ServiceAccountsInterface
-	SecretsClient unversioned.SecretsInterface
+	SAClient      kcoreclient.ServiceAccountInterface
+	SecretsClient kcoreclient.SecretInterface
 
 	Labels map[string]string
 
@@ -104,7 +104,7 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 		o.Labels = labels
 	}
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (o *NewServiceAccountTokenOptions) Run() error {
 }
 
 // waitForToken uses `cmd.Until` to wait for the service account controller to fulfill the token request
-func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout time.Duration, client unversioned.SecretsInterface) (*api.Secret, error) {
+func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout time.Duration, client kcoreclient.SecretInterface) (*api.Secret, error) {
 	// there is no provided rounding function, so we use Round(x) === Floor(x + 0.5)
 	timeoutSeconds := int64(math.Floor(timeout.Seconds() + 0.5))
 

@@ -69,7 +69,7 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 			BearerToken:     token,
 		},
 	}
-	oclient, _, _, err := clientConfig.Clients()
+	oclient, _, err := clientConfig.Clients()
 	if err != nil {
 		r.Error("DP1002", err, fmt.Sprintf("could not create API clients from the service account client config: %v", err))
 		return

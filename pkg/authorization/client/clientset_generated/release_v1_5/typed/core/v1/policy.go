@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type PoliciesGetter interface {
 type PolicyInterface interface {
 	Create(*v1.Policy) (*v1.Policy, error)
 	Update(*v1.Policy) (*v1.Policy, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Policy, error)
-	List(opts api.ListOptions) (*v1.PolicyList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.PolicyList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Policy, err error)
 	PolicyExpansion
 }
 
 // policies implements PolicyInterface
 type policies struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newPolicies returns a Policies
-func newPolicies(c *CoreClient, namespace string) *policies {
+func newPolicies(c *CoreV1Client, namespace string) *policies {
 	return &policies{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *policies) Update(policy *v1.Policy) (result *v1.Policy, err error) {
 }
 
 // Delete takes name of the policy and deletes it. Returns an error if one occurs.
-func (c *policies) Delete(name string, options *api.DeleteOptions) error {
+func (c *policies) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("policies").
@@ -76,7 +78,7 @@ func (c *policies) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *policies) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *policies) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("policies").
@@ -99,7 +101,7 @@ func (c *policies) Get(name string) (result *v1.Policy, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Policies that match those selectors.
-func (c *policies) List(opts api.ListOptions) (result *v1.PolicyList, err error) {
+func (c *policies) List(opts api_v1.ListOptions) (result *v1.PolicyList, err error) {
 	result = &v1.PolicyList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *policies) List(opts api.ListOptions) (result *v1.PolicyList, err error)
 }
 
 // Watch returns a watch.Interface that watches the requested policies.
-func (c *policies) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *policies) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

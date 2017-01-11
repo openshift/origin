@@ -4,7 +4,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,7 +12,7 @@ import (
 )
 
 type InformerToPolicyBindingNamespacer struct {
-	framework.SharedIndexInformer
+	cache.SharedIndexInformer
 }
 
 // LastSyncResourceVersion exposes the LastSyncResourceVersion of the internal reflector
@@ -62,7 +61,7 @@ func (i *indexerToPolicyBindingLister) List(options kapi.ListOptions) (*authoriz
 
 func (i *indexerToPolicyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
 	keyObj := &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: i.namespace, Name: name}}
-	key, _ := framework.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
+	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.Indexer.GetByKey(key)
 	if getErr != nil {

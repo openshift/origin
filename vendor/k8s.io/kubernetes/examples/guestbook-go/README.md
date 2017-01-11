@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Guestbook Example
 
 This example shows how to build a simple multi-tier web application using Kubernetes and Docker. The application consists of a web front-end, Redis master for storage, and replicated set of Redis slaves, all for which we will create Kubernetes replication controllers, pods, and services.
@@ -63,9 +58,9 @@ Use the `examples/guestbook-go/redis-master-controller.json` file to create a [r
 4. To verify what containers are running in the redis-master pod, you can SSH to that machine with `gcloud compute ssh --zone` *`zone_name`* *`host_name`* and then run `docker ps`:
 
     ```console
-    me@workstation$ gcloud compute ssh --zone us-central1-b kubernetes-minion-bz1p
+    me@workstation$ gcloud compute ssh --zone us-central1-b kubernetes-node-bz1p
     
-    me@kubernetes-minion-3:~$ sudo docker ps
+    me@kubernetes-node-3:~$ sudo docker ps
     CONTAINER ID        IMAGE     COMMAND                  CREATED             STATUS
     d5c458dabe50        redis     "/entrypoint.sh redis"   5 minutes ago       Up 5 minutes
     ```
@@ -269,13 +264,6 @@ redis-slave
 
 Tip: To turn down your Kubernetes cluster, follow the corresponding instructions in the version of the
 [Getting Started Guides](../../docs/getting-started-guides/) that you previously used to create your cluster.
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

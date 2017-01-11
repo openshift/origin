@@ -30,8 +30,16 @@ func NewImageStreamEvaluator(isNamespacer osclient.ImageStreamsNamespacer) kquot
 		MatchesScopeFunc:     generic.MatchesNoScopeFunc,
 		ConstraintsFunc:      generic.ObjectCountConstraintsFunc(imageapi.ResourceImageStreams),
 		UsageFunc:            generic.ObjectCountUsageFunc(imageapi.ResourceImageStreams),
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) (runtime.Object, error) {
-			return isNamespacer.ImageStreams(namespace).List(options)
+		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+			itemList, err := isNamespacer.ImageStreams(namespace).List(options)
+			if err != nil {
+				return nil, err
+			}
+			results := make([]runtime.Object, 0, len(itemList.Items))
+			for i := range itemList.Items {
+				results = append(results, &itemList.Items[i])
+			}
+			return results, nil
 		},
 	}
 }

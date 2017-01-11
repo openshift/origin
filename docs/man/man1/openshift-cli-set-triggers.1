@@ -31,6 +31,10 @@ Build configs support triggering off of image changes, config changes, and webho
     If true, select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-auto\fP=false
     If true, enable all triggers, or just the specified trigger
 

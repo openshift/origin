@@ -235,8 +235,10 @@ func getUserIdentificationPartialConfig(configAuthInfo clientcmdapi.AuthInfo, fa
 	// if there still isn't enough information to authenticate the user, try prompting
 	if !canIdentifyUser(*mergedConfig) && (fallbackReader != nil) {
 		prompter := NewPromptingAuthLoader(fallbackReader)
-		promptedAuthInfo := prompter.Prompt()
-
+		promptedAuthInfo, err := prompter.Prompt()
+		if err != nil {
+			return nil, err
+		}
 		promptedConfig := makeUserIdentificationConfig(*promptedAuthInfo)
 		previouslyMergedConfig := mergedConfig
 		mergedConfig = &restclient.Config{}
@@ -306,6 +308,21 @@ func (config *DirectClientConfig) ConfigAccess() ConfigAccess {
 // but no errors in the sections requested or referenced.  It does not return early so that it can find as many errors as possible.
 func (config *DirectClientConfig) ConfirmUsable() error {
 	validationErrors := make([]error, 0)
+
+	var contextName string
+	if len(config.contextName) != 0 {
+		contextName = config.contextName
+	} else {
+		contextName = config.config.CurrentContext
+	}
+
+	if len(contextName) > 0 {
+		_, exists := config.config.Contexts[contextName]
+		if !exists {
+			validationErrors = append(validationErrors, &errContextNotFound{contextName})
+		}
+	}
+
 	authInfoName, _ := config.getAuthInfoName()
 	authInfo, _ := config.getAuthInfo()
 	validationErrors = append(validationErrors, validateAuthInfo(authInfoName, authInfo)...)

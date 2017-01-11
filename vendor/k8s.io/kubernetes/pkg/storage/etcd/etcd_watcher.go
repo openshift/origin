@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -47,23 +46,6 @@ const (
 	EtcdExpire = "expire"
 )
 
-// HighWaterMark is a thread-safe object for tracking the maximum value seen
-// for some quantity.
-type HighWaterMark int64
-
-// Update returns true if and only if 'current' is the highest value ever seen.
-func (hwm *HighWaterMark) Update(current int64) bool {
-	for {
-		old := atomic.LoadInt64((*int64)(hwm))
-		if current <= old {
-			return false
-		}
-		if atomic.CompareAndSwapInt64((*int64)(hwm), old, current) {
-			return true
-		}
-	}
-}
-
 // TransformFunc attempts to convert an object to another object for use with a watcher.
 type TransformFunc func(runtime.Object) (runtime.Object, error)
 
@@ -79,6 +61,12 @@ func exceptKey(except string) includeFunc {
 
 // etcdWatcher converts a native etcd watch to a watch.Interface.
 type etcdWatcher struct {
+	// HighWaterMarks for performance debugging.
+	// Important: Since HighWaterMark is using sync/atomic, it has to be at the top of the struct due to a bug on 32-bit platforms
+	// See: https://golang.org/pkg/sync/atomic/ for more information
+	incomingHWM storage.HighWaterMark
+	outgoingHWM storage.HighWaterMark
+
 	encoding runtime.Codec
 	// Note that versioner is required for etcdWatcher to work correctly.
 	// There is no public constructor of it, so be careful when manipulating
@@ -89,7 +77,7 @@ type etcdWatcher struct {
 	list    bool // If we're doing a recursive watch, should be true.
 	quorum  bool // If we enable quorum, shoule be true
 	include includeFunc
-	filter  storage.Filter
+	filter  storage.FilterFunc
 
 	etcdIncoming  chan *etcd.Response
 	etcdError     chan error
@@ -108,10 +96,6 @@ type etcdWatcher struct {
 	// Injectable for testing. Send the event down the outgoing channel.
 	emit func(watch.Event)
 
-	// HighWaterMarks for performance debugging.
-	incomingHWM HighWaterMark
-	outgoingHWM HighWaterMark
-
 	cache etcdCache
 }
 
@@ -121,7 +105,7 @@ const watchWaitDuration = 100 * time.Millisecond
 // newEtcdWatcher returns a new etcdWatcher; if list is true, watch sub-nodes.
 // The versioner must be able to handle the objects that transform creates.
 func newEtcdWatcher(
-	list bool, quorum bool, include includeFunc, filter storage.Filter,
+	list bool, quorum bool, include includeFunc, filter storage.FilterFunc,
 	encoding runtime.Codec, versioner storage.Versioner, transform TransformFunc,
 	cache etcdCache) *etcdWatcher {
 	w := &etcdWatcher{
@@ -326,7 +310,7 @@ func (w *etcdWatcher) translate() {
 }
 
 func (w *etcdWatcher) decodeObject(node *etcd.Node) (runtime.Object, error) {
-	if obj, found := w.cache.getFromCache(node.ModifiedIndex, storage.Everything); found {
+	if obj, found := w.cache.getFromCache(node.ModifiedIndex, storage.SimpleFilter(storage.Everything)); found {
 		return obj, nil
 	}
 
@@ -371,7 +355,7 @@ func (w *etcdWatcher) sendAdd(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	if !w.filter.Filter(obj) {
+	if !w.filter(obj) {
 		return
 	}
 	action := watch.Added
@@ -400,7 +384,7 @@ func (w *etcdWatcher) sendModify(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	curObjPasses := w.filter.Filter(curObj)
+	curObjPasses := w.filter(curObj)
 	oldObjPasses := false
 	var oldObj runtime.Object
 	if res.PrevNode != nil && res.PrevNode.Value != "" {
@@ -409,7 +393,7 @@ func (w *etcdWatcher) sendModify(res *etcd.Response) {
 			if err := w.versioner.UpdateObject(oldObj, res.Node.ModifiedIndex); err != nil {
 				utilruntime.HandleError(fmt.Errorf("failure to version api object (%d) %#v: %v", res.Node.ModifiedIndex, oldObj, err))
 			}
-			oldObjPasses = w.filter.Filter(oldObj)
+			oldObjPasses = w.filter(oldObj)
 		}
 	}
 	// Some changes to an object may cause it to start or stop matching a filter.
@@ -458,7 +442,7 @@ func (w *etcdWatcher) sendDelete(res *etcd.Response) {
 		// the resourceVersion to resume will never be able to get past a bad value.
 		return
 	}
-	if !w.filter.Filter(obj) {
+	if !w.filter(obj) {
 		return
 	}
 	w.emit(watch.Event{

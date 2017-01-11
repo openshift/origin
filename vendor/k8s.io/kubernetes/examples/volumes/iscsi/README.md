@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Introduction
 
 The Kubernetes iSCSI implementation can connect to iSCSI devices via open-iscsi and multipathd on Linux.
@@ -88,13 +83,6 @@ Run *docker inspect* and verify the container mounted the host directory into th
 # docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/mnt/iscsipd" }}{{ .Source }}{{ end }}{{ end }}' 3b8a772515d2
 /var/lib/kubelet/pods/f527ca5b-6d87-11e5-aa7e-080027ff6387/volumes/kubernetes.io~iscsi/iscsipd-rw
 ```
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

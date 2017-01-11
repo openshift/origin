@@ -169,81 +169,60 @@ __custom_func() {
 	// and add a short forms entry in expandResourceShortcut() when appropriate.
 	// TODO: This should be populated using the discovery information from apiserver.
 	valid_resources = `Valid resource types include:
-   * buildconfigs (aka 'bc')
-   * builds
-   * clusters (valid only for federation apiservers)
-   * componentstatuses (aka 'cs')
-   * configmaps (aka 'cm')
-   * daemonsets (aka 'ds')
-   * deployments (aka 'deploy')
-   * deploymentconfigs (aka 'dc')
-   * events (aka 'ev')
-   * endpoints (aka 'ep')
-   * horizontalpodautoscalers (aka 'hpa')
-   * imagestreamimages (aka 'isimage')
-   * imagestreams (aka 'is')
-   * imagestreamtags (aka 'istag')
-   * ingress (aka 'ing')
-   * groups
-   * jobs
-   * limitranges (aka 'limits')
-   * nodes (aka 'no')
-   * namespaces (aka 'ns')
-   * petsets (alpha feature, may be unstable)
-   * pods (aka 'po')
-   * persistentvolumes (aka 'pv')
-   * persistentvolumeclaims (aka 'pvc')
-   * policies
-   * projects
-   * quota
-   * resourcequotas (aka 'quota')
-   * replicasets (aka 'rs')
-   * replicationcontrollers (aka 'rc')
-   * rolebindings
-   * routes
-   * secrets
-   * serviceaccounts (aka 'sa')
-   * services (aka 'svc')
-   * users
-`
-	usage_template = `{{if gt .Aliases 0}}
 
-Aliases:
-  {{.NameAndAliases}}{{end}}{{if .HasExample}}
-
-Examples:
-{{ .Example }}{{end}}{{ if .HasAvailableSubCommands}}
-
-Available Sub-commands:{{range .Commands}}{{if .IsAvailableCommand}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{ if .HasLocalFlags}}
-
-Flags:
-{{.LocalFlags.FlagUsages | trimRightSpace}}{{end}}{{ if .HasInheritedFlags}}
-
-Global Flags:
-{{.InheritedFlags.FlagUsages | trimRightSpace}}{{end}}{{if .HasHelpSubCommands}}
-
-Additional help topics:{{range .Commands}}{{if .IsHelpCommand}}
-  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}
-
-Usage:{{if .Runnable}}
-  {{if .HasFlags}}{{appendIfNotPresent .UseLine "[flags]"}}{{else}}{{.UseLine}}{{end}}{{end}}{{ if .HasSubCommands }}
-  {{ .CommandPath}} [command]
-
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
-`
-	help_template = `{{with or .Long .Short }}{{. | trim}}{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+    * buildconfigs (aka 'bc')
+    * builds
+    * clusters (valid only for federation apiservers)
+    * componentstatuses (aka 'cs')
+    * configmaps (aka 'cm')
+    * daemonsets (aka 'ds')
+    * deployments (aka 'deploy')
+    * deploymentconfigs (aka 'dc')
+    * endpoints (aka 'ep')
+    * events (aka 'ev')
+    * horizontalpodautoscalers (aka 'hpa')
+    * imagestreamimages (aka 'isimage')
+    * imagestreams (aka 'is')
+    * imagestreamtags (aka 'istag')
+    * ingresses (aka 'ing')
+    * groups
+    * jobs
+    * limitranges (aka 'limits')
+    * namespaces (aka 'ns')
+    * networkpolicies
+    * nodes (aka 'no')
+    * persistentvolumeclaims (aka 'pvc')
+    * persistentvolumes (aka 'pv')
+    * pods (aka 'po')
+    * podsecuritypolicies (aka 'psp')
+    * podtemplates
+    * policies
+    * projects
+    * replicasets (aka 'rs')
+    * replicationcontrollers (aka 'rc')
+    * resourcequotas (aka 'quota')
+    * rolebindings
+    * routes
+    * secrets
+    * serviceaccounts (aka 'sa')
+    * services (aka 'svc')
+    * statefulsets
+    * users
+    * storageclasses
+    * thirdpartyresources
+    `
 )
 
 // NewKubectlCommand creates the `kubectl` command and its nested children.
-func NewKubectlCommand(f *cmdutil.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
+func NewKubectlCommand(f cmdutil.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   "kubectl",
 		Short: "kubectl controls the Kubernetes cluster manager",
-		Long: `kubectl controls the Kubernetes cluster manager.
+		Long: templates.LongDesc(`
+      kubectl controls the Kubernetes cluster manager.
 
-Find more information at https://github.com/kubernetes/kubernetes.`,
+      Find more information at https://github.com/kubernetes/kubernetes.`),
 		Run: runHelp,
 		BashCompletionFunction: bash_completion_func,
 	}
@@ -285,11 +264,12 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 		{
 			Message: "Cluster Management Commands:",
 			Commands: []*cobra.Command{
+				NewCmdCertificate(f, out),
 				NewCmdClusterInfo(f, out),
 				NewCmdTop(f, out, err),
 				NewCmdCordon(f, out),
 				NewCmdUncordon(f, out),
-				NewCmdDrain(f, out),
+				NewCmdDrain(f, out, err),
 				NewCmdTaint(f, out),
 			},
 		},
@@ -302,6 +282,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 				NewCmdExec(f, in, out, err),
 				NewCmdPortForward(f, out, err),
 				NewCmdProxy(f, out),
+				NewCmdCp(f, in, out, err),
 			},
 		},
 		{
@@ -327,7 +308,6 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	filters := []string{
 		"options",
 		Deprecated("kubectl", "delete", cmds, NewCmdStop(f, out)),
-		Deprecated("kubectl", "config set-context", cmds, NewCmdNamespace(out)),
 	}
 	templates.ActsAsRootCommand(cmds, filters, groups...)
 

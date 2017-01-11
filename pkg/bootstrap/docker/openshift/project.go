@@ -14,7 +14,7 @@ import (
 
 // CreateProject creates a project
 func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
-	client, _, _, err := f.Clients()
+	client, _, err := f.Clients()
 	if err != nil {
 		return nil
 	}

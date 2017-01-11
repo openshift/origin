@@ -25,7 +25,6 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -45,11 +44,11 @@ type NamespaceController struct {
 	// store that holds the namespaces
 	store cache.Store
 	// controller that observes the namespaces
-	controller *framework.Controller
+	controller *cache.Controller
 	// namespaces that have been queued up for processing by workers
 	queue workqueue.RateLimitingInterface
-	// list of preferred group versions and their corresponding resource set for namespace deletion
-	groupVersionResources []unversioned.GroupVersionResource
+	// function to list of preferred group versions and their corresponding resource set for namespace deletion
+	groupVersionResourcesFn func() ([]unversioned.GroupVersionResource, error)
 	// opCache is a cache to remember if a particular operation is not supported to aid dynamic client.
 	opCache *operationNotSupportedCache
 	// finalizerToken is the finalizer token managed by this controller
@@ -60,7 +59,7 @@ type NamespaceController struct {
 func NewNamespaceController(
 	kubeClient clientset.Interface,
 	clientPool dynamic.ClientPool,
-	groupVersionResources []unversioned.GroupVersionResource,
+	groupVersionResourcesFn func() ([]unversioned.GroupVersionResource, error),
 	resyncPeriod time.Duration,
 	finalizerToken api.FinalizerName) *NamespaceController {
 
@@ -87,17 +86,17 @@ func NewNamespaceController(
 		kubeClient: kubeClient,
 		clientPool: clientPool,
 		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespace"),
-		groupVersionResources: groupVersionResources,
-		opCache:               opCache,
-		finalizerToken:        finalizerToken,
+		groupVersionResourcesFn: groupVersionResourcesFn,
+		opCache:                 opCache,
+		finalizerToken:          finalizerToken,
 	}
 
-	if kubeClient != nil && kubeClient.Core().GetRESTClient().GetRateLimiter() != nil {
-		metrics.RegisterMetricAndTrackRateLimiterUsage("namespace_controller", kubeClient.Core().GetRESTClient().GetRateLimiter())
+	if kubeClient != nil && kubeClient.Core().RESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("namespace_controller", kubeClient.Core().RESTClient().GetRateLimiter())
 	}
 
 	// configure the backing store/controller
-	store, controller := framework.NewInformer(
+	store, controller := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return kubeClient.Core().Namespaces().List(options)
@@ -108,7 +107,7 @@ func NewNamespaceController(
 		},
 		&api.Namespace{},
 		resyncPeriod,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				namespace := obj.(*api.Namespace)
 				namespaceController.enqueueNamespace(namespace)
@@ -187,12 +186,12 @@ func (nm *NamespaceController) syncNamespaceFromKey(key string) (err error) {
 		return nil
 	}
 	if err != nil {
-		glog.Infof("Unable to retrieve namespace %v from store: %v", key, err)
+		glog.Errorf("Unable to retrieve namespace %v from store: %v", key, err)
 		nm.queue.Add(key)
 		return err
 	}
 	namespace := obj.(*api.Namespace)
-	return syncNamespace(nm.kubeClient, nm.clientPool, nm.opCache, nm.groupVersionResources, namespace, nm.finalizerToken)
+	return syncNamespace(nm.kubeClient, nm.clientPool, nm.opCache, nm.groupVersionResourcesFn, namespace, nm.finalizerToken)
 }
 
 // Run starts observing the system with the specified number of workers.

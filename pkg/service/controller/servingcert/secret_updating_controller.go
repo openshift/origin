@@ -8,9 +8,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -30,11 +29,11 @@ type ServiceServingCertUpdateController struct {
 	queue workqueue.RateLimitingInterface
 
 	serviceCache      cache.Store
-	serviceController *framework.Controller
+	serviceController *cache.Controller
 	serviceHasSynced  informerSynced
 
 	secretCache      cache.Store
-	secretController *framework.Controller
+	secretController *cache.Controller
 	secretHasSynced  informerSynced
 
 	ca         *crypto.CA
@@ -61,7 +60,7 @@ func NewServiceServingCertUpdateController(serviceClient kcoreclient.ServicesGet
 		minTimeLeftForCert: 1 * time.Hour,
 	}
 
-	sc.serviceCache, sc.serviceController = framework.NewInformer(
+	sc.serviceCache, sc.serviceController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return serviceClient.Services(kapi.NamespaceAll).List(options)
@@ -72,11 +71,11 @@ func NewServiceServingCertUpdateController(serviceClient kcoreclient.ServicesGet
 		},
 		&kapi.Service{},
 		resyncInterval,
-		framework.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{},
 	)
 	sc.serviceHasSynced = sc.serviceController.HasSynced
 
-	sc.secretCache, sc.secretController = framework.NewInformer(
+	sc.secretCache, sc.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return sc.secretClient.Secrets(kapi.NamespaceAll).List(options)
@@ -87,7 +86,7 @@ func NewServiceServingCertUpdateController(serviceClient kcoreclient.ServicesGet
 		},
 		&kapi.Secret{},
 		resyncInterval,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc:    sc.addSecret,
 			UpdateFunc: sc.updateSecret,
 		},

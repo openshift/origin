@@ -52,6 +52,10 @@ For descriptions on other volume types, see
     If true, select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-claim\-class\fP=""
     StorageClass to use for the persistent volume claim
 

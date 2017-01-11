@@ -55,7 +55,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			}
 
 			var err error
-			if options.Client, _, _, err = f.Clients(); err != nil {
+			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 

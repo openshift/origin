@@ -131,8 +131,8 @@ func (q *clusterQuotaAdmission) SetOriginQuotaRegistry(registry quota.Registry) 
 func (q *clusterQuotaAdmission) SetInformers(informers shared.InformerFactory) {
 	q.clusterQuotaLister = informers.ClusterResourceQuotas().Lister()
 	q.clusterQuotaSynced = informers.ClusterResourceQuotas().Informer().HasSynced
-	q.namespaceLister = informers.Namespaces().Lister()
-	q.namespaceSynced = informers.Namespaces().Informer().HasSynced
+	q.namespaceLister = informers.KubernetesInformers().Namespaces().Lister()
+	q.namespaceSynced = informers.KubernetesInformers().Namespaces().Informer().HasSynced
 }
 
 func (q *clusterQuotaAdmission) SetOpenshiftClient(client oclient.Interface) {

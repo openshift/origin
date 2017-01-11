@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -31,11 +30,10 @@ type CancelOptions struct {
 	Encoder runtime.Encoder
 	Infos   []*resource.Info
 
-	Filenames []string
-	Out       io.Writer
-	Recursive bool
+	Out             io.Writer
+	FilenameOptions resource.FilenameOptions
 
-	Clientset *kclientset.Clientset
+	Clientset kclientset.Interface
 }
 
 var (
@@ -66,17 +64,16 @@ func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *
 		},
 	}
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
-	kubectl.AddJsonFilenameFlag(cmd, &opts.Filenames, usage)
-	kcmdutil.AddRecursiveFlag(cmd, &opts.Recursive)
+	kcmdutil.AddFilenameOptionFlags(cmd, &opts.FilenameOptions, usage)
 	return cmd
 }
 
 func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
-	if len(args) == 0 && len(o.Filenames) == 0 {
+	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object(false)
+	o.Mapper, o.Typer = f.Object()
 	o.Encoder = f.JSONEncoder()
 	o.Out = out
 
@@ -85,14 +82,14 @@ func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 		return err
 	}
 
-	_, _, o.Clientset, err = f.Clients()
+	o.Clientset, err = f.ClientSet()
 	if err != nil {
 		return err
 	}
 
 	r := resource.NewBuilder(o.Mapper, o.Typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, o.Recursive, o.Filenames...).
+		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).
 		ContinueOnError().
 		Latest().
@@ -140,7 +137,7 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			_, err := o.Clientset.ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch)
+			_, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch)
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
@@ -156,7 +153,7 @@ func (o CancelOptions) Run() error {
 		}
 
 		if !cancelled {
-			latest := &deployments[0]
+			latest := deployments[0]
 			maybeCancelling := ""
 			if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
 				maybeCancelling = " (cancelling)"
@@ -173,27 +170,31 @@ func (o CancelOptions) Run() error {
 	return utilerrors.NewAggregate(allErrs)
 }
 
-func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]kapi.ReplicationController, bool, error) {
-	deployments, err := o.Clientset.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
+	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
 	if err != nil {
 		return nil, false, err
 	}
-	if len(deployments.Items) == 0 {
+	if len(deploymentList.Items) == 0 {
 		return nil, false, fmt.Errorf("there have been no replication controllers for %s/%s\n", namespace, name)
 	}
-	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
+	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
+	for i := range deploymentList.Items {
+		deployments = append(deployments, &deploymentList.Items[i])
+	}
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 	allErrs := []error{}
 	cancelled := false
 
-	for _, deployment := range deployments.Items {
-		status := deployutil.DeploymentStatusFor(&deployment)
+	for _, deployment := range deployments {
+		status := deployutil.DeploymentStatusFor(deployment)
 		switch status {
 		case deployapi.DeploymentStatusNew,
 			deployapi.DeploymentStatusPending,
 			deployapi.DeploymentStatusRunning:
-			cancelled = mutateFunc(&deployment)
+			cancelled = mutateFunc(deployment)
 		}
 	}
 
-	return deployments.Items, cancelled, utilerrors.NewAggregate(allErrs)
+	return deployments, cancelled, utilerrors.NewAggregate(allErrs)
 }

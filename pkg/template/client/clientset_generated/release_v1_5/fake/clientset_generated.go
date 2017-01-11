@@ -46,7 +46,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// Core retrieves the CoreClient
-func (c *Clientset) Core() v1core.CoreInterface {
-	return &fakev1core.FakeCore{Fake: &c.Fake}
+// CoreV1 retrieves the CoreV1Client
+func (c *Clientset) CoreV1() v1core.CoreV1Interface {
+	return &fakev1core.FakeCoreV1{Fake: &c.Fake}
+}
+
+// Core retrieves the CoreV1Client
+func (c *Clientset) Core() v1core.CoreV1Interface {
+	return &fakev1core.FakeCoreV1{Fake: &c.Fake}
 }

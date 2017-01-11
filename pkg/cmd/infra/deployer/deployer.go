@@ -10,8 +10,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -101,7 +102,7 @@ func (cfg *config) RunDeployer() error {
 	if err != nil {
 		return err
 	}
-	kc, err := kclient.New(kcfg)
+	kc, err := kclientset.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
@@ -115,26 +116,26 @@ func (cfg *config) RunDeployer() error {
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut io.Writer, until string) *Deployer {
+func NewDeployer(client kclientset.Interface, oclient client.Interface, out, errOut io.Writer, until string) *Deployer {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
 		until:  until,
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.ReplicationControllers(namespace).Get(name)
+			return client.Core().ReplicationControllers(namespace).Get(name)
 		},
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
+			return client.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -196,7 +197,10 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't get controllers in namespace %s: %v", namespace, err)
 	}
-	deployments := unsortedDeployments.Items
+	deployments := make([]*kapi.ReplicationController, 0, len(unsortedDeployments.Items))
+	for i := range unsortedDeployments.Items {
+		deployments = append(deployments, &unsortedDeployments.Items[i])
+	}
 
 	// Sort all the deployments by version.
 	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
@@ -207,8 +211,8 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		if candidate.Name == to.Name {
 			continue
 		}
-		if deployutil.IsCompleteDeployment(&candidate) {
-			from = &candidate
+		if deployutil.IsCompleteDeployment(candidate) {
+			from = candidate
 			break
 		}
 	}
@@ -233,7 +237,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		// Scale the deployment down to zero.
 		retryWaitParams := kubectl.NewRetryParams(1*time.Second, 120*time.Second)
 		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retryWaitParams, retryWaitParams); err != nil {
-			fmt.Fprintf(d.errOut, "error: Couldn't scale down prior deployment %s: %v\n", deployutil.LabelForDeployment(&candidate), err)
+			fmt.Fprintf(d.errOut, "error: Couldn't scale down prior deployment %s: %v\n", deployutil.LabelForDeployment(candidate), err)
 		} else {
 			fmt.Fprintf(d.out, "--> Scaled older deployment %s down\n", candidate.Name)
 		}

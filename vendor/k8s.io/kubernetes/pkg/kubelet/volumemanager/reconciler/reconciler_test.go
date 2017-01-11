@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
 	"k8s.io/kubernetes/pkg/runtime"
+	k8stypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -41,13 +42,13 @@ import (
 const (
 	// reconcilerLoopSleepDuration is the amount of time the reconciler loop
 	// waits between successive executions
-	reconcilerLoopSleepDuration      time.Duration = 0 * time.Millisecond
-	reconcilerReconstructSleepPeriod time.Duration = 10 * time.Minute
+	reconcilerLoopSleepDuration     time.Duration = 0 * time.Millisecond
+	reconcilerSyncStatesSleepPeriod time.Duration = 10 * time.Minute
 	// waitForAttachTimeout is the maximum amount of time a
 	// operationexecutor.Mount call will wait for a volume to be attached.
-	waitForAttachTimeout time.Duration = 1 * time.Second
-	nodeName             string        = "myhostname"
-	kubeletPodsDir       string        = "fake-dir"
+	waitForAttachTimeout time.Duration     = 1 * time.Second
+	nodeName             k8stypes.NodeName = k8stypes.NodeName("mynodename")
+	kubeletPodsDir       string            = "fake-dir"
 )
 
 // Calls Run()
@@ -59,12 +60,12 @@ func Test_Run_Positive_DoNothing(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder)
+	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount*/)
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
 		reconcilerLoopSleepDuration,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
 		nodeName,
 		dsw,
@@ -96,12 +97,12 @@ func Test_Run_Positive_VolumeAttachAndMount(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder)
+	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
 		reconcilerLoopSleepDuration,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
 		nodeName,
 		dsw,
@@ -167,12 +168,12 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabled(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder)
+	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
 	reconciler := NewReconciler(
 		kubeClient,
 		true, /* controllerAttachDetachEnabled */
 		reconcilerLoopSleepDuration,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
 		nodeName,
 		dsw,
@@ -239,12 +240,12 @@ func Test_Run_Positive_VolumeAttachMountUnmountDetach(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder)
+	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
 		reconcilerLoopSleepDuration,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
 		nodeName,
 		dsw,
@@ -322,12 +323,12 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder)
+	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
 	reconciler := NewReconciler(
 		kubeClient,
 		true, /* controllerAttachDetachEnabled */
 		reconcilerLoopSleepDuration,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
 		nodeName,
 		dsw,
@@ -452,7 +453,7 @@ func createTestClient() *fake.Clientset {
 	fakeClient.AddReactor("get", "nodes",
 		func(action core.Action) (bool, runtime.Object, error) {
 			return true, &api.Node{
-				ObjectMeta: api.ObjectMeta{Name: nodeName},
+				ObjectMeta: api.ObjectMeta{Name: string(nodeName)},
 				Status: api.NodeStatus{
 					VolumesAttached: []api.AttachedVolume{
 						{
@@ -460,7 +461,7 @@ func createTestClient() *fake.Clientset {
 							DevicePath: "fake/path",
 						},
 					}},
-				Spec: api.NodeSpec{ExternalID: nodeName},
+				Spec: api.NodeSpec{ExternalID: string(nodeName)},
 			}, nil
 		})
 	fakeClient.AddReactor("*", "*", func(action core.Action) (bool, runtime.Object, error) {

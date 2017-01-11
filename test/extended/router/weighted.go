@@ -44,7 +44,7 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(oc.KubeFramework().Namespace.Name).Get("weighted-router")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("weighted-router")
 				if err != nil {
 					return false, err
 				}

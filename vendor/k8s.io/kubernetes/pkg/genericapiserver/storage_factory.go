@@ -102,7 +102,7 @@ var _ StorageFactory = &DefaultStorageFactory{}
 const AllResources = "*"
 
 // specialDefaultResourcePrefixes are prefixes compiled into Kubernetes.
-// TODO: move out of this package, it is generic
+// TODO: move out of this package, it is not generic
 var specialDefaultResourcePrefixes = map[unversioned.GroupResource]string{
 	unversioned.GroupResource{Group: "", Resource: "replicationControllers"}: "controllers",
 	unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}: "controllers",
@@ -257,11 +257,11 @@ func (s *DefaultStorageFactory) Backends() []string {
 // NewStorageCodec assembles a storage codec for the provided storage media type, the provided serializer, and the requested
 // storage and memory versions.
 func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (runtime.Codec, error) {
-	mediaType, options, err := mime.ParseMediaType(storageMediaType)
+	mediaType, _, err := mime.ParseMediaType(storageMediaType)
 	if err != nil {
 		return nil, fmt.Errorf("%q is not a valid mime-type", storageMediaType)
 	}
-	serializer, ok := ns.SerializerForMediaType(mediaType, options)
+	serializer, ok := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), mediaType)
 	if !ok {
 		return nil, fmt.Errorf("unable to find serializer for %q", storageMediaType)
 	}

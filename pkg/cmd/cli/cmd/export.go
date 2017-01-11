@@ -102,16 +102,16 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
-		FilenameParam(explicit, false, filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
-	p, _, err := kubectl.GetPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"))
+	p, _, err := kubectl.GetPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"), kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"))
 	if err != nil {
 		return err
 	}

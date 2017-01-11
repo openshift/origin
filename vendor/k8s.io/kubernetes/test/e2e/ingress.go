@@ -66,7 +66,7 @@ var _ = framework.KubeDescribe("Loadbalancing: L7 [Feature:Ingress]", func() {
 
 	BeforeEach(func() {
 		f.BeforeEach()
-		jig = newTestJig(f.Client)
+		jig = newTestJig(f.ClientSet)
 		ns = f.Namespace.Name
 	})
 
@@ -84,7 +84,11 @@ var _ = framework.KubeDescribe("Loadbalancing: L7 [Feature:Ingress]", func() {
 		BeforeEach(func() {
 			framework.SkipUnlessProviderIs("gce", "gke")
 			By("Initializing gce controller")
-			gceController = &GCEIngressController{ns: ns, Project: framework.TestContext.CloudConfig.ProjectID, c: jig.client}
+			gceController = &GCEIngressController{
+				ns:    ns,
+				c:     jig.client,
+				cloud: framework.TestContext.CloudConfig,
+			}
 			gceController.init()
 		})
 
@@ -115,6 +119,7 @@ var _ = framework.KubeDescribe("Loadbalancing: L7 [Feature:Ingress]", func() {
 		})
 
 		It("shoud create ingress with given static-ip ", func() {
+			// ip released when the rest of lb resources are deleted in cleanupGCE
 			ip := gceController.staticIP(ns)
 			By(fmt.Sprintf("allocated static ip %v: %v through the GCE cloud provider", ns, ip))
 
@@ -146,7 +151,7 @@ var _ = framework.KubeDescribe("Loadbalancing: L7 [Feature:Ingress]", func() {
 	})
 
 	// Time: borderline 5m, slow by design
-	framework.KubeDescribe("Nginx [Slow] [Feature: Ingress]", func() {
+	framework.KubeDescribe("Nginx [Slow]", func() {
 		var nginxController *NginxIngressController
 
 		BeforeEach(func() {

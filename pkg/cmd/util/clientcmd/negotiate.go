@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 // negotiateVersion queries the server's supported api versions to find a version that both client and server support.
@@ -17,11 +16,11 @@ import (
 //   commandline flag), and is unsupported by the server, print a warning to
 //   stderr and try client's registered versions in order of preference.
 // - If version is config default, and the server does not support it, return an error.
-func negotiateVersion(client *kclient.Client, config *restclient.Config, requestedGV *unversioned.GroupVersion, clientGVs []unversioned.GroupVersion) (*unversioned.GroupVersion, error) {
+func negotiateVersion(client restclient.Interface, config *restclient.Config, requestedGV *unversioned.GroupVersion, clientGVs []unversioned.GroupVersion) (*unversioned.GroupVersion, error) {
 	// Ensure we have a client
 	var err error
 	if client == nil {
-		client, err = kclient.New(config)
+		client, err = restclient.RESTClientFor(config)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +57,7 @@ func negotiateVersion(client *kclient.Client, config *restclient.Config, request
 }
 
 // serverAPIVersions fetches the server versions available from the groupless API at the given prefix
-func serverAPIVersions(c *kclient.Client, grouplessPrefix string) ([]unversioned.GroupVersion, error) {
+func serverAPIVersions(c restclient.Interface, grouplessPrefix string) ([]unversioned.GroupVersion, error) {
 	// Get versions doc
 	var v unversioned.APIVersions
 	if err := c.Get().AbsPath(grouplessPrefix).Do().Into(&v); err != nil {

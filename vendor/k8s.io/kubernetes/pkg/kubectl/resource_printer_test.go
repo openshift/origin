@@ -30,8 +30,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
 	kubectltesting "k8s.io/kubernetes/pkg/kubectl/testing"
 	"k8s.io/kubernetes/pkg/runtime"
 	yamlserializer "k8s.io/kubernetes/pkg/runtime/serializer/yaml"
@@ -44,7 +46,7 @@ import (
 
 func init() {
 	api.Scheme.AddKnownTypes(testapi.Default.InternalGroupVersion(), &kubectltesting.TestStruct{})
-	api.Scheme.AddKnownTypes(*testapi.Default.GroupVersion(), &kubectltesting.TestStruct{})
+	api.Scheme.AddKnownTypes(registered.GroupOrDie(api.GroupName).GroupVersion, &kubectltesting.TestStruct{})
 }
 
 var testData = kubectltesting.TestStruct{
@@ -67,7 +69,7 @@ func TestVersionedPrinter(t *testing.T) {
 			return nil
 		}),
 		api.Scheme,
-		*testapi.Default.GroupVersion(),
+		registered.GroupOrDie(api.GroupName).GroupVersion,
 	)
 	if err := p.PrintObj(original, nil); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -75,7 +77,7 @@ func TestVersionedPrinter(t *testing.T) {
 }
 
 func TestPrintDefault(t *testing.T) {
-	printer, found, err := GetPrinter("", "", false)
+	printer, found, err := GetPrinter("", "", false, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
@@ -105,7 +107,7 @@ func TestPrinter(t *testing.T) {
 		},
 	}
 	emptyListTest := &api.PodList{}
-	testapi, err := api.Scheme.ConvertToVersion(podTest, *testapi.Default.GroupVersion())
+	testapi, err := api.Scheme.ConvertToVersion(podTest, registered.GroupOrDie(api.GroupName).GroupVersion)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -129,7 +131,7 @@ func TestPrinter(t *testing.T) {
 	}
 	for _, test := range printerTests {
 		buf := bytes.NewBuffer([]byte{})
-		printer, found, err := GetPrinter(test.Format, test.FormatArgument, false)
+		printer, found, err := GetPrinter(test.Format, test.FormatArgument, false, true)
 		if err != nil || !found {
 			t.Errorf("in %s, unexpected error: %#v", test.Name, err)
 		}
@@ -156,7 +158,7 @@ func TestBadPrinter(t *testing.T) {
 		{"bad jsonpath", "jsonpath", "{.Name", fmt.Errorf("error parsing jsonpath {.Name, unclosed action\n")},
 	}
 	for _, test := range badPrinterTests {
-		_, _, err := GetPrinter(test.Format, test.FormatArgument, false)
+		_, _, err := GetPrinter(test.Format, test.FormatArgument, false, false)
 		if err == nil || err.Error() != test.Error.Error() {
 			t.Errorf("in %s, expect %s, got %s", test.Name, test.Error, err)
 		}
@@ -357,7 +359,7 @@ func TestNamePrinter(t *testing.T) {
 			},
 			"pod/foo\npod/bar\n"},
 	}
-	printer, _, _ := GetPrinter("name", "", false)
+	printer, _, _ := GetPrinter("name", "", false, false)
 	for name, item := range tests {
 		buff := &bytes.Buffer{}
 		err := printer.PrintObj(item.obj, buff)
@@ -472,7 +474,7 @@ func TestTemplateStrings(t *testing.T) {
 		t.Fatalf("tmpl fail: %v", err)
 	}
 
-	printer := NewVersionedPrinter(p, api.Scheme, *testapi.Default.GroupVersion())
+	printer := NewVersionedPrinter(p, api.Scheme, registered.GroupOrDie(api.GroupName).GroupVersion)
 
 	for name, item := range table {
 		buffer := &bytes.Buffer{}
@@ -677,6 +679,36 @@ func TestPrintNodeStatus(t *testing.T) {
 			},
 			status: "Unknown,SchedulingDisabled",
 		},
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Name:   "foo10",
+					Labels: map[string]string{"kubernetes.io/role": "master"},
+				},
+				Status: api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionTrue}}},
+			},
+			status: "Ready,master",
+		},
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Name:   "foo11",
+					Labels: map[string]string{"kubernetes.io/role": "node"},
+				},
+				Status: api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionTrue}}},
+			},
+			status: "Ready,node",
+		},
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Name:   "foo12",
+					Labels: map[string]string{"kubeadm.alpha.kubernetes.io/role": "node"},
+				},
+				Status: api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionTrue}}},
+			},
+			status: "Ready,node",
+		},
 	}
 
 	for _, test := range table {
@@ -687,6 +719,55 @@ func TestPrintNodeStatus(t *testing.T) {
 		}
 		if !contains(strings.Fields(buffer.String()), test.status) {
 			t.Fatalf("Expect printing node %s with status %#v, got: %#v", test.node.Name, test.status, buffer.String())
+		}
+	}
+}
+
+func TestPrintNodeExternalIP(t *testing.T) {
+	printer := NewHumanReadablePrinter(PrintOptions{
+		ColumnLabels: []string{},
+		Wide:         true,
+	})
+	table := []struct {
+		node       api.Node
+		externalIP string
+	}{
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{Name: "foo1"},
+				Status:     api.NodeStatus{Addresses: []api.NodeAddress{{Type: api.NodeExternalIP, Address: "1.1.1.1"}}},
+			},
+			externalIP: "1.1.1.1",
+		},
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{Name: "foo2"},
+				Status:     api.NodeStatus{Addresses: []api.NodeAddress{{Type: api.NodeInternalIP, Address: "1.1.1.1"}}},
+			},
+			externalIP: "<none>",
+		},
+		{
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{Name: "foo3"},
+				Status: api.NodeStatus{Addresses: []api.NodeAddress{
+					{Type: api.NodeLegacyHostIP, Address: "1.1.1.1"},
+					{Type: api.NodeExternalIP, Address: "2.2.2.2"},
+					{Type: api.NodeInternalIP, Address: "3.3.3.3"},
+					{Type: api.NodeExternalIP, Address: "4.4.4.4"},
+				}},
+			},
+			externalIP: "2.2.2.2",
+		},
+	}
+
+	for _, test := range table {
+		buffer := &bytes.Buffer{}
+		err := printer.PrintObj(&test.node, buffer)
+		if err != nil {
+			t.Fatalf("An error occurred printing Node: %#v", err)
+		}
+		if !contains(strings.Fields(buffer.String()), test.externalIP) {
+			t.Fatalf("Expect printing node %s with external ip %#v, got: %#v", test.node.Name, test.externalIP, buffer.String())
 		}
 	}
 }
@@ -1396,9 +1477,10 @@ func TestPrintDaemonSet(t *testing.T) {
 				Status: extensions.DaemonSetStatus{
 					CurrentNumberScheduled: 2,
 					DesiredNumberScheduled: 3,
+					NumberReady:            1,
 				},
 			},
-			"test1\t3\t2\t<none>\t0s\n",
+			"test1\t3\t2\t1\t<none>\t0s\n",
 		},
 	}
 
@@ -1519,5 +1601,127 @@ func TestPrintPodShowLabels(t *testing.T) {
 			t.Fatalf("Expected to start with: %s and end with: %s, but got: %s", test.startsWith, test.endsWith, buf.String())
 		}
 		buf.Reset()
+	}
+}
+
+func TestPrintService(t *testing.T) {
+	tests := []struct {
+		service api.Service
+		expect  string
+	}{
+		{
+			// Test name, cluster ip, port with protocol
+			api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "test1"},
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeClusterIP,
+					Ports: []api.ServicePort{
+						{Protocol: "tcp",
+							Port: 2233},
+					},
+					ClusterIP: "0.0.0.0",
+				},
+			},
+			"test1\t0.0.0.0\t<none>\t2233/tcp\t<unknown>\n",
+		},
+		{
+			// Test name, cluster ip, port:nodePort with protocol
+			api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "test2"},
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeClusterIP,
+					Ports: []api.ServicePort{
+						{Protocol: "tcp",
+							Port:     8888,
+							NodePort: 9999,
+						},
+					},
+					ClusterIP: "10.9.8.7",
+				},
+			},
+			"test2\t10.9.8.7\t<none>\t8888:9999/tcp\t<unknown>\n",
+		},
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	for _, test := range tests {
+		printService(&test.service, buf, PrintOptions{false, false, false, false, true, false, false, "", []string{}})
+		// We ignore time
+		if buf.String() != test.expect {
+			t.Fatalf("Expected: %s, got: %s %d", test.expect, buf.String(), strings.Compare(test.expect, buf.String()))
+		}
+		buf.Reset()
+	}
+}
+
+func TestPrintPodDisruptionBudget(t *testing.T) {
+	tests := []struct {
+		pdb    policy.PodDisruptionBudget
+		expect string
+	}{
+		{
+			policy.PodDisruptionBudget{
+				ObjectMeta: api.ObjectMeta{
+					Namespace:         "ns1",
+					Name:              "pdb1",
+					CreationTimestamp: unversioned.Time{Time: time.Now().Add(1.9e9)},
+				},
+				Spec: policy.PodDisruptionBudgetSpec{
+					MinAvailable: intstr.FromInt(22),
+				},
+				Status: policy.PodDisruptionBudgetStatus{
+					PodDisruptionsAllowed: 5,
+				},
+			},
+			"pdb1\t22\t5\t0s\n",
+		}}
+
+	buf := bytes.NewBuffer([]byte{})
+	for _, test := range tests {
+		printPodDisruptionBudget(&test.pdb, buf, PrintOptions{false, false, false, false, true, false, false, "", []string{}})
+		if buf.String() != test.expect {
+			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
+		}
+		buf.Reset()
+	}
+}
+
+func TestAllowMissingKeys(t *testing.T) {
+	tests := []struct {
+		Name                     string
+		AllowMissingTemplateKeys bool
+		Format                   string
+		Template                 string
+		Input                    runtime.Object
+		Expect                   string
+		Error                    string
+	}{
+		{"test template, allow missing keys", true, "template", "{{.blarg}}", &api.Pod{}, "<no value>", ""},
+		{"test template, strict", false, "template", "{{.blarg}}", &api.Pod{}, "", `error executing template "{{.blarg}}": template: output:1:2: executing "output" at <.blarg>: map has no entry for key "blarg"`},
+		{"test jsonpath, allow missing keys", true, "jsonpath", "{.blarg}", &api.Pod{}, "", ""},
+		{"test jsonpath, strict", false, "jsonpath", "{.blarg}", &api.Pod{}, "", "error executing jsonpath \"{.blarg}\": blarg is not found\n"},
+	}
+	for _, test := range tests {
+		buf := bytes.NewBuffer([]byte{})
+		printer, _, err := GetPrinter(test.Format, test.Template, false, test.AllowMissingTemplateKeys)
+		if err != nil {
+			t.Errorf("in %s, unexpected error: %#v", test.Name, err)
+		}
+		err = printer.PrintObj(test.Input, buf)
+		if len(test.Error) == 0 && err != nil {
+			t.Errorf("in %s, unexpected error: %v", test.Name, err)
+			continue
+		}
+		if len(test.Error) > 0 {
+			if err == nil {
+				t.Errorf("in %s, expected to get error: %v", test.Name, test.Error)
+			} else if e, a := test.Error, err.Error(); e != a {
+				t.Errorf("in %s, expected error %q, got %q", test.Name, e, a)
+			}
+			continue
+		}
+		if buf.String() != test.Expect {
+			t.Errorf("in %s, expect %q, got %q", test.Name, test.Expect, buf.String())
+		}
 	}
 }

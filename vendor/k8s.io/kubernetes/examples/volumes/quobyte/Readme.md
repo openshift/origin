@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 <!-- BEGIN MUNGE: GENERATED_TOC -->
 
 - [Quobyte Volume](#quobyte-volume)
@@ -65,11 +60,11 @@ spec:
 <!-- END MUNGE: EXAMPLE ./quobyte-pod.yaml -->
 
 Parameters:
-* **registry** Quobyte registry to use to mount the volume. You can specifiy the registry as <host>:<port> pair or if you want to specify multiple registries you just have to put a semicolon between them e.q. <host1>:<port>,<host2>:<port>,<host3>:<port>. The host can be an IP address or if you have a working DNS you can also provide the DNS names.
+* **registry** Quobyte registry to use to mount the volume. You can specifiy the registry as <host>:<port> pair or if you want to specify multiple registries you just have to put a comma between them e.q. <host1>:<port>,<host2>:<port>,<host3>:<port>. The host can be an IP address or if you have a working DNS you can also provide the DNS names.
 * **volume** volume represents a Quobyte volume which must be created before usage.
 * **readOnly** is the boolean that sets the mountpoint readOnly or readWrite.
-* **user** maps all access to this user. Default is root.
-* **group** maps all access to this group. Default is empty.
+* **user** maps all access to this user. Default is `root`.
+* **group** maps all access to this group. Default is `nfsnobody`.
 
 Creating the pod:
 
@@ -97,13 +92,6 @@ quobyte@10.239.10.21:7861/ on /var/lib/kubelet/plugins/kubernetes.io~quobyte typ
 $ docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/mnt"}}{{ .Source }}{{ end }}{{ end }}' 55ab97593cd3
 /var/lib/kubelet/plugins/kubernetes.io~quobyte/root#root@testVolume
 ```
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/volumes/quobyte/Readme.md?pixel)]()

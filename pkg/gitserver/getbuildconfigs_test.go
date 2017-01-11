@@ -14,6 +14,7 @@ import (
 func bc(name string, annotation string) *buildapi.BuildConfig {
 	obj := &buildapi.BuildConfig{}
 	obj.Name = name
+	obj.Namespace = "test"
 	obj.Annotations = map[string]string{}
 	if len(annotation) > 0 {
 		obj.Annotations[gitRepositoryAnnotationKey] = annotation

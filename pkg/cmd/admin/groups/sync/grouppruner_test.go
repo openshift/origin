@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -64,8 +64,8 @@ func TestLocateFails(t *testing.T) {
 func TestDeleteFails(t *testing.T) {
 	testGroupPruner, tc := newTestPruner()
 	deleteErr := fmt.Errorf("failed to delete group: %s", "os"+Group1UID)
-	tc.PrependReactor("delete", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		deleteAction := action.(ktestclient.DeleteAction)
+	tc.PrependReactor("delete", "groups", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		deleteAction := action.(core.DeleteAction)
 		if deleteAction.GetName() == "os"+Group1UID {
 			return true, nil, deleteErr
 		}
@@ -99,7 +99,7 @@ func extractDeletedGroups(tc *testclient.Fake) []string {
 	ret := []string{}
 	for _, genericAction := range tc.Actions() {
 		switch action := genericAction.(type) {
-		case ktestclient.DeleteAction:
+		case core.DeleteAction:
 			ret = append(ret, action.GetName())
 		}
 	}
@@ -109,7 +109,7 @@ func extractDeletedGroups(tc *testclient.Fake) []string {
 
 func newTestPruner() (*LDAPGroupPruner, *testclient.Fake) {
 	tc := testclient.NewSimpleFake()
-	tc.PrependReactor("delete", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	tc.PrependReactor("delete", "groups", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, nil
 	})
 

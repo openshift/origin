@@ -2,9 +2,10 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // FakeImageStreamSecrets implements ImageStreamSecretInterface. Meant to be
@@ -18,7 +19,7 @@ type FakeImageStreamSecrets struct {
 var _ client.ImageStreamSecretInterface = &FakeImageStreamSecrets{}
 
 func (c *FakeImageStreamSecrets) Secrets(name string, options kapi.ListOptions) (*kapi.SecretList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("imagestreams/secrets", c.Namespace, name), &kapi.SecretList{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(imageapi.SchemeGroupVersion.WithResource("imagestreams/secrets"), c.Namespace, name), &kapi.SecretList{})
 	if obj == nil {
 		return nil, err
 	}

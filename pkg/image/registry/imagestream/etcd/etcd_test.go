@@ -73,6 +73,7 @@ func create(t *testing.T, storage *REST, obj *api.ImageStream) *api.ImageStream 
 func TestCreate(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 
 	create(t, storage, validImageStream())
 }
@@ -80,6 +81,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
@@ -89,6 +91,7 @@ func TestList(t *testing.T) {
 func TestGetImageStreamError(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "image1")
 	if !errors.IsNotFound(err) {
@@ -102,6 +105,7 @@ func TestGetImageStreamError(t *testing.T) {
 func TestGetImageStreamOK(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 
 	image := create(t, storage, validImageStream())
 

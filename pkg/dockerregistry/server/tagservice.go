@@ -212,8 +212,3 @@ func (t tagService) Untag(ctx context.Context, tag string) error {
 
 	return t.repo.registryOSClient.ImageStreamTags(imageStream.Namespace).Delete(imageStream.Name, tag)
 }
-
-func isImageManaged(image *imageapi.Image) bool {
-	managed, ok := image.ObjectMeta.Annotations[imageapi.ManagedByOpenShiftAnnotation]
-	return ok && managed == "true"
-}

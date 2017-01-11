@@ -3,7 +3,7 @@ package netid
 import (
 	"errors"
 
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 )
 
 // Interface manages the allocation of netids out of a range.

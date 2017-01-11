@@ -16,7 +16,7 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -35,7 +35,7 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
+func describerMap(c *client.Client, kclient kclientset.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
 	m := map[unversioned.GroupKind]kctl.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
@@ -84,7 +84,7 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kctl.Describer, bool) {
 	f, ok := describerMap(c, kclient, host)[kind]
 	if ok {
 		return f, true
@@ -95,7 +95,7 @@ func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.
 // BuildDescriber generates information about a build
 type BuildDescriber struct {
 	osClient   client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 // Describe returns the description of a build
@@ -105,13 +105,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.Events(namespace).Search(build)
+	events, _ := d.kubeClient.Core().Events(namespace).Search(build)
 	if events == nil {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
-		if podEvents, _ := d.kubeClient.Events(namespace).Search(pod); podEvents != nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
+		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
@@ -172,7 +172,7 @@ func describeBuildDuration(build *buildapi.Build) string {
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
 	client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 	host       string
 }
 
@@ -462,7 +462,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.De
 		}
 
 		if settings.ShowEvents {
-			events, _ := d.kubeClient.Events(namespace).Search(buildConfig)
+			events, _ := d.kubeClient.Core().Events(namespace).Search(buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
 				kctl.DescribeEvents(events, out)
@@ -667,7 +667,7 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.De
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
 	client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 type routeEndpointInfo struct {
@@ -690,7 +690,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		if backend.Weight != nil {
 			totalWeight += *backend.Weight
 		}
-		ep, endpointsErr := d.kubeClient.Endpoints(namespace).Get(backend.Name)
+		ep, endpointsErr := d.kubeClient.Core().Endpoints(namespace).Get(backend.Name)
 		endpoints[backend.Name] = routeEndpointInfo{ep, endpointsErr}
 	}
 
@@ -797,7 +797,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
 	osClient   client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 // Describe returns the description of a project
@@ -807,12 +807,12 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.Descri
 	if err != nil {
 		return "", err
 	}
-	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
+	resourceQuotasClient := d.kubeClient.Core().ResourceQuotas(name)
 	resourceQuotaList, err := resourceQuotasClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
-	limitRangesClient := d.kubeClient.LimitRanges(name)
+	limitRangesClient := d.kubeClient.Core().LimitRanges(name)
 	limitRangeList, err := limitRangesClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err

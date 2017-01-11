@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2164157659bf4746dbdcfb41804919b6e73c3b14
+%global commit 0845084b5ed08edb7c38d0bf0ca65404cea28014
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.1+2164157-101 OS_GIT_COMMIT=2164157 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.2+0845084-133 OS_GIT_COMMIT=0845084 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.2
+Version:        3.5.0.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,191 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Jan 11 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.3
+- Merge remote-tracking branch upstream/master, bump origin-web-console 65ebe13
+  (tdawson@redhat.com)
+- Increase time 'oc cluster up' waits for dns to be available
+  (agoldste@redhat.com)
+- Only call UnrefVNID if the pod's netns is still valid (agoldste@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  65ebe1391f7798fdea1f93ce29eb45b932548859 (dmcphers+openshiftbot@redhat.com)
+- Update import docker-compose test expectations (agoldste@redhat.com)
+- Make test/extended/alternate_launches.sh pass (agoldste@redhat.com)
+- Pushing busybox no longer necessary now that we have pull-through
+  (agoldste@redhat.com)
+- Add missing junit suite declarations (agoldste@redhat.com)
+- Disable kube-proxy urls test for now (agoldste@redhat.com)
+- Remove unnecessary line (agoldste@redhat.com)
+- Set required ReferencePolicy field so tests pass (agoldste@redhat.com)
+- Fix extended tests (maszulik@redhat.com)
+- Fix hack/test-cmd.sh (maszulik@redhat.com)
+- Switch tooling to go 1.7 (maszulik@redhat.com)
+- Remove kube .proto files for api groups that no longer exist
+  (agoldste@redhat.com)
+- Fix defaults test expectations (agoldste@redhat.com)
+- Match upstream client changes (agoldste@redhat.com)
+- skip DNS config map e2e test (agoldste@redhat.com)
+- Make test-end-to-end work (agoldste@redhat.com)
+- Fix jenkins admission plugin (maszulik@redhat.com)
+- Remove omitEmpty from DeploymentConfigStatus int fields so it will emit them
+  even if 0 (agoldste@redhat.com)
+- Update User-Agent test expectations (agoldste@redhat.com)
+- Fix test-cmd.sh (agoldste@redhat.com)
+- Image streams: move BeforeCreate/BeforeUpdate <carry> logic to
+  Validate/ValidateUpdate (agoldste@redhat.com)
+- Wrap checking for deleted routes in wait.Poll in TestRouterReloadCoalesce
+  (agoldste@redhat.com)
+- Set PreferredAddressTypes when we create the KubeletClientConfig
+  (agoldste@redhat.com)
+- Make jobClient use batch/v2alpha1 to support cronjobs (agoldste@redhat.com)
+- policy: allow GCController to list/watch nodes (agoldste@redhat.com)
+- policy: allow statefulsetcontroller access to statefulsets
+  (agoldste@redhat.com)
+- SA controller Run() is now blocking; call via goroutine (agoldste@redhat.com)
+- Add DestroyFunc to ApplyOptions and tests (maszulik@redhat.com)
+- Start kube shared informer factory (agoldste@redhat.com)
+- Add support for kube admission plugin initializers (agoldste@redhat.com)
+- Enable PodNodeSelector admission plugin (agoldste@redhat.com)
+- Use kube's SA cache store/lister (agoldste@redhat.com)
+- Use kube serviceaccounts shared informer (agoldste@redhat.com)
+- Added certificate to ignored kube commands in tests (maszulik@redhat.com)
+- Update bootstrap policy (maszulik@redhat.com)
+- Update expected kube api group versions (agoldste@redhat.com)
+- Add new arg for iptables min sync duration when creating proxiers
+  (agoldste@redhat.com)
+- Update master setup to match kube 1.5 changes (agoldste@redhat.com)
+- Apply defaults the new way now that conversion and defaulting are separate
+  (agoldste@redhat.com)
+- Fixes based on updated generated code (agoldste@redhat.com)
+- Use generated defaulters (agoldste@redhat.com)
+- Regenerate generated files (agoldste@redhat.com)
+- Add defaulter-gen comments (agoldste@redhat.com)
+- Match clientcmd Factory changes from upstream (agoldste@redhat.com)
+- Match upstream change for --allow-missing-template-keys (agoldste@redhat.com)
+- UPSTREAM: 39486: Allow missing keys in templates by default
+  (agoldste@redhat.com)
+- UPSTREAM: <drop>: add origin resource shortcuts to kube shortcut restmapper
+  (agoldste@redhat.com)
+- UPSTREAM: 38647: make kubectl factory composeable (maszulik@redhat.com)
+- Replace legacy kube informers with actual upstream kube informers
+  (agoldste@redhat.com)
+- Switch deployment controller/utils to use []*RC instead of []RC
+  (agoldste@redhat.com)
+- Pass sharedInformerFactory through to quota registry (agoldste@redhat.com)
+- Fix Rollback signature (agoldste@redhat.com)
+- Boring: match upstream moves/refactors/renames (agoldste@redhat.com)
+- Implement CanMount() for emptyDirQuotaMounter (agoldste@redhat.com)
+- PetSet -> StatefulSet (agoldste@redhat.com)
+- ScheduledJob -> CronJob (agoldste@redhat.com)
+- Boring: match upstream renames/moves (agoldste@redhat.com)
+- Correct Godeps.json (agoldste@redhat.com)
+- UPSTREAM: 38908: Remove two zany unit tests (agoldste@redhat.com)
+- UPSTREAM: opencontainers/runc: 1216: Fix thread safety of SelinuxEnabled and
+  getSelinuxMountPoint (pmorie@redhat.com)
+- UPSTREAM: 38339: Exponential back off when volume delete fails
+  (agoldste@redhat.com)
+- UPSTREAM: 37009: fix permissions when using fsGroup (agoldste@redhat.com)
+- UPSTREAM: 38137: glusterfs: Fix all gid types to int to prevent failures on
+  32bit systems (agoldste@redhat.com)
+- UPSTREAM: 37886: glusterfs: implement GID security in the dynamic provisioner
+  (agoldste@redhat.com)
+- UPSTREAM: 36437: glusterfs: Add `clusterid`, an optional parameter to
+  storageclass. (agoldste@redhat.com)
+- UPSTREAM: 38196: fix mesos unit tests (agoldste@redhat.com)
+- UPSTREAM: 37721: Fix logic error in graceful deletion (agoldste@redhat.com)
+- UPSTREAM: 37649: Fix top node (agoldste@redhat.com)
+- bump(golang.org/x/sys) 8d1157a435470616f975ff9bb013bea8d0962067
+  (jminter@redhat.com)
+- bump(k8s.io/gengo): 6a1c24d7f08e671c244023ca9367d2dfbfaf57fc
+  (agoldste@redhat.com)
+- Fix imports for genconversion/gendeepcopy to use k8s.io/gengo
+  (agoldste@redhat.com)
+- bump(google.golang.org/grpc): b1a2821ca5a4fd6b6e48ddfbb7d6d7584d839d21
+  (agoldste@redhat.com)
+- bump(github.com/onsi/gomega): d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
+  (agoldste@redhat.com)
+- UPSTREAM: 38603: Re-add /healthz/ping handler in genericapiserver
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: 38690: unify swagger and openapi in config
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: <drop>: add ExtraClientCACerts to SecureServingInfo
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: <drop>: add missing index to limit range lister
+  (agoldste@redhat.com)
+- Match upstream singular -> singleItemImplied rename (agoldste@redhat.com)
+- UPSTREAM: 39038: Fix kubectl get -f <file> -o <nondefault printer> so it
+  prints all items in the file (agoldste@redhat.com)
+- UPSTREAM: 38986: Fix DaemonSet cache mutation (agoldste@redhat.com)
+- UPSTREAM: 38631: fix build tags for !cgo in kubelet cadvisor
+  (agoldste@redhat.com)
+- UPSTREAM: 38630: Fix threshold notifier build tags (agoldste@redhat.com)
+- UPSTREAM: coreos/go-systemd: 190: util: conditionally build CGO functions
+  (agoldste@redhat.com)
+- bump(github.com/onsi/ginkgo/ginkgo): 74c678d97c305753605c338c6c78c49ec104b5e7
+  (agoldste@redhat.com)
+- bump(k8s.io/client-go): ecd05810bd98f1ccb9a4558871cb0de3aefd50b4
+  (agoldste@redhat.com)
+- bump(github.com/juju/ratelimit): 77ed1c8a01217656d2080ad51981f6e99adaa177
+  (agoldste@redhat.com)
+- UPSTREAM: 38294: Re-use tested ratelimiter (agoldste@redhat.com)
+- bump(k8s.io/kubernetes): 225eecce40065518f2eabc3b52020365db012384
+  (agoldste@redhat.com)
+- Update copy-kube-artifacts to current k8s (maszulik@redhat.com)
+- Update group versions in genprotobuf (agoldste@redhat.com)
+- Add generators for defaulters, openapi, listers (agoldste@redhat.com)
+- bump(github.com/rackspace/gophercloud):
+  e00690e87603abe613e9f02c816c7c4bef82e063 (agoldste@redhat.com)
+- bump(github.com/onsi/gomega): d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
+  (agoldste@redhat.com)
+- bump(github.com/jteeuwen/go-bindata):
+  a0ff2567cfb70903282db057e799fd826784d41d (agoldste@redhat.com)
+- bump(github.com/fsnotify/fsnotify): f12c6236fe7b5cf6bcf30e5935d08cb079d78334
+  (agoldste@redhat.com)
+- Add extra required dependencies to hack/godep-save.sh (agoldste@redhat.com)
+- godepchecker: add option to compare forks (agoldste@redhat.com)
+- Pin godep to v75 (agoldste@redhat.com)
+- bump(golang.org/x/sys): revert: 264b1bec8780c764719c49a189286aabbeefc9c2:
+  (bump to 8d1157a435470616f975ff9bb013bea8d0962067) (agoldste@redhat.com)
+- UPSTREAM: revert: bedff43594597764076a13c17b30a5fa28c4ea76: docker/docker:
+  <drop>: revert: 734a79b: docker/docker: <carry>: WORD/DWORD changed
+  (agoldste@redhat.com)
+- origin: revert: 5d5c0c90bea65fea41a2b72d6e28bf0800696f95: 37649: Fix top node
+  (agoldste@redhat.com)
+- UPSTREAM: revert: 5d5c0c90bea65fea41a2b72d6e28bf0800696f95: 37649: Fix top
+  node (agoldste@redhat.com)
+- UPSTREAM: revert: 372e9928f1ada5f49d4c44684f7151798bcca200: 37721: Fix logic
+  error in graceful deletion (agoldste@redhat.com)
+- UPSTREAM: revert: 74f64a736154ab6bcc508abaa6d045828b7eacd8: 38196: fix mesos
+  unit tests (agoldste@redhat.com)
+- bump(github.com/heketi/heketi): revert:
+  7fd7ced6cb2d2eeaf66408bb7b2e4491f7036cbb (bump to
+  28b5cc4cc6d2b9bdfa91ed1b93efaab4931aa697) (agoldste@redhat.com)
+- UPSTREAM: revert: 9bffc75ed9a26d0cd226febc93cad61d0a500d77: 37886: glusterfs:
+  implement GID security in the dynamic provisioner (agoldste@redhat.com)
+- UPSTREAM: revert: 6974f328a5577926c8a62a4ed456ed388f9e477d: 38137: glusterfs:
+  Fix all gid types to int to prevent failures on 32bit systems
+  (agoldste@redhat.com)
+- UPSTREAM: revert: 64982639ab1321fb1a1332dd78101a1ff5f8c59a: 37009: fix
+  permissions when using fsGroup (agoldste@redhat.com)
+- UPSTREAM: revert: b049251dc647418edf2b1a700d1a52ce85dc9696: 38339:
+  Exponential back off when volume delete fails (agoldste@redhat.com)
+- UPSTREAM: revert: 33ee3c4f6a4a3b07d9c758c0271a950b6a52d26a:
+  opencontainers/runc: 1216: Fix thread safety of SelinuxEnabled and
+  getSelinuxMountPoint (agoldste@redhat.com)
+- UPSTREAM: revert: 8f14f3b701aa10757d1edad3a566672c72b7b55f: <drop>: Handle Go
+  1.6/1.7 differences in upstream (agoldste@redhat.com)
+- if2If at the begining of one line (lu.jianping2@zte.com.cn)
+- cluster up: add pod networking check (cewong@redhat.com)
+- Adding aos-3.5 tito build queue (tdawson@redhat.com)
+- Update ose_images.sh - 2017-01-09 (tdawson@redhat.com)
+- modify comment for CommandFor (xu.zhanwei@zte.com.cn)
+- Add extended test for manifest migration (agladkov@redhat.com)
+- Migrate manifest from Image when receiving get-request (agladkov@redhat.com)
+- Add tests for pullthroughManifestService (agladkov@redhat.com)
+- Save manifest in docker-registry and make pullthrough for manifests
+  (agladkov@redhat.com)
+- Move ManifestService to separate object (agladkov@redhat.com)
+
 * Mon Jan 09 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.2
 - Merge remote-tracking branch upstream/master, bump origin-web-console 6f48eb0
   (tdawson@redhat.com)

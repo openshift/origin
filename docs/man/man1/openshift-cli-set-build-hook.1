@@ -31,6 +31,10 @@ The command for a build hook may be specified as a shell script (with the \-\-sc
     If true, select all build configs in the namespace
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-command\fP=false
     If true, set the entrypoint of the hook container to the given command
 

@@ -1596,11 +1596,17 @@ func TestRouterReloadCoalesce(t *testing.T) {
 	}
 
 	// And ensure all the route aliases are gone.
-	for i := 1; i <= numRoutes; i++ {
-		routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
-		if _, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != ErrUnavailable {
-			t.Errorf("Unable to verify route deletion for %q: %+v", routeAlias, err)
+	if err := wait.Poll(time.Millisecond*100, time.Duration(reloadInterval)*2*time.Second, func() (bool, error) {
+		for i := 1; i <= numRoutes; i++ {
+			routeAlias := fmt.Sprintf("www.example-coalesce-%v.test", i)
+			if _, err := getRoute(routeAddress, routeAlias, "http", nil, tr.HelloPod); err != ErrUnavailable {
+				t.Logf("Unable to verify route deletion for %q: %+v", routeAlias, err)
+				return false, nil
+			}
 		}
+		return true, nil
+	}); err != nil {
+		t.Errorf("Some routes were still available")
 	}
 }
 

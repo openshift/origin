@@ -280,18 +280,18 @@ type DeploymentTriggerImageChangeParams struct {
 type DeploymentConfigStatus struct {
 	// LatestVersion is used to determine whether the current deployment associated with a deployment
 	// config is out of sync.
-	LatestVersion int64 `json:"latestVersion,omitempty" protobuf:"varint,1,opt,name=latestVersion"`
+	LatestVersion int64 `json:"latestVersion" protobuf:"varint,1,opt,name=latestVersion"`
 	// ObservedGeneration is the most recent generation observed by the deployment config controller.
-	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,2,opt,name=observedGeneration"`
+	ObservedGeneration int64 `json:"observedGeneration" protobuf:"varint,2,opt,name=observedGeneration"`
 	// Replicas is the total number of pods targeted by this deployment config.
-	Replicas int32 `json:"replicas,omitempty" protobuf:"varint,3,opt,name=replicas"`
+	Replicas int32 `json:"replicas" protobuf:"varint,3,opt,name=replicas"`
 	// UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config
 	// that have the desired template spec.
-	UpdatedReplicas int32 `json:"updatedReplicas,omitempty" protobuf:"varint,4,opt,name=updatedReplicas"`
+	UpdatedReplicas int32 `json:"updatedReplicas" protobuf:"varint,4,opt,name=updatedReplicas"`
 	// AvailableReplicas is the total number of available pods targeted by this deployment config.
-	AvailableReplicas int32 `json:"availableReplicas,omitempty" protobuf:"varint,5,opt,name=availableReplicas"`
+	AvailableReplicas int32 `json:"availableReplicas" protobuf:"varint,5,opt,name=availableReplicas"`
 	// UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.
-	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,6,opt,name=unavailableReplicas"`
+	UnavailableReplicas int32 `json:"unavailableReplicas" protobuf:"varint,6,opt,name=unavailableReplicas"`
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty" protobuf:"bytes,7,opt,name=details"`

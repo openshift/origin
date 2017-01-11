@@ -10,8 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/watch"
@@ -39,7 +37,7 @@ func TestHandleScenarios(t *testing.T) {
 		cancelled bool
 	}
 
-	mkdeployment := func(d deployment) kapi.ReplicationController {
+	mkdeployment := func(d deployment) *kapi.ReplicationController {
 		config := deploytest.OkDeploymentConfig(d.version)
 		if d.test {
 			config = deploytest.TestDeploymentConfig(config)
@@ -57,7 +55,7 @@ func TestHandleScenarios(t *testing.T) {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
 		deployment.Spec.Replicas = d.replicas
-		return *deployment
+		return deployment
 	}
 
 	tests := []struct {
@@ -333,8 +331,8 @@ func TestHandleScenarios(t *testing.T) {
 		t.Logf("evaluating test: %s", test.name)
 
 		var updatedConfig *deployapi.DeploymentConfig
-		deployments := map[string]kapi.ReplicationController{}
-		toStore := []kapi.ReplicationController{}
+		deployments := map[string]*kapi.ReplicationController{}
+		toStore := []*kapi.ReplicationController{}
 		for _, template := range test.before {
 			deployment := mkdeployment(template)
 			deployments[deployment.Name] = deployment
@@ -342,7 +340,7 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		oc := &testclient.Fake{}
-		oc.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		oc.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			dc := action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
 			return true, dc, nil
@@ -350,17 +348,17 @@ func TestHandleScenarios(t *testing.T) {
 		kc := &fake.Clientset{}
 		kc.AddReactor("create", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			rc := action.(core.CreateAction).GetObject().(*kapi.ReplicationController)
-			deployments[rc.Name] = *rc
+			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
 		kc.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
-			deployments[rc.Name] = *rc
+			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
 		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
-		dcInformer := framework.NewSharedIndexInformer(
+		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -373,7 +371,7 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		rcInformer := framework.NewSharedIndexInformer(
+		rcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
@@ -386,7 +384,7 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		podInformer := framework.NewSharedIndexInformer(
+		podInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 					return kc.Core().Pods(kapi.NamespaceAll).List(options)
@@ -402,7 +400,7 @@ func TestHandleScenarios(t *testing.T) {
 		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, codec)
 
 		for i := range toStore {
-			c.rcStore.Add(&toStore[i])
+			c.rcStore.Indexer.Add(toStore[i])
 		}
 
 		config := deploytest.OkDeploymentConfig(test.newVersion)
@@ -417,11 +415,11 @@ func TestHandleScenarios(t *testing.T) {
 			continue
 		}
 
-		expectedDeployments := []kapi.ReplicationController{}
+		expectedDeployments := []*kapi.ReplicationController{}
 		for _, template := range test.after {
 			expectedDeployments = append(expectedDeployments, mkdeployment(template))
 		}
-		actualDeployments := []kapi.ReplicationController{}
+		actualDeployments := []*kapi.ReplicationController{}
 		for _, deployment := range deployments {
 			actualDeployments = append(actualDeployments, deployment)
 		}

@@ -294,7 +294,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("unknown resource argument")
 	}
 
-	mapper, _ := f.Object(true)
+	mapper, _ := f.Object()
 
 	version, err := mapper.KindFor(gr.WithVersion(""))
 	if err != nil {

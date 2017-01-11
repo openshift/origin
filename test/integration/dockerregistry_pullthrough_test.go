@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -31,6 +32,10 @@ var gzippedEmptyTar = []byte{
 	31, 139, 8, 0, 0, 9, 110, 136, 0, 255, 98, 24, 5, 163, 96, 20, 140, 88,
 	0, 8, 0, 0, 255, 255, 46, 175, 181, 239, 0, 4, 0, 0,
 }
+
+// digestSHA256GzippedEmptyTar is the canonical sha256 digest of
+// gzippedEmptyTar
+const digestSHA256GzippedEmptyTar = digest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
 
 func runRegistry() error {
 	config := `version: 0.1

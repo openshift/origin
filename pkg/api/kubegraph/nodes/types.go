@@ -22,8 +22,8 @@ var (
 	SecretNodeKind                    = reflect.TypeOf(kapi.Secret{}).Name()
 	PersistentVolumeClaimNodeKind     = reflect.TypeOf(kapi.PersistentVolumeClaim{}).Name()
 	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscaling.HorizontalPodAutoscaler{}).Name()
-	PetSetNodeKind                    = reflect.TypeOf(kapps.PetSet{}).Name()
-	PetSetSpecNodeKind                = reflect.TypeOf(kapps.PetSetSpec{}).Name()
+	StatefulSetNodeKind               = reflect.TypeOf(kapps.StatefulSet{}).Name()
+	StatefulSetSpecNodeKind           = reflect.TypeOf(kapps.StatefulSetSpec{}).Name()
 )
 
 func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
@@ -303,55 +303,55 @@ func (n HorizontalPodAutoscalerNode) UniqueName() osgraph.UniqueName {
 	return HorizontalPodAutoscalerNodeName(n.HorizontalPodAutoscaler)
 }
 
-func PetSetNodeName(o *kapps.PetSet) osgraph.UniqueName {
-	return osgraph.GetUniqueRuntimeObjectNodeName(PetSetNodeKind, o)
+func StatefulSetNodeName(o *kapps.StatefulSet) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(StatefulSetNodeKind, o)
 }
 
-type PetSetNode struct {
+type StatefulSetNode struct {
 	osgraph.Node
-	PetSet *kapps.PetSet
+	StatefulSet *kapps.StatefulSet
 }
 
-func (n PetSetNode) Object() interface{} {
-	return n.PetSet
+func (n StatefulSetNode) Object() interface{} {
+	return n.StatefulSet
 }
 
-func (n PetSetNode) String() string {
+func (n StatefulSetNode) String() string {
 	return string(n.UniqueName())
 }
 
-func (n PetSetNode) UniqueName() osgraph.UniqueName {
-	return PetSetNodeName(n.PetSet)
+func (n StatefulSetNode) UniqueName() osgraph.UniqueName {
+	return StatefulSetNodeName(n.StatefulSet)
 }
 
-func (*PetSetNode) Kind() string {
-	return PetSetNodeKind
+func (*StatefulSetNode) Kind() string {
+	return StatefulSetNodeKind
 }
 
-func PetSetSpecNodeName(o *kapps.PetSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
-	return osgraph.UniqueName(fmt.Sprintf("%s|%v", PetSetSpecNodeKind, ownerName))
+func StatefulSetSpecNodeName(o *kapps.StatefulSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", StatefulSetSpecNodeKind, ownerName))
 }
 
-type PetSetSpecNode struct {
+type StatefulSetSpecNode struct {
 	osgraph.Node
-	PetSetSpec *kapps.PetSetSpec
-	Namespace  string
+	StatefulSetSpec *kapps.StatefulSetSpec
+	Namespace       string
 
 	OwnerName osgraph.UniqueName
 }
 
-func (n PetSetSpecNode) Object() interface{} {
-	return n.PetSetSpec
+func (n StatefulSetSpecNode) Object() interface{} {
+	return n.StatefulSetSpec
 }
 
-func (n PetSetSpecNode) String() string {
+func (n StatefulSetSpecNode) String() string {
 	return string(n.UniqueName())
 }
 
-func (n PetSetSpecNode) UniqueName() osgraph.UniqueName {
-	return PetSetSpecNodeName(n.PetSetSpec, n.OwnerName)
+func (n StatefulSetSpecNode) UniqueName() osgraph.UniqueName {
+	return StatefulSetSpecNodeName(n.StatefulSetSpec, n.OwnerName)
 }
 
-func (*PetSetSpecNode) Kind() string {
-	return PetSetSpecNodeKind
+func (*StatefulSetSpecNode) Kind() string {
+	return StatefulSetSpecNodeKind
 }

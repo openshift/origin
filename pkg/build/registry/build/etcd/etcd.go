@@ -5,7 +5,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -29,7 +28,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Build).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 			return build.Matcher(label, field)
 		},
 		CreateStrategy:      build.Strategy,

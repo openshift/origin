@@ -21,6 +21,10 @@ There is also the ability to expose a deployment configuration, replication cont
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-cluster\-ip\fP=""
     ClusterIP to be assigned to the service. Leave empty to auto\-allocate, or set to 'None' to create a headless service.
 
@@ -42,7 +46,7 @@ There is also the ability to expose a deployment configuration, replication cont
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to expose a service
+    Filename, directory, or URL to files identifying the resource to expose a service
 
 .PP
 \fB\-\-generator\fP=""

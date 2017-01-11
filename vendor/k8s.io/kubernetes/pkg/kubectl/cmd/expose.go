@@ -22,30 +22,20 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation"
 )
 
-// ExposeOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
-// referencing the cmd.Flags()
-type ExposeOptions struct {
-	Filenames []string
-	Recursive bool
-}
-
 var (
-	expose_resources = dedent.Dedent(`
-		pod (po), service (svc), replicationcontroller (rc),
-		deployment (deploy), replicaset (rs)
-	`)
+	expose_resources = `pod (po), service (svc), replicationcontroller (rc), deployment (deploy), replicaset (rs)`
 
-	expose_long = dedent.Dedent(`
+	expose_long = templates.LongDesc(`
 		Expose a resource as a new Kubernetes service.
 
 		Looks up a deployment, service, replica set, replication controller or pod by name and uses the selector
@@ -55,9 +45,11 @@ var (
 		--port and the exposed resource has multiple ports, all will be re-used by the new service. Also if no
 		labels are specified, the new service will re-use the labels from the resource it exposes.
 
-		Possible resources include (case insensitive): `) + expose_resources
+		Possible resources include (case insensitive):
 
-	expose_example = dedent.Dedent(`
+		` + expose_resources)
+
+	expose_example = templates.Examples(`
 		# Create a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000.
 		kubectl expose rc nginx --port=80 --target-port=8000
 
@@ -80,8 +72,8 @@ var (
 		kubectl expose deployment nginx --port=80 --target-port=8000`)
 )
 
-func NewCmdExposeService(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &ExposeOptions{}
+func NewCmdExposeService(f cmdutil.Factory, out io.Writer) *cobra.Command {
+	options := &resource.FilenameOptions{}
 
 	validArgs, argAliases := []string{}, []string{}
 	resources := regexp.MustCompile(`\s*,`).Split(expose_resources, -1)
@@ -122,26 +114,25 @@ func NewCmdExposeService(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().String("session-affinity", "", "If non-empty, set the session affinity for the service to this; legal values: 'None', 'ClientIP'")
 	cmd.Flags().String("cluster-ip", "", "ClusterIP to be assigned to the service. Leave empty to auto-allocate, or set to 'None' to create a headless service.")
 
-	usage := "Filename, directory, or URL to a file identifying the resource to expose a service"
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	usage := "identifying the resource to expose a service"
+	cmdutil.AddFilenameOptionFlags(cmd, options, usage)
 	cmdutil.AddDryRunFlag(cmd)
-	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddRecordFlag(cmd)
 	return cmd
 }
 
-func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, options *ExposeOptions) error {
+func RunExpose(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, options *resource.FilenameOptions) error {
 	namespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
+		FilenameParam(enforceNamespace, options).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()

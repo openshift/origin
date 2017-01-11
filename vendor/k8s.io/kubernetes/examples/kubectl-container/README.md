@@ -1,7 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
 To access the Kubernetes API [from a Pod](../../docs/user-guide/accessing-the-cluster.md#accessing-the-api-from-a-pod) one of the solution is to run `kubectl proxy` in a so-called sidecar container within the Pod. To do this, you need to package `kubectl` in a container. It is useful when service accounts are being used for accessing the API and the old no-auth KUBERNETES_RO service is not available. Since all containers in a Pod share the same network namespace, containers will be able to reach the API on localhost.
 
 This example contains a [Dockerfile](Dockerfile) and [Makefile](Makefile) for packaging up `kubectl` into
@@ -28,13 +24,6 @@ container in a Pod, and to help you verify that `kubectl` works correctly in
 this configuration. To launch this Pod, you will need a configured Kubernetes endpoint and `kubectl` installed locally, then simply create the Pod:
 
     $ kubectl create -f pod.json
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

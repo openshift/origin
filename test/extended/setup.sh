@@ -336,6 +336,9 @@ readonly EXCLUDED_TESTS=(
 
 	# We don't install KubeDNS
 	"should check if Kubernetes master services is included in cluster-info"
+
+	# this tests dns federation configuration via configmap, which we don't support yet
+	"DNS config map"
 )
 
 readonly SERIAL_TESTS=(
@@ -376,4 +379,5 @@ readonly CONFORMANCE_TESTS=(
 	"\[Feature\:PodDisruptionbudget\]"
 	"should create a pod that reads a secret"
 	"should create a pod that prints his name and namespace"
+	"manifest migration from etcd to registry storage"
 )

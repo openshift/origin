@@ -115,6 +115,11 @@ func (h *Runner) DiscardContainer() *Runner {
 	return h
 }
 
+func (h *Runner) DNS(address ...string) *Runner {
+	h.hostConfig.DNS = address
+	return h
+}
+
 // Start starts the container as a daemon and returns
 func (h *Runner) Start() (string, error) {
 	id, err := h.Create()
@@ -244,6 +249,12 @@ func printHostConfig(c *docker.HostConfig) string {
 	out := &bytes.Buffer{}
 	fmt.Fprintf(out, "  pid mode: %s\n", c.PidMode)
 	fmt.Fprintf(out, "  network mode: %s\n", c.NetworkMode)
+	if len(c.DNS) > 0 {
+		fmt.Fprintf(out, "  DNS:\n")
+		for _, h := range c.DNS {
+			fmt.Fprintf(out, "    %s\n", h)
+		}
+	}
 	if len(c.Binds) > 0 {
 		fmt.Fprintf(out, "  volume binds:\n")
 		for _, b := range c.Binds {

@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -17,14 +17,14 @@ import (
 )
 
 // NewDeploymentConfigReaper returns a new reaper for deploymentConfigs
-func NewDeploymentConfigReaper(oc client.Interface, kc kclient.Interface) kubectl.Reaper {
+func NewDeploymentConfigReaper(oc client.Interface, kc kclientset.Interface) kubectl.Reaper {
 	return &DeploymentConfigReaper{oc: oc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
 type DeploymentConfigReaper struct {
 	oc                    client.Interface
-	kc                    kclient.Interface
+	kc                    kclientset.Interface
 	pollInterval, timeout time.Duration
 }
 
@@ -83,7 +83,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// configuration has been deleted, we want to sweep the existing replication
 	// controllers and clean them up.
 	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(name)}
-	rcList, err := reaper.kc.ReplicationControllers(namespace).List(options)
+	rcList, err := reaper.kc.Core().ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return err
 	}
@@ -113,12 +113,12 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 
 		// Delete all deployer and hook pods
 		options = kapi.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
-		podList, err := reaper.kc.Pods(rc.Namespace).List(options)
+		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(options)
 		if err != nil {
 			return err
 		}
 		for _, pod := range podList.Items {
-			err := reaper.kc.Pods(pod.Namespace).Delete(pod.Name, gracePeriod)
+			err := reaper.kc.Core().Pods(pod.Namespace).Delete(pod.Name, gracePeriod)
 			if err != nil {
 				// Better not error out here...
 				glog.Infof("Cannot delete lifecycle Pod %s/%s for deployment config %s/%s: %v", pod.Namespace, pod.Name, namespace, name, err)

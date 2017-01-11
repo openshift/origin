@@ -31,7 +31,7 @@ func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (r
 	url := url.URL{}
 	url.Path = "/oapi/" + groupVersion
 	originResources := &unversioned.APIResourceList{}
-	err = d.Get().AbsPath(url.String()).Do().Into(originResources)
+	err = d.RESTClient().Get().AbsPath(url.String()).Do().Into(originResources)
 	if err != nil {
 		// ignore 403 or 404 error to be compatible with an v1.0 server.
 		if groupVersion == "v1" && (errors.IsNotFound(err) || errors.IsForbidden(err)) {
@@ -63,6 +63,6 @@ func (d *DiscoveryClient) ServerResources() (map[string]*unversioned.APIResource
 }
 
 // New creates a new DiscoveryClient for the given RESTClient.
-func NewDiscoveryClient(c *restclient.RESTClient) *DiscoveryClient {
+func NewDiscoveryClient(c restclient.Interface) *DiscoveryClient {
 	return &DiscoveryClient{discovery.NewDiscoveryClient(c)}
 }

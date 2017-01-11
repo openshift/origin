@@ -31,6 +31,10 @@ You can see which cluster roles have recommended changed by choosing an output t
     If true, preserves modified cluster roles.
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-confirm\fP=false
     If true, specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.
 

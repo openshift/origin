@@ -29,10 +29,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -42,10 +41,6 @@ import (
 
 	"github.com/golang/glog"
 )
-
-// EnableGarbageCollector affects the handling of Update and Delete requests. It
-// must be synced with the corresponding flag in kube-controller-manager.
-var EnableGarbageCollector bool
 
 // Store implements generic.Registry.
 // It's intended to be embeddable, so that you can implement any
@@ -89,17 +84,24 @@ type Store struct {
 	TTLFunc func(obj runtime.Object, existing uint64, update bool) (uint64, error)
 
 	// Returns a matcher corresponding to the provided labels and fields.
-	PredicateFunc func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate
+	PredicateFunc func(label labels.Selector, field fields.Selector) storage.SelectionPredicate
+
+	// Called to cleanup storage clients.
+	DestroyFunc func()
+
+	// EnableGarbageCollection affects the handling of Update and Delete requests. It
+	// must be synced with the corresponding flag in kube-controller-manager.
+	EnableGarbageCollection bool
 
 	// DeleteCollectionWorkers is the maximum number of workers in a single
 	// DeleteCollection call.
 	DeleteCollectionWorkers int
 
-	// Called on all objects returned from the underlying store, after
-	// the exit hooks are invoked. Decorators are intended for integrations
-	// that are above storage and should only be used for specific cases where
-	// storage of the value is not appropriate, since they cannot
-	// be watched.
+	// Decorator is called as exit hook on object returned from the underlying storage.
+	// The returned object could be individual object (e.g. Pod) or the list type (e.g. PodList).
+	// Decorator is intended for integrations that are above storage and
+	// should only be used for specific cases where storage of the value is
+	// not appropriate, since they cannot be watched.
 	Decorator rest.ObjectFunc
 	// Allows extended behavior during creation, required
 	CreateStrategy rest.RESTCreateStrategy
@@ -146,7 +148,7 @@ func NamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, erro
 	if len(name) == 0 {
 		return "", kubeerr.NewBadRequest("Name parameter required.")
 	}
-	if msgs := validation.IsValidPathSegmentName(name); len(msgs) != 0 {
+	if msgs := path.IsValidPathSegmentName(name); len(msgs) != 0 {
 		return "", kubeerr.NewBadRequest(fmt.Sprintf("Name parameter invalid: %q: %s", name, strings.Join(msgs, ";")))
 	}
 	key = key + "/" + name
@@ -158,7 +160,7 @@ func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, er
 	if len(name) == 0 {
 		return "", kubeerr.NewBadRequest("Name parameter required.")
 	}
-	if msgs := validation.IsValidPathSegmentName(name); len(msgs) != 0 {
+	if msgs := path.IsValidPathSegmentName(name); len(msgs) != 0 {
 		return "", kubeerr.NewBadRequest(fmt.Sprintf("Name parameter invalid: %q: %s", name, strings.Join(msgs, ";")))
 	}
 	key := prefix + "/" + name
@@ -185,25 +187,33 @@ func (e *Store) List(ctx api.Context, options *api.ListOptions) (runtime.Object,
 	if options != nil && options.FieldSelector != nil {
 		field = options.FieldSelector
 	}
-	return e.ListPredicate(ctx, e.PredicateFunc(label, field), options)
+	out, err := e.ListPredicate(ctx, e.PredicateFunc(label, field), options)
+	if err != nil {
+		return nil, err
+	}
+	if e.Decorator != nil {
+		if err := e.Decorator(out); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 // ListPredicate returns a list of all the items matching m.
-func (e *Store) ListPredicate(ctx api.Context, m *generic.SelectionPredicate, options *api.ListOptions) (runtime.Object, error) {
+func (e *Store) ListPredicate(ctx api.Context, p storage.SelectionPredicate, options *api.ListOptions) (runtime.Object, error) {
+	if options == nil {
+		options = &api.ListOptions{ResourceVersion: "0"}
+	}
 	list := e.NewListFunc()
-	filter := e.createFilter(m)
-	if name, ok := m.MatchesSingle(); ok {
+	if name, ok := p.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
-			err := e.Storage.GetToList(ctx, key, filter, list)
+			err := e.Storage.GetToList(ctx, key, options.ResourceVersion, p, list)
 			return list, storeerr.InterpretListError(err, e.QualifiedResource)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
-	if options == nil {
-		options = &api.ListOptions{ResourceVersion: "0"}
-	}
-	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), options.ResourceVersion, filter, list)
+	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), options.ResourceVersion, p, list)
 	return list, storeerr.InterpretListError(err, e.QualifiedResource)
 }
 
@@ -289,7 +299,7 @@ func (e *Store) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 // it further checks if the object's DeletionGracePeriodSeconds is 0. If so, it
 // returns true.
 func (e *Store) shouldDelete(ctx api.Context, key string, obj, existing runtime.Object) bool {
-	if !EnableGarbageCollector {
+	if !e.EnableGarbageCollection {
 		return false
 	}
 	newMeta, err := api.ObjectMetaFor(obj)
@@ -718,7 +728,7 @@ func (e *Store) Delete(ctx api.Context, name string, options *api.DeleteOptions)
 	var ignoreNotFound bool
 	var deleteImmediately bool = true
 	var lastExisting, out runtime.Object
-	if !EnableGarbageCollector {
+	if !e.EnableGarbageCollection {
 		// TODO: remove the check on graceful, because we support no-op updates now.
 		if graceful {
 			err, ignoreNotFound, deleteImmediately, out, lastExisting = e.updateForGracefulDeletion(ctx, name, key, options, preconditions, obj)
@@ -848,7 +858,7 @@ func (e *Store) finalizeDelete(obj runtime.Object, runHooks bool) (runtime.Objec
 
 // Watch makes a matcher for the given label and field, and calls
 // WatchPredicate. If possible, you should customize PredicateFunc to produre a
-// matcher that matches by key. generic.SelectionPredicate does this for you
+// matcher that matches by key. SelectionPredicate does this for you
 // automatically.
 func (e *Store) Watch(ctx api.Context, options *api.ListOptions) (watch.Interface, error) {
 	label := labels.Everything()
@@ -867,38 +877,32 @@ func (e *Store) Watch(ctx api.Context, options *api.ListOptions) (watch.Interfac
 }
 
 // WatchPredicate starts a watch for the items that m matches.
-func (e *Store) WatchPredicate(ctx api.Context, m *generic.SelectionPredicate, resourceVersion string) (watch.Interface, error) {
-	filter := e.createFilter(m)
-
-	if name, ok := m.MatchesSingle(); ok {
+func (e *Store) WatchPredicate(ctx api.Context, p storage.SelectionPredicate, resourceVersion string) (watch.Interface, error) {
+	if name, ok := p.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
 			if err != nil {
 				return nil, err
 			}
-			return e.Storage.Watch(ctx, key, resourceVersion, filter)
+			w, err := e.Storage.Watch(ctx, key, resourceVersion, p)
+			if err != nil {
+				return nil, err
+			}
+			if e.Decorator != nil {
+				return newDecoratedWatcher(w, e.Decorator), nil
+			}
+			return w, nil
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
-	return e.Storage.WatchList(ctx, e.KeyRootFunc(ctx), resourceVersion, filter)
-}
-
-func (e *Store) createFilter(m *generic.SelectionPredicate) storage.Filter {
-	filterFunc := func(obj runtime.Object) bool {
-		matches, err := m.Matches(obj)
-		if err != nil {
-			glog.Errorf("unable to match watch: %v", err)
-			return false
-		}
-		if matches && e.Decorator != nil {
-			if err := e.Decorator(obj); err != nil {
-				glog.Errorf("unable to decorate watch: %v", err)
-				return false
-			}
-		}
-		return matches
+	w, err := e.Storage.WatchList(ctx, e.KeyRootFunc(ctx), resourceVersion, p)
+	if err != nil {
+		return nil, err
 	}
-	return storage.NewSimpleFilter(filterFunc, m.MatcherIndex)
+	if e.Decorator != nil {
+		return newDecoratedWatcher(w, e.Decorator), nil
+	}
+	return w, nil
 }
 
 // calculateTTL is a helper for retrieving the updated TTL for an object or returning an error

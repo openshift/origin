@@ -4,7 +4,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -174,7 +174,7 @@ type updateConfigFunc func(d *deployapi.DeploymentConfig)
 func UpdateConfigWithRetries(dn DeploymentConfigsNamespacer, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
 	var config *deployapi.DeploymentConfig
 
-	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 		config, err = dn.DeploymentConfigs(namespace).Get(name)
 		if err != nil {

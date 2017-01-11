@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
@@ -54,11 +54,11 @@ type CreateBasicAuthSecretOptions struct {
 	Reader io.Reader
 	Out    io.Writer
 
-	SecretsInterface client.SecretsInterface
+	SecretsInterface kcoreclient.SecretInterface
 }
 
 // NewCmdCreateBasicAuthSecret implements the OpenShift cli secrets new-basicauth subcommand
-func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, reader io.Reader, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
+func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, reader io.Reader, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
 	o := &CreateBasicAuthSecretOptions{
 		Out:    out,
 		Reader: reader,
@@ -82,7 +82,7 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, rea
 				secret, err := o.NewBasicAuthSecret()
 				kcmdutil.CheckErr(err)
 
-				mapper, _ := f.Object(false)
+				mapper, _ := f.Object()
 				kcmdutil.CheckErr(f.PrintObject(c, mapper, secret, out))
 				return
 			}
@@ -158,7 +158,7 @@ func (o *CreateBasicAuthSecretOptions) NewBasicAuthSecret() (*api.Secret, error)
 
 // Complete fills CreateBasicAuthSecretOptions fields with data and checks for mutual exclusivity
 // between flags from different option groups.
-func (o *CreateBasicAuthSecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
+func (o *CreateBasicAuthSecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if len(args) != 1 {
 		return errors.New("must have exactly one argument: secret name")
 	}
@@ -179,7 +179,7 @@ func (o *CreateBasicAuthSecretOptions) Complete(f *kcmdutil.Factory, args []stri
 	}
 
 	if f != nil {
-		client, err := f.Client()
+		client, err := f.ClientSet()
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (o *CreateBasicAuthSecretOptions) Complete(f *kcmdutil.Factory, args []stri
 		if err != nil {
 			return err
 		}
-		o.SecretsInterface = client.Secrets(namespace)
+		o.SecretsInterface = client.Core().Secrets(namespace)
 	}
 
 	return nil

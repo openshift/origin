@@ -51,14 +51,14 @@ var _ = g.Describe("[security] supplemental groups", func() {
 			// so that we can check for the exact values later and not rely on SCC allocation.
 			g.By("creating a pod that requests supplemental groups")
 			submittedPod := supGroupPod(fsGroup, supGroup)
-			_, err = f.Client.Pods(f.Namespace.Name).Create(submittedPod)
+			_, err = f.ClientSet.Core().Pods(f.Namespace.Name).Create(submittedPod)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			defer f.Client.Pods(f.Namespace.Name).Delete(submittedPod.Name, nil)
+			defer f.ClientSet.Core().Pods(f.Namespace.Name).Delete(submittedPod.Name, nil)
 
 			// we should have been admitted with the groups that we requested but if for any
 			// reason they are different we will fail.
 			g.By("retrieving the pod and ensuring groups are set")
-			retrievedPod, err := f.Client.Pods(f.Namespace.Name).Get(submittedPod.Name)
+			retrievedPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(*retrievedPod.Spec.SecurityContext.FSGroup).To(o.Equal(*submittedPod.Spec.SecurityContext.FSGroup))
 			o.Expect(retrievedPod.Spec.SecurityContext.SupplementalGroups).To(o.Equal(submittedPod.Spec.SecurityContext.SupplementalGroups))
@@ -70,7 +70,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 
 			// find the docker id of our running container.
 			g.By("finding the docker container id on the pod")
-			retrievedPod, err = f.Client.Pods(f.Namespace.Name).Get(submittedPod.Name)
+			retrievedPod, err = f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			containerID, err := getContainerID(retrievedPod)
 			o.Expect(err).NotTo(o.HaveOccurred())

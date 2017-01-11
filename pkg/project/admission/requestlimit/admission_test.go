@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -376,9 +376,9 @@ func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectC
 	return pCache
 }
 
-func userFn(usersAndLabels map[string]labels.Set) ktestclient.ReactionFunc {
-	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(ktestclient.GetAction).GetName()
+func userFn(usersAndLabels map[string]labels.Set) core.ReactionFunc {
+	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(core.GetAction).GetName()
 		return true, fakeUser(name, map[string]string(usersAndLabels[name])), nil
 	}
 }

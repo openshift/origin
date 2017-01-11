@@ -18,29 +18,39 @@ package framework
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	unversionedcore "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-// Convenience method for getting a pod client interface in the framework's namespace.
+// ImageWhiteList is the images used in the current test suite. It should be initialized in test suite and
+// the images in the white list should be pre-pulled in the test suite.  Currently, this is only used by
+// node e2e test.
+var ImageWhiteList sets.String
+
+// Convenience method for getting a pod client interface in the framework's namespace,
+// possibly applying test-suite specific transformations to the pod spec, e.g. for
+// node e2e pod scheduling.
 func (f *Framework) PodClient() *PodClient {
 	return &PodClient{
 		f:            f,
-		PodInterface: f.Client.Pods(f.Namespace.Name),
+		PodInterface: f.ClientSet.Core().Pods(f.Namespace.Name),
 	}
 }
 
 type PodClient struct {
 	f *Framework
-	unversioned.PodInterface
+	unversionedcore.PodInterface
 }
 
 // Create creates a new pod according to the framework specifications (don't wait for it to start).
@@ -100,12 +110,84 @@ func (c *PodClient) Update(name string, updateFn func(pod *api.Pod)) {
 	}))
 }
 
+// DeleteSync deletes the pod and wait for the pod to disappear for `timeout`. If the pod doesn't
+// disappear before the timeout, it will fail the test.
+func (c *PodClient) DeleteSync(name string, options *api.DeleteOptions, timeout time.Duration) {
+	err := c.Delete(name, options)
+	if err != nil && !errors.IsNotFound(err) {
+		Failf("Failed to delete pod %q: %v", name, err)
+	}
+	Expect(WaitForPodToDisappear(c.f.ClientSet, c.f.Namespace.Name, name, labels.Everything(),
+		2*time.Second, timeout)).To(Succeed(), "wait for pod %q to disappear", name)
+}
+
 // mungeSpec apply test-suite specific transformations to the pod spec.
 func (c *PodClient) mungeSpec(pod *api.Pod) {
-	if TestContext.NodeName != "" {
-		Expect(pod.Spec.NodeName).To(Or(BeZero(), Equal(TestContext.NodeName)), "Test misconfigured")
-		pod.Spec.NodeName = TestContext.NodeName
+	if !TestContext.NodeE2E {
+		return
+	}
+
+	Expect(pod.Spec.NodeName).To(Or(BeZero(), Equal(TestContext.NodeName)), "Test misconfigured")
+	pod.Spec.NodeName = TestContext.NodeName
+	// Node e2e does not support the default DNSClusterFirst policy. Set
+	// the policy to DNSDefault, which is configured per node.
+	pod.Spec.DNSPolicy = api.DNSDefault
+
+	// PrepullImages only works for node e2e now. For cluster e2e, image prepull is not enforced,
+	// we should not munge ImagePullPolicy for cluster e2e pods.
+	if !TestContext.PrepullImages {
+		return
+	}
+	// If prepull is enabled, munge the container spec to make sure the images are not pulled
+	// during the test.
+	for i := range pod.Spec.Containers {
+		c := &pod.Spec.Containers[i]
+		if c.ImagePullPolicy == api.PullAlways {
+			// If the image pull policy is PullAlways, the image doesn't need to be in
+			// the white list or pre-pulled, because the image is expected to be pulled
+			// in the test anyway.
+			continue
+		}
+		// If the image policy is not PullAlways, the image must be in the white list and
+		// pre-pulled.
+		Expect(ImageWhiteList.Has(c.Image)).To(BeTrue(), "Image %q is not in the white list, consider adding it to CommonImageWhiteList in test/e2e/common/util.go or NodeImageWhiteList in test/e2e_node/image_list.go", c.Image)
+		// Do not pull images during the tests because the images in white list should have
+		// been prepulled.
+		c.ImagePullPolicy = api.PullNever
 	}
 }
 
 // TODO(random-liu): Move pod wait function into this file
+// WaitForSuccess waits for pod to success.
+func (c *PodClient) WaitForSuccess(name string, timeout time.Duration) {
+	f := c.f
+	Expect(waitForPodCondition(f.ClientSet, f.Namespace.Name, name, "success or failure", timeout,
+		func(pod *api.Pod) (bool, error) {
+			switch pod.Status.Phase {
+			case api.PodFailed:
+				return true, fmt.Errorf("pod %q failed with reason: %q, message: %q", name, pod.Status.Reason, pod.Status.Message)
+			case api.PodSucceeded:
+				return true, nil
+			default:
+				return false, nil
+			}
+		},
+	)).To(Succeed(), "wait for pod %q to success", name)
+}
+
+// MatchContainerOutput gest output of a container and match expected regexp in the output.
+func (c *PodClient) MatchContainerOutput(name string, containerName string, expectedRegexp string) error {
+	f := c.f
+	output, err := GetPodLogs(f.ClientSet, f.Namespace.Name, name, containerName)
+	if err != nil {
+		return fmt.Errorf("failed to get output for container %q of pod %q", containerName, name)
+	}
+	regex, err := regexp.Compile(expectedRegexp)
+	if err != nil {
+		return fmt.Errorf("failed to compile regexp %q: %v", expectedRegexp, err)
+	}
+	if !regex.MatchString(output) {
+		return fmt.Errorf("failed to match regexp %q in output %q", expectedRegexp, output)
+	}
+	return nil
+}

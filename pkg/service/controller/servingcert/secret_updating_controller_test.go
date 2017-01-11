@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/types"
 )
 
@@ -137,7 +136,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 	}
 	for _, tc := range tests {
 		c := &ServiceServingCertUpdateController{
-			serviceCache: cache.NewStore(framework.DeletionHandlingMetaNamespaceKeyFunc),
+			serviceCache: cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc),
 		}
 		tc.primeServices(c.serviceCache)
 		actual := c.requiresRegeneration(tc.secret)

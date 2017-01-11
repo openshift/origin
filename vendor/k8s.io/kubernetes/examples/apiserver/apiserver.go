@@ -20,25 +20,28 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io/v1"
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1"
 	testgroupetcd "k8s.io/kubernetes/examples/apiserver/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
 	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	genericvalidation "k8s.io/kubernetes/pkg/genericapiserver/validation"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 
 	// Install the testgroup API
-	_ "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io/install"
+	_ "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/install"
 )
 
 const (
 	// Ports on which to run the server.
 	// Explicitly setting these to a different value than the default values, to prevent this from clashing with a local cluster.
 	InsecurePort = 8081
+	SecurePort   = 6444
 )
 
 func newStorageFactory() genericapiserver.StorageFactory {
@@ -57,16 +60,23 @@ func NewServerRunOptions() *genericoptions.ServerRunOptions {
 	return serverOptions
 }
 
-func Run(serverOptions *genericoptions.ServerRunOptions) error {
+func Run(serverOptions *genericoptions.ServerRunOptions, stopCh <-chan struct{}) error {
 	// Set ServiceClusterIPRange
 	_, serviceClusterIPRange, _ := net.ParseCIDR("10.0.0.0/24")
 	serverOptions.ServiceClusterIPRange = *serviceClusterIPRange
 	serverOptions.StorageConfig.ServerList = []string{"http://127.0.0.1:2379"}
 	genericvalidation.ValidateRunOptions(serverOptions)
 	genericvalidation.VerifyEtcdServersList(serverOptions)
-	config := genericapiserver.NewConfig(serverOptions)
-	config.Serializer = api.Codecs
-	s, err := genericapiserver.New(config)
+	config := genericapiserver.NewConfig().ApplyOptions(serverOptions).Complete()
+	if err := config.MaybeGenerateServingCerts(); err != nil {
+		// this wasn't treated as fatal for this process before
+		fmt.Printf("Error creating cert: %v", err)
+	}
+
+	config.Authorizer = authorizer.NewAlwaysAllowAuthorizer()
+	config.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+
+	s, err := config.New()
 	if err != nil {
 		return fmt.Errorf("Error in bringing up the server: %v", err)
 	}
@@ -84,7 +94,7 @@ func Run(serverOptions *genericoptions.ServerRunOptions) error {
 	}
 
 	restStorageMap := map[string]rest.Storage{
-		"testtypes": testgroupetcd.NewREST(storageConfig, s.StorageDecorator()),
+		"testtypes": testgroupetcd.NewREST(storageConfig, generic.UndecoratedStorage),
 	}
 	apiGroupInfo := genericapiserver.APIGroupInfo{
 		GroupMeta: *groupMeta,
@@ -94,9 +104,9 @@ func Run(serverOptions *genericoptions.ServerRunOptions) error {
 		Scheme:               api.Scheme,
 		NegotiatedSerializer: api.Codecs,
 	}
-	if err := s.InstallAPIGroups([]genericapiserver.APIGroupInfo{apiGroupInfo}); err != nil {
+	if err := s.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return fmt.Errorf("Error in installing API: %v", err)
 	}
-	s.Run(serverOptions)
+	s.PrepareRun().Run(stopCh)
 	return nil
 }
