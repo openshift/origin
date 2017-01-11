@@ -228,7 +228,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
-	osClient, _, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
+	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
 		if projects, projerr := osClient.Projects().List(kapi.ListOptions{}); projerr != nil {

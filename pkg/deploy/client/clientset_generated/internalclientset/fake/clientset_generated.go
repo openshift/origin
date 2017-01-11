@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset"
-	unversionedcore "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
-	fakeunversionedcore "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned/fake"
+	internalversioncore "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	fakeinternalversioncore "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion/fake"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -47,6 +47,6 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 var _ clientset.Interface = &Clientset{}
 
 // Core retrieves the CoreClient
-func (c *Clientset) Core() unversionedcore.CoreInterface {
-	return &fakeunversionedcore.FakeCore{Fake: &c.Fake}
+func (c *Clientset) Core() internalversioncore.CoreInterface {
+	return &fakeinternalversioncore.FakeCore{Fake: &c.Fake}
 }

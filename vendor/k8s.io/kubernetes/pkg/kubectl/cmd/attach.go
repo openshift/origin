@@ -22,13 +22,13 @@ import (
 	"net/url"
 
 	"github.com/golang/glog"
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	attach_example = dedent.Dedent(`
+	attach_example = templates.Examples(`
 		# Get output from running pod 123456-7890, using the first container by default
 		kubectl attach 123456-7890
 
@@ -48,7 +48,7 @@ var (
 		kubectl attach 123456-7890 -c ruby-container -i -t`)
 )
 
-func NewCmdAttach(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
+func NewCmdAttach(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	options := &AttachOptions{
 		StreamOptions: StreamOptions{
 			In:  cmdIn,
@@ -107,13 +107,13 @@ type AttachOptions struct {
 
 	Pod *api.Pod
 
-	Attach RemoteAttach
-	Client *client.Client
-	Config *restclient.Config
+	Attach    RemoteAttach
+	PodClient coreclient.PodsGetter
+	Config    *restclient.Config
 }
 
 // Complete verifies command line arguments and loads data from the command environment
-func (p *AttachOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn []string) error {
+func (p *AttachOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, argsIn []string) error {
 	if len(argsIn) == 0 {
 		return cmdutil.UsageError(cmd, "POD is required for attach")
 	}
@@ -134,11 +134,11 @@ func (p *AttachOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn 
 	}
 	p.Config = config
 
-	client, err := f.Client()
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	p.Client = client
+	p.PodClient = clientset.Core()
 
 	if p.CommandName == "" {
 		p.CommandName = cmd.CommandPath()
@@ -156,7 +156,7 @@ func (p *AttachOptions) Validate() error {
 	if p.Out == nil || p.Err == nil {
 		allErrs = append(allErrs, fmt.Errorf("both output and error output must be provided"))
 	}
-	if p.Attach == nil || p.Client == nil || p.Config == nil {
+	if p.Attach == nil || p.PodClient == nil || p.Config == nil {
 		allErrs = append(allErrs, fmt.Errorf("client, client config, and attach must be provided"))
 	}
 	return utilerrors.NewAggregate(allErrs)
@@ -165,7 +165,7 @@ func (p *AttachOptions) Validate() error {
 // Run executes a validated remote execution against a pod.
 func (p *AttachOptions) Run() error {
 	if p.Pod == nil {
-		pod, err := p.Client.Pods(p.Namespace).Get(p.PodName)
+		pod, err := p.PodClient.Pods(p.Namespace).Get(p.PodName)
 		if err != nil {
 			return err
 		}
@@ -225,8 +225,12 @@ func (p *AttachOptions) Run() error {
 			fmt.Fprintln(stderr, "If you don't see a command prompt, try pressing enter.")
 		}
 
+		restClient, err := restclient.RESTClientFor(p.Config)
+		if err != nil {
+			return err
+		}
 		// TODO: consider abstracting into a client invocation or client helper
-		req := p.Client.RESTClient.Post().
+		req := restClient.Post().
 			Resource("pods").
 			Name(pod.Name).
 			Namespace(pod.Namespace).

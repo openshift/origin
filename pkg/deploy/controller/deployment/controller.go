@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -211,7 +211,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		updatedAnnotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		deployment.Annotations = updatedAnnotations
 
-		// if we are going to transition to failed or complete and scale is non-zero, we'll check one more
+		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
 		if deployment.Spec.Replicas != 0 && deployutil.IsTerminatedDeployment(deployment) {
 			if config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec); err == nil && config.Spec.Test {

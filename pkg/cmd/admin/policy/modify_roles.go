@@ -251,7 +251,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 		return errors.New("you must specify at least one user or service account")
 	}
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, 
 	o.RoleName = args[0]
 	*target = append(*target, args[1:]...)
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

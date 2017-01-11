@@ -333,7 +333,7 @@ func SetOpenShiftDefaults(config *restclient.Config) error {
 		groupVersionCopy := latest.Version
 		config.GroupVersion = &groupVersionCopy
 	}
-	if config.APIPath == "" {
+	if config.APIPath == "" || config.APIPath == "/api" {
 		config.APIPath = "/oapi"
 	}
 	if config.NegotiatedSerializer == nil {

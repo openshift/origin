@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
@@ -14,7 +14,7 @@ import (
 
 func testTemplateClient(templates *templateapi.TemplateList) client.Interface {
 	fake := &testclient.Fake{}
-	fake.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		if len(action.GetNamespace()) > 0 {
 			matchingTemplates := &templateapi.TemplateList{
 				Items: []templateapi.Template{},

@@ -22,7 +22,7 @@ const (
 
 // CheckPodNetwork is a Diagnostic to check communication between pods in the cluster.
 type CheckPodNetwork struct {
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 	OSClient   *osclient.Client
 
 	vnidMap map[string]uint32

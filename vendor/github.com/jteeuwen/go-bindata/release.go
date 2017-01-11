@@ -103,11 +103,11 @@ func header_compressed_nomemcopy(w io.Writer) error {
 	"compress/gzip"
 	"fmt"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func bindataRead(data, name string) ([]byte, error) {
@@ -140,11 +140,11 @@ func header_compressed_memcopy(w io.Writer) error {
 	"compress/gzip"
 	"fmt"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func bindataRead(data []byte, name string) ([]byte, error) {
@@ -174,13 +174,13 @@ func bindataRead(data []byte, name string) ([]byte, error) {
 func header_uncompressed_nomemcopy(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
-	"unsafe"
-	"os"
 	"time"
-	"io/ioutil"
-	"path/filepath"
+	"unsafe"
 )
 
 func bindataRead(data, name string) ([]byte, error) {
@@ -201,11 +201,11 @@ func bindataRead(data, name string) ([]byte, error) {
 func header_uncompressed_memcopy(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `import (
 	"fmt"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 `)
 	return err
@@ -218,9 +218,9 @@ func header_release_common(w io.Writer) error {
 }
 
 type bindataFileInfo struct {
-	name string
-	size int64
-	mode os.FileMode
+	name    string
+	size    int64
+	mode    os.FileMode
 	modTime time.Time
 }
 
@@ -378,7 +378,7 @@ func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
 	}
 
 	info := bindataFileInfo{name: %q, size: %d, mode: os.FileMode(%d), modTime: time.Unix(%d, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 

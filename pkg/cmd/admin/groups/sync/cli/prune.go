@@ -147,7 +147,7 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 		return err
 	}
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

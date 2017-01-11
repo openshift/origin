@@ -64,6 +64,7 @@ const (
 	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
 	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
 
+	// TODO can we just rename these or how do we handle upgrades?
 	InfraPetSetControllerServiceAccountName = "pet-set-controller"
 	PetSetControllerRoleName                = "system:pet-set-controller"
 
@@ -332,21 +333,22 @@ func init() {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
-				// ScheduledJobController.SyncAll
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncAll
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("jobs", "scheduledjobs"),
+					// TODO do we need to keep scheduledjobs or is cronjobs sufficient?
+					Resources: sets.NewString("jobs", "scheduledjobs", "cronjobs"),
 				},
 				// JobController.syncJob
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("jobs/status", "scheduledjobs/status"),
+					Resources: sets.NewString("jobs/status", "scheduledjobs/status", "cronjobs/status"),
 				},
-				// ScheduledJobController.SyncOne
+				// CronJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("create", "update", "delete"),
@@ -798,6 +800,12 @@ func init() {
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("pods"),
 				},
+				// GCController.nodeStore.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
 				// GCController.deletePod
 				{
 					APIGroups: []string{kapi.GroupName},
@@ -861,43 +869,44 @@ func init() {
 				Name: PetSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				// PetSetController.podCache.ListWatch
+				// StatefulSetController.podCache.ListWatch
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("pods"),
 				},
-				// PetSetController.cache.ListWatch
+				// StatefulSetController.cache.ListWatch
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("petsets"),
+					Resources: sets.NewString("petsets", "statefulsets"),
 				},
-				// PetSetController.petClient
+				// TODO/REBASE reconcile who uses what (kubeClient vs petClient)
+				// StatefulSetController.petClient
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("petsets"),
+					Resources: sets.NewString("petsets", "statefulsets"),
 				},
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("petsets/status"),
+					Resources: sets.NewString("petsets/status", "petsets/status"),
 				},
-				// PetSetController.podClient
+				// StatefulSetController.podClient
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create", "delete", "update"),
 					Resources: sets.NewString("pods"),
 				},
-				// PetSetController.petClient (PVC)
+				// StatefulSetController.petClient (PVC)
 				// This is an escalating client and we must admission check the petset
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create"), // future "delete"
 					Resources: sets.NewString("persistentvolumeclaims"),
 				},
-				// PetSetController.eventRecorder
+				// StatefulSetController.eventRecorder
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("create", "update", "patch"),

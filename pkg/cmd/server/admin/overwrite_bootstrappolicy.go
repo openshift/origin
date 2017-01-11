@@ -12,7 +12,6 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -116,14 +115,14 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
 
-	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: registered.RESTMapper()}}
+	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kcmdutil.ShortcutExpander{RESTMapper: registered.RESTMapper()}}
 	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
-		FilenameParam(false, false, policyFile).
+		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{policyFile}}).
 		Flatten().
 		Do()
 

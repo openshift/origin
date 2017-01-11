@@ -27,6 +27,7 @@ var MissingCommands = sets.NewString(
 	"uncordon",
 	"taint",
 	"top",
+	"certificate",
 )
 
 // WhitelistedCommands is the list of commands we're never going to have in oc
@@ -37,7 +38,7 @@ func TestKubectlCompatibility(t *testing.T) {
 	f := clientcmd.New(pflag.NewFlagSet("name", pflag.ContinueOnError))
 
 	oc := NewCommandCLI("oc", "oc", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
-	kubectl := kcmd.NewKubectlCommand(f.Factory, nil, ioutil.Discard, ioutil.Discard)
+	kubectl := kcmd.NewKubectlCommand(f, nil, ioutil.Discard, ioutil.Discard)
 
 kubectlLoop:
 	for _, kubecmd := range kubectl.Commands() {
@@ -69,7 +70,7 @@ func TestValidateDisabled(t *testing.T) {
 	f := clientcmd.New(pflag.NewFlagSet("name", pflag.ContinueOnError))
 
 	oc := NewCommandCLI("oc", "oc", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
-	kubectl := kcmd.NewKubectlCommand(f.Factory, nil, ioutil.Discard, ioutil.Discard)
+	kubectl := kcmd.NewKubectlCommand(f, nil, ioutil.Discard, ioutil.Discard)
 
 	for _, kubecmd := range kubectl.Commands() {
 		for _, occmd := range oc.Commands() {

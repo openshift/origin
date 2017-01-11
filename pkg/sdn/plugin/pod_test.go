@@ -18,6 +18,7 @@ import (
 	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kcontainertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
+	"k8s.io/kubernetes/pkg/kubelet/network"
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 
@@ -98,7 +99,7 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 	}
 }
 
-func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostport.RunningPod, error) {
+func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostport.ActivePod, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
 	if err != nil {
 		return nil, nil, err
@@ -116,7 +117,7 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostp
 			},
 		},
 	}
-	runningPod := &khostport.RunningPod{
+	runningPod := &khostport.ActivePod{
 		Pod: &kapi.Pod{
 			TypeMeta: kunversioned.TypeMeta{
 				Kind: "Pod",
@@ -160,6 +161,8 @@ type fakeHost struct {
 	runtime kcontainer.Runtime
 }
 
+var _ network.Host = &fakeHost{}
+
 func newFakeHost() *fakeHost {
 	return &fakeHost{
 		runtime: &kcontainertest.FakeRuntime{
@@ -178,6 +181,14 @@ func (fnh *fakeHost) GetKubeClient() clientset.Interface {
 
 func (fnh *fakeHost) GetRuntime() kcontainer.Runtime {
 	return fnh.runtime
+}
+
+func (fnh *fakeHost) GetNetNS(containerID string) (string, error) {
+	return "", nil
+}
+
+func (fnh *fakeHost) SupportsLegacyFeatures() bool {
+	return false
 }
 
 type podcheck struct {

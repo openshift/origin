@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	kpath "k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -161,7 +162,7 @@ func ValidateBuildConfigUpdate(config *buildapi.BuildConfig, older *buildapi.Bui
 
 // ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) field.ErrorList {
-	return validation.ValidateObjectMeta(&request.ObjectMeta, true, validation.ValidatePathSegmentName, field.NewPath("metadata"))
+	return validation.ValidateObjectMeta(&request.ObjectMeta, true, kpath.ValidatePathSegmentName, field.NewPath("metadata"))
 }
 
 func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.ErrorList {

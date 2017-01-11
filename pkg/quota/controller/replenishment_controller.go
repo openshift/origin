@@ -7,13 +7,12 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -32,10 +31,10 @@ func NewReplenishmentControllerFactory(osClient osclient.Interface) kresourcequo
 	}
 }
 
-func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (framework.ControllerInterface, error) {
+func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.ControllerInterface, error) {
 	switch options.GroupKind {
 	case imageapi.Kind("ImageStream"):
-		_, result := framework.NewInformer(
+		_, result := cache.NewInformer(
 			&cache.ListWatch{
 				ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 					return r.osClient.ImageStreams(api.NamespaceAll).List(options)
@@ -46,7 +45,7 @@ func (r *replenishmentControllerFactory) NewController(options *kresourcequota.R
 			},
 			&imageapi.ImageStream{},
 			options.ResyncPeriod(),
-			framework.ResourceEventHandlerFuncs{
+			cache.ResourceEventHandlerFuncs{
 				UpdateFunc: ImageStreamReplenishmentUpdateFunc(options),
 				DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),
 			},
@@ -69,9 +68,9 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 }
 
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
-func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
+func NewAllResourceReplenishmentControllerFactory(informerFactory informers.SharedInformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
-		kresourcequota.NewReplenishmentControllerFactory(informerFactory.Pods().Informer(), kubeClientSet),
+		kresourcequota.NewReplenishmentControllerFactory(informerFactory, kubeClientSet),
 		NewReplenishmentControllerFactory(osClient),
 	}
 }

@@ -59,6 +59,8 @@ ps -ef | grep openshift
 mkdir -p "${SERVER_CONFIG_DIR}"
 pushd "${SERVER_CONFIG_DIR}"
 
+os::test::junit::declare_suite_start "extended/alternate_certs"
+
 # Make custom CA and server cert
 os::cmd::expect_success 'oadm ca create-signer-cert --overwrite=true --cert=master/custom-ca.crt --key=master/custom-ca.key --serial=master/custom-ca.txt --name=my-custom-ca@`date +%s`'
 os::cmd::expect_success 'oadm ca create-server-cert --cert=master/custom.crt --key=master/custom.key --hostnames=localhost,customhost.com --signer-cert=master/custom-ca.crt --signer-key=master/custom-ca.key --signer-serial=master/custom-ca.txt'
@@ -98,6 +100,8 @@ os::cmd::expect_success_and_text "oc whoami --config=master/openshift-master.kub
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig"                                        'system:node:mynode'
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://localhost:${API_PORT}" 'system:node:mynode'
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:node:mynode'
+
+os::test::junit::declare_suite_end
 
 kill $OS_PID
 

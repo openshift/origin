@@ -22,61 +22,119 @@ import (
 	"testing"
 
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful/swagger"
 	"github.com/go-openapi/spec"
 	"github.com/stretchr/testify/assert"
-	"sort"
+	"k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
 )
 
 // setUp is a convenience function for setting up for (most) tests.
-func setUp(t *testing.T, fullMethods bool) (openAPI, *assert.Assertions) {
+func setUp(t *testing.T, fullMethods bool) (openAPI, *restful.Container, *assert.Assertions) {
 	assert := assert.New(t)
-	config := Config{
-		SwaggerConfig: getSwaggerConfig(fullMethods),
-		Info: &spec.Info{
-			InfoProps: spec.InfoProps{
-				Title:       "TestAPI",
-				Description: "Test API",
+	config, container := getConfig(fullMethods)
+	return openAPI{
+		config: config,
+		swagger: &spec.Swagger{
+			SwaggerProps: spec.SwaggerProps{
+				Swagger:     OpenAPIVersion,
+				Definitions: spec.Definitions{},
+				Paths:       &spec.Paths{Paths: map[string]spec.PathItem{}},
+				Info:        config.Info,
 			},
 		},
-	}
-	return openAPI{config: &config}, assert
+	}, container, assert
 }
 
 func noOp(request *restful.Request, response *restful.Response) {}
 
+// Test input
 type TestInput struct {
-	Name string   `json:"name,omitempty"`
+	// Name of the input
+	Name string `json:"name,omitempty"`
+	// ID of the input
 	ID   int      `json:"id,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 }
 
+// Test output
 type TestOutput struct {
-	Name  string `json:"name,omitempty"`
-	Count int    `json:"count,omitempty"`
+	// Name of the output
+	Name string `json:"name,omitempty"`
+	// Number of outputs
+	Count int `json:"count,omitempty"`
 }
 
-func (t TestInput) SwaggerDoc() map[string]string {
-	return map[string]string{
-		"":     "Test input",
-		"name": "Name of the input",
-		"id":   "ID of the input",
+func (_ TestInput) OpenAPIDefinition() *common.OpenAPIDefinition {
+	schema := spec.Schema{}
+	schema.Description = "Test input"
+	schema.Properties = map[string]spec.Schema{
+		"name": {
+			SchemaProps: spec.SchemaProps{
+				Description: "Name of the input",
+				Type:        []string{"string"},
+				Format:      "",
+			},
+		},
+		"id": {
+			SchemaProps: spec.SchemaProps{
+				Description: "ID of the input",
+				Type:        []string{"integer"},
+				Format:      "int32",
+			},
+		},
+		"tags": {
+			SchemaProps: spec.SchemaProps{
+				Description: "",
+				Type:        []string{"array"},
+				Items: &spec.SchemaOrArray{
+					Schema: &spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+	}
+	return &common.OpenAPIDefinition{
+		Schema:       schema,
+		Dependencies: []string{},
 	}
 }
 
-func (t TestOutput) SwaggerDoc() map[string]string {
-	return map[string]string{
-		"":      "Test output",
-		"name":  "Name of the output",
-		"count": "Number of outputs",
+func (_ TestOutput) OpenAPIDefinition() *common.OpenAPIDefinition {
+	schema := spec.Schema{}
+	schema.Description = "Test output"
+	schema.Properties = map[string]spec.Schema{
+		"name": {
+			SchemaProps: spec.SchemaProps{
+				Description: "Name of the output",
+				Type:        []string{"string"},
+				Format:      "",
+			},
+		},
+		"count": {
+			SchemaProps: spec.SchemaProps{
+				Description: "Number of outputs",
+				Type:        []string{"integer"},
+				Format:      "int32",
+			},
+		},
+	}
+	return &common.OpenAPIDefinition{
+		Schema:       schema,
+		Dependencies: []string{},
 	}
 }
 
-func getTestRoute(ws *restful.WebService, method string, additionalParams bool) *restful.RouteBuilder {
+var _ common.OpenAPIDefinitionGetter = TestInput{}
+var _ common.OpenAPIDefinitionGetter = TestOutput{}
+
+func getTestRoute(ws *restful.WebService, method string, additionalParams bool, opPrefix string) *restful.RouteBuilder {
 	ret := ws.Method(method).
 		Path("/test/{path:*}").
 		Doc(fmt.Sprintf("%s test input", method)).
-		Operation(fmt.Sprintf("%sTestInput", method)).
+		Operation(fmt.Sprintf("%s%sTestInput", method, opPrefix)).
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON).
 		Param(ws.PathParameter("path", "path to the resource").DataType("string")).
@@ -92,41 +150,50 @@ func getTestRoute(ws *restful.WebService, method string, additionalParams bool) 
 	return ret
 }
 
-func getSwaggerConfig(fullMethods bool) *swagger.Config {
+func getConfig(fullMethods bool) (*common.Config, *restful.Container) {
 	mux := http.NewServeMux()
 	container := restful.NewContainer()
 	container.ServeMux = mux
 	ws := new(restful.WebService)
 	ws.Path("/foo")
-	ws.Route(getTestRoute(ws, "get", true))
+	ws.Route(getTestRoute(ws, "get", true, "foo"))
 	if fullMethods {
-		ws.Route(getTestRoute(ws, "post", false)).
-			Route(getTestRoute(ws, "put", false)).
-			Route(getTestRoute(ws, "head", false)).
-			Route(getTestRoute(ws, "patch", false)).
-			Route(getTestRoute(ws, "options", false)).
-			Route(getTestRoute(ws, "delete", false))
+		ws.Route(getTestRoute(ws, "post", false, "foo")).
+			Route(getTestRoute(ws, "put", false, "foo")).
+			Route(getTestRoute(ws, "head", false, "foo")).
+			Route(getTestRoute(ws, "patch", false, "foo")).
+			Route(getTestRoute(ws, "options", false, "foo")).
+			Route(getTestRoute(ws, "delete", false, "foo"))
 
 	}
 	ws.Path("/bar")
-	ws.Route(getTestRoute(ws, "get", true))
+	ws.Route(getTestRoute(ws, "get", true, "bar"))
 	if fullMethods {
-		ws.Route(getTestRoute(ws, "post", false)).
-			Route(getTestRoute(ws, "put", false)).
-			Route(getTestRoute(ws, "head", false)).
-			Route(getTestRoute(ws, "patch", false)).
-			Route(getTestRoute(ws, "options", false)).
-			Route(getTestRoute(ws, "delete", false))
+		ws.Route(getTestRoute(ws, "post", false, "bar")).
+			Route(getTestRoute(ws, "put", false, "bar")).
+			Route(getTestRoute(ws, "head", false, "bar")).
+			Route(getTestRoute(ws, "patch", false, "bar")).
+			Route(getTestRoute(ws, "options", false, "bar")).
+			Route(getTestRoute(ws, "delete", false, "bar"))
 
 	}
 	container.Add(ws)
-	return &swagger.Config{
-		WebServicesUrl: "https://test-server",
-		WebServices:    container.RegisteredWebServices(),
-	}
+	return &common.Config{
+		ProtocolList: []string{"https"},
+		Info: &spec.Info{
+			InfoProps: spec.InfoProps{
+				Title:       "TestAPI",
+				Description: "Test API",
+			},
+		},
+		Definitions: &common.OpenAPIDefinitions{
+			"openapi.TestInput":  *TestInput{}.OpenAPIDefinition(),
+			"openapi.TestOutput": *TestOutput{}.OpenAPIDefinition(),
+		},
+	}, container
 }
 
-func getTestOperation(method string) *spec.Operation {
+func getTestOperation(method string, opPrefix string) *spec.Operation {
 	return &spec.Operation{
 		OperationProps: spec.OperationProps{
 			Description: fmt.Sprintf("%s test input", method),
@@ -135,25 +202,26 @@ func getTestOperation(method string) *spec.Operation {
 			Schemes:     []string{"https"},
 			Parameters:  []spec.Parameter{},
 			Responses:   getTestResponses(),
+			ID:          fmt.Sprintf("%s%sTestInput", method, opPrefix),
 		},
 	}
 }
 
-func getTestPathItem(allMethods bool) spec.PathItem {
+func getTestPathItem(allMethods bool, opPrefix string) spec.PathItem {
 	ret := spec.PathItem{
 		PathItemProps: spec.PathItemProps{
-			Get:        getTestOperation("get"),
+			Get:        getTestOperation("get", opPrefix),
 			Parameters: getTestCommonParameters(),
 		},
 	}
 	ret.Get.Parameters = getAdditionalTestParameters()
 	if allMethods {
-		ret.PathItemProps.Put = getTestOperation("put")
-		ret.PathItemProps.Post = getTestOperation("post")
-		ret.PathItemProps.Head = getTestOperation("head")
-		ret.PathItemProps.Patch = getTestOperation("patch")
-		ret.PathItemProps.Delete = getTestOperation("delete")
-		ret.PathItemProps.Options = getTestOperation("options")
+		ret.PathItemProps.Put = getTestOperation("put", opPrefix)
+		ret.PathItemProps.Post = getTestOperation("post", opPrefix)
+		ret.PathItemProps.Head = getTestOperation("head", opPrefix)
+		ret.PathItemProps.Patch = getTestOperation("patch", opPrefix)
+		ret.PathItemProps.Delete = getTestOperation("delete", opPrefix)
+		ret.PathItemProps.Options = getTestOperation("options", opPrefix)
 	}
 	return ret
 }
@@ -252,60 +320,27 @@ func getAdditionalTestParameters() []spec.Parameter {
 	return ret
 }
 
-type Parameters []spec.Parameter
-
-func (s Parameters) Len() int      { return len(s) }
-func (s Parameters) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-
-type ByName struct {
-	Parameters
-}
-
-func (s ByName) Less(i, j int) bool {
-	return s.Parameters[i].Name < s.Parameters[j].Name
-}
-
-// TODO(mehdy): Consider sort parameters in actual spec generation for more predictable spec generation
-func sortParameters(s *spec.Swagger) *spec.Swagger {
-	for k, p := range s.Paths.Paths {
-		sort.Sort(ByName{p.Parameters})
-		sort.Sort(ByName{p.Get.Parameters})
-		sort.Sort(ByName{p.Put.Parameters})
-		sort.Sort(ByName{p.Post.Parameters})
-		sort.Sort(ByName{p.Head.Parameters})
-		sort.Sort(ByName{p.Delete.Parameters})
-		sort.Sort(ByName{p.Options.Parameters})
-		sort.Sort(ByName{p.Patch.Parameters})
-		s.Paths.Paths[k] = p // Unnecessary?! Magic!!!
-	}
-	return s
-}
-
 func getTestInputDefinition() spec.Schema {
 	return spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Description: "Test input",
-			Required:    []string{},
 			Properties: map[string]spec.Schema{
 				"id": {
 					SchemaProps: spec.SchemaProps{
 						Description: "ID of the input",
 						Type:        spec.StringOrArray{"integer"},
 						Format:      "int32",
-						Enum:        []interface{}{},
 					},
 				},
 				"name": {
 					SchemaProps: spec.SchemaProps{
 						Description: "Name of the input",
 						Type:        spec.StringOrArray{"string"},
-						Enum:        []interface{}{},
 					},
 				},
 				"tags": {
 					SchemaProps: spec.SchemaProps{
 						Type: spec.StringOrArray{"array"},
-						Enum: []interface{}{},
 						Items: &spec.SchemaOrArray{
 							Schema: &spec.Schema{
 								SchemaProps: spec.SchemaProps{
@@ -324,21 +359,18 @@ func getTestOutputDefinition() spec.Schema {
 	return spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Description: "Test output",
-			Required:    []string{},
 			Properties: map[string]spec.Schema{
 				"count": {
 					SchemaProps: spec.SchemaProps{
 						Description: "Number of outputs",
 						Type:        spec.StringOrArray{"integer"},
 						Format:      "int32",
-						Enum:        []interface{}{},
 					},
 				},
 				"name": {
 					SchemaProps: spec.SchemaProps{
 						Description: "Name of the output",
 						Type:        spec.StringOrArray{"string"},
-						Enum:        []interface{}{},
 					},
 				},
 			},
@@ -347,7 +379,7 @@ func getTestOutputDefinition() spec.Schema {
 }
 
 func TestBuildSwaggerSpec(t *testing.T) {
-	o, assert := setUp(t, true)
+	o, container, assert := setUp(t, true)
 	expected := &spec.Swagger{
 		SwaggerProps: spec.SwaggerProps{
 			Info: &spec.Info{
@@ -359,8 +391,8 @@ func TestBuildSwaggerSpec(t *testing.T) {
 			Swagger: "2.0",
 			Paths: &spec.Paths{
 				Paths: map[string]spec.PathItem{
-					"/foo/test/{path}": getTestPathItem(true),
-					"/bar/test/{path}": getTestPathItem(true),
+					"/foo/test/{path}": getTestPathItem(true, "foo"),
+					"/bar/test/{path}": getTestPathItem(true, "bar"),
 				},
 			},
 			Definitions: spec.Definitions{
@@ -369,49 +401,8 @@ func TestBuildSwaggerSpec(t *testing.T) {
 			},
 		},
 	}
-	err := o.buildSwaggerSpec()
+	err := o.init(container.RegisteredWebServices())
 	if assert.NoError(err) {
-		sortParameters(expected)
-		sortParameters(o.swagger)
 		assert.Equal(expected, o.swagger)
-	}
-}
-
-func TestBuildSwaggerSpecTwice(t *testing.T) {
-	o, assert := setUp(t, true)
-	err := o.buildSwaggerSpec()
-	if assert.NoError(err) {
-		assert.Error(o.buildSwaggerSpec(), "Swagger spec is already built. Duplicate call to buildSwaggerSpec is not allowed.")
-	}
-
-}
-func TestBuildDefinitions(t *testing.T) {
-	o, assert := setUp(t, true)
-	expected := spec.Definitions{
-		"openapi.TestInput":  getTestInputDefinition(),
-		"openapi.TestOutput": getTestOutputDefinition(),
-	}
-	def, err := o.buildDefinitions()
-	if assert.NoError(err) {
-		assert.Equal(expected, def)
-	}
-}
-
-func TestBuildProtocolList(t *testing.T) {
-	assert := assert.New(t)
-	o := openAPI{config: &Config{SwaggerConfig: &swagger.Config{WebServicesUrl: "https://something"}}}
-	p, err := o.buildProtocolList()
-	if assert.NoError(err) {
-		assert.Equal([]string{"https"}, p)
-	}
-	o = openAPI{config: &Config{SwaggerConfig: &swagger.Config{WebServicesUrl: "http://something"}}}
-	p, err = o.buildProtocolList()
-	if assert.NoError(err) {
-		assert.Equal([]string{"http"}, p)
-	}
-	o = openAPI{config: &Config{SwaggerConfig: &swagger.Config{WebServicesUrl: "something"}}}
-	p, err = o.buildProtocolList()
-	if assert.NoError(err) {
-		assert.Equal([]string{"http"}, p)
 	}
 }

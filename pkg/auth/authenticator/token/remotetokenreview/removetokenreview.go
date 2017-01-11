@@ -5,15 +5,15 @@ import (
 
 	"k8s.io/kubernetes/pkg/apis/authentication"
 	"k8s.io/kubernetes/pkg/auth/user"
-	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/unversioned"
+	internalauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
 )
 
 type Authenticator struct {
-	authenticationClient unversionedauthentication.TokenReviewsGetter
+	authenticationClient internalauthentication.TokenReviewsGetter
 }
 
 // NewAuthenticator authenticates by doing a tokenreview
-func NewAuthenticator(authenticationClient unversionedauthentication.TokenReviewsGetter) (*Authenticator, error) {
+func NewAuthenticator(authenticationClient internalauthentication.TokenReviewsGetter) (*Authenticator, error) {
 	return &Authenticator{
 		authenticationClient: authenticationClient,
 	}, nil

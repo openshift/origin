@@ -46,7 +46,7 @@ type ImageExecutionPolicyRule struct {
 
 // GroupResource represents a resource in a specific group.
 type GroupResource struct {
-	// Resource is the name of an admission resource to process, e.g. 'petsets'.
+	// Resource is the name of an admission resource to process, e.g. 'statefulsets'.
 	Resource string `json:"resource"`
 	// Group is the name of the group the resource is in, e.g. 'apps'.
 	Group string `json:"group"`

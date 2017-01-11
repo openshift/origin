@@ -43,7 +43,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
 				if err != nil {
 					return false, err
 				}
@@ -84,7 +84,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeFramework().Client.Pods(ns).Get("router-override")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override")
 				if err != nil {
 					return false, err
 				}
@@ -105,8 +105,6 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
 			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, 60*2)
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			oc.KubeFramework().Client.Pods(ns)
 
 			g.By("waiting for the valid route to respond")
 			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, fmt.Sprintf(pattern, "route-1", ns), 60*2)

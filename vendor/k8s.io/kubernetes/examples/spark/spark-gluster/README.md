@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 # Spark on GlusterFS example
 
 This guide is an extension of the standard [Spark on Kubernetes Guide](../../../examples/spark/) and describes how to run Spark on GlusterFS using the [Kubernetes Volume Plugin for GlusterFS](../../../examples/volumes/glusterfs/)
@@ -122,13 +117,6 @@ While still in the container, you can see the output of your Spark Job in the Di
 ```console
 root@spark-master-controller-c1sqd:/# ls -l /mnt/glusterfs/output
 ```
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/spark/spark-gluster/README.md?pixel)]()

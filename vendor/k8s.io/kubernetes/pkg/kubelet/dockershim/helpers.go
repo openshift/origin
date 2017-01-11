@@ -18,7 +18,7 @@ package dockershim
 
 import (
 	"fmt"
-	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -28,14 +28,18 @@ import (
 	dockernat "github.com/docker/go-connections/nat"
 	"github.com/golang/glog"
 
+	"k8s.io/kubernetes/pkg/api"
 	runtimeApi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
-	// kubePrefix is used to identify the containers/sandboxes on the node managed by kubelet
-	kubePrefix = "k8s"
-	// kubeSandboxNamePrefix is used to keep sandbox name consistent with old podInfraContainer name
-	kubeSandboxNamePrefix = "POD"
+	annotationPrefix = "annotation."
+)
+
+var (
+	conflictRE = regexp.MustCompile(`Conflict. (?:.)+ is already in use by container ([0-9a-z]+)`)
 )
 
 // apiVersion implements kubecontainer.Version interface by implementing
@@ -65,21 +69,55 @@ func generateEnvList(envs []*runtimeApi.KeyValue) (result []string) {
 	return
 }
 
-// Merge annotations and labels because docker supports only labels.
-// TODO: Need to be able to distinguish annotations from labels; otherwise, we
-// couldn't restore the information when reading the labels back from docker.
+// makeLabels converts annotations to labels and merge them with the given
+// labels. This is necessary because docker does not support annotations;
+// we *fake* annotations using labels. Note that docker labels are not
+// updatable.
 func makeLabels(labels, annotations map[string]string) map[string]string {
 	merged := make(map[string]string)
 	for k, v := range labels {
 		merged[k] = v
 	}
 	for k, v := range annotations {
-		if _, ok := merged[k]; !ok {
-			// Don't overwrite the key if it already exists.
-			merged[k] = v
-		}
+		// Assume there won't be conflict.
+		merged[fmt.Sprintf("%s%s", annotationPrefix, k)] = v
 	}
 	return merged
+}
+
+// extractLabels converts raw docker labels to the CRI labels and annotations.
+// It also filters out internal labels used by this shim.
+func extractLabels(input map[string]string) (map[string]string, map[string]string) {
+	labels := make(map[string]string)
+	annotations := make(map[string]string)
+	for k, v := range input {
+		// Check if the key is used internally by the shim.
+		internal := false
+		for _, internalKey := range internalLabelKeys {
+			if k == internalKey {
+				internal = true
+				break
+			}
+		}
+		if internal {
+			continue
+		}
+
+		// Delete the container name label for the sandbox. It is added in the shim,
+		// should not be exposed via CRI.
+		if k == types.KubernetesContainerNameLabel &&
+			input[containerTypeLabelKey] == containerTypeLabelSandbox {
+			continue
+		}
+
+		// Check if the label should be treated as an annotation.
+		if strings.HasPrefix(k, annotationPrefix) {
+			annotations[strings.TrimPrefix(k, annotationPrefix)] = v
+			continue
+		}
+		labels[k] = v
+	}
+	return labels, annotations
 }
 
 // generateMountBindings converts the mount list to a list of strings that
@@ -90,13 +128,16 @@ func makeLabels(labels, annotations map[string]string) map[string]string {
 // '<HostPath>:<ContainerPath>:Z', if the volume requires SELinux
 // relabeling and the pod provides an SELinux label
 func generateMountBindings(mounts []*runtimeApi.Mount) (result []string) {
-	// TODO: resolve podHasSELinuxLabel
 	for _, m := range mounts {
 		bind := fmt.Sprintf("%s:%s", m.GetHostPath(), m.GetContainerPath())
 		readOnly := m.GetReadonly()
 		if readOnly {
 			bind += ":ro"
 		}
+		// Only request relabeling if the pod provides an SELinux context. If the pod
+		// does not provide an SELinux context relabeling will label the volume with
+		// the container's randomly allocated MCS label. This would restrict access
+		// to the volume to the container which mounts it first.
 		if m.GetSelinuxRelabel() {
 			if readOnly {
 				bind += ",Z"
@@ -154,97 +195,122 @@ func makePortsAndBindings(pm []*runtimeApi.PortMapping) (map[dockernat.Port]stru
 	return exposedPorts, portBindings
 }
 
-// TODO: Seccomp support. Need to figure out how to pass seccomp options
-// through the runtime API (annotations?).See dockerManager.getSecurityOpts()
-// for the details. Always set the default seccomp profile for now.
-// Also need to support syntax for different docker versions.
-func getSeccompOpts() string {
-	return fmt.Sprintf("%s=%s", "seccomp", defaultSeccompProfile)
+// getContainerSecurityOpt gets container security options from container and sandbox config, currently from sandbox
+// annotations.
+// It is an experimental feature and may be promoted to official runtime api in the future.
+func getContainerSecurityOpts(containerName string, sandboxConfig *runtimeApi.PodSandboxConfig, seccompProfileRoot string) ([]string, error) {
+	appArmorOpts, err := dockertools.GetAppArmorOpts(sandboxConfig.GetAnnotations(), containerName)
+	if err != nil {
+		return nil, err
+	}
+	seccompOpts, err := dockertools.GetSeccompOpts(sandboxConfig.GetAnnotations(), containerName, seccompProfileRoot)
+	if err != nil {
+		return nil, err
+	}
+	securityOpts := append(appArmorOpts, seccompOpts...)
+	var opts []string
+	for _, securityOpt := range securityOpts {
+		k, v := securityOpt.GetKV()
+		opts = append(opts, fmt.Sprintf("%s=%s", k, v))
+	}
+	return opts, nil
+}
+
+func getSandboxSecurityOpts(sandboxConfig *runtimeApi.PodSandboxConfig, seccompProfileRoot string) ([]string, error) {
+	// sandboxContainerName doesn't exist in the pod, so pod security options will be returned by default.
+	return getContainerSecurityOpts(sandboxContainerName, sandboxConfig, seccompProfileRoot)
 }
 
 func getNetworkNamespace(c *dockertypes.ContainerJSON) string {
+	if c.State.Pid == 0 {
+		// Docker reports pid 0 for an exited container. We can't use it to
+		// check the network namespace, so return an empty string instead.
+		glog.V(4).Infof("Cannot find network namespace for the terminated container %q", c.ID)
+		return ""
+	}
 	return fmt.Sprintf(dockerNetNSFmt, c.State.Pid)
 }
 
-// buildKubeGenericName creates a name which can be reversed to identify container/sandbox name.
-// This function returns the unique name.
-func buildKubeGenericName(sandboxConfig *runtimeApi.PodSandboxConfig, containerName string) string {
-	stableName := fmt.Sprintf("%s_%s_%s_%s_%s",
-		kubePrefix,
-		containerName,
-		sandboxConfig.Metadata.GetName(),
-		sandboxConfig.Metadata.GetNamespace(),
-		sandboxConfig.Metadata.GetUid(),
-	)
-	UID := fmt.Sprintf("%08x", rand.Uint32())
-	return fmt.Sprintf("%s_%s", stableName, UID)
-}
+// getSysctlsFromAnnotations gets sysctls from annotations.
+func getSysctlsFromAnnotations(annotations map[string]string) (map[string]string, error) {
+	var results map[string]string
 
-// buildSandboxName creates a name which can be reversed to identify sandbox full name.
-func buildSandboxName(sandboxConfig *runtimeApi.PodSandboxConfig) string {
-	sandboxName := fmt.Sprintf("%s.%d", kubeSandboxNamePrefix, sandboxConfig.Metadata.GetAttempt())
-	return buildKubeGenericName(sandboxConfig, sandboxName)
-}
-
-// parseSandboxName unpacks a sandbox full name, returning the pod name, namespace, uid and attempt.
-func parseSandboxName(name string) (string, string, string, uint32, error) {
-	podName, podNamespace, podUID, _, attempt, err := parseContainerName(name)
+	sysctls, unsafeSysctls, err := api.SysctlsFromPodAnnotations(annotations)
 	if err != nil {
-		return "", "", "", 0, err
+		return nil, err
 	}
-
-	return podName, podNamespace, podUID, attempt, nil
-}
-
-// buildContainerName creates a name which can be reversed to identify container name.
-// This function returns stable name, unique name and a unique id.
-func buildContainerName(sandboxConfig *runtimeApi.PodSandboxConfig, containerConfig *runtimeApi.ContainerConfig) string {
-	containerName := fmt.Sprintf("%s.%d", containerConfig.Metadata.GetName(), containerConfig.Metadata.GetAttempt())
-	return buildKubeGenericName(sandboxConfig, containerName)
-}
-
-// parseContainerName unpacks a container name, returning the pod name, namespace, UID,
-// container name and attempt.
-func parseContainerName(name string) (podName, podNamespace, podUID, containerName string, attempt uint32, err error) {
-	parts := strings.Split(name, "_")
-	if len(parts) == 0 || parts[0] != kubePrefix {
-		err = fmt.Errorf("failed to parse container name %q into parts", name)
-		return "", "", "", "", 0, err
-	}
-	if len(parts) < 6 {
-		glog.Warningf("Found a container with the %q prefix, but too few fields (%d): %q", kubePrefix, len(parts), name)
-		err = fmt.Errorf("container name %q has fewer parts than expected %v", name, parts)
-		return "", "", "", "", 0, err
-	}
-
-	nameParts := strings.Split(parts[1], ".")
-	containerName = nameParts[0]
-	if len(nameParts) > 1 {
-		attemptNumber, err := strconv.ParseUint(nameParts[1], 10, 32)
-		if err != nil {
-			glog.Warningf("invalid container attempt %q in container %q", nameParts[1], name)
+	if len(sysctls)+len(unsafeSysctls) > 0 {
+		results = make(map[string]string, len(sysctls)+len(unsafeSysctls))
+		for _, c := range sysctls {
+			results[c.Name] = c.Value
 		}
-
-		attempt = uint32(attemptNumber)
+		for _, c := range unsafeSysctls {
+			results[c.Name] = c.Value
+		}
 	}
 
-	return parts[2], parts[3], parts[4], containerName, attempt, nil
+	return results, nil
 }
 
 // dockerFilter wraps around dockerfilters.Args and provides methods to modify
 // the filter easily.
 type dockerFilter struct {
-	f *dockerfilters.Args
+	args *dockerfilters.Args
 }
 
 func newDockerFilter(args *dockerfilters.Args) *dockerFilter {
-	return &dockerFilter{f: args}
+	return &dockerFilter{args: args}
 }
 
 func (f *dockerFilter) Add(key, value string) {
-	f.Add(key, value)
+	f.args.Add(key, value)
 }
 
 func (f *dockerFilter) AddLabel(key, value string) {
 	f.Add("label", fmt.Sprintf("%s=%s", key, value))
+}
+
+// getUserFromImageUser gets uid or user name of the image user.
+// If user is numeric, it will be treated as uid; or else, it is treated as user name.
+func getUserFromImageUser(imageUser string) (*int64, *string) {
+	user := dockertools.GetUserFromImageUser(imageUser)
+	// return both nil if user is not specified in the image.
+	if user == "" {
+		return nil, nil
+	}
+	// user could be either uid or user name. Try to interpret as numeric uid.
+	uid, err := strconv.ParseInt(user, 10, 64)
+	if err != nil {
+		// If user is non numeric, assume it's user name.
+		return nil, &user
+	}
+	// If user is a numeric uid.
+	return &uid, nil
+}
+
+// See #33189. If the previous attempt to create a sandbox container name FOO
+// failed due to "device or resource busy", it is possbile that docker did
+// not clean up properly and has inconsistent internal state. Docker would
+// not report the existence of FOO, but would complain if user wants to
+// create a new container named FOO. To work around this, we parse the error
+// message to identify failure caused by naming conflict, and try to remove
+// the old container FOO.
+// TODO(#33189): Monitor the tests to see if the fix is sufficent.
+func recoverFromConflictIfNeeded(client dockertools.DockerInterface, err error) {
+	if err == nil {
+		return
+	}
+
+	matches := conflictRE.FindStringSubmatch(err.Error())
+	if len(matches) != 2 {
+		return
+	}
+
+	id := matches[1]
+	glog.Warningf("Unable to create pod sandbox due to conflict. Attempting to remove sandbox %q", id)
+	if err := client.RemoveContainer(id, dockertypes.ContainerRemoveOptions{RemoveVolumes: true}); err != nil {
+		glog.Errorf("Failed to remove the conflicting sandbox container: %v", err)
+	} else {
+		glog.V(2).Infof("Successfully removed conflicting sandbox %q", id)
+	}
 }

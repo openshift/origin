@@ -5,7 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
@@ -190,7 +190,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	nonEscalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	nonEscalatingEditConfig.BearerToken = nonEscalatingEditToken.Name
-	nonEscalatingEditClient, err := kclient.New(&nonEscalatingEditConfig)
+	nonEscalatingEditClient, err := kclientset.NewForConfig(&nonEscalatingEditConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	escalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	escalatingEditConfig.BearerToken = escalatingEditToken.Name
-	escalatingEditClient, err := kclient.New(&escalatingEditConfig)
+	escalatingEditClient, err := kclientset.NewForConfig(&escalatingEditConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

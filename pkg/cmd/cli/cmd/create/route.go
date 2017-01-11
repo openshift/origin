@@ -91,7 +91,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 
 // CreateEdgeRoute implements the behavior to run the create edge route command.
 func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -206,7 +206,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 
 // CreatePassthroughRoute implements the behavior to run the create passthrough route command.
 func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -311,7 +311,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
 func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -368,7 +368,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 			return err
 		}
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -388,7 +388,7 @@ func resolveServiceName(f *clientcmd.Factory, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
 	}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	rType, name, err := cmdutil.ResolveResource(kapi.Resource("services"), resource, mapper)
 	if err != nil {
 		return "", err

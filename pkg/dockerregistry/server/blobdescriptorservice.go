@@ -8,6 +8,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
@@ -177,9 +178,15 @@ func imageHasBlob(
 
 	// in case of pullthrough disabled, client won't be able to download a blob belonging to not managed image
 	// (image stored in external registry), thus don't consider them as candidates
-	if managed := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; requireManaged && managed != "true" {
+	if requireManaged && !isImageManaged(image) {
 		context.GetLogger(r.ctx).Debugf("skipping not managed image")
 		return false
+	}
+
+	// someone asks for manifest
+	if imageName == blobDigest {
+		r.rememberLayersOfImage(image, cacheName)
+		return true
 	}
 
 	if len(image.DockerImageLayers) == 0 {
@@ -204,7 +211,8 @@ func imageHasBlob(
 	}
 
 	// only manifest V2 schema2 has docker image config filled where dockerImage.Metadata.id is its digest
-	if len(image.DockerImageConfig) > 0 && image.DockerImageMetadata.ID == blobDigest {
+	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest &&
+		image.DockerImageMetadata.ID == blobDigest {
 		// remember manifest config reference of schema 2 as well
 		r.rememberLayersOfImage(image, cacheName)
 		return true

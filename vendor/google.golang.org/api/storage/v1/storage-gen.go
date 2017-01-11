@@ -7,7 +7,7 @@
 //   import "google.golang.org/api/storage/v1"
 //   ...
 //   storageService, err := storage.New(oauthHttpClient)
-package storage // import "google.golang.org/api/storage/v1"
+package storage
 
 import (
 	"bytes"

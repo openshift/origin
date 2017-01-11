@@ -205,6 +205,8 @@ type ClientStartConfig struct {
 
 	shouldInitializeData *bool
 	shouldCreateUser     *bool
+
+	containerNetworkErr chan error
 }
 
 func (c *ClientStartConfig) addTask(name string, fn taskFunc) {
@@ -306,6 +308,9 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Remove temporary directory
 	c.addTask("Removing temporary directory", c.RemoveTemporaryDirectory)
+
+	// Check container networking
+	c.addTask("Checking container networking", c.CheckContainerNetworking)
 
 	// Display server information
 	c.addTask("Server Information", c.ServerInfo)
@@ -668,7 +673,29 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		opt.LoggingHost = openshift.LoggingHost(c.RoutingSuffix, c.ServerIP)
 	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Start a container networking test
+	c.containerNetworkErr = make(chan error)
+	go func() {
+		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(c.ServerIP)
+	}()
+	return nil
+}
+
+func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
+	networkErr := <-c.containerNetworkErr
+	if networkErr != nil {
+		return errors.NewError("containers cannot communicate with the OpenShift master").
+			WithDetails("The cluster was started. However, the container networking test failed.").
+			WithSolution(
+				fmt.Sprintf("Ensure that access to ports tcp/8443 and udp/53 is allowed on %s.\n"+
+					"You may need to open these ports on your machine's firewall.", c.ServerIP)).
+			WithCause(networkErr)
+	}
+	return nil
 }
 
 func (c *ClientStartConfig) imageFormat() string {
@@ -806,12 +833,12 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (*client.Client, *kclientset.Clientset, error) {
+func (c *ClientStartConfig) Clients() (*client.Client, kclientset.Interface, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
 	}
-	oc, _, kcset, err := f.Clients()
+	oc, kcset, err := f.Clients()
 	if err != nil {
 		return nil, nil, err
 	}

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run the CockroachDB PetSet example on a minikube instance.
+# Run the CockroachDB StatefulSet example on a minikube instance.
 #
 # For a fresh start, run the following first:
 #   minikube delete
@@ -28,11 +28,14 @@
 
 set -exuo pipefail
 
+# Clean up anything from a prior run:
+kubectl delete statefulsets,pods,persistentvolumes,persistentvolumeclaims,services -l app=cockroachdb
+
 # Make persistent volumes and (correctly named) claims. We must create the
 # claims here manually even though that sounds counter-intuitive. For details
 # see https://github.com/kubernetes/contrib/pull/1295#issuecomment-230180894.
 # Note that we make an extra volume here so you can manually test scale-up.
-for i in $(seq 0 5); do
+for i in $(seq 0 3); do
   cat <<EOF | kubectl create -f -
 kind: PersistentVolume
 apiVersion: v1
@@ -40,6 +43,7 @@ metadata:
   name: pv${i}
   labels:
     type: local
+    app: cockroachdb
 spec:
   capacity:
     storage: 1Gi
@@ -54,6 +58,8 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: datadir-cockroachdb-${i}
+  labels:
+    app: cockroachdb
 spec:
   accessModes:
     - ReadWriteOnce
@@ -63,4 +69,4 @@ spec:
 EOF
 done;
 
-kubectl create -f cockroachdb-petset.yaml
+kubectl create -f cockroachdb-statefulset.yaml

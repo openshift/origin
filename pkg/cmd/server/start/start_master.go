@@ -17,6 +17,8 @@ import (
 
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -359,7 +361,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl, openshiftConfig.Authenticator)
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClientset(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl, openshiftConfig.Authenticator)
 	return kubeConfig, err
 }
 
@@ -439,12 +441,13 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
+			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 		}()
 	} else {
+		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
-
 	}
 
 	return nil
@@ -476,17 +479,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	oc.RunGroupCache()
 	oc.RunProjectCache()
 
-	unprotectedInstallers := []origin.APIInstaller{}
-
-	if oc.Options.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(oc)
-		if err != nil {
-			return err
-		}
-		unprotectedInstallers = append(unprotectedInstallers, authConfig)
-	}
-
-	var standaloneAssetConfig *origin.AssetConfig
+	var standaloneAssetConfig, embeddedAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
 		overrideConfig, err := getResourceOverrideConfig(oc)
 		if err != nil {
@@ -498,26 +491,27 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 
 		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
-			unprotectedInstallers = append(unprotectedInstallers, config)
+			embeddedAssetConfig = config
 		} else {
 			standaloneAssetConfig = config
 		}
 	}
 
 	if kc != nil {
-		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
+		oc.Run(kc, embeddedAssetConfig)
 	} else {
-		_, _, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
 		proxy := &kubernetes.ProxyConfig{
 			ClientConfig: kubeClientConfig,
 		}
-		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
+		oc.RunInProxyMode(proxy, embeddedAssetConfig)
 	}
 
 	// start up the informers that we're trying to use in the API server
+	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
@@ -618,10 +612,16 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for deployment controller: %v", err)
 		}
-		jobConfig, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
+
+		// TODO there has to be a better way to do this!
+		// Make a copy of the client config because we need to modify it
+		jobClientConfig := oc.PrivilegedLoopbackClientConfig
+		jobClientConfig.ContentConfig.GroupVersion = &unversioned.GroupVersion{Group: "batch", Version: "v2alpha1"}
+		_, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
+
 		_, hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
@@ -642,7 +642,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
 
-		_, _, disruptionClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
+		_, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
@@ -657,7 +657,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, petSetClient, err := oc.GetOldServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		_, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}
@@ -666,7 +666,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
-		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
+		// TODO: should use a dynamic RESTMapper built from the discovery results.
+		restMapper := registered.RESTMapper()
+		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
 
 		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
 		if err != nil {
@@ -687,7 +689,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			kc.RunJobController(jobClient)
 		}
 		if batchEnabled {
-			kc.RunScheduledJobController(jobConfig)
+			kc.RunCronJobController(jobClient)
 		}
 		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
 		autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
@@ -713,7 +715,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		appsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, apps.GroupName)) > 0
 		if appsEnabled {
-			kc.RunPetSetController(petSetClient)
+			kc.RunStatefulSetController(statefulSetClient)
 		}
 
 		glog.Infof("Started Kubernetes Controllers")

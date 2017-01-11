@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Runtime Constraints example
 
 This example demonstrates how Kubernetes enforces runtime constraints for compute resources.
@@ -50,13 +45,13 @@ $ cluster/kubectl.sh run cpuhog \
     -- md5sum /dev/urandom
 ```
 
-This will create a single pod on your minion that requests 1/10 of a CPU, but it has no limit on how much CPU it may actually consume
+This will create a single pod on your node that requests 1/10 of a CPU, but it has no limit on how much CPU it may actually consume
 on the node.
 
 To demonstrate this, if you SSH into your machine, you will see it is consuming as much CPU as possible on the node.
 
 ```
-$ vagrant ssh minion-1
+$ vagrant ssh node-1
 $ sudo docker stats $(sudo docker ps -q)
 CONTAINER           CPU %               MEM USAGE/LIMIT     MEM %               NET I/O
 6b593b1a9658        0.00%               1.425 MB/1.042 GB   0.14%               1.038 kB/738 B
@@ -121,7 +116,7 @@ $ cluster/kubectl.sh run cpuhog \
 Let's SSH into the node, and look at usage stats.
 
 ```
-$ vagrant ssh minion-1
+$ vagrant ssh node-1
 $ sudo su
 $ docker stats $(docker ps -q)
 CONTAINER           CPU %               MEM USAGE/LIMIT     MEM %               NET I/O
@@ -284,13 +279,6 @@ You see that our BestEffort pod goes in a restart cycle, but the pods with great
 
 As you can see, we rely on the Kernel to react to system OOM events.  Depending on how your host operating
 system was configured, and which process the Kernel ultimately decides to kill on your Node, you may experience unstable results.  In addition, during an OOM event, while the kernel is cleaning up processes, the system may experience significant periods of slow down or appear unresponsive.  As a result, while the system allows you to overcommit on memory, we recommend to not induce a Kernel sys OOM.
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/runtime-constraints/README.md?pixel)]()

@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/template/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeTemplates implements TemplateInterface
 type FakeTemplates struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -37,14 +38,14 @@ func (c *FakeTemplates) Update(template *v1.Template) (result *v1.Template, err 
 	return obj.(*v1.Template), err
 }
 
-func (c *FakeTemplates) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeTemplates) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(templatesResource, c.ns, name), &v1.Template{})
 
 	return err
 }
 
-func (c *FakeTemplates) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeTemplates) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(templatesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.TemplateList{})
@@ -61,7 +62,7 @@ func (c *FakeTemplates) Get(name string) (result *v1.Template, err error) {
 	return obj.(*v1.Template), err
 }
 
-func (c *FakeTemplates) List(opts api.ListOptions) (result *v1.TemplateList, err error) {
+func (c *FakeTemplates) List(opts api_v1.ListOptions) (result *v1.TemplateList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(templatesResource, c.ns, opts), &v1.TemplateList{})
 
@@ -69,7 +70,7 @@ func (c *FakeTemplates) List(opts api.ListOptions) (result *v1.TemplateList, err
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,7 +84,7 @@ func (c *FakeTemplates) List(opts api.ListOptions) (result *v1.TemplateList, err
 }
 
 // Watch returns a watch.Interface that watches the requested templates.
-func (c *FakeTemplates) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeTemplates) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(templatesResource, c.ns, opts))
 

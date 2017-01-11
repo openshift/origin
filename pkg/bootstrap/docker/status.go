@@ -98,7 +98,7 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 }
 
 func isHealthy(f *clientcmd.Factory) (bool, error) {
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return false, err
 	}

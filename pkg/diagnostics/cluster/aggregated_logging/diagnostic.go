@@ -27,7 +27,7 @@ type AggregatedLogging struct {
 	masterConfig     *configapi.MasterConfig
 	MasterConfigFile string
 	OsClient         *client.Client
-	KubeClient       *kclientset.Clientset
+	KubeClient       kclientset.Interface
 	result           types.DiagnosticResult
 }
 
@@ -45,12 +45,12 @@ const (
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
 
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
-func NewAggregatedLogging(masterConfigFile string, kclient *kclientset.Clientset, osclient *client.Client) *AggregatedLogging {
+func NewAggregatedLogging(masterConfigFile string, kclient kclientset.Interface, osclient *client.Client) *AggregatedLogging {
 	return &AggregatedLogging{nil, masterConfigFile, osclient, kclient, types.NewDiagnosticResult(AggregatedLoggingName)}
 }
 
 func (d *AggregatedLogging) getScc(name string) (*kapi.SecurityContextConstraints, error) {
-	return d.KubeClient.SecurityContextConstraints().Get(name)
+	return d.KubeClient.Core().SecurityContextConstraints().Get(name)
 }
 
 func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {
@@ -62,27 +62,27 @@ func (d *AggregatedLogging) routes(project string, options kapi.ListOptions) (*r
 }
 
 func (d *AggregatedLogging) serviceAccounts(project string, options kapi.ListOptions) (*kapi.ServiceAccountList, error) {
-	return d.KubeClient.ServiceAccounts(project).List(options)
+	return d.KubeClient.Core().ServiceAccounts(project).List(options)
 }
 
 func (d *AggregatedLogging) services(project string, options kapi.ListOptions) (*kapi.ServiceList, error) {
-	return d.KubeClient.Services(project).List(options)
+	return d.KubeClient.Core().Services(project).List(options)
 }
 
 func (d *AggregatedLogging) endpointsForService(project string, service string) (*kapi.Endpoints, error) {
-	return d.KubeClient.Endpoints(project).Get(service)
+	return d.KubeClient.Core().Endpoints(project).Get(service)
 }
 
 func (d *AggregatedLogging) daemonsets(project string, options kapi.ListOptions) (*kapisext.DaemonSetList, error) {
-	return d.KubeClient.DaemonSets(project).List(kapi.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
+	return d.KubeClient.Extensions().DaemonSets(project).List(kapi.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
 }
 
 func (d *AggregatedLogging) nodes(options kapi.ListOptions) (*kapi.NodeList, error) {
-	return d.KubeClient.Nodes().List(kapi.ListOptions{})
+	return d.KubeClient.Core().Nodes().List(kapi.ListOptions{})
 }
 
 func (d *AggregatedLogging) pods(project string, options kapi.ListOptions) (*kapi.PodList, error) {
-	return d.KubeClient.Pods(project).List(options)
+	return d.KubeClient.Core().Pods(project).List(options)
 }
 func (d *AggregatedLogging) deploymentconfigs(project string, options kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	return d.OsClient.DeploymentConfigs(project).List(options)

@@ -7,8 +7,6 @@ import (
 	kolder "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion/queryparams"
 
-	"reflect"
-
 	newer "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
 	older "github.com/openshift/origin/pkg/build/api/v1"
@@ -52,35 +50,6 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 	}
 	if decoded.Commit != "abcdef" || decoded.AsFile != "Dockerfile" {
 		t.Errorf("unexpected decoded object: %#v", decoded)
-	}
-}
-
-func TestBuildConfigDefaulting(t *testing.T) {
-	buildConfig := &older.BuildConfig{
-		Spec: older.BuildConfigSpec{
-			CommonSpec: older.CommonSpec{
-				Source: older.BuildSource{
-					Type: older.BuildSourceBinary,
-				},
-				Strategy: older.BuildStrategy{
-					Type: older.DockerBuildStrategyType,
-				},
-			},
-		},
-	}
-
-	var internalBuild newer.BuildConfig
-	Convert(buildConfig, &internalBuild, nil)
-
-	binary := internalBuild.Spec.Source.Binary
-	if binary == (*newer.BinaryBuildSource)(nil) || *binary != (newer.BinaryBuildSource{}) {
-		t.Errorf("Expected non-nil but empty Source.Binary as default for Spec")
-	}
-
-	dockerStrategy := internalBuild.Spec.Strategy.DockerStrategy
-	// DeepEqual needed because DockerBuildStrategy contains slices
-	if dockerStrategy == (*newer.DockerBuildStrategy)(nil) || !reflect.DeepEqual(*dockerStrategy, newer.DockerBuildStrategy{}) {
-		t.Errorf("Expected non-nil but empty Strategy.DockerStrategy as default for Spec")
 	}
 }
 

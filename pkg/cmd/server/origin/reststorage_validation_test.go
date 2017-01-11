@@ -9,6 +9,7 @@ import (
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 
@@ -73,12 +74,13 @@ func TestValidationRegistration(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	informerFactory := shared.NewInformerFactory(fake.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
+	kubeInformerFactory := informers.NewSharedInformerFactory(fake.NewSimpleClientset(), 1*time.Second)
+	informerFactory := shared.NewInformerFactory(kubeInformerFactory, fake.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	return &MasterConfig{
 		KubeletClientConfig:                   &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:                     restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
 		Informers:                             informerFactory,
-		ClusterQuotaMappingController:         clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
+		ClusterQuotaMappingController:         clusterquotamapping.NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
 		PrivilegedLoopbackKubernetesClientset: &kclientset.Clientset{},
 	}
 }

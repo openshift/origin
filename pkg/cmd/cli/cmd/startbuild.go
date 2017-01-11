@@ -158,8 +158,8 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Out = out
 	o.ErrOut = errout
 	o.Git = git.NewRepository()
-	o.ClientConfig = f.OpenShiftClientConfig
-	o.Mapper, _ = f.Object(false)
+	o.ClientConfig = f.OpenShiftClientConfig()
+	o.Mapper, _ = f.Object()
 
 	fromCount := 0
 	if len(o.FromDir) > 0 {
@@ -217,7 +217,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		return err
 	}
 
-	client, _, _, err := f.Clients()
+	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
-		mapper, _ := f.Object(false)
+		mapper, _ := f.Object()
 		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err

@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -20,8 +19,13 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
-var encoder = kapi.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
-var decoder = kapi.Codecs.UniversalDecoder()
+var (
+	encoder                 = kapi.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
+	decoder                 = kapi.Codecs.UniversalDecoder()
+	serviceAccountsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
+	secretsResource         = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
+	routesResource          = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
+)
 
 func TestGetClient(t *testing.T) {
 	testCases := []struct {
@@ -34,7 +38,7 @@ func TestGetClient(t *testing.T) {
 		expectedErr         string
 		expectedClient      *oauthapi.OAuthClient
 		expectedKubeActions []core.Action
-		expectedOSActions   []ktestclient.Action
+		expectedOSActions   []core.Action
 	}{
 		{
 			name:                "delegate",
@@ -43,7 +47,7 @@ func TestGetClient(t *testing.T) {
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedDelegation:  true,
 			expectedKubeActions: []core.Action{},
-			expectedOSActions:   []ktestclient.Action{},
+			expectedOSActions:   []core.Action{},
 		},
 		{
 			name:                "missing sa",
@@ -51,8 +55,8 @@ func TestGetClient(t *testing.T) {
 			kubeClient:          fake.NewSimpleClientset(),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `ServiceAccount "missing-sa" not found`,
-			expectedKubeActions: []core.Action{core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "missing-sa")},
-			expectedOSActions:   []ktestclient.Action{},
+			expectedKubeActions: []core.Action{core.NewGetAction(serviceAccountsResource, "ns-01", "missing-sa")},
+			expectedOSActions:   []core.Action{},
 		},
 		{
 			name:       "sa no redirects",
@@ -67,8 +71,8 @@ func TestGetClient(t *testing.T) {
 				}),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
-			expectedKubeActions: []core.Action{core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default")},
-			expectedOSActions:   []ktestclient.Action{},
+			expectedKubeActions: []core.Action{core.NewGetAction(serviceAccountsResource, "ns-01", "default")},
+			expectedOSActions:   []core.Action{},
 		},
 		{
 			name:       "sa no tokens",
@@ -84,10 +88,10 @@ func TestGetClient(t *testing.T) {
 			osClient:    ostestclient.NewSimpleFake(),
 			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{},
+			expectedOSActions: []core.Action{},
 		},
 		{
 			name:       "good SA",
@@ -122,10 +126,10 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{},
+			expectedOSActions: []core.Action{},
 		},
 		{
 			name:       "good SA with valid, simple route redirects",
@@ -180,11 +184,11 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{
-				ktestclient.NewGetAction("routes", "ns-01", "route1"),
+			expectedOSActions: []core.Action{
+				core.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 		{
@@ -243,10 +247,10 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{},
+			expectedOSActions: []core.Action{},
 		},
 		{
 			name:       "good SA with a route that don't have a host",
@@ -301,11 +305,11 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{
-				ktestclient.NewGetAction("routes", "ns-01", "route1"),
+			expectedOSActions: []core.Action{
+				core.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 		{
@@ -387,11 +391,11 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{
-				ktestclient.NewListAction("routes", "ns-01", kapi.ListOptions{}),
+			expectedOSActions: []core.Action{
+				core.NewListAction(routesResource, "ns-01", kapi.ListOptions{}),
 			},
 		},
 		{
@@ -466,11 +470,11 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{
-				ktestclient.NewListAction("routes", "ns-01", kapi.ListOptions{}),
+			expectedOSActions: []core.Action{
+				core.NewListAction(routesResource, "ns-01", kapi.ListOptions{}),
 			},
 		},
 		{
@@ -527,11 +531,11 @@ func TestGetClient(t *testing.T) {
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "ns-01", "default"),
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "ns-01", kapi.ListOptions{}),
+				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
 			},
-			expectedOSActions: []ktestclient.Action{
-				ktestclient.NewGetAction("routes", "ns-01", "route1"),
+			expectedOSActions: []core.Action{
+				core.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 	}

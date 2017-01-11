@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/project/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -17,24 +19,24 @@ type ProjectInterface interface {
 	Create(*v1.Project) (*v1.Project, error)
 	Update(*v1.Project) (*v1.Project, error)
 	UpdateStatus(*v1.Project) (*v1.Project, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Project, error)
-	List(opts api.ListOptions) (*v1.ProjectList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.ProjectList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Project, err error)
 	ProjectExpansion
 }
 
 // projects implements ProjectInterface
 type projects struct {
-	client *CoreClient
+	client restclient.Interface
 }
 
 // newProjects returns a Projects
-func newProjects(c *CoreClient) *projects {
+func newProjects(c *CoreV1Client) *projects {
 	return &projects{
-		client: c,
+		client: c.RESTClient(),
 	}
 }
 
@@ -74,7 +76,7 @@ func (c *projects) UpdateStatus(project *v1.Project) (result *v1.Project, err er
 }
 
 // Delete takes name of the project and deletes it. Returns an error if one occurs.
-func (c *projects) Delete(name string, options *api.DeleteOptions) error {
+func (c *projects) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("projects").
 		Name(name).
@@ -84,7 +86,7 @@ func (c *projects) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *projects) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *projects) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Resource("projects").
 		VersionedParams(&listOptions, api.ParameterCodec).
@@ -105,7 +107,7 @@ func (c *projects) Get(name string) (result *v1.Project, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Projects that match those selectors.
-func (c *projects) List(opts api.ListOptions) (result *v1.ProjectList, err error) {
+func (c *projects) List(opts api_v1.ListOptions) (result *v1.ProjectList, err error) {
 	result = &v1.ProjectList{}
 	err = c.client.Get().
 		Resource("projects").
@@ -116,7 +118,7 @@ func (c *projects) List(opts api.ListOptions) (result *v1.ProjectList, err error
 }
 
 // Watch returns a watch.Interface that watches the requested projects.
-func (c *projects) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *projects) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Resource("projects").

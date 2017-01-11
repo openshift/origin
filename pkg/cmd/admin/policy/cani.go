@@ -107,7 +107,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 		if o.ListAll {
 			return errors.New("VERB RESOURCE and --list are mutually exclusive")
 		}
-		restMapper, _ := f.Object(false)
+		restMapper, _ := f.Object()
 		o.Verb = args[0]
 		o.Resource = resourceFor(restMapper, args[1])
 	default:
@@ -117,7 +117,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	}
 
 	var err error
-	oclient, _, _, err := f.Clients()
+	oclient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

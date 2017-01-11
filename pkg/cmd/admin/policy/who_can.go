@@ -44,7 +44,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			}
 
 			var err error
-			options.client, _, _, err = f.Clients()
+			options.client, _, err = f.Clients()
 			kcmdutil.CheckErr(err)
 
 			options.bindingNamespace, _, err = f.DefaultNamespace()
@@ -65,7 +65,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 		o.resourceName = args[2]
 		fallthrough
 	case 2:
-		restMapper, _ := f.Object(false)
+		restMapper, _ := f.Object()
 		o.verb = args[0]
 		o.resource = resourceFor(restMapper, args[1])
 	default:

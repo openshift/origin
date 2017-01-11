@@ -14,7 +14,9 @@ openshift kube config unset \- Unsets an individual value in a kubeconfig file
 .SH DESCRIPTION
 .PP
 Unsets an individual value in a kubeconfig file
-PROPERTY\_NAME is a dot delimited name where each token represents either an attribute name or a map key.  Map keys may not contain dots.
+
+.PP
+PROPERTY \_NAME is a dot delimited name where each token represents either an attribute name or a map key.  Map keys may not contain dots.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -124,7 +126,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either an att
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -132,7 +134,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either an att
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false

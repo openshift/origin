@@ -315,24 +315,6 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 	}
 }
 
-func TestApplyDefaultImageTag(t *testing.T) {
-	for _, testCase := range []struct {
-		Input  string
-		Output string
-	}{
-		{Input: "root", Output: "root:latest"},
-		{Input: "root:tag", Output: "root:tag"},
-		{Input: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Output: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-	} {
-		image, err := applyDefaultImageTag(testCase.Input)
-		if err != nil {
-			t.Errorf("applyDefaultTag(%s) failed: %v", testCase.Input, err)
-		} else if image != testCase.Output {
-			t.Errorf("Expected image reference: %q, got %q", testCase.Output, image)
-		}
-	}
-}
-
 func TestMatchImageIDOnly(t *testing.T) {
 	for i, testCase := range []struct {
 		Inspected dockertypes.ImageInspect
@@ -409,6 +391,7 @@ func TestMatchImageIDOnly(t *testing.T) {
 		match := matchImageIDOnly(testCase.Inspected, testCase.Image)
 		assert.Equal(t, testCase.Output, match, fmt.Sprintf("%s is not a match (%d)", testCase.Image, i))
 	}
+
 }
 
 func TestPullWithNoSecrets(t *testing.T) {
@@ -416,11 +399,11 @@ func TestPullWithNoSecrets(t *testing.T) {
 		imageName     string
 		expectedImage string
 	}{
-		{"ubuntu", "ubuntu:latest using {}"},
+		{"ubuntu", "ubuntu using {}"},
 		{"ubuntu:2342", "ubuntu:2342 using {}"},
 		{"ubuntu:latest", "ubuntu:latest using {}"},
 		{"foo/bar:445566", "foo/bar:445566 using {}"},
-		{"registry.example.com:5000/foobar", "registry.example.com:5000/foobar:latest using {}"},
+		{"registry.example.com:5000/foobar", "registry.example.com:5000/foobar using {}"},
 		{"registry.example.com:5000/foobar:5342", "registry.example.com:5000/foobar:5342 using {}"},
 		{"registry.example.com:5000/foobar:latest", "registry.example.com:5000/foobar:latest using {}"},
 	}
@@ -508,7 +491,7 @@ func TestPullWithSecrets(t *testing.T) {
 			"ubuntu",
 			[]api.Secret{},
 			credentialprovider.DockerConfig(map[string]credentialprovider.DockerConfigEntry{}),
-			[]string{"ubuntu:latest using {}"},
+			[]string{"ubuntu using {}"},
 		},
 		"default keyring secrets": {
 			"ubuntu",
@@ -516,7 +499,7 @@ func TestPullWithSecrets(t *testing.T) {
 			credentialprovider.DockerConfig(map[string]credentialprovider.DockerConfigEntry{
 				"index.docker.io/v1/": {Username: "built-in", Password: "password", Email: "email", Provider: nil},
 			}),
-			[]string{`ubuntu:latest using {"username":"built-in","password":"password","email":"email"}`},
+			[]string{`ubuntu using {"username":"built-in","password":"password","email":"email"}`},
 		},
 		"default keyring secrets unused": {
 			"ubuntu",
@@ -524,7 +507,7 @@ func TestPullWithSecrets(t *testing.T) {
 			credentialprovider.DockerConfig(map[string]credentialprovider.DockerConfigEntry{
 				"extraneous": {Username: "built-in", Password: "password", Email: "email", Provider: nil},
 			}),
-			[]string{`ubuntu:latest using {}`},
+			[]string{`ubuntu using {}`},
 		},
 		"builtin keyring secrets, but use passed": {
 			"ubuntu",
@@ -532,7 +515,7 @@ func TestPullWithSecrets(t *testing.T) {
 			credentialprovider.DockerConfig(map[string]credentialprovider.DockerConfigEntry{
 				"index.docker.io/v1/": {Username: "built-in", Password: "password", Email: "email", Provider: nil},
 			}),
-			[]string{`ubuntu:latest using {"username":"passed-user","password":"passed-password","email":"passed-email"}`},
+			[]string{`ubuntu using {"username":"passed-user","password":"passed-password","email":"passed-email"}`},
 		},
 		"builtin keyring secrets, but use passed with new docker config": {
 			"ubuntu",
@@ -540,7 +523,7 @@ func TestPullWithSecrets(t *testing.T) {
 			credentialprovider.DockerConfig(map[string]credentialprovider.DockerConfigEntry{
 				"index.docker.io/v1/": {Username: "built-in", Password: "password", Email: "email", Provider: nil},
 			}),
-			[]string{`ubuntu:latest using {"username":"passed-user","password":"passed-password","email":"passed-email"}`},
+			[]string{`ubuntu using {"username":"passed-user","password":"passed-password","email":"passed-email"}`},
 		},
 	}
 	for i, test := range tests {
@@ -995,61 +978,6 @@ func TestMakePortsAndBindings(t *testing.T) {
 			}
 		default:
 			t.Errorf("Unexpected docker port: %#v with portbindings: %#v", dockerPort, portBindings)
-		}
-	}
-}
-
-func TestMilliCPUToQuota(t *testing.T) {
-	testCases := []struct {
-		input  int64
-		quota  int64
-		period int64
-	}{
-		{
-			input:  int64(0),
-			quota:  int64(0),
-			period: int64(0),
-		},
-		{
-			input:  int64(5),
-			quota:  int64(1000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(9),
-			quota:  int64(1000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(10),
-			quota:  int64(1000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(200),
-			quota:  int64(20000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(500),
-			quota:  int64(50000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(1000),
-			quota:  int64(100000),
-			period: int64(100000),
-		},
-		{
-			input:  int64(1500),
-			quota:  int64(150000),
-			period: int64(100000),
-		},
-	}
-	for _, testCase := range testCases {
-		quota, period := milliCPUToQuota(testCase.input)
-		if quota != testCase.quota || period != testCase.period {
-			t.Errorf("Input %v, expected quota %v period %v, but got quota %v period %v", testCase.input, testCase.quota, testCase.period, quota, period)
 		}
 	}
 }

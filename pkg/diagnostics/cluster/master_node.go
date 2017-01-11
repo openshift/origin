@@ -27,7 +27,7 @@ to proxy to pods over the Open vSwitch SDN.
 // This is currently required to have the master on the Open vSwitch SDN and able to communicate
 // with other nodes.
 type MasterNode struct {
-	KubeClient       *kclientset.Clientset
+	KubeClient       kclientset.Interface
 	OsClient         *osclient.Client
 	ServerUrl        string
 	MasterConfigFile string // may often be empty if not being run on the host

@@ -34,7 +34,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	for _, name := range nsList {
 		// Create a new namespace for network diagnostics
 		ns := &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: name}}
-		if _, err := d.KubeClient.Namespaces().Create(ns); err != nil {
+		if _, err := d.KubeClient.Core().Namespaces().Create(ns); err != nil {
 			return fmt.Errorf("Creating namespace %q failed: %v", name, err)
 		}
 		if strings.HasPrefix(name, util.NetworkDiagGlobalNamespacePrefix) {
@@ -52,7 +52,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	secret := &kapi.Secret{}
 	secret.Name = util.NetworkDiagSecretName
 	secret.Data = map[string][]byte{strings.ToLower(kclientcmd.RecommendedConfigPathEnvVar): kconfigData}
-	if _, err = d.KubeClient.Secrets(d.nsName1).Create(secret); err != nil {
+	if _, err = d.KubeClient.Core().Secrets(d.nsName1).Create(secret); err != nil {
 		return fmt.Errorf("Creating secret %q failed: %v", secret.Name, err)
 	}
 
@@ -70,14 +70,14 @@ func (d *NetworkDiagnostic) TestSetup() error {
 
 func (d *NetworkDiagnostic) Cleanup() {
 	// Deleting namespaces will delete corresponding service accounts/pods in the namespace automatically.
-	d.KubeClient.Namespaces().Delete(d.nsName1, nil)
-	d.KubeClient.Namespaces().Delete(d.nsName2, nil)
-	d.KubeClient.Namespaces().Delete(d.globalnsName1, nil)
-	d.KubeClient.Namespaces().Delete(d.globalnsName2, nil)
+	d.KubeClient.Core().Namespaces().Delete(d.nsName1, nil)
+	d.KubeClient.Core().Namespaces().Delete(d.nsName2, nil)
+	d.KubeClient.Core().Namespaces().Delete(d.globalnsName1, nil)
+	d.KubeClient.Core().Namespaces().Delete(d.globalnsName2, nil)
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {
-	podList, err := d.KubeClient.Pods(nsName).List(kapi.ListOptions{})
+	podList, err := d.KubeClient.Core().Pods(nsName).List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			for i := 0; i < 2; i++ {
 				testPodName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
-				if _, err := d.KubeClient.Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
+				if _, err := d.KubeClient.Core().Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
 					errList = append(errList, fmt.Errorf("Creating network diagnostic test pod '%s/%s' on node %q failed: %v", nsName, testPodName, node.Name, err))
 					continue
 				}
@@ -137,7 +137,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 
 			// Create network diags test service on the given node for the given namespace
 			testServiceName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
-			if _, err := d.KubeClient.Services(nsName).Create(GetTestService(testServiceName, testPodName, node.Name)); err != nil {
+			if _, err := d.KubeClient.Core().Services(nsName).Create(GetTestService(testServiceName, testPodName, node.Name)); err != nil {
 				errList = append(errList, fmt.Errorf("Creating network diagnostic test service '%s/%s' on node %q failed: %v", nsName, testServiceName, node.Name, err))
 				continue
 			}

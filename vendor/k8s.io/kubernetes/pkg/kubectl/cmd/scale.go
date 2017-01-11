@@ -21,31 +21,26 @@ import (
 	"io"
 	"os"
 
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
-// ScaleOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
-// referencing the cmd.Flags()
-type ScaleOptions struct {
-	Filenames []string
-	Recursive bool
-}
-
 var (
-	scale_long = dedent.Dedent(`
+	scale_long = templates.LongDesc(`
 		Set a new size for a Deployment, ReplicaSet, Replication Controller, or Job.
 
 		Scale also allows users to specify one or more preconditions for the scale action.
+
 		If --current-replicas or --resource-version is specified, it is validated before the
 		scale is attempted, and it is guaranteed that the precondition holds true when the
 		scale is sent to the server.`)
-	scale_example = dedent.Dedent(`
+
+	scale_example = templates.Examples(`
 		# Scale a replicaset named 'foo' to 3.
 		kubectl scale --replicas=3 rs/foo
 
@@ -63,8 +58,8 @@ var (
 )
 
 // NewCmdScale returns a cobra command with the appropriate configuration and flags to run scale
-func NewCmdScale(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &ScaleOptions{}
+func NewCmdScale(f cmdutil.Factory, out io.Writer) *cobra.Command {
+	options := &resource.FilenameOptions{}
 
 	validArgs := []string{"deployment", "replicaset", "replicationcontroller", "job"}
 	argAliases := kubectl.ResourceAliases(validArgs)
@@ -94,14 +89,13 @@ func NewCmdScale(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmdutil.AddRecordFlag(cmd)
 	cmdutil.AddInclude3rdPartyFlags(cmd)
 
-	usage := "Filename, directory, or URL to a file identifying the resource to set a new size"
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
-	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
+	usage := "identifying the resource to set a new size"
+	cmdutil.AddFilenameOptionFlags(cmd, options, usage)
 	return cmd
 }
 
 // RunScale executes the scaling
-func RunScale(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, shortOutput bool, options *ScaleOptions) error {
+func RunScale(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, shortOutput bool, options *resource.FilenameOptions) error {
 	if len(os.Args) > 1 && os.Args[1] == "resize" {
 		printDeprecationWarning("scale", "resize")
 	}
@@ -111,11 +105,11 @@ func RunScale(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return err
 	}
 
-	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
+	mapper, typer := f.Object()
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
+		FilenameParam(enforceNamespace, options).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()

@@ -137,6 +137,7 @@ func OkSelector() map[string]string {
 }
 
 func OkPodTemplate() *kapi.PodTemplateSpec {
+	one := int64(1)
 	return &kapi.PodTemplateSpec{
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -149,16 +150,19 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 							Value: "VAL1",
 						},
 					},
-					ImagePullPolicy: kapi.PullIfNotPresent,
+					ImagePullPolicy:        kapi.PullIfNotPresent,
+					TerminationMessagePath: "/dev/termination-log",
 				},
 				{
-					Name:            "container2",
-					Image:           "registry:8080/repo1:ref2",
-					ImagePullPolicy: kapi.PullIfNotPresent,
+					Name:                   "container2",
+					Image:                  "registry:8080/repo1:ref2",
+					ImagePullPolicy:        kapi.PullIfNotPresent,
+					TerminationMessagePath: "/dev/termination-log",
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyAlways,
-			DNSPolicy:     kapi.DNSClusterFirst,
+			RestartPolicy:                 kapi.RestartPolicyAlways,
+			DNSPolicy:                     kapi.DNSClusterFirst,
+			TerminationGracePeriodSeconds: &one,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: OkSelector(),

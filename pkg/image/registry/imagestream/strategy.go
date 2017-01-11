@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -54,30 +54,6 @@ func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
-// BeforeCreate checks a number of creation preconditions before validate is called.
-// and verifies the current user is authorized to access any image streams newly referenced
-// in spec.tags.
-// TODO: this should be part of PrepareForCreate by allowing it to return errors.
-func (s Strategy) BeforeCreate(ctx kapi.Context, obj runtime.Object) error {
-	stream := obj.(*api.ImageStream)
-	user, ok := kapi.UserFrom(ctx)
-	if !ok {
-		return kerrors.NewForbidden(unversioned.GroupResource{Resource: "imagestreams"}, stream.Name, fmt.Errorf("no user context available"))
-	}
-
-	errs := s.tagVerifier.Verify(nil, stream, user)
-	errs = append(errs, s.tagsChanged(nil, stream)...)
-	if len(errs) > 0 {
-		return kerrors.NewInvalid(unversioned.GroupKind{Kind: "imagestreams"}, stream.Name, errs)
-	}
-
-	ns, ok := kapi.NamespaceFrom(ctx)
-	if !ok {
-		ns = stream.Namespace
-	}
-	return s.limitVerifier.VerifyLimits(ns, stream)
-}
-
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
@@ -92,9 +68,35 @@ func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	}
 }
 
-// Validate validates a new image stream.
+// Validate validates a new image stream and verifies the current user is
+// authorized to access any image streams newly referenced in spec.tags.
 func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateImageStream(obj.(*api.ImageStream))
+	stream := obj.(*api.ImageStream)
+	var errs field.ErrorList
+	if err := s.validateTagsAndLimits(ctx, nil, stream); err != nil {
+		errs = append(errs, field.InternalError(field.NewPath(""), err))
+	}
+	errs = append(errs, validation.ValidateImageStream(stream)...)
+	return errs
+}
+
+func (s Strategy) validateTagsAndLimits(ctx kapi.Context, oldStream, newStream *api.ImageStream) error {
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return kerrors.NewForbidden(unversioned.GroupResource{Resource: "imagestreams"}, newStream.Name, fmt.Errorf("no user context available"))
+	}
+
+	errs := s.tagVerifier.Verify(oldStream, newStream, user)
+	errs = append(errs, s.tagsChanged(oldStream, newStream)...)
+	if len(errs) > 0 {
+		return kerrors.NewInvalid(unversioned.GroupKind{Kind: "imagestreams"}, newStream.Name, errs)
+	}
+
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		ns = newStream.Namespace
+	}
+	return s.limitVerifier.VerifyLimits(ns, newStream)
 }
 
 // AllowCreateOnUpdate is false for image streams.
@@ -487,30 +489,6 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	ensureSpecTagGenerationsAreSet(stream, oldStream)
 }
 
-// BeforeUpdate handles any transformations required before validation or update.
-// TODO: this should be part of PrepareForUpdate by allowing it to return errors.
-func (s Strategy) BeforeUpdate(ctx kapi.Context, obj, old runtime.Object) error {
-	stream := obj.(*api.ImageStream)
-	oldStream := old.(*api.ImageStream)
-
-	user, ok := kapi.UserFrom(ctx)
-	if !ok {
-		return kerrors.NewForbidden(unversioned.GroupResource{Resource: "imagestreams"}, stream.Name, fmt.Errorf("no user context available"))
-	}
-
-	errs := s.tagVerifier.Verify(oldStream, stream, user)
-	errs = append(errs, s.tagsChanged(oldStream, stream)...)
-	if len(errs) > 0 {
-		return kerrors.NewInvalid(unversioned.GroupKind{Kind: "imagestreams"}, stream.Name, errs)
-	}
-
-	ns, ok := kapi.NamespaceFrom(ctx)
-	if !ok {
-		ns = stream.Namespace
-	}
-	return s.limitVerifier.VerifyLimits(ns, stream)
-}
-
 func (s Strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	s.prepareForUpdate(obj, old, true)
 }
@@ -519,14 +497,28 @@ func (s Strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	stream := obj.(*api.ImageStream)
 	oldStream := old.(*api.ImageStream)
-	return validation.ValidateImageStreamUpdate(stream, oldStream)
+	var errs field.ErrorList
+	if err := s.validateTagsAndLimits(ctx, oldStream, stream); err != nil {
+		errs = append(errs, field.InternalError(field.NewPath(""), err))
+	}
+	errs = append(errs, validation.ValidateImageStreamUpdate(stream, oldStream)...)
+	return errs
 }
 
 // Decorate decorates stream.Status.DockerImageRepository using the logic from
 // dockerImageRepository().
 func (s Strategy) Decorate(obj runtime.Object) error {
-	ir := obj.(*api.ImageStream)
-	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
+	switch t := obj.(type) {
+	case *api.ImageStream:
+		t.Status.DockerImageRepository = s.dockerImageRepository(t)
+	case *api.ImageStreamList:
+		for i := range t.Items {
+			is := &t.Items[i]
+			is.Status.DockerImageRepository = s.dockerImageRepository(is)
+		}
+	default:
+		return kerrors.NewBadRequest(fmt.Sprintf("not an ImageStream nor ImageStreamList: %v", obj))
+	}
 	return nil
 }
 
@@ -573,8 +565,8 @@ func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
-	return &generic.SelectionPredicate{
+func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
+	return kstorage.SelectionPredicate{
 		Label: label,
 		Field: field,
 		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {

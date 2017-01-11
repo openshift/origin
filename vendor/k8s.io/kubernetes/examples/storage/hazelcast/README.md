@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Cloud Native Deployments of Hazelcast using Kubernetes
 
 The following document describes the development of a _cloud native_ [Hazelcast](http://hazelcast.org/) deployment on Kubernetes.  When we say _cloud native_ we mean an application which understands that it is running within a cluster manager, and uses this cluster management infrastructure to help implement the application. In particular, in this instance, a custom Hazelcast ```bootstrapper``` is used to enable Hazelcast to dynamically discover Hazelcast nodes that have already joined the cluster.
@@ -96,7 +91,7 @@ spec:
         - resources:
             limits:
               cpu: 0.1
-          image: quay.io/pires/hazelcast-kubernetes:0.5
+          image: quay.io/pires/hazelcast-kubernetes:0.6.1
           name: hazelcast
           env:
           - name: "DNS_DOMAIN"
@@ -250,13 +245,6 @@ kubectl scale rc hazelcast --replicas=4
 ### Hazelcast Discovery Source
 
 See [here](https://github.com/pires/hazelcast-kubernetes-bootstrapper/blob/master/src/main/java/com/github/pires/hazelcast/HazelcastDiscoveryController.java)
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

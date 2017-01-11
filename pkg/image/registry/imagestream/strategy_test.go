@@ -366,7 +366,7 @@ func TestLimitVerifier(t *testing.T) {
 		name        string
 		isEvaluator func(string, *api.ImageStream) error
 		is          api.ImageStream
-		expected    error
+		expected    field.ErrorList
 	}{
 		{
 			name: "no limit",
@@ -442,7 +442,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(1, 0),
-			expected:    makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages}),
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages}))},
 		},
 
 		{
@@ -460,12 +460,15 @@ func TestLimitVerifier(t *testing.T) {
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "is", testutil.ChildImageWith2LayersDigest),
 							},
+							ReferencePolicy: api.TagReferencePolicy{
+								Type: api.SourceTagReferencePolicy,
+							},
 						},
 					},
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamTags}),
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamTags}))},
 		},
 
 		{
@@ -482,6 +485,9 @@ func TestLimitVerifier(t *testing.T) {
 							From: &kapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "other", testutil.BaseImageWith1LayerDigest),
+							},
+							ReferencePolicy: api.TagReferencePolicy{
+								Type: api.SourceTagReferencePolicy,
 							},
 						},
 					},
@@ -500,7 +506,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages, api.ResourceImageStreamTags}),
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{api.ResourceImageStreamImages, api.ResourceImageStreamTags}))},
 		},
 	}
 
@@ -519,13 +525,21 @@ func TestLimitVerifier(t *testing.T) {
 		}
 
 		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
-		err := s.BeforeCreate(ctx, &tc.is)
+		err := s.Validate(ctx, &tc.is)
 		if e, a := tc.expected, err; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", tc.name, diff.ObjectReflectDiff(e, a))
 		}
 
 		// Update must fail the exact same way
-		err = s.BeforeUpdate(ctx, &tc.is, &api.ImageStream{})
+		tc.is.ResourceVersion = "1"
+		old := &api.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace:       "test",
+				Name:            "is",
+				ResourceVersion: "1",
+			},
+		}
+		err = s.ValidateUpdate(ctx, &tc.is, old)
 		if e, a := tc.expected, err; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", tc.name, diff.ObjectReflectDiff(e, a))
 		}

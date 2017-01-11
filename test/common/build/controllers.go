@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/fields"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
@@ -247,7 +247,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		podWatch.Stop()
 
 		for _, state := range test.States {
-			if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Update pod state and verify that corresponding build state happens accordingly
 				pod, err := kClient.Pods(ns).Get(pod.Name)
 				if err != nil {

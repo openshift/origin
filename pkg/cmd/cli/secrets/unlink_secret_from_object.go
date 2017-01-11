@@ -31,7 +31,7 @@ type UnlinkSecretOptions struct {
 }
 
 // NewCmdUnlinkSecret creates a command object for detaching one or more secret references from a service account
-func NewCmdUnlinkSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdUnlinkSecret(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &UnlinkSecretOptions{SecretOptions{Out: out}}
 
 	cmd := &cobra.Command{
@@ -108,7 +108,7 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 		// Save the updated Secret lists back to the server
 		serviceaccount.Secrets = newMountSecrets
 		serviceaccount.ImagePullSecrets = newPullSecrets
-		_, err = o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		_, err = o.KubeCoreClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
 		if err != nil {
 			return err
 		}

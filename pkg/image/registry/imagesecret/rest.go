@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -12,11 +12,11 @@ import (
 
 // REST implements the RESTStorage interface for ImageStreamImport
 type REST struct {
-	secrets client.SecretsNamespacer
+	secrets kcoreclient.SecretsGetter
 }
 
 // NewREST returns a new REST.
-func NewREST(secrets client.SecretsNamespacer) *REST {
+func NewREST(secrets kcoreclient.SecretsGetter) *REST {
 	return &REST{secrets: secrets}
 }
 

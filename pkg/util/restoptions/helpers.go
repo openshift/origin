@@ -66,7 +66,7 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, isNamespaced bool, t
 	DefaultKeyFunctions(store, prefix, isNamespaced)
 
 	store.DeleteCollectionWorkers = opts.DeleteCollectionWorkers
-	store.Storage, _ = opts.Decorator(
+	store.Storage, store.DestroyFunc = opts.Decorator(
 		opts.StorageConfig,
 		UseConfiguredCacheSize,
 		store.NewFunc(),

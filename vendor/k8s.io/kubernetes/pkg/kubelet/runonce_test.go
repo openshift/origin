@@ -83,6 +83,7 @@ func TestRunOnce(t *testing.T) {
 		kubeClient:          &fake.Clientset{},
 		hostname:            testKubeletHostname,
 		nodeName:            testKubeletHostname,
+		runtimeState:        newRuntimeState(time.Second),
 	}
 	kb.containerManager = cm.NewStubContainerManager()
 
@@ -94,14 +95,15 @@ func TestRunOnce(t *testing.T) {
 	}
 	kb.volumeManager, err = volumemanager.NewVolumeManager(
 		true,
-		kb.hostname,
+		kb.nodeName,
 		kb.podManager,
 		kb.kubeClient,
 		kb.volumePluginMgr,
 		fakeRuntime,
 		kb.mounter,
 		kb.getPodsDir(),
-		kb.recorder)
+		kb.recorder,
+		false /* experimentalCheckNodeCapabilitiesBeforeMount*/)
 
 	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil), componentconfig.HairpinNone, kb.nonMasqueradeCIDR, network.UseDefaultMTU)
 	// TODO: Factor out "StatsProvider" from Kubelet so we don't have a cyclic dependency
@@ -109,7 +111,7 @@ func TestRunOnce(t *testing.T) {
 	kb.resourceAnalyzer = stats.NewResourceAnalyzer(kb, volumeStatsAggPeriod, kb.containerRuntime)
 	nodeRef := &api.ObjectReference{
 		Kind:      "Node",
-		Name:      kb.nodeName,
+		Name:      string(kb.nodeName),
 		UID:       types.UID(kb.nodeName),
 		Namespace: "",
 	}
@@ -121,7 +123,7 @@ func TestRunOnce(t *testing.T) {
 		t.Fatalf("failed to initialize eviction manager: %v", err)
 	}
 	kb.evictionManager = evictionManager
-	kb.AddPodAdmitHandler(evictionAdmitHandler)
+	kb.admitHandlers.AddPodAdmitHandler(evictionAdmitHandler)
 	if err := kb.setupDataDirs(); err != nil {
 		t.Errorf("Failed to init data dirs: %v", err)
 	}

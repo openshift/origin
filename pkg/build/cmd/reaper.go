@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -84,7 +84,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	if len(bcBuilds) > 0 {
 
 		// Add paused annotation to the build config pending the deletion
-		err = kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 
 			bc, err := reaper.oc.BuildConfigs(namespace).Get(name)
 			if err != nil {

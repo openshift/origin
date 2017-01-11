@@ -84,6 +84,8 @@ items:
     resources:
     - petsets
     - petsets/status
+    - statefulsets
+    - statefulsets/status
     verbs:
     - get
     - list
@@ -102,6 +104,8 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs
+    - cronjobs/status
     - jobs
     - jobs/status
     - scheduledjobs
@@ -560,6 +564,7 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs
     - jobs
     - scheduledjobs
     verbs:
@@ -606,6 +611,7 @@ items:
     attributeRestrictions: null
     resources:
     - petsets
+    - statefulsets
     verbs:
     - create
     - delete
@@ -964,6 +970,7 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs
     - jobs
     - scheduledjobs
     verbs:
@@ -1010,6 +1017,7 @@ items:
     attributeRestrictions: null
     resources:
     - petsets
+    - statefulsets
     verbs:
     - create
     - delete
@@ -1268,6 +1276,7 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs
     - jobs
     - scheduledjobs
     verbs:
@@ -1302,6 +1311,7 @@ items:
     attributeRestrictions: null
     resources:
     - petsets
+    - statefulsets
     verbs:
     - get
     - list
@@ -1884,6 +1894,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - images
     - imagestreams
     verbs:
     - get
@@ -2718,6 +2729,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - nodes
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - pods
     verbs:
     - delete
@@ -2798,6 +2817,7 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs
     - jobs
     - scheduledjobs
     verbs:
@@ -2809,6 +2829,7 @@ items:
     - batch
     attributeRestrictions: null
     resources:
+    - cronjobs/status
     - jobs/status
     - scheduledjobs/status
     verbs:
@@ -2901,6 +2922,7 @@ items:
     attributeRestrictions: null
     resources:
     - petsets
+    - statefulsets
     verbs:
     - list
     - watch
@@ -2909,6 +2931,7 @@ items:
     attributeRestrictions: null
     resources:
     - petsets
+    - statefulsets
     verbs:
     - get
   - apiGroups:

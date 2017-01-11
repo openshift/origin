@@ -33,8 +33,7 @@ var (
 		This command lists build configurations in the current namespace that correspond to a given git repository.`)
 )
 
-// CommandFor returns the appropriate command for this base name,
-// or the global OpenShift command
+// CommandFor returns gitrepo-buildconfigs command or gitserver command
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 

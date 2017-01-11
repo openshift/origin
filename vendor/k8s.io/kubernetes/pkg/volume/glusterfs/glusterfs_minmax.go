@@ -26,7 +26,7 @@ import (
 	"errors"
 	"sync"
 
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 )
 
 var (

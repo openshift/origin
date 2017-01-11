@@ -1,7 +1,8 @@
 package testclient
 
 import (
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -13,8 +14,10 @@ type FakeTemplateConfigs struct {
 	Namespace string
 }
 
+var templateConfigsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "templateconfigs"}
+
 func (c *FakeTemplateConfigs) Create(inObj *templateapi.Template) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("templateconfigs", c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewCreateAction(templateConfigsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}

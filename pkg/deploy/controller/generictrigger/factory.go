@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/kubernetes/pkg/client/cache"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -30,7 +30,7 @@ const (
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer framework.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
+func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
 	c := &DeploymentTriggerController{
 		dn: oc,
 
@@ -39,11 +39,11 @@ func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer frame
 		codec: codec,
 	}
 
-	dcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+	dcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addDeploymentConfig,
 		UpdateFunc: c.updateDeploymentConfig,
 	})
-	streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+	streamInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addImageStream,
 		UpdateFunc: c.updateImageStream,
 	})

@@ -69,7 +69,7 @@ func NewRegistryClient(config *clientcmd.Config) RegistryClient {
 
 // Client returns the authenticated client to use with the server.
 func (r *registryClient) Clients() (client.Interface, kclientset.Interface, error) {
-	oc, _, kc, err := r.config.Clients()
+	oc, kc, err := r.config.Clients()
 	return oc, kc, err
 }
 

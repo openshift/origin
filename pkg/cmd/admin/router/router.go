@@ -16,8 +16,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -299,9 +299,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
-func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
-	namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount,
-	error) {
+func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, error) {
 	var secrets []*kapi.Secret
 	var volumes []kapi.Volume
 	var mounts []kapi.VolumeMount
@@ -547,11 +545,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
 
-	namespace, _, err := f.OpenShiftClientConfig.Namespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
-	_, kClient, _, err := f.Clients()
+	_, kClient, err := f.Clients()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
@@ -564,7 +562,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	service, err := kClient.Services(namespace).Get(name)
+	service, err := kClient.Core().Services(namespace).Get(name)
 	if err != nil {
 		if !generate {
 			if !errors.IsNotFound(err) {
@@ -675,7 +673,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
 	var certName = fmt.Sprintf("%s-certs", cfg.Name)
-	secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient, namespace, defaultCert, certName)
+	secrets, volumes, mounts, err := generateSecretsConfig(cfg, namespace, defaultCert, certName)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
 	}
@@ -794,7 +792,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	list := &kapi.List{Items: objects}
 
 	if cfg.Action.ShouldPrint() {
-		mapper, _ := f.Object(false)
+		mapper, _ := f.Object()
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
@@ -858,12 +856,12 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
 	if !hostNetwork && !hostPorts {
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

@@ -2,7 +2,8 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,13 +14,15 @@ type FakeOAuthAccessTokens struct {
 	Fake *Fake
 }
 
+var oAuthAccessTokensResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "oauthaccesstokens"}
+
 func (c *FakeOAuthAccessTokens) Delete(name string) error {
-	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("oauthaccesstokens", name), &oauthapi.OAuthAccessToken{})
+	_, err := c.Fake.Invokes(core.NewRootDeleteAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
 	return err
 }
 
 func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauthapi.OAuthAccessToken, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("oauthaccesstokens", inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewRootCreateAction(oAuthAccessTokensResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -29,7 +32,7 @@ func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauth
 
 // Get returns information about a particular image and error if one occurs.
 func (c *FakeOAuthAccessTokens) Get(name string) (*oauthapi.OAuthAccessToken, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("oauthaccesstokens", name), &oauthapi.OAuthAccessToken{})
+	obj, err := c.Fake.Invokes(core.NewRootGetAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
 	if obj == nil {
 		return nil, err
 	}
@@ -38,7 +41,7 @@ func (c *FakeOAuthAccessTokens) Get(name string) (*oauthapi.OAuthAccessToken, er
 }
 
 func (c *FakeOAuthAccessTokens) List(opts kapi.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("oauthaccesstokens", opts), &oauthapi.OAuthAccessTokenList{})
+	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthAccessTokensResource, opts), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err
 	}

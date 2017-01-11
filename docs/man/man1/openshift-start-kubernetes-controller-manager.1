@@ -128,10 +128,12 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 \fB\-\-feature\-gates\fP=
     A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
 AllAlpha=true|false (ALPHA \- default=false)
-AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (BETA \- default=true)
 AppArmor=true|false (BETA \- default=true)
 DynamicKubeletConfig=true|false (ALPHA \- default=false)
 DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
+ExperimentalHostUserNamespaceDefaulting=true|false (ALPHA \- default=false)
+StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 .PP
 \fB\-\-flex\-volume\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/volume/exec/"
@@ -215,7 +217,7 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-node\-sync\-period\fP=0
-    The period for syncing nodes from cloudprovider. Longer periods will result in fewer calls to cloud provider, but may delay addition of new nodes to cluster.
+    This flag is deprecated and will be removed in future releases. See node\-monitor\-period for Node health checking or route\-reconciliation\-period for cloud provider's route configuration settings.
 
 .PP
 \fB\-\-pod\-eviction\-timeout\fP=0
@@ -278,12 +280,16 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     If set, this root certificate authority will be included in service account's token secret. This must be a valid PEM\-encoded CA bundle.
 
 .PP
+\fB\-\-route\-reconciliation\-period\fP=0
+    The period for reconciling routes created for Nodes by cloud provider.
+
+.PP
 \fB\-\-secondary\-node\-eviction\-rate\fP=0.01
     Number of nodes per second on which pods are deleted in case of node failure when a zone is unhealthy (see \-\-unhealthy\-zone\-threshold for definition of healthy/unhealthy). Zone refers to entire cluster in non\-multizone clusters. This value is implicitly overridden to 0 if the cluster size is smaller than \-\-large\-cluster\-size\-threshold.
 
 .PP
 \fB\-\-service\-account\-private\-key\-file\fP=""
-    Filename containing a PEM\-encoded private RSA key used to sign service account tokens.
+    Filename containing a PEM\-encoded private RSA or ECDSA key used to sign service account tokens.
 
 .PP
 \fB\-\-service\-cluster\-ip\-range\fP=""
@@ -300,6 +306,10 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 .PP
 \fB\-\-unhealthy\-zone\-threshold\fP=0.55
     Fraction of Nodes in a zone which needs to be not Ready (minimum 3) for zone to be treated as unhealthy.
+
+.PP
+\fB\-\-use\-service\-account\-credentials\fP=false
+    If true, use individual service account credentials for each controller.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

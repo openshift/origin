@@ -19,7 +19,7 @@ import (
 // Background: https://github.com/openshift/origin/issues/7808
 type ServiceExternalIPs struct {
 	MasterConfigFile string
-	KclusterClient   *kclientset.Clientset
+	KclusterClient   kclientset.Interface
 }
 
 const ServiceExternalIPsName = "ServiceExternalIPs"

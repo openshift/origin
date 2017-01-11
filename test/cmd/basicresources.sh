@@ -47,26 +47,26 @@ os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API
 # 4  openshift cli (kube and openshift resources)
 
 # example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
-# this is probably broken and should be `oc/<oc version>... openshift/...`
 os::cmd::expect_success_and_text 'oc get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
-# example User-Agent: oc/v1.1.3 (linux/amd64) openshift/b348c2f
-os::cmd::expect_success_and_text 'oc get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "oc/${os_git_regex} .* openshift/"
+# example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+os::cmd::expect_success_and_text 'oc get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
 # example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
 # this is probably broken and should be `kubectl/<kube version> kubernetes/...`
 os::cmd::expect_success_and_text 'openshift kubectl get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
-# example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
-# this is probably broken and should be `kubectl/<kube version> openshift/...`
-os::cmd::expect_success_and_text 'openshift kubectl get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${os_git_regex} .* openshift/"
+# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+# this is probably broken and should be `kubectl/<kube version> kubernetes/...`
+os::cmd::expect_success_and_text 'openshift kubectl get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
 # example User-Agent: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
 # this is probably broken and should be `oadm/<oc version>... openshift/...`
 os::cmd::expect_success_and_text 'oadm policy reconcile-sccs --loglevel=7  2>&1 | grep -A4 "securitycontextconstraints" | grep User-Agent' "oadm/${kube_git_regex} .* kubernetes/"
 # example User-Agent: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+# TODO: figure out why this is reporting openshift and not kubernetes
 os::cmd::expect_success_and_text 'oadm policy who-can get pods --loglevel=7  2>&1 | grep -A4 "localresourceaccessreviews" | grep User-Agent' "oadm/${os_git_regex} .* openshift/"
 # example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-# this is probably broken and should be `oc/<oc version>... openshift/...`
+# this is probably broken and should be `oc/<oc version>... kubernetes/...`
 os::cmd::expect_success_and_text 'openshift cli get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
-# example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
-os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${os_git_regex} .* openshift/"
+# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
+os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
 echo "version reporting: ok"
 os::test::junit::declare_suite_end
 
@@ -105,7 +105,7 @@ os::test::junit::declare_suite_start "cmd/basicresources/pods"
 os::cmd::expect_success 'oc get pods --match-server-version'
 os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json' 'pod "hello-openshift" created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
-os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0'
+os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
 echo "pods: ok"
 os::test::junit::declare_suite_end
 
@@ -117,7 +117,7 @@ os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race 
 os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
 os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
 os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
-os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
+os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0 --force'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
 
 # show-labels should work for projects
@@ -168,13 +168,13 @@ os::cmd::expect_success 'oc delete clusterquota/limit-bob'
 echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/basicresources/petsets"
+os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
 os::cmd::expect_success 'oc create -f examples/pets/zookeeper/zookeeper.yaml'
 os::cmd::try_until_success 'oc get pods zoo-0'
 os::cmd::expect_success 'oc get pvc datadir-zoo-2'
-os::cmd::expect_success_and_text 'oc describe petset zoo' 'app=zk'
+os::cmd::expect_success_and_text 'oc describe statefulset zoo' 'app=zk'
 os::cmd::expect_success 'oc delete -f examples/pets/zookeeper/zookeeper.yaml'
-echo "petsets: ok"
+echo "statefulsets: ok"
 os::test::junit::declare_suite_end
 
 
@@ -337,7 +337,7 @@ echo "delete all: ok"
 os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
-os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server: You may not request a new project via this API'
+os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly

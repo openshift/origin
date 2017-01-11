@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Running your first containers in Kubernetes
 
 Ok, you've run one of the [getting started guides](../docs/getting-started-guides/) and you have
@@ -60,13 +55,6 @@ kubectl delete deployment my-nginx
 
 Most people will eventually want to use declarative configuration files for creating/modifying their applications.  A [simplified introduction](../docs/user-guide/deploying-applications.md)
 is given in a different document.
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

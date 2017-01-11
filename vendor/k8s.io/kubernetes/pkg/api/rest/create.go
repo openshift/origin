@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
+	path "k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
@@ -49,14 +50,6 @@ type RESTCreateStrategy interface {
 	Canonicalize(obj runtime.Object)
 }
 
-// RESTBeforeCreateStrategy is an optional strategy interface that may be implemented
-// to get notified of changes before validation
-type RESTBeforeCreateStrategy interface {
-	// BeforeCreate is invoked after PrepareForCreate on the strategy and before Validate.
-	// All field defaulting is provided, but fields may not be valid.
-	BeforeCreate(ctx api.Context, obj runtime.Object) error
-}
-
 // BeforeCreate ensures that common operations for all resources are performed on creation. It only returns
 // errors that can be converted to api.Status. It invokes PrepareForCreate, then GenerateName, then Validate.
 // It returns nil if the object should be created.
@@ -82,12 +75,6 @@ func BeforeCreate(strategy RESTCreateStrategy, ctx api.Context, obj runtime.Obje
 	// ClusterName is ignored and should not be saved
 	objectMeta.ClusterName = ""
 
-	if before, ok := strategy.(RESTBeforeCreateStrategy); ok {
-		if err := before.BeforeCreate(ctx, obj); err != nil {
-			return err
-		}
-	}
-
 	if errs := strategy.Validate(ctx, obj); len(errs) > 0 {
 		return errors.NewInvalid(kind.GroupKind(), objectMeta.Name, errs)
 	}
@@ -95,7 +82,7 @@ func BeforeCreate(strategy RESTCreateStrategy, ctx api.Context, obj runtime.Obje
 	// Custom validation (including name validation) passed
 	// Now run common validation on object meta
 	// Do this *after* custom validation so that specific error messages are shown whenever possible
-	if errs := validation.ValidateObjectMeta(objectMeta, strategy.NamespaceScoped(), validation.ValidatePathSegmentName, field.NewPath("metadata")); len(errs) > 0 {
+	if errs := validation.ValidateObjectMeta(objectMeta, strategy.NamespaceScoped(), path.ValidatePathSegmentName, field.NewPath("metadata")); len(errs) > 0 {
 		return errors.NewInvalid(kind.GroupKind(), objectMeta.Name, errs)
 	}
 

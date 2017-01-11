@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/route/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeRoutes implements RouteInterface
 type FakeRoutes struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -47,14 +48,14 @@ func (c *FakeRoutes) UpdateStatus(route *v1.Route) (*v1.Route, error) {
 	return obj.(*v1.Route), err
 }
 
-func (c *FakeRoutes) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeRoutes) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(routesResource, c.ns, name), &v1.Route{})
 
 	return err
 }
 
-func (c *FakeRoutes) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeRoutes) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(routesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.RouteList{})
@@ -71,7 +72,7 @@ func (c *FakeRoutes) Get(name string) (result *v1.Route, err error) {
 	return obj.(*v1.Route), err
 }
 
-func (c *FakeRoutes) List(opts api.ListOptions) (result *v1.RouteList, err error) {
+func (c *FakeRoutes) List(opts api_v1.ListOptions) (result *v1.RouteList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(routesResource, c.ns, opts), &v1.RouteList{})
 
@@ -79,7 +80,7 @@ func (c *FakeRoutes) List(opts api.ListOptions) (result *v1.RouteList, err error
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -93,7 +94,7 @@ func (c *FakeRoutes) List(opts api.ListOptions) (result *v1.RouteList, err error
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *FakeRoutes) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(routesResource, c.ns, opts))
 

@@ -72,7 +72,7 @@ func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
 
 // GetNamespace gets the namespace associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetNamespace() (string, error) {
-	namespace, _, err := p.Factory.OpenShiftClientConfig.Namespace()
+	namespace, _, err := p.Factory.DefaultNamespace()
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +84,7 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 
 // GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
-	osClient, _, _, err := p.Factory.Clients()
+	osClient, _, err := p.Factory.Clients()
 	if err != nil {
 		return nil, fmt.Errorf("error getting client: %v", err)
 	}

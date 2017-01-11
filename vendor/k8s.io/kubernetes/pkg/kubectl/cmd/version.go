@@ -17,15 +17,16 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/version"
 )
 
-func NewCmdVersion(f *cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdVersion(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the client and server version information",
@@ -35,21 +36,37 @@ func NewCmdVersion(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolP("client", "c", false, "Client version only (no server required).")
+	cmd.Flags().BoolP("short", "", false, "Print just the version number.")
 	cmd.Flags().MarkShorthandDeprecated("client", "please use --client instead.")
 	return cmd
 }
 
-func RunVersion(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command) error {
-	kubectl.GetClientVersion(out)
+func RunVersion(f cmdutil.Factory, out io.Writer, cmd *cobra.Command) error {
+	v := fmt.Sprintf("%#v", version.Get())
+	if cmdutil.GetFlagBool(cmd, "short") {
+		v = version.Get().GitVersion
+	}
+
+	fmt.Fprintf(out, "Client Version: %s\n", v)
 	if cmdutil.GetFlagBool(cmd, "client") {
 		return nil
 	}
 
-	client, err := f.Client()
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
 
-	kubectl.GetServerVersion(out, client)
+	serverVersion, err := clientset.Discovery().ServerVersion()
+	if err != nil {
+		return err
+	}
+
+	v = fmt.Sprintf("%#v", *serverVersion)
+	if cmdutil.GetFlagBool(cmd, "short") {
+		v = serverVersion.GitVersion
+	}
+
+	fmt.Fprintf(out, "Server Version: %s\n", v)
 	return nil
 }

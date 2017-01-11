@@ -128,14 +128,14 @@ func TestNoErrors(t *testing.T) {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := oscache.StoreToServiceAccountLister{
+		saCache := &cache.StoreToServiceAccountLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		serviceAccount.Namespace = namespace.Name
-		saCache.Add(serviceAccount)
+		saCache.Indexer.Add(serviceAccount)
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
@@ -210,7 +210,7 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := oscache.StoreToServiceAccountLister{
+		saCache := &cache.StoreToServiceAccountLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
@@ -218,7 +218,7 @@ func TestErrors(t *testing.T) {
 		serviceAccount := admissionttesting.CreateSAForTest()
 		if testcase.serviceAccount != nil {
 			serviceAccount.Namespace = namespace.Name
-			saCache.Add(serviceAccount)
+			saCache.Indexer.Add(serviceAccount)
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 
@@ -371,12 +371,12 @@ func TestSpecificSAs(t *testing.T) {
 			}
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
-		saCache := oscache.StoreToServiceAccountLister{
+		saCache := &cache.StoreToServiceAccountLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		for i := range testcase.serviceAccounts {
-			saCache.Add(testcase.serviceAccounts[i])
+			saCache.Indexer.Add(testcase.serviceAccounts[i])
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
