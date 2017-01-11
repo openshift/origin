@@ -206,9 +206,6 @@ of docker.  Exclude those versions of docker.
 # Create Binaries
 %{os_git_vars} hack/build-cross.sh
 
-# Create extended.test
-%{os_git_vars} hack/build-go.sh test/extended/extended.test
-
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
