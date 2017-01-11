@@ -59,7 +59,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 		},
 	}
 
-	if _, err := haroldKubeClient.Pods(projectName).Create(privilegedPod); !kapierror.IsForbidden(err) {
+	if _, err := haroldKubeClient.Core().Pods(projectName).Create(privilegedPod); !kapierror.IsForbidden(err) {
 		t.Fatalf("missing forbidden: %v", err)
 	}
 
@@ -69,13 +69,13 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	}
 
 	actualPod.Spec.Containers[0].Image = "something-nefarious"
-	if _, err := haroldKubeClient.Pods(projectName).Update(actualPod); !kapierror.IsForbidden(err) {
+	if _, err := haroldKubeClient.Core().Pods(projectName).Update(actualPod); !kapierror.IsForbidden(err) {
 		t.Fatalf("missing forbidden: %v", err)
 	}
 
 	// try to lie about the privileged nature
 	actualPod.Spec.SecurityContext.HostPID = false
-	if _, err := haroldKubeClient.Pods(projectName).Update(actualPod); err == nil {
+	if _, err := haroldKubeClient.Core().Pods(projectName).Update(actualPod); err == nil {
 		t.Fatalf("missing error: %v", err)
 	}
 }

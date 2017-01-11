@@ -60,6 +60,10 @@ type emptyDirQuotaMounter struct {
 	quotaApplicator QuotaApplicator
 }
 
+func (edq *emptyDirQuotaMounter) CanMount() error {
+	return edq.wrapped.CanMount()
+}
+
 // Must implement SetUp as well, otherwise the internal Mounter.SetUp calls its
 // own SetUpAt method, not the one we need.
 

@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation/path"
 )
 
 // GetNameValidationFunc returns a name validation function that includes the standard restrictions we want for all types
 func GetNameValidationFunc(nameFunc validation.ValidateNameFunc) validation.ValidateNameFunc {
 	return func(name string, prefix bool) []string {
-		if reasons := validation.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
+		if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 			return reasons
 		}
 

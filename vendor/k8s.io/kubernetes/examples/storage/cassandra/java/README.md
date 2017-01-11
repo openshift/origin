@@ -1,9 +1,4 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
-# Cassandra on Kubernetes Custom Seed Provider: releases.k8s.io/release-1.4
+# Cassandra on Kubernetes Custom Seed Provider: releases.k8s.io/HEAD
 
 Within any deployment of Cassandra a Seed Provider is used to for node discovery and communication.  When a Cassandra node first starts it must discover which nodes, or seeds, for the information about the Cassandra nodes in the ring / rack / datacenter.
 
@@ -32,13 +27,6 @@ This Cassandra Provider implements `SeedProvider`. and utilizes `SimpleSnitch`. 
 expand this capability.
 
 This in affect makes every node a seed provider, which is not a recommended best practice.  This increases maintenance and reduces gossip performance.
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

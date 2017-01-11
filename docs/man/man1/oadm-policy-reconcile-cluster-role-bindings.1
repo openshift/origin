@@ -28,6 +28,10 @@ You can see which recommended cluster role bindings have changed by choosing an 
     If true, preserves extra subjects in cluster role bindings.
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-confirm\fP=false
     If true, specify that cluster role bindings should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.
 

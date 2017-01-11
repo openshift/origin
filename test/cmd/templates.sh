@@ -174,10 +174,10 @@ os::cmd::expect_success "oc process -f '${required_params}' required_param=somev
 os::cmd::expect_success "oc process -f '${required_params}' -v required_param=someval=moreval2 | oc create -f -"
 os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval3 | oc create -f -"
 # we should have overwritten the template param
-os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.Name}' 'someval'
-os::cmd::expect_success_and_text 'oc get user someval=moreval -o jsonpath={.Name}' 'someval=moreval'
-os::cmd::expect_success_and_text 'oc get user someval=moreval2 -o jsonpath={.Name}' 'someval=moreval2'
-os::cmd::expect_success_and_text 'oc get user someval=moreval3 -o jsonpath={.Name}' 'someval=moreval3'
+os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.metadata.name}' 'someval'
+os::cmd::expect_success_and_text 'oc get user someval=moreval -o jsonpath={.metadata.name}' 'someval=moreval'
+os::cmd::expect_success_and_text 'oc get user someval=moreval2 -o jsonpath={.metadata.name}' 'someval=moreval2'
+os::cmd::expect_success_and_text 'oc get user someval=moreval3 -o jsonpath={.metadata.name}' 'someval=moreval3'
 # providing a value not in the template should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unknown parameter name "other_param"'
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=other_param=otherval" 'unknown parameter name "other_param"'

@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	kresource "k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -366,7 +366,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	_, _, kc, err := f.Clients()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -376,7 +376,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	if len(v.Output) > 0 {
@@ -391,7 +391,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Err = errOut
 	v.Mapper = mapper
 	v.Typer = typer
-	v.RESTClientFactory = f.Factory.ClientForMapping
+	v.RESTClientFactory = f.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = f.JSONEncoder()
 
@@ -432,13 +432,13 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.ExplicitNamespace, false, v.Filenames...).
+		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
 		SelectorParam(v.Selector).
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
 
-	singular := false
-	infos, err := b.Do().IntoSingular(&singular).Infos()
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		updateInfos = append(updateInfos, info)
 	}
 
-	patches, patchError := v.getVolumeUpdatePatches(infos, singular)
+	patches, patchError := v.getVolumeUpdatePatches(infos, singleItemImplied)
 
 	if patchError != nil {
 		return patchError
@@ -529,7 +529,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	return nil
 }
 
-func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular bool) ([]*Patch, error) {
+func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
 	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
@@ -537,7 +537,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 			var e error
 			switch {
 			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singular)
+				e = v.addVolumeToSpec(spec, info, singleItemImplied)
 				transformed = true
 			case v.Remove:
 				e = v.removeVolumeFromSpec(spec, info)
@@ -550,7 +550,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 		}
 		return transformed, err
 	})
-	if singular && skipped == len(infos) {
+	if singleItemImplied && skipped == len(infos) {
 		patchError := fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 		return patches, patchError
 	}

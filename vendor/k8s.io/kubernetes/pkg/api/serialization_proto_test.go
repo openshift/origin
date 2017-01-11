@@ -33,12 +33,20 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/protobuf"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/sets"
+)
+
+var nonProtobaleAPIGroups = sets.NewString(
+	"kubeadm.k8s.io",
 )
 
 func init() {
-	codecsToTest = append(codecsToTest, func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+	codecsToTest = append(codecsToTest, func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, bool, error) {
+		if nonProtobaleAPIGroups.Has(version.Group) {
+			return nil, false, nil
+		}
 		s := protobuf.NewSerializer(api.Scheme, api.Scheme, "application/arbitrary.content.type")
-		return api.Codecs.CodecForVersions(s, s, testapi.ExternalGroupVersions(), nil), nil
+		return api.Codecs.CodecForVersions(s, s, testapi.ExternalGroupVersions(), nil), true, nil
 	})
 }
 
@@ -46,12 +54,12 @@ func TestUniversalDeserializer(t *testing.T) {
 	expected := &v1.Pod{ObjectMeta: v1.ObjectMeta{Name: "test"}}
 	d := api.Codecs.UniversalDeserializer()
 	for _, mediaType := range []string{"application/json", "application/yaml", "application/vnd.kubernetes.protobuf"} {
-		e, ok := api.Codecs.SerializerForMediaType(mediaType, nil)
+		info, ok := runtime.SerializerInfoForMediaType(api.Codecs.SupportedMediaTypes(), mediaType)
 		if !ok {
 			t.Fatal(mediaType)
 		}
 		buf := &bytes.Buffer{}
-		if err := e.Encode(expected, buf); err != nil {
+		if err := info.Serializer.Encode(expected, buf); err != nil {
 			t.Fatalf("%s: %v", mediaType, err)
 		}
 		obj, _, err := d.Decode(buf.Bytes(), &unversioned.GroupVersionKind{Kind: "Pod", Version: "v1"}, nil)
@@ -70,11 +78,6 @@ func TestProtobufRoundTrip(t *testing.T) {
 	// InitContainers are turned into annotations by conversion.
 	obj.Spec.InitContainers = nil
 	obj.Status.InitContainerStatuses = nil
-	// We don't round trip VolumeSource.Metadata (it's a deprecated OpenShift
-	// carry) for protobuf, so we need to nil it out here to make the test pass.
-	for i := range obj.Spec.Volumes {
-		obj.Spec.Volumes[i].VolumeSource.Metadata = nil
-	}
 	data, err := obj.Marshal()
 	if err != nil {
 		t.Fatal(err)

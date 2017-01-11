@@ -128,6 +128,7 @@ func mkintp(i int64) *int64 {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_DeploymentConfigSpec,
 		SetDefaults_DeploymentStrategy,

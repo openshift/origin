@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
@@ -60,6 +61,7 @@ type limitRangerActions struct{}
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
 var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
 var _ = limitranger.LimitRangerActions(&limitRangerActions{})
+var _ = admission.WantsInformerFactory(&clusterResourceOverridePlugin{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
@@ -84,6 +86,14 @@ func newClusterResourceOverride(client clientset.Interface, config *api.ClusterR
 		config:      internal,
 		LimitRanger: limitRanger,
 	}, nil
+}
+
+func (a *clusterResourceOverridePlugin) SetInformerFactory(f informers.SharedInformerFactory) {
+	w, ok := a.LimitRanger.(admission.WantsInformerFactory)
+	if !ok {
+		return
+	}
+	w.SetInformerFactory(f)
 }
 
 // these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
@@ -126,7 +136,11 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 	if a.ProjectCache == nil {
 		return fmt.Errorf("%s did not get a project cache", api.PluginName)
 	}
-	return nil
+	v, ok := a.LimitRanger.(admission.Validator)
+	if !ok {
+		return fmt.Errorf("LimitRanger does not implement kadmission.Validator")
+	}
+	return v.Validate()
 }
 
 // TODO this will need to update when we have pod requests/limits

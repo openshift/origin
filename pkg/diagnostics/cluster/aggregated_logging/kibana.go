@@ -22,7 +22,7 @@ const (
 )
 
 //checkKibana verifies the various integration points between Kibana and logging
-func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient *kclientset.Clientset, project string) {
+func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string) {
 	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
@@ -33,7 +33,7 @@ func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient *kcl
 }
 
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
-func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient *kclientset.Clientset, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
 	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName)
 	if err != nil {

@@ -62,7 +62,7 @@ var (
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdGet(f.Factory, out, errOut)
+	cmd := kcmd.NewCmdGet(f, out, errOut)
 	cmd.Long = fmt.Sprintf(getLong, fullName)
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.SuggestFor = []string{"list"}
@@ -88,7 +88,7 @@ var (
 
 // NewCmdReplace is a wrapper for the Kubernetes cli replace command
 func NewCmdReplace(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdReplace(f.Factory, out)
+	cmd := kcmd.NewCmdReplace(f, out)
 	cmd.Long = replaceLong
 	cmd.Example = fmt.Sprintf(replaceExample, fullName)
 	return cmd
@@ -107,7 +107,7 @@ var (
 
 // NewCmdPatch is a wrapper for the Kubernetes cli patch command
 func NewCmdPatch(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdPatch(f.Factory, out)
+	cmd := kcmd.NewCmdPatch(f, out)
 	cmd.Long = patchLong
 	cmd.Example = fmt.Sprintf(patchExample, fullName)
 	return cmd
@@ -150,7 +150,7 @@ var (
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
 func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdDelete(f.Factory, out)
+	cmd := kcmd.NewCmdDelete(f, out)
 	cmd.Long = deleteLong
 	cmd.Short = "Delete one or more resources"
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
@@ -174,7 +174,7 @@ var (
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
 func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdCreate(f.Factory, out, errOut)
+	cmd := kcmd.NewCmdCreate(f, out, errOut)
 	cmd.Long = createLong
 	cmd.Example = fmt.Sprintf(createExample, parentName)
 
@@ -230,7 +230,7 @@ func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(f.Factory, out)
+	cmd := kcmd.NewCmdCompletion(f, out)
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	return cmd
@@ -249,7 +249,7 @@ var (
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
+	cmd := kcmd.NewCmdExec(f, cmdIn, cmdOut, cmdErr)
 	cmd.Use = "exec [options] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
 	cmd.Example = fmt.Sprintf(execExample, fullName)
@@ -276,7 +276,7 @@ var (
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
 func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdPortForward(f.Factory, out, errout)
+	cmd := kcmd.NewCmdPortForward(f, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
 	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
@@ -300,7 +300,7 @@ var (
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
 func NewCmdDescribe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdDescribe(f.Factory, out, errOut)
+	cmd := kcmd.NewCmdDescribe(f, out, errOut)
 	cmd.Long = describeLong
 	cmd.Example = fmt.Sprintf(describeExample, fullName)
 	cmd.ValidArgs = describe.DescribableResources()
@@ -325,7 +325,7 @@ var (
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
 func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdProxy(f.Factory, out)
+	cmd := kcmd.NewCmdProxy(f, out)
 	cmd.Long = proxyLong
 	cmd.Example = fmt.Sprintf(proxyExample, fullName)
 	return cmd
@@ -357,7 +357,7 @@ var (
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
 func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdScale(f.Factory, out)
+	cmd := kcmd.NewCmdScale(f, out)
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
@@ -385,7 +385,7 @@ var (
 
 // NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
 func NewCmdAutoscale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdAutoscale(f.Factory, out)
+	cmd := kcmd.NewCmdAutoscale(f, out)
 	cmd.Short = "Autoscale a deployment config, deployment, replication controller, or replica set"
 	cmd.Long = autoScaleLong
 	cmd.Example = fmt.Sprintf(autoScaleExample, fullName)
@@ -429,7 +429,7 @@ var (
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1", DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
-	cmd := kcmd.NewCmdRunWithOptions(f.Factory, opts, in, out, errout)
+	cmd := kcmd.NewCmdRunWithOptions(f, opts, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
 	cmd.SuggestFor = []string{"image"}
@@ -461,7 +461,7 @@ var (
 
 // NewCmdAttach is a wrapper for the Kubernetes cli attach command
 func NewCmdAttach(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdAttach(f.Factory, in, out, errout)
+	cmd := kcmd.NewCmdAttach(f, in, out, errout)
 	cmd.Long = attachLong
 	cmd.Example = fmt.Sprintf(attachExample, fullName)
 	return cmd
@@ -503,7 +503,7 @@ var (
 
 // NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
 func NewCmdAnnotate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdAnnotate(f.Factory, out)
+	cmd := kcmd.NewCmdAnnotate(f, out)
 	cmd.Long = fmt.Sprintf(annotateLong, fullName)
 	cmd.Example = fmt.Sprintf(annotateExample, fullName)
 	return cmd
@@ -539,7 +539,7 @@ var (
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
 func NewCmdLabel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdLabel(f.Factory, out)
+	cmd := kcmd.NewCmdLabel(f, out)
 	cmd.Long = fmt.Sprintf(labelLong, kvalidation.LabelValueMaxLength)
 	cmd.Example = fmt.Sprintf(labelExample, fullName)
 	return cmd
@@ -561,7 +561,7 @@ var (
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
 func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdApply(f.Factory, out)
+	cmd := kcmd.NewCmdApply(f, out)
 	cmd.Long = applyLong
 	cmd.Example = fmt.Sprintf(applyExample, fullName)
 	return cmd
@@ -586,7 +586,7 @@ var (
 
 // NewCmdExplain is a wrapper for the Kubernetes cli explain command
 func NewCmdExplain(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExplain(f.Factory, out, errOut)
+	cmd := kcmd.NewCmdExplain(f, out, errOut)
 	cmd.Long = explainLong
 	cmd.Example = fmt.Sprintf(explainExample, fullName)
 	return cmd
@@ -618,7 +618,7 @@ var (
 
 // NewCmdConvert is a wrapper for the Kubernetes cli convert command
 func NewCmdConvert(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdConvert(f.Factory, out)
+	cmd := kcmd.NewCmdConvert(f, out)
 	cmd.Long = convertLong
 	cmd.Example = fmt.Sprintf(convertExample, fullName)
 	return cmd
@@ -662,7 +662,7 @@ var (
 
 // NewCmdEdit is a wrapper for the Kubernetes cli edit command
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdEdit(f.Factory, out, errout)
+	cmd := kcmd.NewCmdEdit(f, out, errout)
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
 	return cmd
@@ -707,5 +707,31 @@ func NewCmdConfig(parentName, name string, out, errOut io.Writer) *cobra.Command
 	// TODO remove when normalization is moved upstream
 	templates.NormalizeAll(cmd)
 	adjustCmdExamples(cmd, parentName, name)
+	return cmd
+}
+
+var (
+	cpExample = templates.Examples(`
+	    # !!!Important Note!!!
+	    # Requires that the 'tar' binary is present in your container
+	    # image.  If 'tar' is not present, 'kubectl cp' will fail.
+
+	    # Copy /tmp/foo_dir local directory to /tmp/bar_dir in a remote pod in the default namespace
+		%[1]s cp /tmp/foo_dir <some-pod>:/tmp/bar_dir
+
+        # Copy /tmp/foo local file to /tmp/bar in a remote pod in a specific container
+		%[1]s cp /tmp/foo <some-pod>:/tmp/bar -c <specific-container>
+
+		# Copy /tmp/foo local file to /tmp/bar in a remote pod in namespace <some-namespace>
+		%[1]s cp /tmp/foo <some-namespace>/<some-pod>:/tmp/bar
+
+		# Copy /tmp/foo from a remote pod to /tmp/bar locally
+		%[1]s cp <some-namespace>/<some-pod>:/tmp/foo /tmp/bar`)
+)
+
+// NewCmdCp is a wrapper for the Kubernetes cli cp command
+func NewCmdCp(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdCp(f, in, out, errout)
+	cmd.Example = fmt.Sprintf(cpExample, fullName)
 	return cmd
 }

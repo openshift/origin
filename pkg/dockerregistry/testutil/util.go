@@ -25,7 +25,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -225,10 +225,10 @@ const SampleImageManifestSchema1 = `{
 
 // GetFakeImageGetHandler returns a reaction function for use with wake os client returning one of given image
 // objects if found.
-func GetFakeImageGetHandler(t *testing.T, iss ...imageapi.Image) ktestclient.ReactionFunc {
-	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+func GetFakeImageGetHandler(t *testing.T, iss ...imageapi.Image) core.ReactionFunc {
+	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case ktestclient.GetAction:
+		case core.GetAction:
 			for _, is := range iss {
 				if a.GetName() == is.Name {
 					t.Logf("images get handler: returning image %s", is.Name)

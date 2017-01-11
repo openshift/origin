@@ -23,13 +23,14 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
+
 	"k8s.io/kubernetes/pkg/api"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -37,8 +38,9 @@ import (
 type PortForwardOptions struct {
 	Namespace     string
 	PodName       string
+	RESTClient    *restclient.RESTClient
 	Config        *restclient.Config
-	Client        *client.Client
+	PodClient     coreclient.PodsGetter
 	Ports         []string
 	PortForwarder portForwarder
 	StopChannel   chan struct{}
@@ -46,7 +48,7 @@ type PortForwardOptions struct {
 }
 
 var (
-	portforward_example = dedent.Dedent(`
+	portforward_example = templates.Examples(`
 		# Listen on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
 		kubectl port-forward mypod 5000 6000
 
@@ -60,7 +62,7 @@ var (
 		kubectl port-forward  mypod 0:5000`)
 )
 
-func NewCmdPortForward(f *cmdutil.Factory, cmdOut, cmdErr io.Writer) *cobra.Command {
+func NewCmdPortForward(f cmdutil.Factory, cmdOut, cmdErr io.Writer) *cobra.Command {
 	opts := &PortForwardOptions{
 		PortForwarder: &defaultPortForwarder{
 			cmdOut: cmdOut,
@@ -110,7 +112,7 @@ func (f *defaultPortForwarder) ForwardPorts(method string, url *url.URL, opts Po
 }
 
 // Complete completes all the required options for port-forward cmd.
-func (o *PortForwardOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, args []string, cmdOut io.Writer, cmdErr io.Writer) error {
+func (o *PortForwardOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string, cmdOut io.Writer, cmdErr io.Writer) error {
 	var err error
 	o.PodName = cmdutil.GetFlagString(cmd, "pod")
 	if len(o.PodName) == 0 && len(args) == 0 {
@@ -130,12 +132,17 @@ func (o *PortForwardOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	o.Client, err = f.Client()
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
+	o.PodClient = clientset.Core()
 
 	o.Config, err = f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	o.RESTClient, err = f.RESTClient()
 	if err != nil {
 		return err
 	}
@@ -155,15 +162,15 @@ func (o PortForwardOptions) Validate() error {
 		return fmt.Errorf("at least 1 PORT is required for port-forward")
 	}
 
-	if o.PortForwarder == nil || o.Client == nil || o.Config == nil {
-		return fmt.Errorf("client, client config, and portforwarder must be provided")
+	if o.PortForwarder == nil || o.PodClient == nil || o.RESTClient == nil || o.Config == nil {
+		return fmt.Errorf("client, client config, restClient, and portforwarder must be provided")
 	}
 	return nil
 }
 
 // RunPortForward implements all the necessary functionality for port-forward cmd.
 func (o PortForwardOptions) RunPortForward() error {
-	pod, err := o.Client.Pods(o.Namespace).Get(o.PodName)
+	pod, err := o.PodClient.Pods(o.Namespace).Get(o.PodName)
 	if err != nil {
 		return err
 	}
@@ -183,7 +190,7 @@ func (o PortForwardOptions) RunPortForward() error {
 		}
 	}()
 
-	req := o.Client.RESTClient.Post().
+	req := o.RESTClient.Post().
 		Resource("pods").
 		Namespace(o.Namespace).
 		Name(pod.Name).

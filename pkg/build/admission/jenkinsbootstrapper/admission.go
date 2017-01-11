@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -24,6 +24,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
 	"github.com/openshift/origin/pkg/client"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/config/cmd"
 )
@@ -43,6 +44,10 @@ type jenkinsBootstrapper struct {
 
 	jenkinsConfig configapi.JenkinsPipelineConfig
 }
+
+var _ = oadmission.WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
+var _ = oadmission.WantsRESTClientConfig(&jenkinsBootstrapper{})
+var _ = oadmission.WantsOpenshiftClient(&jenkinsBootstrapper{})
 
 // NewJenkinsBootstrapper returns an admission plugin that will create required jenkins resources as the user if they are needed.
 func NewJenkinsBootstrapper(serviceClient coreclient.ServicesGetter) admission.Interface {
@@ -102,10 +107,33 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 			RESTMapper:  registered.RESTMapper(),
 			ObjectTyper: kapi.Scheme,
 			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+				// TODO this is a nasty copy&paste from pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping
 				if latest.OriginKind(mapping.GroupVersionKind) {
-					return client.New(&impersonatingConfig)
+					if err := client.SetOpenShiftDefaults(&impersonatingConfig); err != nil {
+						return nil, err
+					}
+					impersonatingConfig.APIPath = "/apis"
+					if mapping.GroupVersionKind.Group == kapi.GroupName {
+						impersonatingConfig.APIPath = "/oapi"
+					}
+					gv := mapping.GroupVersionKind.GroupVersion()
+					impersonatingConfig.GroupVersion = &gv
+					return restclient.RESTClientFor(&impersonatingConfig)
 				}
-				return kclient.New(&impersonatingConfig)
+				// TODO and this from vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util/factory_object_mapping.go#ClientForMapping
+				if err := kclient.SetKubernetesDefaults(&impersonatingConfig); err != nil {
+					return nil, err
+				}
+				gvk := mapping.GroupVersionKind
+				switch gvk.Group {
+				case kapi.GroupName:
+					impersonatingConfig.APIPath = "/api"
+				default:
+					impersonatingConfig.APIPath = "/apis"
+				}
+				gv := gvk.GroupVersion()
+				impersonatingConfig.GroupVersion = &gv
+				return restclient.RESTClientFor(&impersonatingConfig)
 			}),
 		},
 		Op: cmd.Create,

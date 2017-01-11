@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -17,25 +19,25 @@ type DeploymentConfigInterface interface {
 	Create(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
 	Update(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
 	UpdateStatus(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.DeploymentConfig, error)
-	List(opts api.ListOptions) (*v1.DeploymentConfigList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.DeploymentConfigList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.DeploymentConfig, err error)
 	DeploymentConfigExpansion
 }
 
 // deploymentConfigs implements DeploymentConfigInterface
 type deploymentConfigs struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newDeploymentConfigs returns a DeploymentConfigs
-func newDeploymentConfigs(c *CoreClient, namespace string) *deploymentConfigs {
+func newDeploymentConfigs(c *CoreV1Client, namespace string) *deploymentConfigs {
 	return &deploymentConfigs{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -79,7 +81,7 @@ func (c *deploymentConfigs) UpdateStatus(deploymentConfig *v1.DeploymentConfig) 
 }
 
 // Delete takes name of the deploymentConfig and deletes it. Returns an error if one occurs.
-func (c *deploymentConfigs) Delete(name string, options *api.DeleteOptions) error {
+func (c *deploymentConfigs) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
@@ -90,7 +92,7 @@ func (c *deploymentConfigs) Delete(name string, options *api.DeleteOptions) erro
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *deploymentConfigs) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *deploymentConfigs) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
@@ -113,7 +115,7 @@ func (c *deploymentConfigs) Get(name string) (result *v1.DeploymentConfig, err e
 }
 
 // List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts api.ListOptions) (result *v1.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts api_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
 	result = &v1.DeploymentConfigList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -125,7 +127,7 @@ func (c *deploymentConfigs) List(opts api.ListOptions) (result *v1.DeploymentCon
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

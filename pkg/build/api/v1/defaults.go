@@ -45,6 +45,7 @@ func SetDefaults_BuildTriggerPolicy(obj *BuildTriggerPolicy) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_BuildConfigSpec,
 		SetDefaults_BuildSource,

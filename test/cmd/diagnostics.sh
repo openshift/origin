@@ -23,6 +23,8 @@ cp "${NODE_CONFIG_DIR}/node-config.yaml" "${BASETMPDIR}/node-config-broken.yaml"
 os::util::sed '5,10d' "${BASETMPDIR}/node-config-broken.yaml"
 os::cmd::expect_failure_and_text "oadm diagnostics NodeConfigCheck --node-config='${BASETMPDIR}/node-config-broken.yaml'" 'ERROR'
 
+os::cmd::expect_success 'oadm policy reconcile-cluster-roles --additive-only=false --confirm'
+
 os::cmd::expect_success 'oadm diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 # DiagnosticPod can't run without Docker, would just time out. Exercise flags instead.
 os::cmd::expect_success "oadm diagnostics DiagnosticPod --prevent-modification --images=foo"

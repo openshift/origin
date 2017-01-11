@@ -19,7 +19,7 @@ package rest
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io"
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -61,8 +61,8 @@ func NewREST(config *storagebackend.Config, storageDecorator generic.StorageDeco
 			return obj.(*testgroup.TestType).Name, nil
 		},
 		// Used to match objects based on labels/fields for list.
-		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
-			return &generic.SelectionPredicate{
+		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+			return storage.SelectionPredicate{
 				Label: label,
 				Field: field,
 				GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {

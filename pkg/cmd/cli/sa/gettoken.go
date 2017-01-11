@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -43,8 +43,8 @@ var (
 
 type GetServiceAccountTokenOptions struct {
 	SAName        string
-	SAClient      unversioned.ServiceAccountsInterface
-	SecretsClient unversioned.SecretsInterface
+	SAClient      kcoreclient.ServiceAccountInterface
+	SecretsClient kcoreclient.SecretInterface
 
 	Out io.Writer
 	Err io.Writer
@@ -78,7 +78,7 @@ func (o *GetServiceAccountTokenOptions) Complete(args []string, f *clientcmd.Fac
 
 	o.SAName = args[0]
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

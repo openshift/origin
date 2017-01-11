@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/build/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -17,25 +19,25 @@ type BuildInterface interface {
 	Create(*v1.Build) (*v1.Build, error)
 	Update(*v1.Build) (*v1.Build, error)
 	UpdateStatus(*v1.Build) (*v1.Build, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Build, error)
-	List(opts api.ListOptions) (*v1.BuildList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.BuildList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
 	BuildExpansion
 }
 
 // builds implements BuildInterface
 type builds struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newBuilds returns a Builds
-func newBuilds(c *CoreClient, namespace string) *builds {
+func newBuilds(c *CoreV1Client, namespace string) *builds {
 	return &builds{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -79,7 +81,7 @@ func (c *builds) UpdateStatus(build *v1.Build) (result *v1.Build, err error) {
 }
 
 // Delete takes name of the build and deletes it. Returns an error if one occurs.
-func (c *builds) Delete(name string, options *api.DeleteOptions) error {
+func (c *builds) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("builds").
@@ -90,7 +92,7 @@ func (c *builds) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *builds) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *builds) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("builds").
@@ -113,7 +115,7 @@ func (c *builds) Get(name string) (result *v1.Build, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *builds) List(opts api.ListOptions) (result *v1.BuildList, err error) {
+func (c *builds) List(opts api_v1.ListOptions) (result *v1.BuildList, err error) {
 	result = &v1.BuildList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -125,7 +127,7 @@ func (c *builds) List(opts api.ListOptions) (result *v1.BuildList, err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *builds) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *builds) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

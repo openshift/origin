@@ -294,8 +294,8 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
-		"with pet sets": {
-			File: "petset.yaml",
+		"with stateful sets": {
+			File: "statefulset.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -305,7 +305,7 @@ func TestProjectStatus(t *testing.T) {
 			Contains: []string{
 				"In project example on server https://example.com:8443\n",
 				"svc/galera (headless):3306",
-				"petset/mysql manages erkules/galera:basic, created less than a second ago - 3 pods",
+				"statefulset/mysql manages erkules/galera:basic, created less than a second ago - 3 pods",
 				"* pod/mysql-1 has restarted 7 times",
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
@@ -403,8 +403,8 @@ func TestProjectStatus(t *testing.T) {
 		for _, o := range test.Extra {
 			objs = append(objs, o)
 		}
-		oc, kc, oldK := testclient.NewFixtureClients(objs...)
-		d := ProjectStatusDescriber{OldK: oldK, K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
+		oc, kc := testclient.NewFixtureClients(objs...)
+		d := ProjectStatusDescriber{K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
@@ -441,8 +441,8 @@ func TestProjectStatusErrors(t *testing.T) {
 		},
 	}
 	for k, test := range testCases {
-		oc, kc, oldK := testclient.NewErrorClients(test.Err)
-		d := ProjectStatusDescriber{OldK: oldK, K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
+		oc, kc := testclient.NewErrorClients(test.Err)
+		d := ProjectStatusDescriber{K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
 		_, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)

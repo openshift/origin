@@ -7,8 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,7 +21,7 @@ import (
 
 var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
-	dcInformer = framework.NewSharedIndexInformer(
+	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).List(options)
@@ -35,7 +34,7 @@ var (
 		2*time.Minute,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
-	rcInformer = framework.NewSharedIndexInformer(
+	rcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).List(options)
@@ -48,7 +47,7 @@ var (
 		2*time.Minute,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
-	streamInformer = framework.NewSharedIndexInformer(
+	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).List(options)
@@ -104,7 +103,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
@@ -128,7 +127,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})

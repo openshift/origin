@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 # Sharing Clusters
 
 This example demonstrates how to access one kubernetes cluster from another. It only works if both clusters are running on the same network, on a cloud provider that provides a private ip range per network (eg: GCE, GKE, AWS).
@@ -59,18 +54,18 @@ And kubectl get nodes should agree:
 ```
 $ kubectl get nodes
 NAME             LABELS                                  STATUS
-eu-minion-0n61   kubernetes.io/hostname=eu-minion-0n61   Ready
-eu-minion-79ua   kubernetes.io/hostname=eu-minion-79ua   Ready
-eu-minion-7wz7   kubernetes.io/hostname=eu-minion-7wz7   Ready
-eu-minion-loh2   kubernetes.io/hostname=eu-minion-loh2   Ready
+eu-node-0n61     kubernetes.io/hostname=eu-node-0n61     Ready
+eu-node-79ua     kubernetes.io/hostname=eu-node-79ua     Ready
+eu-node-7wz7     kubernetes.io/hostname=eu-node-7wz7     Ready
+eu-node-loh2     kubernetes.io/hostname=eu-node-loh2     Ready
 
 $ kubectl config use-context <clustername_us>
 $ kubectl get nodes
 NAME                     LABELS                                                            STATUS
-kubernetes-minion-5jtd   kubernetes.io/hostname=kubernetes-minion-5jtd                     Ready
-kubernetes-minion-lqfc   kubernetes.io/hostname=kubernetes-minion-lqfc                     Ready
-kubernetes-minion-sjra   kubernetes.io/hostname=kubernetes-minion-sjra                     Ready
-kubernetes-minion-wul8   kubernetes.io/hostname=kubernetes-minion-wul8                     Ready
+kubernetes-node-5jtd     kubernetes.io/hostname=kubernetes-node-5jtd                       Ready
+kubernetes-node-lqfc     kubernetes.io/hostname=kubernetes-node-lqfc                       Ready
+kubernetes-node-sjra     kubernetes.io/hostname=kubernetes-node-sjra                       Ready
+kubernetes-node-wul8     kubernetes.io/hostname=kubernetes-node-wul8                       Ready
 ```
 
 ## Testing reachability
@@ -178,20 +173,13 @@ $ kubectl exec -it kubectl-tester bash
 
 kubectl-tester $ kubectl get nodes
 NAME             LABELS                                  STATUS
-eu-minion-0n61   kubernetes.io/hostname=eu-minion-0n61   Ready
-eu-minion-79ua   kubernetes.io/hostname=eu-minion-79ua   Ready
-eu-minion-7wz7   kubernetes.io/hostname=eu-minion-7wz7   Ready
-eu-minion-loh2   kubernetes.io/hostname=eu-minion-loh2   Ready
+eu-node-0n61     kubernetes.io/hostname=eu-node-0n61     Ready
+eu-node-79ua     kubernetes.io/hostname=eu-node-79ua     Ready
+eu-node-7wz7     kubernetes.io/hostname=eu-node-7wz7     Ready
+eu-node-loh2     kubernetes.io/hostname=eu-node-loh2     Ready
 ```
 
 For a more advanced example of sharing clusters, see the [service-loadbalancer](https://github.com/kubernetes/contrib/tree/master/service-loadbalancer/README.md)
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

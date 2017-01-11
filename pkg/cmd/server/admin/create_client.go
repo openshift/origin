@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -104,7 +104,7 @@ func (o CreateClientOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := kcrypto.CertPoolFromFile(caFile); err != nil {
+			if _, err := cert.NewPool(caFile); err != nil {
 				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
 			}
 		}

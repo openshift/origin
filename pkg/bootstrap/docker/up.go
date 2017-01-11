@@ -833,12 +833,12 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (*client.Client, *kclientset.Clientset, error) {
+func (c *ClientStartConfig) Clients() (*client.Client, kclientset.Interface, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
 	}
-	oc, _, kcset, err := f.Clients()
+	oc, kcset, err := f.Clients()
 	if err != nil {
 		return nil, nil, err
 	}

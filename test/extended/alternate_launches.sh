@@ -5,6 +5,7 @@
 # It will run all tests that are imported into test/extended.
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
+os::util::environment::use_sudo
 os::util::environment::setup_all_server_vars "test-extended-alternate-launches/"
 
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
@@ -12,7 +13,6 @@ export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 function cleanup()
 {
 	out=$?
-	pgrep -f "openshift" | xargs -r sudo kill
 	cleanup_openshift
 
 	# TODO(skuznets): un-hack this nonsense once traps are in a better state
@@ -64,6 +64,8 @@ mkdir -p ${LOG_DIR}
 os::log::info "Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 ps -ef | grep openshift
 
+os::test::junit::declare_suite_start "extended/alternate_launches"
+
 os::log::info "Starting etcdserver"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start etcd \
  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -89,8 +91,9 @@ sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start net
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-network-1.log" &
+OS_PID=$!
 os::cmd::try_until_text 'cat ${LOG_DIR}/os-network-1.log' 'syncProxyRules took'
-pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Starting node networking'
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-1.log' 'Started Kubernetes Proxy on'
 
@@ -99,8 +102,9 @@ sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start nod
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node-1.log" &
+OS_PID=$!
 os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-1.log' 'syncProxyRules took'
-pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Starting node networking'
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-1.log' 'Started Kubernetes Proxy on'
 
@@ -109,8 +113,9 @@ sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start net
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-network-2.log" &
+OS_PID=$!
 os::cmd::try_until_text 'cat ${LOG_DIR}/os-network-2.log' 'Connecting to API server'
-pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-network-2.log' 'Starting node networking'
 os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-network-2.log' 'Started Kubernetes Proxy on'
 
@@ -119,8 +124,9 @@ sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start nod
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node-2.log" &
+OS_PID=$!
 os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-2.log' 'Connecting to API server'
-pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-2.log' 'Starting node networking'
 os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-2.log' 'Started Kubernetes Proxy on'
 
@@ -129,8 +135,9 @@ sudo env "PATH=${PATH}" TEST_CALL=1 OPENSHIFT_ON_PANIC=crash openshift start nod
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node-3.log" &
+OS_PID=$!
 os::cmd::try_until_text 'cat ${LOG_DIR}/os-node-3.log' 'Started kubelet'
-pgrep -f "TEST_CALL=1" | xargs -r sudo kill
+pgrep -P "${OS_PID}" | xargs -r sudo kill
 os::cmd::expect_success_and_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node'
 os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Starting node networking'
 os::cmd::expect_success_and_not_text 'cat ${LOG_DIR}/os-node-3.log' 'Started Kubernetes Proxy on'
@@ -144,6 +151,7 @@ sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start master control
 
 os::log::info "Starting node"
 sudo env "PATH=${PATH}"  OPENSHIFT_ON_PANIC=crash openshift start node \
+ --enable=kubelet,plugins,proxy,dns \
  --config=${NODE_CONFIG_DIR}/node-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-node.log" &
@@ -159,5 +167,17 @@ date
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
+
+# TODO this is copy/paste from hack/test-end-to-end.sh. We need to DRY
+if [[ -n "${USE_IMAGES:-}" ]]; then
+  readonly JQSETPULLPOLICY='(.items[] | select(.kind == "DeploymentConfig") | .spec.template.spec.containers[0].imagePullPolicy) |= "IfNotPresent"'
+  os::cmd::expect_success "oadm registry --dry-run -o json --images='$USE_IMAGES' | jq '$JQSETPULLPOLICY' | oc create -f -"
+else
+  os::cmd::expect_success "oadm registry"
+fi
+os::cmd::expect_success 'oadm policy add-scc-to-user hostnetwork -z router'
+os::cmd::expect_success 'oadm router'
+
+os::test::junit::declare_suite_end
 
 ${OS_ROOT}/test/end-to-end/core.sh

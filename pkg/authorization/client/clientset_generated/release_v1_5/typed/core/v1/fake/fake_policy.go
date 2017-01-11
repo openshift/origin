@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakePolicies implements PolicyInterface
 type FakePolicies struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -37,14 +38,14 @@ func (c *FakePolicies) Update(policy *v1.Policy) (result *v1.Policy, err error) 
 	return obj.(*v1.Policy), err
 }
 
-func (c *FakePolicies) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakePolicies) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(policiesResource, c.ns, name), &v1.Policy{})
 
 	return err
 }
 
-func (c *FakePolicies) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakePolicies) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(policiesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.PolicyList{})
@@ -61,7 +62,7 @@ func (c *FakePolicies) Get(name string) (result *v1.Policy, err error) {
 	return obj.(*v1.Policy), err
 }
 
-func (c *FakePolicies) List(opts api.ListOptions) (result *v1.PolicyList, err error) {
+func (c *FakePolicies) List(opts api_v1.ListOptions) (result *v1.PolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(policiesResource, c.ns, opts), &v1.PolicyList{})
 
@@ -69,7 +70,7 @@ func (c *FakePolicies) List(opts api.ListOptions) (result *v1.PolicyList, err er
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,7 +84,7 @@ func (c *FakePolicies) List(opts api.ListOptions) (result *v1.PolicyList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested policies.
-func (c *FakePolicies) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakePolicies) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(policiesResource, c.ns, opts))
 

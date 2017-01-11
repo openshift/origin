@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/build/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeBuilds implements BuildInterface
 type FakeBuilds struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -47,14 +48,14 @@ func (c *FakeBuilds) UpdateStatus(build *v1.Build) (*v1.Build, error) {
 	return obj.(*v1.Build), err
 }
 
-func (c *FakeBuilds) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeBuilds) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(buildsResource, c.ns, name), &v1.Build{})
 
 	return err
 }
 
-func (c *FakeBuilds) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeBuilds) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(buildsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.BuildList{})
@@ -71,7 +72,7 @@ func (c *FakeBuilds) Get(name string) (result *v1.Build, err error) {
 	return obj.(*v1.Build), err
 }
 
-func (c *FakeBuilds) List(opts api.ListOptions) (result *v1.BuildList, err error) {
+func (c *FakeBuilds) List(opts api_v1.ListOptions) (result *v1.BuildList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(buildsResource, c.ns, opts), &v1.BuildList{})
 
@@ -79,7 +80,7 @@ func (c *FakeBuilds) List(opts api.ListOptions) (result *v1.BuildList, err error
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -93,7 +94,7 @@ func (c *FakeBuilds) List(opts api.ListOptions) (result *v1.BuildList, err error
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *FakeBuilds) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeBuilds) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(buildsResource, c.ns, opts))
 

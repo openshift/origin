@@ -136,11 +136,11 @@ func TestMakeDeploymentOk(t *testing.T) {
 }
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
-	mkdeployment := func(version int64) kapi.ReplicationController {
+	mkdeployment := func(version int64) *kapi.ReplicationController {
 		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
-		return *deployment
+		return deployment
 	}
-	deployments := []kapi.ReplicationController{
+	deployments := []*kapi.ReplicationController{
 		mkdeployment(4),
 		mkdeployment(1),
 		mkdeployment(2),
@@ -148,13 +148,13 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 	}
 	sort.Sort(ByLatestVersionAsc(deployments))
 	for i := int64(0); i < 4; i++ {
-		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
+		if e, a := i+1, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}
 	sort.Sort(ByLatestVersionDesc(deployments))
 	for i := int64(0); i < 4; i++ {
-		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
+		if e, a := 4-i, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}

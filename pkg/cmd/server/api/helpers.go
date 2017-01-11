@@ -9,11 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -305,26 +304,24 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclient.Client, *kclientset.Clientset, *restclient.Config, error) {
+func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclientset.Clientset, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 
 	kubeConfig, err := loader.ClientConfig()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	applyClientConnectionOverrides(overrides, kubeConfig)
 
 	kubeConfig.WrapTransport = DefaultClientTransport
-	kubeClient, err := kclient.New(kubeConfig)
+	clientset, err := kclientset.NewForConfig(kubeConfig)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	kubeClientset := adapter.FromUnversionedClient(kubeClient)
-
-	return kubeClient, kubeClientset, kubeConfig, nil
+	return clientset, kubeConfig, nil
 }
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
@@ -412,7 +409,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	roots := x509.NewCertPool()
 
 	// Add CAs for OAuth
-	certs, err := getOAuthClientCertCAs(options)
+	certs, err := GetOAuthClientCertCAs(options)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +429,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return roots, nil
 }
 
-func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
@@ -471,6 +468,12 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientConfig {
 	config := &kubeletclient.KubeletClientConfig{
 		Port: options.KubeletClientInfo.Port,
+		PreferredAddressTypes: []string{
+			string(api.NodeHostName),
+			string(api.NodeInternalIP),
+			string(api.NodeExternalIP),
+			string(api.NodeLegacyHostIP),
+		},
 	}
 
 	if len(options.KubeletClientInfo.CA) > 0 {

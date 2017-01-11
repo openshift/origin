@@ -123,8 +123,20 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		client := testclient.NewSimpleFake(genBuild(test.phase))
+	for testName, test := range tests {
+		build := genBuild(test.phase)
+		// FIXME: we have to fake out a BuildRequest so the fake client will let us
+		// pass this test. It considers 'create builds/clone' to be an update on the
+		// main resource (builds), but uses the resource from the clone function,
+		// which is a BuildRequest. It needs to be able to "update"/"get" a
+		// BuildRequest, so we stub one out here.
+		stubbedBuildRequest := &buildapi.BuildRequest{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: test.opts.Namespace,
+				Name:      build.Name,
+			},
+		}
+		client := testclient.NewSimpleFake(build, stubbedBuildRequest)
 		buildClient := NewFakeTestBuilds(client, test.opts.Namespace)
 
 		test.opts.Client = client
@@ -137,17 +149,17 @@ func TestCancelBuildRun(t *testing.T) {
 		test.opts.States = []string{"new", "pending", "running"}
 
 		if err := test.opts.RunCancelBuild(); err != test.expectedErr {
-			t.Fatalf("error mismatch: expected %v, got %v", test.expectedErr, err)
+			t.Fatalf("%s: error mismatch: expected %v, got %v", testName, test.expectedErr, err)
 		}
 
 		got := test.opts.Client.(*testclient.Fake).Actions()
 		if len(test.expectedActions) != len(got) {
-			t.Fatalf("action length mismatch: expected %d, got %d", len(test.expectedActions), len(got))
+			t.Fatalf("%s: action length mismatch: expected %d, got %d", testName, len(test.expectedActions), len(got))
 		}
 
 		for i, action := range test.expectedActions {
 			if !got[i].Matches(action.verb, action.resource) {
-				t.Errorf("action mismatch: expected %s %s, got %s %s", action.verb, action.resource, got[i].GetVerb(), got[i].GetResource())
+				t.Errorf("%s: action mismatch: expected %s %s, got %s %s", testName, action.verb, action.resource, got[i].GetVerb(), got[i].GetResource())
 			}
 		}
 	}
@@ -160,10 +172,12 @@ type FakeTestBuilds struct {
 }
 
 func NewFakeTestBuilds(c *testclient.Fake, ns string) *FakeTestBuilds {
-	f := FakeTestBuilds{}
-	f.FakeBuilds = &testclient.FakeBuilds{}
-	f.Fake = c
-	f.Namespace = ns
+	f := FakeTestBuilds{
+		FakeBuilds: &testclient.FakeBuilds{
+			Fake:      c,
+			Namespace: ns,
+		},
+	}
 
 	return &f
 }

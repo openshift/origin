@@ -7,9 +7,11 @@ package v1
 import (
 	api "github.com/openshift/origin/pkg/route/api"
 	pkg_api "k8s.io/kubernetes/pkg/api"
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -44,9 +46,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Route_To_api_Route(in *Route, out *api.Route, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -64,9 +63,6 @@ func Convert_v1_Route_To_api_Route(in *Route, out *api.Route, s conversion.Scope
 }
 
 func autoConvert_api_Route_To_v1_Route(in *api.Route, out *Route, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -84,20 +80,9 @@ func Convert_api_Route_To_v1_Route(in *api.Route, out *Route, s conversion.Scope
 }
 
 func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.RouteIngress, s conversion.Scope) error {
-	SetDefaults_RouteIngress(in)
 	out.Host = in.Host
 	out.RouterName = in.RouterName
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]api.RouteIngressCondition, len(*in))
-		for i := range *in {
-			if err := Convert_v1_RouteIngressCondition_To_api_RouteIngressCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Conditions = *(*[]api.RouteIngressCondition)(unsafe.Pointer(&in.Conditions))
 	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
@@ -109,17 +94,7 @@ func Convert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.Rout
 func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *api.RouteIngress, out *RouteIngress, s conversion.Scope) error {
 	out.Host = in.Host
 	out.RouterName = in.RouterName
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]RouteIngressCondition, len(*in))
-		for i := range *in {
-			if err := Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Conditions = *(*[]RouteIngressCondition)(unsafe.Pointer(&in.Conditions))
 	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
@@ -133,7 +108,7 @@ func autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *Route
 	out.Status = pkg_api.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = in.LastTransitionTime
+	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -146,7 +121,7 @@ func autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *api.R
 	out.Status = api_v1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = in.LastTransitionTime
+	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -155,12 +130,7 @@ func Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *api.Route
 }
 
 func autoConvert_v1_RouteList_To_api_RouteList(in *RouteList, out *api.RouteList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.Route, len(*in))
@@ -180,12 +150,7 @@ func Convert_v1_RouteList_To_api_RouteList(in *RouteList, out *api.RouteList, s 
 }
 
 func autoConvert_api_RouteList_To_v1_RouteList(in *api.RouteList, out *RouteList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Route, len(*in))
@@ -205,9 +170,7 @@ func Convert_api_RouteList_To_v1_RouteList(in *api.RouteList, out *RouteList, s 
 }
 
 func autoConvert_v1_RoutePort_To_api_RoutePort(in *RoutePort, out *api.RoutePort, s conversion.Scope) error {
-	if err := pkg_api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
-		return err
-	}
+	out.TargetPort = in.TargetPort
 	return nil
 }
 
@@ -216,9 +179,7 @@ func Convert_v1_RoutePort_To_api_RoutePort(in *RoutePort, out *api.RoutePort, s 
 }
 
 func autoConvert_api_RoutePort_To_v1_RoutePort(in *api.RoutePort, out *RoutePort, s conversion.Scope) error {
-	if err := pkg_api.Convert_intstr_IntOrString_To_intstr_IntOrString(&in.TargetPort, &out.TargetPort, s); err != nil {
-		return err
-	}
+	out.TargetPort = in.TargetPort
 	return nil
 }
 
@@ -227,41 +188,14 @@ func Convert_api_RoutePort_To_v1_RoutePort(in *api.RoutePort, out *RoutePort, s 
 }
 
 func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *api.RouteSpec, s conversion.Scope) error {
-	SetDefaults_RouteSpec(in)
 	out.Host = in.Host
 	out.Path = in.Path
 	if err := Convert_v1_RouteTargetReference_To_api_RouteTargetReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
-	if in.AlternateBackends != nil {
-		in, out := &in.AlternateBackends, &out.AlternateBackends
-		*out = make([]api.RouteTargetReference, len(*in))
-		for i := range *in {
-			if err := Convert_v1_RouteTargetReference_To_api_RouteTargetReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.AlternateBackends = nil
-	}
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(api.RoutePort)
-		if err := Convert_v1_RoutePort_To_api_RoutePort(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Port = nil
-	}
-	if in.TLS != nil {
-		in, out := &in.TLS, &out.TLS
-		*out = new(api.TLSConfig)
-		if err := Convert_v1_TLSConfig_To_api_TLSConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.TLS = nil
-	}
+	out.AlternateBackends = *(*[]api.RouteTargetReference)(unsafe.Pointer(&in.AlternateBackends))
+	out.Port = (*api.RoutePort)(unsafe.Pointer(in.Port))
+	out.TLS = (*api.TLSConfig)(unsafe.Pointer(in.TLS))
 	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
@@ -276,35 +210,9 @@ func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *api.RouteSpec, out *RouteSpec
 	if err := Convert_api_RouteTargetReference_To_v1_RouteTargetReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
-	if in.AlternateBackends != nil {
-		in, out := &in.AlternateBackends, &out.AlternateBackends
-		*out = make([]RouteTargetReference, len(*in))
-		for i := range *in {
-			if err := Convert_api_RouteTargetReference_To_v1_RouteTargetReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.AlternateBackends = nil
-	}
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(RoutePort)
-		if err := Convert_api_RoutePort_To_v1_RoutePort(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Port = nil
-	}
-	if in.TLS != nil {
-		in, out := &in.TLS, &out.TLS
-		*out = new(TLSConfig)
-		if err := Convert_api_TLSConfig_To_v1_TLSConfig(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.TLS = nil
-	}
+	out.AlternateBackends = *(*[]RouteTargetReference)(unsafe.Pointer(&in.AlternateBackends))
+	out.Port = (*RoutePort)(unsafe.Pointer(in.Port))
+	out.TLS = (*TLSConfig)(unsafe.Pointer(in.TLS))
 	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
 	return nil
 }
@@ -314,17 +222,7 @@ func Convert_api_RouteSpec_To_v1_RouteSpec(in *api.RouteSpec, out *RouteSpec, s 
 }
 
 func autoConvert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *api.RouteStatus, s conversion.Scope) error {
-	if in.Ingress != nil {
-		in, out := &in.Ingress, &out.Ingress
-		*out = make([]api.RouteIngress, len(*in))
-		for i := range *in {
-			if err := Convert_v1_RouteIngress_To_api_RouteIngress(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Ingress = nil
-	}
+	out.Ingress = *(*[]api.RouteIngress)(unsafe.Pointer(&in.Ingress))
 	return nil
 }
 
@@ -333,17 +231,7 @@ func Convert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *api.RouteSt
 }
 
 func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *api.RouteStatus, out *RouteStatus, s conversion.Scope) error {
-	if in.Ingress != nil {
-		in, out := &in.Ingress, &out.Ingress
-		*out = make([]RouteIngress, len(*in))
-		for i := range *in {
-			if err := Convert_api_RouteIngress_To_v1_RouteIngress(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Ingress = nil
-	}
+	out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
 	return nil
 }
 
@@ -352,10 +240,9 @@ func Convert_api_RouteStatus_To_v1_RouteStatus(in *api.RouteStatus, out *RouteSt
 }
 
 func autoConvert_v1_RouteTargetReference_To_api_RouteTargetReference(in *RouteTargetReference, out *api.RouteTargetReference, s conversion.Scope) error {
-	SetDefaults_RouteTargetReference(in)
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.Weight = in.Weight
+	out.Weight = (*int32)(unsafe.Pointer(in.Weight))
 	return nil
 }
 
@@ -366,7 +253,7 @@ func Convert_v1_RouteTargetReference_To_api_RouteTargetReference(in *RouteTarget
 func autoConvert_api_RouteTargetReference_To_v1_RouteTargetReference(in *api.RouteTargetReference, out *RouteTargetReference, s conversion.Scope) error {
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.Weight = in.Weight
+	out.Weight = (*int32)(unsafe.Pointer(in.Weight))
 	return nil
 }
 
@@ -395,7 +282,6 @@ func Convert_api_RouterShard_To_v1_RouterShard(in *api.RouterShard, out *RouterS
 }
 
 func autoConvert_v1_TLSConfig_To_api_TLSConfig(in *TLSConfig, out *api.TLSConfig, s conversion.Scope) error {
-	SetDefaults_TLSConfig(in)
 	out.Termination = api.TLSTerminationType(in.Termination)
 	out.Certificate = in.Certificate
 	out.Key = in.Key

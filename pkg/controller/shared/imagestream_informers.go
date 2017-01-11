@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -14,7 +13,7 @@ import (
 )
 
 type ImageStreamInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *oscache.StoreToImageStreamLister
 }
@@ -23,7 +22,7 @@ type imageStreamInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *imageStreamInformer) Informer() framework.SharedIndexInformer {
+func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -34,7 +33,7 @@ func (f *imageStreamInformer) Informer() framework.SharedIndexInformer {
 		return informer
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
 				return f.originClient.ImageStreams(kapi.NamespaceAll).List(options)

@@ -21,12 +21,12 @@ const (
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
-	osClient, kubeClient, _, err := f.Clients()
+	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Services(infraNamespace).Get(svcMetrics)
+	_, err = kubeClient.Core().Services(infraNamespace).Get(svcMetrics)
 	if err == nil {
 		// If there's no error, the metrics service already exists
 		return nil
@@ -38,7 +38,7 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	// Create metrics deployer service account
 	routerSA := &kapi.ServiceAccount{}
 	routerSA.Name = metricsDeployerSA
-	_, err = kubeClient.ServiceAccounts(infraNamespace).Create(routerSA)
+	_, err = kubeClient.Core().ServiceAccounts(infraNamespace).Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create metrics deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -62,7 +62,7 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	deployerSecret := &kapi.Secret{}
 	deployerSecret.Name = metricsDeployerSecret
 	deployerSecret.Data = map[string][]byte{"nothing": []byte("/dev/null")}
-	if _, err = kubeClient.Secrets(infraNamespace).Create(deployerSecret); err != nil {
+	if _, err = kubeClient.Core().Secrets(infraNamespace).Create(deployerSecret); err != nil {
 		return errors.NewError("cannot create metrics deployer secret").WithCause(err).WithDetails(h.OriginLog())
 	}
 

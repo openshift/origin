@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
 
@@ -26,10 +28,11 @@ func main() {
   - The desired level of kubernetes is checked out
 `)
 	var self, other string
-	var checkoutNewer bool
+	var checkoutNewer, examineForks bool
 	flag.StringVar(&self, "self", filepath.Join(gopath, "src/github.com/openshift/origin/Godeps/Godeps.json"), "The first file to compare")
 	flag.StringVar(&other, "other", filepath.Join(gopath, "src/k8s.io/kubernetes/Godeps/Godeps.json"), "The other file to compare")
 	flag.BoolVar(&checkoutNewer, "checkout", checkoutNewer, "Check out the newer commit when there is a mismatch between the Godeps")
+	flag.BoolVar(&examineForks, "examine-forks", examineForks, "Print out git logs from OpenShift forks or upstream dependencies when there is a mismatch in revisions between Kubernetes and Origin")
 	flag.Parse()
 
 	// List packages imported by origin Godeps
@@ -82,8 +85,27 @@ func main() {
 	// Check `mine` for unused local deps (might be used transitively by other Godeps)
 
 	// Check `ours` for different levels
+	openshiftForks := sets.NewString(
+		"github.com/docker/distribution",
+		"github.com/skynetservices/skydns",
+		"github.com/coreos/etcd",
+		"github.com/emicklei/go-restful",
+		"github.com/golang/glog",
+		"github.com/cloudflare/cfssl",
+		"github.com/google/certificate-transparency",
+		"github.com/RangelReale/osin",
+		"github.com/google/cadvisor",
+	)
+
+	lastMismatch := ""
 	for _, k := range ours {
 		if oRev, kRev := originGodeps[k].Rev, k8sGodeps[k].Rev; oRev != kRev {
+			if lastMismatch == oRev {
+				// don't show consecutive mismatches if oRev is the same
+				continue
+			}
+			lastMismatch = oRev
+
 			fmt.Printf("Mismatch on %s:\n", k)
 			newerCommit := ""
 			repoPath := filepath.Join(gopath, "src", k)
@@ -111,6 +133,10 @@ func main() {
 				kDate = "unknown"
 			}
 
+			if err := util.FetchRepo(repoPath); err != nil {
+				fmt.Printf("    Error fetching %q: %v\n", repoPath, err)
+			}
+			openShiftNewer := false
 			if older, err := util.IsAncestor(oRev, kRev, repoPath); older && err == nil {
 				fmt.Printf("    Origin: %s%s (%s)\n", oDecorator, oRev, oDate)
 				fmt.Printf("    K8s:    %s%s (%s, fast-forward)\n", kDecorator, kRev, kDate)
@@ -119,6 +145,7 @@ func main() {
 				fmt.Printf("    Origin: %s%s (%s, fast-forward)\n", oDecorator, oRev, oDate)
 				fmt.Printf("    K8s:    %s%s (%s)\n", kDecorator, kRev, kDate)
 				newerCommit = oRev
+				openShiftNewer = true
 			} else if oDateErr == nil && kDateErr == nil {
 				fmt.Printf("    Origin: %s%s (%s, discontinuous)\n", oDecorator, oRev, oDate)
 				fmt.Printf("    K8s:    %s%s (%s, discontinuous)\n", kDecorator, kRev, kDate)
@@ -150,6 +177,55 @@ func main() {
 					fmt.Printf("    cd %s && git checkout %s\n", repoPath, newerCommit)
 				}
 			}
+
+			if !openShiftNewer {
+				// only proceed to examine forks if OpenShift's commit is newer than
+				// Kube's
+				continue
+			}
+			if !examineForks {
+				continue
+			}
+			if currentRev == oRev {
+				// we're at OpenShift's commit, so there's not really any need to show
+				// the commits
+				continue
+			}
+			if !strings.HasPrefix(k, "github.com/") {
+				continue
+			}
+
+			parts := strings.SplitN(k, "/", 4)
+			repo := fmt.Sprintf("github.com/%s/%s", parts[1], parts[2])
+			if !openshiftForks.Has(repo) {
+				continue
+			}
+
+			fmt.Printf("\n    Fork info:\n")
+
+			if err := func() error {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+				defer os.Chdir(cwd)
+
+				if err := os.Chdir(repoPath); err != nil {
+					return err
+				}
+
+				commits, err := util.CommitsBetween(kRev+"^", oRev)
+				if err != nil {
+					return err
+				}
+				for _, commit := range commits {
+					fmt.Printf("      %s %s\n", commit.Sha, commit.Summary)
+				}
+				return nil
+			}(); err != nil {
+				fmt.Printf("    Error examining fork: %v\n", err)
+			}
+
 		}
 	}
 }

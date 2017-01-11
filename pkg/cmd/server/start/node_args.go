@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -56,7 +56,7 @@ type NodeArgs struct {
 	NodeName string
 
 	MasterCertDir string
-	ConfigDir     util.StringFlag
+	ConfigDir     flag.StringFlag
 
 	AllowDisabledDocker bool
 	// VolumeDir is the volume storage directory.

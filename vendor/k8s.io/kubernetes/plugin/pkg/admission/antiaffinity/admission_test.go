@@ -208,7 +208,7 @@ func TestInterPodAffinityAdmission(t *testing.T) {
 						"thisIsAInvalidAffinity": [{}
 					}}`,
 			},
-			// however, we should not got error here
+			// however, we should not get error here
 			errorExpected: false,
 		},
 	}

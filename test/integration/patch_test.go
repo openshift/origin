@@ -54,11 +54,11 @@ func TestPatchConflicts(t *testing.T) {
 	}
 
 	testcases := []struct {
-		client   *restclient.RESTClient
+		client   restclient.Interface
 		resource string
 	}{
 		{
-			client:   clusterAdminKubeClientset.CoreClient.RESTClient,
+			client:   clusterAdminKubeClientset.Core().RESTClient(),
 			resource: "secrets",
 		},
 		{

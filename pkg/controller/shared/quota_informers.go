@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -14,7 +13,7 @@ import (
 )
 
 type ClusterResourceQuotaInformer interface {
-	Informer() framework.SharedIndexInformer
+	Informer() cache.SharedIndexInformer
 	// still use an indexer, no telling what someone will want to index on someday
 	Indexer() cache.Indexer
 	Lister() *ocache.IndexerToClusterResourceQuotaLister
@@ -26,7 +25,7 @@ type clusterResourceQuotaInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *clusterResourceQuotaInformer) Informer() framework.SharedIndexInformer {
+func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -49,7 +48,7 @@ func (f *clusterResourceQuotaInformer) Informer() framework.SharedIndexInformer 
 		}
 	}
 
-	informer = framework.NewSharedIndexInformer(
+	informer = cache.NewSharedIndexInformer(
 		lw,
 		informerObj,
 		f.defaultResync,

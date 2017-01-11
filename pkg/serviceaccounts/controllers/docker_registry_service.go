@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -51,7 +50,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 		dockerURLsIntialized:  options.DockerURLsIntialized,
 	}
 
-	e.serviceCache, e.serviceController = framework.NewInformer(
+	e.serviceCache, e.serviceController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
 				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
@@ -64,7 +63,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 		},
 		&kapi.Service{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				e.enqueueRegistryLocationQueue()
 			},
@@ -80,7 +79,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
 	dockercfgOptions := kapi.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
-	e.secretCache, e.secretController = framework.NewInformer(
+	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
 				return e.client.Core().Secrets(kapi.NamespaceAll).List(dockercfgOptions)
@@ -91,7 +90,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 		},
 		&kapi.Secret{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{},
 	)
 	e.secretsSynced = e.secretController.HasSynced
 	e.syncSecretHandler = e.syncSecretUpdate
@@ -108,12 +107,12 @@ type DockerRegistryServiceController struct {
 
 	dockercfgController *DockercfgController
 
-	serviceController           *framework.Controller
+	serviceController           *cache.Controller
 	serviceCache                cache.Store
 	servicesSynced              func() bool
 	syncRegistryLocationHandler func(key string) error
 
-	secretController  *framework.Controller
+	secretController  *cache.Controller
 	secretCache       cache.Store
 	secretsSynced     func() bool
 	syncSecretHandler func(key string) error

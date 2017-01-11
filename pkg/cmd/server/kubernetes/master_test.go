@@ -6,13 +6,22 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 )
 
 func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
-	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	server := etcdtesting.NewUnsecuredEtcdTestClientServer(t)
+	etcdStorage := &storagebackend.Config{
+		Type:                     "etcd2",
+		Prefix:                   etcdtest.PathPrefix(),
+		ServerList:               server.Client.Endpoints(),
+		DeserializationCacheSize: etcdtest.DeserializationCacheSize,
+		Codec: testapi.Groups[""].StorageCodec(),
+	}
 
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
 	storageInterface, _ := restOptions.Decorator(restOptions.StorageConfig, 0, nil, "masterleases", nil, nil, nil)

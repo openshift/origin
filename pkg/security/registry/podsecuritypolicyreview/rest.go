@@ -8,13 +8,13 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
@@ -24,12 +24,12 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher oscc.SCCMatcher
-	saCache    oscache.StoreToServiceAccountLister
+	saCache    *cache.StoreToServiceAccountLister
 	client     clientset.Interface
 }
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, saCache oscache.StoreToServiceAccountLister, c clientset.Interface) *REST {
+func NewREST(m oscc.SCCMatcher, saCache *cache.StoreToServiceAccountLister, c clientset.Interface) *REST {
 	return &REST{sccMatcher: m, saCache: saCache, client: c}
 }
 
@@ -99,7 +99,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return pspr, nil
 }
 
-func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache oscache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
+func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache *cache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 	//  TODO: express 'all service accounts'
 	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(kapi.ListOptions{}); err == nil {

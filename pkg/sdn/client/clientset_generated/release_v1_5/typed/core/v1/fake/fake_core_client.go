@@ -6,16 +6,17 @@ import (
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
-type FakeCore struct {
+type FakeCoreV1 struct {
 	*core.Fake
 }
 
-func (c *FakeCore) ClusterNetworks(namespace string) v1.ClusterNetworkInterface {
+func (c *FakeCoreV1) ClusterNetworks(namespace string) v1.ClusterNetworkInterface {
 	return &FakeClusterNetworks{c, namespace}
 }
 
-// GetRESTClient returns a RESTClient that is used to communicate
+// RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeCore) GetRESTClient() *restclient.RESTClient {
-	return nil
+func (c *FakeCoreV1) RESTClient() restclient.Interface {
+	var ret *restclient.RESTClient
+	return ret
 }

@@ -67,19 +67,19 @@ func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig
 }
 
 func (g *configRESTOptionsGetter) loadSettings() error {
-	server := apiserveroptions.NewAPIServer()
+	options := apiserveroptions.NewServerRunOptions()
 	if g.masterOptions.KubernetesMasterConfig != nil {
-		if errs := cmdflags.Resolve(g.masterOptions.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(errs) > 0 {
+		if errs := cmdflags.Resolve(g.masterOptions.KubernetesMasterConfig.APIServerArguments, options.AddFlags); len(errs) > 0 {
 			return kerrors.NewAggregate(errs)
 		}
 	}
 
-	storageGroupsToEncodingVersion, err := server.StorageGroupsToEncodingVersion()
+	storageGroupsToEncodingVersion, err := options.GenericServerRunOptions.StorageGroupsToEncodingVersion()
 	if err != nil {
 		return err
 	}
 
-	storageConfig := server.StorageConfig
+	storageConfig := options.GenericServerRunOptions.StorageConfig
 	storageConfig.Prefix = g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix
 	storageConfig.ServerList = g.masterOptions.EtcdClientInfo.URLs
 	storageConfig.KeyFile = g.masterOptions.EtcdClientInfo.ClientCert.KeyFile
@@ -87,20 +87,20 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 	storageConfig.CAFile = g.masterOptions.EtcdClientInfo.CA
 
 	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
-		storageConfig, server.DefaultStorageMediaType, kapi.Codecs,
+		storageConfig, options.GenericServerRunOptions.DefaultStorageMediaType, kapi.Codecs,
 		genericapiserver.NewDefaultResourceEncodingConfig(), storageGroupsToEncodingVersion,
 		nil,
-		g.defaultResourceConfig, server.RuntimeConfig)
+		g.defaultResourceConfig, options.GenericServerRunOptions.RuntimeConfig)
 	if err != nil {
 		return err
 	}
 	storageFactory.DefaultResourcePrefixes = g.defaultResourcePrefixes
 	g.storageFactory = storageFactory
 
-	g.cacheEnabled = server.EnableWatchCache
+	g.cacheEnabled = options.GenericServerRunOptions.EnableWatchCache
 
 	errs := []error{}
-	for _, c := range server.WatchCacheSizes {
+	for _, c := range options.GenericServerRunOptions.WatchCacheSizes {
 		tokens := strings.Split(c, "#")
 		if len(tokens) != 2 {
 			errs = append(errs, fmt.Errorf("invalid watch cache size value '%s', expecting <resource>#<size> format (e.g. builds#100)", c))

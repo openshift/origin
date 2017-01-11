@@ -26,9 +26,9 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/cmd/libs/go2idl/args"
-	"k8s.io/kubernetes/cmd/libs/go2idl/deepcopy-gen/generators"
-	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
+	"k8s.io/gengo/args"
+	"k8s.io/gengo/examples/deepcopy-gen/generators"
+	"k8s.io/gengo/generator"
 )
 
 func main() {

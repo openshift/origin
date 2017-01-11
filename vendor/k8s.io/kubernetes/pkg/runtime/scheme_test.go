@@ -84,7 +84,8 @@ func TestScheme(t *testing.T) {
 
 	codecs := serializer.NewCodecFactory(scheme)
 	codec := codecs.LegacyCodec(externalGV)
-	jsonserializer, _ := codecs.SerializerForFileExtension("json")
+	info, _ := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), runtime.ContentTypeJSON)
+	jsonserializer := info.Serializer
 
 	simple := &InternalSimple{
 		TestString: "foo",
@@ -150,7 +151,8 @@ func TestScheme(t *testing.T) {
 func TestBadJSONRejection(t *testing.T) {
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	jsonserializer, _ := codecs.SerializerForFileExtension("json")
+	info, _ := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), runtime.ContentTypeJSON)
+	jsonserializer := info.Serializer
 
 	badJSONMissingKind := []byte(`{ }`)
 	if _, err := runtime.Decode(jsonserializer, badJSONMissingKind); err == nil {
@@ -161,7 +163,7 @@ func TestBadJSONRejection(t *testing.T) {
 		t.Errorf("Did not reject despite use of unknown type: %s", badJSONUnknownType)
 	}
 	/*badJSONKindMismatch := []byte(`{"kind": "Pod"}`)
-	if err2 := DecodeInto(badJSONKindMismatch, &Minion{}); err2 == nil {
+	if err2 := DecodeInto(badJSONKindMismatch, &Node{}); err2 == nil {
 		t.Errorf("Kind is set but doesn't match the object type: %s", badJSONKindMismatch)
 	}*/
 }
@@ -617,6 +619,17 @@ func TestConvertToVersion(t *testing.T) {
 			scheme: GetTestScheme(),
 			in:     &UnversionedType{A: "test"},
 			gv:     unversioned.GroupVersions{{Version: "v1"}},
+			same:   true,
+			out: &UnversionedType{
+				MyWeirdCustomEmbeddedVersionKindField: MyWeirdCustomEmbeddedVersionKindField{APIVersion: "v1", ObjectKind: "UnversionedType"},
+				A: "test",
+			},
+		},
+		// unversioned type returned when not included in the target types
+		{
+			scheme: GetTestScheme(),
+			in:     &UnversionedType{A: "test"},
+			gv:     unversioned.GroupVersions{{Group: "other", Version: "v2"}},
 			same:   true,
 			out: &UnversionedType{
 				MyWeirdCustomEmbeddedVersionKindField: MyWeirdCustomEmbeddedVersionKindField{APIVersion: "v1", ObjectKind: "UnversionedType"},

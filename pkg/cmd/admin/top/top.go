@@ -31,10 +31,10 @@ func NewCommandTop(name, fullName string, f *clientcmd.Factory, out, errOut io.W
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))
-	cmdTopNode := kcmd.NewCmdTopNode(f.Factory, out)
+	cmdTopNode := kcmd.NewCmdTopNode(f, out)
 	cmdTopNode.Long = templates.LongDesc(cmdTopNode.Long)
 	cmdTopNode.Example = templates.Examples(cmdTopNode.Example)
-	cmdTopPod := kcmd.NewCmdTopPod(f.Factory, out)
+	cmdTopPod := kcmd.NewCmdTopPod(f, out)
 	cmdTopPod.Long = templates.LongDesc(cmdTopPod.Long)
 	cmdTopPod.Example = templates.Examples(cmdTopPod.Example)
 	cmds.AddCommand(cmdTopNode)

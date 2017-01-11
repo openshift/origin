@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/template/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -60,9 +60,6 @@ func Convert_api_Parameter_To_v1_Parameter(in *api.Parameter, out *Parameter, s 
 }
 
 func autoConvert_v1_Template_To_api_Template(in *Template, out *api.Template, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -78,18 +75,8 @@ func autoConvert_v1_Template_To_api_Template(in *Template, out *api.Template, s 
 	} else {
 		out.Objects = nil
 	}
-	if in.Parameters != nil {
-		in, out := &in.Parameters, &out.Parameters
-		*out = make([]api.Parameter, len(*in))
-		for i := range *in {
-			if err := Convert_v1_Parameter_To_api_Parameter(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Parameters = nil
-	}
-	out.ObjectLabels = in.ObjectLabels
+	out.Parameters = *(*[]api.Parameter)(unsafe.Pointer(&in.Parameters))
+	out.ObjectLabels = *(*map[string]string)(unsafe.Pointer(&in.ObjectLabels))
 	return nil
 }
 
@@ -98,24 +85,11 @@ func Convert_v1_Template_To_api_Template(in *Template, out *api.Template, s conv
 }
 
 func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.Message = in.Message
-	if in.Parameters != nil {
-		in, out := &in.Parameters, &out.Parameters
-		*out = make([]Parameter, len(*in))
-		for i := range *in {
-			if err := Convert_api_Parameter_To_v1_Parameter(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Parameters = nil
-	}
+	out.Parameters = *(*[]Parameter)(unsafe.Pointer(&in.Parameters))
 	if in.Objects != nil {
 		in, out := &in.Objects, &out.Objects
 		*out = make([]runtime.RawExtension, len(*in))
@@ -127,7 +101,7 @@ func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s 
 	} else {
 		out.Objects = nil
 	}
-	out.ObjectLabels = in.ObjectLabels
+	out.ObjectLabels = *(*map[string]string)(unsafe.Pointer(&in.ObjectLabels))
 	return nil
 }
 
@@ -136,12 +110,7 @@ func Convert_api_Template_To_v1_Template(in *api.Template, out *Template, s conv
 }
 
 func autoConvert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.TemplateList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.Template, len(*in))
@@ -161,12 +130,7 @@ func Convert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.Temp
 }
 
 func autoConvert_api_TemplateList_To_v1_TemplateList(in *api.TemplateList, out *TemplateList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Template, len(*in))

@@ -35,8 +35,8 @@ func NewImageStreamImportEvaluator(isNamespacer osclient.ImageStreamsNamespacer)
 		MatchedResourceNames:       computeResources,
 		MatchesScopeFunc:           matchesScopeFunc,
 		UsageFunc:                  makeImageStreamImportAdmissionUsageFunc(isNamespacer),
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) (runtime.Object, error) {
-			return &kapi.List{}, nil
+		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+			return []runtime.Object{}, nil
 		},
 		ConstraintsFunc: imageStreamImportConstraintsFunc,
 	}

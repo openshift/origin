@@ -37,6 +37,10 @@ Each hook can have its own cancellation policy. One of: abort, retry, or ignore.
     If true, select all deployment configs in the namespace
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-c\fP, \fB\-\-container\fP=""
     The name of the container in the selected deployment config to use for the deployment hook
 

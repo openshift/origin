@@ -30,27 +30,29 @@ import (
 func TestKubectlValidation(t *testing.T) {
 	testCases := []struct {
 		data string
-		err  bool
+		// Validation should not fail on missing type information.
+		err bool
 	}{
 		{`{"apiVersion": "v1", "kind": "thisObjectShouldNotExistInAnyGroup"}`, true},
-		{`{"apiVersion": "invalidVersion", "kind": "Pod"}`, true},
+		{`{"apiVersion": "invalidVersion", "kind": "Pod"}`, false},
 		{`{"apiVersion": "v1", "kind": "Pod"}`, false},
 
 		// The following test the experimental api.
 		// TODO: Replace with something more robust. These may move.
 		{`{"apiVersion": "extensions/v1beta1", "kind": "Ingress"}`, false},
 		{`{"apiVersion": "extensions/v1beta1", "kind": "Job"}`, false},
-		{`{"apiVersion": "vNotAVersion", "kind": "Job"}`, true},
+		{`{"apiVersion": "vNotAVersion", "kind": "Job"}`, false},
 	}
 	components := framework.NewMasterComponents(&framework.Config{})
 	defer components.Stop(true, true)
 	ctx := clientcmdapi.NewContext()
 	cfg := clientcmdapi.NewConfig()
-	// Enable swagger api on master.
-	components.KubeMaster.InstallSwaggerAPI()
 	cluster := clientcmdapi.NewCluster()
+
 	cluster.Server = components.ApiServer.URL
 	cluster.InsecureSkipTLSVerify = true
+	cfg.Contexts = map[string]*clientcmdapi.Context{"test": ctx}
+	cfg.CurrentContext = "test"
 	overrides := clientcmd.ConfigOverrides{
 		ClusterInfo: *cluster,
 	}

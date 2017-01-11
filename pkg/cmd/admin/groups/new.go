@@ -79,7 +79,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Users = append(o.Users, args[1:]...)
 	}
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,8 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 	templateFile := kcmdutil.GetFlagString(cmd, "template")
 	noHeaders := kcmdutil.GetFlagBool(cmd, "no-headers")
-	printer, _, err := kubectl.GetPrinter(outputFormat, templateFile, noHeaders)
+	allowMissingTemplateKeys := kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
+	printer, _, err := kubectl.GetPrinter(outputFormat, templateFile, noHeaders, allowMissingTemplateKeys)
 	if err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Printer = printer.PrintObj
 	} else {
 		o.Printer = func(obj runtime.Object, out io.Writer) error {
-			mapper, _ := f.Object(false)
+			mapper, _ := f.Object()
 			return f.PrintObject(cmd, mapper, obj, out)
 		}
 	}

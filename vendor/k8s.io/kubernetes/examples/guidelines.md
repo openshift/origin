@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 # Example Guidelines
 
 ## An Example Is
@@ -73,7 +68,7 @@ Examples are not:
     in the example config.
 * Only use the code highlighting types
   [supported by Rouge](https://github.com/jneen/rouge/wiki/list-of-supported-languages-and-lexers),
-  as this is what Github Pages uses.
+  as this is what GitHub Pages uses.
 * Commands to be copied use the `shell` syntax highlighting type, and
   do not include any kind of prompt.
 * Example output is in a separate block quote to distinguish it from
@@ -88,13 +83,6 @@ Examples are not:
 
 * Should have a section suggesting what to look at next, both in terms
   of "additional resources" and "what example to look at next".
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

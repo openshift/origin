@@ -10,7 +10,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/labels"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -47,7 +47,7 @@ import (
 // test where I caught the problem.
 
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
-func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
+func NewClusterQuotaMappingController(namespaceInformer informers.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := &ClusterQuotaMappingController{
 		namespaceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_namespaces"),
 
@@ -56,7 +56,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 		clusterQuotaMapper: NewClusterQuotaMapper(),
 	}
 
-	namespaceInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addNamespace,
 		UpdateFunc: c.updateNamespace,
 		DeleteFunc: c.deleteNamespace,
@@ -64,7 +64,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 	c.namespaceLister = namespaceInformer.Lister()
 	c.namespacesSynced = namespaceInformer.Informer().HasSynced
 
-	quotaInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	quotaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addQuota,
 		UpdateFunc: c.updateQuota,
 		DeleteFunc: c.deleteQuota,
@@ -147,8 +147,8 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 			if !quotaMatches {
 				return nil
 			}
-			obj, ok, err := c.namespaceLister.Get(namespace.Name)
-			if kapierrors.IsNotFound(err) || !ok {
+			ns, err := c.namespaceLister.Get(namespace.Name)
+			if kapierrors.IsNotFound(err) {
 				// if the namespace is gone, then the deleteNamespace path will be called, just continue
 				break
 			}
@@ -156,7 +156,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 				utilruntime.HandleError(err)
 				break
 			}
-			namespace = obj.(*kapi.Namespace)
+			namespace = ns
 		}
 
 	}

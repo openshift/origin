@@ -474,10 +474,10 @@ func TestSpecificRoundTrips(t *testing.T) {
 	for i, test := range testCases {
 		var s runtime.Serializer
 		if len(test.mediaType) != 0 {
-			info, _ := f.SerializerForMediaType(test.mediaType, nil)
+			info, _ := runtime.SerializerInfoForMediaType(f.SupportedMediaTypes(), test.mediaType)
 			s = info.Serializer
 		} else {
-			info, _ := f.SerializerForMediaType(f.SupportedMediaTypes()[0], nil)
+			info, _ := runtime.SerializerInfoForMediaType(f.SupportedMediaTypes(), f.SupportedMediaTypes()[0].MediaType)
 			s = info.Serializer
 		}
 		data, err := runtime.Encode(f.LegacyCodec(test.to), test.in)
