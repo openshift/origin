@@ -211,4 +211,52 @@ func TestMatchPatterns(t *testing.T) {
 	} else if match.Cookie.(string) != "pattern2" {
 		t.Errorf("Match() returned %q", match.Cookie.(string))
 	}
+
+	pattern3, err := NewURLPattern("*://*.test.com/*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pattern3.Cookie = "pattern3"
+
+	pattern4, err := NewURLPattern("ssh://*.test.com/*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pattern4.Cookie = "pattern4"
+
+	url, err = url.Parse("ssh://git@test.com/test/test.git")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	match = Match([]*URLPattern{pattern3, pattern4}, url)
+	if match == nil {
+		t.Errorf("Match() returned nil")
+	} else if match.Cookie.(string) != "pattern4" {
+		t.Errorf("Match() returned %q", match.Cookie.(string))
+	}
+
+	pattern5, err := NewURLPattern("ssh://*.test.com/*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pattern5.Cookie = "pattern5"
+
+	pattern6, err := NewURLPattern("ssh://git@test.com/test/test.git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pattern6.Cookie = "pattern6"
+
+	url, err = url.Parse("ssh://git@test.com/test/test.git")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	match = Match([]*URLPattern{pattern5, pattern6}, url)
+	if match == nil {
+		t.Errorf("Match() returned nil")
+	} else if match.Cookie.(string) != "pattern6" {
+		t.Errorf("Match() returned %q", match.Cookie.(string))
+	}
 }
