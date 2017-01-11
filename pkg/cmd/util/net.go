@@ -19,7 +19,7 @@ import (
 func TryListen(network, hostPort string) (bool, error) {
 	l, err := net.Listen(network, hostPort)
 	if err != nil {
-		glog.V(5).Infof("Failure while checking listen on %s: %v", err)
+		glog.V(3).Infof("Failure while checking listen on %s: %v", err)
 		return false, err
 	}
 	defer l.Close()
@@ -103,7 +103,7 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 			conn, err = dialer.Dial(network, address)
 		}
 		if err != nil {
-			glog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
+			glog.V(3).Infof("Got error %#v, trying again: %#v\n", err, address)
 			time.Sleep(interval)
 			continue
 		}
