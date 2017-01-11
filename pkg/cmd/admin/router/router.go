@@ -201,6 +201,16 @@ type RouterConfig struct {
 	// boundaries for users and applications.
 	ExternalHostPartitionPath string
 
+	// DisableNamespaceOwnershipCheck overrides the same namespace check
+	// for different paths to a route host or for overlapping host names
+	// in case of wildcard routes.
+	// E.g. Setting this flag to false allows www.example.org/path1 and
+	//      www.example.org/path2 to be claimed by namespaces nsone and
+	//      nstwo respectively. And for wildcard routes, this allows
+	//      overlapping host names (*.example.test vs foo.example.test)
+	//      to be claimed by different namespaces.
+	DisableNamespaceOwnershipCheck bool
+
 	// ExposeMetrics is a hint on whether to expose metrics.
 	ExposeMetrics bool
 
@@ -284,6 +294,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ExternalHostVxLANGateway, "external-host-vxlan-gw", cfg.ExternalHostVxLANGateway, "If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
+	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
@@ -664,6 +675,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	if len(cfg.ForceSubdomain) > 0 {
 		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
 		env["ROUTER_OVERRIDE_HOSTNAME"] = "true"
+	}
+	if cfg.DisableNamespaceOwnershipCheck {
+		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
