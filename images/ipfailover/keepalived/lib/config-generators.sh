@@ -60,9 +60,7 @@ function generate_script_config() {
     echo "   script \"true\""
   else
     if [[ -n "${HA_CHECK_SCRIPT}" ]]; then
-      echo "   if [[ -f ${HA_CHECK_SCRIPT} ]]; then"
-      echo "       script \"${HA_CHECK_SCRIPT}\""
-      echo "   fi"
+      echo "   script \"${HA_CHECK_SCRIPT}\""
     fi
     echo "   script \"</dev/tcp/${serviceip}/${port}\""
   fi
@@ -251,6 +249,14 @@ function generate_failover_config() {
   local interface=$(get_network_device "$NETWORK_INTERFACE")
   local ipaddr=$(get_device_ip_address "$interface")
   local port=$(echo "$HA_MONITOR_PORT" | sed 's/[^0-9]//g')
+
+  # scripts may not have execute set
+  if [[ -n "${HA_CHECK_SCRIPT}" ]]; then
+    chmod +x "${HA_CHECK_SCRIPT}"
+  fi
+  if [[ -n "${HA_NOTIFY_SCRIPT}" ]]; then
+    chmod +x "${HA_NOTIFY_SCRIPT}"
+  fi
 
   echo "! Configuration File for keepalived
 
