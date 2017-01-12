@@ -116,7 +116,7 @@ func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 	}
 
 	if len(p.Options.VirtualIPs) == 0 {
-		return nil, fmt.Errorf("you must specify at least one virtual IP address for keepalived to expose")
+		return nil, fmt.Errorf("you must specify at least one virtual IP address (--virtual-ips=) for keepalived to expose")
 	}
 
 	dc, err := GenerateDeploymentConfig(p.Name, p.Options, selector)

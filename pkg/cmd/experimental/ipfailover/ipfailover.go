@@ -150,9 +150,17 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 		return err
 	}
 
-	if len(options.ServiceAccount) == 0 {
-		return fmt.Errorf("you must specify a service account for the ipfailover pod with --service-account, it cannot be blank")
+	if options.VRRPIDOffset < 0 || options.VRRPIDOffset > 254 {
+		return fmt.Errorf("The vrrp-id-offset must be in the range 0..254")
 	}
+
+	// The ipfailover pods for a given configuration must run on different nodes.
+	// We are using the ServicePort as a mechanism to prevent multiple pods for
+	// same configuration starting on the same node. Since pods for different
+	// configurations can run on the same node a different ServicePort is used
+	// for each configuration.
+	// In the future, this may be changed to pod anti-affinity.
+	options.ServicePort = options.ServicePort + options.VRRPIDOffset
 
 	options.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	options.Action.Bulk.Op = configcmd.Create
