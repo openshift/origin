@@ -17,16 +17,19 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 
 	var (
 		// convert the s2i failure cases to our own StatusReason
-		reasonAssembleFailed  = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
-		messageAssembleFailed = string(s2istatus.ReasonMessageAssembleFailed)
-		postCommitHookFixture = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
-		fetchDockerSrc        = exutil.FixturePath("testdata", "statusfail-fetchsourcedocker.yaml")
-		fetchS2ISrc           = exutil.FixturePath("testdata", "statusfail-fetchsources2i.yaml")
-		builderImageFixture   = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
-		pushToRegistryFixture = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
-		failedAssembleFixture = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
-		binaryBuildDir        = exutil.FixturePath("testdata", "statusfail-assemble")
-		oc                    = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
+		reasonAssembleFailed         = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
+		messageAssembleFailed        = string(s2istatus.ReasonMessageAssembleFailed)
+		reasonFetchRuntimeArtifacts  = buildapi.StatusReason(s2istatus.ReasonRuntimeArtifactsFetchFailed)
+		messageFetchRuntimeArtifacts = string(s2istatus.ReasonMessageRuntimeArtifactsFetchFailed)
+		postCommitHookFixture        = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
+		fetchDockerSrc               = exutil.FixturePath("testdata", "statusfail-fetchsourcedocker.yaml")
+		fetchS2ISrc                  = exutil.FixturePath("testdata", "statusfail-fetchsources2i.yaml")
+		builderImageFixture          = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
+		pushToRegistryFixture        = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
+		fetchRuntimeArtifactsFixture = exutil.FixturePath("testdata", "statusfail-runtimeartifacts.yaml")
+		failedAssembleFixture        = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
+		binaryBuildDir               = exutil.FixturePath("testdata", "statusfail-assemble")
+		oc                           = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
 	)
 
 	g.JustBeforeEach(func() {
@@ -134,6 +137,23 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
 			o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
+		})
+	})
+
+	g.Describe("Build status failed assemble runtime artifacts", func() {
+		g.It("should contain the failure reason related to failing to fetch runtime image artifacts", func() {
+			err := oc.Run("create").Args("-f", fetchRuntimeArtifactsFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-runtimeartifacts", "--build-loglevel=5")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertFailure()
+			br.DumpLogs()
+
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Reason).To(o.Equal(reasonFetchRuntimeArtifacts))
+			o.Expect(build.Status.Message).To(o.Equal(messageFetchRuntimeArtifacts))
 		})
 	})
 })
