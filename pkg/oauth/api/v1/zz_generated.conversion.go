@@ -44,6 +44,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_RedirectReference_To_v1_RedirectReference,
 		Convert_v1_ScopeRestriction_To_api_ScopeRestriction,
 		Convert_api_ScopeRestriction_To_v1_ScopeRestriction,
+		Convert_v1_SelfOAuthClientAuthorization_To_api_SelfOAuthClientAuthorization,
+		Convert_api_SelfOAuthClientAuthorization_To_v1_SelfOAuthClientAuthorization,
+		Convert_v1_SelfOAuthClientAuthorizationList_To_api_SelfOAuthClientAuthorizationList,
+		Convert_api_SelfOAuthClientAuthorizationList_To_v1_SelfOAuthClientAuthorizationList,
 	)
 }
 
@@ -439,4 +443,70 @@ func autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in *api.ScopeRestri
 
 func Convert_api_ScopeRestriction_To_v1_ScopeRestriction(in *api.ScopeRestriction, out *ScopeRestriction, s conversion.Scope) error {
 	return autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in, out, s)
+}
+
+func autoConvert_v1_SelfOAuthClientAuthorization_To_api_SelfOAuthClientAuthorization(in *SelfOAuthClientAuthorization, out *api.SelfOAuthClientAuthorization, s conversion.Scope) error {
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.ClientName = in.ClientName
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	return nil
+}
+
+func Convert_v1_SelfOAuthClientAuthorization_To_api_SelfOAuthClientAuthorization(in *SelfOAuthClientAuthorization, out *api.SelfOAuthClientAuthorization, s conversion.Scope) error {
+	return autoConvert_v1_SelfOAuthClientAuthorization_To_api_SelfOAuthClientAuthorization(in, out, s)
+}
+
+func autoConvert_api_SelfOAuthClientAuthorization_To_v1_SelfOAuthClientAuthorization(in *api.SelfOAuthClientAuthorization, out *SelfOAuthClientAuthorization, s conversion.Scope) error {
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.ClientName = in.ClientName
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	return nil
+}
+
+func Convert_api_SelfOAuthClientAuthorization_To_v1_SelfOAuthClientAuthorization(in *api.SelfOAuthClientAuthorization, out *SelfOAuthClientAuthorization, s conversion.Scope) error {
+	return autoConvert_api_SelfOAuthClientAuthorization_To_v1_SelfOAuthClientAuthorization(in, out, s)
+}
+
+func autoConvert_v1_SelfOAuthClientAuthorizationList_To_api_SelfOAuthClientAuthorizationList(in *SelfOAuthClientAuthorizationList, out *api.SelfOAuthClientAuthorizationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]api.SelfOAuthClientAuthorization, len(*in))
+		for i := range *in {
+			if err := Convert_v1_SelfOAuthClientAuthorization_To_api_SelfOAuthClientAuthorization(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1_SelfOAuthClientAuthorizationList_To_api_SelfOAuthClientAuthorizationList(in *SelfOAuthClientAuthorizationList, out *api.SelfOAuthClientAuthorizationList, s conversion.Scope) error {
+	return autoConvert_v1_SelfOAuthClientAuthorizationList_To_api_SelfOAuthClientAuthorizationList(in, out, s)
+}
+
+func autoConvert_api_SelfOAuthClientAuthorizationList_To_v1_SelfOAuthClientAuthorizationList(in *api.SelfOAuthClientAuthorizationList, out *SelfOAuthClientAuthorizationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]SelfOAuthClientAuthorization, len(*in))
+		for i := range *in {
+			if err := Convert_api_SelfOAuthClientAuthorization_To_v1_SelfOAuthClientAuthorization(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_api_SelfOAuthClientAuthorizationList_To_v1_SelfOAuthClientAuthorizationList(in *api.SelfOAuthClientAuthorizationList, out *SelfOAuthClientAuthorizationList, s conversion.Scope) error {
+	return autoConvert_api_SelfOAuthClientAuthorizationList_To_v1_SelfOAuthClientAuthorizationList(in, out, s)
 }

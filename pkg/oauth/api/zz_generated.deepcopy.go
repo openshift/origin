@@ -31,6 +31,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_OAuthRedirectReference, InType: reflect.TypeOf(&OAuthRedirectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RedirectReference, InType: reflect.TypeOf(&RedirectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ScopeRestriction, InType: reflect.TypeOf(&ScopeRestriction{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SelfOAuthClientAuthorization, InType: reflect.TypeOf(&SelfOAuthClientAuthorization{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SelfOAuthClientAuthorizationList, InType: reflect.TypeOf(&SelfOAuthClientAuthorizationList{})},
 	)
 }
 
@@ -299,6 +301,47 @@ func DeepCopy_api_ScopeRestriction(in interface{}, out interface{}, c *conversio
 			}
 		} else {
 			out.ClusterRole = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_SelfOAuthClientAuthorization(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SelfOAuthClientAuthorization)
+		out := out.(*SelfOAuthClientAuthorization)
+		out.TypeMeta = in.TypeMeta
+		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+			return err
+		}
+		out.ClientName = in.ClientName
+		if in.Scopes != nil {
+			in, out := &in.Scopes, &out.Scopes
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Scopes = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_SelfOAuthClientAuthorizationList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SelfOAuthClientAuthorizationList)
+		out := out.(*SelfOAuthClientAuthorizationList)
+		out.TypeMeta = in.TypeMeta
+		out.ListMeta = in.ListMeta
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]SelfOAuthClientAuthorization, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_SelfOAuthClientAuthorization(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Items = nil
 		}
 		return nil
 	}

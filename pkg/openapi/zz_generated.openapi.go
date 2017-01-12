@@ -19155,6 +19155,75 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		Dependencies: []string{
 			"unversioned.ListMeta", "v1.SecurityContextConstraints"},
 	},
+	"v1.SelfOAuthClientAuthorization": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SelfOAuthClientAuthorization describes an authorization created by a user for an OAuth client",
+				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectMeta"),
+						},
+					},
+					"clientName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientName references the client that created this authorization",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"scopes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scopes is an array of the granted scopes.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"v1.ObjectMeta"},
+	},
+	"v1.SelfOAuthClientAuthorizationList": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SelfOAuthClientAuthorizationList is a collection of self OAuth client authorizations",
+				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is the list of self OAuth client authorizations",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.SelfOAuthClientAuthorization"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.ListMeta", "v1.SelfOAuthClientAuthorization"},
+	},
 	"v1.SelfSubjectRulesReview": {
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{

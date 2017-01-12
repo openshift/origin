@@ -205,3 +205,24 @@ message ScopeRestriction {
   optional ClusterRoleScopeRestriction clusterRole = 2;
 }
 
+// SelfOAuthClientAuthorization describes an authorization created by a user for an OAuth client
+message SelfOAuthClientAuthorization {
+  // Standard object's metadata.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // ClientName references the client that created this authorization
+  optional string clientName = 2;
+
+  // Scopes is an array of the granted scopes.
+  repeated string scopes = 3;
+}
+
+// SelfOAuthClientAuthorizationList is a collection of self OAuth client authorizations
+message SelfOAuthClientAuthorizationList {
+  // Standard object's metadata.
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  // Items is the list of self OAuth client authorizations
+  repeated SelfOAuthClientAuthorization items = 2;
+}
+

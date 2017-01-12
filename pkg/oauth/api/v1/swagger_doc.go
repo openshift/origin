@@ -149,3 +149,24 @@ var map_ScopeRestriction = map[string]string{
 func (ScopeRestriction) SwaggerDoc() map[string]string {
 	return map_ScopeRestriction
 }
+
+var map_SelfOAuthClientAuthorization = map[string]string{
+	"":           "SelfOAuthClientAuthorization describes an authorization created by a user for an OAuth client",
+	"metadata":   "Standard object's metadata.",
+	"clientName": "ClientName references the client that created this authorization",
+	"scopes":     "Scopes is an array of the granted scopes.",
+}
+
+func (SelfOAuthClientAuthorization) SwaggerDoc() map[string]string {
+	return map_SelfOAuthClientAuthorization
+}
+
+var map_SelfOAuthClientAuthorizationList = map[string]string{
+	"":         "SelfOAuthClientAuthorizationList is a collection of self OAuth client authorizations",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items is the list of self OAuth client authorizations",
+}
+
+func (SelfOAuthClientAuthorizationList) SwaggerDoc() map[string]string {
+	return map_SelfOAuthClientAuthorizationList
+}
