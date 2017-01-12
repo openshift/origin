@@ -619,6 +619,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
 			GetBuildFunc:            buildRegistry.GetBuild,
 			CreateBuildFunc:         buildRegistry.CreateBuild,
+			UpdateBuildFunc:         buildRegistry.UpdateBuild,
 			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,

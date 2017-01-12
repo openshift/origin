@@ -86,7 +86,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("expecting build %s to complete successfully", buildName))
-		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
 		if err != nil {
 			exutil.DumpBuildLogs(buildConfigName, oc)
 		}
