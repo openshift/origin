@@ -199,6 +199,10 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *client.Client) {
 	s := c.ControllerManager
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(c.KubeClient.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "controller-manager"})
+
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
 			clientadapter.FromUnversionedClient(client),
@@ -208,7 +212,7 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *client.
 			c.Informers.PersistentVolumes().Informer(),
 			c.CloudProvider,
 			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
-			nil,
+			recorder,
 		)
 	if err != nil {
 		glog.Fatalf("Failed to start attach/detach controller: %v", err)
