@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/registry/helpers"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	testutil "github.com/openshift/origin/test/util"
@@ -156,7 +157,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"scope:user:full",
 		})
 		// verify the persisted client authorization looks like we expect
-		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:" + oauthClientConfig.ClientId); err != nil {
+		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId)); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
 			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
@@ -253,7 +254,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"scope:user:full",
 		})
 
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminClient.OAuthClientAuthorizations().Delete(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId))
 	}
 
 	{
@@ -289,7 +290,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminClient.OAuthClientAuthorizations().Delete(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId))
 	}
 
 	{
@@ -310,7 +311,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"redirect to /oauthcallback",
 			"error:access_denied",
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminClient.OAuthClientAuthorizations().Delete(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId))
 	}
 
 	{
@@ -331,7 +332,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"redirect to /oauthcallback",
 			"error:invalid_scope",
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminClient.OAuthClientAuthorizations().Delete(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId))
 	}
 
 	{
@@ -367,7 +368,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminClient.OAuthClientAuthorizations().Delete(helpers.MakeClientAuthorizationName("harold", oauthClientConfig.ClientId))
 	}
 }
 
