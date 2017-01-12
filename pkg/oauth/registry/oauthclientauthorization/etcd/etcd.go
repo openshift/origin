@@ -85,8 +85,8 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 			return nil
 		}
 		selector := fields.OneTermEqualSelector("userUID", uid)
-		if matched, err := selfStore.PredicateFunc(labels.Everything(), selector).
-			Matches(obj); !matched || err != nil {
+		matcher := selfStore.PredicateFunc(labels.Everything(), selector)
+		if matched, err := matcher.Matches(obj); !matched || err != nil {
 			return kubeerr.NewNotFound(selfStore.QualifiedResource, obj.(*api.OAuthClientAuthorization).ClientName)
 		}
 		return nil
