@@ -88,7 +88,7 @@ func TestValidateRedirectURI(t *testing.T) {
 
 func TestValidateClientAuthorization(t *testing.T) {
 	errs := ValidateClientAuthorization(&oapi.OAuthClientAuthorization{
-		ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+		ObjectMeta: api.ObjectMeta{Name: "myusername::myclientname"},
 		ClientName: "myclientname",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -113,7 +113,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"invalid name": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "anotheruser:anotherclient"},
+				ObjectMeta: api.ObjectMeta{Name: "anotheruser::anotherclient"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -123,7 +123,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"disallowed namespace": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname", Namespace: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "myusername::myclientname", Namespace: "foo"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -133,7 +133,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"no scope handler": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ObjectMeta: api.ObjectMeta{Name: "myusername::myclientname"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -144,7 +144,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"bad scope": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ObjectMeta: api.ObjectMeta{Name: "myusername::myclientname"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",

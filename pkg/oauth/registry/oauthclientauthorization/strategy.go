@@ -3,8 +3,6 @@ package oauthclientauthorization
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -13,6 +11,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
+	"github.com/openshift/origin/pkg/oauth/registry/helpers"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
@@ -29,7 +30,7 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 
 func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
-	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
+	auth.Name = helpers.MakeClientAuthorizationName(auth.UserName, auth.ClientName)
 }
 
 // NamespaceScoped is false for OAuth objects
@@ -43,7 +44,7 @@ func (strategy) GenerateName(base string) string {
 
 func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
-	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
+	auth.Name = helpers.MakeClientAuthorizationName(auth.UserName, auth.ClientName)
 }
 
 // Canonicalize normalizes the object after validation.
@@ -101,12 +102,7 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 			if !ok {
 				return nil, nil, fmt.Errorf("not a OAuthClientAuthorization")
 			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
+			return labels.Set(obj.Labels), api.OAuthClientAuthorizationToSelectableFields(obj), nil
 		},
 	}
-}
-
-// SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.OAuthClientAuthorization) fields.Set {
-	return api.OAuthClientAuthorizationToSelectableFields(obj)
 }

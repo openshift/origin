@@ -31,5 +31,11 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+
+	if err := scheme.AddFieldLabelConversionFunc("v1", "SelfOAuthClientAuthorization",
+		oapi.GetFieldLabelConversionFunc(api.SelfOAuthClientAuthorizationToSelectableFields(&api.SelfOAuthClientAuthorization{}), nil),
+	); err != nil {
+		return err
+	}
 	return nil
 }

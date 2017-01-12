@@ -36,4 +36,11 @@ func TestFieldSelectorConversions(t *testing.T) {
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"clientName", "userName", "userUID",
 	)
+
+	testutil.CheckFieldLabelConversions(t, "v1", "SelfOAuthClientAuthorization",
+		// Ensure all currently returned labels are supported
+		api.SelfOAuthClientAuthorizationToSelectableFields(&api.SelfOAuthClientAuthorization{}),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		"clientName",
+	)
 }

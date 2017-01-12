@@ -5,6 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/registry/helpers"
 )
 
 // Registry is an interface for things that know how to store OAuthClientAuthorization objects.
@@ -35,7 +36,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 }
 
 func (s *storage) ClientAuthorizationName(userName, clientName string) string {
-	return userName + ":" + clientName
+	return helpers.MakeClientAuthorizationName(userName, clientName)
 }
 
 func (s *storage) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {

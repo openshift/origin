@@ -43,10 +43,11 @@ var (
 	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
 
-	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
-	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
-	oauthAccessTokenColumns         = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
-	oauthAuthorizeTokenColumns      = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
+	oauthClientColumns                  = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
+	oauthClientAuthorizationColumns     = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
+	selfOAuthClientAuthorizationColumns = []string{"NAME", "CLIENT NAME", "SCOPES"}
+	oauthAccessTokenColumns             = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
+	oauthAuthorizeTokenColumns          = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
 
 	userColumns                = []string{"NAME", "UID", "FULL NAME", "IDENTITIES"}
 	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
@@ -112,6 +113,8 @@ func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadable
 	p.Handler(oauthClientColumns, printOAuthClientList)
 	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorization)
 	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorizationList)
+	p.Handler(selfOAuthClientAuthorizationColumns, printSelfOAuthClientAuthorization)
+	p.Handler(selfOAuthClientAuthorizationColumns, printSelfOAuthClientAuthorizationList)
 	p.Handler(oauthAccessTokenColumns, printOAuthAccessToken)
 	p.Handler(oauthAccessTokenColumns, printOAuthAccessTokenList)
 	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeToken)
@@ -835,7 +838,7 @@ func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer, opts kctl.Print
 	if client.RespondWithChallenges {
 		challenge = "TRUE"
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v", name, client.Secret, challenge, strings.Join(client.RedirectURIs, ",")); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, client.Secret, challenge, strings.Join(client.RedirectURIs, ",")); err != nil {
 		return err
 	}
 	if err := appendItemLabels(client.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -855,13 +858,28 @@ func printOAuthClientList(list *oauthapi.OAuthClientList, w io.Writer, opts kctl
 
 func printOAuthClientAuthorization(auth *oauthapi.OAuthClientAuthorization, w io.Writer, opts kctl.PrintOptions) error {
 	name := formatResourceName(opts.Kind, auth.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", name, auth.UserName, auth.ClientName, strings.Join(auth.Scopes, ","))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, auth.UserName, auth.ClientName, strings.Join(auth.Scopes, ","))
 	return err
 }
 
 func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationList, w io.Writer, opts kctl.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printOAuthClientAuthorization(&item, w, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printSelfOAuthClientAuthorization(auth *oauthapi.SelfOAuthClientAuthorization, w io.Writer, opts kctl.PrintOptions) error {
+	name := formatResourceName(opts.Kind, auth.Name, opts.WithKind)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", name, auth.ClientName, strings.Join(auth.Scopes, ","))
+	return err
+}
+
+func printSelfOAuthClientAuthorizationList(list *oauthapi.SelfOAuthClientAuthorizationList, w io.Writer, opts kctl.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printSelfOAuthClientAuthorization(&item, w, opts); err != nil {
 			return err
 		}
 	}

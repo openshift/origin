@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 )
 
@@ -65,13 +67,28 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, isNamespaced bool, t
 
 	DefaultKeyFunctions(store, prefix, isNamespaced)
 
+	// We adapt the store's keyFunc so that we can use it with the StorageDecorator
+	// without making any assumptions about where objects are stored in etcd
+	keyFunc := func(obj runtime.Object) (string, error) {
+		accessor, err := meta.Accessor(obj)
+		if err != nil {
+			return "", err
+		}
+
+		if isNamespaced {
+			return store.KeyFunc(kapi.WithNamespace(kapi.NewContext(), accessor.GetNamespace()), accessor.GetName())
+		}
+
+		return store.KeyFunc(kapi.NewContext(), accessor.GetName())
+	}
+
 	store.DeleteCollectionWorkers = opts.DeleteCollectionWorkers
 	store.Storage, store.DestroyFunc = opts.Decorator(
 		opts.StorageConfig,
 		UseConfiguredCacheSize,
 		store.NewFunc(),
 		prefix,
-		store.CreateStrategy,
+		keyFunc,
 		store.NewListFunc,
 		triggerFn,
 	)

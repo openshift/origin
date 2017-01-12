@@ -679,7 +679,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)
-	clientAuthorizationStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	clientAuthorizationStorage, selfClientAuthorizationStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)
 
 	templateStorage, err := templateetcd.NewREST(c.RESTOptionsGetter)
@@ -726,10 +726,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizeTokenStorage,
-		"oAuthAccessTokens":         accessTokenStorage,
-		"oAuthClients":              clientStorage,
-		"oAuthClientAuthorizations": clientAuthorizationStorage,
+		"oAuthAuthorizeTokens":          authorizeTokenStorage,
+		"oAuthAccessTokens":             accessTokenStorage,
+		"oAuthClients":                  clientStorage,
+		"oAuthClientAuthorizations":     clientAuthorizationStorage,
+		"selfOAuthClientAuthorizations": selfClientAuthorizationStorage,
 
 		"resourceAccessReviews":      resourceAccessReviewStorage,
 		"subjectAccessReviews":       subjectAccessReviewStorage,

@@ -57,6 +57,7 @@ func describerMap(c *client.Client, kclient kclientset.Interface, host string) m
 		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{c},
 		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{c},
 		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{c},
+		oauthapi.Kind("SelfOAuthClientAuthorization"):   &SelfOAuthClientAuthorizationDescriber{c},
 		userapi.Kind("User"):                            &UserDescriber{c},
 		userapi.Kind("Group"):                           &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{c},
@@ -494,6 +495,26 @@ func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kc
 		formatString(out, "User Name", oAuthAccessToken.UserName)
 		formatString(out, "User UID", oAuthAccessToken.UserUID)
 		formatString(out, "Client Name", oAuthAccessToken.ClientName)
+
+		return nil
+	})
+}
+
+type SelfOAuthClientAuthorizationDescriber struct {
+	client.Interface
+}
+
+func (d *SelfOAuthClientAuthorizationDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	c := d.SelfOAuthClientAuthorizations()
+	auth, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, auth.ObjectMeta)
+		formatString(out, "Scopes", auth.Scopes)
+		formatString(out, "Client Name", auth.ClientName)
 
 		return nil
 	})

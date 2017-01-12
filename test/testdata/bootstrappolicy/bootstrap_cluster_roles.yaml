@@ -379,6 +379,15 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - selfoauthclientauthorizations
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1509,6 +1518,17 @@ items:
     - subjectaccessreviews
     verbs:
     - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - selfoauthclientauthorizations
+    verbs:
+    - delete
+    - deletecollection
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:

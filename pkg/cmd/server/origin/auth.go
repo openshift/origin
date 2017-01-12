@@ -105,7 +105,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	}
 	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 
-	clientAuthStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	clientAuthStorage, _, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	if err != nil {
 		return nil, err
 	}

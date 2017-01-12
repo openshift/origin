@@ -1,11 +1,10 @@
 package test
 
 import (
-	"fmt"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/registry/helpers"
 )
 
 type ClientAuthorizationRegistry struct {
@@ -24,7 +23,7 @@ type ClientAuthorizationRegistry struct {
 }
 
 func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientName string) string {
-	return fmt.Sprintf("%s:%s", userName, clientName)
+	return helpers.MakeClientAuthorizationName(userName, clientName)
 }
 
 func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {

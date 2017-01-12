@@ -184,6 +184,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// backwards compatibility
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(oauthGroup).Resources("selfoauthclientauthorizations").RuleOrDie(),
 			},
 		},
 		{
@@ -402,6 +404,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("list", "watch").Groups(projectGroup).Resources("projects").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("selfsubjectrulesreviews").RuleOrDie(),
 				{Verbs: sets.NewString("create"), APIGroups: []string{authzGroup}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				authorizationapi.NewRule("get", "list", "watch", "delete", "deletecollection").Groups(oauthGroup).Resources("selfoauthclientauthorizations").RuleOrDie(),
 			},
 		},
 		{

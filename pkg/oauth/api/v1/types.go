@@ -155,6 +155,19 @@ type OAuthClientAuthorization struct {
 	Scopes []string `json:"scopes,omitempty" protobuf:"bytes,5,rep,name=scopes"`
 }
 
+// SelfOAuthClientAuthorization describes an authorization created by a user for an OAuth client
+type SelfOAuthClientAuthorization struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// ClientName references the client that created this authorization
+	ClientName string `json:"clientName,omitempty" protobuf:"bytes,2,opt,name=clientName"`
+
+	// Scopes is an array of the granted scopes.
+	Scopes []string `json:"scopes,omitempty" protobuf:"bytes,3,rep,name=scopes"`
+}
+
 // OAuthAccessTokenList is a collection of OAuth access tokens
 type OAuthAccessTokenList struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -189,6 +202,15 @@ type OAuthClientAuthorizationList struct {
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// SelfOAuthClientAuthorizationList is a collection of self OAuth client authorizations
+type SelfOAuthClientAuthorizationList struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Items is the list of self OAuth client authorizations
+	Items []SelfOAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // OAuthRedirectReference is a reference to an OAuth redirect object.

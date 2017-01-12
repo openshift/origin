@@ -13,6 +13,7 @@ import (
 
 	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/api"
+	oauthregistryhelpers "github.com/openshift/origin/pkg/oauth/registry/helpers"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -191,9 +192,8 @@ func ValidateClientAuthorizationName(name string, prefix bool) []string {
 		return reasons
 	}
 
-	lastColon := strings.Index(name, ":")
-	if lastColon <= 0 || lastColon >= len(name)-1 {
-		return []string{"must be in the format <userName>:<clientName>"}
+	if _, _, err := oauthregistryhelpers.SplitClientAuthorizationName(name); err != nil {
+		return []string{err.Error()}
 	}
 
 	return nil
@@ -202,13 +202,13 @@ func ValidateClientAuthorizationName(name string, prefix bool) []string {
 func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	expectedName := fmt.Sprintf("%s:%s", clientAuthorization.UserName, clientAuthorization.ClientName)
+	expectedName := oauthregistryhelpers.MakeClientAuthorizationName(clientAuthorization.UserName, clientAuthorization.ClientName)
 
 	metadataErrs := validation.ValidateObjectMeta(&clientAuthorization.ObjectMeta, false, ValidateClientAuthorizationName, field.NewPath("metadata"))
 	if len(metadataErrs) > 0 {
 		allErrs = append(allErrs, metadataErrs...)
 	} else if clientAuthorization.Name != expectedName {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "name"), clientAuthorization.Name, "must be in the format <userName>:<clientName>"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "name"), clientAuthorization.Name, oauthregistryhelpers.InvalidClientAuthorizationNameErr.Error()))
 	}
 
 	allErrs = append(allErrs, ValidateClientNameField(clientAuthorization.ClientName, field.NewPath("clientName"))...)

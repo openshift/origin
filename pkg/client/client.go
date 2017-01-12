@@ -53,6 +53,7 @@ type Interface interface {
 	TemplateConfigsNamespacer
 	OAuthClientsInterface
 	OAuthClientAuthorizationsInterface
+	SelfOAuthClientAuthorizationsInterface
 	OAuthAccessTokensInterface
 	OAuthAuthorizeTokensInterface
 	PoliciesNamespacer
@@ -257,6 +258,10 @@ func (c *Client) OAuthClients() OAuthClientInterface {
 
 func (c *Client) OAuthClientAuthorizations() OAuthClientAuthorizationInterface {
 	return newOAuthClientAuthorizations(c)
+}
+
+func (c *Client) SelfOAuthClientAuthorizations() SelfOAuthClientAuthorizationInterface {
+	return newSelfOAuthClientAuthorizations(c)
 }
 
 func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
