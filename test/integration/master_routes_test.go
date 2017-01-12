@@ -2,11 +2,14 @@ package integration
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -55,16 +58,15 @@ var expectedIndex = []string{
 func TestRootRedirect(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
-	masterConfig, _, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	transport := knet.SetTransportDefaults(&http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	})
+	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL, nil)
 	req.Header.Set("Accept", "*/*")
@@ -107,4 +109,81 @@ func TestRootRedirect(t *testing.T) {
 
 	// TODO add a test for when asset config is nil, the redirect should not occur in this case even when
 	// accept header contains text/html
+}
+
+func TestWellKnownOAuth(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+"/.well-known/oauth-authorization-server", nil)
+	req.Header.Set("Accept", "*/*")
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Unexpected error reading the body: %v", err)
+	}
+	if !strings.Contains(string(body), "authorization_endpoint") {
+		t.Fatal("Expected \"authorization_endpoint\" in the body.")
+	}
+}
+
+func TestWellKnownOAuthOff(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	masterConfig, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	masterConfig.OAuthConfig = nil
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+"/.well-known/oauth-authorization-server", nil)
+	req.Header.Set("Accept", "*/*")
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("Expected %d, got %d", http.StatusNotFound, resp.StatusCode)
+	}
+}
+
+func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, error) {
+	restConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	if ok := pool.AppendCertsFromPEM(restConfig.TLSClientConfig.CAData); !ok {
+		return nil, errors.New("failed to add server CA certificates to client pool")
+	}
+	return knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: &tls.Config{
+			// only use RootCAs from client config, especially no client certs
+			RootCAs: pool,
+		},
+	}), nil
 }
