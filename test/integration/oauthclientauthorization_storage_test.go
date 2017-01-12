@@ -139,12 +139,6 @@ func (o *clientAuthorizationTester) assertEqualSelfList(expected *oauthapi.OAuth
 	e := clientauthetcd.ToSelfList(expected).(*oauthapi.SelfOAuthClientAuthorizationList)
 	sort.Sort(sortSelfList(*e))
 	sort.Sort(sortSelfList(*actual))
-	if e.Items == nil {
-		e.Items = []oauthapi.SelfOAuthClientAuthorization{} // don't want this to be nil for comparision with actual
-	}
-	if actual.Items == nil {
-		actual.Items = []oauthapi.SelfOAuthClientAuthorization{} // don't want this to be nil for comparision with expected
-	}
 	if !reflect.DeepEqual(e, actual) {
 		return fmt.Errorf("%s EqualSelfList failed\nexpected:\n%#v\ngot:\n%#v", o.currentTest, e, actual)
 	}
@@ -959,5 +953,22 @@ func TestOAuthClientAuthorizationStorage(t *testing.T) {
 			}
 			return clientTester.assertEqualSelfList(expectedSA2, actual)
 		})
+	})
+
+	clientTester.runTest("error messages reference the correct resource and name", func() {
+		if _, err := clientTester.asClusterAdmin.Get("foo"); err == nil || !kubeerr.IsNotFound(err) || err.Error() != `oauthclientauthorizations "foo" not found` {
+			t.Errorf("%s failed with wrong error during cluster admin Get: %#v", clientTester.currentTest, err)
+		}
+		if err := clientTester.asClusterAdmin.Delete("foo"); err == nil || !kubeerr.IsNotFound(err) || err.Error() != `oauthclientauthorizations "foo" not found` {
+			t.Errorf("%s failed with wrong error during cluster admin Delete: %#v", clientTester.currentTest, err)
+		}
+
+		_, user1Auth := clientTester.createUser("user1")
+		if _, err := user1Auth.Get("foo"); err == nil || !kubeerr.IsNotFound(err) || err.Error() != `selfoauthclientauthorizations "foo" not found` {
+			t.Errorf("%s failed with wrong error during user1 Get: %#v", clientTester.currentTest, err)
+		}
+		if err := user1Auth.Delete("foo"); err == nil || !kubeerr.IsNotFound(err) || err.Error() != `selfoauthclientauthorizations "foo" not found` {
+			t.Errorf("%s failed with wrong error during user1 Delete: %#v", clientTester.currentTest, err)
+		}
 	})
 }

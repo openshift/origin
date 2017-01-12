@@ -44,6 +44,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 			if username, clientname, err := helpers.SplitClientAuthorizationName(name); err == nil {
 				return registry.NoNamespaceKeyFunc(ctx, helpers.GetKeyWithUsername(prefix, username), clientname)
 			}
+			// Fallback to the old location if the name does not meet the new format
 			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
@@ -60,7 +61,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 		return nil, nil, err
 	}
 
-	selfStore := *store
+	selfStore := *store // Make a copy so that we can mutate it
 	selfStore.QualifiedResource = api.Resource("selfoauthclientauthorizations")
 	selfStore.CreateStrategy = helpers.CannotCreateStrategy // TODO maybe just set this to nil?
 	selfStore.UpdateStrategy = nil
@@ -75,13 +76,14 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 		return helpers.GetKeyWithUsername(prefix, user.GetName())
 	}
 
+	// Enforce that the OAuthClientAuthorization's userUID is same as the current user's
 	selfObjectUIDFilter := func(ctx kapi.Context, obj runtime.Object) error {
 		user, ok := kapi.UserFrom(ctx)
 		if !ok {
 			return kubeerr.NewBadRequest("User parameter required.")
 		}
 		uid := user.GetUID()
-		if len(uid) == 0 {
+		if len(uid) == 0 { // True when the user is being impersonated
 			return nil
 		}
 		selector := fields.OneTermEqualSelector("userUID", uid)
@@ -92,13 +94,14 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 		return nil
 	}
 
+	// Enforce that the OAuthClientAuthorizations in the List have a userUID that is same as the current user's
 	selfListUIDFilter := func(ctx kapi.Context, options *kapi.ListOptions) (*kapi.ListOptions, error) {
 		user, ok := kapi.UserFrom(ctx)
 		if !ok {
 			return nil, kubeerr.NewBadRequest("User parameter required.")
 		}
 		uid := user.GetUID()
-		if len(uid) == 0 {
+		if len(uid) == 0 { // True when the user is being impersonated
 			return options, nil
 		}
 		if options == nil {
@@ -138,6 +141,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 	return &REST{*store}, &SelfREST{selfFilterConverter}, nil
 }
 
+// Convert from OAuthClientAuthorization to SelfOAuthClientAuthorization
 func toSelfObject(obj runtime.Object) runtime.Object {
 	in, ok := obj.(*api.OAuthClientAuthorization)
 	if !ok { // Handle cases where we are passed other objects such as during Delete
@@ -152,7 +156,8 @@ func toSelfObject(obj runtime.Object) runtime.Object {
 	return out
 }
 
-// export for testing
+// Convert from OAuthClientAuthorizationList to SelfOAuthClientAuthorizationList
+// Exported for testing
 func ToSelfList(obj runtime.Object) runtime.Object {
 	in := obj.(*api.OAuthClientAuthorizationList)
 	out := &api.SelfOAuthClientAuthorizationList{}
