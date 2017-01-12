@@ -5,6 +5,12 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::util::ensure::built_binary_exists 'gendocs'
+
+# because the genman binary contains static imports of oc,
+# openshift, and oadm, it must be re-compiled every time
+# to ensure that all updated docs are generated.
+"${OS_ROOT}/hack/build-go.sh" tools/genman
+
 os::util::ensure::built_binary_exists 'genman'
 
 OUTPUT_DIR_REL=${1:-""}
