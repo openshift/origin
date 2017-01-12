@@ -14,6 +14,7 @@ import (
 	authuser "k8s.io/kubernetes/pkg/auth/user"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -897,6 +898,66 @@ func TestOAuthClientAuthorizationStorage(t *testing.T) {
 				}
 			}
 			return nil
+		})
+	})
+
+	clientTester.runTest("impersonation and list filter options work correctly together", func() {
+		sa1 := clientTester.createSA("sa1")
+		sa2 := clientTester.createSA("sa2")
+		user1, user1Auth := clientTester.createUser("user1")
+		user1WithDifferentUID := *user1
+		user1WithDifferentUID.UID = "foo"
+		sa1Options := kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("clientName", getSAName(sa1))}
+		sa2Options := kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("clientName", getSAName(sa2))}
+		user1AuthImpersonate := clientTester.asImpersonatingUser(user1)
+
+		clientTester.createClientAuthorizations(
+			newOAuthClientAuthorization(sa1, &user1WithDifferentUID, scope.UserInfo),
+			newOAuthClientAuthorization(sa2, user1, scope.UserInfo),
+		)
+
+		expectedUser1SA1 := newOAuthClientAuthorizationList(
+		// should be empty
+		)
+
+		clientTester.backoffAssert(func() error {
+			actual, err := user1Auth.List(sa1Options)
+			if err != nil {
+				return fmt.Errorf("%s failed: error listing client auths: %#v", clientTester.currentTest, err)
+			}
+			return clientTester.assertEqualSelfList(expectedUser1SA1, actual)
+		})
+
+		expectedUser1ImpersonateSA1 := newOAuthClientAuthorizationList(
+			newOAuthClientAuthorization(sa1, &user1WithDifferentUID, scope.UserInfo),
+		)
+
+		clientTester.backoffAssert(func() error {
+			actual, err := user1AuthImpersonate.List(sa1Options)
+			if err != nil {
+				return fmt.Errorf("%s failed: error listing client auths: %#v", clientTester.currentTest, err)
+			}
+			return clientTester.assertEqualSelfList(expectedUser1ImpersonateSA1, actual)
+		})
+
+		expectedSA2 := newOAuthClientAuthorizationList(
+			newOAuthClientAuthorization(sa2, user1, scope.UserInfo),
+		)
+
+		clientTester.backoffAssert(func() error {
+			actual, err := user1Auth.List(sa2Options)
+			if err != nil {
+				return fmt.Errorf("%s failed: error listing client auths: %#v", clientTester.currentTest, err)
+			}
+			return clientTester.assertEqualSelfList(expectedSA2, actual)
+		})
+
+		clientTester.backoffAssert(func() error {
+			actual, err := user1AuthImpersonate.List(sa2Options)
+			if err != nil {
+				return fmt.Errorf("%s failed: error listing client auths: %#v", clientTester.currentTest, err)
+			}
+			return clientTester.assertEqualSelfList(expectedSA2, actual)
 		})
 	})
 }
