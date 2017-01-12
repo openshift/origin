@@ -105,6 +105,15 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 	return nil
 }
 
+func isValidNodeIP(node *kapi.Node, nodeIP string) bool {
+	for _, addr := range node.Status.Addresses {
+		if addr.Address == nodeIP {
+			return true
+		}
+	}
+	return false
+}
+
 func getNodeIP(node *kapi.Node) (string, error) {
 	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
 		return node.Status.Addresses[0].Address, nil
@@ -169,7 +178,7 @@ func (master *OsdnMaster) watchNodes() {
 		case cache.Sync, cache.Added, cache.Updated:
 			master.clearInitialNodeNetworkUnavailableCondition(node)
 
-			if oldNodeIP, ok := nodeAddressMap[uid]; ok && (oldNodeIP == nodeIP) {
+			if oldNodeIP, ok := nodeAddressMap[uid]; ok && ((nodeIP == oldNodeIP) || isValidNodeIP(node, oldNodeIP)) {
 				break
 			}
 			// Node status is frequently updated by kubelet, so log only if the above condition is not met
