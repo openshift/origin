@@ -20,4 +20,4 @@ limitations under the License.
 // +k8s:defaulter-gen=TypeMeta
 
 // +groupName=certificates.k8s.io
-package v1alpha1 // import "k8s.io/kubernetes/pkg/apis/certificates/v1alpha1"
+package v1alpha1
