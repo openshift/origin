@@ -65,4 +65,9 @@ if has project.json || hasglob '*.csproj'; then
   exit 0
 fi
 
+if has main.go Godeps; then
+  echo "${prefix}golang"
+  exit 0
+fi
+
 exit 1
