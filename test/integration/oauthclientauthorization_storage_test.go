@@ -12,8 +12,8 @@ import (
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	authuser "k8s.io/kubernetes/pkg/auth/user"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -42,8 +42,8 @@ type clientAuthorizationTester struct {
 	rawStorage  storage.Interface
 	rawPrefix   string
 	ns          string
-	sa          kclient.ServiceAccountsInterface
-	sc          kclient.SecretsInterface
+	sa          kcoreclient.ServiceAccountInterface
+	sc          kcoreclient.SecretInterface
 	user        osclient.UserInterface
 	identity    osclient.IdentityInterface
 	rc          *restclient.Config
@@ -208,11 +208,11 @@ func (o *clientAuthorizationTester) cleanUp() {
 	}
 	for _, sa := range allSAs.Items {
 		for _, secret := range sa.Secrets {
-			if err := o.sc.Delete(secret.Name); err != nil {
+			if err := o.sc.Delete(secret.Name, nil); err != nil {
 				o.t.Fatalf("%s failed: cleanup failed to delete secret %#v: %#v", o.currentTest, secret, err)
 			}
 		}
-		if err := o.sa.Delete(sa.Name); err != nil {
+		if err := o.sa.Delete(sa.Name, nil); err != nil {
 			o.t.Fatalf("%s failed: cleanup failed to delete SA %#v: %#v", o.currentTest, sa, err)
 		}
 	}
