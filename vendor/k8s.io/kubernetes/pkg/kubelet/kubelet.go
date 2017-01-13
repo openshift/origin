@@ -1914,7 +1914,7 @@ func (kl *Kubelet) HandlePodAdditions(pods []*api.Pod) {
 	var criticalPods []*api.Pod
 	var nonCriticalPods []*api.Pod
 	for _, p := range pods {
-		if kubetypes.IsCriticalPod(p) {
+		if kubepod.IsCriticalPod(p) {
 			criticalPods = append(criticalPods, p)
 		} else {
 			nonCriticalPods = append(nonCriticalPods, p)
