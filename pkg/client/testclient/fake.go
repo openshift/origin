@@ -310,7 +310,7 @@ func (c *Fake) OAuthClientAuthorizations() client.OAuthClientAuthorizationInterf
 }
 
 func (c *Fake) SelfOAuthClientAuthorizations() client.SelfOAuthClientAuthorizationInterface {
-	return nil // TODO fix
+	return &FakeSelfOAuthClientAuthorization{Fake: c}
 }
 
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
