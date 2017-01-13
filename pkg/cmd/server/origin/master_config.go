@@ -85,6 +85,7 @@ import (
 	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	"github.com/openshift/origin/pkg/util/hash"
 	"github.com/openshift/origin/pkg/util/leaderlease"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -95,6 +96,8 @@ type MasterConfig struct {
 
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
+
+	TokenHashOptions hash.HashOptions
 
 	RuleResolver  rulevalidation.AuthorizationRuleResolver
 	Authenticator authenticator.Request
@@ -256,6 +259,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
+	// TODO: escape switch in config if a rolling update gets hung up
+	tokenHashOptions := buildTokenHashOptions(true)
+
 	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, apiClientCAs, groupCache)
 	if err != nil {
 		return nil, err
@@ -267,6 +273,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		RESTOptionsGetter: restOptsGetter,
+
+		TokenHashOptions: tokenHashOptions,
 
 		RuleResolver:                  ruleResolver,
 		Authenticator:                 authenticator,
@@ -807,8 +815,9 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 }
 
 func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, groupMapper identitymapper.UserToGroupMapper) (authenticator.Token, error) {
-	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, nil)
+	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client, or know whether to hash tokens on create
+	tokenHashOptions := buildTokenHashOptions(true)
+	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, tokenHashOptions, nil)
 	if err != nil {
 		return nil, err
 	}

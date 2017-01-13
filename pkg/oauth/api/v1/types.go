@@ -34,6 +34,14 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string `json:"refreshToken,omitempty" protobuf:"bytes,9,opt,name=refreshToken"`
+
+	// Token is the secret that hashes to the object name and the salted hash.
+	// It is never persisted, and returned only from the create API call.
+	Token string `json:"token,omitempty" protobuf:"bytes,10,opt,name=token"`
+	// Salt contains salt used to generate the saltedHash field
+	Salt string `json:"salt,omitempty" protobuf:"bytes,11,opt,name=salt"`
+	// SaltedHash is the hash of the plaintext token and the contents of the 'salt' field
+	SaltedHash string `json:"saltedHash,omitempty" protobuf:"bytes,12,opt,name=saltedHash"`
 }
 
 // OAuthAuthorizeToken describes an OAuth authorization token
@@ -69,6 +77,14 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string `json:"codeChallengeMethod,omitempty" protobuf:"bytes,10,opt,name=codeChallengeMethod"`
+
+	// Token is the secret that hashes to the object name and the salted hash.
+	// It is never persisted, and returned only from the create API call.
+	Token string `json:"token,omitempty" protobuf:"bytes,11,opt,name=token"`
+	// Salt contains salt used to generate the saltedHash field
+	Salt string `json:"salt,omitempty" protobuf:"bytes,12,opt,name=salt"`
+	// SaltedHash is the hash of the plaintext token and the contents of the 'salt' field
+	SaltedHash string `json:"saltedHash,omitempty" protobuf:"bytes,13,opt,name=saltedHash"`
 }
 
 // +genclient=true

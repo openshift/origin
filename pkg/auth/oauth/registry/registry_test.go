@@ -228,7 +228,11 @@ func TestRegistryAndServer(t *testing.T) {
 		h := &testHandlers{}
 		h.Authenticate = testCase.AuthSuccess
 		h.User = testCase.AuthUser
-		access, authorize := &test.AccessTokenRegistry{}, &test.AuthorizeTokenRegistry{}
+		access, authorize := &test.AccessTokenRegistry{
+			AccessToken: &oapi.OAuthAccessToken{Token: "generated secret"},
+		}, &test.AuthorizeTokenRegistry{
+			AuthorizeToken: &oapi.OAuthAuthorizeToken{Token: "generated code"},
+		}
 		client := &test.ClientRegistry{
 			Client: testCase.Client,
 		}

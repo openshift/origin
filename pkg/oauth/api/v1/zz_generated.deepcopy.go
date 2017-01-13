@@ -79,6 +79,9 @@ func DeepCopy_v1_OAuthAccessToken(in interface{}, out interface{}, c *conversion
 		out.UserUID = in.UserUID
 		out.AuthorizeToken = in.AuthorizeToken
 		out.RefreshToken = in.RefreshToken
+		out.Token = in.Token
+		out.Salt = in.Salt
+		out.SaltedHash = in.SaltedHash
 		return nil
 	}
 }
@@ -127,6 +130,9 @@ func DeepCopy_v1_OAuthAuthorizeToken(in interface{}, out interface{}, c *convers
 		out.UserUID = in.UserUID
 		out.CodeChallenge = in.CodeChallenge
 		out.CodeChallengeMethod = in.CodeChallengeMethod
+		out.Token = in.Token
+		out.Salt = in.Salt
+		out.SaltedHash = in.SaltedHash
 		return nil
 	}
 }

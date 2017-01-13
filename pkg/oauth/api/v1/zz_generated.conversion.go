@@ -81,6 +81,9 @@ func autoConvert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToke
 	out.UserUID = in.UserUID
 	out.AuthorizeToken = in.AuthorizeToken
 	out.RefreshToken = in.RefreshToken
+	out.Token = in.Token
+	out.Salt = in.Salt
+	out.SaltedHash = in.SaltedHash
 	return nil
 }
 
@@ -100,6 +103,9 @@ func autoConvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *api.OAuthAccess
 	out.UserUID = in.UserUID
 	out.AuthorizeToken = in.AuthorizeToken
 	out.RefreshToken = in.RefreshToken
+	out.Token = in.Token
+	out.Salt = in.Salt
+	out.SaltedHash = in.SaltedHash
 	return nil
 }
 
@@ -160,6 +166,9 @@ func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuth
 	out.UserUID = in.UserUID
 	out.CodeChallenge = in.CodeChallenge
 	out.CodeChallengeMethod = in.CodeChallengeMethod
+	out.Token = in.Token
+	out.Salt = in.Salt
+	out.SaltedHash = in.SaltedHash
 	return nil
 }
 
@@ -180,6 +189,9 @@ func autoConvert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *api.OAuth
 	out.UserUID = in.UserUID
 	out.CodeChallenge = in.CodeChallenge
 	out.CodeChallengeMethod = in.CodeChallengeMethod
+	out.Token = in.Token
+	out.Salt = in.Salt
+	out.SaltedHash = in.SaltedHash
 	return nil
 }
 

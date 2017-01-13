@@ -675,9 +675,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	osClient, kubeClient := c.OAuthServerClients()
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(kubeClient.Core(), kubeClient.Core(), osClient, clientRegistry, saAccountGrantMethod)
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, c.TokenHashOptions, combinedOAuthClientGetter)
 	checkStorageErr(err)
-	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, c.TokenHashOptions, combinedOAuthClientGetter)
 	checkStorageErr(err)
 	clientAuthorizationStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)

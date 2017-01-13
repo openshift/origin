@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
 	"k8s.io/kubernetes/pkg/api"
@@ -34,6 +35,9 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 
 	token, err := a.tokens.GetAccessToken(ctx, value)
 	if err != nil {
+		return nil, false, err
+	}
+	if err := oauthapi.VerifySaltedHash(value, token.Salt, token.SaltedHash); err != nil {
 		return nil, false, err
 	}
 	if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {

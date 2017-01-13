@@ -114,7 +114,10 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.authorizetoken.CreateAuthorizeToken(kapi.NewContext(), token)
+	createdToken, err := s.authorizetoken.CreateAuthorizeToken(kapi.NewContext(), token)
+	if err == nil {
+		data.Code = createdToken.Token
+	}
 	return err
 }
 
@@ -130,7 +133,10 @@ func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.convertFromAuthorizeToken(authorize)
+	if err := api.VerifySaltedHash(code, authorize.Salt, authorize.SaltedHash); err != nil {
+		return nil, err
+	}
+	return s.convertFromAuthorizeToken(code, authorize)
 }
 
 // RemoveAuthorize revokes or deletes the authorization code.
@@ -146,7 +152,10 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.accesstoken.CreateAccessToken(kapi.NewContext(), token)
+	createdToken, err := s.accesstoken.CreateAccessToken(kapi.NewContext(), token)
+	if err == nil {
+		data.AccessToken = createdToken.Token
+	}
 	return err
 }
 
@@ -158,7 +167,10 @@ func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.convertFromAccessToken(access)
+	if err := api.VerifySaltedHash(token, access.Salt, access.SaltedHash); err != nil {
+		return nil, err
+	}
+	return s.convertFromAccessToken(token, access)
 }
 
 // RemoveAccess revokes or deletes an AccessData.
@@ -182,7 +194,7 @@ func (s *storage) RemoveRefresh(token string) error {
 func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthAuthorizeToken, error) {
 	token := &api.OAuthAuthorizeToken{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:              data.Code,
+			GenerateName:      data.Code,
 			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
 		},
 		CodeChallenge:       data.CodeChallenge,
@@ -199,7 +211,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 	return token, nil
 }
 
-func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
+func (s *storage) convertFromAuthorizeToken(code string, authorize *api.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
 	user, err := s.user.ConvertFromAuthorizeToken(authorize)
 	if err != nil {
 		return nil, err
@@ -213,7 +225,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	}
 
 	return &osin.AuthorizeData{
-		Code:                authorize.Name,
+		Code:                code,
 		CodeChallenge:       authorize.CodeChallenge,
 		CodeChallengeMethod: authorize.CodeChallengeMethod,
 		Client:              &clientWrapper{authorize.ClientName, client},
@@ -229,7 +241,6 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessToken, error) {
 	token := &api.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:              data.AccessToken,
 			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
@@ -247,7 +258,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessT
 	return token, nil
 }
 
-func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.AccessData, error) {
+func (s *storage) convertFromAccessToken(accessToken string, access *api.OAuthAccessToken) (*osin.AccessData, error) {
 	user, err := s.user.ConvertFromAccessToken(access)
 	if err != nil {
 		return nil, err
@@ -261,7 +272,7 @@ func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.Ac
 	}
 
 	return &osin.AccessData{
-		AccessToken:  access.Name,
+		AccessToken:  accessToken,
 		RefreshToken: access.RefreshToken,
 		Client:       &clientWrapper{access.ClientName, client},
 		ExpiresIn:    int32(access.ExpiresIn),

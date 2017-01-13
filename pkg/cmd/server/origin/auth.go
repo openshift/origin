@@ -93,13 +93,13 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.OpenShiftClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
 
-	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, c.TokenHashOptions, combinedOAuthClientGetter, c.EtcdBackends...)
 	if err != nil {
 		return nil, err
 	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, c.TokenHashOptions, combinedOAuthClientGetter)
 	if err != nil {
 		return nil, err
 	}

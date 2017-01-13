@@ -31,7 +31,10 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+	token := obj.(*api.OAuthAccessToken)
+	token.Token = ""
+}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -42,7 +45,9 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+	token := obj.(*api.OAuthAccessToken)
+	token.Token = ""
 }
 
 // Validate validates a new token

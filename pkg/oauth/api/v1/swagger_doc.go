@@ -27,6 +27,9 @@ var map_OAuthAccessToken = map[string]string{
 	"userUID":        "UserUID is the unique UID associated with this token",
 	"authorizeToken": "AuthorizeToken contains the token that authorized this token",
 	"refreshToken":   "RefreshToken is the value by which this token can be renewed. Can be blank.",
+	"token":          "Token is the secret that hashes to the object name and the salted hash. It is never persisted, and returned only from the create API call.",
+	"salt":           "Salt contains salt used to generate the saltedHash field",
+	"saltedHash":     "SaltedHash is the hash of the plaintext token and the contents of the 'salt' field",
 }
 
 func (OAuthAccessToken) SwaggerDoc() map[string]string {
@@ -55,6 +58,9 @@ var map_OAuthAuthorizeToken = map[string]string{
 	"userUID":             "UserUID is the unique UID associated with this token. UserUID and UserName must both match for this token to be valid.",
 	"codeChallenge":       "CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636",
 	"codeChallengeMethod": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636",
+	"token":               "Token is the secret that hashes to the object name and the salted hash. It is never persisted, and returned only from the create API call.",
+	"salt":                "Salt contains salt used to generate the saltedHash field",
+	"saltedHash":          "SaltedHash is the hash of the plaintext token and the contents of the 'salt' field",
 }
 
 func (OAuthAuthorizeToken) SwaggerDoc() map[string]string {

@@ -32,6 +32,14 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
+
+	// Token is the secret that hashes to the object name and the salted hash.
+	// It is never persisted, and returned only from the create API call.
+	Token string
+	// Salt contains salt used to generate the saltedHash field
+	Salt string
+	// SaltedHash is the hash of the plaintext token and the contents of the 'salt' field
+	SaltedHash string
 }
 
 type OAuthAuthorizeToken struct {
@@ -65,6 +73,14 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string
+
+	// Token is the secret that hashes to the object name and the salted hash.
+	// It is never persisted, and returned only from the create API call.
+	Token string
+	// Salt contains salt used to generate the saltedHash field
+	Salt string
+	// SaltedHash is the hash of the plaintext token and the contents of the 'salt' field
+	SaltedHash string
 }
 
 // +genclient=true
