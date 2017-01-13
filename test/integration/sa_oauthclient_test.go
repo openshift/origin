@@ -144,7 +144,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Log("Testing unrestricted scope")
 		oauthClientConfig.Scope = ""
 		// approval steps are needed for unscoped access
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -169,7 +169,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			}
 		}
 		// approval steps are needed again for unscoped access
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -182,7 +182,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"scope:user:full",
 		})
 		// with the authorization stored, approval steps are skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -204,7 +204,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			return true
 		}
 		// our token only gets the approved one
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, inputFilter, authorizationCodes, authorizationErrors, true, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, inputFilter, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -220,7 +220,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			t.Errorf("Expected form filter to deny user:info scope")
 		}
 		// second time, we approve all, and our token gets all requested scopes
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -233,7 +233,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"scope:" + oauthClientConfig.Scope,
 		})
 		// third time, the approval steps is not needed, and the token gets all requested scopes
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -245,7 +245,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		// Now request an unscoped token again, and no approval should be needed
 		t.Log("Testing unrestricted scope")
 		oauthClientConfig.Scope = ""
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -270,7 +270,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Log("Testing allowed scopes")
 		// First time, the approval steps are needed
 		// Second time, the approval steps are skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -282,7 +282,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -304,7 +304,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing disallowed scopes")
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -325,7 +325,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			Scope:        scope.Join([]string{"unknown-scope"}),
 			SendClientSecretInParams: true,
 		}
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -348,7 +348,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		}
 		// First time, the approval is needed
 		// Second time, the approval is skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -360,7 +360,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -403,7 +403,6 @@ func runOAuthFlow(
 	inputFilter htmlutil.InputFilterFunc,
 	authorizationCodes chan string,
 	authorizationErrors chan string,
-	expectGrantSuccess bool,
 	expectBuildSuccess bool,
 	expectOperations []string,
 ) {
