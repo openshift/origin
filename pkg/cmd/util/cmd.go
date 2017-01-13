@@ -153,6 +153,9 @@ func VersionedPrintObject(fn func(*cobra.Command, meta.RESTMapper, runtime.Objec
 }
 
 func WarnAboutCommaSeparation(errout io.Writer, values []string, flag string) {
+	if errout == nil {
+		return
+	}
 	for _, value := range values {
 		if commaSepVarsPattern.MatchString(value) {
 			fmt.Fprintf(errout, "warning: %s no longer accepts comma-separated lists of values. %q will be treated as a single key-value pair.\n", flag, value)

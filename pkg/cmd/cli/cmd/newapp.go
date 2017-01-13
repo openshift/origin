@@ -117,7 +117,7 @@ To search templates, image streams, and Docker images that match the arguments p
 `
 )
 
-type NewAppOptions struct {
+type ObjectGeneratorOptions struct {
 	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
@@ -126,17 +126,64 @@ type NewAppOptions struct {
 	CommandName string
 
 	In            io.Reader
-	Out, ErrOut   io.Writer
-	Output        string
+	ErrOut        io.Writer
 	PrintObject   func(obj runtime.Object) error
 	LogsForObject LogsForObjectFunc
+}
+
+type NewAppOptions struct {
+	*ObjectGeneratorOptions
+}
+
+//Complete sets all common default options for commands (new-app and new-build)
+func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+	cmdutil.WarnAboutCommaSeparation(errout, o.Config.Environment, "--env")
+	cmdutil.WarnAboutCommaSeparation(errout, o.Config.BuildEnvironment, "--build-env")
+
+	o.In = in
+	o.ErrOut = errout
+	// Only output="" should print descriptions of intermediate steps. Everything
+	// else should print only some specific output (json, yaml, go-template, ...)
+	o.Config.In = o.In
+	if len(o.Action.Output) == 0 {
+		o.Config.Out = out
+	} else {
+		o.Config.Out = ioutil.Discard
+	}
+	o.Config.ErrOut = o.ErrOut
+
+	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
+	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	o.Action.Bulk.Op = configcmd.Create
+	// Retry is used to support previous versions of the API server that will
+	// consider the presence of an unknown trigger type to be an error.
+	o.Action.Bulk.Retry = retryBuildConfig
+
+	o.Config.DryRun = o.Action.DryRun
+	if o.Action.Output == "wide" {
+		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
+	}
+	o.CommandPath = c.CommandPath()
+	o.BaseName = baseName
+	o.CommandName = commandName
+
+	mapper, _ := f.Object()
+	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
+	o.LogsForObject = f.LogsForObject
+	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+		return err
+	}
+	if err := setAppConfigLabels(c, o.Config); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
 func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
-	o := &NewAppOptions{Config: config}
+	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)", name),
@@ -193,56 +240,20 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 
 // Complete sets any default behavior for the command
 func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	o.In = in
-	o.Out = out
-	o.ErrOut = errout
-	o.Output = kcmdutil.GetFlagString(c, "output")
-	// Only output="" should print descriptions of intermediate steps. Everything
-	// else should print only some specific output (json, yaml, go-template, ...)
-	o.Config.In = o.In
-	if len(o.Output) == 0 {
-		o.Config.Out = o.Out
-	} else {
-		o.Config.Out = ioutil.Discard
-	}
-	o.Config.ErrOut = o.ErrOut
-
-	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
-	// Retry is used to support previous versions of the API server that will
-	// consider the presence of an unknown trigger type to be an error.
-	o.Action.Bulk.Retry = retryBuildConfig
-
-	o.Config.DryRun = o.Action.DryRun
-
-	if o.Action.Output == "wide" {
-		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
-	}
-
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.TemplateParameters, "--param")
-
-	o.CommandPath = c.CommandPath()
-	o.BaseName = baseName
-	o.CommandName = commandName
-	mapper, _ := f.Object()
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
-	o.LogsForObject = f.LogsForObject
-	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+	ao := o.ObjectGeneratorOptions
+	cmdutil.WarnAboutCommaSeparation(errout, ao.Config.TemplateParameters, "--param")
+	err := ao.Complete(baseName, commandName, f, c, args, in, out, errout)
+	if err != nil {
 		return err
 	}
-	if err := setAppConfigLabels(c, o.Config); err != nil {
-		return err
-	}
+
 	return nil
 }
 
 // RunNewApp contains all the necessary functionality for the OpenShift cli new-app command
 func (o *NewAppOptions) RunNewApp() error {
 	config := o.Config
-	out := o.Out
+	out := o.Action.Out
 
 	if config.Querying() {
 		result, err := config.RunQuery()
