@@ -20,7 +20,7 @@ func MakeClientAuthorizationName(userName, clientName string) string {
 
 func SplitClientAuthorizationName(clientAuthorizationName string) (string, string, error) {
 	parts := strings.Split(clientAuthorizationName, UserSpaceSeparator)
-	if len(parts) != 2 {
+	if len(parts) != 2 || len(parts[0]) == 0 || len(parts[1]) == 0 {
 		return "", "", InvalidClientAuthorizationNameErr
 	}
 	return parts[0], parts[1], nil
