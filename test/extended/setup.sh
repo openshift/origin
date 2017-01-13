@@ -347,6 +347,7 @@ readonly SERIAL_TESTS=(
 	"\[Feature:ManualPerformance\]" # requires isolation
 	"Service endpoints latency" # requires low latency
 	"\[Feature:HighDensityPerformance\]" # requires no other namespaces
+	"Clean up pods on node" # schedules max pods per node
 )
 
 readonly CONFORMANCE_TESTS=(
