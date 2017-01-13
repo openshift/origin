@@ -84,11 +84,16 @@ var (
 	  %[1]s --host-data-dir=/mydata --use-existing-config
 
 	  # Use a different set of images
-	  %[1]s --image="registry.example.com/origin" --version="v1.1"`)
+	  %[1]s --image="registry.example.com/origin" --version="v1.1"
 
-	imageStreamLocations = map[string]string{
-		"origin centos7 image streams": "examples/image-streams/image-streams-centos7.json",
+	  # Specify which set of image streams to use
+	  %[1]s --image-streams=centos7`)
+
+	imageStreams = map[string]string{
+		"centos7": "examples/image-streams/image-streams-centos7.json",
+		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
 	}
+
 	templateLocations = map[string]string{
 		"mongodb":                     "examples/db-templates/mongodb-ephemeral-template.json",
 		"mariadb":                     "examples/db-templates/mariadb-ephemeral-template.json",
@@ -130,7 +135,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "If true, create a Docker machine if one doesn't exist")
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	cmd.Flags().StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
-	cmd.Flags().StringVar(&config.Image, "image", "registry.access.redhat.com/openshift3/ose", "Specify the images to use for OpenShift")
+	cmd.Flags().StringVar(&config.ImageStreams, "image-streams", "rhel7", "Specify which image streams to use, centos7|rhel7")
 	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "If true, skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -163,6 +168,7 @@ type task struct {
 type ClientStartConfig struct {
 	ImageVersion              string
 	Image                     string
+	ImageStreams              string
 	DockerMachine             string
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
@@ -731,6 +737,9 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 // ImportImageStreams imports default image streams into the server
 // TODO: Use streams compiled into oc
 func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
+	imageStreamLocations := map[string]string{
+		c.ImageStreams: imageStreams[c.ImageStreams],
+	}
 	return c.importObjects(out, imageStreamLocations)
 }
 

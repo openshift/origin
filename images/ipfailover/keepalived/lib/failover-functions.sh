@@ -8,7 +8,7 @@ source "$mydir/utils.sh"
 source "$mydir/config-generators.sh"
 
 #  Constants.
-readonly KEEPALIVED_CONFIG="/etc/keepalived/keepalived.conf"
+readonly KEEPALIVED_CONFIG=${KEEPALIVED_CONFIG:-"/etc/keepalived/keepalived.conf"}
 readonly KEEPALIVED_DEFAULTS="/etc/sysconfig/keepalived"
 
 
