@@ -6,8 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -61,84 +59,34 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 		return nil, nil, err
 	}
 
-	selfStore := *store // Make a copy so that we can mutate it
+	// Make a copy of the store so that we can mutate it
+	selfFilterConverter := getSelfFilterConverter(*store, prefix)
+
+	return &REST{*store}, &SelfREST{selfFilterConverter}, nil
+}
+
+func getSelfFilterConverter(selfStore registry.Store, prefix string) helpers.ReadAndDeleteStorage {
 	selfStore.QualifiedResource = api.Resource("selfoauthclientauthorizations")
-	selfStore.CreateStrategy = helpers.CannotCreateStrategy // TODO maybe just set this to nil?
+	selfStore.CreateStrategy = nil
 	selfStore.UpdateStrategy = nil
 
 	// We cannot override KeyFunc because the cacher does not provide the user in the context
 	// The cacher does not use the KeyRootFunc so it is safe to override
-	selfStore.KeyRootFunc = func(ctx kapi.Context) string { // This makes watches more efficient by making them user specific (but not UID specific)
-		user, ok := kapi.UserFrom(ctx)
-		if !ok {
-			panic("User parameter required.")
-		}
-		return helpers.GetKeyWithUsername(prefix, user.GetName())
-	}
+	// This makes watches more efficient by making them user specific (but not UID specific)
+	selfStore.KeyRootFunc = helpers.NewUserKeyRootFunc(prefix)
 
-	// Enforce that the OAuthClientAuthorization's userUID is same as the current user's
-	selfObjectUIDFilter := func(ctx kapi.Context, obj runtime.Object) error {
-		user, ok := kapi.UserFrom(ctx)
-		if !ok {
-			return kubeerr.NewBadRequest("User parameter required.")
-		}
-		uid := user.GetUID()
-		if len(uid) == 0 { // True when the user is being impersonated
-			return nil
-		}
-		selector := fields.OneTermEqualSelector("userUID", uid)
-		matcher := selfStore.PredicateFunc(labels.Everything(), selector)
-		if matched, err := matcher.Matches(obj); !matched || err != nil {
-			return kubeerr.NewNotFound(selfStore.QualifiedResource, obj.(*api.OAuthClientAuthorization).ClientName)
-		}
-		return nil
-	}
+	// Enforce that the OAuthClientAuthorization's userUID is the same as the current user's
+	selfObjectUIDFilter := helpers.NewUserUIDFilterFunc(selfStore.PredicateFunc)
 
-	// Enforce that the OAuthClientAuthorizations in the List have a userUID that is same as the current user's
-	selfListUIDFilter := func(ctx kapi.Context, options *kapi.ListOptions) (*kapi.ListOptions, error) {
-		user, ok := kapi.UserFrom(ctx)
-		if !ok {
-			return nil, kubeerr.NewBadRequest("User parameter required.")
-		}
-		uid := user.GetUID()
-		if len(uid) == 0 { // True when the user is being impersonated
-			return options, nil
-		}
-		if options == nil {
-			options = &kapi.ListOptions{}
-		}
-		selector := fields.OneTermEqualSelector("userUID", uid)
-		if options.FieldSelector == nil || options.FieldSelector.Empty() {
-			options.FieldSelector = selector
-		} else {
-			options.FieldSelector = fields.AndSelectors(options.FieldSelector, selector)
-		}
-		return options, nil
-	}
-
-	// This simulates overriding the KeyFunc
-	selfNamer := func(ctx kapi.Context, name string) (string, error) {
-		if strings.Contains(name, helpers.UserSpaceSeparator) { // This makes sure that the KeyFunc cannot be manipulated to leak data
-			return "", kubeerr.NewBadRequest("Invalid name: " + name)
-		}
-		user, ok := kapi.UserFrom(ctx)
-		if !ok {
-			return "", kubeerr.NewBadRequest("User parameter required.")
-		}
-		return helpers.MakeClientAuthorizationName(user.GetName(), name), nil
-	}
-
-	selfFilterConverter := helpers.NewFilterConverter(
+	return helpers.NewFilterConverter(
 		&selfStore,
 		toSelfObject,
 		selfObjectUIDFilter,
 		ToSelfList,
-		selfListUIDFilter,
+		helpers.UserUIDListFilterFunc, // Enforce that the OAuthClientAuthorizations in the List have a userUID that is the same as the current user's
 		selfNamer,
 		selfStore.QualifiedResource,
 	)
-
-	return &REST{*store}, &SelfREST{selfFilterConverter}, nil
 }
 
 // Convert from OAuthClientAuthorization to SelfOAuthClientAuthorization
@@ -170,4 +118,16 @@ func ToSelfList(obj runtime.Object) runtime.Object {
 		out.Items = append(out.Items, *(toSelfObject(&item).(*api.SelfOAuthClientAuthorization)))
 	}
 	return out
+}
+
+// This simulates overriding the KeyFunc
+func selfNamer(ctx kapi.Context, name string) (string, error) {
+	if strings.Contains(name, helpers.UserSpaceSeparator) { // This makes sure that the KeyFunc cannot be manipulated to leak data
+		return "", kubeerr.NewBadRequest("Invalid name: " + name)
+	}
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return "", kubeerr.NewBadRequest("User parameter required.")
+	}
+	return helpers.MakeClientAuthorizationName(user.GetName(), name), nil
 }

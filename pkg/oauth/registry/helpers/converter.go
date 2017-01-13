@@ -1,11 +1,16 @@
 package helpers
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api"
 	kubeerr "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -98,7 +103,7 @@ func (s *filterConverter) Get(ctx api.Context, name string) (runtime.Object, err
 		return nil, kubeerr.NewInternalError(err)
 	}
 	if err := s.objectFilterFunc(ctx, obj); err != nil {
-		return nil, err
+		return nil, kubeerr.NewNotFound(s.resource, name)
 	}
 	return s.objectDecoratorFunc(obj), nil
 }
@@ -169,4 +174,61 @@ func (s *filterConverter) Watch(ctx api.Context, options *api.ListOptions) (watc
 		in.Object = s.objectDecoratorFunc(in.Object)
 		return in, true
 	}), nil
+}
+
+// NewUserUIDFilterFunc returns a function that can be used to determine
+// if an object has a user UID that matches the current user's UID
+func NewUserUIDFilterFunc(
+	// Used to filter on the user UID field (labels are ignored)
+	predicateFunc func(label labels.Selector, field fields.Selector) storage.SelectionPredicate,
+) func(ctx api.Context, obj runtime.Object) error {
+	return func(ctx api.Context, obj runtime.Object) error {
+		user, ok := api.UserFrom(ctx)
+		if !ok {
+			return kubeerr.NewBadRequest("User parameter required.")
+		}
+		uid := user.GetUID()
+		if len(uid) == 0 { // True when the user is being impersonated
+			return nil
+		}
+		selector := fields.OneTermEqualSelector("userUID", uid)
+		matcher := predicateFunc(labels.Everything(), selector)
+		if matched, err := matcher.Matches(obj); !matched || err != nil {
+			return fmt.Errorf("%#v failed user UID filter for %s (matched=%#v,err=%#v)", obj, uid, matched, err)
+		}
+		return nil
+	}
+}
+
+// UserUIDListFilterFunc mutates the ListOptions to filter objects by the current user's UID
+func UserUIDListFilterFunc(ctx api.Context, options *api.ListOptions) (*api.ListOptions, error) {
+	user, ok := api.UserFrom(ctx)
+	if !ok {
+		return nil, kubeerr.NewBadRequest("User parameter required.")
+	}
+	uid := user.GetUID()
+	if len(uid) == 0 { // True when the user is being impersonated
+		return options, nil
+	}
+	if options == nil {
+		options = &api.ListOptions{}
+	}
+	selector := fields.OneTermEqualSelector("userUID", uid)
+	if options.FieldSelector == nil || options.FieldSelector.Empty() {
+		options.FieldSelector = selector
+	} else {
+		options.FieldSelector = fields.AndSelectors(options.FieldSelector, selector)
+	}
+	return options, nil
+}
+
+// NewUserKeyRootFunc returns a KeyRootFunc based on the given prefix and the current user's name
+func NewUserKeyRootFunc(prefix string) func(ctx api.Context) string {
+	return func(ctx api.Context) string {
+		user, ok := api.UserFrom(ctx)
+		if !ok {
+			panic("User parameter required.")
+		}
+		return GetKeyWithUsername(prefix, user.GetName())
+	}
 }
