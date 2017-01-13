@@ -68,7 +68,7 @@ func getBandwidth(pod *kapi.Pod) (string, string, error) {
 func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 	privileged := false
 	for _, container := range pod.Spec.Containers {
-		if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
 			privileged = true
 			break
 		}

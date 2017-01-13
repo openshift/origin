@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0845084b5ed08edb7c38d0bf0ca65404cea28014
+%global commit b4fa2c0bf2b7fd252f606a2f4f945f825d4f4867
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.2+0845084-133 OS_GIT_COMMIT=0845084 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.3+b4fa2c0-31 OS_GIT_COMMIT=b4fa2c0 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.3
+Version:        3.5.0.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,38 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Jan 13 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.4
+- Merge remote-tracking branch upstream/master, bump origin-web-console 865715f
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  865715f679a193b659083a2f239a4cabb1a10937 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bff896f04a4ece555229734e481d0c5de954b6a0 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 39496: Use privileged containers for host path e2e tests
+  (skuznets@redhat.com)
+- allow proxy values to be specified with non-http git uris
+  (bparees@redhat.com)
+- umount openshift local volumes in clean up script (li.guangxu@zte.com.cn)
+- bump(github.com/openshift/origin-web-console):
+  7e591430787f0a150b62e6fb0a533956235e72fe (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ba28a7432c175c0600330819e303ba4a07638a93 (dmcphers+openshiftbot@redhat.com)
+- cluster up: use serverIP on Mac when public host is not specified
+  (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  007f1d33fc639a1a99ade6e83ae81e1acf4ccb6a (dmcphers+openshiftbot@redhat.com)
+- Add a nil check to Container.SecurityContext (bbennett@redhat.com)
+- Add some optimization between command new-app and new-build
+  (li.guangxu@zte.com.cn)
+- Updating oc cluster up command to include a --image-streams flag
+  (cdaley@redhat.com)
+- ipfailover keepalived split brain (pcameron@redhat.com)
+- Check and notify scripts are not executable (pcameron@redhat.com)
+- UPSTREAM: 39493: kubelet: fix nil deref in volume type check
+  (sjenning@redhat.com)
+- Add a short explination of Subdomain wildcard policy (jtanenba@redhat.com)
+- added wildcardpolicy flag to 'oc expose' (jtanenba@redhat.com)
+
 * Wed Jan 11 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.3
 - Merge remote-tracking branch upstream/master, bump origin-web-console 65ebe13
   (tdawson@redhat.com)

@@ -10,7 +10,7 @@ import (
 // Bootstrapping a cluster are available.
 func TestBootstrapFiles(t *testing.T) {
 	templateMaps := []map[string]string{
-		imageStreamLocations,
+		imageStreams,
 		templateLocations,
 	}
 	for _, templateMap := range templateMaps {
