@@ -18,9 +18,14 @@ import (
 )
 
 type podHandler interface {
-	setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.ActivePod, error)
-	update(req *cniserver.PodRequest) error
+	setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error)
+	update(req *cniserver.PodRequest) (*runningPod, error)
 	teardown(req *cniserver.PodRequest) error
+}
+
+type runningPod struct {
+	activePod *kubehostport.ActivePod
+	vnid      uint32
 }
 
 type podManager struct {
@@ -30,7 +35,7 @@ type podManager struct {
 	// Request queue for pod operations incoming from the CNIServer
 	requests chan (*cniserver.PodRequest)
 	// Tracks pod :: IP address for hostport handling
-	runningPods map[string]*kubehostport.ActivePod
+	runningPods map[string]*runningPod
 
 	// Live pod setup/teardown stuff not used in testing code
 	kClient         *kclientset.Clientset
@@ -62,7 +67,7 @@ func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkI
 // Creates a new basic podManager; used by testcases
 func newDefaultPodManager(host knetwork.Host) *podManager {
 	return &podManager{
-		runningPods: make(map[string]*kubehostport.ActivePod),
+		runningPods: make(map[string]*runningPod),
 		requests:    make(chan *cniserver.PodRequest, 20),
 		host:        host,
 	}
@@ -126,14 +131,17 @@ func getPodKey(request *cniserver.PodRequest) string {
 }
 
 func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.ActivePod {
-	return m.runningPods[getPodKey(request)]
+	if pod := m.runningPods[getPodKey(request)]; pod != nil {
+		return pod.activePod
+	}
+	return nil
 }
 
 // Return a list of Kubernetes RunningPod objects for hostport operations
 func (m *podManager) getRunningPods() []*kubehostport.ActivePod {
 	pods := make([]*kubehostport.ActivePod, 0)
 	for _, runningPod := range m.runningPods {
-		pods = append(pods, runningPod)
+		pods = append(pods, runningPod.activePod)
 	}
 	return pods
 }
@@ -180,7 +188,11 @@ func (m *podManager) processCNIRequests() {
 				result.Err = err
 			}
 		case cniserver.CNI_UPDATE:
-			result.Err = m.podHandler.update(request)
+			runningPod, err := m.podHandler.update(request)
+			if err == nil {
+				m.runningPods[pk] = runningPod
+			}
+			result.Err = err
 		case cniserver.CNI_DEL:
 			delete(m.runningPods, pk)
 			result.Err = m.podHandler.teardown(request)

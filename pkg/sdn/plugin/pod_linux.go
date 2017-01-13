@@ -360,7 +360,7 @@ func (m *podManager) ipamGarbageCollection() {
 }
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.ActivePod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
 	podConfig, pod, err := m.getPodConfig(req)
 	if err != nil {
 		return nil, nil, err
@@ -449,7 +449,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 
 	m.policy.RefVNID(podConfig.vnid)
 	success = true
-	return ipamResult, newPod, nil
+	return ipamResult, &runningPod{newPod, podConfig.vnid}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -461,26 +461,26 @@ func (m *podManager) getContainerNetnsPath(id string) (string, error) {
 }
 
 // Update OVS flows when something (like the pod's namespace VNID) changes
-func (m *podManager) update(req *cniserver.PodRequest) error {
+func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
 	// Updates may come at startup and thus we may not have the pod's
 	// netns from kubelet (since kubelet doesn't have UPDATE actions).
 	// Read the missing netns from the pod's file.
 	if req.Netns == "" {
 		netns, err := m.getContainerNetnsPath(req.ContainerId)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		req.Netns = netns
 	}
 
-	podConfig, _, err := m.getPodConfig(req)
+	podConfig, pod, err := m.getPodConfig(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	vnidStr := vnidToString(podConfig.vnid)
@@ -488,12 +488,18 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
-		return fmt.Errorf("error running network update script: %s", getScriptError(out))
+		return nil, fmt.Errorf("error running network update script: %s", getScriptError(out))
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &runningPod{
+		activePod: &kubehostport.ActivePod{
+			Pod: pod,
+			IP:  net.ParseIP(podIP),
+		},
+		vnid: podConfig.vnid,
+	}, nil
 }
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)

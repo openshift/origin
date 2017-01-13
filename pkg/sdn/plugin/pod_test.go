@@ -99,7 +99,32 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 	}
 }
 
-func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostport.ActivePod, error) {
+func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
+	activePod := &khostport.ActivePod{
+		Pod: &kapi.Pod{
+			TypeMeta: kunversioned.TypeMeta{
+				Kind: "Pod",
+			},
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{
+					{
+						Name:  "foobareasadfa",
+						Image: "awesome-image",
+					},
+				},
+			},
+		},
+		IP: ip,
+	}
+
+	return &runningPod{activePod: activePod, vnid: 0}
+}
+
+func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
 	if err != nil {
 		return nil, nil, err
@@ -117,36 +142,17 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostp
 			},
 		},
 	}
-	runningPod := &khostport.ActivePod{
-		Pod: &kapi.Pod{
-			TypeMeta: kunversioned.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: kapi.ObjectMeta{
-				Name:      req.PodName,
-				Namespace: req.PodNamespace,
-			},
-			Spec: kapi.PodSpec{
-				Containers: []kapi.Container{
-					{
-						Name:  "foobareasadfa",
-						Image: "awesome-image",
-					},
-				},
-			},
-		},
-		IP: ip,
-	}
 
-	return result, runningPod, nil
+	return result, fakeRunningPod(req.PodNamespace, req.PodName, ip), nil
 }
 
-func (pt *podTester) update(req *cniserver.PodRequest) error {
+func (pt *podTester) update(req *cniserver.PodRequest) (*runningPod, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
-	if err == nil {
-		pod.updated += 1
+	if err != nil {
+		return nil, err
 	}
-	return err
+	pod.updated += 1
+	return fakeRunningPod(req.PodNamespace, req.PodName, net.ParseIP(pod.cidr)), nil
 }
 
 func (pt *podTester) teardown(req *cniserver.PodRequest) error {
