@@ -98,6 +98,20 @@ func (ovsif *Interface) DeleteBridge() error {
 	return err
 }
 
+// GetOFPort returns the OpenFlow port number of a given network interface
+// attached to a bridge.
+func (ovsif *Interface) GetOFPort(port string) (int, error) {
+	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
+	if err != nil {
+		return -1, err
+	}
+	ofport, err := strconv.Atoi(ofportStr)
+	if err != nil {
+		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
+	}
+	return ofport, nil
+}
+
 // AddPort adds an interface to the bridge, requesting the indicated port
 // number, and optionally setting properties on it (as with "ovs-vsctl set
 // Interface ..."). Returns the allocated port number (or an error).
@@ -116,14 +130,7 @@ func (ovsif *Interface) AddPort(port string, ofportRequest int, properties ...st
 	if err != nil {
 		return -1, err
 	}
-	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
-	if err != nil {
-		return -1, err
-	}
-	ofport, err := strconv.Atoi(ofportStr)
-	if err != nil {
-		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
-	}
+	ofport, err := ovsif.GetOFPort(port)
 	if ofportRequest > 0 && ofportRequest != ofport {
 		return -1, fmt.Errorf("Allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
 	}
