@@ -122,6 +122,7 @@ var map_DeploymentConfigStatus = map[string]string{
 	"unavailableReplicas": "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
 	"details":             "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
 	"conditions":          "Conditions represents the latest available observations of a deployment config's current state.",
+	"readyReplicas":       "Total number of ready pods targeted by this deployment.",
 }
 
 func (DeploymentConfigStatus) SwaggerDoc() map[string]string {

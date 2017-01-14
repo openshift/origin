@@ -326,6 +326,7 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 		Replicas:            deployutil.GetStatusReplicaCountForDeployments(deployments),
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
+		ReadyReplicas:       deployutil.GetReadyReplicaCountForReplicationControllers(deployments),
 		UnavailableReplicas: total - available,
 		Conditions:          config.Status.Conditions,
 	}
