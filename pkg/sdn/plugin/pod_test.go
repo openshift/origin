@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/util/ovs"
 
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -20,6 +21,7 @@ import (
 	kcontainertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -486,4 +488,213 @@ func TestDirectPodUpdate(t *testing.T) {
 	if _, err = podManager.handleCNIRequest(req); err != nil {
 		t.Fatalf("failed to update pod: %v", err)
 	}
+}
+
+func normalSetup() *kexec.FakeExec {
+	return &kexec.FakeExec{
+		LookPathFunc: func(prog string) (string, error) {
+			if prog == "ovs-ofctl" || prog == "ovs-vsctl" {
+				return "/sbin/" + prog, nil
+			} else {
+				return "", fmt.Errorf("%s not found", prog)
+			}
+		},
+	}
+}
+
+func addTestResult(t *testing.T, fexec *kexec.FakeExec, command string, output string, err error) {
+	fcmd := kexec.FakeCmd{
+		CombinedOutputScript: []kexec.FakeCombinedOutputAction{
+			func() ([]byte, error) { return []byte(output), err },
+		},
+	}
+	fexec.CommandScript = append(fexec.CommandScript,
+		func(cmd string, args ...string) kexec.Cmd {
+			execCommand := strings.Join(append([]string{cmd}, args...), " ")
+			if execCommand != command {
+				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
+			}
+			return kexec.InitFakeCmd(&fcmd, cmd, args...)
+		})
+}
+
+func ensureTestResults(t *testing.T, fexec *kexec.FakeExec) {
+	if fexec.CommandCalls != len(fexec.CommandScript) {
+		t.Fatalf("Only used %d of %d expected commands", fexec.CommandCalls, len(fexec.CommandScript))
+	}
+}
+
+func TestUpdateMulticastFlowsAddOne(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=5, actions=output:2", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	newPod := &runningPod{vnid: 5, ofport: 2}
+	if err := updateMulticastFlows(make(map[string]*runningPod), ovsif, "foobar", newPod); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
+}
+
+func TestUpdateMulticastFlowsAddMany(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=5, actions=output:2,output:7,output:8", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	pods := map[string]*runningPod{
+		"blah": {
+			vnid:   5,
+			ofport: 7,
+		},
+		"baz": {
+			vnid:   5,
+			ofport: 8,
+		},
+		// We don't expect a rule for this pod's VNID because it hasn't changed
+		"bork": {
+			vnid:   8,
+			ofport: 10,
+		},
+	}
+	newPod := &runningPod{vnid: 5, ofport: 2}
+	if err := updateMulticastFlows(pods, ovsif, "foobar", newPod); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
+}
+
+func TestUpdateMulticastFlowsUpdateOne(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=6, actions=output:2", "", nil)
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 del-flows br0 table=120, reg0=5", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	pods := map[string]*runningPod{
+		"foobar": {
+			vnid:   5,
+			ofport: 2,
+		},
+	}
+	newPod := &runningPod{vnid: 6, ofport: 2}
+	if err := updateMulticastFlows(pods, ovsif, "foobar", newPod); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
+}
+
+func TestUpdateMulticastFlowsUpdateMany(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=6, actions=output:3,output:7,output:9", "", nil)
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=5, actions=output:2,output:8", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	pods := map[string]*runningPod{
+		"blah": {
+			vnid:   5,
+			ofport: 2,
+		},
+		"foobar": {
+			vnid:   5,
+			ofport: 7,
+		},
+		"baz": {
+			vnid:   5,
+			ofport: 8,
+		},
+		"blah2": {
+			vnid:   6,
+			ofport: 3,
+		},
+		"baz2": {
+			vnid:   6,
+			ofport: 9,
+		},
+		// We don't expect a rule for this pod's VNID because it hasn't changed
+		"bork": {
+			vnid:   8,
+			ofport: 10,
+		},
+	}
+	newPod := &runningPod{vnid: 6, ofport: 7}
+	if err := updateMulticastFlows(pods, ovsif, "foobar", newPod); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
+}
+
+func TestUpdateMulticastFlowsDeleteOne(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 del-flows br0 table=120, reg0=5", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	pods := map[string]*runningPod{
+		"foobar": {
+			vnid:   5,
+			ofport: 2,
+		},
+	}
+	if err := updateMulticastFlows(pods, ovsif, "foobar", nil); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
+}
+
+func TestUpdateMulticastFlowsDeleteMany(t *testing.T) {
+	fexec := normalSetup()
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 table=120, priority=100, reg0=5, actions=output:2,output:8", "", nil)
+
+	ovsif, err := ovs.New(fexec, "br0", "")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	pods := map[string]*runningPod{
+		"blah": {
+			vnid:   5,
+			ofport: 2,
+		},
+		"foobar": {
+			vnid:   5,
+			ofport: 7,
+		},
+		"baz": {
+			vnid:   5,
+			ofport: 8,
+		},
+		// We don't expect a rule for this pod's VNID because it hasn't changed
+		"bork": {
+			vnid:   8,
+			ofport: 10,
+		},
+	}
+	if err := updateMulticastFlows(pods, ovsif, "foobar", nil); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+
+	ensureTestResults(t, fexec)
 }

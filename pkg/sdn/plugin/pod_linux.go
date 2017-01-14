@@ -447,9 +447,14 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
+	ofport, err := m.ovs.GetOFPort(hostVeth.Attrs().Name)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	m.policy.RefVNID(podConfig.vnid)
 	success = true
-	return ipamResult, &runningPod{newPod, podConfig.vnid}, nil
+	return ipamResult, &runningPod{activePod: newPod, vnid: podConfig.vnid, ofport: ofport}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -493,12 +498,18 @@ func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
 		return nil, err
 	}
 
+	ofport, err := m.ovs.GetOFPort(hostVethName)
+	if err != nil {
+		return nil, err
+	}
+
 	return &runningPod{
 		activePod: &kubehostport.ActivePod{
 			Pod: pod,
 			IP:  net.ParseIP(podIP),
 		},
-		vnid: podConfig.vnid,
+		vnid:   podConfig.vnid,
+		ofport: ofport,
 	}, nil
 }
 
