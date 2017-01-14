@@ -320,12 +320,6 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher -
 os::log::info "Docker cross-repo mount"
 os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/cache/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
 os::cmd::try_until_text "oc get -n custom is/ruby-22-centos7 -o 'jsonpath={.status.tags[*].tag}'" "latest" $((20*TIME_SEC))
-# FIXME: https://github.com/openshift/origin/issues/12326
-# The following line is disabled because we're comparing a random layer blob from the docker
-# hub image centos/ruby-22-centos7 against the blobs in the image stream, and the gzip
-# implementation is generating different sha256 sums between what was pushed to the hub (docker
-# built with go 1.6) and what is pushed as part of this test (if using docker built with go 1.7)
-# os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/custom/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
 os::cmd::try_until_text "oc policy can-i update imagestreams/layers -n crossmount '--token=${pusher_token}'" "yes"
 os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "404 Not Found"
 # 202 means that cross-repo mount has failed (in this case because of blob doesn't exist in the source repository), client needs to reupload the blob
