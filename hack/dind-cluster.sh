@@ -73,15 +73,8 @@ function start() {
 
   echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}'"
 
-  # Ensuring compatible host configuration
-  #
-  # Running in a container ensures that the docker host will be affected even
-  # if docker is running remotely.  The openshift/dind-node image was chosen
-  # due to its having sysctl installed.
-  ${DOCKER_CMD} run --privileged --net=host --rm -v /lib/modules:/lib/modules \
-                openshift/dind-node bash -e -c \
-                '/usr/sbin/modprobe openvswitch;
-                /usr/sbin/modprobe overlay 2> /dev/null || true;'
+  # The openshift/dind-node image was chosen due to its having sysctl installed.
+  ensure-host-configuration "openshift/dind-node"
 
   # Initialize the cluster config path
   mkdir -p "${config_root}"
@@ -163,6 +156,18 @@ function check-selinux() {
     >&2 echo "Error: This script is not compatible with SELinux enforcing mode."
     exit 1
   fi
+}
+
+function ensure-host-configuration() {
+  local image=$1
+
+  # Running in a container ensures that the docker host will be affected even
+  # if docker is running remotely.  The openshift/dind-node image was chosen
+  # due to its having sysctl installed.
+  ${DOCKER_CMD} run --privileged --net=host --rm -v /lib/modules:/lib/modules \
+                openshift/dind-node bash -e -c \
+                '/usr/sbin/modprobe openvswitch;
+                /usr/sbin/modprobe overlay 2> /dev/null || true;'
 }
 
 function get-network-plugin() {
@@ -267,10 +272,159 @@ function build-images() {
 function build-image() {
   local build_root=$1
   local image_name=$2
+  local dockerfile=${3:-}
 
+  if [[ -n "${dockerfile}" ]]; then
+    dockerfile="-f ${dockerfile}"
+  fi
   pushd "${build_root}" > /dev/null
-    ${DOCKER_CMD} build -t "${image_name}" .
+    ${DOCKER_CMD} build -t "${image_name}" ${dockerfile} .
   popd > /dev/null
+}
+
+function start-ansible-cluster() {
+  local cluster_id=$1
+  local private_key=$2
+  local force_config_write=$3
+
+  echo "Starting ansible dind cluster '${cluster_id}'"
+  ssh-keygen -N '' -q -f "${private_key}" > /dev/null
+
+  ensure-host-configuration "openshift/dind-host"
+
+  local run_cmd="${DOCKER_CMD} run -d --privileged"
+
+  # Create containers
+  local master_cid; master_cid="$(${run_cmd} --name="${MASTER_NAME}" --hostname="${MASTER_NAME}" "${HOST_IMAGE}")"
+  local master_ip; master_ip="$(get-docker-ip "${master_cid}")"
+  set-authorized-keys "${MASTER_NAME}" "${private_key}"
+  local node_ips=()
+  local cid
+  for name in "${NODE_NAMES[@]}"; do
+    cid="$(${run_cmd} --name="${name}" --hostname="${name}" "${HOST_IMAGE}")"
+    node_ips+=( "$(get-docker-ip "${cid}")" )
+    set-authorized-keys "${name}" "${private_key}"
+  done
+
+  # TODO support a variable number of nodes
+
+  local inventory_file="/etc/ansible/hosts"
+  if [[ -f "${inventory_file}" && -z "${force_config_write}" ]]; then
+    echo "WARNING: ${inventory_file} already exists.  Remove or use -f to overwrite.
+master ip: ${master_ip}
+node 1 ip: ${node_ips[0]}
+node 2 ip: ${node_ips[1]}" >&2
+    return
+  fi
+
+  echo "Writing inventory file to ${inventory_file}"
+  sudo mkdir -p /etc/ansible
+  sudo bash -c "cat  >> ${inventory_file}" << EOL
+# Create an OSEv3 group that contains the masters and nodes groups
+[OSEv3:children]
+masters
+nodes
+
+# Set variables common for all OSEv3 hosts
+[OSEv3:vars]
+# SSH user, this user should allow ssh based auth without requiring a password
+ansible_ssh_user=root
+
+# If ansible_ssh_user is not root, ansible_become must be set to true
+#ansible_become=true
+
+deployment_type=origin
+
+# uncomment the following to enable htpasswd authentication; defaults to DenyAllPasswordIdentityProvider
+#openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+
+# host group for masters
+[masters]
+${master_ip}
+
+# host group for nodes, includes region info
+[nodes]
+${master_ip} openshift_node_labels="{'region': 'infra', 'zone': 'default'}" openshift_schedulable=false
+${node_ips[0]} openshift_node_labels="{'region': 'primary', 'zone': 'east'}"
+${node_ips[1]} openshift_node_labels="{'region': 'primary', 'zone': 'west'}"
+EOL
+
+  if ! grep -q "${private_key}" ~/.ssh/config; then
+    local host_match; host_match="$(echo "${master_ip}" | sed -e 's|.[0-9]\{1,3\}$|.?|g')"
+    echo "To ensure ansible ssh connectivity, add the following to ~/.ssh/config:
+
+Host ${host_match}
+  IdentityFile ${private_key}
+  UserKnownHostsFile /dev/null
+  StrictHostKeyChecking no
+  PasswordAuthentication no
+  LogLevel FATAL
+  User root" >&2
+  fi
+}
+
+# TODO factor common parts out of this and stop()
+function stop-ansible-cluster() {
+  local cluster_id=$1
+  local private_key=$2
+
+  echo "Stopping ansible dind cluster '${cluster_id}'"
+
+  local master_cid
+  master_cid="$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")"
+  if [[ "${master_cid}" ]]; then
+    ${DOCKER_CMD} rm -f "${master_cid}" > /dev/null
+  fi
+
+  local node_cids
+  node_cids="$(${DOCKER_CMD} ps -qa --filter "name=${NODE_PREFIX}")"
+  if [[ "${node_cids}" ]]; then
+    node_cids=(${node_cids//\n/ })
+    for cid in "${node_cids[@]}"; do
+      ${DOCKER_CMD} rm -f "${cid}" > /dev/null
+    done
+  fi
+
+  rm -f "${private_key}"
+  rm -f "${private_key}.pub"
+
+  # Cleanup orphaned volumes
+  #
+  # See: https://github.com/jpetazzo/dind#important-warning-about-disk-usage
+  #
+  for volume in $( ${DOCKER_CMD} volume ls -qf dangling=true ); do
+    ${DOCKER_CMD} volume rm "${volume}" > /dev/null
+  done
+}
+
+# TODO cleanup use of globals
+function set-ansible-names() {
+  CLUSTER_ID="${CLUSTER_ID}-ansible"
+  PRIVATE_KEY="${HOME}/.ssh/dind-${CLUSTER_ID}.id_rsa"
+  MASTER_NAME="${CLUSTER_ID}-master"
+  NODE_PREFIX="${CLUSTER_ID}-node-"
+  NODE_COUNT=2
+  NODE_NAMES=()
+  for (( i=1; i<=NODE_COUNT; i++ )); do
+    NODE_NAMES+=( "${NODE_PREFIX}${i}" )
+  done
+}
+
+function build-ansible-images() {
+  local origin_root=$1
+
+  echo "Building container images for ansible"
+  build-image "${origin_root}/images/dind/" "openshift/dind:centos7" "Dockerfile.centos7"
+  build-image "${origin_root}/images/dind/host" "${HOST_IMAGE}"
+}
+
+function set-authorized-keys() {
+  local container_name=$1
+  local private_key=$2
+
+  ${DOCKER_CMD} exec -t "${container_name}" bash -c 'mkdir /root/.ssh && chmod 700 /root/.ssh'
+  ${DOCKER_CMD} cp "${private_key}.pub" "${container_name}:/root/.ssh/authorized_keys"
+  ${DOCKER_CMD} exec -t "${container_name}" chmod 600 /root/.ssh/authorized_keys
 }
 
 DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
@@ -292,8 +446,55 @@ done
 BASE_IMAGE="openshift/dind"
 NODE_IMAGE="openshift/dind-node"
 MASTER_IMAGE="openshift/dind-master"
+HOST_IMAGE="openshift/dind-host"
 
 case "${1:-""}" in
+  start-ansible)
+    FORCE_CONFIG_WRITE=
+    BUILD_IMAGES=
+    REMOVE_EXISTING_CLUSTER=
+    OPTIND=2
+    while getopts ":fir" opt; do
+      case $opt in
+        f)
+          FORCE_CONFIG_WRITE=1
+          ;;
+        i)
+          BUILD_IMAGES=1
+          ;;
+        r)
+          REMOVE_EXISTING_CLUSTER=1
+          ;;
+        \?)
+          echo "Invalid option: -${OPTARG}" >&2
+          exit 1
+          ;;
+        :)
+          echo "Option -${OPTARG} requires an argument." >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    set-ansible-names
+
+    if [[ -n "${REMOVE_EXISTING_CLUSTER}" ]]; then
+      stop-ansible-cluster "${CLUSTER_ID}" "${PRIVATE_KEY}"
+    fi
+
+    # Build images if requested or required
+    if [[ -n "${BUILD_IMAGES}" ||
+            -z "$(${DOCKER_CMD} images -q ${HOST_IMAGE})" ]]; then
+      build-ansible-images "${OS_ROOT}"
+    fi
+
+    start-ansible-cluster "${CLUSTER_ID}" "${PRIVATE_KEY}" "${FORCE_CONFIG_WRITE}"
+
+    ;;
+  stop-ansible)
+    set-ansible-names
+    stop-ansible-cluster "${CLUSTER_ID}" "${PRIVATE_KEY}"
+    ;;
   start)
     BUILD=
     BUILD_IMAGES=
@@ -359,7 +560,7 @@ case "${1:-""}" in
     build-images "${OS_ROOT}"
     ;;
   *)
-    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images}
+    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images|start-ansible|stop-ansible}
 
 start accepts the following arguments:
 
