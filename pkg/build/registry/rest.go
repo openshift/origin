@@ -43,14 +43,14 @@ func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Buil
 			observed = obj
 
 			if event.Type == watch.Deleted {
-				return obj, false, ErrBuildDeleted
+				return observed, false, ErrBuildDeleted
 			}
 			switch obj.Status.Phase {
 			case api.BuildPhaseRunning, api.BuildPhaseComplete, api.BuildPhaseFailed, api.BuildPhaseError, api.BuildPhaseCancelled:
-				return obj, true, nil
+				return observed, true, nil
 			case api.BuildPhaseNew, api.BuildPhasePending:
 			default:
-				return obj, false, ErrUnknownBuildPhase
+				return observed, false, ErrUnknownBuildPhase
 			}
 		case <-expire:
 			return observed, false, nil
