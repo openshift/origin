@@ -26,24 +26,10 @@ var _ = g.Describe("[security] supplemental groups", func() {
 		g.It("should propagate requested groups to the docker host config [local]", func() {
 			// Before running any of this test we need to first check that
 			// the docker version being used supports the supplemental groups feature
-			g.By("ensuring the feature is supported")
+			g.By("getting the docker client")
 			dockerCli, err := testutil.NewDockerClient()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			env, err := dockerCli.Version()
-			o.Expect(err).NotTo(o.HaveOccurred(), "error getting docker environment")
-			version := env.Get("Version")
-			supports, err, requiredVersion := supportsSupplementalGroups(version)
-
-			if !supports || err != nil {
-				msg := fmt.Sprintf("skipping supplemental groups test, docker version %s does not meet required version %s", version, requiredVersion)
-				if err != nil {
-					msg = fmt.Sprintf("%s - encountered error: %v", msg, err)
-				}
-				g.Skip(msg)
-			}
-
-			// on to the real test
 			fsGroup := int64(1111)
 			supGroup := int64(2222)
 
@@ -92,53 +78,6 @@ var _ = g.Describe("[security] supplemental groups", func() {
 
 	})
 })
-
-// supportsSupplementalGroups does a check on the docker version to ensure it is at least
-// 1.8.2.  This could still fail if the version does not have the /etc/groups patch
-// but it will fail when launching the pod so this is as safe as we can get.
-func supportsSupplementalGroups(dockerVersion string) (bool, error, string) {
-	parts := strings.Split(dockerVersion, ".")
-
-	var (
-		requiredMajor   = 1
-		requiredMinor   = 8
-		requiredPatch   = 2
-		requiredVersion = fmt.Sprintf("%d.%d.%d", requiredMajor, requiredMinor, requiredPatch)
-
-		major       = 0
-		minor       = 0
-		patch       = 0
-		err   error = nil
-	)
-	if len(parts) > 0 {
-		major, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return false, err, requiredVersion
-		}
-	}
-
-	if len(parts) > 1 {
-		minor, err = strconv.Atoi(parts[1])
-		if err != nil {
-			return false, err, requiredVersion
-		}
-	}
-
-	if len(parts) > 2 {
-		patch, err = strconv.Atoi(parts[2])
-		if err != nil {
-			return false, err, requiredVersion
-		}
-	}
-
-	// requires at least 1.8.2
-	if major > requiredMajor || (major == requiredMajor && minor > requiredMinor) ||
-		(major == requiredMajor && minor == requiredMinor && patch >= requiredPatch) {
-		return true, nil, requiredVersion
-	}
-
-	return false, nil, requiredVersion
-}
 
 // configHasGroup is a helper to ensure that a group is in the host config's addGroups field.
 func configHasGroup(group int64, config *docker.HostConfig) bool {
