@@ -2,10 +2,13 @@ package image
 
 import (
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -197,11 +200,19 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
-
 		fakeClient := &testclient.Fake{}
 		fakeClient.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.iss...))
-
-		evaluator := NewImageStreamTagEvaluator(fakeClient, fakeClient)
+		isInformer := cache.NewSharedIndexInformer(
+			&cache.ListWatch{},
+			&imageapi.ImageStream{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		store := oscache.StoreToImageStreamLister{Indexer: isInformer.GetIndexer()}
+		for _, is := range tc.iss {
+			store.Indexer.Add(&is)
+		}
+		evaluator := NewImageStreamTagEvaluator(&store, fakeClient)
 
 		usage := evaluator.Usage(&tc.ist)
 
