@@ -475,9 +475,9 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 		return
 	}
 
-	secretContainer := restful.Container{
-		ServeMux: apiContainer.SecretRoutes.(*http.ServeMux), // we know it's a *http.ServeMux. In kube 1.6, the type will actually be correct.
-	}
+	// Create temporary container because we only have a mux for secret routes
+	secretContainer := restful.NewContainer()
+	secretContainer.ServeMux = apiContainer.SecretRoutes.(*http.ServeMux) // we know it's a *http.ServeMux. In kube 1.6, the type will actually be correct.
 
 	// Set up a service to return the OAuth metadata.
 	ws := new(restful.WebService)
