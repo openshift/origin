@@ -24,9 +24,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	//"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/kubelet/cm"
+	//"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
@@ -148,10 +148,11 @@ func startMemoryThresholdNotifier(thresholds []Threshold, observations signalObs
 		if threshold.Signal != SignalMemoryAvailable || hard != isHardEvictionThreshold(threshold) {
 			continue
 		}
-		observed, found := observations[SignalMemoryAvailable]
+		_, found := observations[SignalMemoryAvailable]
 		if !found {
 			continue
 		}
+		/* // Temporarily disable until kernel soft lockup is fixed https://github.com/openshift/origin/issues/12458
 		cgroups, err := cm.GetCgroupSubsystems()
 		if err != nil {
 			return err
@@ -171,6 +172,7 @@ func startMemoryThresholdNotifier(thresholds []Threshold, observations signalObs
 			return err
 		}
 		go memcgThresholdNotifier.Start(wait.NeverStop)
+		*/
 		return nil
 	}
 	return nil
