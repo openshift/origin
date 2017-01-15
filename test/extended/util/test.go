@@ -182,7 +182,10 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
-	if isPackage("/kubernetes/test/e2e/scheduler_predicates.go") || isPackage("/kubernetes/test/e2e/rescheduler.go") || isPackage("/kubernetes/test/e2e/kubelet.go") {
+	// some test suites assume they can schedule to all nodes
+	switch {
+	case isPackage("/kubernetes/test/e2e/scheduler_predicates.go"), isPackage("/kubernetes/test/e2e/rescheduler.go"),
+		isPackage("/kubernetes/test/e2e/kubelet.go"), isPackage("/kubernetes/test/e2e/common/networking.go"):
 		allowAllNodeScheduling(c, ns.Name)
 	}
 
