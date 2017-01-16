@@ -351,6 +351,22 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				}
 			}
 
+		case "signature":
+			namespace, name, err := getNamespaceName(access.Resource.Name)
+			if err != nil {
+				return nil, ac.wrapErr(ctx, err)
+			}
+			switch access.Action {
+			case "get":
+				if err := verifyImageStreamAccess(ctx, namespace, name, access.Action, osClient); err != nil {
+					return nil, ac.wrapErr(ctx, err)
+				}
+			case "put":
+				if err := verifyImageSignatureAccess(ctx, namespace, name, osClient); err != nil {
+					return nil, ac.wrapErr(ctx, err)
+				}
+			}
+
 		case "admin":
 			switch access.Action {
 			case "prune":
@@ -471,6 +487,30 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 		},
 	}
 	response, err := client.SubjectAccessReviews().Create(&sar)
+	if err != nil {
+		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
+		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+			return ErrOpenShiftAccessDenied
+		}
+		return err
+	}
+	if !response.Allowed {
+		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
+		return ErrOpenShiftAccessDenied
+	}
+	return nil
+}
+
+func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, client client.LocalSubjectAccessReviewsNamespacer) error {
+	sar := authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.Action{
+			Verb:         "create",
+			Group:        imageapi.GroupName,
+			Resource:     "imagesignatures",
+			ResourceName: imageRepo,
+		},
+	}
+	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
