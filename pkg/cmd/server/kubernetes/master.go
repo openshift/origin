@@ -118,6 +118,8 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *kclient
 			c.CloudProvider,
 			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
 			nil,
+			s.DisableAttachDetachReconcilerSync,
+			s.ReconcilerSyncLoopPeriod.Duration,
 		)
 	if err != nil {
 		glog.Fatalf("Failed to start attach/detach controller: %v", err)

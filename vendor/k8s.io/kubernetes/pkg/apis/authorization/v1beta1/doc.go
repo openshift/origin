@@ -20,4 +20,4 @@ limitations under the License.
 // +k8s:defaulter-gen=TypeMeta
 
 // +groupName=authorization.k8s.io
-package v1beta1 // import "k8s.io/kubernetes/pkg/apis/authorization/v1beta1"
+package v1beta1

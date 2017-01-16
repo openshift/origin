@@ -95,6 +95,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 
 	// Adjust defaults
 	server.EventTTL = 2 * time.Hour
+	server.GenericServerRunOptions.AnonymousAuth = true
 	server.GenericServerRunOptions.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.GenericServerRunOptions.ServiceNodePortRange = *portRange
 	server.GenericServerRunOptions.EnableProfiling = false

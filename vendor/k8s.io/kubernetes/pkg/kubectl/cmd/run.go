@@ -341,7 +341,7 @@ func Run(f cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr io
 				ResourceNames(mapping.Resource, name).
 				Flatten().
 				Do()
-			err = ReapResult(r, f, cmdOut, true, true, 0, -1, false, mapper, quiet)
+			err = ReapResult(r, f, cmdOut, true, true, 0, -1, false, false, mapper, quiet)
 			if err != nil {
 				return err
 			}
