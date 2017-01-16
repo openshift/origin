@@ -30,7 +30,7 @@ type bucket map[interface{}]interface{}
 // a bucket.
 // TODO: remove DEBUG statements from this file once this logic has been adequately validated.
 func NewScheduler(bucketCount int, bucketLimiter flowcontrol.RateLimiter, fn func(key, value interface{})) *Scheduler {
-	// add one more bucket to serve as the "current" bucket
+	// Add one more bucket to serve as the "current" bucket
 	bucketCount++
 	buckets := make([]bucket, bucketCount)
 	for i := range buckets {
@@ -101,7 +101,7 @@ func (s *Scheduler) Add(key, value interface{}) {
 		delete(bucket, key)
 	}
 
-	// pick the bucket with the least entries that is furthest from the current position
+	// Pick the bucket with the least entries that is furthest from the current position
 	n := len(s.buckets)
 	base := s.position + n
 	target, least := 0, 0
