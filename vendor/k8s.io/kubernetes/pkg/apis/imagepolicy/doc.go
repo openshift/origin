@@ -18,4 +18,4 @@ limitations under the License.
 // +groupName=imagepolicy.k8s.io
 // +k8s:openapi-gen=true
 
-package imagepolicy // import "k8s.io/kubernetes/pkg/apis/imagepolicy"
+package imagepolicy

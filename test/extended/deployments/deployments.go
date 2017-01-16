@@ -155,7 +155,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
 			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, name)
 				if err != nil {
 					return false, nil

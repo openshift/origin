@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b4fa2c0bf2b7fd252f606a2f4f945f825d4f4867
+%global commit 672868ff93f6cc3f9564e0858e199d5b0093ddd2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.3+b4fa2c0-31 OS_GIT_COMMIT=b4fa2c0 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.4+672868f-49 OS_GIT_COMMIT=672868f OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.4
+Version:        3.5.0.5
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -559,6 +559,56 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Jan 16 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.5
+- bump(github.com/openshift/origin-web-console):
+  fa6f2af00717135ec5c8352daf73a3db2a4f4255 (dmcphers+openshiftbot@redhat.com)
+- Increase timeout of deployment test (ccoleman@redhat.com)
+- Networking tests must be able to schedule on all nodes (ccoleman@redhat.com)
+- Generated changes (maszulik@redhat.com)
+- Necessary k8s 1.5.2 updates (maszulik@redhat.com)
+- UPSTREAM: 39886: Only set empty list for list types (maszulik@redhat.com)
+- UPSTREAM: 39834: Ensure empty lists don't return nil items fields
+  (maszulik@redhat.com)
+- UPSTREAM: 39496: Use privileged containers for host path e2e tests
+  (skuznets@redhat.com)
+- UPSTREAM: 39059: Don't evict static pods - revert (maszulik@redhat.com)
+- UPSTREAM: 38836: Admit critical pods in the kubelet - revert
+  (maszulik@redhat.com)
+- UPSTREAM: 39114: assign -998 as the oom_score_adj for critical pods (e.g.
+  kube-proxy) - revert (maszulik@redhat.com)
+- bump(k8s.io/kubernetes): 43a9be421799afb8a9c02d3541212a6e623c9053
+  (maszulik@redhat.com)
+- UPSTREAM: revert: eb8415dffd1db720429f8ea363defb981d0d9ebe: 39496: Use
+  privileged containers for host path e2e tests (maszulik@redhat.com)
+- UPSTREAM: revert: c610047330c232d7550ec17d2cfd687a295a5d54: <drop>: Disable
+  memcfg notifications until softlockup fixed (maszulik@redhat.com)
+- Registry manifest extended test is local only (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Disable memcfg notifications until softlockup fixed
+  (ccoleman@redhat.com)
+- Move kubelet e2e test to serial suite because it saturates nodes
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d8331ea4e4910a556771ae1e5416e389ab8a3fa5 (dmcphers+openshiftbot@redhat.com)
+- Add golang source detector for new-app (cdaley@redhat.com)
+- bump(github.com/docker/go-units): e30f1e79f3cd72542f2026ceec18d3bd67ab859c
+  (ffranz@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  865b35e623a66e43acae810a03de9b5b1a94f694 (dmcphers+openshiftbot@redhat.com)
+- Switch image quota to user shared informers (maszulik@redhat.com)
+- Allow to use selector when listing clusterroles and rolebindings
+  (mfojtik@redhat.com)
+- return value all use observed (xu.zhanwei@zte.com.cn)
+- Fix /.well-known/oauth-authorization-server panic and add test
+  (stefan.schimanski@gmail.com)
+- remove old version check for sup group test (pweil@redhat.com)
+- update generated content (mfojtik@redhat.com)
+- Remove pullthrough request from cross-repo mount test (agladkov@redhat.com)
+- dind: Ensure help text documents the order of command and options
+  (marun@redhat.com)
+- dind: Switch OPENSHIFT_SKIP_BUILD to treat non-empty as true
+  (marun@redhat.com)
+- deploy: add ready replicas to DeploymentConfig (mfojtik@redhat.com)
+
 * Fri Jan 13 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.4
 - Merge remote-tracking branch upstream/master, bump origin-web-console 865715f
   (tdawson@redhat.com)

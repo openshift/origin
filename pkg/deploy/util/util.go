@@ -375,6 +375,18 @@ func GetAvailablePods(pods []*api.Pod, minReadySeconds int32) int32 {
 	return available
 }
 
+// GetReadyReplicaCountForReplicationControllers returns the number of ready pods corresponding to
+// the given replication controller.
+func GetReadyReplicaCountForReplicationControllers(replicationControllers []*api.ReplicationController) int32 {
+	totalReadyReplicas := int32(0)
+	for _, rc := range replicationControllers {
+		if rc != nil {
+			totalReadyReplicas += rc.Status.ReadyReplicas
+		}
+	}
+	return totalReadyReplicas
+}
+
 func DeploymentConfigNameFor(obj runtime.Object) string {
 	return annotationFor(obj, deployapi.DeploymentConfigAnnotation)
 }

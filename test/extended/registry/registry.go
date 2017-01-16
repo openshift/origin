@@ -35,7 +35,7 @@ var _ = g.Describe("[registry][migration] manifest migration from etcd to regist
 		deleteTestImages(oc)
 	}
 
-	g.It("registry can get access to manifest", func() {
+	g.It("registry can get access to manifest [local]", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer tearDown(oc)
 

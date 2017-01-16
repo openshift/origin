@@ -127,7 +127,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
-				cmd.NewCmdDelete(fullName, f, out),
+				cmd.NewCmdDelete(fullName, f, out, errout),
 				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdAutoscale(fullName, f, out),
 				secretcmds,

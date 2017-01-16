@@ -267,6 +267,20 @@ os::cmd::expect_success "oadm policy reconcile-cluster-role-bindings --confirm"
 echo "admin-role-reapers: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/admin/role-selectors"
+os::cmd::expect_success "oc create -f test/extended/testdata/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrole/basic-user2"
+os::cmd::expect_success "oc label clusterrole/basic-user2 foo=bar"
+os::cmd::expect_success_and_not_text "oc get clusterroles --selector=foo=bar" "No resources found"
+os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc label clusterrolebinding/basic-users2 foo=bar"
+os::cmd::expect_success_and_not_text "oc get clusterrolebindings --selector=foo=bar" "No resources found"
+os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
+os::test::junit::declare_suite_end
+echo "admin-role-selectors: ok"
+
 os::test::junit::declare_suite_start "cmd/admin/ui-project-commands"
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html

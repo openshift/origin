@@ -15,4 +15,4 @@ limitations under the License.
 */
 
 // +groupName=kubeadm.k8s.io
-package kubeadm // import "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+package kubeadm
