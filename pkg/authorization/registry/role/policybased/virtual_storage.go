@@ -47,7 +47,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 }
 
 func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	policyList, err := m.PolicyStorage.ListPolicies(ctx, options)
+	policyList, err := m.PolicyStorage.ListPolicies(ctx, &kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

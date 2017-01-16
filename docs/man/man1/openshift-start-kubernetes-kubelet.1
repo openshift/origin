@@ -218,6 +218,10 @@ starting from a configuration file.
     Makes the Kubelet fail to start if swap is enabled on the node. This is a temporary opton to maintain legacy behavior, failing due to swap enabled will happen by default in v1.6.
 
 .PP
+\fB\-\-experimental\-kernel\-memcg\-notification\fP=false
+    If enabled, the kubelet will integrate with the kernel memcg notification to determine if memory eviction thresholds are crossed rather than polling.
+
+.PP
 \fB\-\-experimental\-mounter\-path\fP=""
     [Experimental] Path of mounter binary. Leave empty to use the default mount.
 
@@ -540,6 +544,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

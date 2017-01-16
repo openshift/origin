@@ -266,6 +266,7 @@ func DeepCopy_v1_DeploymentConfigStatus(in interface{}, out interface{}, c *conv
 		} else {
 			out.Conditions = nil
 		}
+		out.ReadyReplicas = in.ReadyReplicas
 		return nil
 	}
 }

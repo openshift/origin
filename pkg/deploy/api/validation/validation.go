@@ -139,6 +139,7 @@ func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) fie
 	if status.ObservedGeneration < int64(0) {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), status.ObservedGeneration, "observedGeneration cannot be negative"))
 	}
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.ReadyReplicas), statusPath.Child("readyReplicas"))...)
 	return allErrs
 }
 

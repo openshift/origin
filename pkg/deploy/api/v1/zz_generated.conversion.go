@@ -420,6 +420,7 @@ func autoConvert_v1_DeploymentConfigStatus_To_api_DeploymentConfigStatus(in *Dep
 		out.Details = nil
 	}
 	out.Conditions = *(*[]api.DeploymentCondition)(unsafe.Pointer(&in.Conditions))
+	out.ReadyReplicas = in.ReadyReplicas
 	return nil
 }
 
@@ -444,6 +445,7 @@ func autoConvert_api_DeploymentConfigStatus_To_v1_DeploymentConfigStatus(in *api
 		out.Details = nil
 	}
 	out.Conditions = *(*[]DeploymentCondition)(unsafe.Pointer(&in.Conditions))
+	out.ReadyReplicas = in.ReadyReplicas
 	return nil
 }
 

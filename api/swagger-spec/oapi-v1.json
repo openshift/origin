@@ -26223,6 +26223,11 @@
        "$ref": "v1.DeploymentCondition"
       },
       "description": "Conditions represents the latest available observations of a deployment config's current state."
+     },
+     "readyReplicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of ready pods targeted by this deployment."
      }
     }
    },

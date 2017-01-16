@@ -41,7 +41,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     If true, allow privileged containers.
 
 .PP
-\fB\-\-anonymous\-auth\fP=true
+\fB\-\-anonymous\-auth\fP=false
     Enables anonymous requests to the secure port of the API server. Requests that are not rejected by another authentication method are treated as anonymous requests. Anonymous requests have a username of system:anonymous, and a group name of system:unauthenticated.
 
 .PP
@@ -402,6 +402,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.
