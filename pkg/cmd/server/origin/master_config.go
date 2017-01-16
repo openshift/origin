@@ -79,6 +79,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	ingressadmit "github.com/openshift/origin/pkg/ingress/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -361,6 +362,7 @@ var (
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
+		ingressadmit.IngressAdmission,
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -398,6 +400,7 @@ var (
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
+		ingressadmit.IngressAdmission,
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
