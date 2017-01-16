@@ -24,6 +24,8 @@ func RegisterMimeTypes() {
 	registerIfNeeded(".eot", "application/vnd.ms-fontobject")
 	// http://www.w3.org/TR/WOFF/#appendix-b
 	registerIfNeeded(".woff", "application/font-woff")
+	// https://www.w3.org/TR/WOFF2/#IMT
+	registerIfNeeded(".woff2", "application/font-woff2")
 	// http://www.iana.org/assignments/media-types/application/font-sfnt
 	registerIfNeeded(".ttf", "application/font-sfnt")
 	registerIfNeeded(".otf", "application/font-sfnt")
