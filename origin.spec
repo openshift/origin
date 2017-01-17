@@ -206,8 +206,25 @@ of docker.  Exclude those versions of docker.
 %setup -q
 
 %build
-# Create Binaries
+%if 0%{make_redistributable}
+# Create Binaries for all supported arches
 %{os_git_vars} hack/build-cross.sh
+%else
+# Create Binaries only for building arch
+%ifarch x86_64
+  BUILD_PLATFORM="linux/amd64"
+%endif
+%ifarch %{ix86}
+  BUILD_PLATFORM="linux/386"
+%endif
+%ifarch ppc64le
+  BUILD_PLATFORM="linux/ppc64le"
+%endif
+%ifarch %{arm} aarch64
+  BUILD_PLATFORM="linux/arm64"
+%endif
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
+%endif
 
 %if 0%{build_tests}
 # Create extended.test
