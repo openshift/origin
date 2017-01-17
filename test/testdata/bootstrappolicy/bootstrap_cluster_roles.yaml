@@ -1572,6 +1572,8 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swaggerapi
+    - /swaggerapi/*
     - /version
     - /version/*
     resources: []
@@ -2191,6 +2193,8 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swaggerapi
+    - /swaggerapi/*
     - /version
     - /version/*
     resources: []
