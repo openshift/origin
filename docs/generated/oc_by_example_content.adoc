@@ -928,6 +928,25 @@ Stop OpenShift on Docker
 ====
 
 
+== oc cluster join
+Join an existing OpenShift cluster
+
+====
+
+[options="nowrap"]
+----
+  # Start a new OpenShift node on a new docker machine named 'node'
+  oc cluster join --create-machine
+  
+  # Start OpenShift node and preserve data and config between restarts
+  oc cluster join --host-data-dir=/mydata --use-existing-config
+  
+  # Use a different set of images
+  oc cluster join --image="registry.example.com/origin" --version="v1.1"
+----
+====
+
+
 == oc cluster status
 Show OpenShift on Docker status
 
