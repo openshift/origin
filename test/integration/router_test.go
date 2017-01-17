@@ -20,8 +20,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -36,6 +38,8 @@ import (
 
 const (
 	defaultRouterImage = "openshift/origin-haproxy-router"
+
+	defaultNamespace = "router-namespace"
 
 	tcWaitSeconds = 1
 
@@ -1275,13 +1279,20 @@ pgfj+yGLmkUw8JwgGH6xCUbHO+WBUFSlPf+Y50fJeO+OrjqPXAVKeSV3ZCwWjKT4
 u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 -----END RSA PRIVATE KEY-----`
 
+// Constants used to default createAndStartRouterContainerExtended
+const (
+	defaultBindPortsAfterSync = false
+	defaultEnableIngress      = false
+	defaultNamespaceLabels    = ""
+)
+
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
 func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int) (containerId string, err error) {
-	return createAndStartRouterContainerExtended(dockerCli, masterIp, routerStatsPort, reloadInterval, false, false)
+	return createAndStartRouterContainerExtended(dockerCli, masterIp, routerStatsPort, reloadInterval, defaultBindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
 }
 
-func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync, enableIngress bool) (containerId string, err error) {
+func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync, enableIngress bool, namespaceLabels string) (containerId string, err error) {
 	ports := []string{"80", "443"}
 	if routerStatsPort > 0 {
 		ports = append(ports, fmt.Sprintf("%d", routerStatsPort))
@@ -1319,6 +1330,7 @@ func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, maste
 		fmt.Sprintf("DEFAULT_CERTIFICATE=%s\n%s", defaultCert, defaultKey),
 		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
 		fmt.Sprintf("ROUTER_ENABLE_INGRESS=%s", strconv.FormatBool(enableIngress)),
+		fmt.Sprintf("NAMESPACE_LABELS=%s", namespaceLabels),
 	}
 
 	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)
@@ -1635,7 +1647,7 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 
 	bindPortsAfterSync := true
 	reloadInterval := 1
-	routerId, err := createAndStartRouterContainerExtended(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, false)
+	routerId, err := createAndStartRouterContainerExtended(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -1696,10 +1708,12 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 
 type routerIntegrationTest func(*testing.T, *tr.TestHttpService)
 
-func runRouterTest(t *testing.T, rit routerIntegrationTest) {
+func runRouterTest(t *testing.T, rit routerIntegrationTest, enableIngress bool, namespaceNames *[]string) {
+	namespaceLabels, namespaceListResponse := getNamespaceConfig(t, namespaceNames)
+
 	//create a server which will act as a user deployed application that
 	//serves http and https as well as act as a master to simulate watches
-	fakeMasterAndPod := tr.NewTestHttpService()
+	fakeMasterAndPod := tr.NewTestHttpServiceExtended(namespaceListResponse)
 	defer fakeMasterAndPod.Stop()
 
 	err := fakeMasterAndPod.Start()
@@ -1717,10 +1731,8 @@ func runRouterTest(t *testing.T, rit routerIntegrationTest) {
 	}
 
 	reloadInterval := 1
-	bindPortsAfterSync := false
-	enableIngress := true
 	routerId, err := createAndStartRouterContainerExtended(
-		dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, enableIngress)
+		dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, defaultBindPortsAfterSync, enableIngress, namespaceLabels)
 
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
@@ -1729,6 +1741,43 @@ func runRouterTest(t *testing.T, rit routerIntegrationTest) {
 	defer cleanUp(t, dockerCli, routerId)
 
 	rit(t, fakeMasterAndPod)
+}
+
+func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels, namespaceListResponse string) {
+	if namespaceNames == nil {
+		return
+	}
+
+	key := "env"
+	value := "testing"
+
+	// If namespace names are provided (event an empty set), ensure
+	// namespace filtering is exercised by adding namespaces for the
+	// provided names with labels that the router will filter on.
+	namespaceLabels = fmt.Sprintf("%s=%s", key, value)
+
+	namespaceList := &kapi.NamespaceList{
+		ListMeta: unversioned.ListMeta{
+			ResourceVersion: fmt.Sprintf("%d", len(*namespaceNames)),
+		},
+		Items: []kapi.Namespace{},
+	}
+	for _, name := range *namespaceNames {
+		namespaceList.Items = append(namespaceList.Items, kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   name,
+				Labels: map[string]string{key: value},
+			},
+		})
+	}
+
+	obj, err := runtime.Encode(kapi.Codecs.LegacyCodec(kv1.SchemeGroupVersion), namespaceList)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	namespaceListResponse = string(obj)
+
+	return
 }
 
 // eventString marshals ingress events into a string.  A separate
@@ -1748,7 +1797,6 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 
 	routeAddress := getRouteAddress()
 
-	namespace := "my-namespace"
 	serviceName := "my-service"
 	host := "my.host"
 	path := fmt.Sprintf("/%s", fakeMasterAndPod.PodTestPath)
@@ -1758,7 +1806,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 		Object: &kapi.Endpoints{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      serviceName,
-				Namespace: namespace,
+				Namespace: defaultNamespace,
 			},
 			Subsets: []kapi.EndpointSubset{httpEndpoint},
 		},
@@ -1776,7 +1824,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 		Object: &kapi.Secret{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      secretName,
-				Namespace: namespace,
+				Namespace: defaultNamespace,
 			},
 			Data: map[string][]byte{
 				"tls.crt": []byte(defaultCert),
@@ -1791,7 +1839,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 		Object: &extensions.Ingress{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      "foo",
-				Namespace: namespace,
+				Namespace: defaultNamespace,
 			},
 			Spec: extensions.IngressSpec{
 				TLS: []extensions.IngressTLS{
@@ -1838,9 +1886,15 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 	if err := waitForRoute(url, host, "https", nil, tr.HelloPodPath); err != nil {
 		t.Fatalf("Error accessing secured ingress configured route: %v", err)
 	}
+
+	// TODO check that an ingress in a namespace not targeted by the router does not
+	// result in exposed routes.
 }
 
 // TestRouterIngress validates that an ingress resource can configure a router to expose a tls route.
 func TestIngressConfiguredRouter(t *testing.T) {
-	runRouterTest(t, ingressConfiguredRouter)
+	enableIngress := true
+	// Enable namespace filtering to allow validation of compatibility with ingress.
+	namespaceNames := []string{defaultNamespace}
+	runRouterTest(t, ingressConfiguredRouter, enableIngress, &namespaceNames)
 }

@@ -30,10 +30,14 @@ func GetDefaultLocalAddress() string {
 	return addr
 }
 
+func NewTestHttpService() *TestHttpService {
+	return NewTestHttpServiceExtended("")
+}
+
 // NewTestHttpServer creates a new TestHttpService using default locations for listening address
 // as well as default certificates.  New channels will be initialized which can be used by test clients
 // to feed events through the server to anything listening.
-func NewTestHttpService() *TestHttpService {
+func NewTestHttpServiceExtended(namespaceListResponse string) *TestHttpService {
 	endpointChannel := make(chan string)
 	routeChannel := make(chan string)
 	ingressChannel := make(chan string)
@@ -48,21 +52,27 @@ func NewTestHttpService() *TestHttpService {
 	alternatePodHttpAddr := fmt.Sprintf("%s:8889", addr)
 	podHttpsAddr := fmt.Sprintf("%s:8443", addr)
 
+	// Ensure an empty namespace response is valid json
+	if namespaceListResponse == "" {
+		namespaceListResponse = "{}"
+	}
+
 	return &TestHttpService{
-		MasterHttpAddr:       masterHttpAddr,
-		PodHttpAddr:          podHttpAddr,
-		AlternatePodHttpAddr: alternatePodHttpAddr,
-		PodHttpsAddr:         podHttpsAddr,
-		PodTestPath:          "test",
-		PodHttpsCert:         []byte(Example2Cert),
-		PodHttpsKey:          []byte(Example2Key),
-		PodHttpsCaCert:       []byte(ExampleCACert),
-		EndpointChannel:      endpointChannel,
-		RouteChannel:         routeChannel,
-		IngressChannel:       ingressChannel,
-		SecretChannel:        secretChannel,
-		NodeChannel:          nodeChannel,
-		SvcChannel:           svcChannel,
+		MasterHttpAddr:        masterHttpAddr,
+		PodHttpAddr:           podHttpAddr,
+		AlternatePodHttpAddr:  alternatePodHttpAddr,
+		PodHttpsAddr:          podHttpsAddr,
+		PodTestPath:           "test",
+		PodHttpsCert:          []byte(Example2Cert),
+		PodHttpsKey:           []byte(Example2Key),
+		PodHttpsCaCert:        []byte(ExampleCACert),
+		EndpointChannel:       endpointChannel,
+		RouteChannel:          routeChannel,
+		IngressChannel:        ingressChannel,
+		SecretChannel:         secretChannel,
+		NodeChannel:           nodeChannel,
+		SvcChannel:            svcChannel,
+		NamespaceListResponse: namespaceListResponse,
 	}
 }
 
@@ -89,6 +99,8 @@ type TestHttpService struct {
 	SecretChannel        chan string
 	NodeChannel          chan string
 	SvcChannel           chan string
+
+	NamespaceListResponse string
 
 	listeners []net.Listener
 }
@@ -141,6 +153,14 @@ func (s *TestHttpService) handleHelloPodSecure(w http.ResponseWriter, r *http.Re
 // handleHelloPodTestSecure handles calls to PodHttpsAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, HelloPodPathSecure)
+}
+
+// handleNamespaceList handles calls to /api/v1/namespaces/* and returns a canned response
+func (s *TestHttpService) handleNamespaceList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	glog.Errorf("Returning response: %s", s.NamespaceListResponse)
+
+	fmt.Fprint(w, s.NamespaceListResponse)
 }
 
 // handleSvcList handles calls to /api/v1beta1/services and always returns empty data
@@ -263,6 +283,7 @@ func (s *TestHttpService) startMaster() error {
 	apis := []string{"v1"}
 
 	for _, version := range apis {
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/namespaces/", version), s.handleNamespaceList)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/endpoints", version), s.handleEndpointWatch)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/routes", version), s.handleRouteList)
