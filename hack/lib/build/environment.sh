@@ -30,6 +30,12 @@ function os::build::environment::create() {
     fi
   fi
 
+  if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
+    additional_context+=" -e OS_VERSION_FILE=/tmp/os-version-defs"
+  else
+    additional_context+=" -e OS_VERSION_FILE="
+  fi
+
   local args
   if [[ $# -eq 0 ]]; then
     args=( "echo" "docker create ${additional_context} ${release_image}" )
@@ -37,7 +43,7 @@ function os::build::environment::create() {
     args=( "$@" )
   fi
 
-  # Create a new container to from the release environment
+  # Create a new container from the release environment
   docker create ${additional_context} "${release_image}" "${args[@]}"
 }
 readonly -f os::build::environment::create
@@ -106,38 +112,40 @@ function os::build::environment::withsource() {
   local commit=${2:-HEAD}
 
   if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER-}" ]]; then
-    # running locally, no change necessary
-    os::build::get_version_vars
-    os::build::save_version_vars "${OS_ROOT}/os-version-defs"
-  else
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    if [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
-      local excluded=()
-      local oldIFS="${IFS}"
-      IFS=:
-      for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
-        excluded+=("--exclude=${exclude}")
-      done
-      IFS="${oldIFS}"
-      if which rsync &>/dev/null; then
-        local name
-        name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-        if ! rsync -a --blocking-io "${excluded[@]}" --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
-          # fall back to a tar if rsync is not in container
-          tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
-        fi
-      else
-        tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
-      fi
-    else
-      # Generate version definitions. Tree state is clean because we are pulling from git directly.
-      OS_GIT_TREE_STATE=clean os::build::get_version_vars
-      os::build::save_version_vars "/tmp/os-version-defs"
+    os::build::environment::start "${container}"
+    return
+  fi
 
-      tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
-      git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+  local workingdir
+  workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+
+  if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
+    # Generate version definitions. Tree state is clean because we are pulling from git directly.
+    OS_GIT_TREE_STATE=clean os::build::get_version_vars
+    os::build::save_version_vars "/tmp/os-version-defs"
+
+    tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:/tmp"
+    git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+    os::build::environment::start "${container}"
+    return
+  fi
+
+  local excluded=()
+  local oldIFS="${IFS}"
+  IFS=:
+  for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
+    excluded+=("--exclude=${exclude}")
+  done
+  IFS="${oldIFS}"
+  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
+    local name
+    name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
+    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+      # fall back to a tar if rsync is not in container
+      tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
     fi
+  else
+    tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
   fi
 
   os::build::environment::start "${container}"
