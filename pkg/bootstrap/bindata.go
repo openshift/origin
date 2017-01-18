@@ -6079,8 +6079,8 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}"
       }
     },
     {
@@ -6154,7 +6154,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "php:5.6"
+              "name": "php:7.0"
             },
             "env":  [
               {
@@ -6283,7 +6283,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -6292,7 +6292,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -6370,7 +6370,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mysql:5.6"
+                "name": "mysql:5.7"
               }
             }
           },
@@ -6431,7 +6431,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                       "valueFrom": {
                         "secretKeyRef" : {
                           "name" : "${NAME}",
-                          "key" : "databaseUser"
+                          "key" : "database-user"
                         }
                       }
                     },
@@ -6440,7 +6440,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                       "valueFrom": {
                         "secretKeyRef" : {
                           "name" : "${NAME}",
-                          "key" : "databasePassword"
+                          "key" : "database-password"
                           }
                         }
                     },
@@ -6627,8 +6627,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}"
       }
     },
     {
@@ -6702,7 +6702,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "perl:5.20"
+              "name": "perl:5.24"
             },
             "env":  [
               {
@@ -6812,7 +6812,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -6821,7 +6821,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -6895,7 +6895,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mysql:5.6"
+                "name": "mysql:5.7"
               }
             }
           },
@@ -6956,7 +6956,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -6965,7 +6965,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -7131,8 +7131,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}"
       }
     },
     {
@@ -7327,7 +7327,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -7336,7 +7336,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -7447,7 +7447,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -7456,7 +7456,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -7648,9 +7648,9 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
         "name": "${NAME}"
       },
       "stringData": {
-        "databaseUser": "${DATABASE_USER}",
-        "databasePassword": "${DATABASE_PASSWORD}",
-        "databaseAdminPassword" : "${DATABASE_ADMIN_PASSWORD}"
+        "database-user": "${DATABASE_USER}",
+        "database-password": "${DATABASE_PASSWORD}",
+        "database-admin-password" : "${DATABASE_ADMIN_PASSWORD}"
       }
     },
     {
@@ -7827,7 +7827,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -7836,7 +7836,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -7849,7 +7849,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseAdminPassword"
+                        "key" : "database-admin-password"
                       }
                     }
                   }
@@ -7962,7 +7962,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -7971,7 +7971,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -7984,7 +7984,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseAdminPassword"
+                        "key" : "database-admin-password"
                       }
                     }
                   }
@@ -8182,11 +8182,11 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}",
-        "applicationUser" : "${APPLICATION_USER}",
-        "applicationPassword" : "${APPLICATION_PASSWORD}",
-        "keyBase" : "${SECRET_KEY_BASE}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "application-user" : "${APPLICATION_USER}",
+        "application-password" : "${APPLICATION_PASSWORD}",
+        "keybase" : "${SECRET_KEY_BASE}"
       }
     },
     {
@@ -8384,7 +8384,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -8393,7 +8393,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -8406,7 +8406,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "keyBase"
+                        "key" : "keybase"
                       }
                     }
                   },
@@ -8427,7 +8427,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "applicationUser"
+                        "key" : "application-user"
                       }
                     }
                   },
@@ -8436,7 +8436,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "applicationPassword"
+                        "key" : "application-password"
                       }
                     }
                   },

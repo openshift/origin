@@ -21,8 +21,9 @@ if ! ip route get ${EGRESS_DESTINATION} | grep -q macvlan0; then
     ip addr add ${EGRESS_SOURCE}/32 dev macvlan0
     ip link set up dev macvlan0
     ip route add ${EGRESS_GATEWAY}/32 dev macvlan0
-    ip route add ${EGRESS_DESTINATION}/32 via ${EGRESS_GATEWAY} dev macvlan0
-
+    if [ "${EGRESS_DESTINATION}" != "${EGRESS_GATEWAY}" ]; then
+        ip route add "${EGRESS_DESTINATION}"/32 via "${EGRESS_GATEWAY}" dev macvlan0
+    fi
     iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination ${EGRESS_DESTINATION}
     iptables -t nat -A POSTROUTING -j SNAT --to-source ${EGRESS_SOURCE}
 fi

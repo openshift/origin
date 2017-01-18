@@ -372,6 +372,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 			return nil, err
 		}
 		image.DockerImageManifest = ""
+		image.DockerImageConfig = ""
 		ist.Image = *image
 	} else {
 		ist.Image = imageapi.Image{}

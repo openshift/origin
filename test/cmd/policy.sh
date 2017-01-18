@@ -30,20 +30,20 @@ os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify 
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'
 
-os::cmd::expect_success 'oc policy add-role-to-group cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc policy add-role-to-user cluster-admin system:no-user'
+os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin system:unauthenticated' 'role "cluster-admin" added: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user cluster-admin system:no-user' 'role "cluster-admin" added: "system:no-user"'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'system:no-user'
 
-os::cmd::expect_success 'oc policy add-role-to-user cluster-admin -z=one,two --serviceaccount=three,four'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" added: \["one" "two" "three" "four"\]'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'one'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
 
-os::cmd::expect_success 'oc policy remove-role-from-group cluster-admin system:unauthenticated'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-group cluster-admin system:unauthenticated' 'role "cluster-admin" removed: "system:unauthenticated"'
 
-os::cmd::expect_success 'oc policy remove-role-from-user cluster-admin system:no-user'
-os::cmd::expect_success 'oc policy remove-role-from-user cluster-admin -z=one,two --serviceaccount=three,four'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user cluster-admin system:no-user' 'role "cluster-admin" removed: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" removed: \["one" "two" "three" "four"\]'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_not_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
 
@@ -51,7 +51,7 @@ os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
 
 
-os::cmd::expect_success 'oc policy add-role-to-user admin namespaced-user'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'role "admin" added: "namespaced-user"'
 # Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
 os::cmd::try_until_text              'oadm policy who-can create builds' 'namespaced-user'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'namespaced-user'
@@ -62,9 +62,9 @@ os::cmd::expect_success_and_text     'oadm policy who-can create builds/docker' 
 os::cmd::expect_success_and_text     'oadm policy who-can create builds/source' 'system:authenticated'
 os::cmd::expect_success_and_text     'oadm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 # if this method for removing access to docker/custom/source/jenkinspipeline builds changes, docs need to be updated as well
-os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated'
-os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated'
-os::cmd::expect_success 'oadm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated'
+os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'cluster role "system:build-strategy-docker" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'cluster role "system:build-strategy-source" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'cluster role "system:build-strategy-jenkinspipeline" removed: "system:authenticated"'
 # ensure build strategy permissions no longer exist
 os::cmd::try_until_failure           'oadm policy who-can create builds/source | grep system:authenticated'
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'system:authenticated'
@@ -73,7 +73,7 @@ os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinsp
 
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
 os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'system:authenticated'
-os::cmd::expect_success 'oadm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated'
+os::cmd::expect_success_and_text 'oadm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
 os::cmd::expect_success_and_text 'oadm policy who-can create builds/custom' 'system:authenticated'
 
 os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'

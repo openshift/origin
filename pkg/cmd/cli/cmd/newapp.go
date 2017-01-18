@@ -171,6 +171,9 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container.")
 	cmd.Flags().StringArrayVar(&config.EnvironmentFiles, "env-file", config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
 	cmd.MarkFlagFilename("env-file")
+	cmd.Flags().StringArrayVar(&config.BuildEnvironment, "build-env", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into each build image.")
+	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "build-env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each build image.")
+	cmd.MarkFlagFilename("build-env-file")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
@@ -214,6 +217,7 @@ func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Fact
 	o.Config.DryRun = o.Action.DryRun
 
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.TemplateParameters, "--param")
 
 	o.CommandPath = c.CommandPath()

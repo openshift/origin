@@ -209,27 +209,15 @@ ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CO
 # Begin tests
 #
 
-# create master config as atomic-enterprise just to test it works
-atomic-enterprise start \
-  --write-config="${BASETMPDIR}/atomic.local.config" \
-  --create-certs=true \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
 # check oc version with no config file
 os::test::junit::declare_suite_start "cmd/version"
 os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configuration info"
 echo "oc version (with no config file set): ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/config"
 # ensure that DisabledFeatures aren't written to config files
+os::test::junit::declare_suite_start "cmd/config"
 os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
-os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
 os::test::junit::declare_suite_end
 
 # from this point every command will use config from the KUBECONFIG env var

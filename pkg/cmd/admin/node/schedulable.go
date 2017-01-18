@@ -1,6 +1,9 @@
 package node
 
 import (
+	"fmt"
+
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
@@ -22,8 +25,8 @@ func (s *SchedulableOptions) Run() error {
 	unschedulable := !s.Schedulable
 	for _, node := range nodes {
 		if node.Spec.Unschedulable != unschedulable {
-			node.Spec.Unschedulable = unschedulable
-			node, err = s.Options.KubeClient.Core().Nodes().Update(node)
+			patch := fmt.Sprintf(`{"spec":{"unschedulable":%t}}`, unschedulable)
+			node, err = s.Options.KubeClient.Core().Nodes().Patch(node.Name, api.MergePatchType, []byte(patch))
 			if err != nil {
 				errList = append(errList, err)
 				continue
