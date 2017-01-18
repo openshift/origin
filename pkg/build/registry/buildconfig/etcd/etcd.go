@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -22,20 +20,17 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:           func() runtime.Object { return &api.BuildConfig{} },
 		NewListFunc:       func() runtime.Object { return &api.BuildConfigList{} },
 		QualifiedResource: api.Resource("buildconfigs"),
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.BuildConfig).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return buildconfig.Matcher(label, field)
-		},
+		PredicateFunc:     buildconfig.Matcher,
 
-		CreateStrategy:      buildconfig.Strategy,
-		UpdateStrategy:      buildconfig.Strategy,
-		DeleteStrategy:      buildconfig.Strategy,
-		ReturnDeletedObject: false,
+		CreateStrategy: buildconfig.Strategy,
+		UpdateStrategy: buildconfig.Strategy,
+		DeleteStrategy: buildconfig.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: buildconfig.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

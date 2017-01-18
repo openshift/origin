@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -55,6 +56,28 @@ func TestCreate(t *testing.T) {
 		valid,
 		// invalid
 		&api.Image{},
+	)
+}
+
+func TestUpdate(t *testing.T) {
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := registrytest.New(t, storage.Store).ClusterScope()
+	test.TestUpdate(
+		validImage(),
+		// updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.Image)
+			object.DockerImageReference = "openshift/origin"
+			return object
+		},
+		// invalid updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.Image)
+			object.DockerImageReference = "\\"
+			return object
+		},
 	)
 }
 

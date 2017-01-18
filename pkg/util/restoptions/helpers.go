@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 )
 
@@ -37,8 +39,7 @@ func DefaultKeyFunctions(store *registry.Store, prefix string, isNamespaced bool
 }
 
 // ApplyOptions updates the given generic storage from the provided rest options
-// TODO: remove need for etcdPrefix once Decorator interface is refactored upstream
-func ApplyOptions(optsGetter Getter, store *registry.Store, oldIsNamespaced bool, triggerFn storage.TriggerPublisherFunc) error {
+func ApplyOptions(optsGetter Getter, store *registry.Store, triggerFn storage.TriggerPublisherFunc) error {
 	if store.QualifiedResource.Empty() {
 		return fmt.Errorf("store must have a non-empty qualified resource")
 	}
@@ -51,10 +52,14 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, oldIsNamespaced bool
 	if store.CreateStrategy == nil {
 		return fmt.Errorf("store for %s must have CreateStrategy set", store.QualifiedResource.String())
 	}
-
-	isNamespaced := store.CreateStrategy.NamespaceScoped()
-	if isNamespaced != oldIsNamespaced { // TODO(soltysh): oldIsNamespaced should be completely removed in #12541
-		return fmt.Errorf("CreateStrategy has %v for namespace scope but user specified %v as namespace scope", isNamespaced, oldIsNamespaced)
+	if store.ObjectNameFunc == nil {
+		store.ObjectNameFunc = func(obj runtime.Object) (string, error) {
+			accessor, err := meta.Accessor(obj)
+			if err != nil {
+				return "", err
+			}
+			return accessor.GetName(), nil
+		}
 	}
 
 	opts, err := optsGetter.GetRESTOptions(store.QualifiedResource)
@@ -68,7 +73,7 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, oldIsNamespaced bool
 		prefix = "/" + prefix
 	}
 
-	DefaultKeyFunctions(store, prefix, isNamespaced)
+	DefaultKeyFunctions(store, prefix, store.CreateStrategy.NamespaceScoped())
 
 	store.DeleteCollectionWorkers = opts.DeleteCollectionWorkers
 	store.Storage, store.DestroyFunc = opts.Decorator(

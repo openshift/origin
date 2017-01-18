@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -16,24 +14,22 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against Policy objects.
-func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+// NewREST returns a RESTStorage object that will work against Policy objects.
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.Policy{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyList{} },
+		PredicateFunc:     policy.Matcher,
 		QualifiedResource: authorizationapi.Resource("policies"),
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*authorizationapi.Policy).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return policy.Matcher(label, field)
-		},
 
 		CreateStrategy: policy.Strategy,
 		UpdateStrategy: policy.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: policy.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

@@ -3,8 +3,6 @@ package etcd
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -20,24 +18,21 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against Build objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
-
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.Build{} },
 		NewListFunc:       func() runtime.Object { return &api.BuildList{} },
+		PredicateFunc:     build.Matcher,
 		QualifiedResource: api.Resource("builds"),
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.Build).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return build.Matcher(label, field)
-		},
-		CreateStrategy:      build.Strategy,
-		UpdateStrategy:      build.Strategy,
-		DeleteStrategy:      build.Strategy,
-		ReturnDeletedObject: false,
+
+		CreateStrategy: build.Strategy,
+		UpdateStrategy: build.Strategy,
+		DeleteStrategy: build.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: build.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, err
 	}
 

@@ -106,7 +106,7 @@ func (routeStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) f
 }
 
 func (routeStrategy) AllowUnconditionalUpdate() bool {
-	return true
+	return false
 }
 
 type routeStatusStrategy struct {
@@ -125,12 +125,20 @@ func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Obj
 	return validation.ValidateRouteStatusUpdate(obj.(*api.Route), old.(*api.Route))
 }
 
-// Matcher returns a matcher for a route
-func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-	return storage.SelectionPredicate{Label: label, Field: field, GetAttrs: getAttrs}
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(obj runtime.Object) (objLabels labels.Set, objFields fields.Set, err error) {
+	route, ok := obj.(*api.Route)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a route")
+	}
+	return labels.Set(route.Labels), api.RouteToSelectableFields(route), nil
 }
 
-func getAttrs(obj runtime.Object) (objLabels labels.Set, objFields fields.Set, err error) {
-	route := obj.(*api.Route)
-	return labels.Set(route.Labels), api.RouteToSelectableFields(route), nil
+// Matcher returns a matcher for a route
+func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+	return storage.SelectionPredicate{
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
+	}
 }

@@ -59,18 +59,21 @@ func (templateStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+	obj, ok := o.(*api.Template)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a Template")
+	}
+	return labels.Set(obj.Labels), SelectableFields(obj), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
-			obj, ok := o.(*api.Template)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a Template")
-			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 
