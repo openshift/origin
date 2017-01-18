@@ -95,10 +95,10 @@ var (
 	}
 
 	templateLocations = map[string]string{
-		"mongodb":                     "examples/db-templates/mongodb-ephemeral-template.json",
-		"mariadb":                     "examples/db-templates/mariadb-ephemeral-template.json",
-		"mysql":                       "examples/db-templates/mysql-ephemeral-template.json",
-		"postgresql":                  "examples/db-templates/postgresql-ephemeral-template.json",
+		"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
+		"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
+		"mysql":                       "examples/db-templates/mysql-persistent-template.json",
+		"postgresql":                  "examples/db-templates/postgresql-persistent-template.json",
 		"cakephp quickstart":          "examples/quickstarts/cakephp-mysql.json",
 		"dancer quickstart":           "examples/quickstarts/dancer-mysql.json",
 		"django quickstart":           "examples/quickstarts/django-postgresql.json",
@@ -142,6 +142,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "If true, use existing configuration if present")
 	cmd.Flags().StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
 	cmd.Flags().StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
+	cmd.Flags().StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", host.DefaultPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
 	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "If true, use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
@@ -189,13 +190,14 @@ type ClientStartConfig struct {
 	RoutingSuffix      string
 	DNSPort            int
 
-	LocalConfigDir    string
-	HostVolumesDir    string
-	HostConfigDir     string
-	HostDataDir       string
-	UseExistingConfig bool
-	Environment       []string
-	ServerLogLevel    int
+	LocalConfigDir           string
+	HostVolumesDir           string
+	HostConfigDir            string
+	HostDataDir              string
+	HostPersistentVolumesDir string
+	UseExistingConfig        bool
+	Environment              []string
+	ServerLogLevel           int
 
 	dockerClient    *docker.Client
 	engineAPIClient *dockerclient.Client
@@ -658,19 +660,20 @@ func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	var err error
 	opt := &openshift.StartOptions{
-		ServerIP:           c.ServerIP,
-		RouterIP:           c.RouterIP,
-		UseSharedVolume:    !c.UseNsenterMount,
-		SetPropagationMode: c.SetPropagationMode,
-		Images:             c.imageFormat(),
-		HostVolumesDir:     c.HostVolumesDir,
-		HostConfigDir:      c.HostConfigDir,
-		HostDataDir:        c.HostDataDir,
-		UseExistingConfig:  c.UseExistingConfig,
-		Environment:        c.Environment,
-		LogLevel:           c.ServerLogLevel,
-		DNSPort:            c.DNSPort,
-		PortForwarding:     c.PortForwarding,
+		ServerIP:                 c.ServerIP,
+		RouterIP:                 c.RouterIP,
+		UseSharedVolume:          !c.UseNsenterMount,
+		SetPropagationMode:       c.SetPropagationMode,
+		Images:                   c.imageFormat(),
+		HostVolumesDir:           c.HostVolumesDir,
+		HostConfigDir:            c.HostConfigDir,
+		HostDataDir:              c.HostDataDir,
+		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
+		UseExistingConfig:        c.UseExistingConfig,
+		Environment:              c.Environment,
+		LogLevel:                 c.ServerLogLevel,
+		DNSPort:                  c.DNSPort,
+		PortForwarding:           c.PortForwarding,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
@@ -688,6 +691,16 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	go func() {
 		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(c.ServerIP)
 	}()
+
+	// Setup persistent storage
+	osClient, kClient, err := c.Clients()
+	if err != nil {
+		return err
+	}
+	err = c.OpenShiftHelper().SetupPersistentStorage(osClient, kClient, c.HostPersistentVolumesDir)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -718,7 +731,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out, os.Stderr)
+	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
 }
 
 // InstallRouter installs a default router on the server
@@ -865,7 +878,7 @@ func (c *ClientStartConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *ClientStartConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.dockerClient, c.openShiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir)
+		c.hostHelper = host.NewHostHelper(c.dockerClient, c.openShiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir, c.HostPersistentVolumesDir)
 	}
 	return c.hostHelper
 }

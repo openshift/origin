@@ -86,7 +86,7 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
 	case "kubernetes":
 		cmd = kubernetes.NewCommand(basename, basename, out, errout)
-	case "origin", "atomic-enterprise":
+	case "origin":
 		cmd = NewCommandOpenShift(basename)
 	default:
 		cmd = NewCommandOpenShift("openshift")

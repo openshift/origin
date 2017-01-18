@@ -1,6 +1,9 @@
 package servingcert
 
 import (
+	"crypto/x509"
+	"encoding/asn1"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -16,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 )
 
 func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.FakeWatcher, *ServiceServingCertController) {
@@ -49,6 +53,51 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	controller := NewServiceServingCertController(kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute)
 
 	return caOptions.Name, kubeclient, fakeWatch, controller
+}
+
+func checkGeneratedCertificate(t *testing.T, certData []byte, service *kapi.Service) {
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		t.Errorf("PEM block not found in secret")
+		return
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Errorf("expected valid certificate in first position: %v", err)
+		return
+	}
+
+	if len(cert.DNSNames) != 2 {
+		t.Errorf("unexpected DNSNames: %v", cert.DNSNames)
+	}
+	for _, s := range cert.DNSNames {
+		switch s {
+		case fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace),
+			fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace):
+		default:
+			t.Errorf("unexpected DNSNames: %v", cert.DNSNames)
+		}
+	}
+
+	found := true
+	for _, ext := range cert.Extensions {
+		if extensions.OpenShiftServerSigningServiceUIDOID.Equal(ext.Id) {
+			var value string
+			if _, err := asn1.Unmarshal(ext.Value, &value); err != nil {
+				t.Errorf("unable to parse certificate extension: %v", ext.Value)
+				continue
+			}
+			if value != string(service.UID) {
+				t.Errorf("unexpected extension value: %v", value)
+				continue
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("unable to find service UID certificate extension in cert: %#v", cert)
+	}
 }
 
 func TestBasicControllerFlow(t *testing.T) {
@@ -110,6 +159,8 @@ func TestBasicControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue
 			}
+
+			checkGeneratedCertificate(t, newSecret.Data["tls.crt"], serviceToAdd)
 			foundSecret = true
 
 		case action.Matches("update", "services"):

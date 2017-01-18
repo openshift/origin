@@ -371,9 +371,18 @@ func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.St
 	return server, nil
 }
 
-func (ca *CA) MakeServerCert(hostnames sets.String, expireDays int) (*TLSCertificateConfig, error) {
+// CertificateExtensionFunc is passed a certificate that it may extend, or return an error
+// if the extension attempt failed.
+type CertificateExtensionFunc func(*x509.Certificate) error
+
+func (ca *CA) MakeServerCert(hostnames sets.String, expireDays int, fns ...CertificateExtensionFunc) (*TLSCertificateConfig, error) {
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List(), expireDays, time.Now)
+	for _, fn := range fns {
+		if err := fn(serverTemplate); err != nil {
+			return nil, err
+		}
+	}
 	serverCrt, err := ca.signCertificate(serverTemplate, serverPublicKey)
 	if err != nil {
 		return nil, err

@@ -118,7 +118,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-restart\fP="Always"
-    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created, if set to 'OnFailure' a job is created, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always', for ScheduledJobs \fB\fCNever\fR.
+    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created, if set to 'OnFailure' a job is created, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always', for CronJobs \fB\fCNever\fR.
 
 .PP
 \fB\-\-rm\fP=false

@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 672868ff93f6cc3f9564e0858e199d5b0093ddd2
+%global commit a7ef5755b52b3fa2fa9e9b4235758defdf231660
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.4+672868f-49 OS_GIT_COMMIT=672868f OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.5+a7ef575-58 OS_GIT_COMMIT=a7ef575 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -36,9 +36,6 @@
 %global make_redistributable 1
 %endif
 }
-
-# by default build the test binaries for Origin
-%{!?build_tests: %global build_tests 1 }
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -51,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.5
+Version:        3.5.0.6
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -85,11 +82,13 @@ Obsoletes:      openshift < %{package_refector_version}
 ### AUTO-BUNDLED-GEN-ENTRY-POINT
 
 %description
-Origin is a distribution of Kubernetes optimized for enterprise application
-development and deployment, used by OpenShift 3 and Atomic Enterprise. Origin
-adds developer and operational centric tools on top of Kubernetes to enable
-rapid application development, easy deployment and scaling, and long-term
-lifecycle maintenance for small and large teams and applications.
+OpenShift is a distribution of Kubernetes optimized for enterprise application
+development and deployment. OpenShift adds developer and operational centric
+tools on top of Kubernetes to enable rapid application development, easy
+deployment and scaling, and long-term lifecycle maintenance for small and large
+teams and applications. It provides a secure and multi-tenant configuration for
+Kubernetes allowing you to safely host many different applications and workloads
+on a unified cluster.
 
 %package master
 Summary:        %{product_name} Master
@@ -102,14 +101,12 @@ Obsoletes:      openshift-master < %{package_refector_version}
 %description master
 %{summary}
 
-%if 0%{build_tests}
 %package tests
 Summary: %{product_name} Test Suite
 Requires:       %{name} = %{version}-%{release}
 
 %description tests
 %{summary}
-%endif
 
 %package node
 Summary:        %{product_name} Node
@@ -209,11 +206,6 @@ of docker.  Exclude those versions of docker.
 # Create Binaries
 %{os_git_vars} hack/build-cross.sh
 
-%if 0%{build_tests}
-# Create extended.test
-%{os_git_vars} hack/build-go.sh test/extended/extended.test
-%endif
-
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
@@ -226,9 +218,7 @@ do
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-%if 0%{build_tests}
 install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
-%endif
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -246,7 +236,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    atomic-enterprise \
     kube-apiserver \
     kube-controller-manager \
     kube-proxy \
@@ -314,7 +303,7 @@ install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oadm oc openshift atomic-enterprise
+for bin in oadm oc openshift
 do
   echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
   %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
@@ -348,7 +337,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/atomic-enterprise
 %{_bindir}/kube-apiserver
 %{_bindir}/kube-controller-manager
 %{_bindir}/kube-proxy
@@ -364,7 +352,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
 %{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -387,11 +374,9 @@ if [ -d "%{_sharedstatedir}/openshift" ]; then
   fi
 fi
 
-%if 0%{build_tests}
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
-%endif
 
 %files master
 %{_unitdir}/%{name}-master.service
@@ -549,16 +534,68 @@ fi
 /usr/sbin/%{name}-docker-excluder
 
 %post docker-excluder
-# we always want to run this, since the 
+# we always want to run this, since the
 #   package-list may be different with each version
 %{name}-docker-excluder exclude
 
 %preun docker-excluder
-# we always want to clear this out, since the 
+# we always want to clear this out, since the
 #   package-list may be different with each version
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Jan 18 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.6
+- bump(github.com/openshift/origin-web-console):
+  c42118856232d57d410b17ca20d8a193cd22995b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  695c74dc0fac848444c79c555fb689c4d8431973 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: <carry>: Pod deletion can be contended, causing test failure
+  (ccoleman@redhat.com)
+- Better haproxy 503 page (ffranz@redhat.com)
+- bump external template examples (bparees@redhat.com)
+- Build extended.test in build-cross (ccoleman@redhat.com)
+- cluster up: add persistent volumes on startup (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  738a098ce3e0e1ab13b788e812eaba08f90f1146 (dmcphers+openshiftbot@redhat.com)
+- Increase deployment test timeout (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  dda5f7ab8684393e6f376ae249f20a8a7d77c137 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b1dcc6f8daa1426f2bcdbcd36878b343ff6c69b9 (dmcphers+openshiftbot@redhat.com)
+- Generated changes (maszulik@redhat.com)
+- UPSTREAM: 39997: Fix ScheduledJob -> CronJob rename leftovers
+  (maszulik@redhat.com)
+- Add service UID as x509 extension to service server certs
+  (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Increase service endpoint test timeout
+  (ccoleman@redhat.com)
+- only set term if rsh is running /bin/sh (bparees@redhat.com)
+- Adding a test for not having a route added if the gateway and the destination
+  addresses are the same (fgiloux@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  15e4baa64a7d1a39771c32e67753edd0a0ee7cf5 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a3da0eff67c443ed5b5a0465913c3a3cf6e93839 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e9ab6af6f5520780c28da2294965c72f57e6d2f4 (dmcphers+openshiftbot@redhat.com)
+- add swaggerapi to discovery rules (deads@redhat.com)
+- add a test for fetchruntimeartifacts failure (ipalade@redhat.com)
+- UPSTREAM: <carry>: Double container probe timeout (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0102c49ad4d39d9bd74d96fd85222e95b3c69743 (dmcphers+openshiftbot@redhat.com)
+- Hide DockerImageConfig as well as DockerImageManifest (agladkov@redhat.com)
+- Modify comment for pkg/controller/scheduler.go (song.ruixia@zte.com.cn)
+- Adding --build-env and --build-env-file to oc new-app (cdaley@redhat.com)
+- Uses patch instead of update to mark nodes (un)schedulable
+  (ffranz@redhat.com)
+- add affirmative output to oc policy / oadm policy (jvallejo@redhat.com)
+- Remove vestiges of atomic-enterprise in the codebase (ccoleman@redhat.com)
+- Do not reuse pkgdir across architectures (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2140: Add 'ca-central-1' region for registry
+  S3 storage driver (mfojtik@redhat.com)
+- Links to docker and openshift docs updated (mupakoz@gmail.com)
+- add log arguments (wang.xiaogang2@zte.com.cn)
+
 * Mon Jan 16 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.5
 - bump(github.com/openshift/origin-web-console):
   fa6f2af00717135ec5c8352daf73a3db2a4f4255 (dmcphers+openshiftbot@redhat.com)
