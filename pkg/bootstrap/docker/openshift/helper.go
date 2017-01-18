@@ -43,6 +43,7 @@ var (
 		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
 		"/sys:/sys:ro",
+		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
 		"/var/lib/docker:/var/lib/docker",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
