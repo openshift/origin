@@ -232,7 +232,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return true, err
 	}
 
-	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
+	// If we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
 		commit := gitSource.Ref
 
