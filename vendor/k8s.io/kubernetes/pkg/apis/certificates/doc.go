@@ -18,4 +18,4 @@ limitations under the License.
 // +k8s:openapi-gen=true
 
 // +groupName=certificates.k8s.io
-package certificates // import "k8s.io/kubernetes/pkg/apis/certificates"
+package certificates

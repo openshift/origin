@@ -125,7 +125,8 @@ func TestKubeletDefaults(t *testing.T) {
 			ContentType:                    "application/vnd.kubernetes.protobuf",
 			EnableControllerAttachDetach:   true,
 
-			EvictionPressureTransitionPeriod: unversioned.Duration{Duration: 5 * time.Minute},
+			EvictionPressureTransitionPeriod:    unversioned.Duration{Duration: 5 * time.Minute},
+			ExperimentalKernelMemcgNotification: false,
 
 			SystemReserved: utilconfig.ConfigurationMap{},
 			KubeReserved:   utilconfig.ConfigurationMap{},

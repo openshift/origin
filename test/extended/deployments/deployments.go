@@ -155,7 +155,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
 			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, name)
 				if err != nil {
 					return false, nil
@@ -805,7 +805,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			selector := labels.Set(config.Spec.Selector).AsSelector()
 			opts := kapi.ListOptions{LabelSelector: selector}
 			ready := 0
-			if err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)
 				if err != nil {
 					return false, nil

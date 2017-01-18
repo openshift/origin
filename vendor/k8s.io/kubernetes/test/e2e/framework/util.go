@@ -112,7 +112,7 @@ const (
 	slowPodStartTimeout = 15 * time.Minute
 
 	// How long to wait for a service endpoint to be resolvable.
-	ServiceStartTimeout = 1 * time.Minute
+	ServiceStartTimeout = 3 * time.Minute
 
 	// How often to Poll pods, nodes and claims.
 	Poll = 2 * time.Second
@@ -3548,16 +3548,10 @@ func IssueSSHCommandWithResult(cmd, provider string, node *api.Node) (*SSHResult
 }
 
 func IssueSSHCommand(cmd, provider string, node *api.Node) error {
-	result, err := IssueSSHCommandWithResult(cmd, provider, node)
-	if result != nil {
-		LogSSHResult(*result)
+	_, err := IssueSSHCommandWithResult(cmd, provider, node)
+	if err != nil {
+		return err
 	}
-
-	if result.Code != 0 || err != nil {
-		return fmt.Errorf("failed running %q: %v (exit code %d)",
-			cmd, err, result.Code)
-	}
-
 	return nil
 }
 

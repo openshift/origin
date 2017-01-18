@@ -68,21 +68,22 @@ type Helper struct {
 
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
-	ServerIP           string
-	RouterIP           string
-	DNSPort            int
-	UseSharedVolume    bool
-	SetPropagationMode bool
-	Images             string
-	HostVolumesDir     string
-	HostConfigDir      string
-	HostDataDir        string
-	UseExistingConfig  bool
-	Environment        []string
-	LogLevel           int
-	MetricsHost        string
-	LoggingHost        string
-	PortForwarding     bool
+	ServerIP                 string
+	RouterIP                 string
+	DNSPort                  int
+	UseSharedVolume          bool
+	SetPropagationMode       bool
+	Images                   string
+	HostVolumesDir           string
+	HostConfigDir            string
+	HostDataDir              string
+	HostPersistentVolumesDir string
+	UseExistingConfig        bool
+	Environment              []string
+	LogLevel                 int
+	MetricsHost              string
+	LoggingHost              string
+	PortForwarding           bool
 }
 
 // NewHelper creates a new OpenShift helper
@@ -355,6 +356,10 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	if len(opt.HostDataDir) > 0 {
 		binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.etcd:z", opt.HostDataDir))
 	}
+	if len(opt.HostPersistentVolumesDir) > 0 {
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.HostPersistentVolumesDir))
+		env = append(env, fmt.Sprintf("OPENSHIFT_PV_DIR=%s", opt.HostPersistentVolumesDir))
+	}
 	_, err = h.runHelper.New().Image(h.image).
 		Name(h.containerName).
 		Privileged().
@@ -508,6 +513,8 @@ func (h *Helper) updateConfig(configDir, routerIP, metricsHost, loggingHost stri
 	if len(loggingHost) > 0 && cfg.AssetConfig != nil {
 		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", loggingHost)
 	}
+
+	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"
 
 	cfgBytes, err := configapilatest.WriteYAML(cfg)
 	if err != nil {

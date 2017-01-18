@@ -16,4 +16,4 @@ limitations under the License.
 
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kubeadm.k8s.io
-package v1alpha1 // import "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+package v1alpha1

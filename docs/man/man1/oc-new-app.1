@@ -39,6 +39,14 @@ If you provide source code, a new build will be automatically triggered. You can
     If true create this application as a test deployment, which validates that the deployment succeeds and then scales down.
 
 .PP
+\fB\-\-build\-env\fP=[]
+    Specify a key\-value pair for an environment variable to set into each build image.
+
+.PP
+\fB\-\-build\-env\-file\fP=[]
+    File containing key\-value pairs of environment variables to set into each build image.
+
+.PP
 \fB\-\-code\fP=[]
     Source code to use to build this application.
 
@@ -139,6 +147,10 @@ If you provide source code, a new build will be automatically triggered. You can
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

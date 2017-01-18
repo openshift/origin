@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
-	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -21,7 +21,7 @@ const imageStreamImportName = "Evaluator.ImageStreamImport"
 // NewImageStreamImportEvaluator computes resource usage for ImageStreamImport objects. This particular kind
 // is a virtual resource. It depends on ImageStream usage evaluator to compute image numbers before the
 // the admission can work.
-func NewImageStreamImportEvaluator(isNamespacer osclient.ImageStreamsNamespacer) kquota.Evaluator {
+func NewImageStreamImportEvaluator(store *oscache.StoreToImageStreamLister) kquota.Evaluator {
 	computeResources := []kapi.ResourceName{
 		imageapi.ResourceImageStreams,
 	}
@@ -34,7 +34,7 @@ func NewImageStreamImportEvaluator(isNamespacer osclient.ImageStreamsNamespacer)
 		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{admission.Create: computeResources},
 		MatchedResourceNames:       computeResources,
 		MatchesScopeFunc:           matchesScopeFunc,
-		UsageFunc:                  makeImageStreamImportAdmissionUsageFunc(isNamespacer),
+		UsageFunc:                  makeImageStreamImportAdmissionUsageFunc(store),
 		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
 			return []runtime.Object{}, nil
 		},
@@ -51,7 +51,7 @@ func imageStreamImportConstraintsFunc(required []kapi.ResourceName, object runti
 }
 
 // makeImageStreamImportAdmissionUsageFunc returns a function for computing a usage of an image stream import.
-func makeImageStreamImportAdmissionUsageFunc(isNamespacer osclient.ImageStreamsNamespacer) generic.UsageFunc {
+func makeImageStreamImportAdmissionUsageFunc(store *oscache.StoreToImageStreamLister) generic.UsageFunc {
 	return func(object runtime.Object) kapi.ResourceList {
 		isi, ok := object.(*imageapi.ImageStreamImport)
 		if !ok {
@@ -66,7 +66,7 @@ func makeImageStreamImportAdmissionUsageFunc(isNamespacer osclient.ImageStreamsN
 			return usage
 		}
 
-		is, err := isNamespacer.ImageStreams(isi.Namespace).Get(isi.Name)
+		is, err := store.ImageStreams(isi.Namespace).Get(isi.Name)
 		if err != nil && !kerrors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("failed to list image streams: %v", err))
 		}

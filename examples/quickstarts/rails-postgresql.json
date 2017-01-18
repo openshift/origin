@@ -22,11 +22,11 @@
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}",
-        "applicationUser" : "${APPLICATION_USER}",
-        "applicationPassword" : "${APPLICATION_PASSWORD}",
-        "keyBase" : "${SECRET_KEY_BASE}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "application-user" : "${APPLICATION_USER}",
+        "application-password" : "${APPLICATION_PASSWORD}",
+        "keybase" : "${SECRET_KEY_BASE}"
       }
     },
     {
@@ -224,7 +224,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -233,7 +233,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -246,7 +246,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "keyBase"
+                        "key" : "keybase"
                       }
                     }
                   },
@@ -267,7 +267,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "applicationUser"
+                        "key" : "application-user"
                       }
                     }
                   },
@@ -276,7 +276,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "applicationPassword"
+                        "key" : "application-password"
                       }
                     }
                   },

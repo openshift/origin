@@ -54,6 +54,10 @@ A public hostname can also be specified for the server with the \-\-public\-host
     Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.
 
 .PP
+\fB\-\-host\-pv\-dir\fP="/var/lib/origin/openshift.local.pv"
+    Directory on host for OpenShift persistent volumes
+
+.PP
 \fB\-\-host\-volumes\-dir\fP="/var/lib/origin/openshift.local.volumes"
     Directory on Docker host for OpenShift volumes
 
@@ -106,6 +110,10 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
