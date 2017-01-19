@@ -46,6 +46,7 @@ var (
 		"/var/run:/var/run:rw",
 		"/sys:/sys:ro",
 		"/var/lib/docker:/var/lib/docker",
+		"/dev:/dev",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
 	RouterPorts           = []int{80, 443}
