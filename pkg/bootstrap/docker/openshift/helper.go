@@ -13,6 +13,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/homedir"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
@@ -20,6 +21,7 @@ import (
 	dockerexec "github.com/openshift/origin/pkg/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
+	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
@@ -64,6 +66,7 @@ type Helper struct {
 	image         string
 	containerName string
 	routingSuffix string
+	serverIP      string
 }
 
 // StartOptions represent the parameters sent to the start command
@@ -84,6 +87,9 @@ type StartOptions struct {
 	MetricsHost              string
 	LoggingHost              string
 	PortForwarding           bool
+	HTTPProxy                string
+	HTTPSProxy               string
+	NoProxy                  []string
 }
 
 // NewHelper creates a new OpenShift helper
@@ -176,6 +182,9 @@ func (h *Helper) DetermineNodeHost(hostConfigDir string, names ...string) (strin
 
 // ServerIP retrieves the Server ip through the openshift start command
 func (h *Helper) ServerIP() (string, error) {
+	if len(h.serverIP) > 0 {
+		return h.serverIP, nil
+	}
 	result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
@@ -184,7 +193,8 @@ func (h *Helper) ServerIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(result), nil
+	h.serverIP = strings.TrimSpace(result)
+	return h.serverIP, nil
 }
 
 // OtherIPs tries to find other IPs besides the argument IP for the Docker host
@@ -223,6 +233,15 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 
 	binds := openShiftContainerBinds
 	env := []string{}
+	if len(opt.HTTPProxy) > 0 {
+		env = append(env, fmt.Sprintf("HTTP_PROXY=%s", opt.HTTPProxy))
+	}
+	if len(opt.HTTPSProxy) > 0 {
+		env = append(env, fmt.Sprintf("HTTPS_PROXY=%s", opt.HTTPSProxy))
+	}
+	if len(opt.NoProxy) > 0 {
+		env = append(env, fmt.Sprintf("NO_PROXY=%s", strings.Join(opt.NoProxy, ",")))
+	}
 	if opt.UseSharedVolume {
 		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:shared", opt.HostVolumesDir))
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
@@ -305,7 +324,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.RouterIP, opt.MetricsHost, opt.LoggingHost)
+		err = h.updateConfig(configDir, opt)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -494,7 +513,7 @@ func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, err
 	return config, nil
 }
 
-func (h *Helper) updateConfig(configDir, routerIP, metricsHost, loggingHost string) error {
+func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
 		return err
@@ -503,15 +522,52 @@ func (h *Helper) updateConfig(configDir, routerIP, metricsHost, loggingHost stri
 	if len(h.routingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = h.routingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", routerIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", opt.RouterIP)
 	}
 
-	if len(metricsHost) > 0 && cfg.AssetConfig != nil {
-		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", metricsHost)
+	if len(opt.MetricsHost) > 0 && cfg.AssetConfig != nil {
+		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", opt.MetricsHost)
 	}
 
-	if len(loggingHost) > 0 && cfg.AssetConfig != nil {
-		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", loggingHost)
+	if len(opt.LoggingHost) > 0 && cfg.AssetConfig != nil {
+		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", opt.LoggingHost)
+	}
+
+	if len(opt.HTTPProxy) > 0 || len(opt.HTTPSProxy) > 0 || len(opt.NoProxy) > 0 {
+		if cfg.AdmissionConfig.PluginConfig == nil {
+			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		}
+
+		var buildDefaults *defaultsapi.BuildDefaultsConfig
+		buildDefaultsConfig, ok := cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin]
+		if !ok {
+			buildDefaultsConfig = configapi.AdmissionPluginConfig{}
+		}
+		if buildDefaultsConfig.Configuration != nil {
+			buildDefaults = buildDefaultsConfig.Configuration.(*defaultsapi.BuildDefaultsConfig)
+		}
+		if buildDefaults == nil {
+			buildDefaults = &defaultsapi.BuildDefaultsConfig{}
+			buildDefaultsConfig.Configuration = buildDefaults
+		}
+		buildDefaults.GitHTTPProxy = opt.HTTPProxy
+		buildDefaults.GitHTTPSProxy = opt.HTTPSProxy
+		buildDefaults.GitNoProxy = strings.Join(opt.NoProxy, ",")
+		varsToSet := map[string]string{
+			"HTTP_PROXY":  opt.HTTPProxy,
+			"http_proxy":  opt.HTTPProxy,
+			"HTTPS_PROXY": opt.HTTPSProxy,
+			"https_proxy": opt.HTTPSProxy,
+			"NO_PROXY":    strings.Join(opt.NoProxy, ","),
+			"no_proxy":    strings.Join(opt.NoProxy, ","),
+		}
+		for k, v := range varsToSet {
+			buildDefaults.Env = append(buildDefaults.Env, kapi.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
 	}
 
 	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"
