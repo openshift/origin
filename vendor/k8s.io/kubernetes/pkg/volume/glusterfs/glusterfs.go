@@ -701,7 +701,7 @@ func (p *glusterfsVolumeProvisioner) CreateVolume(gid int) (r *api.GlusterfsVolu
 		glog.V(4).Infof("glusterfs: provided clusterids: %v", clusterIds)
 	}
 	gid64 := int64(gid)
-	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Clusters: clusterIds, Gid: gid64, Durability: gapi.VolumeDurabilityInfo{Type: durabilityType, Replicate: gapi.ReplicaDurability{Replica: replicaCount}}}
+	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Clusters: clusterIds, Gid: gid64, Durability: p.volumeType}
 	volume, err := cli.VolumeCreate(volumeReq)
 	if err != nil {
 		glog.Errorf("glusterfs: error creating volume %v ", err)
