@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-ENV VERSION=1.8beta2 \
+ENV VERSION=1.8rc1 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
