@@ -136,7 +136,20 @@ function os::cmd::try_until_text() {
 	local duration=${3:-minute}
 	local interval=${4:-0.2}
 
-	os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::success_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_text
+
+# os::cmd::try_until_not_text runs the cmd until either the command doesnot output the text or times out
+# the default time-out for os::cmd::try_until_not_text is 60 seconds.
+function os::cmd::try_until_not_text() {
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_not_text expects at least two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local text=$2
+	local duration=${3:-minute}
+	local interval=${4:-0.2}
+
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
 }
 readonly -f os::cmd::try_until_text
 
@@ -520,8 +533,9 @@ function os::cmd::internal::run_until_exit_code() {
 }
 readonly -f os::cmd::internal::run_until_exit_code
 
-# os::cmd::internal::run_until_text runs the provided command until the command output contains the
-# given text or the timeout given runs out. Output from the command to be tested is suppressed unless
+# os::cmd::internal::run_until_text runs the provided command until the assertion function succeeds with
+# the given text on the command output or the timeout given runs out. This can be used to run until the
+# output does or does not contain some text. Output from the command to be tested is suppressed unless
 # either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
 # set by upstream callers by masking the return code of the command with the return code of setting
 # the result variable on failure.
@@ -532,23 +546,25 @@ readonly -f os::cmd::internal::run_until_exit_code
 # Arguments:
 #  - 1: the command to run
 #  - 2: text to test for
-#  - 3: timeout duration
-#  - 4: interval duration
+#  - 3: text assertion to use
+#  - 4: timeout duration
+#  - 5: interval duration
 # Returns:
 #  - 0: if all assertions met before timeout
 #  - 1: if timeout occurs
 function os::cmd::internal::run_until_text() {
 	local cmd=$1
 	local text=$2
-	local duration=$3
-	local interval=$4
+	local test_eval_func=${3:-os::cmd::internal::success_func}
+	local duration=$4
+	local interval=$5
 
 	local -a junit_log
 
 	os::cmd::internal::init_tempdir
 	os::test::junit::declare_test_start
 
-	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "os::cmd::internal::success_func")
+	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "${test_eval_func}")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	local preamble="Running ${description}..."
@@ -563,8 +579,8 @@ function os::cmd::internal::run_until_text() {
 	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		local test_result
-		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
 		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_last_results)'; echo $? )
+		test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
 		if (( test_succeeded )); then
 			break
