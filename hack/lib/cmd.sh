@@ -369,26 +369,6 @@ function os::cmd::internal::get_results() {
 }
 readonly -f os::cmd::internal::get_results
 
-# os::cmd::internal::get_try_until_results returns a concise view of the stdout and stderr output files
-# using a timeline format, where consecutive output lines that are the same are condensed into one line
-# with a counter
-function os::cmd::internal::print_try_until_results() {
-	if grep -vq $'\x1e' "${os_cmd_internal_tmpout}"; then
-		echo "Standard output from the command:"
-		os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
-	else
-		echo "There was no output from the command."
-	fi
-
-	if grep -vq $'\x1e' "${os_cmd_internal_tmperr}"; then
-		echo "Standard error from the command:"
-		os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
-	else
-		echo "There was no error output from the command."
-	fi
-}
-readonly -f os::cmd::internal::print_try_until_results
-
 # os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
 # this is used to make the try_until_* output more concise
 function os::cmd::internal::mark_attempt() {
@@ -405,18 +385,29 @@ function os::cmd::internal::compress_output() {
 }
 readonly -f os::cmd::internal::compress_output
 
-# os::cmd::internal::print_results pretty-prints the stderr and stdout files
+# os::cmd::internal::print_results pretty-prints the stderr and stdout files. If attempt separators
+# are present, this function returns a concise view of the stdout and stderr output files using a
+# timeline format, where consecutive output lines that are the same are condensed into one line
+# with a counter
 function os::cmd::internal::print_results() {
 	if [[ -s "${os_cmd_internal_tmpout}" ]]; then
 		echo "Standard output from the command:"
-		cat "${os_cmd_internal_tmpout}"; echo
+		if grep -q $'\x1e' "${os_cmd_internal_tmpout}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
+		else
+			cat "${os_cmd_internal_tmpout}"; echo
+		fi
 	else
 		echo "There was no output from the command."
 	fi
 
 	if [[ -s "${os_cmd_internal_tmperr}" ]]; then
 		echo "Standard error from the command:"
-		cat "${os_cmd_internal_tmperr}"; echo
+		if grep -q $'\x1e' "${os_cmd_internal_tmperr}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
+		else
+			cat "${os_cmd_internal_tmperr}"; echo
+		fi
 	else
 		echo "There was no error output from the command."
 	fi
@@ -504,18 +495,18 @@ function os::cmd::internal::run_until_exit_code() {
 		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
 
 		if [[ -n ${VERBOSE-} ]]; then
-			os::cmd::internal::print_try_until_results
+			os::cmd::internal::print_results
 		fi
 		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
 
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::text::print_red "$(os::cmd::internal::print_results)"
 		return_code=1
 	fi
 
-	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	junit_log+=( "$(os::cmd::internal::print_results)" )
 	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
 	os::test::junit::declare_test_end
 	return "${return_code}"
@@ -587,18 +578,18 @@ function os::cmd::internal::run_until_text() {
 		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
 
 		if [[ -n ${VERBOSE-} ]]; then
-			os::cmd::internal::print_try_until_results
+			os::cmd::internal::print_results
 		fi
 		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
 
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::text::print_red "$(os::cmd::internal::print_results)"
 		return_code=1
 	fi
 
-	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	junit_log+=( "$(os::cmd::internal::print_results)" )
 	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
 	os::test::junit::declare_test_end
 	return "${return_code}"
