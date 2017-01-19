@@ -369,6 +369,13 @@ function os::cmd::internal::get_results() {
 }
 readonly -f os::cmd::internal::get_results
 
+# os::cmd::internal::get_last_results prints the stderr and stdout from the last attempt
+function os::cmd::internal::get_last_results() {
+	cat "${os_cmd_internal_tmpout}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
+	cat "${os_cmd_internal_tmperr}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
+}
+readonly -f os::cmd::internal::get_last_results
+
 # os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
 # this is used to make the try_until_* output more concise
 function os::cmd::internal::mark_attempt() {
@@ -556,8 +563,8 @@ function os::cmd::internal::run_until_text() {
 	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		local test_result
-		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_results)'; echo $? )
 		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_last_results)'; echo $? )
 
 		if (( test_succeeded )); then
 			break
