@@ -31,7 +31,7 @@ os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n asmail --as deads@deads.io -o name' "for-deads-email-by-annotation"
 os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*1[0-9]"
 os::cmd::expect_success 'oc delete project foo'
-os::cmd::try_until_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' '^bar$'
+os::cmd::try_until_not_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' 'foo'
 os::cmd::expect_success 'oc delete project bar'
 os::cmd::expect_success 'oc delete project asmail'
 
