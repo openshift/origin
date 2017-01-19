@@ -52,6 +52,15 @@ func GzipHandler(h http.Handler) http.Handler {
 	})
 }
 
+func SecurityHeadersHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("X-Frame-Options", "DENY")
+		h.ServeHTTP(w, r)
+	})
+}
+
 func generateEtag(r *http.Request, version string, varyHeaders []string) string {
 	varyHeaderValues := ""
 	for _, varyHeader := range varyHeaders {
