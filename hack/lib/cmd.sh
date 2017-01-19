@@ -118,7 +118,7 @@ readonly -f os::cmd::try_until_success
 # os::cmd::try_until_failure runs the cmd until either the command fails or times out
 # the default time-out for os::cmd::try_until_failure is 60 seconds.
 function os::cmd::try_until_failure() {
-	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one argument, got $#"; return 1; fi
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_failure expects at least one argument, got $#"; return 1; fi
 	local cmd=$1
 	local duration=${2:-$minute}
 	local interval=${3:-0.2}
@@ -130,7 +130,7 @@ readonly -f os::cmd::try_until_failure
 # os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
 # the default time-out for os::cmd::try_until_text is 60 seconds.
 function os::cmd::try_until_text() {
-	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_success expects at least two arguments, got $#"; return 1; fi
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_text expects at least two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local text=$2
 	local duration=${3:-minute}
