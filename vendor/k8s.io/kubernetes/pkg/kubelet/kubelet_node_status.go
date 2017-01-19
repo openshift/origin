@@ -295,9 +295,7 @@ func (kl *Kubelet) initialNode() (*api.Node, error) {
 			}
 		}
 	}
-	if err := kl.setNodeStatus(node); err != nil {
-		return nil, err
-	}
+	kl.setNodeStatus(node)
 
 	return node, nil
 }
@@ -361,9 +359,7 @@ func (kl *Kubelet) tryUpdateNodeStatus(tryNumber int) error {
 
 	kl.updatePodCIDR(node.Spec.PodCIDR)
 
-	if err := kl.setNodeStatus(node); err != nil {
-		return err
-	}
+	kl.setNodeStatus(node)
 	// Update the current status on the API server
 	updatedNode, err := kl.kubeClient.Core().Nodes().UpdateStatus(node)
 	// If update finishes sucessfully, mark the volumeInUse as reportedInUse to indicate
@@ -887,13 +883,12 @@ func (kl *Kubelet) setNodeVolumesInUseStatus(node *api.Node) {
 // any fields that are currently set.
 // TODO(madhusudancs): Simplify the logic for setting node conditions and
 // refactor the node status condition code out to a different file.
-func (kl *Kubelet) setNodeStatus(node *api.Node) error {
+func (kl *Kubelet) setNodeStatus(node *api.Node) {
 	for _, f := range kl.setNodeStatusFuncs {
 		if err := f(node); err != nil {
-			return err
+			glog.Warningf("Failed to set some node status fields: %s", err)
 		}
 	}
-	return nil
 }
 
 // defaultNodeStatusFuncs is a factory that generates the default set of
