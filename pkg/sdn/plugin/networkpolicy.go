@@ -25,11 +25,6 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-const (
-	// randomly-selected conntrack zone ID; FIXME, make this configurable
-	networkPolicyConntrackZone = 13877
-)
-
 type networkPolicyPlugin struct {
 	node  *OsdnNode
 	vnids *nodeVNIDMap
@@ -82,11 +77,8 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	}
 
 	otx := node.oc.NewTransaction()
-	otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=goto_table:30", np.node.networkInfo.ServiceNetwork.String())
-	otx.AddFlow("table=21, priority=100, ip, actions=ct(zone=%d,commit,table=30)", networkPolicyConntrackZone)
-	otx.AddFlow("table=80, priority=50, ip, actions=ct(zone=%d,commit,table=81)", networkPolicyConntrackZone)
-	otx.AddFlow("table=81, priority=100, ip, ct_state=+trk+est, actions=output:NXM_NX_REG2[]")
-	otx.AddFlow("table=81, priority=0, actions=drop")
+	otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=ct(commit,table=30)", np.node.networkInfo.ClusterNetwork.String())
+	otx.AddFlow("table=80, priority=200, ip, ct_state=+rpl, actions=output:NXM_NX_REG2[]")
 	if err := otx.EndTransaction(); err != nil {
 		return err
 	}

@@ -61,6 +61,7 @@ type OsdnNode struct {
 	localSubnetCIDR    string
 	localIP            string
 	hostName           string
+	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 
@@ -82,6 +83,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
+	var useConnTrack bool
 	switch strings.ToLower(pluginName) {
 	case osapi.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
@@ -92,7 +94,8 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	case osapi.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
 		pluginId = 2
-		minOvsVersion = "2.5.0"
+		minOvsVersion = "2.6.0"
+		useConnTrack = true
 	default:
 		// Not an OpenShift plugin
 		return nil, nil
@@ -130,7 +133,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	if err != nil {
 		return nil, err
 	}
-	oc := NewOVSController(ovsif, pluginId)
+	oc := NewOVSController(ovsif, pluginId, useConnTrack)
 
 	plugin := &OsdnNode{
 		policy:             policy,
@@ -140,6 +143,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		podManager:         newPodManager(kClient, policy, mtu, oc),
 		localIP:            selfIP,
 		hostName:           hostname,
+		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
@@ -234,7 +238,7 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod, !node.useConnTrack)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
@@ -252,7 +256,9 @@ func (node *OsdnNode) Start() error {
 	if err = node.policy.Start(node); err != nil {
 		return err
 	}
-	node.watchServices()
+	if !node.useConnTrack {
+		node.watchServices()
+	}
 
 	log.V(5).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetwork); err != nil {

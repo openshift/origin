@@ -17,15 +17,17 @@ type NodeIPTables struct {
 	ipt                iptables.Interface
 	clusterNetworkCIDR string
 	syncPeriod         time.Duration
+	masqueradeServices bool
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 }
 
-func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration, masqueradeServices bool) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
 		syncPeriod:         syncPeriod,
+		masqueradeServices: masqueradeServices,
 	}
 }
 
@@ -135,6 +137,13 @@ func (n *NodeIPTables) syncIPTableRules() error {
 const VXLAN_PORT = "4789"
 
 func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
+	var masqRule []string
+	if n.masqueradeServices {
+		masqRule = []string{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-service and pod-to-external traffic", "-j", "MASQUERADE"}
+	} else {
+		masqRule = []string{"-s", n.clusterNetworkCIDR, "!", "-d", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-external traffic", "-j", "MASQUERADE"}
+	}
+
 	return []Chain{
 		{
 			table:    "nat",
@@ -142,7 +151,7 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			srcChain: "POSTROUTING",
 			srcRule:  []string{"-m", "comment", "--comment", "rules for masquerading OpenShift traffic"},
 			rules: [][]string{
-				{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-service and pod-to-external traffic", "-j", "MASQUERADE"},
+				masqRule,
 			},
 		},
 		{
