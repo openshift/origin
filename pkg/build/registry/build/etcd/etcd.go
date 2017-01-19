@@ -34,7 +34,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 		CreateStrategy:      build.Strategy,
 		UpdateStrategy:      build.Strategy,
 		DeleteStrategy:      build.Strategy,
-		Decorator:           build.Decorator,
 		ReturnDeletedObject: false,
 	}
 
