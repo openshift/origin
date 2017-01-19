@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +24,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -35,7 +33,6 @@ import (
 
 type DebugOptions struct {
 	Attach kcmd.AttachOptions
-	Client *client.Client
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
 	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
@@ -277,12 +274,11 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 	o.Attach.Config = config
 
-	oc, kc, err := f.Clients()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
 	o.Attach.PodClient = kc.Core()
-	o.Client = oc
 	return nil
 }
 func (o DebugOptions) Validate() error {
@@ -394,21 +390,6 @@ func (o *DebugOptions) Debug() error {
 	})
 }
 
-func (o *DebugOptions) getContainerImageCommand(container *kapi.Container) ([]string, error) {
-	image := container.Image[strings.LastIndex(container.Image, "/")+1:]
-	name, id, ok := imageapi.SplitImageStreamImage(image)
-	if !ok {
-		return nil, errors.New("container image did not contain an id")
-	}
-	isimage, err := o.Client.ImageStreamImages(o.Attach.Pod.Namespace).Get(name, id)
-	if err != nil {
-		return nil, err
-	}
-
-	config := isimage.Image.DockerImageMetadata.Config
-	return append(config.Entrypoint, config.Cmd...), nil
-}
-
 // transformPodForDebug alters the input pod to be debuggable
 func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kapi.Pod, []string) {
 	pod := o.Attach.Pod
@@ -424,7 +405,9 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	originalCommand := append(container.Command, container.Args...)
 	container.Command = o.Command
 	if len(originalCommand) == 0 {
-		originalCommand, _ = o.getContainerImageCommand(container)
+		if cmd, ok := imageapi.ContainerImageEntrypointByAnnotation(pod.Annotations, o.Attach.ContainerName); ok {
+			originalCommand = cmd
+		}
 	}
 	container.Args = nil
 
