@@ -29,9 +29,11 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -711,6 +713,20 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 		body, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("server rejected our request %d\nremote: %s", resp.StatusCode, string(body))
 	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	if len(body) > 0 {
+		// In later server versions we return the created Build in the body.
+		var newBuild buildapi.Build
+		if err = json.Unmarshal(body, &buildapiv1.Build{}); err == nil {
+			if err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), body, &newBuild); err != nil {
+				return err
+			}
+
+			kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, false, "started")
+		}
+	}
+
 	return nil
 }
 

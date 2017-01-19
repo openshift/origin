@@ -43,6 +43,7 @@ import (
 
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
 	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -727,6 +728,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
+		// We use the buildapiv1 schemegroup to encode the Build that gets
+		// returned. As such, we need to make sure that the GroupVersion we use
+		// is the same API version that the storage is going to be used for.
+		buildapiv1.SchemeGroupVersion,
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),

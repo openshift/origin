@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -89,12 +91,6 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
-	if err != nil {
-		t.Fatalf("Couldn't subscribe to builds: %v", err)
-	}
-	defer watch.Stop()
-
 	for _, s := range []string{
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
@@ -102,10 +98,23 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	} {
 
 		// trigger build event sending push notification
-		postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		body := postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		if len(body) == 0 {
+			t.Errorf("Webhook did not return Build in body")
+		}
+		returnedBuild := &buildapiv1.Build{}
+		err := json.Unmarshal(body, returnedBuild)
+		if err != nil {
+			t.Errorf("Returned body is not a v1 Build")
+		}
+		if returnedBuild.Spec.Strategy.DockerStrategy == nil {
+			t.Errorf("Webhook returned incomplete or wrong Build")
+		}
 
-		event := <-watch.ResultChan()
-		actual := event.Object.(*buildapi.Build)
+		actual, err := clusterAdminClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+		if err != nil {
+			t.Errorf("Created build not found in cluster: %v", err)
+		}
 
 		// FIXME: I think the build creation is fast and in some situation we miss
 		// the BuildPhaseNew here. Note that this is not a bug, in future we should
@@ -116,6 +125,10 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 		if actual.Spec.Strategy.DockerStrategy.From.Name != "originalimage" {
 			t.Errorf("Expected %s, got %s", "originalimage", actual.Spec.Strategy.DockerStrategy.From.Name)
+		}
+
+		if actual.Name != returnedBuild.Name {
+			t.Errorf("Build returned in response body does not match created Build. Expected %s, got %s", actual.Name, returnedBuild.Name)
 		}
 	}
 }
@@ -268,7 +281,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 		postFile(osClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
-		timer := time.NewTimer(time.Second / 2)
+		timer := time.NewTimer(time.Second * 5)
 		select {
 		case <-timer.C:
 			// nothing should happen
@@ -279,7 +292,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client restclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
+func postFile(client restclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) []byte {
 	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/testdata/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
@@ -299,6 +312,7 @@ func postFile(client restclient.HTTPClient, event, filename, url string, expStat
 	if resp.StatusCode != expStatusCode {
 		t.Errorf("Wrong response code, expecting %d, got %d: %s!", expStatusCode, resp.StatusCode, string(body))
 	}
+	return body
 }
 
 func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildapi.BuildConfig {
@@ -325,6 +339,12 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 					Type: buildapi.GitHubWebHookBuildTriggerType,
 					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret102",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret103",
 					},
 				},
 			},
