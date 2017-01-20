@@ -1005,24 +1005,6 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: RouterRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: RouterRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: RouterGroup}},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: RegistryRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: RegistryRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: RegistryGroup}},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
 				Name: NodeRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
