@@ -29,6 +29,7 @@ const (
 	SvcDockerRegistry = "docker-registry"
 	SvcRouter         = "router"
 	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
+	RegistryServiceIP = "172.30.1.1"
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
@@ -60,6 +61,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 			Volume:         "/registry",
 			ServiceAccount: "registry",
 			HostMount:      path.Join(pvDir, "registry"),
+			ClusterIP:      RegistryServiceIP,
 		},
 	}
 	cmd := registry.NewCmdRegistry(f, "", "registry", out, errout)

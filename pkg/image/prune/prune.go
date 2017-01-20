@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
@@ -329,7 +330,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
-		if len(image.DockerImageConfig) > 0 {
+		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(image.DockerImageMetadata.ID) > 0 {
 			configName := image.DockerImageMetadata.ID
 			glog.V(4).Infof("Adding image config %q to graph", configName)
 			configNode := imagegraph.EnsureImageComponentConfigNode(g, configName)

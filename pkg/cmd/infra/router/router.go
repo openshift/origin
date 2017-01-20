@@ -51,8 +51,11 @@ type RouterSelection struct {
 	AllowedDomains     []string
 	WhitelistedDomains sets.String
 
-	AllowWildcardRoutes        bool
-	RestrictSubdomainOwnership bool
+	AllowWildcardRoutes bool
+
+	DisableNamespaceOwnershipCheck bool
+
+	EnableIngress bool
 }
 
 // Bind sets the appropriate labels
@@ -68,6 +71,8 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringSliceVar(&o.DeniedDomains, "denied-domains", envVarAsStrings("ROUTER_DENIED_DOMAINS", "", ","), "List of comma separated domains to deny in routes")
 	flag.StringSliceVar(&o.AllowedDomains, "allowed-domains", envVarAsStrings("ROUTER_ALLOWED_DOMAINS", "", ","), "List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list")
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
+	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "") == "true", "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
+	flag.BoolVar(&o.EnableIngress, "enable-ingress", cmdutil.Env("ROUTER_ENABLE_INGRESS", "") == "true", "Enable configuration via ingress resources")
 }
 
 // RouteSelectionFunc returns a func that identifies the host for a route.
@@ -79,10 +84,14 @@ func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
 		if !o.OverrideHostname && len(route.Spec.Host) > 0 {
 			return route.Spec.Host
 		}
+		// GetNameForHost returns the ingress name for a generated route, and the route route
+		// name otherwise.  When a route and ingress in the same namespace share a name, the
+		// route and the ingress' rules should receive the same generated host.
+		nameForHost := controller.GetNameForHost(route.Name)
 		s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
 			switch key {
 			case "name":
-				return route.Name, true
+				return nameForHost, true
 			case "namespace":
 				return route.Namespace, true
 			default:
@@ -203,9 +212,6 @@ func (o *RouterSelection) Complete() error {
 
 	o.BlacklistedDomains = sets.NewString(o.DeniedDomains...)
 	o.WhitelistedDomains = sets.NewString(o.AllowedDomains...)
-
-	// Restrict subdomains is currently enforced for wildcard routes.
-	o.RestrictSubdomainOwnership = o.AllowWildcardRoutes
 
 	return nil
 }

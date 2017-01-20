@@ -16,12 +16,12 @@ import (
 
 // ExtensionScriptsHandler concatenates and serves extension JavaScript files as one HTTP response.
 func ExtensionScriptsHandler(files []string, developmentMode bool) (http.Handler, error) {
-	return concatHandler(files, developmentMode, "text/javascript", ";\n")
+	return concatHandler(files, developmentMode, "application/javascript; charset=utf-8", ";\n")
 }
 
 // ExtensionStylesheetsHandler concatenates and serves extension stylesheets as one HTTP response.
 func ExtensionStylesheetsHandler(files []string, developmentMode bool) (http.Handler, error) {
-	return concatHandler(files, developmentMode, "text/css", "\n")
+	return concatHandler(files, developmentMode, "text/css; charset=utf-8", "\n")
 }
 
 func concatHandler(files []string, developmentMode bool, mediaType, separator string) (http.Handler, error) {

@@ -114,6 +114,8 @@ type RegistryConfig struct {
 	ServingCertPath string
 	ServingKeyPath  string
 
+	ClusterIP string
+
 	// TODO: accept environment values.
 }
 
@@ -284,6 +286,10 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	if !generate {
 		fmt.Fprintf(opts.out, "Docker registry %q service exists\n", name)
 		return nil
+	}
+
+	if len(opts.Config.ClusterIP) > 0 {
+		clusterIP = opts.Config.ClusterIP
 	}
 
 	// create new registry

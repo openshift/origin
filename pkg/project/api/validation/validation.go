@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/util/labelselector"
@@ -35,9 +36,9 @@ func ValidateProjectName(name string, prefix bool) []string {
 func ValidateProject(project *api.Project) field.ErrorList {
 	result := validation.ValidateObjectMeta(&project.ObjectMeta, false, ValidateProjectName, field.NewPath("metadata"))
 
-	if !validateNoNewLineOrTab(project.Annotations[projectapi.ProjectDisplayName]) {
-		result = append(result, field.Invalid(field.NewPath("metadata", "annotations").Key(projectapi.ProjectDisplayName),
-			project.Annotations[projectapi.ProjectDisplayName], "may not contain a new line or tab"))
+	if !validateNoNewLineOrTab(project.Annotations[oapi.OpenShiftDisplayName]) {
+		result = append(result, field.Invalid(field.NewPath("metadata", "annotations").Key(oapi.OpenShiftDisplayName),
+			project.Annotations[oapi.OpenShiftDisplayName], "may not contain a new line or tab"))
 	}
 	result = append(result, validateNodeSelector(project)...)
 	return result
@@ -62,7 +63,7 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 
 	// TODO this restriction exists because our authorizer/admission cannot properly express and restrict mutation on the field level.
 	for name, value := range newProject.Annotations {
-		if name == projectapi.ProjectDisplayName || name == projectapi.ProjectDescription {
+		if name == oapi.OpenShiftDisplayName || name == oapi.OpenShiftDescription {
 			continue
 		}
 
@@ -72,7 +73,7 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 	}
 	// check for deletions
 	for name, value := range oldProject.Annotations {
-		if name == projectapi.ProjectDisplayName || name == projectapi.ProjectDescription {
+		if name == oapi.OpenShiftDisplayName || name == oapi.OpenShiftDescription {
 			continue
 		}
 		if _, inNew := newProject.Annotations[name]; !inNew {

@@ -119,7 +119,7 @@ update: build
 #
 # Example:
 #   make test
-test: test-tools test-integration test-assets test-end-to-end
+test: test-tools test-integration test-end-to-end
 .PHONY: test
 
 # Run unit tests.
@@ -170,16 +170,6 @@ test-end-to-end: build
 test-tools:
 	hack/test-tools.sh
 .PHONY: test-tools
-
-# Run assets tests.
-#
-# Example:
-#   make test-assets
-test-assets:
-ifeq ($(TEST_ASSETS),true)
-	hack/test-assets.sh
-endif
-.PHONY: test-assets
 
 # Run extended tests.
 #

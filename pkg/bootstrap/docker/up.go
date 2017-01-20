@@ -1,12 +1,14 @@
 package docker
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/blang/semver"
 	"github.com/docker/docker/cliconfig"
@@ -19,6 +21,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockermachine"
@@ -33,7 +36,6 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -149,6 +151,9 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "If true, install metrics (experimental)")
 	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "If true, install logging (experimental)")
+	cmd.Flags().StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
+	cmd.Flags().StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
+	cmd.Flags().StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 	return cmd
 }
 
@@ -198,6 +203,9 @@ type ClientStartConfig struct {
 	UseExistingConfig        bool
 	Environment              []string
 	ServerLogLevel           int
+	HTTPProxy                string
+	HTTPSProxy               string
+	NoProxy                  []string
 
 	dockerClient    *docker.Client
 	engineAPIClient *dockerclient.Client
@@ -656,24 +664,48 @@ func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 	return nil
 }
 
+// updateNoProxy will add some default values to the NO_PROXY setting
+// if they are not present
+func (c *ClientStartConfig) updateNoProxy() {
+	values := []string{"127.0.0.1", c.ServerIP, c.RouterIP, "localhost", openshift.RegistryServiceIP, "172.30.0.0/8"}
+	ipFromServer, err := c.OpenShiftHelper().ServerIP()
+	if err == nil {
+		values = append(values, ipFromServer)
+	}
+	noProxySet := sets.NewString(c.NoProxy...)
+	for _, v := range values {
+		if !noProxySet.Has(v) {
+			noProxySet.Insert(v)
+			c.NoProxy = append(c.NoProxy, v)
+		}
+	}
+}
+
 // StartOpenShift starts the OpenShift container
 func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	var err error
+
+	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
+		c.updateNoProxy()
+	}
+
 	opt := &openshift.StartOptions{
-		ServerIP:                 c.ServerIP,
-		RouterIP:                 c.RouterIP,
-		UseSharedVolume:          !c.UseNsenterMount,
-		SetPropagationMode:       c.SetPropagationMode,
-		Images:                   c.imageFormat(),
-		HostVolumesDir:           c.HostVolumesDir,
-		HostConfigDir:            c.HostConfigDir,
-		HostDataDir:              c.HostDataDir,
-		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
-		UseExistingConfig:        c.UseExistingConfig,
-		Environment:              c.Environment,
-		LogLevel:                 c.ServerLogLevel,
-		DNSPort:                  c.DNSPort,
-		PortForwarding:           c.PortForwarding,
+		ServerIP:           c.ServerIP,
+		RouterIP:           c.RouterIP,
+		UseSharedVolume:    !c.UseNsenterMount,
+		SetPropagationMode: c.SetPropagationMode,
+		Images:             c.imageFormat(),
+		HostVolumesDir:     c.HostVolumesDir,
+		HostConfigDir:      c.HostConfigDir,
+		HostDataDir:        c.HostDataDir,
+		UseExistingConfig:  c.UseExistingConfig,
+		Environment:        c.Environment,
+		LogLevel:           c.ServerLogLevel,
+		DNSPort:            c.DNSPort,
+		PortForwarding:     c.PortForwarding,
+		HTTPProxy:          c.HTTPProxy,
+		HTTPSProxy:         c.HTTPSProxy,
+		NoProxy:            c.NoProxy,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
@@ -833,8 +865,55 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	msg += "To login as administrator:\n" +
 		"    oc login -u system:admin\n\n"
 
+	msg += c.checkProxySettings()
+
 	fmt.Fprintf(out, msg)
 	return nil
+}
+
+// checkProxySettings compares proxy settings specified for cluster up
+// and those on the Docker daemon and generates appropriate warnings.
+func (c *ClientStartConfig) checkProxySettings() string {
+	warnings := []string{}
+	dockerHTTPProxy, dockerHTTPSProxy, dockerNoProxy, err := c.DockerHelper().GetDockerProxySettings()
+	if err != nil {
+		return "Unexpected error: " + err.Error()
+	}
+	// Check HTTP proxy
+	if len(c.HTTPProxy) > 0 && len(dockerHTTPProxy) == 0 {
+		warnings = append(warnings, "You specified an HTTP proxy for cluster up, but one is not configured for the Docker daemon")
+	} else if len(c.HTTPProxy) == 0 && len(dockerHTTPProxy) > 0 {
+		warnings = append(warnings, fmt.Sprintf("An HTTP proxy (%s) is configured for the Docker daemon, but you did not specify one for cluster up", dockerHTTPProxy))
+	} else if c.HTTPProxy != dockerHTTPProxy {
+		warnings = append(warnings, fmt.Sprintf("The HTTP proxy configured for the Docker daemon (%s) is not the same one you specified for cluster up", dockerHTTPProxy))
+	}
+
+	// Check HTTPS proxy
+	if len(c.HTTPSProxy) > 0 && len(dockerHTTPSProxy) == 0 {
+		warnings = append(warnings, "You specified an HTTPS proxy for cluster up, but one is not configured for the Docker daemon")
+	} else if len(c.HTTPSProxy) == 0 && len(dockerHTTPSProxy) > 0 {
+		warnings = append(warnings, fmt.Sprintf("An HTTPS proxy (%s) is configured for the Docker daemon, but you did not specify one for cluster up", dockerHTTPSProxy))
+	} else if c.HTTPSProxy != dockerHTTPSProxy {
+		warnings = append(warnings, fmt.Sprintf("The HTTPS proxy configured for the Docker daemon (%s) is not the same one you specified for cluster up", dockerHTTPSProxy))
+	}
+
+	if len(dockerHTTPProxy) > 0 || len(dockerHTTPSProxy) > 0 {
+		dockerNoProxyList := strings.Split(dockerNoProxy, ",")
+		dockerNoProxySet := sets.NewString(dockerNoProxyList...)
+		if !dockerNoProxySet.Has(openshift.RegistryServiceIP) {
+			warnings = append(warnings, fmt.Sprintf("A proxy is configured for Docker, however %[1]s is not included in its NO_PROXY list.\n"+
+				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", openshift.RegistryServiceIP))
+		}
+	}
+
+	if len(warnings) > 0 {
+		buf := &bytes.Buffer{}
+		for _, w := range warnings {
+			fmt.Fprintf(buf, "WARNING: %s\n", w)
+		}
+		return buf.String()
+	}
+	return ""
 }
 
 // Factory returns a command factory that works with OpenShift server's admin credentials

@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a7ef5755b52b3fa2fa9e9b4235758defdf231660
+%global commit a11eae8517602cb40363460a21bccad094914c0a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.5+a7ef575-58 OS_GIT_COMMIT=a7ef575 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.6+a11eae8-76 OS_GIT_COMMIT=a11eae8 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.6
+Version:        3.5.0.7
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,101 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Jan 20 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.7
+- bump(github.com/openshift/origin-web-console):
+  5ca208d4d341c22752a25127dcd08450ccd27e76 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  036bca26763207ec4014eb6e8a993c0c0bad2e12 (dmcphers+openshiftbot@redhat.com)
+- Wait for the token to be added to serviceaccount before running command
+  (maszulik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4d03d9894e749c30524b1b07b85f44de5d915553 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ce46f5a444df26078d048ee19b7b064e725638e9 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5371b156fbb324d5700562772215a1c4fefa485a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c298116958c86d3dc27e3a3e31df3fff2a5dfd6b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0c6f32f9c822af3a7710e8a7f4ad53c4f3c7930e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4b8b74b74af7b99de3dd8fdf1b7f12e3aae32e0b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c8051e9b45848184b98ce0b79a98f953d7bfb4ca (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f8380670ab9bee828a7dc01382b627b2618384ef (dmcphers+openshiftbot@redhat.com)
+- router: validate ingress compatibility with namespace filtering
+  (marun@redhat.com)
+- router: add support for configuration by ingress (marun@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  37d4d789e90d78264c5b1e77127188320a0a111e (dmcphers+openshiftbot@redhat.com)
+- Prune manifest config of schema 2 images (miminar@redhat.com)
+- UPSTREAM: 39844: fix bug not using volumetype config in create volume
+  (hchiramm@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  487f7df29c1b7167c35da40f11f4c8cec657be00 (dmcphers+openshiftbot@redhat.com)
+- Update quota test to better express intent (skuznets@redhat.com)
+- Add `os::cmd::try_until_not_text` utility function (skuznets@redhat.com)
+- Update `os::cmd` error messages to be more correct (skuznets@redhat.com)
+- Run output tests only on the last attempt for `os::cmd` (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  32bbb0ff1f294cfdc8eb81118c8717fba185fc0e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  01a4bedf245788cbca27c893c87a99f00547bdc8 (dmcphers+openshiftbot@redhat.com)
+- Re-enable etcd3 mode and proto storage (ccoleman@redhat.com)
+- Refactor `os::cmd` result printer (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  709cca2cbb68cb840a747aeb012dcc9a46aee198 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  dee65074bb6243f3a284eff2e546fea12f9647a2 (dmcphers+openshiftbot@redhat.com)
+- Fixed attempt marking code for try_until stderr (skuznets@redhat.com)
+- Updating external examples (cdaley@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  61b0d0fa14b68177c16cbc5b9fa2140988fe0324 (dmcphers+openshiftbot@redhat.com)
+- Remove unused make target (maszulik@redhat.com)
+- cluster up: mount host /dev into origin container (cewong@redhat.com)
+- UPSTREAM: 38579: Let admin configure the volume type and parameters for
+  gluster DP volumes (hchiramm@redhat.com)
+- UPSTREAM: 38378: glusterfs: properly check gidMin and gidMax values from SC
+  individually (hchiramm@redhat.com)
+- UPSTREAM: 37986: Add `clusterid`, an optional parameter to storageclass.
+  (hchiramm@redhat.com)
+- Bump to golang-1.8rc1 (ccoleman@redhat.com)
+- Add ut test for the function getContainerNameOrID (meng.hao1@zte.com.cn)
+- bump(github.com/openshift/origin-web-console):
+  5cb015108589cb3e9bbabe953ce86275c5a3a082 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f6709f685529329139b6b61aaf538dbcaf2d85f3 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2cb38e1044b8ac640b464f48765d9d7ba22c250f (dmcphers+openshiftbot@redhat.com)
+- Add headers that provide extra security protection in browsers
+  (jforrest@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  04dcf30d6be1481cbb8a51967039015a4741864d (dmcphers+openshiftbot@redhat.com)
+- Add annotations to roles. (mkhan@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f3d64d5d546617b431ee4f5a20803c6bba4111c2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2d9fec830c03c77a877d8afc63832dea206ad72e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3c430699d21d47007b3fafdb6736881974c8bfa1 (dmcphers+openshiftbot@redhat.com)
+- kubelet must have rw to cgroups for pod/qos cgroups to function
+  (decarr@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  832cec030ff015081965dd6675e5b0fe98ec02c2 (dmcphers+openshiftbot@redhat.com)
+- cluster up: add proxy support (cewong@redhat.com)
+- update to compile against bumped glog godep (jminter@redhat.com)
+- bump(github.com/golang/glog) 44145f04b68cf362d9c4df2182967c2275eaefed
+  (jminter@redhat.com)
+- fix broken "failing postCommit default entrypoint" test and reformat for
+  clarity (jminter@redhat.com)
+- ipfailover - user check script overrides default (pcameron@redhat.com)
+- Update help text as per @knobunc review comments and regenerate the docs. Fix
+  failing integration test. (smitram@gmail.com)
+- Add support to disable the namespace ownership checks. This allows routes to
+  claim non-overlapping hosts (+ paths) and wildcards across namespace
+  boundaries. Update generated docs and completions. (smitram@gmail.com)
+
 * Wed Jan 18 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.6
 - bump(github.com/openshift/origin-web-console):
   c42118856232d57d410b17ca20d8a193cd22995b (dmcphers+openshiftbot@redhat.com)
