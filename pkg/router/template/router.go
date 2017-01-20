@@ -250,7 +250,7 @@ func generateRouteRegexp(hostname, path string, wildcard bool) string {
 		}
 	}
 
-	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, path)
+	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, regexp.QuoteMeta(path))
 }
 
 // Generates the host name to use for serving/certificate matching.
