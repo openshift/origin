@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -84,7 +87,8 @@ func imageWithLayers(id, ref string, configName *string, layers ...string) image
 				imageapi.ManagedByOpenShiftAnnotation: "true",
 			},
 		},
-		DockerImageReference: ref,
+		DockerImageReference:         ref,
+		DockerImageManifestMediaType: schema1.MediaTypeManifest,
 	}
 
 	if configName != nil {
@@ -92,6 +96,7 @@ func imageWithLayers(id, ref string, configName *string, layers ...string) image
 			ID: *configName,
 		}
 		image.DockerImageConfig = fmt.Sprintf("{Digest: %s}", *configName)
+		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 	}
 
 	image.DockerImageLayers = []imageapi.ImageLayer{}
