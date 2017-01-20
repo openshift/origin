@@ -451,13 +451,13 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) erro
 	return nil
 }
 
-func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
+func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{
 			Verb:         verb,
 			Group:        imageapi.GroupName,
-			Resource:     "imagestreams/layers",
-			ResourceName: imageRepo,
+			Resource:     resource,
+			ResourceName: name,
 		},
 	}
 	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
@@ -476,6 +476,14 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 	}
 
 	return nil
+}
+
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagestreams/layers", namespace, imageRepo, verb, client)
+}
+
+func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, client client.LocalSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagesignatures", namespace, imageRepo, "create", client)
 }
 
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
@@ -487,30 +495,6 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 		},
 	}
 	response, err := client.SubjectAccessReviews().Create(&sar)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
-		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return ErrOpenShiftAccessDenied
-		}
-		return err
-	}
-	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
-		return ErrOpenShiftAccessDenied
-	}
-	return nil
-}
-
-func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, client client.LocalSubjectAccessReviewsNamespacer) error {
-	sar := authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.Action{
-			Verb:         "create",
-			Group:        imageapi.GroupName,
-			Resource:     "imagesignatures",
-			ResourceName: imageRepo,
-		},
-	}
-	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
