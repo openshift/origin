@@ -11,7 +11,6 @@ type OAuthClientsInterface interface {
 	OAuthClients() OAuthClientInterface
 }
 
-// declare new oauth restful interface
 type OAuthClientInterface interface {
 	Create(obj *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error)
 	List(opts kapi.ListOptions) (*oauthapi.OAuthClientList, error)
