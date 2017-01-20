@@ -23995,6 +23995,30 @@
      "config": {
       "$ref": "v1.ObjectReference",
       "description": "config is an ObjectReference to the BuildConfig this Build is based on."
+     },
+     "output": {
+      "$ref": "v1.BuildStatusOutput",
+      "description": "output describes the Docker image the build has produced."
+     }
+    }
+   },
+   "v1.BuildStatusOutput": {
+    "id": "v1.BuildStatusOutput",
+    "description": "BuildStatusOutput contains the status of the built image.",
+    "properties": {
+     "to": {
+      "$ref": "v1.BuildStatusOutputTo",
+      "description": "to describes the status of the built image being pushed to a registry."
+     }
+    }
+   },
+   "v1.BuildStatusOutputTo": {
+    "id": "v1.BuildStatusOutputTo",
+    "description": "BuildStatusOutputTo describes the status of the built image with regards to image registry to which it was supposed to be pushed.",
+    "properties": {
+     "imageDigest": {
+      "type": "string",
+      "description": "imageDigest is the digest of the built Docker image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand."
      }
     }
    },

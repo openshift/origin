@@ -140,6 +140,10 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
+		if build.Status.Output.To != nil && len(build.Status.Output.To.ImageDigest) > 0 {
+			formatString(out, "Image Digest", build.Status.Output.To.ImageDigest)
+		}
+
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 

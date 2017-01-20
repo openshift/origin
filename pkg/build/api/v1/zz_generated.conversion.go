@@ -55,6 +55,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_BuildSpec_To_v1_BuildSpec,
 		Convert_v1_BuildStatus_To_api_BuildStatus,
 		Convert_api_BuildStatus_To_v1_BuildStatus,
+		Convert_v1_BuildStatusOutput_To_api_BuildStatusOutput,
+		Convert_api_BuildStatusOutput_To_v1_BuildStatusOutput,
+		Convert_v1_BuildStatusOutputTo_To_api_BuildStatusOutputTo,
+		Convert_api_BuildStatusOutputTo_To_v1_BuildStatusOutputTo,
 		Convert_v1_BuildStrategy_To_api_BuildStrategy,
 		Convert_api_BuildStrategy_To_v1_BuildStrategy,
 		Convert_v1_BuildTriggerCause_To_api_BuildTriggerCause,
@@ -763,6 +767,9 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *api.Bui
 	} else {
 		out.Config = nil
 	}
+	if err := Convert_v1_BuildStatusOutput_To_api_BuildStatusOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -788,11 +795,50 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *Bui
 	} else {
 		out.Config = nil
 	}
+	if err := Convert_api_BuildStatusOutput_To_v1_BuildStatusOutput(&in.Output, &out.Output, s); err != nil {
+		return err
+	}
 	return nil
 }
 
 func Convert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *BuildStatus, s conversion.Scope) error {
 	return autoConvert_api_BuildStatus_To_v1_BuildStatus(in, out, s)
+}
+
+func autoConvert_v1_BuildStatusOutput_To_api_BuildStatusOutput(in *BuildStatusOutput, out *api.BuildStatusOutput, s conversion.Scope) error {
+	out.To = (*api.BuildStatusOutputTo)(unsafe.Pointer(in.To))
+	return nil
+}
+
+func Convert_v1_BuildStatusOutput_To_api_BuildStatusOutput(in *BuildStatusOutput, out *api.BuildStatusOutput, s conversion.Scope) error {
+	return autoConvert_v1_BuildStatusOutput_To_api_BuildStatusOutput(in, out, s)
+}
+
+func autoConvert_api_BuildStatusOutput_To_v1_BuildStatusOutput(in *api.BuildStatusOutput, out *BuildStatusOutput, s conversion.Scope) error {
+	out.To = (*BuildStatusOutputTo)(unsafe.Pointer(in.To))
+	return nil
+}
+
+func Convert_api_BuildStatusOutput_To_v1_BuildStatusOutput(in *api.BuildStatusOutput, out *BuildStatusOutput, s conversion.Scope) error {
+	return autoConvert_api_BuildStatusOutput_To_v1_BuildStatusOutput(in, out, s)
+}
+
+func autoConvert_v1_BuildStatusOutputTo_To_api_BuildStatusOutputTo(in *BuildStatusOutputTo, out *api.BuildStatusOutputTo, s conversion.Scope) error {
+	out.ImageDigest = in.ImageDigest
+	return nil
+}
+
+func Convert_v1_BuildStatusOutputTo_To_api_BuildStatusOutputTo(in *BuildStatusOutputTo, out *api.BuildStatusOutputTo, s conversion.Scope) error {
+	return autoConvert_v1_BuildStatusOutputTo_To_api_BuildStatusOutputTo(in, out, s)
+}
+
+func autoConvert_api_BuildStatusOutputTo_To_v1_BuildStatusOutputTo(in *api.BuildStatusOutputTo, out *BuildStatusOutputTo, s conversion.Scope) error {
+	out.ImageDigest = in.ImageDigest
+	return nil
+}
+
+func Convert_api_BuildStatusOutputTo_To_v1_BuildStatusOutputTo(in *api.BuildStatusOutputTo, out *BuildStatusOutputTo, s conversion.Scope) error {
+	return autoConvert_api_BuildStatusOutputTo_To_v1_BuildStatusOutputTo(in, out, s)
 }
 
 func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *api.BuildStrategy, s conversion.Scope) error {
