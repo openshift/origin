@@ -356,6 +356,7 @@ os::cmd::expect_success 'oc whoami'
 
 os::log::info "Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
+os::cmd::try_until_success "oc sa get-token default"
 oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
 # TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
 #os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
