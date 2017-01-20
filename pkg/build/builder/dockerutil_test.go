@@ -173,3 +173,19 @@ func TestPushImage(t *testing.T) {
 	}
 	defer func() { fooBarRunTimes = 0 }()
 }
+
+func TestGetContainerNameOrID(t *testing.T) {
+	c := &docker.Container{}
+	c.ID = "ID"
+	c.Name = "Name"
+	ret := getContainerNameOrID(c)
+	if ret != c.Name {
+		t.Errorf("getContainerNameOrID err. ret is %s", ret)
+	}
+
+	c.Name = ""
+	ret = getContainerNameOrID(c)
+	if ret != c.ID {
+		t.Errorf("getContainerNameOrID err.ret is %s", ret)
+	}
+}
