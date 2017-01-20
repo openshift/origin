@@ -17,8 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -105,7 +103,6 @@ type RegistryConfig struct {
 	Volume         string
 	HostMount      string
 	DryRun         bool
-	Credentials    string
 	Selector       string
 	ServiceAccount string
 	DaemonSet      bool
@@ -180,19 +177,12 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 	cmd.Flags().StringVar(&cfg.Volume, "volume", cfg.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
 	cmd.Flags().StringVar(&cfg.HostMount, "mount-host", cfg.HostMount, "If set, the registry volume will be created as a host-mount at this path.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
-	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the registry pod.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
 	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
 	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
-
-	// autocompletion hints
-	cmd.MarkFlagFilename("credentials", "kubeconfig")
-
-	// Deprecate credentials
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the registry will use to make API calls")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -294,36 +284,9 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	// create new registry
 	secretEnv := app.Environment{}
-	switch {
-	case len(opts.Config.ServiceAccount) == 0 && len(opts.Config.Credentials) == 0:
-		return fmt.Errorf("registry could not be created; a service account or the path to a .kubeconfig file must be provided")
-	case len(opts.Config.Credentials) > 0:
-		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: opts.Config.Credentials}
-		credentials, err := clientConfigLoadingRules.Load()
-		if err != nil {
-			return fmt.Errorf("registry does not exist; the provided credentials %q could not be loaded: %v", opts.Config.Credentials, err)
-		}
-		config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return fmt.Errorf("registry does not exist; the provided credentials %q could not be used: %v", opts.Config.Credentials, err)
-		}
-		if err := restclient.LoadTLSFiles(config); err != nil {
-			return fmt.Errorf("registry does not exist; the provided credentials %q could not load certificate info: %v", opts.Config.Credentials, err)
-		}
-		if !config.Insecure && (len(config.KeyData) == 0 || len(config.CertData) == 0) {
-			return fmt.Errorf("registry does not exist; the provided credentials %q are missing the client certificate and/or key", opts.Config.Credentials)
-		}
-
-		secretEnv = app.Environment{
-			"OPENSHIFT_MASTER":    config.Host,
-			"OPENSHIFT_CA_DATA":   string(config.CAData),
-			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-			"OPENSHIFT_CERT_DATA": string(config.CertData),
-			"OPENSHIFT_INSECURE":  fmt.Sprintf("%t", config.Insecure),
-		}
+	if len(opts.Config.ServiceAccount) == 0 {
+		return fmt.Errorf("registry could not be created; a service account must be provided")
 	}
-
-	needServiceAccountRole := len(opts.Config.ServiceAccount) > 0 && len(opts.Config.Credentials) == 0
 
 	var servingCert, servingKey []byte
 	if len(opts.Config.ServingCertPath) > 0 {
@@ -405,25 +368,24 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	for _, s := range secrets {
 		objects = append(objects, s)
 	}
-	if needServiceAccountRole {
-		objects = append(objects,
-			&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: opts.Config.ServiceAccount}},
-			&authapi.ClusterRoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", opts.Config.Name)},
-				Subjects: []kapi.ObjectReference{
-					{
-						Kind:      "ServiceAccount",
-						Name:      opts.Config.ServiceAccount,
-						Namespace: opts.namespace,
-					},
-				},
-				RoleRef: kapi.ObjectReference{
-					Kind: "ClusterRole",
-					Name: "system:registry",
+
+	objects = append(objects,
+		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: opts.Config.ServiceAccount}},
+		&authapi.ClusterRoleBinding{
+			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", opts.Config.Name)},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind:      "ServiceAccount",
+					Name:      opts.Config.ServiceAccount,
+					Namespace: opts.namespace,
 				},
 			},
-		)
-	}
+			RoleRef: kapi.ObjectReference{
+				Kind: "ClusterRole",
+				Name: "system:registry",
+			},
+		},
+	)
 
 	if opts.Config.DaemonSet {
 		objects = append(objects, &extensions.DaemonSet{

@@ -39,7 +39,6 @@ type IPFailoverConfigCmdOptions struct {
 
 	Type           string
 	ImageTemplate  variable.ImageTemplate
-	Credentials    string
 	ServicePort    int
 	Selector       string
 	Create         bool

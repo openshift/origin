@@ -5,8 +5,6 @@ import (
 	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -17,50 +15,14 @@ const defaultInterface = "eth0"
 const libModulesVolumeName = "lib-modules"
 const libModulesPath = "/lib/modules"
 
-//  Get kube client configuration from a file containing credentials for
-//  connecting to the master.
-func getClientConfig(path string) (*restclient.Config, error) {
-	if 0 == len(path) {
-		return nil, nil
-	}
-
-	rules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: path, Precedence: []string{}}
-	credentials, err := rules.Load()
-	if err != nil {
-		return nil, fmt.Errorf("Could not load credentials from %q: %v", path, err)
-	}
-
-	config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
-	if err != nil {
-		return nil, fmt.Errorf("Credentials %q error: %v", path, err)
-	}
-
-	if err = restclient.LoadTLSFiles(config); err != nil {
-		return nil, fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
-	}
-
-	return config, nil
-}
-
 //  Generate the IP failover monitor (keepalived) container environment entries.
-func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *restclient.Config) app.Environment {
+func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.FormatInt(int64(options.Replicas), 10)
 	interval := strconv.Itoa(options.CheckInterval)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
 	env := app.Environment{}
 
-	if kconfig != nil {
-		insecureStr := strconv.FormatBool(kconfig.Insecure)
-		env.Add(app.Environment{
-			"OPENSHIFT_MASTER":    kconfig.Host,
-			"OPENSHIFT_CA_DATA":   string(kconfig.CAData),
-			"OPENSHIFT_KEY_DATA":  string(kconfig.KeyData),
-			"OPENSHIFT_CERT_DATA": string(kconfig.CertData),
-			"OPENSHIFT_INSECURE":  insecureStr,
-		})
-
-	}
 	env.Add(app.Environment{
 
 		"OPENSHIFT_HA_CONFIG_NAME":       name,
@@ -133,12 +95,7 @@ func generateContainerConfig(name string, options *ipfailover.IPFailoverConfigCm
 		return containers, nil
 	}
 
-	config, err := getClientConfig(options.Credentials)
-	if err != nil {
-		return containers, err
-	}
-
-	env := generateEnvEntries(name, options, config)
+	env := generateEnvEntries(name, options)
 
 	c := generateFailoverMonitorContainerConfig(name, options, env)
 	if c != nil {
