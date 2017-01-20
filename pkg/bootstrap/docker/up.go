@@ -92,22 +92,22 @@ var (
 	  %[1]s --image-streams=centos7`)
 
 	imageStreams = map[string]string{
-		"centos7": "examples/image-streams/image-streams-centos7.json",
-		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
+		"centos7": "examples/image-streams/image-streams-centos7.yaml",
+		"rhel7":   "examples/image-streams/image-streams-rhel7.yaml",
 	}
 
 	templateLocations = map[string]string{
-		"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
-		"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
-		"mysql":                       "examples/db-templates/mysql-persistent-template.json",
-		"postgresql":                  "examples/db-templates/postgresql-persistent-template.json",
-		"cakephp quickstart":          "examples/quickstarts/cakephp-mysql.json",
-		"dancer quickstart":           "examples/quickstarts/dancer-mysql.json",
-		"django quickstart":           "examples/quickstarts/django-postgresql.json",
-		"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb.json",
-		"rails quickstart":            "examples/quickstarts/rails-postgresql.json",
-		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
-		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
+		"mongodb":                     "examples/db-templates/mongodb-persistent-template.yaml",
+		"mariadb":                     "examples/db-templates/mariadb-persistent-template.yaml",
+		"mysql":                       "examples/db-templates/mysql-persistent-template.yaml",
+		"postgresql":                  "examples/db-templates/postgresql-persistent-template.yaml",
+		"cakephp quickstart":          "examples/quickstarts/cakephp-mysql.yaml",
+		"dancer quickstart":           "examples/quickstarts/dancer-mysql.yaml",
+		"django quickstart":           "examples/quickstarts/django-postgresql.yaml",
+		"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb.yaml",
+		"rails quickstart":            "examples/quickstarts/rails-postgresql.yaml",
+		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.yaml",
+		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.yaml",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 		"logging":                     "examples/logging/logging-deployer.yaml",
 	}

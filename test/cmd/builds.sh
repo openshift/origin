@@ -71,7 +71,7 @@ os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.outpu
 os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
 
 os::cmd::expect_success 'oc delete all --all'
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.yaml -l build=docker | oc create -f -'
 os::cmd::expect_success 'oc get buildConfigs'
 os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
@@ -121,7 +121,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/builds/cancel-build"
 os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "restarted build \"${started}\""
 os::cmd::expect_success 'oc delete all --all'
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.yaml -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
 os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build "ruby-sample-build-1" cancelled'

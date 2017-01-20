@@ -1,0 +1,14 @@
+---
+kind: Project
+apiVersion: v1
+metadata:
+  name: hello-openshift-project
+  creationTimestamp:
+  labels:
+    name: hello-openshift-project
+  annotations:
+    openshift.io/description: This is an example project to demonstrate OpenShift
+      v3
+    openshift.io/display-name: Hello OpenShift
+spec: {}
+status: {}

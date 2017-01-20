@@ -177,9 +177,9 @@ NOTE: By default your origin directory (on your host machine) will be mounted as
 10.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
 
         # load image streams
-        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift
+        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.yaml -n openshift
         # load templates
-        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-stibuild.json -n openshift
+        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-s2ibuild.yaml -n openshift
         $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates -n openshift
 
 

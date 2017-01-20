@@ -25,7 +25,7 @@ $ make
 You can import this template to OpenShift using:
 
 ```
-$ oc create -f examples/etcd/template.json
+$ oc create -f examples/etcd/template.yaml
 ```
 
 Then you can navigate to OpenShift UI and click the 'Create' button on top right
@@ -34,7 +34,7 @@ and choose 'Browse templates...'. Choose the 'etcd' and hit create.
 Another way, is to use the CLI only:
 
 ```
-$ oc process -f examples/etcd/template.json | oc create -f -
+$ oc process -f examples/etcd/template.yaml | oc create -f -
 ```
 
 ### How does it work

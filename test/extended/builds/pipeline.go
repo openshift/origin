@@ -16,7 +16,7 @@ import (
 var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 	var (
-		jenkinsTemplatePath       = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsTemplatePath       = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.yaml")
 		mavenSlavePipelinePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath     = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")

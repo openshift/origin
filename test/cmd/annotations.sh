@@ -12,7 +12,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/annotate"
 # This test validates empty values in key-value pairs set by the annotate command
-os::cmd::expect_success_and_text 'oc process -f examples/zookeeper/template.json | oc apply -f -' 'pod "zookeeper-1" created'
+os::cmd::expect_success_and_text 'oc process -f examples/zookeeper/template.yaml | oc apply -f -' 'pod "zookeeper-1" created'
 os::cmd::expect_success_and_text 'oc annotate pod zookeeper-1 node-selector=""' 'pod "zookeeper-1" annotated'
 os::cmd::expect_success_and_not_text 'oc get pod zookeeper-1 --template="{{index .metadata.annotations \"node-selector\"}}"' '.'
 

@@ -33,11 +33,11 @@ Steps
 
         $ oc new-app jenkins-ephemeral
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
-    
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.yaml template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
+
 1. Create the sample application configuration
 
-        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/application-template.json
+        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/application-template.yaml
 
 1. View/Manage Jenkins
 
@@ -49,10 +49,10 @@ Steps
 
     If you do not have a router or your host system does not support xip.io name resolution, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
-    **Note**: The OpenShift Login plugin by default manages authentication into any Jenkins instance running in OpenShift.  When this is the case, and you do intend to access Jenkins via the Service IP and not the Route, then you will need to annotate the Jenkins service account with a redirect URL so that the OAuth server's whitelist is updated and allow the login to Jenkins to complete. 
+    **Note**: The OpenShift Login plugin by default manages authentication into any Jenkins instance running in OpenShift.  When this is the case, and you do intend to access Jenkins via the Service IP and not the Route, then you will need to annotate the Jenkins service account with a redirect URL so that the OAuth server's whitelist is updated and allow the login to Jenkins to complete.
 
         $ oc annotate sa/jenkins serviceaccounts.openshift.io/oauth-redirecturi.1=http://<jenkins_service_ip:jenkins_service_port>/securityRealm/finishLogin --overwrite
- 
+
     Login with the user name you supplied to `oc login` and any non-empty password.
 
 1. In the Jenkins console, select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to the "Watch the job output" step.
@@ -94,12 +94,12 @@ Steps
 1. Check the "Restrict where this project can be run" check box under the "General" section of the Job definition.
 
 1. Under "Restrict where this project can be run", there will be a "Label Expression" field.  Enter "nodejs" in that field.
-  
+
 1. Click the "Save" button.
 
 1. Now click the "Run" link to run the job.  An OpenShift Pod running as a Jenkins slave will be launched to run the "OpenShift Sample" job.
    The Pod name will start with the string "nodejs".  You should be able to follow the life cycle of that Pod with:
-   
+
    ```
    $ oc get pods -w
    ```
@@ -114,4 +114,3 @@ Troubleshooting
 -----
 
 If you run into difficulties running OpenShift or getting the `OpenShift Sample` job to complete successfully, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
-
