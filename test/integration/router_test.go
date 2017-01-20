@@ -20,6 +20,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -34,6 +38,8 @@ import (
 
 const (
 	defaultRouterImage = "openshift/origin-haproxy-router"
+
+	defaultNamespace = "router-namespace"
 
 	tcWaitSeconds = 1
 
@@ -1255,8 +1261,9 @@ Jik7E2r1/yY0MrkawljOAxisXs821kJ+Z/51Ud2t5uhGxS6hJypbGspMS7OtBbw7
 8oThK7cWtCXOldNF6ruqY1agWnhRdAq5qSMnuBXuicOP0Kbtx51a1ugE3SnvQenJ
 nZxdtYUXvEsHZC/6bAtTfNh+/SwgxQJuL2ZM+VG3X2JIKY8xTDui+il7uTh422lq
 wED8uwKl+bOj6xFDyw4gWoBxRobsbFaME8pkykP1+GnKDberyAM=
------END CERTIFICATE-----
------BEGIN RSA PRIVATE KEY-----
+-----END CERTIFICATE-----`
+
+var defaultKey = `-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQDNAbvvqB1dcHKYVkWzC1H7fHw+5zxvecbO1Hiz6YRWbkoSIYXQ
 EDKb3LBXoPgYPT1grr942ZY5pNOjC77li38I2H6Pav1fqjmVX01Rx22iDuUU1yTA
 tjZ/gAhdJBwZjXG7YTjoBfC/OeGvz/LY5tYj0fvrx55HsdDR+5cqLFXP7wIDAQAB
@@ -1272,13 +1279,20 @@ pgfj+yGLmkUw8JwgGH6xCUbHO+WBUFSlPf+Y50fJeO+OrjqPXAVKeSV3ZCwWjKT4
 u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 -----END RSA PRIVATE KEY-----`
 
+// Constants used to default createAndStartRouterContainerExtended
+const (
+	defaultBindPortsAfterSync = false
+	defaultEnableIngress      = false
+	defaultNamespaceLabels    = ""
+)
+
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
 func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int) (containerId string, err error) {
-	return createAndStartRouterContainerBindAfterSync(dockerCli, masterIp, routerStatsPort, reloadInterval, false)
+	return createAndStartRouterContainerExtended(dockerCli, masterIp, routerStatsPort, reloadInterval, defaultBindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
 }
 
-func createAndStartRouterContainerBindAfterSync(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync bool) (containerId string, err error) {
+func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync, enableIngress bool, namespaceLabels string) (containerId string, err error) {
 	ports := []string{"80", "443"}
 	if routerStatsPort > 0 {
 		ports = append(ports, fmt.Sprintf("%d", routerStatsPort))
@@ -1313,8 +1327,10 @@ func createAndStartRouterContainerBindAfterSync(dockerCli *dockerClient.Client, 
 		fmt.Sprintf("STATS_PORT=%d", routerStatsPort),
 		fmt.Sprintf("STATS_USERNAME=%s", statsUser),
 		fmt.Sprintf("STATS_PASSWORD=%s", statsPassword),
-		fmt.Sprintf("DEFAULT_CERTIFICATE=%s", defaultCert),
+		fmt.Sprintf("DEFAULT_CERTIFICATE=%s\n%s", defaultCert, defaultKey),
 		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
+		fmt.Sprintf("ROUTER_ENABLE_INGRESS=%s", strconv.FormatBool(enableIngress)),
+		fmt.Sprintf("NAMESPACE_LABELS=%s", namespaceLabels),
 	}
 
 	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)
@@ -1631,7 +1647,7 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 
 	bindPortsAfterSync := true
 	reloadInterval := 1
-	routerId, err := createAndStartRouterContainerBindAfterSync(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync)
+	routerId, err := createAndStartRouterContainerExtended(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -1688,4 +1704,197 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 			t.Fatalf(err.Error())
 		}
 	}
+}
+
+type routerIntegrationTest func(*testing.T, *tr.TestHttpService)
+
+func runRouterTest(t *testing.T, rit routerIntegrationTest, enableIngress bool, namespaceNames *[]string) {
+	namespaceLabels, namespaceListResponse := getNamespaceConfig(t, namespaceNames)
+
+	//create a server which will act as a user deployed application that
+	//serves http and https as well as act as a master to simulate watches
+	fakeMasterAndPod := tr.NewTestHttpServiceExtended(namespaceListResponse)
+	defer fakeMasterAndPod.Stop()
+
+	err := fakeMasterAndPod.Start()
+	validateServer(fakeMasterAndPod, t)
+
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+
+	//deploy router docker container
+	dockerCli, err := testutil.NewDockerClient()
+
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	reloadInterval := 1
+	routerId, err := createAndStartRouterContainerExtended(
+		dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, defaultBindPortsAfterSync, enableIngress, namespaceLabels)
+
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+
+	defer cleanUp(t, dockerCli, routerId)
+
+	rit(t, fakeMasterAndPod)
+}
+
+func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels, namespaceListResponse string) {
+	if namespaceNames == nil {
+		return
+	}
+
+	key := "env"
+	value := "testing"
+
+	// If namespace names are provided (event an empty set), ensure
+	// namespace filtering is exercised by adding namespaces for the
+	// provided names with labels that the router will filter on.
+	namespaceLabels = fmt.Sprintf("%s=%s", key, value)
+
+	namespaceList := &kapi.NamespaceList{
+		ListMeta: unversioned.ListMeta{
+			ResourceVersion: fmt.Sprintf("%d", len(*namespaceNames)),
+		},
+		Items: []kapi.Namespace{},
+	}
+	for _, name := range *namespaceNames {
+		namespaceList.Items = append(namespaceList.Items, kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   name,
+				Labels: map[string]string{key: value},
+			},
+		})
+	}
+
+	obj, err := runtime.Encode(kapi.Codecs.LegacyCodec(kv1.SchemeGroupVersion), namespaceList)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	namespaceListResponse = string(obj)
+
+	return
+}
+
+// eventString marshals ingress events into a string.  A separate
+// method is required because ingress uses a different schema version
+// (v1beta1) than routes (v1).
+func ingressEventString(e *watch.Event) string {
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion), e)
+	s, _ := json.Marshal(obj)
+	return string(s)
+}
+
+func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService) {
+	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+
+	routeAddress := getRouteAddress()
+
+	serviceName := "my-service"
+	host := "my.host"
+	path := fmt.Sprintf("/%s", fakeMasterAndPod.PodTestPath)
+
+	endpointEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      serviceName,
+				Namespace: defaultNamespace,
+			},
+			Subsets: []kapi.EndpointSubset{httpEndpoint},
+		},
+	}
+
+	// ServicePort is a required field for an ingress Backend.
+	_, port, err := net.SplitHostPort(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Unexpected error getting target port: %v", err)
+	}
+
+	secretName := "my-secret"
+	secretEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &kapi.Secret{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      secretName,
+				Namespace: defaultNamespace,
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte(defaultCert),
+				"tls.key": []byte(defaultKey),
+			},
+			Type: kapi.SecretTypeOpaque,
+		},
+	}
+
+	ingressEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &extensions.Ingress{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "foo",
+				Namespace: defaultNamespace,
+			},
+			Spec: extensions.IngressSpec{
+				TLS: []extensions.IngressTLS{
+					{
+						Hosts:      []string{host},
+						SecretName: secretName,
+					},
+				},
+				Rules: []extensions.IngressRule{
+					{
+						Host: host,
+						IngressRuleValue: extensions.IngressRuleValue{
+							HTTP: &extensions.HTTPIngressRuleValue{
+								Paths: []extensions.HTTPIngressPath{
+									{
+										Path: path,
+										Backend: extensions.IngressBackend{
+											ServiceName: serviceName,
+											ServicePort: intstr.FromString(port),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.IngressChannel, ingressEventString(ingressEvent), 30*time.Second)
+
+	// Verify that the routes are accessible
+	url := fmt.Sprintf("%s%s", routeAddress, path)
+	if err := waitForRoute(url, host, "http", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("Error accessing ingress configured route: %v", err)
+	}
+
+	// Once the unsecured route is exposed, the controller will have a cache entry for the referenced
+	// secret and sending a secret event should result in the secured route being exposed.
+	sendTimeout(t, fakeMasterAndPod.SecretChannel, eventString(secretEvent), 30*time.Second)
+
+	if err := waitForRoute(url, host, "https", nil, tr.HelloPodPath); err != nil {
+		t.Fatalf("Error accessing secured ingress configured route: %v", err)
+	}
+
+	// TODO check that an ingress in a namespace not targeted by the router does not
+	// result in exposed routes.
+}
+
+// TestRouterIngress validates that an ingress resource can configure a router to expose a tls route.
+func TestIngressConfiguredRouter(t *testing.T) {
+	enableIngress := true
+	// Enable namespace filtering to allow validation of compatibility with ingress.
+	namespaceNames := []string{defaultNamespace}
+	runRouterTest(t, ingressConfiguredRouter, enableIngress, &namespaceNames)
 }

@@ -6,9 +6,11 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -28,6 +30,8 @@ import (
 type RouterControllerFactory struct {
 	KClient        kcoreclient.EndpointsGetter
 	OSClient       osclient.RoutesNamespacer
+	IngressClient  kextensionsclient.IngressesGetter
+	SecretClient   kcoreclient.SecretsGetter
 	NodeClient     kcoreclient.NodesGetter
 	Namespaces     controller.NamespaceLister
 	ResyncInterval time.Duration
@@ -41,6 +45,8 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 	return &RouterControllerFactory{
 		KClient:        kc.Core(),
 		OSClient:       oc,
+		IngressClient:  kc.Extensions(),
+		SecretClient:   kc.Core(),
 		NodeClient:     kc.Core(),
 		ResyncInterval: 10 * time.Minute,
 
@@ -52,7 +58,7 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
-func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) *controller.RouterController {
+func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&routeLW{
 		client:    factory.OSClient,
@@ -75,6 +81,28 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes 
 			field:  fields.Everything(),
 			label:  labels.Everything(),
 		}, &kapi.Node{}, nodeEventQueue, factory.ResyncInterval).Run()
+	}
+
+	ingressEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	secretEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	var ingressTranslator *controller.IngressTranslator
+	if enableIngress {
+		ingressTranslator = controller.NewIngressTranslator(factory.SecretClient)
+
+		cache.NewReflector(&ingressLW{
+			client:    factory.IngressClient,
+			namespace: factory.Namespace,
+			// The same filtering is applied to ingress as is applied to routes
+			field: factory.Fields,
+			label: factory.Labels,
+		}, &extensions.Ingress{}, ingressEventQueue, factory.ResyncInterval).Run()
+
+		cache.NewReflector(&secretLW{
+			client:    factory.SecretClient,
+			namespace: factory.Namespace,
+			field:     fields.Everything(),
+			label:     labels.Everything(),
+		}, &kapi.Secret{}, secretEventQueue, factory.ResyncInterval).Run()
 	}
 
 	return &controller.RouterController{
@@ -100,11 +128,31 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes 
 			}
 			return eventType, obj.(*kapi.Node), nil
 		},
+		NextIngress: func() (watch.EventType, *extensions.Ingress, error) {
+			eventType, obj, err := ingressEventQueue.Pop()
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			return eventType, obj.(*extensions.Ingress), nil
+		},
+		NextSecret: func() (watch.EventType, *kapi.Secret, error) {
+			eventType, obj, err := secretEventQueue.Pop()
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			return eventType, obj.(*kapi.Secret), nil
+		},
 		EndpointsListCount: func() int {
 			return endpointsEventQueue.ListCount()
 		},
 		RoutesListCount: func() int {
 			return routeEventQueue.ListCount()
+		},
+		IngressesListCount: func() int {
+			return ingressEventQueue.ListCount()
+		},
+		SecretsListCount: func() int {
+			return secretEventQueue.ListCount()
 		},
 		EndpointsListSuccessfulAtLeastOnce: func() bool {
 			return endpointsEventQueue.ListSuccessfulAtLeastOnce()
@@ -112,11 +160,23 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes 
 		RoutesListSuccessfulAtLeastOnce: func() bool {
 			return routeEventQueue.ListSuccessfulAtLeastOnce()
 		},
+		IngressesListSuccessfulAtLeastOnce: func() bool {
+			return ingressEventQueue.ListSuccessfulAtLeastOnce()
+		},
+		SecretsListSuccessfulAtLeastOnce: func() bool {
+			return secretEventQueue.ListSuccessfulAtLeastOnce()
+		},
 		EndpointsListConsumed: func() bool {
 			return endpointsEventQueue.ListConsumed()
 		},
 		RoutesListConsumed: func() bool {
 			return routeEventQueue.ListConsumed()
+		},
+		IngressesListConsumed: func() bool {
+			return ingressEventQueue.ListConsumed()
+		},
+		SecretsListConsumed: func() bool {
+			return secretEventQueue.ListConsumed()
 		},
 		Namespaces: factory.Namespaces,
 		// check namespaces a bit more often than we resync events, so that we aren't always waiting
@@ -126,6 +186,8 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes 
 		NamespaceWaitInterval: 10 * time.Second,
 		NamespaceRetries:      5,
 		WatchNodes:            watchNodes,
+		EnableIngress:         enableIngress,
+		IngressTranslator:     ingressTranslator,
 	}
 }
 
@@ -307,4 +369,74 @@ func (lw *nodeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Nodes().Watch(opts)
+}
+
+// ingressAge sorts ingress resources from oldest to newest and is stable for all of them.
+type ingressAge []extensions.Ingress
+
+func (ia ingressAge) Len() int      { return len(ia) }
+func (ia ingressAge) Swap(i, j int) { ia[i], ia[j] = ia[j], ia[i] }
+func (ia ingressAge) Less(i, j int) bool {
+	ingress1 := ia[i]
+	ingress2 := ia[j]
+	if ingress1.CreationTimestamp.Before(ingress2.CreationTimestamp) {
+		return true
+	}
+	if ingress2.CreationTimestamp.Before(ingress1.CreationTimestamp) {
+		return false
+	}
+	return ingress1.UID < ingress2.UID
+}
+
+// ingressLW is a ListWatcher for ingress that can be filtered to a label, field, or
+// namespace.
+type ingressLW struct {
+	client    kextensionsclient.IngressesGetter
+	label     labels.Selector
+	field     fields.Selector
+	namespace string
+}
+
+func (lw *ingressLW) List(options kapi.ListOptions) (runtime.Object, error) {
+	opts := kapi.ListOptions{
+		LabelSelector: lw.label,
+		FieldSelector: lw.field,
+	}
+	ingresses, err := lw.client.Ingresses(lw.namespace).List(opts)
+	if err != nil {
+		return nil, err
+	}
+	// return ingress in order of age to avoid rejections during resync
+	sort.Sort(ingressAge(ingresses.Items))
+	return ingresses, nil
+}
+
+func (lw *ingressLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+	opts := kapi.ListOptions{
+		LabelSelector:   lw.label,
+		FieldSelector:   lw.field,
+		ResourceVersion: options.ResourceVersion,
+	}
+	return lw.client.Ingresses(lw.namespace).Watch(opts)
+}
+
+// secretLW is a list watcher for routes.
+type secretLW struct {
+	client    kcoreclient.SecretsGetter
+	label     labels.Selector
+	field     fields.Selector
+	namespace string
+}
+
+func (lw *secretLW) List(options kapi.ListOptions) (runtime.Object, error) {
+	return lw.client.Secrets(lw.namespace).List(options)
+}
+
+func (lw *secretLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+	opts := kapi.ListOptions{
+		LabelSelector:   lw.label,
+		FieldSelector:   lw.field,
+		ResourceVersion: options.ResourceVersion,
+	}
+	return lw.client.Secrets(lw.namespace).Watch(opts)
 }

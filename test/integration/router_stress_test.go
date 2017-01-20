@@ -304,7 +304,7 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
-	ctrl := factory.Create(plugin, false)
+	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
 	return
