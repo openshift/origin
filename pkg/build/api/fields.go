@@ -1,23 +1,21 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import (
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/registry/generic"
+)
 
 // BuildToSelectableFields returns a label set that represents the object
 // changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
 func BuildToSelectableFields(build *Build) fields.Set {
-	return fields.Set{
-		"metadata.name":      build.Name,
-		"metadata.namespace": build.Namespace,
-		"status":             string(build.Status.Phase),
-		"podName":            GetBuildPodName(build),
-	}
+	return generic.AddObjectMetaFieldsSet(fields.Set{
+		"status":  string(build.Status.Phase),
+		"podName": GetBuildPodName(build),
+	}, &build.ObjectMeta, true)
 }
 
 // BuildConfigToSelectableFields returns a label set that represents the object
 // changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
 func BuildConfigToSelectableFields(buildConfig *BuildConfig) fields.Set {
-	return fields.Set{
-		"metadata.name":      buildConfig.Name,
-		"metadata.namespace": buildConfig.Namespace,
-	}
+	return generic.ObjectMetaFieldsSet(&buildConfig.ObjectMeta, true)
 }

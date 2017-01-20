@@ -49,11 +49,11 @@ func TestRoundTripVersionedObject(t *testing.T) {
 }
 
 func TestFieldSelectors(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Image",
+	testutil.CheckFieldLabelConversions(t, "v1", "Image", true,
 		// Ensure all currently returned labels are supported
 		newer.ImageToSelectableFields(&newer.Image{}),
 	)
-	testutil.CheckFieldLabelConversions(t, "v1", "ImageStream",
+	testutil.CheckFieldLabelConversions(t, "v1", "ImageStream", true,
 		// Ensure all currently returned labels are supported
 		newer.ImageStreamToSelectableFields(&newer.ImageStream{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST

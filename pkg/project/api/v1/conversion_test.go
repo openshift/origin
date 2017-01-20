@@ -13,7 +13,7 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Project",
+	testutil.CheckFieldLabelConversions(t, "v1", "Project", false,
 		// Ensure all currently returned labels are supported
 		namespace.NamespaceToSelectableFields(&kapi.Namespace{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST

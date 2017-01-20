@@ -1,11 +1,11 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import (
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/registry/generic"
+)
 
 // DeploymentConfigToSelectableFields returns a label set that represents the object
 func DeploymentConfigToSelectableFields(deploymentConfig *DeploymentConfig) fields.Set {
-	return fields.Set{
-		"metadata.name":      deploymentConfig.Name,
-		"metadata.namespace": deploymentConfig.Namespace,
-	}
+	return generic.ObjectMetaFieldsSet(&deploymentConfig.ObjectMeta, true)
 }
