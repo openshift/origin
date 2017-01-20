@@ -205,8 +205,11 @@ func localMulticastOutputs(runningPods map[string]*runningPod, vnid uint32) stri
 }
 
 func (m *podManager) updateLocalMulticastRulesWithLock(vnid uint32) {
-	outputs := localMulticastOutputs(m.runningPods, vnid)
+	var outputs string
 	otx := m.ovs.NewTransaction()
+	if m.policy.GetMulticastEnabled(vnid) {
+		outputs = localMulticastOutputs(m.runningPods, vnid)
+	}
 	if len(outputs) > 0 {
 		otx.AddFlow("table=120, priority=100, reg0=%d, actions=%s", vnid, outputs)
 	} else {
