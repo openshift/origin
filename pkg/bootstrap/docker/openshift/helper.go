@@ -47,6 +47,7 @@ var (
 		"/sys:/sys:ro",
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
 		"/var/lib/docker:/var/lib/docker",
+		"/dev:/dev",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
 	RouterPorts           = []int{80, 443}
