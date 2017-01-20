@@ -218,6 +218,8 @@ func matchPattern(pattern, s string) bool {
 	return false
 }
 
+// genSubdomainWildcardRegexp is now legacy and around for backward
+// compatibility and allows old templates to continue running.
 // Generate a regular expression to match wildcard hosts (and paths if any)
 // for a [sub]domain.
 func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
@@ -233,6 +235,22 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 	}
 
 	return fmt.Sprintf("^[^\\.]*%s(|/.*)$", expr)
+}
+
+// Generate a regular expression to match route hosts (and paths if any).
+func generateRouteRegexp(hostname, path string, wildcard bool) string {
+	hostRE := regexp.QuoteMeta(hostname)
+	if wildcard {
+		subdomain := routeapi.GetDomainForHost(hostname)
+		if len(subdomain) == 0 {
+			glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
+		} else {
+			subdomainRE := regexp.QuoteMeta(fmt.Sprintf(".%s", subdomain))
+			hostRE = fmt.Sprintf("[^\\.]*%s", subdomainRE)
+		}
+	}
+
+	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, path)
 }
 
 // Generates the host name to use for serving/certificate matching.
