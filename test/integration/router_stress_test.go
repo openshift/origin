@@ -296,7 +296,7 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 
-	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, controller.RejectionRecorder(statusPlugin))
+	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
 
 	var plugin router.Plugin = uniquePlugin
 	if maxDelay > 0 {
@@ -304,7 +304,7 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
-	ctrl := factory.Create(plugin, false)
+	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
 	return

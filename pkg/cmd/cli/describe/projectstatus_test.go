@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -40,7 +41,7 @@ func TestProjectStatus(t *testing.T) {
 						Name:      "example",
 						Namespace: "",
 						Annotations: map[string]string{
-							projectapi.ProjectDisplayName: "Test",
+							oapi.OpenShiftDisplayName: "Test",
 						},
 					},
 				},

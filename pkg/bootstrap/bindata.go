@@ -6080,7 +6080,10 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
       },
       "stringData" : {
         "database-user" : "${DATABASE_USER}",
-        "database-password" : "${DATABASE_PASSWORD}"
+        "database-password" : "${DATABASE_PASSWORD}",
+        "cakephp-secret-token" : "${CAKEPHP_SECRET_TOKEN}",
+        "cakephp-security-salt" : "${CAKEPHP_SECURITY_SALT}",
+        "cakephp-security-cipher-seed" : "${CAKEPHP_SECURITY_CIPHER_SEED}"
       }
     },
     {
@@ -6158,8 +6161,8 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             },
             "env":  [
               {
-                  "name": "COMPOSER_MIRROR",
-                  "value": "${COMPOSER_MIRROR}"
+                "name": "COMPOSER_MIRROR",
+                "value": "${COMPOSER_MIRROR}"
               }
             ]
           }
@@ -6258,12 +6261,12 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
-                    "httpGet": {
-                        "path": "/",
-                        "port": 8080
-                    }
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080
+                  }
                 },
                 "env": [
                   {
@@ -6298,15 +6301,30 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   },
                   {
                     "name": "CAKEPHP_SECRET_TOKEN",
-                    "value": "${CAKEPHP_SECRET_TOKEN}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-secret-token"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECURITY_SALT",
-                    "value": "${CAKEPHP_SECURITY_SALT}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-security-salt"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECURITY_CIPHER_SEED",
-                    "value": "${CAKEPHP_SECURITY_CIPHER_SEED}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-security-cipher-seed"
+                      }
+                    }
                   },
                   {
                     "name": "OPCACHE_REVALIDATE_FREQ",
@@ -6314,9 +6332,9 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -6419,40 +6437,40 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 1,
-                    "initialDelaySeconds": 30,
-                    "tcpSocket": {
-                        "port": 3306
-                    }
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
                 },
                 "env": [
-                    {
-                      "name": "MYSQL_USER",
-                      "valueFrom": {
-                        "secretKeyRef" : {
-                          "name" : "${NAME}",
-                          "key" : "database-user"
-                        }
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
                       }
-                    },
-                    {
-                      "name": "MYSQL_PASSWORD",
-                      "valueFrom": {
-                        "secretKeyRef" : {
-                          "name" : "${NAME}",
-                          "key" : "database-password"
-                          }
-                        }
-                    },
-                    {
-                        "name": "MYSQL_DATABASE",
-                        "value": "${DATABASE_NAME}"
                     }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  }
                 ],
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_MYSQL_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_MYSQL_LIMIT}"
+                  }
                 }
               }
             ]
@@ -6628,7 +6646,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
       },
       "stringData" : {
         "database-user" : "${DATABASE_USER}",
-        "database-password" : "${DATABASE_PASSWORD}"
+        "database-password" : "${DATABASE_PASSWORD}",
+        "keybase" : "${SECRET_KEY_BASE}"
       }
     },
     {
@@ -6831,7 +6850,12 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                   },
                   {
                     "name": "SECRET_KEY_BASE",
-                    "value": "${SECRET_KEY_BASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "keybase"
+                      }
+                    }
                   },
                   {
                     "name": "PERL_APACHE2_RELOAD",
@@ -7132,7 +7156,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
       },
       "stringData" : {
         "database-user" : "${DATABASE_USER}",
-        "database-password" : "${DATABASE_PASSWORD}"
+        "database-password" : "${DATABASE_PASSWORD}",
+        "django-secret-key" : "${DJANGO_SECRET_KEY}"
       }
     },
     {
@@ -7346,7 +7371,12 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                   },
                   {
                     "name": "DJANGO_SECRET_KEY",
-                    "value": "${DJANGO_SECRET_KEY}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "django-secret-key"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -8264,8 +8294,8 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
             },
             "env": [
               {
-                  "name": "RUBYGEM_MIRROR",
-                  "value": "${RUBYGEM_MIRROR}"
+                "name": "RUBYGEM_MIRROR",
+                "value": "${RUBYGEM_MIRROR}"
               }
             ]
           }
@@ -8308,7 +8338,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
         "strategy": {
           "type": "Recreate",
           "recreateParams": {
-          "pre": {
+            "pre": {
               "failurePolicy": "Abort",
               "execNewPod": {
                 "command": [
@@ -8446,9 +8476,9 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -8560,11 +8590,21 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -8580,9 +8620,9 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_POSTGRESQL_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+                  }
                 }
               }
             ]

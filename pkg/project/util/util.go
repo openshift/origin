@@ -6,6 +6,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -114,7 +115,7 @@ func ConvertProject(project *api.Project) *kapi.Namespace {
 	if namespace.Annotations == nil {
 		namespace.Annotations = map[string]string{}
 	}
-	namespace.Annotations[api.ProjectDisplayName] = project.Annotations[api.ProjectDisplayName]
+	namespace.Annotations[oapi.OpenShiftDisplayName] = project.Annotations[oapi.OpenShiftDisplayName]
 	return namespace
 }
 

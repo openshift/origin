@@ -22,6 +22,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
 )
 
@@ -558,6 +559,8 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 // it is not safe to use / in names of router config files.  This allows templates to use this key without having
 // to create (or provide) a separate method
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
+	name := controller.GetSafeRouteName(route.Name)
+
 	// Namespace can contain dashes, so ${namespace}-${name} is not
 	// unique, use an underscore instead - ${namespace}_${name} akin
 	// to the way domain keys/service records use it ala
@@ -566,7 +569,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	// is just used for the key name and not for the record/route name.
 	// This also helps the use case for the key used as a router config
 	// file name.
-	return fmt.Sprintf("%s_%s", route.Namespace, route.Name)
+	return fmt.Sprintf("%s_%s", route.Namespace, name)
 }
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.

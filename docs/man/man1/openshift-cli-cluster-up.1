@@ -62,6 +62,14 @@ A public hostname can also be specified for the server with the \-\-public\-host
     Directory on Docker host for OpenShift volumes
 
 .PP
+\fB\-\-http\-proxy\fP=""
+    HTTP proxy to use for master and builds
+
+.PP
+\fB\-\-https\-proxy\fP=""
+    HTTPS proxy to use for master and builds
+
+.PP
 \fB\-\-image\fP="registry.access.redhat.com/openshift3/ose"
     Specify the images to use for OpenShift
 
@@ -76,6 +84,10 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .PP
 \fB\-\-metrics\fP=false
     If true, install metrics (experimental)
+
+.PP
+\fB\-\-no\-proxy\fP=[]
+    List of hosts or subnets for which a proxy should not be used
 
 .PP
 \fB\-\-public\-hostname\fP=""

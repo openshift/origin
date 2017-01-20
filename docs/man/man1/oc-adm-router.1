@@ -36,6 +36,10 @@ If a router does not exist with the given name, this command will create a deplo
     Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.
 
 .PP
+\fB\-\-disable\-namespace\-ownership\-check\fP=false
+    Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub\-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, show the result of the operation without performing it.
 

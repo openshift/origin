@@ -261,6 +261,11 @@ func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
 func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+	if IsGeneratedRouteName(route.Name) {
+		// Can't record status for ingress resources
+		return
+	}
+
 	ingress, changed, lastTouch := recordIngressConditionFailure(route, a.routerName, routeapi.RouteIngressCondition{
 		Type:    routeapi.RouteAdmitted,
 		Status:  kapi.ConditionFalse,
@@ -286,15 +291,19 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 
 // HandleRoute attempts to admit the provided route on watch add / modifications.
 func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	switch eventType {
-	case watch.Added, watch.Modified:
-		ok, err := a.admitRoute(a.client, route, a.routerName)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			glog.V(4).Infof("skipping route: %s", route.Name)
-			return nil
+	if IsGeneratedRouteName(route.Name) {
+		// Can't record status for ingress resources
+	} else {
+		switch eventType {
+		case watch.Added, watch.Modified:
+			ok, err := a.admitRoute(a.client, route, a.routerName)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				glog.V(4).Infof("skipping route: %s", route.Name)
+				return nil
+			}
 		}
 	}
 	return a.plugin.HandleRoute(eventType, route)

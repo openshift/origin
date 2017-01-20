@@ -118,7 +118,7 @@ readonly -f os::cmd::try_until_success
 # os::cmd::try_until_failure runs the cmd until either the command fails or times out
 # the default time-out for os::cmd::try_until_failure is 60 seconds.
 function os::cmd::try_until_failure() {
-	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one argument, got $#"; return 1; fi
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_failure expects at least one argument, got $#"; return 1; fi
 	local cmd=$1
 	local duration=${2:-$minute}
 	local interval=${3:-0.2}
@@ -130,13 +130,26 @@ readonly -f os::cmd::try_until_failure
 # os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
 # the default time-out for os::cmd::try_until_text is 60 seconds.
 function os::cmd::try_until_text() {
-	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_success expects at least two arguments, got $#"; return 1; fi
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_text expects at least two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local text=$2
 	local duration=${3:-minute}
 	local interval=${4:-0.2}
 
-	os::cmd::internal::run_until_text "${cmd}" "${text}" "${duration}" "${interval}"
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::success_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_text
+
+# os::cmd::try_until_not_text runs the cmd until either the command doesnot output the text or times out
+# the default time-out for os::cmd::try_until_not_text is 60 seconds.
+function os::cmd::try_until_not_text() {
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_not_text expects at least two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local text=$2
+	local duration=${3:-minute}
+	local interval=${4:-0.2}
+
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
 }
 readonly -f os::cmd::try_until_text
 
@@ -369,30 +382,18 @@ function os::cmd::internal::get_results() {
 }
 readonly -f os::cmd::internal::get_results
 
-# os::cmd::internal::get_try_until_results returns a concise view of the stdout and stderr output files
-# using a timeline format, where consecutive output lines that are the same are condensed into one line
-# with a counter
-function os::cmd::internal::print_try_until_results() {
-	if grep -vq $'\x1e' "${os_cmd_internal_tmpout}"; then
-		echo "Standard output from the command:"
-		os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
-	else
-		echo "There was no output from the command."
-	fi
-
-	if grep -vq $'\x1e' "${os_cmd_internal_tmperr}"; then
-		echo "Standard error from the command:"
-		os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
-	else
-		echo "There was no error output from the command."
-	fi
+# os::cmd::internal::get_last_results prints the stderr and stdout from the last attempt
+function os::cmd::internal::get_last_results() {
+	cat "${os_cmd_internal_tmpout}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
+	cat "${os_cmd_internal_tmperr}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
 }
-readonly -f os::cmd::internal::print_try_until_results
+readonly -f os::cmd::internal::get_last_results
 
 # os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
 # this is used to make the try_until_* output more concise
 function os::cmd::internal::mark_attempt() {
-	echo -e '\x1e' >> "${os_cmd_internal_tmpout}" | tee "${os_cmd_internal_tmperr}"
+	echo -e '\x1e' >> "${os_cmd_internal_tmpout}"
+	echo -e '\x1e' >> "${os_cmd_internal_tmperr}"
 }
 readonly -f os::cmd::internal::mark_attempt
 
@@ -404,18 +405,29 @@ function os::cmd::internal::compress_output() {
 }
 readonly -f os::cmd::internal::compress_output
 
-# os::cmd::internal::print_results pretty-prints the stderr and stdout files
+# os::cmd::internal::print_results pretty-prints the stderr and stdout files. If attempt separators
+# are present, this function returns a concise view of the stdout and stderr output files using a
+# timeline format, where consecutive output lines that are the same are condensed into one line
+# with a counter
 function os::cmd::internal::print_results() {
 	if [[ -s "${os_cmd_internal_tmpout}" ]]; then
 		echo "Standard output from the command:"
-		cat "${os_cmd_internal_tmpout}"; echo
+		if grep -q $'\x1e' "${os_cmd_internal_tmpout}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
+		else
+			cat "${os_cmd_internal_tmpout}"; echo
+		fi
 	else
 		echo "There was no output from the command."
 	fi
 
 	if [[ -s "${os_cmd_internal_tmperr}" ]]; then
 		echo "Standard error from the command:"
-		cat "${os_cmd_internal_tmperr}"; echo
+		if grep -q $'\x1e' "${os_cmd_internal_tmperr}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
+		else
+			cat "${os_cmd_internal_tmperr}"; echo
+		fi
 	else
 		echo "There was no error output from the command."
 	fi
@@ -503,26 +515,27 @@ function os::cmd::internal::run_until_exit_code() {
 		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
 
 		if [[ -n ${VERBOSE-} ]]; then
-			os::cmd::internal::print_try_until_results
+			os::cmd::internal::print_results
 		fi
 		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
 
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::text::print_red "$(os::cmd::internal::print_results)"
 		return_code=1
 	fi
 
-	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	junit_log+=( "$(os::cmd::internal::print_results)" )
 	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
 	os::test::junit::declare_test_end
 	return "${return_code}"
 }
 readonly -f os::cmd::internal::run_until_exit_code
 
-# os::cmd::internal::run_until_text runs the provided command until the command output contains the
-# given text or the timeout given runs out. Output from the command to be tested is suppressed unless
+# os::cmd::internal::run_until_text runs the provided command until the assertion function succeeds with
+# the given text on the command output or the timeout given runs out. This can be used to run until the
+# output does or does not contain some text. Output from the command to be tested is suppressed unless
 # either `VERBOSE=1` or the test fails. This function bypasses any error exiting settings or traps
 # set by upstream callers by masking the return code of the command with the return code of setting
 # the result variable on failure.
@@ -533,23 +546,25 @@ readonly -f os::cmd::internal::run_until_exit_code
 # Arguments:
 #  - 1: the command to run
 #  - 2: text to test for
-#  - 3: timeout duration
-#  - 4: interval duration
+#  - 3: text assertion to use
+#  - 4: timeout duration
+#  - 5: interval duration
 # Returns:
 #  - 0: if all assertions met before timeout
 #  - 1: if timeout occurs
 function os::cmd::internal::run_until_text() {
 	local cmd=$1
 	local text=$2
-	local duration=$3
-	local interval=$4
+	local test_eval_func=${3:-os::cmd::internal::success_func}
+	local duration=$4
+	local interval=$5
 
 	local -a junit_log
 
 	os::cmd::internal::init_tempdir
 	os::test::junit::declare_test_start
 
-	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "os::cmd::internal::success_func")
+	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "${test_eval_func}")
 	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	local preamble="Running ${description}..."
@@ -564,8 +579,8 @@ function os::cmd::internal::run_until_text() {
 	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
 		local test_result
-		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_results)'; echo $? )
-		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_last_results)'; echo $? )
+		test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
 		if (( test_succeeded )); then
 			break
@@ -586,18 +601,18 @@ function os::cmd::internal::run_until_text() {
 		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
 
 		if [[ -n ${VERBOSE-} ]]; then
-			os::cmd::internal::print_try_until_results
+			os::cmd::internal::print_results
 		fi
 		return_code=0
 	else
 		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
 		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
 
-		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
+		os::text::print_red "$(os::cmd::internal::print_results)"
 		return_code=1
 	fi
 
-	junit_log+=( "$(os::cmd::internal::print_try_until_results)" )
+	junit_log+=( "$(os::cmd::internal::print_results)" )
 	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
 	os::test::junit::declare_test_end
 	return "${return_code}"
