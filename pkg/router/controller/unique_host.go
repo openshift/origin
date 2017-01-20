@@ -25,11 +25,6 @@ func HostForRoute(route *routeapi.Route) string {
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
-// RejectionRecorder is an object capable of recording why a route was rejected
-type RejectionRecorder interface {
-	RecordRouteRejection(route *routeapi.Route, reason, message string)
-}
-
 var LogRejections = logRecorder{}
 
 type logRecorder struct{}
