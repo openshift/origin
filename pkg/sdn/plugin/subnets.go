@@ -260,9 +260,28 @@ func (master *OsdnMaster) watchSubnets() {
 	})
 }
 
+type hostSubnetMap map[string]*osapi.HostSubnet
+
+func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
+	otx := plugin.ovs.NewTransaction()
+
+	// Build the list of all nodes for multicast forwarding
+	tun_dsts := ""
+	for _, subnet := range subnets {
+		if subnet.HostIP != plugin.localIP {
+			tun_dsts += fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP)
+		}
+	}
+	otx.AddFlow("table=110, ip, nw_dst=224.0.0.0/3, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
+
+	if err := otx.EndTransaction(); err != nil {
+		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
+	}
+}
+
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
-	subnets := make(map[string]*osapi.HostSubnet)
+	subnets := make(hostSubnetMap)
 	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
@@ -292,6 +311,8 @@ func (node *OsdnNode) watchSubnets() {
 			delete(subnets, string(hs.UID))
 			node.DeleteHostSubnetRules(hs)
 		}
+		// Update multicast rules after all other changes have been processed
+		node.updateVXLANMulticastRules(subnets)
 		return nil
 	})
 }
