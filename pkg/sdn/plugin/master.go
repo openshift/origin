@@ -92,9 +92,14 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		return err
 	}
 
-	if osapi.IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
-		master.vnids = newMasterVNIDMap()
-
+	switch networkConfig.NetworkPluginName {
+	case osapi.MultiTenantPluginName:
+		master.vnids = newMasterVNIDMap(true)
+		if err = master.VnidStartMaster(); err != nil {
+			return err
+		}
+	case osapi.NetworkPolicyPluginName:
+		master.vnids = newMasterVNIDMap(false)
 		if err = master.VnidStartMaster(); err != nil {
 			return err
 		}
