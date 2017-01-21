@@ -29225,6 +29225,10 @@
      "wildcardPolicy": {
       "type": "string",
       "description": "Wildcard policy is the wildcard policy that was allowed where this route is exposed."
+     },
+     "routerCanonicalHostname": {
+      "type": "string",
+      "description": "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases."
      }
     }
    },

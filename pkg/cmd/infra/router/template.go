@@ -13,6 +13,7 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktypes "k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -52,17 +53,18 @@ type TemplateRouterOptions struct {
 }
 
 type TemplateRouter struct {
-	RouterName             string
-	WorkingDir             string
-	TemplateFile           string
-	ReloadScript           string
-	ReloadInterval         time.Duration
-	DefaultCertificate     string
-	DefaultCertificatePath string
-	DefaultCertificateDir  string
-	ExtendedValidation     bool
-	RouterService          *ktypes.NamespacedName
-	BindPortsAfterSync     bool
+	RouterName              string
+	RouterCanonicalHostname string
+	WorkingDir              string
+	TemplateFile            string
+	ReloadScript            string
+	ReloadInterval          time.Duration
+	DefaultCertificate      string
+	DefaultCertificatePath  string
+	DefaultCertificateDir   string
+	ExtendedValidation      bool
+	RouterService           *ktypes.NamespacedName
+	BindPortsAfterSync      bool
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -79,6 +81,7 @@ func reloadInterval() time.Duration {
 
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.RouterName, "name", util.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
+	flag.StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", util.Env("ROUTER_CANONICAL_HOSTNAME", ""), "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/haproxy/router", "The working directory for the router plugin")
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
@@ -137,6 +140,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 func (o *TemplateRouterOptions) Complete() error {
 	routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
 	routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
+	routerCanonicalHostname := util.Env("ROUTER_CANONICAL_HOSTNAME", "")
 	if len(routerSvcName) > 0 {
 		if len(routerSvcNamespace) == 0 {
 			return fmt.Errorf("ROUTER_SERVICE_NAMESPACE is required when ROUTER_SERVICE_NAME is specified")
@@ -157,6 +161,15 @@ func (o *TemplateRouterOptions) Complete() error {
 
 	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 1 {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
+	}
+
+	if len(routerCanonicalHostname) > 0 {
+		if errs := validation.IsDNS1123Subdomain(routerCanonicalHostname); len(errs) != 0 {
+			return fmt.Errorf("invalid canonical hostname: %s", routerCanonicalHostname)
+		}
+		if errs := validation.IsValidIP(routerCanonicalHostname); len(errs) == 0 {
+			return fmt.Errorf("canonical hostname must not be an IP address: %s", routerCanonicalHostname)
+		}
 	}
 
 	return o.RouterSelection.Complete()
@@ -206,7 +219,7 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, o.RouterName)
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, o.RouterName, o.RouterCanonicalHostname)
 	var nextPlugin router.Plugin = statusPlugin
 	if o.ExtendedValidation {
 		nextPlugin = controller.NewExtendedValidator(nextPlugin, controller.RejectionRecorder(statusPlugin))

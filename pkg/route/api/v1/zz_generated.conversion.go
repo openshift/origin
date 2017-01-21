@@ -84,6 +84,7 @@ func autoConvert_v1_RouteIngress_To_api_RouteIngress(in *RouteIngress, out *api.
 	out.RouterName = in.RouterName
 	out.Conditions = *(*[]api.RouteIngressCondition)(unsafe.Pointer(&in.Conditions))
 	out.WildcardPolicy = api.WildcardPolicyType(in.WildcardPolicy)
+	out.RouterCanonicalHostname = in.RouterCanonicalHostname
 	return nil
 }
 
@@ -96,6 +97,7 @@ func autoConvert_api_RouteIngress_To_v1_RouteIngress(in *api.RouteIngress, out *
 	out.RouterName = in.RouterName
 	out.Conditions = *(*[]RouteIngressCondition)(unsafe.Pointer(&in.Conditions))
 	out.WildcardPolicy = WildcardPolicyType(in.WildcardPolicy)
+	out.RouterCanonicalHostname = in.RouterCanonicalHostname
 	return nil
 }
 
