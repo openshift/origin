@@ -423,3 +423,12 @@ func mockImageChangeController(buildcfg *buildapi.BuildConfig, imageStream *imag
 		BuildConfigInstantiator: mockBuildConfigInstantiator(buildcfg, imageStream, image),
 	}
 }
+
+func TestGetImageStreamNameFromReference(t *testing.T) {
+	ref := &kapi.ObjectReference{}
+	ref.Name = "testImage@id:/registry.com/namespace/imagename"
+	res := getImageStreamNameFromReference(ref)
+	if res != "testImage" {
+		t.Error("getImageStreamNameFromReference is err.")
+	}
+}
