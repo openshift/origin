@@ -169,9 +169,11 @@ func describeBuildDuration(build *buildapi.Build) string {
 		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp != nil && build.Status.CompletionTimestamp == nil {
 		// time a still running build has been running in a pod
-		return fmt.Sprintf("running for %v", build.Status.Duration)
+		duration := unversioned.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+		return fmt.Sprintf("running for %v", duration)
 	}
-	return fmt.Sprintf("%v", build.Status.Duration)
+	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	return fmt.Sprintf("%v", duration)
 }
 
 // BuildConfigDescriber generates information about a buildConfig

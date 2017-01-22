@@ -5,8 +5,6 @@ import (
 	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -21,34 +19,6 @@ import (
 type strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
-}
-
-// Decorator is used to compute duration of a build since its not stored in etcd yet
-var Decorator = func(obj runtime.Object) error {
-	switch t := obj.(type) {
-	case *api.Build:
-		setBuildDuration(t)
-	case *api.BuildList:
-		for i := range t.Items {
-			setBuildDuration(&t.Items[i])
-		}
-	default:
-		return errors.NewBadRequest(fmt.Sprintf("not a Build nor BuildList: %v", obj))
-	}
-	return nil
-}
-
-func setBuildDuration(build *api.Build) {
-	if build.Status.StartTimestamp == nil {
-		build.Status.Duration = 0
-		return
-	}
-	completionTimestamp := build.Status.CompletionTimestamp
-	if completionTimestamp == nil {
-		dummy := unversioned.Now()
-		completionTimestamp = &dummy
-		build.Status.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
-	}
 }
 
 // Strategy is the default logic that applies when creating and updating Build objects.
