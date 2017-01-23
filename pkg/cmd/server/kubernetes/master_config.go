@@ -184,7 +184,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 		master.DefaultAPIResourceConfigSource(),
 	)*/
 	// the order here is important, it defines which version will be used for storage
-	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
+	storageFactory.AddCohabitatingResources(batch.Resource("jobs"), extensions.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
 
 	return server, storageFactory, nil
