@@ -146,13 +146,13 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	return result, fakeRunningPod(req.PodNamespace, req.PodName, ip), nil
 }
 
-func (pt *podTester) update(req *cniserver.PodRequest) (*runningPod, error) {
+func (pt *podTester) update(req *cniserver.PodRequest) (uint32, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	pod.updated += 1
-	return fakeRunningPod(req.PodNamespace, req.PodName, net.ParseIP(pod.cidr)), nil
+	return 0, nil
 }
 
 func (pt *podTester) teardown(req *cniserver.PodRequest) error {

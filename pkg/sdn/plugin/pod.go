@@ -22,7 +22,7 @@ import (
 
 type podHandler interface {
 	setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error)
-	update(req *cniserver.PodRequest) (*runningPod, error)
+	update(req *cniserver.PodRequest) (uint32, error)
 	teardown(req *cniserver.PodRequest) error
 }
 
@@ -259,9 +259,11 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 			result.Err = err
 		}
 	case cniserver.CNI_UPDATE:
-		runningPod, err := m.podHandler.update(request)
+		vnid, err := m.podHandler.update(request)
 		if err == nil {
-			m.runningPods[pk] = runningPod
+			if runningPod, exists := m.runningPods[pk]; exists {
+				runningPod.vnid = vnid
+			}
 		}
 		result.Err = err
 	case cniserver.CNI_DEL:
