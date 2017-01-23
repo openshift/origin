@@ -544,6 +544,24 @@ func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.Des
 	return describeImage(image, "")
 }
 
+func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) error {
+	formatString(out, "\tName", s.Name)
+	formatString(out, "\tType", s.Type)
+	if s.IssuedBy == nil {
+		// FIXME: Make this constant
+		formatString(out, "\tStatus", "Unverified")
+	} else {
+		formatString(out, "\tStatus", "Verified")
+		formatString(out, "\tIssued By", s.IssuedBy.CommonName)
+		if len(s.Conditions) > 0 {
+			for _, c := range s.Conditions {
+				formatString(out, "\t", fmt.Sprintf("Signature is %s (%s on %s)", string(c.Type), c.Message, fmt.Sprintf("%s", c.LastProbeTime)))
+			}
+		}
+	}
+	return nil
+}
+
 func describeImage(image *imageapi.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, image.ObjectMeta)
@@ -573,6 +591,14 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 				formatString(out, "Image Size", fmt.Sprintf("%s (%s)", units.HumanSize(float64(image.DockerImageMetadata.Size)), strings.Join(info, ", ")))
 			} else {
 				formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+			}
+		}
+		if len(image.Signatures) > 0 {
+			for _, s := range image.Signatures {
+				formatString(out, "Image Signatures", " ")
+				if err := describeImageSignature(s, out); err != nil {
+					return err
+				}
 			}
 		}
 		//formatString(out, "Parent Image", image.DockerImageMetadata.Parent)

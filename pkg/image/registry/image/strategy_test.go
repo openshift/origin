@@ -91,17 +91,11 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 		for j := 0; j < vf.NumField(); j++ {
 			iField := vi.Field(j)
 			fField := vf.Field(j)
-			typeOfF := fField.Type()
 
 			switch typeOfT.Field(j).Name {
 			case "Content", "Type", "TypeMeta", "ObjectMeta":
 				if !reflect.DeepEqual(iField.Interface(), fField.Interface()) {
 					t.Errorf("%s field should not differ: %s", typeOfT.Field(j).Name, diff.ObjectGoPrintDiff(iField.Interface(), fField.Interface()))
-				}
-
-			default:
-				if !reflect.DeepEqual(iField.Interface(), reflect.Zero(typeOfF).Interface()) {
-					t.Errorf("expected Signatures.%s to be unset, not %#+v", typeOfF.Field(j).Name, iField.Interface())
 				}
 			}
 		}
