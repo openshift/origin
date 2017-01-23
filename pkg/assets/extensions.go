@@ -96,11 +96,6 @@ func generateETag(w http.ResponseWriter, r *http.Request, hash string) string {
 }
 
 func serve(w http.ResponseWriter, r *http.Request, bytes []byte, mediaType, hash string) {
-	if len(bytes) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	if len(hash) > 0 {
 		etag := generateETag(w, r, hash)
 		if r.Header.Get("If-None-Match") == etag {
