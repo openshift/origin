@@ -93,6 +93,10 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 
 	// Update namespace references in egress firewall rules
 	mp.node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID)
+
+	// Update local multicast rules
+	mp.node.podManager.UpdateLocalMulticastRules(oldNetID)
+	mp.node.podManager.UpdateLocalMulticastRules(netID)
 }
 
 func (mp *multiTenantPlugin) AddNetNamespace(netns *osapi.NetNamespace) {
