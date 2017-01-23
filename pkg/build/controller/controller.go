@@ -96,18 +96,6 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 	glog.V(4).Infof("Handling build %s/%s (%s)", build.Namespace, build.Name, build.Status.Phase)
 
-	runPolicy := policy.ForBuild(build, bc.RunPolicies)
-	if runPolicy == nil {
-		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
-	}
-
-	if buildutil.IsBuildComplete(build) {
-		if err := runPolicy.OnComplete(build); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	// A cancelling event was triggered for the build, delete its pod and update build status.
 	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
@@ -124,6 +112,11 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	// Handle only new builds from this point
 	if build.Status.Phase != buildapi.BuildPhaseNew {
 		return nil
+	}
+
+	runPolicy := policy.ForBuild(build, bc.RunPolicies)
+	if runPolicy == nil {
+		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
 	}
 
 	// The runPolicy decides whether to execute this build or not.
@@ -286,6 +279,7 @@ type BuildPodController struct {
 	BuildUpdater buildclient.BuildUpdater
 	SecretClient kcoreclient.SecretsGetter
 	PodManager   podManager
+	RunPolicies  []policy.RunPolicy
 }
 
 // HandlePod updates the state of the build based on the pod state
@@ -373,6 +367,17 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
+
+		runPolicy := policy.ForBuild(build, bc.RunPolicies)
+		if runPolicy == nil {
+			glog.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
+			return nil
+		}
+		if buildutil.IsBuildComplete(build) {
+			if err := runPolicy.OnComplete(build); err != nil {
+				glog.Errorf("failed to run policy on completed build: %v", err)
+			}
+		}
 	}
 	return nil
 }
