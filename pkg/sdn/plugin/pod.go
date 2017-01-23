@@ -99,7 +99,7 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 		IPAM *hostLocalIPAM `json:"ipam"`
 	}
 
-	mcaddr := net.ParseIP("224.0.0.0")
+	_, mcnet, _ := net.ParseCIDR("224.0.0.0/3")
 	return json.Marshal(&cniNetworkConfig{
 		Name: "openshift-sdn",
 		Type: "openshift-sdn",
@@ -111,19 +111,20 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 			},
 			Routes: []cnitypes.Route{
 				{
+					// Default route
 					Dst: net.IPNet{
 						IP:   net.IPv4zero,
 						Mask: net.IPMask(net.IPv4zero),
 					},
 					GW: netutils.GenerateDefaultGateway(nodeNet),
 				},
-				{Dst: *clusterNetwork},
+				{
+					// Cluster network
+					Dst: *clusterNetwork,
+				},
 				{
 					// Multicast
-					Dst: net.IPNet{
-						IP:   mcaddr,
-						Mask: net.IPMask(mcaddr),
-					},
+					Dst: *mcnet,
 				},
 			},
 		},
