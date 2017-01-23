@@ -75,7 +75,6 @@ func Execute(configFile io.Reader) {
 
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
-
 	pruneAccessRecords := func(*http.Request) []auth.Access {
 		return []auth.Access{
 			{
@@ -97,6 +96,16 @@ func Execute(configFile io.Reader) {
 		// custom access records
 		pruneAccessRecords,
 	)
+
+	// Registry extensions endpoint provides extra functionality to handle the image
+	// signatures.
+	server.RegisterSignatureHandler(app)
+
+	// Advertise features supported by OpenShift
+	if app.Config.HTTP.Headers == nil {
+		app.Config.HTTP.Headers = http.Header{}
+	}
+	app.Config.HTTP.Headers.Set("X-Registry-Supports-Signatures", "1")
 
 	app.RegisterHealthChecks()
 	handler := alive("/", app)
