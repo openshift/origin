@@ -213,7 +213,7 @@ func getImageStreamTags(g graph.Graph, node *imagegraph.ImageNode) []string {
 func getTags(stream *imageapi.ImageStream, image *imageapi.Image) []string {
 	tags := []string{}
 	for tag, history := range stream.Status.Tags {
-		if history.Items[0].Image == image.Name {
+		if len(history.Items) > 0 && history.Items[0].Image == image.Name {
 			tags = append(tags, tag)
 		}
 	}
