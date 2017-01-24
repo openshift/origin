@@ -1,13 +1,13 @@
 package login
 
 import (
-	"net/http"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -80,19 +80,6 @@ func (o *LoginOptions) GatherInfo() error {
 	return nil
 }
 
-// suggestHostWithDefaultPort returns the current host with the cluster's default port
-// if the current HostPort does not already use the default port. Otherwise, returns
-// an empty string and a boolean false.
-func (o *LoginOptions) suggestHostWithDefaultPort() (string, bool) {
-	host, port, currentHostPort, err1 := getHostPort(o.Server)
-	_, defaultClusterPort, _, err2 := getHostPort(defaultClusterURL)
-	if err1 == nil && err2 == nil && port != defaultClusterPort {
-		currentHostPort.Host = net.JoinHostPort(host, defaultClusterPort)
-		return fmt.Sprintf("You may want to try using the default cluster port: %s", currentHostPort.String()), true
-	}
-	return "", false
-}
-
 // getClientConfig returns back the current clientConfig as we know it.  If there is no clientConfig, it builds one with enough information
 // to talk to a server.  This may involve user prompts.  This method is not threadsafe.
 func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
@@ -152,9 +139,8 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 		case tls.RecordHeaderError:
 			return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
 		default:
-			// suggest the port used in the cluster URL by default, in case we're not already using it
-			if hostPortSuggestion, shouldSuggest := o.suggestHostWithDefaultPort(); shouldSuggest {
-				return nil, fmt.Errorf("%s\n%s", err.Error(), hostPortSuggestion)
+			if _, ok := err.(*net.OpError); ok {
+				return nil, fmt.Errorf("%v - verify you have provided the correct host and port and that the server is currently running.", err)
 			}
 			return nil, err
 		}
@@ -239,13 +225,11 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	clientConfig.KeyFile = o.KeyFile
 	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
 	if err != nil {
-		// if internal error occurs, suggest making sure client is connecting to the
-		// right server / port if the client is not already using the default port
+		// if internal error occurs, suggest making sure
+		// client is connecting to the right host:port
 		if statusErr, ok := err.(*kerrors.StatusError); ok {
 			if statusErr.Status().Code == http.StatusInternalServerError {
-				if hostPortSuggestion, shouldSuggest := o.suggestHostWithDefaultPort(); shouldSuggest {
-					return fmt.Errorf("%s\n%s", err.Error(), hostPortSuggestion)
-				}
+				return fmt.Errorf("error: The server was unable to respond - verify you have provided the correct host and port and that the server is currently running.")
 			}
 		}
 		return err
