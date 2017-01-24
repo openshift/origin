@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -122,12 +123,12 @@ func DownloadDirFromContainer(client *docker.Client, container, src, dst string)
 
 // UploadFileToContainer uploads a file to a remote container.
 func UploadFileToContainer(client *docker.Client, container, src, dest string) error {
-	uploader, errch := newContainerUploader(client, container, filepath.Dir(dest))
+	uploader, errch := newContainerUploader(client, container, path.Dir(dest))
 
 	nullWalkFunc := func(path string, info os.FileInfo, err error) error { return err }
 
 	t := stitar.New()
-	err := t.StreamFileAsTarWithCallback(src, filepath.Base(dest), uploader, nullWalkFunc, false)
+	err := t.StreamFileAsTarWithCallback(src, path.Base(dest), uploader, nullWalkFunc, false)
 	uploader.Close()
 	if err != nil {
 		return err
