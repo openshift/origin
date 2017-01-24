@@ -5,11 +5,9 @@ package plugin
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
-
-	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
-
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+
+	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 )
 
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
