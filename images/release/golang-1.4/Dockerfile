@@ -23,7 +23,9 @@ RUN mkdir $TMPDIR && \
     curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-4/protoc-3.0.0-beta-4-linux-x86_64.zip | bsdtar -C /usr/local -xf - && \
     chmod uga+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
-    touch /os-build-image
+    touch /os-build-image && \
+    git config --global user.name origin-release-container && \
+    git config --global user.email none@nowhere.com
 
 WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \

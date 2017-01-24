@@ -24,7 +24,9 @@ RUN mkdir $TMPDIR && \
     chmod uga+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
     go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/goimports github.com/tools/godep github.com/golang/lint/golint && \
-    touch /os-build-image
+    touch /os-build-image && \
+    git config --global user.name origin-release-container && \
+    git config --global user.email none@nowhere.com
 
 WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \
