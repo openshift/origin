@@ -11,7 +11,7 @@ import (
 	dbutil "github.com/openshift/origin/test/extended/util/db"
 )
 
-var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replication (with petset)", func() {
+var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
 	defer g.GinkgoRecover()
 
 	const templatePath = "https://raw.githubusercontent.com/sclorg/mongodb-container/master/examples/petset/mongodb-petset-persistent.yaml"

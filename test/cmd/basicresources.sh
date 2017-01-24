@@ -169,11 +169,11 @@ echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
-os::cmd::expect_success 'oc create -f examples/pets/zookeeper/zookeeper.yaml'
+os::cmd::expect_success 'oc create -f examples/statefulsets/zookeeper/zookeeper.yaml'
 os::cmd::try_until_success 'oc get pods zoo-0'
 os::cmd::expect_success 'oc get pvc datadir-zoo-2'
 os::cmd::expect_success_and_text 'oc describe statefulset zoo' 'app=zk'
-os::cmd::expect_success 'oc delete -f examples/pets/zookeeper/zookeeper.yaml'
+os::cmd::expect_success 'oc delete -f examples/statefulsets/zookeeper/zookeeper.yaml'
 echo "statefulsets: ok"
 os::test::junit::declare_suite_end
 

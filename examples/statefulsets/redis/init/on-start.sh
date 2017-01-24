@@ -45,5 +45,3 @@ sed -i -e "s|^appendonly .*$|appendonly yes|" ${CFG}
 # Every write triggers an fsync. Recommended default is "everysec", which
 # is only safe for AP applications.
 sed -i -e "s|^appendfsync .*$|appendfsync always|" ${CFG}
-
-

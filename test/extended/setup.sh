@@ -358,7 +358,7 @@ readonly CONFORMANCE_TESTS=(
 	"\[networking\]\[router\]"
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
-	"PetSet"
+	"StatefulSet"
 	"Downward API"
 	"DNS for ExternalName services"
 	"DNS for pods for Hostname and Subdomain annotation"
