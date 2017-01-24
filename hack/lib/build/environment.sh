@@ -124,7 +124,10 @@ function os::build::environment::start() {
         mkdir -p "${parent}"
       fi
       os::log::debug "Copying from ${container}:${workingdir}/${path} to ${parent}"
-      docker cp "${container}:${workingdir}/${path}" "${parent}"
+      if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
+        os::log::warn "Copying ${path} from the container failed!"
+        os::log::warn "${output}"
+      fi
     done
     IFS="${oldIFS}"
   fi
