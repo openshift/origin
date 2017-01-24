@@ -1,6 +1,7 @@
 package login
 
 import (
+	"net/http"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
@@ -79,6 +80,19 @@ func (o *LoginOptions) GatherInfo() error {
 	return nil
 }
 
+// suggestHostWithDefaultPort returns the current host with the cluster's default port
+// if the current HostPort does not already use the default port. Otherwise, returns
+// an empty string and a boolean false.
+func (o *LoginOptions) suggestHostWithDefaultPort() (string, bool) {
+	host, port, currentHostPort, err1 := getHostPort(o.Server)
+	_, defaultClusterPort, _, err2 := getHostPort(defaultClusterURL)
+	if err1 == nil && err2 == nil && port != defaultClusterPort {
+		currentHostPort.Host = net.JoinHostPort(host, defaultClusterPort)
+		return fmt.Sprintf("You may want to try using the default cluster port: %s", currentHostPort.String()), true
+	}
+	return "", false
+}
+
 // getClientConfig returns back the current clientConfig as we know it.  If there is no clientConfig, it builds one with enough information
 // to talk to a server.  This may involve user prompts.  This method is not threadsafe.
 func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
@@ -139,11 +153,8 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 			return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
 		default:
 			// suggest the port used in the cluster URL by default, in case we're not already using it
-			host, port, parsed, err1 := getHostPort(o.Server)
-			_, defaultClusterPort, _, err2 := getHostPort(defaultClusterURL)
-			if err1 == nil && err2 == nil && port != defaultClusterPort {
-				parsed.Host = net.JoinHostPort(host, defaultClusterPort)
-				return nil, fmt.Errorf("%s\nYou may want to try using the default cluster port: %s", err.Error(), parsed.String())
+			if hostPortSuggestion, shouldSuggest := o.suggestHostWithDefaultPort(); shouldSuggest {
+				return nil, fmt.Errorf("%s\n%s", err.Error(), hostPortSuggestion)
 			}
 			return nil, err
 		}
@@ -228,6 +239,15 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	clientConfig.KeyFile = o.KeyFile
 	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
 	if err != nil {
+		// if internal error occurs, suggest making sure client is connecting to the
+		// right server / port if the client is not already using the default port
+		if statusErr, ok := err.(*kerrors.StatusError); ok {
+			if statusErr.Status().Code == http.StatusInternalServerError {
+				if hostPortSuggestion, shouldSuggest := o.suggestHostWithDefaultPort(); shouldSuggest {
+					return fmt.Errorf("%s\n%s", err.Error(), hostPortSuggestion)
+				}
+			}
+		}
 		return err
 	}
 	clientConfig.BearerToken = token
