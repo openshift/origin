@@ -77,7 +77,7 @@ func (f *fakeDeploymentConfigsDiagnostic) pods(project string, options kapi.List
 	return &f.fakePods, nil
 }
 
-//test client error listing dcs
+// Test client error listing dcs
 func TestCheckDcWhenErrorResponseFromClientRetrievingDc(t *testing.T) {
 	d := newFakeDeploymentConfigsDiagnostic(t)
 	d.clienterrors[testDcKey] = errors.New("error")
