@@ -272,7 +272,7 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 			tun_dsts += fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP)
 		}
 	}
-	otx.AddFlow("table=110, ip, nw_dst=224.0.0.0/3, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
+	otx.AddFlow("table=110, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
 
 	if err := otx.EndTransaction(); err != nil {
 		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
