@@ -129,6 +129,9 @@ type RouteIngress struct {
 	Conditions []RouteIngressCondition `json:"conditions,omitempty" protobuf:"bytes,3,rep,name=conditions"`
 	// Wildcard policy is the wildcard policy that was allowed where this route is exposed.
 	WildcardPolicy WildcardPolicyType `json:"wildcardPolicy,omitempty" protobuf:"bytes,4,opt,name=wildcardPolicy"`
+	// CanonicalHostname is the external host name for the router that can be used as a CNAME
+	// for the host requested for this route. This value is optional and may not be set in all cases.
+	RouterCanonicalHostname string `json:"routerCanonicalHostname,omitempty" protobuf:"bytes,5,opt,name=routerCanonicalHostname"`
 }
 
 // RouteIngressConditionType is a valid value for RouteCondition

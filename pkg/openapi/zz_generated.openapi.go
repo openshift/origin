@@ -8455,12 +8455,52 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectReference"),
 						},
 					},
+					"output": {
+						SchemaProps: spec.SchemaProps{
+							Description: "output describes the Docker image the build has produced.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.BuildStatusOutput"),
+						},
+					},
 				},
 				Required: []string{"phase"},
 			},
 		},
 		Dependencies: []string{
-			"unversioned.Time", "v1.ObjectReference"},
+			"unversioned.Time", "v1.BuildStatusOutput", "v1.ObjectReference"},
+	},
+	"v1.BuildStatusOutput": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BuildStatusOutput contains the status of the built image.",
+				Properties: map[string]spec.Schema{
+					"to": {
+						SchemaProps: spec.SchemaProps{
+							Description: "to describes the status of the built image being pushed to a registry.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.BuildStatusOutputTo"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"v1.BuildStatusOutputTo"},
+	},
+	"v1.BuildStatusOutputTo": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BuildStatusOutputTo describes the status of the built image with regards to image registry to which it was supposed to be pushed.",
+				Properties: map[string]spec.Schema{
+					"imageDigest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imageDigest is the digest of the built Docker image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	},
 	"v1.BuildStrategy": {
 		Schema: spec.Schema{
@@ -21037,6 +21077,13 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					"wildcardPolicy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Wildcard policy is the wildcard policy that was allowed where this route is exposed.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"routerCanonicalHostname": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

@@ -25,7 +25,7 @@ import (
 
 const (
 	// rule versioning; increment each time flow rules change
-	VERSION        = 2
+	VERSION        = 3
 	VERSION_TABLE  = "table=253"
 	VERSION_ACTION = "actions=note:"
 
@@ -47,6 +47,8 @@ func (plugin *OsdnNode) getPluginVersion() []string {
 		pluginId = "00"
 	case *multiTenantPlugin:
 		pluginId = "01"
+	case *networkPolicyPlugin:
+		pluginId = "02"
 	default:
 		panic("Not an OpenShift-SDN plugin")
 	}
@@ -239,8 +241,10 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// vxlan0
 	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
 	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=224.0.0.0/3, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR)
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
+	otx.AddFlow("table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/3, actions=drop")
 	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:30", localSubnetGateway, clusterNetworkCIDR)
 	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:30")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
@@ -254,10 +258,13 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx.AddFlow("table=10, priority=0, actions=drop")
 
 	// Table 20: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
-	// eg, "table=20, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
-	//     "table=20, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
+	// eg, "table=20, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:21"
+	//     "table=20, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:21"
 	// (${tenant_id} is always 0 for single-tenant)
 	otx.AddFlow("table=20, priority=0, actions=drop")
+
+	// Table 21: from OpenShift container; NetworkPolicy plugin uses this for connection tracking
+	otx.AddFlow("table=21, priority=0, actions=goto_table:30")
 
 	// Table 30: general routing
 	otx.AddFlow("table=30, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
@@ -267,6 +274,12 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:60", serviceNetworkCIDR)
 	otx.AddFlow("table=30, priority=200, ip, nw_dst=%s, actions=goto_table:70", localSubnetCIDR)
 	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterNetworkCIDR)
+
+	// Multicast coming from the VXLAN
+	otx.AddFlow("table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/3, actions=goto_table:120")
+	// Multicast coming from local pods
+	otx.AddFlow("table=30, priority=25, ip, nw_dst=224.0.0.0/3, actions=goto_table:110")
+
 	otx.AddFlow("table=30, priority=0, ip, actions=goto_table:100")
 	otx.AddFlow("table=30, priority=0, arp, actions=drop")
 
@@ -299,6 +312,12 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// Table 100: egress network policy dispatch; edited by UpdateEgressNetworkPolicy()
 	// eg, "table=100, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
 	otx.AddFlow("table=100, priority=0, actions=output:2")
+
+	// Table 110: multicast delivery from local pods to the VXLAN
+	otx.AddFlow("table=110, priority=0, actions=drop")
+
+	// Table 120: multicast delivery to local pods (either from VXLAN or local pods)
+	otx.AddFlow("table=120, priority=0, actions=drop")
 
 	err = otx.EndTransaction()
 	if err != nil {

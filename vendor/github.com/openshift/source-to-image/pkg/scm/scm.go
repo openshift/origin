@@ -45,8 +45,7 @@ func DownloaderForSource(fs util.FileSystem, s string, forceCopy bool) (build.Do
 		return &file.File{FileSystem: fs}, s, nil
 	}
 
-	// If the source is valid  Git protocol (file://, ssh://, git://, git@, etc..) use Git
-	// binary to download the sources
+	// If s is a valid Git clone spec, use git to download the source
 	g := git.New(fs)
 	ok, err := g.ValidCloneSpec(s)
 	if err != nil {

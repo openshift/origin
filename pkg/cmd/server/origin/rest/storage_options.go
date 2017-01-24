@@ -26,12 +26,14 @@ func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
 			{Resource: "oauthclients"}:              "oauth/clients",
 			{Resource: "oauthclientauthorizations"}: "oauth/clientauthorizations",
 
+			{Resource: "identities"}: "useridentities",
+
 			{Resource: "clusterresourcequotas"}: quotaapi.GroupName + "/clusterresourcequotas",
 
-			{Resource: "clusternetworks"}:     "registry/sdnnetworks",
-			{Resource: "egressnetworkpolicy"}: "registry/egressnetworkpolicy",
-			{Resource: "hostsubnets"}:         "registry/sdnsubnets",
-			{Resource: "netnamespaces"}:       "registry/sdnnetnamespaces",
+			{Resource: "clusternetworks"}:       "registry/sdnnetworks",
+			{Resource: "egressnetworkpolicies"}: "registry/egressnetworkpolicy",
+			{Resource: "hostsubnets"}:           "registry/sdnsubnets",
+			{Resource: "netnamespaces"}:         "registry/sdnnetnamespaces",
 		},
 		map[unversioned.GroupResource]struct{}{
 			{Resource: "oauthauthorizetokens"}: {},

@@ -410,7 +410,7 @@ func TestUserInitialization(t *testing.T) {
 		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/identities"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

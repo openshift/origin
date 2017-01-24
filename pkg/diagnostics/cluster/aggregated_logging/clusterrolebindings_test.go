@@ -37,7 +37,7 @@ func (f *fakeRoleBindingDiagnostic) addBinding(name string, namespace string) {
 	f.fakeClusterRoleBinding.Subjects = append(f.fakeClusterRoleBinding.Subjects, ref)
 }
 
-//test error when client error
+// Test error when client error
 func TestCheckClusterRoleBindingsWhenErrorFromClientRetrievingRoles(t *testing.T) {
 	d := newFakeRoleBindingDiagnostic(t)
 	d.err = errors.New("client error")

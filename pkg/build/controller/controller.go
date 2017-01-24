@@ -73,8 +73,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	}
 
 	build.Status.Phase = buildapi.BuildPhaseCancelled
-	now := unversioned.Now()
-	build.Status.CompletionTimestamp = &now
+	setBuildCompletionTimeAndDuration(build)
 	// set the status details for the cancelled build before updating the build
 	// object.
 	build.Status.Reason = buildapi.StatusReasonCancelledBuild
@@ -364,8 +363,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		build.Status.Phase = nextStatus
 
 		if buildutil.IsBuildComplete(build) {
-			now := unversioned.Now()
-			build.Status.CompletionTimestamp = &now
+			setBuildCompletionTimeAndDuration(build)
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
 			now := unversioned.Now()
@@ -425,8 +423,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		build.Status.Phase = nextStatus
 		build.Status.Reason = buildapi.StatusReasonBuildPodDeleted
 		build.Status.Message = buildapi.StatusMessageBuildPodDeleted
-		now := unversioned.Now()
-		build.Status.CompletionTimestamp = &now
+		setBuildCompletionTimeAndDuration(build)
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
@@ -492,4 +489,12 @@ func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
 		build.Annotations = map[string]string{}
 	}
 	build.Annotations[buildapi.BuildPodNameAnnotation] = podName
+}
+
+func setBuildCompletionTimeAndDuration(build *buildapi.Build) {
+	now := unversioned.Now()
+	build.Status.CompletionTimestamp = &now
+	if build.Status.StartTimestamp != nil {
+		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	}
 }

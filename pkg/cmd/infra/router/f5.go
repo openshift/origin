@@ -219,7 +219,7 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName)
+	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName, "")
 	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
 	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.F5RouteAdmitterFunc(), false, o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
 

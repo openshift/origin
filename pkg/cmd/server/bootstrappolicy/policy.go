@@ -748,6 +748,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule(read...).Groups(sdnGroup).Resources("egressnetworkpolicies", "hostsubnets", "netnamespaces").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("nodes", "namespaces").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("networkpolicies").RuleOrDie(),
 				authorizationapi.NewRule("get").Groups(sdnGroup).Resources("clusternetworks").RuleOrDie(),
 			},
 		},

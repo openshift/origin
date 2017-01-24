@@ -54,6 +54,10 @@ message RouteIngress {
 
   // Wildcard policy is the wildcard policy that was allowed where this route is exposed.
   optional string wildcardPolicy = 4;
+
+  // CanonicalHostname is the external host name for the router that can be used as a CNAME
+  // for the host requested for this route. This value is optional and may not be set in all cases.
+  optional string routerCanonicalHostname = 5;
 }
 
 // RouteIngressCondition contains details for the current condition of this route on a particular

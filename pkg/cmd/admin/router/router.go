@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -94,6 +95,9 @@ type RouterConfig struct {
 
 	// Name is the router name, set as an argument
 	Name string
+
+	// RouterCanonicalHostname is the (optional) external host name of the router
+	RouterCanonicalHostname string
 
 	// Type is the router type, which determines which plugin to use (f5
 	// or template).
@@ -275,6 +279,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
+	cmd.Flags().StringVar(&cfg.RouterCanonicalHostname, "router-canonical-hostname", cfg.RouterCanonicalHostname, "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
 	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "If true, use environment variables for master secrets.")
@@ -682,6 +687,15 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 	if cfg.DisableNamespaceOwnershipCheck {
 		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
+	}
+	if len(cfg.RouterCanonicalHostname) > 0 {
+		if errs := validation.IsDNS1123Subdomain(cfg.RouterCanonicalHostname); len(errs) != 0 {
+			return fmt.Errorf("invalid canonical hostname (RFC 1123): %s", cfg.RouterCanonicalHostname)
+		}
+		if errs := validation.IsValidIP(cfg.RouterCanonicalHostname); len(errs) == 0 {
+			return fmt.Errorf("canonical hostname must not be an IP address: %s", cfg.RouterCanonicalHostname)
+		}
+		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {

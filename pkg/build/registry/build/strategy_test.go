@@ -2,10 +2,8 @@ package build
 
 import (
 	"testing"
-	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -58,43 +56,5 @@ func TestBuildStrategy(t *testing.T) {
 	errs = Strategy.Validate(ctx, invalidBuild)
 	if len(errs) == 0 {
 		t.Errorf("Expected error validating")
-	}
-}
-
-func TestBuildDecorator(t *testing.T) {
-	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-					ContextDir: "context",
-				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
-					},
-				},
-			},
-		},
-		Status: buildapi.BuildStatus{
-			Phase: buildapi.BuildPhaseNew,
-		},
-	}
-	now := unversioned.Now()
-	startTime := unversioned.NewTime(now.Time.Add(-1 * time.Minute))
-	build.Status.StartTimestamp = &startTime
-	err := Decorator(build)
-	if err != nil {
-		t.Errorf("Unexpected error decorating build")
-	}
-	if build.Status.Duration <= 0 {
-		t.Errorf("Build duration should be greater than zero")
 	}
 }

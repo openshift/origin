@@ -292,7 +292,7 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 
 	templatePlugin = &templateplugin.TemplatePlugin{Router: r}
 
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, name)
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, name, "")
 
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 
