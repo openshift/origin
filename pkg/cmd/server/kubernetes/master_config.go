@@ -206,6 +206,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// Defaults are tested in TestCMServerDefaults
 	cmserver := cmapp.NewCMServer()
 	// Adjust defaults
+	cmserver.ClusterSigningCertFile = ""
+	cmserver.ClusterSigningKeyFile = ""
 	cmserver.Address = ""                   // no healthz endpoint
 	cmserver.Port = 0                       // no healthz endpoint
 	cmserver.EnableGarbageCollector = false // disabled until we add the controller
