@@ -19,15 +19,18 @@ function os::build::environment::create() {
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
-    elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
-      # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
-      # successive iterations can reuse shared code.
-      os::log::debug "Re-using volume ${OS_BUILD_ENV_REUSE_VOLUME}"
+    elif [[ -n "${OS_BUILD_ENV_VOLUME:-}" ]]; then
+      if docker volume inspect "${OS_BUILD_ENV_VOLUME}" >/dev/null 2>&1; then
+        os::log::debug "Re-using volume ${OS_BUILD_ENV_VOLUME}"
+      else
+        # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
+        # store the working output so successive iterations can reuse shared code.
+        os::log::debug "Creating volume ${OS_BUILD_ENV_VOLUME}"
+        docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
+      fi
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
-      name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-      docker volume create --name "${name}" > /dev/null
-      additional_context+=" -v ${name}:${workingdir}"
+      additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
     fi
   fi
 
@@ -169,11 +172,9 @@ function os::build::environment::withsource() {
     excluded+=("--exclude=${exclude}")
   done
   IFS="${oldIFS}"
-  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
-    local name
-    name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
+  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_VOLUME-}" ]]; then
     os::log::debug "Syncing source using \`rsync\`"
-    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
       os::log::debug "Falling back to \`tar\` and \`docker cp\` as \`rsync\` is not in container"
       tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
     fi
@@ -194,12 +195,21 @@ function os::build::environment::run() {
   if [[ -z "${volume}" ]]; then
     volume="origin-build-$( git rev-parse "${commit}" )"
   fi
+  volume="$( echo "${volume}" | tr '[:upper:]' '[:lower:]' )"
+  export OS_BUILD_ENV_VOLUME="${volume}"
+
+  if [[ -n "${OS_BUILD_ENV_VOLUME_FORCE_NEW:-}" ]]; then
+    if docker volume inspect "${volume}" >/dev/null 2>&1; then
+      os::log::debug "Removing volume ${volume}"
+      docker volume rm "${volume}"
+    fi
+  fi
 
   os::log::debug "Using commit ${commit}"
   os::log::debug "Using volume ${volume}"
 
   local container
-  container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
+  container="$( os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
 
   os::log::debug "Using container ${container}"
