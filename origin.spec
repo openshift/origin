@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a11eae8517602cb40363460a21bccad094914c0a
+%global commit 96019950579dcf91545b2105c6afae4ccef5c25e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.6+a11eae8-76 OS_GIT_COMMIT=a11eae8 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.7+9601995-70 OS_GIT_COMMIT=9601995 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.7
+Version:        3.5.0.8
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,75 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Jan 23 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.8
+- Merge remote-tracking branch upstream/master, bump origin-web-console 8e6fe69
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  32319869d5fdfc8a184dacca6e2be489d4898e04 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e3d3db7a2dc0ac26a515d6c11ef052062d903488 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5d5983c3ee7842cbd2ee38345192b87178d4c1e4 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: <carry>: Retry resource quota lookup until count stabilizes
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7f971336337ad19f87b8cae4586f589dfab3f294 (dmcphers+openshiftbot@redhat.com)
+- Restore custom etcd prefixes (jliggitt@redhat.com)
+- Check for 'in-cluster configuration' in both oc logs and output from oc run
+  (maszulik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  880fcfc5ca7bf2a26191412f4f6ed824179d0e1f (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 39831: Check if error is Status in result.Stream()
+  (mfojtik@redhat.com)
+- bump(github.com/coreos/etcd):v3.1.0 (ccoleman@redhat.com)
+- Origin does not compile on Macs (ccoleman@redhat.com)
+- UPSTREAM: coreos/rkt: <drop>: Workaround etcd310 / grpc incompat
+  (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Workaround etcd310 / gprc version conflict with CRI
+  (ccoleman@redhat.com)
+- modify comments  t2T in ut file (bai.miaomiao@zte.com.cn)
+- modify Run function comment (xu.zhanwei@zte.com.cn)
+- bump(github.com/openshift/source-to-image):
+  e01e9b7cdd51bda33dcefa1f28ffa5ddc50e06d7 (bparees@redhat.com)
+- UPSTREAM: <carry>: Wait longer for pods to stop (ccoleman@redhat.com)
+- Fix expected error message on new test (danw@redhat.com)
+- sdn: add multicast support (dcbw@redhat.com)
+- util/ovs: add GetOFPort() (dcbw@redhat.com)
+- sdn: track running pod VNIDs too (dcbw@redhat.com)
+- Router sets its host name in admitted routes (pcameron@redhat.com)
+- record build durations properly on build completion (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  448422b31bd1d74cb2f02977e13418ddf20bc181 (dmcphers+openshiftbot@redhat.com)
+- Use a differently-named DC in test/cmd/idle.sh (sross@redhat.com)
+- Fixes as per @danwinship review comments. (smitram@gmail.com)
+- bump(github.com/openshift/origin-web-console):
+  e50c0c24b878e52eccf1c08b153973ca42211934 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  857a4e66423f7ef2ef325e119f7d7f0625225b32 (dmcphers+openshiftbot@redhat.com)
+- improve extended test documentation (jminter@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4690daf1c8f5db5524c1bd10fa9bfdf46a07e10a (dmcphers+openshiftbot@redhat.com)
+- Store Jobs under batch/v1 instead of deprecated extensions/v1beta1
+  (maszulik@redhat.com)
+- Wait for the token to be added to serviceaccount before running command
+  (maszulik@redhat.com)
+- Implement NetworkPolicies with PodSelectors (danw@redhat.com)
+- Implement NetworkPolicies with NamespaceSelectors (danw@redhat.com)
+- Implement NetworkPolicies with ports (danw@redhat.com)
+- Add initial implementation of NetworkPolicy-based SDN plugin
+  (danw@redhat.com)
+- Allow requiring a minimum OVS version (danw@redhat.com)
+- Migrate build constants from `hack/common.sh` (skuznets@redhat.com)
+- registry: refactor verification to share common helper (mfojtik@redhat.com)
+- Store built image digest in the build status (mmilata@redhat.com)
+- Make the router handle ports properly (don't strip them). (smitram@gmail.com)
+- UPSTREAM: <carry>: Increase pod deletion test timeout (ccoleman@redhat.com)
+- UPSTREAM: 35436: Add a package for handling version numbers (including non-
+  semvers) (danw@redhat.com)
+- registry: add image signature endpoint (mfojtik@redhat.com)
+- Remove erroneous instance of `${OS_IMAGE_COMPILE_GOFLAGS}`
+  (skuznets@redhat.com)
+
 * Fri Jan 20 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.7
 - bump(github.com/openshift/origin-web-console):
   5ca208d4d341c22752a25127dcd08450ccd27e76 (dmcphers+openshiftbot@redhat.com)
