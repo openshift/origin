@@ -209,6 +209,9 @@ func (m *podManager) updateLocalMulticastRulesWithLock(vnid uint32) {
 	otx := m.ovs.NewTransaction()
 	if m.policy.GetMulticastEnabled(vnid) {
 		outputs = localMulticastOutputs(m.runningPods, vnid)
+		otx.AddFlow("table=110, reg0=%d, actions=goto_table:111", vnid)
+	} else {
+		otx.DeleteFlows("table=110, reg0=%d", vnid)
 	}
 	if len(outputs) > 0 {
 		otx.AddFlow("table=120, priority=100, reg0=%d, actions=%s", vnid, outputs)
