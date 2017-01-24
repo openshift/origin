@@ -7,7 +7,6 @@ import (
 	"io"
 	"reflect"
 
-
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -35,11 +34,10 @@ type ingressAdmission struct {
 	config *api.IngressAdmissionConfig
 }
 
-
 func NewIngressAdmission(config *api.IngressAdmissionConfig) *ingressAdmission {
 	return &ingressAdmission{
-		Handler:               kadmission.NewHandler(kadmission.Create, kadmission.Update),
-		config: config,
+		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		config:  config,
 	}
 }
 
@@ -62,9 +60,9 @@ func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
 	return config, nil
 }
 
-func (r *ingressAdmission) Admit( a kadmission.Attributes) error {
+func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
 	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") && a.GetOperation() == kadmission.Update {
-		if (r.config == nil || r.config.UpstreamHostnameUpdate == false) {
+		if r.config == nil || r.config.UpstreamHostnameUpdate == false {
 			oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
 			if !ok {
 				return nil

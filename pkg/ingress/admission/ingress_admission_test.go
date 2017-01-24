@@ -10,61 +10,61 @@ import (
 	"github.com/openshift/origin/pkg/ingress/admission/api"
 )
 
-func TestAdmission( t *testing.T) {
+func TestAdmission(t *testing.T) {
 
 	var newIngress *kextensions.Ingress
 	var oldIngress *kextensions.Ingress
 
 	tests := []struct {
-		config *api.IngressAdmissionConfig
-		testName	string
+		config           *api.IngressAdmissionConfig
+		testName         string
 		oldHost, newHost string
-		op		admission.Operation
-		admit		bool
+		op               admission.Operation
+		admit            bool
 	}{
 		{
-			admit: true,
-			config: emptyConfig(),
-			op: admission.Create,
+			admit:    true,
+			config:   emptyConfig(),
+			op:       admission.Create,
 			testName: "No errors on create",
 		},
 		{
-			admit: true,
-			config: emptyConfig(),
-			op: admission.Update,
-			newHost: "foo.com",
-			oldHost: "foo.com",
+			admit:    true,
+			config:   emptyConfig(),
+			op:       admission.Update,
+			newHost:  "foo.com",
+			oldHost:  "foo.com",
 			testName: "keeping the host the same should pass",
 		},
 		{
-			admit: true,
-			config: emptyConfig(),
-			op: admission.Update,
-			oldHost: "foo.com",
+			admit:    true,
+			config:   emptyConfig(),
+			op:       admission.Update,
+			oldHost:  "foo.com",
 			testName: "deleting a hostname should pass",
 		},
 		{
-			admit: false,
-			config: emptyConfig(),
-			op: admission.Update,
-			newHost: "foo.com",
-			oldHost: "bar.com",
+			admit:    false,
+			config:   emptyConfig(),
+			op:       admission.Update,
+			newHost:  "foo.com",
+			oldHost:  "bar.com",
 			testName: "changing hostname should fail",
 		},
 		{
-			admit: false,
-			config: nil,
-			op: admission.Update,
-			newHost: "foo.com",
-			oldHost: "bar.com",
+			admit:    false,
+			config:   nil,
+			op:       admission.Update,
+			newHost:  "foo.com",
+			oldHost:  "bar.com",
 			testName: "unconfigured plugin should still fail",
 		},
 		{
-			admit: true,
-			config: testConfigUpdateAllow(),
-			op: admission.Update,
-			newHost: "foo.com",
-			oldHost: "bar.com",
+			admit:    true,
+			config:   testConfigUpdateAllow(),
+			op:       admission.Update,
+			newHost:  "foo.com",
+			oldHost:  "bar.com",
 			testName: "Upstream Hostname updates enabled",
 		},
 	}
@@ -84,7 +84,7 @@ func TestAdmission( t *testing.T) {
 			//Used to test deleteing a hostname
 			newIngress = &kextensions.Ingress{
 				ObjectMeta: kapi.ObjectMeta{Name: "test"},
-				}
+			}
 		}
 		handler := NewIngressAdmission(test.config)
 

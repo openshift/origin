@@ -12,12 +12,11 @@ import (
 	_ "github.com/openshift/origin/pkg/ingress/admission/api/install"
 
 	ingressv1 "github.com/openshift/origin/pkg/ingress/admission/api/v1"
-
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 	data, err := runtime.Encode(configapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), obj)
-	if  err != nil {
+	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
 	}
