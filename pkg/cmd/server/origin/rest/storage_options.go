@@ -5,7 +5,6 @@ import (
 	"k8s.io/kubernetes/pkg/genericapiserver"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -27,8 +26,6 @@ func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
 			{Resource: "oauthclientauthorizations"}: "oauth/clientauthorizations",
 
 			{Resource: "identities"}: "useridentities",
-
-			{Resource: "clusterresourcequotas"}: quotaapi.GroupName + "/clusterresourcequotas",
 
 			{Resource: "clusternetworks"}:       "registry/sdnnetworks",
 			{Resource: "egressnetworkpolicies"}: "registry/egressnetworkpolicy",
