@@ -24,6 +24,7 @@ import (
 
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/etcdserver/membership"
+	"github.com/coreos/etcd/pkg/contention"
 	"github.com/coreos/etcd/pkg/pbutil"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft"
@@ -97,7 +98,13 @@ type raftNode struct {
 	// last lead elected time
 	lt time.Time
 
+	// to check if msg receiver is removed from cluster
+	isIDRemoved func(id uint64) bool
+
 	raft.Node
+
+	// a chan to send/receive snapshot
+	msgSnapC chan raftpb.Message
 
 	// a chan to send out apply
 	applyc chan apply
@@ -106,7 +113,10 @@ type raftNode struct {
 	readStateC chan raft.ReadState
 
 	// utility
-	ticker      <-chan time.Time
+	ticker <-chan time.Time
+	// contention detectors for raft heartbeat message
+	td          *contention.TimeoutDetector
+	heartbeat   time.Duration // for logging
 	raftStorage *raft.MemoryStorage
 	storage     Storage
 	// transport specifies the transport to send and receive msgs to members.
@@ -125,6 +135,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 	r.applyc = make(chan apply)
 	r.stopped = make(chan struct{})
 	r.done = make(chan struct{})
+	internalTimeout := time.Second
 
 	go func() {
 		defer r.onStop()
@@ -151,12 +162,14 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 
 					atomic.StoreUint64(&r.lead, rd.SoftState.Lead)
 					islead = rd.RaftState == raft.StateLeader
-					rh.leadershipUpdate()
+					rh.updateLeadership()
 				}
 
 				if len(rd.ReadStates) != 0 {
 					select {
 					case r.readStateC <- rd.ReadStates[len(rd.ReadStates)-1]:
+					case <-time.After(internalTimeout):
+						plog.Warningf("timed out sending read state")
 					case <-r.stopped:
 						return
 					}
@@ -169,6 +182,8 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 					raftDone: raftDone,
 				}
 
+				updateCommittedIndex(&ap, rh)
+
 				select {
 				case r.applyc <- ap:
 				case <-r.stopped:
@@ -180,7 +195,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				// For more details, check raft thesis 10.2.1
 				if islead {
 					// gofail: var raftBeforeLeaderSend struct{}
-					rh.sendMessage(rd.Messages)
+					r.sendMessages(rd.Messages)
 				}
 
 				// gofail: var raftBeforeSave struct{}
@@ -207,7 +222,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 
 				if !islead {
 					// gofail: var raftBeforeFollowerSend struct{}
-					rh.sendMessage(rd.Messages)
+					r.sendMessages(rd.Messages)
 				}
 				raftDone <- struct{}{}
 				r.Advance()
@@ -216,6 +231,59 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 			}
 		}
 	}()
+}
+
+func updateCommittedIndex(ap *apply, rh *raftReadyHandler) {
+	var ci uint64
+	if len(ap.entries) != 0 {
+		ci = ap.entries[len(ap.entries)-1].Index
+	}
+	if ap.snapshot.Metadata.Index > ci {
+		ci = ap.snapshot.Metadata.Index
+	}
+	if ci != 0 {
+		rh.updateCommittedIndex(ci)
+	}
+}
+
+func (r *raftNode) sendMessages(ms []raftpb.Message) {
+	sentAppResp := false
+	for i := len(ms) - 1; i >= 0; i-- {
+		if r.isIDRemoved(ms[i].To) {
+			ms[i].To = 0
+		}
+
+		if ms[i].Type == raftpb.MsgAppResp {
+			if sentAppResp {
+				ms[i].To = 0
+			} else {
+				sentAppResp = true
+			}
+		}
+
+		if ms[i].Type == raftpb.MsgSnap {
+			// There are two separate data store: the store for v2, and the KV for v3.
+			// The msgSnap only contains the most recent snapshot of store without KV.
+			// So we need to redirect the msgSnap to etcd server main loop for merging in the
+			// current store snapshot and KV snapshot.
+			select {
+			case r.msgSnapC <- ms[i]:
+			default:
+				// drop msgSnap if the inflight chan if full.
+			}
+			ms[i].To = 0
+		}
+		if ms[i].Type == raftpb.MsgHeartbeat {
+			ok, exceed := r.td.Observe(ms[i].To)
+			if !ok {
+				// TODO: limit request rate.
+				plog.Warningf("failed to send out heartbeat on time (exceeded the %v timeout for %v)", r.heartbeat, exceed)
+				plog.Warningf("server is likely overloaded")
+			}
+		}
+	}
+
+	r.transport.Send(ms)
 }
 
 func (r *raftNode) apply() chan apply {

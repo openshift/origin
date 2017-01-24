@@ -12,6 +12,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/fields"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -94,28 +95,25 @@ const (
 	HostSubnets           ResourceName = "HostSubnets"
 	Pods                  ResourceName = "Pods"
 	EgressNetworkPolicies ResourceName = "EgressNetworkPolicies"
+	NetworkPolicies       ResourceName = "NetworkPolicies"
 )
+
+func newEventQueue(client kcache.Getter, resourceName ResourceName, expectedType interface{}, namespace string) *EventQueue {
+	rn := strings.ToLower(string(resourceName))
+	lw := kcache.NewListWatchFromClient(client, rn, namespace, fields.Everything())
+	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
+	// Repopulate event queue every 30 mins
+	// Existing items in the event queue will have watch.Modified event type
+	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
+	return eventQueue
+}
 
 // Run event queue for the given resource. The 'process' function is called
 // repeatedly with each available cache.Delta that describes state changes
 // to an object. If the process function returns an error queued changes
 // for that object are dropped but processing continues with the next available
 // object's cache.Deltas.  The error is logged with call stack information.
-func runEventQueueForResource(client kcache.Getter, resourceName ResourceName, expectedType interface{}, selector fields.Selector, process ProcessEventFunc) {
-	rn := strings.ToLower(string(resourceName))
-	lw := kcache.NewListWatchFromClient(client, rn, kapi.NamespaceAll, selector)
-	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
-	// Repopulate event queue every 30 mins
-	// Existing items in the event queue will have watch.Modified event type
-	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
-
-	// Run the queue
-	for {
-		eventQueue.Pop(process, expectedType)
-	}
-}
-
-// Run event queue for the given resource.
+//
 // NOTE: this function will handle DeletedFinalStateUnknown delta objects
 // automatically, which may not always be what you want since the now-deleted
 // object may be stale.
@@ -137,9 +135,29 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 		expectedType = &kapi.Pod{}
 	case EgressNetworkPolicies:
 		expectedType = &osapi.EgressNetworkPolicy{}
+	case NetworkPolicies:
+		expectedType = &extensions.NetworkPolicy{}
 	default:
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	runEventQueueForResource(client, resourceName, expectedType, fields.Everything(), process)
+	eventQueue := newEventQueue(client, resourceName, expectedType, kapi.NamespaceAll)
+	for {
+		eventQueue.Pop(process, expectedType)
+	}
+}
+
+func RunNamespacedPodEventQueue(client kcache.Getter, namespace string, closeChan chan struct{}, process ProcessEventFunc) {
+	eventQueue := newEventQueue(client, Pods, &kapi.Pod{}, namespace)
+	// Loop calling eventQueue.Pop() until closeChan is closed. process() will be called
+	// once after closeChan is closed; this possibility is unavoidable anyway due to race
+	// conditions.
+	for {
+		select {
+		case <-closeChan:
+			return
+		default:
+			eventQueue.Pop(process, &kapi.Pod{})
+		}
+	}
 }

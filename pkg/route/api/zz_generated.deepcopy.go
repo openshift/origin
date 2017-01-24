@@ -69,6 +69,7 @@ func DeepCopy_api_RouteIngress(in interface{}, out interface{}, c *conversion.Cl
 			out.Conditions = nil
 		}
 		out.WildcardPolicy = in.WildcardPolicy
+		out.RouterCanonicalHostname = in.RouterCanonicalHostname
 		return nil
 	}
 }
