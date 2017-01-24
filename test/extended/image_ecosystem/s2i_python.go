@@ -34,7 +34,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "django-ex-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "django-ex-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("django-ex", oc)
 			}

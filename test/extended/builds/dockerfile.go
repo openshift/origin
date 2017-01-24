@@ -46,7 +46,7 @@ USER 1001
 
 			buildName := "jenkins-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
 			//debug for failures on jenkins
 			if err != nil {
 				exutil.DumpBuildLogs("jenkins", oc)
@@ -75,7 +75,7 @@ USER 1001
 
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
 			//debug for failures on jenkins
 			if err != nil {
 				exutil.DumpBuildLogs("centos", oc)
