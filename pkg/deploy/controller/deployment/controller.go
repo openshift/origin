@@ -160,7 +160,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		switch {
 		case kerrors.IsNotFound(deployerErr):
 			nextStatus = deployapi.DeploymentStatusFailed
-			// If the deployment is cancelled here then we deleted the deployer in a previous
+			// If the deployment is cancelled here, then we deleted the deployer in a previous
 			// resync of the deployment.
 			if !deployutil.IsDeploymentCancelled(deployment) {
 				updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedDeployerPodNoLongerExists
@@ -285,7 +285,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.Name})
 	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: deployment.Namespace})
 
-	// Assigning to a variable since its address is required
+	// Assigning to a variable since its address is required.
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 	if deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds != nil {
 		maxDeploymentDurationSeconds = *(deploymentConfig.Spec.Strategy.ActiveDeadlineSeconds)
@@ -365,7 +365,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *deployapi.Deploym
 		}
 	}
 
-	// Set default environment values
+	// Set default environment values.
 	for _, env := range c.environment {
 		if set.Has(env.Name) {
 			continue
@@ -390,8 +390,8 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 	cleanedAll := true
 	for _, deployerPod := range deployerList {
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
-			// if the pod deletion failed, then log the error and continue
-			// we will try to delete any remaining deployer pods and return an error later
+			// If the pod deletion failed, then log the error and continue
+			// we will try to delete any remaining deployer pods and return an error later.
 			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for deployment %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
 			cleanedAll = false
 		}
