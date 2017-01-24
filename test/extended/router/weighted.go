@@ -43,7 +43,7 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
 
 			var routerIP string
-			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("weighted-router")
 				if err != nil {
 					return false, err
@@ -62,14 +62,14 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			host := "weighted.example.com"
 			times := 100
 			g.By(fmt.Sprintf("checking that %d requests go through successfully", times))
 			// wait for the request to stabilize
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "weighted.example.com", 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "weighted.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// all requests should now succeed
 			err = expectRouteStatusCodeRepeatedExec(ns, execPodName, routerURL, "weighted.example.com", http.StatusOK, times)
@@ -77,7 +77,7 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 
 			g.By(fmt.Sprintf("checking that there are two weighted backends in the router stats"))
 			var trafficValues []string
-			err = wait.PollImmediate(100*time.Millisecond, 2*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(100*time.Millisecond, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				statsURL := fmt.Sprintf("http://%s:1936/;csv", routerIP)
 				stats, err := getAuthenticatedRouteURLViaPod(ns, execPodName, statsURL, host, "admin", "password")
 				o.Expect(err).NotTo(o.HaveOccurred())

@@ -17,6 +17,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const changeTimeoutSeconds = 3 * 60
+
 var _ = g.Describe("[networking][router] openshift routers", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -42,7 +44,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
 
 			var routerIP string
-			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
 				if err != nil {
 					return false, err
@@ -60,11 +62,11 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "first.example.com", 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "first.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"second.example.com", "third.example.com"} {
@@ -83,7 +85,7 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
 
 			var routerIP string
-			err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override")
 				if err != nil {
 					return false, err
@@ -103,11 +105,11 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, fmt.Sprintf(pattern, "route-1", ns), 60*2)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, fmt.Sprintf(pattern, "route-1", ns), changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking that the stored domain name does not match a route")
