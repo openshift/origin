@@ -24,6 +24,8 @@ RUN mkdir $TMPDIR && \
     chmod uga+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
     go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/goimports github.com/tools/godep github.com/golang/lint/golint && \
+    git clone https://github.com/dgoodwin/tito.git && \
+    pushd tito && yum-builddep -y tito.spec && tito build --test --rpm && rpm --upgrade --force /tmp/tito/noarch/tito*.rpm && rm -rf /tmp/tito /tito && popd && \
     touch /os-build-image && \
     git config --global user.name origin-release-container && \
     git config --global user.email none@nowhere.com
