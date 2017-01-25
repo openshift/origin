@@ -324,7 +324,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildPhaseComplete
 		if len(pod.Status.ContainerStatuses) == 0 {
-			// no containers in the pod means something went badly wrong, so the build
+			// No containers in the pod means something went badly wrong, so the build
 			// should be failed.
 			glog.V(2).Infof("Failing build %s/%s because the pod has no containers", build.Namespace, build.Name)
 			nextStatus = buildapi.BuildPhaseFailed
