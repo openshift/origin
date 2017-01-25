@@ -13,7 +13,7 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/export"
 # This test validates the export command
 
-os::cmd::expect_success 'oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample'
+os::cmd::expect_success 'oc new-app -f examples/sample-app/application-template-s2ibuild.yaml --name=sample'
 
 # this checks to make sure that the generated tokens and dockercfg secrets are excluded by default
 # and included when --exact is requested
@@ -33,9 +33,8 @@ os::cmd::expect_failure 'oc export svc --raw --exact'
 os::cmd::expect_failure 'oc export svc -l a=b' # return error if no items match selector
 os::cmd::expect_failure_and_text 'oc export svc -l a=b' 'no resources found'
 os::cmd::expect_success 'oc export svc -l app=sample'
-os::cmd::expect_success_and_text 'oc export -f examples/sample-app/application-template-stibuild.json --raw --output-version=v1' 'apiVersion: v1'
+os::cmd::expect_success_and_text 'oc export -f examples/sample-app/application-template-s2ibuild.yaml --raw --output-version=v1' 'apiVersion: v1'
 os::cmd::expect_success_and_text 'oc export dc/database --template="{{.status.latestVersion}}"' '0'
 os::cmd::expect_success_and_text 'oc get dc/database --export --template="{{.status.conditions}}"' '<no value>'
 echo "export: ok"
 os::test::junit::declare_suite_end
-

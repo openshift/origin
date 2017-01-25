@@ -2,12 +2,12 @@
 ---
 
 
-**Summary**: 
+**Summary**:
 
 At this point, all [environment assumptions](..) are met, and we have a Gluster Cluster running on separate hosts (gluster1.rhs and gluster2.rhs for this example).  We also installed and mounted the Gluster Volumes on our Atomic RHEL hosts (myVol1 and myVol2).  We will use the myVol1 in this example to show a simple pod that uses Distributed Storage.  To take advantage of the DFS we will create a fuse mount to the GlusterFS servers called /mnt/myVol1 which will then be used as our hostPath in our pod definition.  This could be utilized as potential method or even work around for containers that need Distributed Storage.
 
 
-_Note: This method may be a potential use case and beneficial in certain situations, but it is not recommended to by-pass the volume plugins built into OpenShift as it would require this manual mount to exist on all nodes.  This is just a building block example to show the relationship between gluster and atomic hosts as well as a work around if glusterfs plugin was temporarily unavailable or malfunctioning.  You can [skip](../nginx_gluster_plugin) this example if you are only interested in the volume Plugin scenarios_ 
+_Note: This method may be a potential use case and beneficial in certain situations, but it is not recommended to by-pass the volume plugins built into OpenShift as it would require this manual mount to exist on all nodes.  This is just a building block example to show the relationship between gluster and atomic hosts as well as a work around if glusterfs plugin was temporarily unavailable or malfunctioning.  You can [skip](../nginx_gluster_plugin) this example if you are only interested in the volume Plugin scenarios_
 
 
 - To prepare for this example, we will navigate on our Atomic Host to the already mounted Gluster Volume - which is located at /mnt/myVol1 for our example.
@@ -25,56 +25,44 @@ _Note: This method may be a potential use case and beneficial in certain situati
 
 
 
-- Now we can deploy our [pod configuration file](local-nginx-gluster-pod.json) that will utilize this host mount to gluster to serve the web pages.
+- Now we can deploy our [pod configuration file](local-nginx-gluster-pod.yaml) that will utilize this host mount to gluster to serve the web pages.
 
 
-*local-nginx-gluster-pod.json*
+*local-nginx-gluster-pod.yaml*
 
-        {
-            "apiVersion": "v1",
-            "id": "local-nginx-to-gluster",
-            "kind": "Pod",
-            "metadata": {
-                "name": "local-nginx-to-gluster"
-            },
-            "spec": {
-                "containers": [
-                     {
-                         "name": "local-nginx-to-gluster",
-                         "image": "fedora/nginx",
-                         "volumeMounts": [
-                             {
-                                 "mountPath": "/usr/share/nginx/html/test",
-                                 "name": "localvol"
-                             }
-                         ]
-                     }
-                ],
-                "volumes": [
-                    {
-                         "name": "localvol",
-                         "hostPath": {
-                            "path": "/mnt/myVol1/glusterfs-nginx-atomichost-mount"
-                         }
-                    }
-                ]
-            }
-        }
-
+```yaml
+---
+apiVersion: v1
+id: local-nginx-to-gluster
+kind: Pod
+metadata:
+  name: local-nginx-to-gluster
+spec:
+  containers:
+  - name: local-nginx-to-gluster
+    image: fedora/nginx
+    volumeMounts:
+    - mountPath: "/usr/share/nginx/html/test"
+      name: localvol
+  volumes:
+  - name: localvol
+    hostPath:
+      path: "/mnt/gvol1/glusterfs-nginx-atomichost-mount"
+```
 
 
 _Under volumeMounts_
 
         mountPath: /usr/share/nginx/html/test        This is the local container directory that will be mapped to the actual storage path (so from container, this path will be created)
         name:      localvol                          This is the name you give to the mount volume and it should match any volumes listed below in the volume section
-        
+
 
 
 _Under volumes_
-      
+
         name:        nginxglustervol     matches name: nginxglustervol from volumeMounts
         hostPath:                        This is one of the acceptable values for a volume plugin, this value means it will use a local path on the host
-        path:        /mnt/mypath         This is the actual path on the host that you want to map to, for our example, we mapped to our existing glusterfs hosted mount 
+        path:        /mnt/mypath         This is the actual path on the host that you want to map to, for our example, we mapped to our existing glusterfs hosted mount
 
 
 
@@ -83,11 +71,11 @@ _Under volumes_
 - Use the OpenShift Console (oc) to deploy the pod
 
 
-        oc create -f local-nginx-gluster-pod.json
+        oc create -f local-nginx-gluster-pod.yaml
 
 
-        [root@ose1 nginx_gluster_host]# oc create -f local-nginx-gluster-pod.json 
-        pods/local-nginx 
+        [root@ose1 nginx_gluster_host]# oc create -f local-nginx-gluster-pod.yaml
+        pods/local-nginx
 
 
 
@@ -95,10 +83,10 @@ _Under volumes_
 
         oc get pods
 
-        [root@ose1 nginx_gluster_host]# oc get pods 
-        NAME                     READY     STATUS    RESTARTS   AGE 
-        local-nginx              1/1       Running   0          3h 
-        local-nginx-to-gluster   1/1       Running   0          33s 
+        [root@ose1 nginx_gluster_host]# oc get pods
+        NAME                     READY     STATUS    RESTARTS   AGE
+        local-nginx              1/1       Running   0          3h
+        local-nginx-to-gluster   1/1       Running   0          33s
 
 
 
@@ -123,9 +111,9 @@ _Under volumes_
 
       From one of the Gluster cluster hosts:
 
-	
-        [root@gluster1 glusterfs-nginx-atomichost-mount]# ls 
-        helloworld.html 
+
+        [root@gluster1 glusterfs-nginx-atomichost-mount]# ls
+        helloworld.html
 
 
 - SSH into the node where the container is running (remember the details from the OpenShift Console Web GUI) and using the container_id obtained from “docker ps” command, jump into the container shell and then we will explore what we have.
@@ -136,25 +124,25 @@ _Under volumes_
 
         docker ps
 
-        [root@ose2 myVol1]# docker ps 
-        CONTAINER ID        IMAGE                         COMMAND             CREATED             STATUS              PORTS               NAMES 
+        [root@ose2 myVol1]# docker ps
+        CONTAINER ID        IMAGE                         COMMAND             CREATED             STATUS              PORTS               NAMES
         8dda35c5f9ad        fedora/nginx                  "/usr/sbin/nginx"   6 minutes ago       Up 6 minutes                            k8s_local-nginx-to-gluster.38f555f1_local-nginx-to-gluster_default_ca995463-45e8-11e5-ae70-52540008f001_2135479e   
 
 
         docker exec -it 8dda35c5f9ad bash
 
-        [root@ose2 gvol1]# docker exec -it 8dda35c5f9ad bash 
+        [root@ose2 gvol1]# docker exec -it 8dda35c5f9ad bash
         bash-4.3#
 
 
      From the Container:
 
         bash-4.3#
-        bash-4.3# cd /usr/share/nginx/html/test/ 
-        bash-4.3# ls 
-        helloworld.html 
-        
-     
+        bash-4.3# cd /usr/share/nginx/html/test/
+        bash-4.3# ls
+        helloworld.html
+
+
      Back to the Atomic Host:
 
         [root@ose2 /]# cd /mnt/myVol1
@@ -165,7 +153,7 @@ _Under volumes_
         [root@ose2 glusterfs-nginx-atomichost-mount]# ls
         helloworld.html
 
-              
+
 *Notice when we go to our mounted nginx root test directory, we can now see all the contents of our GlusterFS Storage mount, including the directory we created `glusterfs-nginx-atomichost-mount`*
 
 *Notice we also see our `helloworld.html` file that we created within that directory*
@@ -176,8 +164,8 @@ _Under volumes_
 
         curl http://10.1.0.9/test/helloworld.html
 
-        bash-4.3# curl http://10.1.0.9/test/helloworld.html 
-        This is being served from GlusterFS using manually created fuse mount to Gluster from the Atomic RHEL host using hostPath in the configuration...GlusterFS 
+        bash-4.3# curl http://10.1.0.9/test/helloworld.html
+        This is being served from GlusterFS using manually created fuse mount to Gluster from the Atomic RHEL host using hostPath in the configuration...GlusterFS
 
 
 
@@ -186,4 +174,3 @@ _Under volumes_
 [Main List](../)  |  [Next](../nginx_gluster_plugin)
 
 ===
-

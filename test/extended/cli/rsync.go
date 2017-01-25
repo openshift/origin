@@ -24,7 +24,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 	var (
 		oc           = exutil.NewCLI("cli-rsync", exutil.KubeConfigPath())
-		templatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		templatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.yaml")
 		sourcePath1  = exutil.FixturePath("..", "..", "examples", "image-streams")
 		sourcePath2  = exutil.FixturePath("..", "..", "examples", "sample-app")
 		strategies   = []string{"rsync", "rsync-daemon", "tar"}
@@ -200,7 +200,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 				g.By("Verifying that files are copied to the container")
 				result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(result).To(o.ContainSubstring("image-streams-centos7.json"))
+				o.Expect(result).To(o.ContainSubstring("image-streams-centos7.yaml"))
 
 				g.By(fmt.Sprintf("Calling oc rsync %s/ %s:/tmp/image-streams --strategy=%s --delete", sourcePath2, podName, strategy))
 				err = oc.Run("rsync").Args(
@@ -213,8 +213,8 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 				g.By("Verifying that the expected files are in the container")
 				result, err = oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(result).To(o.ContainSubstring("application-template-stibuild.json"))
-				o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
+				o.Expect(result).To(o.ContainSubstring("application-template-s2ibuild.yaml"))
+				o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.yaml"))
 
 				g.By("Creating a local temporary directory")
 				tempDir, err := ioutil.TempDir("", "rsync")
@@ -231,7 +231,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				found := false
 				for _, f := range files {
-					if strings.Contains(f.Name(), "application-template-stibuild.json") {
+					if strings.Contains(f.Name(), "application-template-s2ibuild.yaml") {
 						found = true
 						break
 					}
@@ -239,8 +239,8 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 				o.Expect(found).To(o.BeTrue())
 
 				g.By(fmt.Sprintf("Copying files from container to local directory with --delete: oc rsync %s:/tmp/image-streams/ %s --strategy=%s", podName, tempDir, strategy))
-				originalName := "application-template-stibuild.json"
-				modifiedName := "application-template-stirenamed.json"
+				originalName := "application-template-s2ibuild.yaml"
+				modifiedName := "application-template-s2irenamed.yaml"
 				err = os.Rename(filepath.Join(tempDir, originalName), filepath.Join(tempDir, modifiedName))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -287,69 +287,69 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 	g.Describe("rsync specific flags", func() {
 
 		g.It("should honor the --exclude flag", func() {
-			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=image-streams-rhel7.json", sourcePath1, podName))
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=image-streams-rhel7.yaml", sourcePath1, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath1,
 				fmt.Sprintf("%s:/tmp", podName),
-				"--exclude=image-streams-rhel7.json").Execute()
+				"--exclude=image-streams-rhel7.yaml").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Verifying that files are copied to the container")
 			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(result).To(o.ContainSubstring("image-streams-centos7.json"))
-			o.Expect(result).NotTo(o.ContainSubstring("image-streams-rhel7.json"))
+			o.Expect(result).To(o.ContainSubstring("image-streams-centos7.yaml"))
+			o.Expect(result).NotTo(o.ContainSubstring("image-streams-rhel7.yaml"))
 		})
 
 		g.It("should honor multiple --exclude flags", func() {
-			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=application-template-custombuild.json --exclude=application-template-dockerbuild.json", sourcePath2, podName))
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=application-template-custombuild.yaml --exclude=application-template-dockerbuild.yaml", sourcePath2, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath2,
 				fmt.Sprintf("%s:/tmp", podName),
-				"--exclude=application-template-custombuild.json",
-				"--exclude=application-template-dockerbuild.json").Execute()
+				"--exclude=application-template-custombuild.yaml",
+				"--exclude=application-template-dockerbuild.yaml").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Verifying that files are copied to the container")
 			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/sample-app").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(result).NotTo(o.ContainSubstring("application-template-custombuild.json"))
-			o.Expect(result).NotTo(o.ContainSubstring("application-template-dockerbuild.json"))
-			o.Expect(result).To(o.ContainSubstring("application-template-stibuild.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-custombuild.yaml"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-dockerbuild.yaml"))
+			o.Expect(result).To(o.ContainSubstring("application-template-s2ibuild.yaml"))
 		})
 
 		g.It("should honor the --include flag", func() {
-			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=image-streams-rhel7.json", sourcePath1, podName))
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.yaml --include=image-streams-rhel7.yaml", sourcePath1, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath1,
 				fmt.Sprintf("%s:/tmp", podName),
-				"--exclude=*.json",
-				"--include=image-streams-rhel7.json").Execute()
+				"--exclude=*.yaml",
+				"--include=image-streams-rhel7.yaml").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Verifying that files are copied to the container")
 			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/image-streams").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(result).To(o.ContainSubstring("image-streams-rhel7.json"))
-			o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
+			o.Expect(result).To(o.ContainSubstring("image-streams-rhel7.yaml"))
+			o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.yaml"))
 		})
 
 		g.It("should honor multiple --include flags", func() {
-			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=application-template-custombuild.json --include=application-template-dockerbuild.json", sourcePath2, podName))
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.yaml --include=application-template-custombuild.yaml --include=application-template-dockerbuild.yaml", sourcePath2, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath2,
 				fmt.Sprintf("%s:/tmp", podName),
-				"--exclude=*.json",
-				"--include=application-template-custombuild.json",
-				"--include=application-template-dockerbuild.json").Execute()
+				"--exclude=*.yaml",
+				"--include=application-template-custombuild.yaml",
+				"--include=application-template-dockerbuild.yaml").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Verifying that files are copied to the container")
 			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/sample-app").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(result).To(o.ContainSubstring("application-template-custombuild.json"))
-			o.Expect(result).To(o.ContainSubstring("application-template-dockerbuild.json"))
-			o.Expect(result).NotTo(o.ContainSubstring("application-template-stibuild.json"))
+			o.Expect(result).To(o.ContainSubstring("application-template-custombuild.yaml"))
+			o.Expect(result).To(o.ContainSubstring("application-template-dockerbuild.yaml"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-s2ibuild.yaml"))
 		})
 
 		g.It("should honor the --progress flag", func() {

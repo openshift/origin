@@ -1,4 +1,5 @@
 # A headless service to create DNS records
+---
 apiVersion: v1
 kind: Service
 metadata:

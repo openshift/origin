@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", func() {
 	defer g.GinkgoRecover()
 	var (
-		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
+		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.yaml")
 		oc           = exutil.NewCLI("mariadb-create", exutil.KubeConfigPath())
 	)
 	g.Describe("Creating from a template", func() {

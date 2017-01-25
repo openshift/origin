@@ -477,6 +477,6 @@
     }
   ],
   "labels": {
-    "template": "application-template-stibuild"
+    "template": "application-template-s2ibuild"
   }
 }

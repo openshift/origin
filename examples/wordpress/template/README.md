@@ -1,13 +1,13 @@
 This example depends on the existence of a "php" imagestream in the "openshift" namespace.  If you do not have one defined, you can create it by using one of the imagestream definition files found here:
 https://github.com/openshift/origin/tree/master/examples/image-streams
 
-	oc create -f image-streams-centos7.json -n openshift
+	oc create -f image-streams-centos7.yaml -n openshift
 
 (you will need to be a cluster admin to create imagestreams in the openshift namespace)
 
 To use this example, instantiate it with
 
-	oc new-app -f wordpress-mysql.json
+	oc new-app -f wordpress-mysql.yaml
 
 Take note of the `DATABASE_PASSWORD` that is displayed.
 
@@ -34,8 +34,3 @@ You should not need to change any other values.
 
 
 Note: this template uses an EmptyDir volume type for database storage.  This type of storage is not persisted.  If you want to ensure the database content is not lost, modify the template to user a persistent volume claim type instead.
-
-
-
-
-

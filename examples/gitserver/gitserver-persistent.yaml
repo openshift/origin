@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: List
 items:
@@ -12,7 +13,7 @@ items:
     labels:
       app: git
   spec:
-    strategy: 
+    strategy:
       type: Recreate
     replicas: 1 # the git server is not HA and should not be scaled past 1
     selector:
@@ -81,9 +82,9 @@ items:
           - name: GENERATE_ARTIFACTS
             value: "true"
 
-          # The strategy to use when creating build artifacts from a repository. 
-          # With the default empty value, a Docker build  will be generated if 
-          # a Dockerfile is present in the repository. Otherwise, a source build 
+          # The strategy to use when creating build artifacts from a repository.
+          # With the default empty value, a Docker build  will be generated if
+          # a Dockerfile is present in the repository. Otherwise, a source build
           # will be created. Valid values are: "", docker, source
           - name: BUILD_STRATEGY
             value: ""

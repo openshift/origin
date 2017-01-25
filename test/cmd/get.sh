@@ -11,7 +11,7 @@ trap os::test::junit::reconcile_output EXIT
 
 
 os::test::junit::declare_suite_start "cmd/get"
-os::cmd::expect_success_and_text 'oc create -f examples/storage-examples/local-storage-examples/local-nginx-pod.json' "pod \"local-nginx\" created"
+os::cmd::expect_success_and_text 'oc create -f examples/storage-examples/local-storage-examples/local-nginx-pod.yaml' "pod \"local-nginx\" created"
 # mixed resource output should print resource kind
 # prefix even when only one type of resource is present
 os::cmd::expect_success_and_text 'oc get all' "po/local-nginx"

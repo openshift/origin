@@ -21,7 +21,7 @@ pushd "${OS_ROOT}" > /dev/null
     -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" \
     -ignore "README.md" \
     -ignore ".*\.go$" \
-    -ignore application-template.json \
+    -ignore application-template.yaml \
     ${EXAMPLES}/image-streams/... \
     ${EXAMPLES}/db-templates/... \
     ${EXAMPLES}/jenkins \

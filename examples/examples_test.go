@@ -83,7 +83,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		},
 		"../examples/sample-app": {
 			"github-webhook-example":             nil, // Skip.
-			"application-template-stibuild":      &templateapi.Template{},
+			"application-template-s2ibuild":      &templateapi.Template{},
 			"application-template-dockerbuild":   &templateapi.Template{},
 			"application-template-custombuild":   &templateapi.Template{},
 			"application-template-pullspecbuild": &templateapi.Template{},

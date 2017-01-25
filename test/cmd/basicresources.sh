@@ -103,14 +103,14 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/pods"
 os::cmd::expect_success 'oc get pods --match-server-version'
-os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json' 'pod "hello-openshift" created'
+os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.yaml' 'pod "hello-openshift" created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
 echo "pods: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/label"
-os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
+os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.yaml -o name' 'pod/hello-openshift'
 os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
 os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
@@ -180,7 +180,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
-arg="-f examples/hello-openshift/hello-pod.json"
+arg="-f examples/hello-openshift/hello-pod.yaml"
 os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
 os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify one of --readiness or --liveness"
 os::cmd::expect_success_and_text "oc set probe ${arg} --liveness -o yaml" 'livenessProbe: \{\}'
@@ -287,7 +287,7 @@ echo "expose: ok"
 os::test::junit::declare_suite_end
 
 # Test OAuth access token describer
-os::cmd::expect_success 'oc create -f test/testdata/oauthaccesstoken.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/oauthaccesstoken.json'
 os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
 echo "OAuth descriptor: ok"
 
@@ -321,7 +321,7 @@ os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-templa
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=run-pod/v1'          'Pod v1'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o "go-template={{.kind}} {{.apiVersion}}" --generator=deployment/v1beta1'  'Deployment extensions/v1beta1'
 
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -'
+os::cmd::expect_success 'oc process -f examples/sample-app/application-template-s2ibuild.yaml -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world'
 os::cmd::expect_success 'oc get dc/ruby-hello-world'
