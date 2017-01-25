@@ -52,8 +52,8 @@ bits that are used in the sample app.
     $ cd /var/lib/openshift
     $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
-    -O examples/sample-app/application-template-stibuild.json
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-s2ibuild.yaml \
+    -O examples/sample-app/application-template-s2ibuild.yaml
 
 ## Configure client security
 

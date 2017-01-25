@@ -1,4 +1,5 @@
 # A headless service to create DNS records
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,50 +31,50 @@ spec:
       annotations:
         pod.alpha.kubernetes.io/initialized: "true"
         pod.alpha.kubernetes.io/init-containers: '[
-            {
-                "name": "install",
-                "image": "gcr.io/google_containers/galera-install:0.1",
-                "imagePullPolicy": "Always",
-                "args": ["--work-dir=/work-dir"],
-                "volumeMounts": [
-                    {
-                        "name": "workdir",
-                        "mountPath": "/work-dir"
-                    },
-                    {
-                        "name": "config",
-                        "mountPath": "/etc/mysql"
-                    }
-                ]
-            },
-            {
-                "name": "bootstrap",
-                "image": "debian:jessie",
-                "command": ["/work-dir/peer-finder"],
-                "args": ["-on-start=\"/work-dir/on-start.sh\"", "-service=galera"],
-                "env": [
-                  {
-                      "name": "POD_NAMESPACE",
-                      "valueFrom": {
-                          "fieldRef": {
-                              "apiVersion": "v1",
-                              "fieldPath": "metadata.namespace"
-                          }
+              {
+                  "name": "install",
+                  "image": "gcr.io/google_containers/galera-install:0.1",
+                  "imagePullPolicy": "Always",
+                  "args": ["--work-dir=/work-dir"],
+                  "volumeMounts": [
+                      {
+                          "name": "workdir",
+                          "mountPath": "/work-dir"
+                      },
+                      {
+                          "name": "config",
+                          "mountPath": "/etc/mysql"
                       }
-                   }
-                ],
-                "volumeMounts": [
+                  ]
+              },
+              {
+                  "name": "bootstrap",
+                  "image": "debian:jessie",
+                  "command": ["/work-dir/peer-finder"],
+                  "args": ["-on-start=\"/work-dir/on-start.sh\"", "-service=galera"],
+                  "env": [
                     {
-                        "name": "workdir",
-                        "mountPath": "/work-dir"
-                    },
-                    {
-                        "name": "config",
-                        "mountPath": "/etc/mysql"
-                    }
-                ]
-            }
-        ]'
+                        "name": "POD_NAMESPACE",
+                        "valueFrom": {
+                            "fieldRef": {
+                                "apiVersion": "v1",
+                                "fieldPath": "metadata.namespace"
+                            }
+                        }
+                     }
+                  ],
+                  "volumeMounts": [
+                      {
+                          "name": "workdir",
+                          "mountPath": "/work-dir"
+                      },
+                      {
+                          "name": "config",
+                          "mountPath": "/etc/mysql"
+                      }
+                  ]
+              }
+          ]'
     spec:
       containers:
       - name: mysql

@@ -43,7 +43,7 @@ os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status
 os::cmd::expect_success 'oc delete imageStreams test'
 os::cmd::expect_failure 'oc get imageStreams test'
 
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.yaml'
 os::cmd::expect_success_and_text "oc get imageStreams ruby --template='{{.status.dockerImageRepository}}'" 'ruby'
 os::cmd::expect_success_and_text "oc get imageStreams nodejs --template='{{.status.dockerImageRepository}}'" 'nodejs'
 os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{.status.dockerImageRepository}}'" 'wildfly'

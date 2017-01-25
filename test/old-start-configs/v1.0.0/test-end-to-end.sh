@@ -351,9 +351,9 @@ wait_for_command "oc get -n test serviceaccount/builder -o yaml | grep dockercfg
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
-oc process -n test -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
-oc process -n docker -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
-oc process -n custom -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
+oc process -n test -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-stibuild.yaml > "${STI_CONFIG_FILE}"
+oc process -n docker -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-dockerbuild.yaml > "${DOCKER_CONFIG_FILE}"
+oc process -n custom -f $CONFIG_ROOT_DIR/../examples/sample-app/application-template-custombuild.yaml > "${CUSTOM_CONFIG_FILE}"
 
 echo "[INFO] Back to 'test' context with 'e2e-user' user"
 oc project test

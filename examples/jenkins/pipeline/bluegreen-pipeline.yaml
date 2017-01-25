@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Template
 labels:
@@ -7,7 +8,7 @@ message: A Jenkins server will be automatically instantiated in this project to 
   it using your OpenShift user credentials.
 metadata:
   annotations:
-    description: This example showcases a blue green deployment using a Jenkins 
+    description: This example showcases a blue green deployment using a Jenkins
       pipeline that pauses for approval.
     iconClass: icon-jenkins
     tags: instant-app,jenkins

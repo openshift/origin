@@ -119,7 +119,7 @@ var _ = g.Describe("[volumes] Test local storage quota", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = exutil.NewCLI("local-quota", exutil.KubeConfigPath())
-		emptyDirPodFixture = exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
+		emptyDirPodFixture = exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.yaml")
 	)
 
 	g.Describe("FSGroup local storage quota [local]", func() {

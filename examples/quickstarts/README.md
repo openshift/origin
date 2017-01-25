@@ -11,11 +11,11 @@ You can instantiate these templates as is, or fork the source repository they
 reference and supply your forked repository as the source-repository when
 instantiating them.
 
-* [CakePHP](https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json) - Provides a basic CakePHP application with a MySQL database. For more information see the [source repository](https://github.com/openshift/cakephp-ex).
-* [Dancer](https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json) - Provides a basic Dancer (Perl) application with a MySQL database. For more information see the [source repository](https://github.com/openshift/dancer-ex).
-* [Django](https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.json) - Provides a basic Django (Python) application with a PostgreSQL database. For more information see the [source repository](https://github.com/openshift/django-ex).
-* [NodeJS](https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json) - Provides a basic NodeJS application with a MongoDB database. For more information see the [source repository](https://github.com/openshift/nodejs-ex).
-* [Rails](https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json) - Provides a basic Rails (Ruby) application with a PostgreSQL database. For more information see the [source repository](https://github.com/openshift/rails-ex).
+* [CakePHP](https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.yaml) - Provides a basic CakePHP application with a MySQL database. For more information see the [source repository](https://github.com/openshift/cakephp-ex).
+* [Dancer](https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.yaml) - Provides a basic Dancer (Perl) application with a MySQL database. For more information see the [source repository](https://github.com/openshift/dancer-ex).
+* [Django](https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.yaml) - Provides a basic Django (Python) application with a PostgreSQL database. For more information see the [source repository](https://github.com/openshift/django-ex).
+* [NodeJS](https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.yaml) - Provides a basic NodeJS application with a MongoDB database. For more information see the [source repository](https://github.com/openshift/nodejs-ex).
+* [Rails](https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.yaml) - Provides a basic Rails (Ruby) application with a PostgreSQL database. For more information see the [source repository](https://github.com/openshift/rails-ex).
 
 Note: This file is processed by `hack/update-external-examples.sh`. New examples
 must follow the exact syntax of the existing entries. Files in this directory

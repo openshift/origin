@@ -226,7 +226,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     instance as the certificate chain generated is not publicly verified.
 
 
-11. Edit application-template-stibuild.json which will define the sample application
+11. Edit application-template-s2ibuild.yaml which will define the sample application
 
  * Update the BuildConfig's sourceURI (https://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
@@ -235,8 +235,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 12. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
-        $ oc new-app application-template-stibuild.json
-        --> Deploying template ruby-helloworld-sample for "application-template-stibuild.json"
+        $ oc new-app application-template-s2ibuild.yaml
+        --> Deploying template ruby-helloworld-sample for "application-template-s2ibuild.yaml"
 
              ruby-helloworld-sample
              ---------
@@ -260,7 +260,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             deploymentconfig "database" created
         --> Success
             Build scheduled, use 'oc logs -f bc/ruby-sample-build' to track its progress.
-            Run 'oc status' to view your app. 
+            Run 'oc status' to view your app.
 
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit. But since we've defined
@@ -321,7 +321,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         I0310 12:36:56.371762       1 lifecycle.go:168] Created lifecycle pod test/frontend-1-hook-post for deployment test/frontend-2
         I0310 12:36:56.371825       1 lifecycle.go:181] Watching logs for hook pod test/frontend-1-hook-post while awaiting completion
         I0310 12:37:00.209644       1 lifecycle.go:221] Finished reading logs for hook pod test/frontend-1-hook-post
-        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring: 
+        I0310 12:37:00.236213       1 lifecycle.go:87] Hook failed, ignoring:
         I0310 12:37:00.236387       1 rolling.go:134] Post hook finished
 
 
@@ -381,7 +381,7 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
         $ oc get routes
         NAME                HOST/PORT           PATH                SERVICE             LABELS
-        route-edge          www.example.com                         frontend            template=application-template-stibuild
+        route-edge          www.example.com                         frontend            template=application-template-s2ibuild
 
 
 2.  To use the route you must first install a router.  OpenShift provides an HAProxy router implementation that we'll use.
@@ -391,7 +391,7 @@ the ip address shown below with the correct one for your environment.
 
 
     Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will take some time.  Your pod will stay in Pending state while the pull is completed
-    
+
 
         $ docker pull openshift/origin-haproxy-router
 

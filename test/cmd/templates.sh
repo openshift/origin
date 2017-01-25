@@ -18,7 +18,7 @@ os::test::junit::declare_suite_start "cmd/templates"
 
 os::test::junit::declare_suite_start "cmd/templates/basic"
 os::cmd::expect_success 'oc get templates'
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.yaml'
 os::cmd::expect_success 'oc get templates'
 os::cmd::expect_success 'oc get templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get template ruby-helloworld-sample -o json | oc process -f -'
@@ -57,7 +57,7 @@ os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN
 os::cmd::expect_success_and_text "oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f '${guestbook_template}'"       '"myuser"'
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword"       '"mypassword"'
 # Argument values with commas are honored
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-s2ibuild.yaml'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s'        '"myself"'
 os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'        '"my,1%pa=s"'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
@@ -113,7 +113,7 @@ echo "template data precision: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/different-namespaces"
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.yaml -n openshift'
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 new="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > ${new}"
@@ -123,7 +123,7 @@ os::cmd::expect_success 'oc login -u test-user -p password'
 os::cmd::expect_success 'oc new-project test-template-project'
 # make sure the permissions on the new project are set up
 os::cmd::try_until_success 'oc get templates'
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.yaml'
 os::cmd::expect_success 'oc process template/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process templates/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process openshift//ruby-helloworld-sample'
