@@ -377,7 +377,7 @@ function os::build::place_bins() {
 readonly -f os::build::place_bins
 
 function os::build::archive_name() {
-  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
+  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1" | tr '+' '-'
 }
 readonly -f os::build::archive_name
 

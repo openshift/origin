@@ -6,6 +6,9 @@ oadm-ca-create-signer-cert.1
 oadm-ca-decrypt.1
 oadm-ca-encrypt.1
 oadm-ca.1
+oadm-certificate-approve.1
+oadm-certificate-deny.1
+oadm-certificate.1
 oadm-completion.1
 oadm-config-current-context.1
 oadm-config-delete-cluster.1

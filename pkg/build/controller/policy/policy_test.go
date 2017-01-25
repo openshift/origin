@@ -112,12 +112,12 @@ func TestHandleCompleteSerial(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if resultBuilds.Items[1].Status.StartTimestamp == nil {
-		t.Errorf("build-2 should have Status.StartTimestamp set to trigger it")
+	if _, ok := resultBuilds.Items[1].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
+		t.Errorf("build-2 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
 	}
 
-	if resultBuilds.Items[2].Status.StartTimestamp != nil {
-		t.Errorf("build-3 should not have Status.StartTimestamp set")
+	if _, ok := resultBuilds.Items[2].Annotations[buildapi.BuildAcceptedAnnotation]; ok {
+		t.Errorf("build-3 should not have Annotation %s set", buildapi.BuildAcceptedAnnotation)
 	}
 }
 
@@ -139,11 +139,11 @@ func TestHandleCompleteParallel(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if resultBuilds.Items[1].Status.StartTimestamp == nil {
-		t.Errorf("build-2 should have Status.StartTimestamp set to trigger it")
+	if _, ok := resultBuilds.Items[1].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
+		t.Errorf("build-2 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
 	}
 
-	if resultBuilds.Items[2].Status.StartTimestamp == nil {
-		t.Errorf("build-3 should have Status.StartTimestamp set to trigger it")
+	if _, ok := resultBuilds.Items[2].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
+		t.Errorf("build-3 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
 	}
 }

@@ -19,6 +19,11 @@ import (
 	"github.com/openshift/origin/pkg/router"
 )
 
+// RejectionRecorder is an object capable of recording why a route was rejected
+type RejectionRecorder interface {
+	RecordRouteRejection(route *routeapi.Route, reason, message string)
+}
+
 // StatusAdmitter ensures routes added to the plugin have status set.
 type StatusAdmitter struct {
 	plugin                  router.Plugin
@@ -75,7 +80,7 @@ func findOrCreateIngress(route *routeapi.Route, name, hostName string) (_ *route
 			continue
 		}
 		updated = append(updated, *existing)
-		position = i
+		position = len(updated) - 1
 	}
 	switch {
 	case position == -1:

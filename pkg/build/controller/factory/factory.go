@@ -171,6 +171,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 type BuildPodControllerFactory struct {
 	OSClient     osclient.Interface
 	KubeClient   kclientset.Interface
+	BuildLister  buildclient.BuildLister
 	BuildUpdater buildclient.BuildUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -214,6 +215,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 		BuildUpdater: factory.BuildUpdater,
 		SecretClient: factory.KubeClient.Core(),
 		PodManager:   client,
+		RunPolicies:  policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
 	}
 
 	return &controller.RetryController{

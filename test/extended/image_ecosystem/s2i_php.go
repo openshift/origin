@@ -31,7 +31,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), dcName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), dcName, nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("cakephp-mysql-example", oc)
 			}

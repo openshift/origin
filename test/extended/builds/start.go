@@ -12,6 +12,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -103,7 +104,6 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading file"))
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
 			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
-
 		})
 
 		g.It("should accept --from-dir as input", func() {
@@ -191,6 +191,23 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading archive from %q as binary input for the build", exampleArchiveURL)))
 			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+		})
+	})
+
+	g.Describe("cancel a binary build that doesn't start running in 5 minutes", func() {
+		g.It("should start a build and wait for the build to be cancelled", func() {
+			g.By("starting a build with a nodeselector that can't be matched")
+			go func() {
+				exutil.StartBuild(oc, "sample-build-binary-invalidnodeselector", fmt.Sprintf("--from-file=%s", exampleGemfile))
+			}()
+			build := &buildapi.Build{}
+			cancelFn := func(b *buildapi.Build) bool {
+				build = b
+				return exutil.CheckBuildCancelledFn(b)
+			}
+			err := exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseCancelled))
 		})
 	})
 

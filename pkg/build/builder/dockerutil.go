@@ -32,6 +32,7 @@ var (
 		"is already in progress",
 		"connection reset by peer",
 		"transport closed before response was received",
+		"connection refused",
 	}
 )
 
@@ -120,7 +121,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 			return "", err
 		}
 
-		utilruntime.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
+		glog.V(0).Infof("Warning: Push failed, retrying in %s ...", DefaultPushRetryDelay)
 		time.Sleep(DefaultPushRetryDelay)
 	}
 	return "", err
