@@ -120,10 +120,11 @@ var (
 func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	config := &ClientStartConfig{
 		CommonStartConfig: CommonStartConfig{
-			Out:            out,
-			UsePorts:       openshift.DefaultPorts,
-			PortForwarding: defaultPortForwarding(),
-			DNSPort:        openshift.DefaultDNSPort,
+			Out:                 out,
+			UsePorts:            openshift.DefaultPorts,
+			PortForwarding:      defaultPortForwarding(),
+			DNSPort:             openshift.DefaultDNSPort,
+			checkAlternatePorts: true,
 		},
 	}
 	cmd := &cobra.Command{
@@ -204,6 +205,7 @@ type CommonStartConfig struct {
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
+	checkAlternatePorts        bool
 
 	shouldInitializeData *bool
 	shouldCreateUser     *bool
@@ -616,7 +618,7 @@ func (c *CommonStartConfig) CheckDockerVersion(io.Writer) error {
 }
 
 func (c *CommonStartConfig) EnsureHostDirectories(io.Writer) error {
-	return c.HostHelper().EnsureHostDirectories()
+	return c.HostHelper().EnsureHostDirectories(!c.UseNsenterMount)
 }
 
 // EnsureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
@@ -662,16 +664,14 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *CommonStartConfig) CheckAvailablePorts(out io.Writer) error {
-	err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
-	if err == nil {
-		return nil
+	if !c.checkAlternatePorts {
+		err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
+		if err == nil {
+			return nil
+		}
+		return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
 	}
-	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
-}
-
-// CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
-func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
-	err := c.CommonStartConfig.CheckAvailablePorts(out)
+	err := c.OpenShiftHelper().TestPorts(openshift.AllPorts)
 	if err == nil {
 		return nil
 	}
