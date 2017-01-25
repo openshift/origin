@@ -102,13 +102,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == cmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(options.Run())
 		},
 	}
 

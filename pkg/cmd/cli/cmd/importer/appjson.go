@@ -90,13 +90,7 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == cmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(options.Run())
 		},
 	}
 	usage := "Filename, directory, or URL to app.json file to use"
