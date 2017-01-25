@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -151,7 +151,6 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		Ports:              "80:80,443:443",
 		Replicas:           1,
 		Labels:             "router=<name>",
-		Credentials:        filepath.Join(masterDir, "admin.kubeconfig"),
 		DefaultCertificate: filepath.Join(masterDir, "router.pem"),
 		StatsPort:          1936,
 		StatsUsername:      "admin",

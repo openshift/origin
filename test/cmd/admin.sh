@@ -307,11 +307,9 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/admin/router"
 # Test running a router
 os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
-encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
-os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
 os::cmd::expect_success "oadm policy add-scc-to-user privileged system:serviceaccount:default:router"
-os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*\-haproxy\-router:'
-os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
+os::cmd::expect_success_and_text "oadm router -o yaml --service-account=router -n default" 'image:.*\-haproxy\-router:'
+os::cmd::expect_success "oadm router --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
 os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
 echo "router: ok"
@@ -326,7 +324,7 @@ os::cmd::expect_success "oadm registry --daemonset --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oadm registry --daemonset' 'service exists'
 os::cmd::try_until_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
 # clean up so we can test non-daemonset
-os::cmd::expect_success "oc delete ds/docker-registry svc/docker-registry sa/registry clusterrolebinding/registry-registry-role"
+os::cmd::expect_success "oadm registry --daemonset -o yaml | oc delete -f -"
 echo "registry daemonset: ok"
 
 # Test running a registry
@@ -342,7 +340,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/apply"
 workingdir=$(mktemp -d)
-os::cmd::expect_success "oadm registry --credentials=${KUBECONFIG} -o yaml > ${workingdir}/oadm_registry.yaml"
+os::cmd::expect_success "oadm registry -o yaml > ${workingdir}/oadm_registry.yaml"
 os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
 os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' '6000'
