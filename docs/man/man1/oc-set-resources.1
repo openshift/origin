@@ -28,6 +28,10 @@ Possible resources include (case insensitive): "ReplicationController", "Deploym
     select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
     The names of containers in the selected pod templates to change, all containers are selected by default \- may use wildcards
 
@@ -37,7 +41,7 @@ Possible resources include (case insensitive): "ReplicationController", "Deploym
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory or URL to file to use to edit the resource
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-\-limits\fP=""
@@ -65,6 +69,10 @@ Possible resources include (case insensitive): "ReplicationController", "Deploym
 .PP
 \fB\-\-record\fP=false
     Record current kubectl command in the resource annotation. If set to false, do not record the command. If set to true, record the command. If not set, default to updating the existing annotation value only if one already exists.
+
+.PP
+\fB\-R\fP, \fB\-\-recursive\fP=false
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-requests\fP=""
@@ -100,6 +108,10 @@ Possible resources include (case insensitive): "ReplicationController", "Deploym
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

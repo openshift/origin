@@ -25,7 +25,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
+	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
@@ -74,8 +74,8 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *c
 	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "If true, only print the annotations that would be written, without annotating or idling the relevant objects")
 	cmd.Flags().StringVar(&o.filename, "resource-names-file", o.filename, "file containing list of services whose scalable resources to idle")
 	cmd.Flags().StringVarP(&o.selector, "selector", "l", o.selector, "Selector (label query) to use to select services")
-	cmd.Flags().BoolVar(&o.all, "all", o.all, "Select all services in the namespace")
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "Select services across all namespaces")
+	cmd.Flags().BoolVar(&o.all, "all", o.all, "if true, select all services in the namespace")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "if true, select services across all namespaces")
 	cmd.MarkFlagFilename("resource-names-file")
 
 	// TODO: take the `-o name` argument, and only print out names instead of the summary
@@ -113,7 +113,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		return fmt.Errorf("resource names, selectors, and the all flag may not be be specified if a filename is specified")
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.svcBuilder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
@@ -190,12 +190,12 @@ type idleUpdateInfo struct {
 // name of the associated service.
 func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory) (map[types.NamespacedName]idleUpdateInfo, map[unidlingapi.CrossGroupObjectReference]types.NamespacedName, error) {
 	// load our set of services
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 
 	podsLoaded := make(map[kapi.ObjectReference]*kapi.Pod)
 	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
@@ -522,10 +522,10 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		if len(byService) == 0 || len(byScalable) == 0 {
 			return fmt.Errorf("no valid scalable resources found to idle: %v", err)
 		}
-		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occured while finding scalable resources to idle: %v", err)
+		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	oclient, _, kclient, err := f.Clients()
+	oclient, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -541,7 +541,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	replicas := make(map[unidlingapi.CrossGroupObjectReference]int32, len(byScalable))
 	toScale := make(map[unidlingapi.CrossGroupObjectReference]scaleInfo)
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	// first, collect the scale info
 	for scaleRef, svcName := range byScalable {

@@ -191,7 +191,12 @@ func oauthAuthorizeResult(location string) (string, error) {
 		return "", errors.New(errorCode + " " + errorDescription)
 	}
 
-	fragmentValues, err := url.ParseQuery(u.Fragment)
+	// Grab the raw fragment ourselves, since the stdlib URL parsing decodes parts of it
+	fragment := ""
+	if parts := strings.SplitN(location, "#", 2); len(parts) == 2 {
+		fragment = parts[1]
+	}
+	fragmentValues, err := url.ParseQuery(fragment)
 	if err != nil {
 		return "", err
 	}

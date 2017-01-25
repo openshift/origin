@@ -10,6 +10,7 @@ spec:
   strategy:
     type: Rolling
     resources: {}
+    activeDeadlineSeconds: 3600
     rollingParams:
       intervalSeconds: 1
       maxSurge: 25%

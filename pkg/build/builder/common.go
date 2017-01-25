@@ -7,10 +7,11 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/kubernetes/pkg/client/retry"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
-
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -48,7 +49,7 @@ type GitClient interface {
 
 // buildInfo returns a slice of KeyValue pairs with build metadata to be
 // inserted into Docker images produced by build.
-func buildInfo(build *api.Build) []KeyValue {
+func buildInfo(build *api.Build, sourceInfo *git.SourceInfo) []KeyValue {
 	kv := []KeyValue{
 		{"OPENSHIFT_BUILD_NAME", build.Name},
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
@@ -62,7 +63,10 @@ func buildInfo(build *api.Build) []KeyValue {
 		if build.Spec.Source.Git.Ref != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_REFERENCE", build.Spec.Source.Git.Ref})
 		}
-		if build.Spec.Revision != nil && build.Spec.Revision.Git != nil && build.Spec.Revision.Git.Commit != "" {
+
+		if sourceInfo != nil && len(sourceInfo.CommitID) != 0 {
+			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_COMMIT", sourceInfo.CommitID})
+		} else if build.Spec.Revision != nil && build.Spec.Revision.Git != nil && build.Spec.Revision.Git.Commit != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_COMMIT", build.Spec.Revision.Git.Commit})
 		}
 	}
@@ -177,7 +181,7 @@ func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.Sour
 }
 
 func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) error {
-	return kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		// before updating, make sure we are using the latest version of the build
 		latestBuild, err := client.Get(build.Name)
 		if err != nil {
@@ -192,12 +196,19 @@ func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sour
 
 		latestBuild.Status.Reason = build.Status.Reason
 		latestBuild.Status.Message = build.Status.Message
+		latestBuild.Status.Output.To = build.Status.Output.To
 
 		if _, err := client.UpdateDetails(latestBuild); err != nil {
 			return err
 		}
 		return nil
 	})
+}
+
+func handleBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) {
+	if updateErr := retryBuildStatusUpdate(build, client, sourceRev); updateErr != nil {
+		utilruntime.HandleError(fmt.Errorf("error occurred while updating the build status: %v", updateErr))
+	}
 }
 
 // AddBuildStepInfo adds information about a build step, such as execution

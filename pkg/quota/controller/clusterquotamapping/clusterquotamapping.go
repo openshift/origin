@@ -10,7 +10,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/labels"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -31,7 +31,7 @@ import (
 // 4. The ns Delete is compressed out and never delivered to the controller, so the improper match is never cleared.
 //
 // This sounds pretty bad, however, we fail in the "safe" direction and the consequences are detectable.
-// When going from quota to namespace, you can get back a namespace that doesn't exist.  There are no resource in a non-existance
+// When going from quota to namespace, you can get back a namespace that doesn't exist.  There are no resource in a non-existence
 // namespace, so you know to clear all referenced resources.  In addition, this add/delete has to happen so fast
 // that it would be nearly impossible for any resources to be created.  If you do create resources, then we must be observing
 // their deletes.  When quota is replenished, we'll see that we need to clear any charges.
@@ -47,7 +47,7 @@ import (
 // test where I caught the problem.
 
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
-func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
+func NewClusterQuotaMappingController(namespaceInformer informers.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := &ClusterQuotaMappingController{
 		namespaceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_namespaces"),
 
@@ -56,7 +56,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 		clusterQuotaMapper: NewClusterQuotaMapper(),
 	}
 
-	namespaceInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addNamespace,
 		UpdateFunc: c.updateNamespace,
 		DeleteFunc: c.deleteNamespace,
@@ -64,7 +64,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 	c.namespaceLister = namespaceInformer.Lister()
 	c.namespacesSynced = namespaceInformer.Informer().HasSynced
 
-	quotaInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	quotaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addQuota,
 		UpdateFunc: c.updateQuota,
 		DeleteFunc: c.deleteQuota,
@@ -147,8 +147,8 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 			if !quotaMatches {
 				return nil
 			}
-			obj, ok, err := c.namespaceLister.Get(namespace.Name)
-			if kapierrors.IsNotFound(err) || !ok {
+			ns, err := c.namespaceLister.Get(namespace.Name)
+			if kapierrors.IsNotFound(err) {
 				// if the namespace is gone, then the deleteNamespace path will be called, just continue
 				break
 			}
@@ -156,7 +156,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 				utilruntime.HandleError(err)
 				break
 			}
-			namespace = obj.(*kapi.Namespace)
+			namespace = ns
 		}
 
 	}

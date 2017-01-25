@@ -1,7 +1,8 @@
 package testclient
 
 import (
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -13,8 +14,10 @@ type FakeClusterSubjectAccessReviews struct {
 	Fake *Fake
 }
 
+var subjectAccessReviewsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "subjectaccessreviews"}
+
 func (c *FakeClusterSubjectAccessReviews) Create(inObj *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("subjectaccessreviews", inObj), &authorizationapi.SubjectAccessReviewResponse{})
+	obj, err := c.Fake.Invokes(core.NewRootCreateAction(subjectAccessReviewsResource, inObj), &authorizationapi.SubjectAccessReviewResponse{})
 	if cast, ok := obj.(*authorizationapi.SubjectAccessReviewResponse); ok {
 		return cast, err
 	}

@@ -9,9 +9,11 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	// Admission control plug-ins used by OpenShift
+	_ "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
+	_ "github.com/openshift/origin/pkg/build/admission/secretinjector"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy"
@@ -31,6 +33,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -50,11 +53,13 @@ var (
 	defaultOnPlugins = sets.NewString(
 		"OriginNamespaceLifecycle",
 		"openshift.io/JenkinsBootstrapper",
+		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		storageclassdefaultadmission.PluginName,
 		imageadmission.PluginName,
 		lifecycle.PluginName,
 		"OriginPodNodeEnvironment",
+		"PodNodeSelector",
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
@@ -79,6 +84,7 @@ var (
 		imagepolicy.PluginName,
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
+		"openshift.io/RestrictSubjectBindings",
 	)
 )
 

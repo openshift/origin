@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-ENV VERSION=1.7.3 \
+ENV VERSION=1.7.4 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
@@ -16,7 +16,7 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 ADD *.rpm /tmp/origin-rpm/
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo" && \
+    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl" && \
     yum install -y $INSTALL_PKGS /tmp/origin-rpm/*.rpm && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \

@@ -9,6 +9,7 @@ func SetDefaults_OAuthAuthorizeToken(obj *OAuthAuthorizeToken) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_OAuthAuthorizeToken,
 	)

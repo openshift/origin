@@ -929,7 +929,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:    askCanValerieGetProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "valerie" cannot get projects in project "mallet-project"`,
+			Reason:    `User "valerie" cannot get project "mallet-project"`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)

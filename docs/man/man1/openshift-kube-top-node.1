@@ -21,6 +21,22 @@ The top\-node command allows you to see the resource consumption of nodes.
 
 .SH OPTIONS
 .PP
+\fB\-\-heapster\-namespace\fP="kube\-system"
+    Namespace Heapster service is located in
+
+.PP
+\fB\-\-heapster\-port\fP=""
+    Port name in service to use
+
+.PP
+\fB\-\-heapster\-scheme\fP="http"
+    Scheme (http or https) to connect to Heapster as
+
+.PP
+\fB\-\-heapster\-service\fP="heapster"
+    Name of Heapster service
+
+.PP
 \fB\-l\fP, \fB\-\-selector\fP=""
     Selector (label query) to filter on
 
@@ -45,6 +61,10 @@ The top\-node command allows you to see the resource consumption of nodes.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -132,7 +152,7 @@ The top\-node command allows you to see the resource consumption of nodes.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -140,7 +160,7 @@ The top\-node command allows you to see the resource consumption of nodes.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -256,12 +276,11 @@ The top\-node command allows you to see the resource consumption of nodes.
 .RS
 
 .nf
-
-# Show metrics for all nodes
-kubectl top node
-
-# Show metrics for a given node
-kubectl top node NODE\_NAME
+  # Show metrics for all nodes
+  kubectl top node
+  
+  # Show metrics for a given node
+  kubectl top node NODE\_NAME
 
 .fi
 .RE

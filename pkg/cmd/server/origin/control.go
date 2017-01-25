@@ -6,13 +6,18 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 
+	genericmux "k8s.io/kubernetes/pkg/genericapiserver/mux"
+
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 )
 
 // initControllerRoutes adds a web service endpoint for managing the execution
 // state of the controllers.
-func initControllerRoutes(root *restful.WebService, path string, canStart bool, plug plug.Plug) {
-	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+func initControllerRoutes(apiContainer *genericmux.APIContainer, path string, canStart bool, plug plug.Plug) {
+	ws := new(restful.WebService).
+		Path(path).
+		Doc("Check whether the controllers are running on this master")
+	ws.Route(ws.GET("/").To(func(req *restful.Request, resp *restful.Response) {
 		if !canStart {
 			resp.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 			fmt.Fprintf(resp, "disabled")
@@ -31,7 +36,7 @@ func initControllerRoutes(root *restful.WebService, path string, canStart bool, 
 		Returns(http.StatusAccepted, "if controllers are waiting to be started", nil).
 		Produces(restful.MIME_JSON))
 
-	root.Route(root.PUT(path).To(func(req *restful.Request, resp *restful.Response) {
+	ws.Route(ws.PUT(path).To(func(req *restful.Request, resp *restful.Response) {
 		if !canStart {
 			resp.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 			fmt.Fprintf(resp, "disabled")
@@ -45,11 +50,13 @@ func initControllerRoutes(root *restful.WebService, path string, canStart bool, 
 		Returns(http.StatusMethodNotAllowed, "if controllers are disabled", nil).
 		Produces(restful.MIME_JSON))
 
-	root.Route(root.DELETE(path).To(func(req *restful.Request, resp *restful.Response) {
+	ws.Route(ws.DELETE(path).To(func(req *restful.Request, resp *restful.Response) {
 		resp.ResponseWriter.WriteHeader(http.StatusAccepted)
 		fmt.Fprintf(resp, "terminating")
 		plug.Stop(nil)
 	}).Doc("Stop the master").
 		Returns(http.StatusAccepted, "if the master will stop", nil).
 		Produces(restful.MIME_JSON))
+
+	apiContainer.Add(ws)
 }

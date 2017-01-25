@@ -27,7 +27,7 @@ function cleanup()
 		# use the junitreport tool to generate us a report
 		os::util::ensure::built_binary_exists 'junitreport'
 
-		cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}" \
+		cat "${JUNIT_REPORT_OUTPUT}" \
 			| junitreport --type oscmd \
 			--suites nested \
 			--roots github.com/openshift/origin \
@@ -127,8 +127,6 @@ os::cmd::expect_success "docker login -u imagensbuilder -p ${token} -e fake@exam
 os::cmd::expect_success "oc import-image busybox:latest --confirm"
 os::cmd::expect_success "docker pull busybox"
 os::cmd::expect_success "docker tag docker.io/busybox:latest ${docker_registry}/image-ns/busybox:latest"
-os::cmd::expect_success "docker push ${docker_registry}/image-ns/busybox:latest"
-os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
 
 DOCKER_CONFIG_JSON="${HOME}/.docker/config.json"

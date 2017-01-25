@@ -45,11 +45,15 @@ For descriptions on other volume types, see
 .SH OPTIONS
 .PP
 \fB\-\-add\fP=false
-    Add volume and/or volume mounts for containers
+    If true, add volume and/or volume mounts for containers
 
 .PP
 \fB\-\-all\fP=false
-    select all resources in the namespace of the specified resource types
+    If true, select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-claim\-class\fP=""
@@ -73,11 +77,15 @@ For descriptions on other volume types, see
 
 .PP
 \fB\-\-confirm\fP=false
-    Confirm that you really want to remove multiple volumes
+    If true, confirm that you really want to remove multiple volumes
 
 .PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
     The names of containers in the selected pod templates to change \- may use wildcards
+
+.PP
+\fB\-\-default\-mode\fP=""
+    The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
@@ -85,7 +93,7 @@ For descriptions on other volume types, see
 
 .PP
 \fB\-\-list\fP=false
-    List volumes and volume mounts for containers
+    If true, list volumes and volume mounts for containers
 
 .PP
 \fB\-m\fP, \fB\-\-mount\-path\fP=""
@@ -120,7 +128,7 @@ For descriptions on other volume types, see
 
 .PP
 \fB\-\-remove\fP=false
-    Remove volume and/or volume mounts for containers
+    If true, remove volume and/or volume mounts for containers
 
 .PP
 \fB\-\-secret\-name\fP=""
@@ -164,6 +172,10 @@ For descriptions on other volume types, see
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

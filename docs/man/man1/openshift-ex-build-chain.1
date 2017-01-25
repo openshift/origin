@@ -22,7 +22,7 @@ Supported formats for the generated graph are dot and a human\-readable output. 
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Build dependency tree for the specified image stream tag across all namespaces
+    If true, build dependency tree for the specified image stream tag across all namespaces
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
@@ -45,6 +45,10 @@ Supported formats for the generated graph are dot and a human\-readable output. 
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

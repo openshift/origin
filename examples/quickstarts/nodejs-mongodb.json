@@ -16,6 +16,18 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData": {
+        "database-user": "${DATABASE_USER}",
+        "database-password": "${DATABASE_PASSWORD}",
+        "database-admin-password" : "${DATABASE_ADMIN_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -88,10 +100,10 @@
               "namespace": "${NAMESPACE}",
               "name": "nodejs:4"
             },
-            "env":  [
+            "env": [
               {
-                  "name": "NPM_MIRROR",
-                  "value": "${NPM_MIRROR}"
+                "name": "NPM_MIRROR",
+                "value": "${NPM_MIRROR}"
               }
             ]
           }
@@ -186,11 +198,21 @@
                   },
                   {
                     "name": "MONGODB_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
@@ -198,7 +220,12 @@
                   },
                   {
                     "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-admin-password"
+                      }
+                    }
                   }
                 ],
                 "readinessProbe": {
@@ -210,17 +237,17 @@
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
-                    "httpGet": {
-                        "path": "/pagecount",
-                        "port": 8080
-                    }
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/pagecount",
+                    "port": 8080
+                  }
                 },
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -306,11 +333,21 @@
                 "env": [
                   {
                     "name": "MONGODB_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
@@ -318,14 +355,24 @@
                   },
                   {
                     "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-admin-password"
+                      }
+                    }
                   }
                 ],
                 "readinessProbe": {
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""
+                    ]
                   }
                 },
                 "livenessProbe": {
@@ -336,9 +383,9 @@
                   }
                 },
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_MONGODB_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_MONGODB_LIMIT}"
+                  }
                 },
                 "volumeMounts": [
                   {

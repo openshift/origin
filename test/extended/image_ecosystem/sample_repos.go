@@ -50,7 +50,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				buildName := c.buildConfigName + "-1"
 
 				g.By("expecting the build is in the Complete phase")
-				err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+				err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				if err != nil {
 					exutil.DumpBuildLogs(c.buildConfigName, oc)
 				}

@@ -16,8 +16,27 @@ openshift kube completion \- Output shell completion code for the given shell (b
 Output shell completion code for the given shell (bash or zsh).
 
 .PP
-This command prints shell code which must be evaluation to provide interactive
-completion of kubectl commands.
+This command prints shell code which must be evaluation to provide interactive completion of kubectl commands.
+
+.PP
+$ source <(kubectl completion bash)
+
+.PP
+will load the kubectl completion code for bash. Note that this depends on the bash\-completion framework. It must be sourced before sourcing the kubectl completion, e.g. on the Mac:
+
+.PP
+$ brew install bash\-completion
+  $ source $(brew \-\-prefix)/etc/bash\_completion
+  $ source <(kubectl completion bash)
+
+.PP
+If you use zsh [1], the following will load kubectl zsh completion:
+
+.PP
+$ source <(kubectl completion zsh)
+
+.PP
+[1] zsh completions are only supported in versions of zsh >= 5.2
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -40,6 +59,10 @@ completion of kubectl commands.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -127,7 +150,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -135,7 +158,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -244,32 +267,6 @@ completion of kubectl commands.
 .PP
 \fB\-\-vmodule\fP=
     comma\-separated list of pattern=N settings for file\-filtered logging
-
-
-.SH EXAMPLE
-.PP
-.RS
-
-.nf
-
-$ source <(kubectl completion bash)
-
-will load the kubectl completion code for bash. Note that this depends on the
-bash\-completion framework. It must be sourced before sourcing the kubectl
-completion, e.g. on the Mac:
-
-$ brew install bash\-completion
-$ source $(brew \-\-prefix)/etc/bash\_completion
-$ source <(kubectl completion bash)
-
-If you use zsh*, the following will load kubectl zsh completion:
-
-$ source <(kubectl completion zsh)
-
-* zsh completions are only supported in versions of zsh >= 5.2
-
-.fi
-.RE
 
 
 .SH SEE ALSO

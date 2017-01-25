@@ -84,7 +84,7 @@ func NewCmdDockerCompose(fullName string, f *clientcmd.Factory, in io.Reader, ou
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
-				// TODO: move met to kcmdutil
+				// TODO: move me to kcmdutil
 				if err == cmdutil.ErrExit {
 					os.Exit(1)
 				}
@@ -118,7 +118,7 @@ func (o *DockerComposeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Action.Out)
 
 	o.Generator, _ = cmd.Flags().GetString("generator")
@@ -129,7 +129,7 @@ func (o *DockerComposeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	}
 	o.Namespace = ns
 
-	o.Client, _, _, err = f.Clients()
+	o.Client, _, err = f.Clients()
 	return err
 }
 

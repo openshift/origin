@@ -65,6 +65,7 @@ type Interface interface {
 	ClusterRoleBindingsInterface
 	ClusterResourceQuotasInterface
 	AppliedClusterResourceQuotasNamespacer
+	RoleBindingRestrictionsNamespacer
 }
 
 // Builds provides a REST client for Builds
@@ -290,6 +291,10 @@ func (c *Client) AppliedClusterResourceQuotas(namespace string) AppliedClusterRe
 	return newAppliedClusterResourceQuotas(c, namespace)
 }
 
+func (c *Client) RoleBindingRestrictions(namespace string) RoleBindingRestrictionInterface {
+	return newRoleBindingRestrictions(c, namespace)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*restclient.RESTClient
@@ -328,7 +333,7 @@ func SetOpenShiftDefaults(config *restclient.Config) error {
 		groupVersionCopy := latest.Version
 		config.GroupVersion = &groupVersionCopy
 	}
-	if config.APIPath == "" {
+	if config.APIPath == "" || config.APIPath == "/api" {
 		config.APIPath = "/oapi"
 	}
 	if config.NegotiatedSerializer == nil {

@@ -74,7 +74,7 @@ type TopImagesOptions struct {
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	osClient, _, kClient, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func getImageStreamTags(g graph.Graph, node *imagegraph.ImageNode) []string {
 func getTags(stream *imageapi.ImageStream, image *imageapi.Image) []string {
 	tags := []string{}
 	for tag, history := range stream.Status.Tags {
-		if history.Items[0].Image == image.Name {
+		if len(history.Items) > 0 && history.Items[0].Image == image.Name {
 			tags = append(tags, tag)
 		}
 	}

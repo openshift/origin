@@ -20,25 +20,19 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/renstrom/dedent"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/spf13/cobra"
 )
 
-// HistoryOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
-// referencing the cmd.Flags()
-type HistoryOptions struct {
-	Filenames []string
-	Recursive bool
-}
-
 var (
-	history_long = dedent.Dedent(`
+	history_long = templates.LongDesc(`
 		View previous rollout revisions and configurations.`)
-	history_example = dedent.Dedent(`
+
+	history_example = templates.Examples(`
 		# View the rollout history of a deployment
 		kubectl rollout history deployment/abc
 
@@ -46,8 +40,8 @@ var (
 		kubectl rollout history deployment/abc --revision=3`)
 )
 
-func NewCmdRolloutHistory(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &HistoryOptions{}
+func NewCmdRolloutHistory(f cmdutil.Factory, out io.Writer) *cobra.Command {
+	options := &resource.FilenameOptions{}
 
 	validArgs := []string{"deployment"}
 	argAliases := kubectl.ResourceAliases(validArgs)
@@ -65,14 +59,13 @@ func NewCmdRolloutHistory(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().Int64("revision", 0, "See the details, including podTemplate of the revision specified")
-	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
-	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
+	usage := "identifying the resource to get from a server."
+	cmdutil.AddFilenameOptionFlags(cmd, options, usage)
 	return cmd
 }
 
-func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string, options *HistoryOptions) error {
-	if len(args) == 0 && len(options.Filenames) == 0 {
+func RunHistory(f cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string, options *resource.FilenameOptions) error {
+	if len(args) == 0 && cmdutil.IsFilenameEmpty(options.Filenames) {
 		return cmdutil.UsageError(cmd, "Required resource not specified.")
 	}
 	revision := cmdutil.GetFlagInt64(cmd, "revision")
@@ -80,7 +73,7 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 		return fmt.Errorf("revision must be a positive integer: %v", revision)
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
@@ -89,7 +82,7 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
+		FilenameParam(enforceNamespace, options).
 		ResourceTypeOrNameArgs(true, args...).
 		ContinueOnError().
 		Latest().

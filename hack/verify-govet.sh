@@ -44,6 +44,7 @@ ALL_DIRS=$(find_files | grep -Eo "\./([^/]+|pkg/[^/]+)" | sort -u)
 DIR_BLACKLIST='./hack
 ./pkg/api
 ./pkg/authorization
+./pkg/bootstrap/run
 ./pkg/build
 ./pkg/client
 ./pkg/cmd
@@ -85,6 +86,6 @@ if [[ -n "${FAILURE:-}" ]]; then
 	echo "FAILURE: go vet failed!"
 	exit 1
 else
-	echo "SUCCESS: go vet succeded!"
+	echo "SUCCESS: go vet succeeded!"
 	exit 0
 fi

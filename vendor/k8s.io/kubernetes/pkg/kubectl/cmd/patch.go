@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	"github.com/evanphx/json-patch"
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -40,22 +40,22 @@ var patchTypes = map[string]api.PatchType{"json": api.JSONPatchType, "merge": ap
 // PatchOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
 // referencing the cmd.Flags()
 type PatchOptions struct {
-	Filenames []string
-	Recursive bool
-	Local     bool
+	resource.FilenameOptions
+
+	Local bool
 
 	OutputFormat string
 }
 
 var (
-	patch_long = dedent.Dedent(`
+	patch_long = templates.LongDesc(`
 		Update field(s) of a resource using strategic merge patch
 
 		JSON and YAML formats are accepted.
 
-		Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/release-1.4/docs/api-reference/v1/definitions.html to find if a field is mutable.`)
-	patch_example = dedent.Dedent(`
+		Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/HEAD/docs/api-reference/v1/definitions.html to find if a field is mutable.`)
 
+	patch_example = templates.Examples(`
 		# Partially update a node using strategic merge patch
 		kubectl patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
 
@@ -69,7 +69,7 @@ var (
 		kubectl patch pod valid-pod --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'`)
 )
 
-func NewCmdPatch(f *cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdPatch(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &PatchOptions{}
 
 	// retrieve a list of handled resources from printer as valid args
@@ -103,16 +103,15 @@ func NewCmdPatch(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmdutil.AddRecordFlag(cmd)
 	cmdutil.AddInclude3rdPartyFlags(cmd)
 
-	usage := "Filename, directory, or URL to a file identifying the resource to update"
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
-	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
+	usage := "identifying the resource to update"
+	cmdutil.AddFilenameOptionFlags(cmd, &options.FilenameOptions, usage)
 
 	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, patch will operate on the content of the file, not the server-side resource.")
 
 	return cmd
 }
 
-func RunPatch(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, options *PatchOptions) error {
+func RunPatch(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, options *PatchOptions) error {
 	switch {
 	case options.Local && len(args) != 0:
 		return fmt.Errorf("cannot specify --local and server resources")
@@ -142,11 +141,11 @@ func RunPatch(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return fmt.Errorf("unable to parse %q: %v", patch, err)
 	}
 
-	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
+	mapper, typer := f.Object()
 	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
+		FilenameParam(enforceNamespace, &options.FilenameOptions).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()

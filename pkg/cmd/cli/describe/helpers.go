@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -363,6 +364,10 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		if insecure {
 			fmt.Fprintf(out, "    will use insecure HTTPS or HTTP connections\n")
 		}
+		switch tagRef.ReferencePolicy.Type {
+		case imageapi.LocalTagReferencePolicy:
+			fmt.Fprintf(out, "    prefer registry pullthrough when referencing this tag\n")
+		}
 
 		fmt.Fprintln(out)
 
@@ -424,4 +429,18 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			}
 		}
 	}
+}
+
+// roleBindingRestrictionType returns a string that indicates the type of the
+// given RoleBindingRestriction.
+func roleBindingRestrictionType(rbr *authorizationapi.RoleBindingRestriction) string {
+	switch {
+	case rbr.Spec.UserRestriction != nil:
+		return "User"
+	case rbr.Spec.GroupRestriction != nil:
+		return "Group"
+	case rbr.Spec.ServiceAccountRestriction != nil:
+		return "ServiceAccount"
+	}
+	return ""
 }

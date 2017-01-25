@@ -105,6 +105,7 @@ func DeepCopy_api_DeploymentCondition(in interface{}, out interface{}, c *conver
 		out := out.(*DeploymentCondition)
 		out.Type = in.Type
 		out.Status = in.Status
+		out.LastUpdateTime = in.LastUpdateTime.DeepCopy()
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
 		out.Reason = in.Reason
 		out.Message = in.Message
@@ -266,6 +267,7 @@ func DeepCopy_api_DeploymentConfigStatus(in interface{}, out interface{}, c *con
 		} else {
 			out.Conditions = nil
 		}
+		out.ReadyReplicas = in.ReadyReplicas
 		return nil
 	}
 }
@@ -412,6 +414,13 @@ func DeepCopy_api_DeploymentStrategy(in interface{}, out interface{}, c *convers
 			}
 		} else {
 			out.Annotations = nil
+		}
+		if in.ActiveDeadlineSeconds != nil {
+			in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds
+			*out = new(int64)
+			**out = **in
+		} else {
+			out.ActiveDeadlineSeconds = nil
 		}
 		return nil
 	}

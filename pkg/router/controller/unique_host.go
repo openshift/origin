@@ -25,11 +25,6 @@ func HostForRoute(route *routeapi.Route) string {
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
-// RejectionRecorder is an object capable of recording why a route was rejected
-type RejectionRecorder interface {
-	RecordRouteRejection(route *routeapi.Route, reason, message string)
-}
-
 var LogRejections = logRecorder{}
 
 type logRecorder struct{}
@@ -50,15 +45,19 @@ type UniqueHost struct {
 	routeToHost RouteToHostMap
 	// nil means different than empty
 	allowedNamespaces sets.String
+
+	disableOwnershipCheck bool
 }
 
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
 // the underlying plugin. Recorder is an interface for indicating why a route was
 // rejected.
-func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, recorder RejectionRecorder) *UniqueHost {
+func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, disableOwnershipCheck bool, recorder RejectionRecorder) *UniqueHost {
 	return &UniqueHost{
 		plugin:       plugin,
 		hostForRoute: fn,
+
+		disableOwnershipCheck: disableOwnershipCheck,
 
 		recorder: recorder,
 
@@ -130,7 +129,8 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		oldest := old[0]
 
 		// multiple paths can be added from the namespace of the oldest route
-		if oldest.Namespace == route.Namespace {
+		// unless the ownership checks are disabled.
+		if p.disableOwnershipCheck || oldest.Namespace == route.Namespace {
 			added := false
 			for i := range old {
 				if old[i].Spec.Path == route.Spec.Path {
@@ -255,8 +255,8 @@ func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
-func (p *UniqueHost) SetLastSyncProcessed(processed bool) error {
-	return p.plugin.SetLastSyncProcessed(processed)
+func (p *UniqueHost) Commit() error {
+	return p.plugin.Commit()
 }
 
 // routeKeys returns the internal router key to use for the given Route.

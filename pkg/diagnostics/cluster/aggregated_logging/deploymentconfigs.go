@@ -13,15 +13,16 @@ import (
 )
 
 const (
-	componentNameEs        = "es"
-	componentNameEsOps     = "es-ops"
-	componentNameKibana    = "kibana"
-	componentNameKibanaOps = "kibana-ops"
-	componentNameCurator   = "curator"
+	componentNameEs         = "es"
+	componentNameEsOps      = "es-ops"
+	componentNameKibana     = "kibana"
+	componentNameKibanaOps  = "kibana-ops"
+	componentNameCurator    = "curator"
+	componentNameCuratorOps = "curator-ops"
 )
 
 // loggingComponents are those 'managed' by rep controllers (e.g. fluentd is deployed with a DaemonSet)
-var loggingComponents = sets.NewString(componentNameEs, componentNameEsOps, componentNameKibana, componentNameKibanaOps, componentNameCurator)
+var loggingComponents = sets.NewString(componentNameEs, componentNameEsOps, componentNameKibana, componentNameKibanaOps, componentNameCurator, componentNameCuratorOps)
 
 const deploymentConfigWarnMissingForOps = `
 Did not find a DeploymentConfig to support component '%s'.  If you require
@@ -88,8 +89,8 @@ func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapte
 }
 
 func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAdapter, dcs deployapi.DeploymentConfigList, project string) {
-	compReq, _ := labels.NewRequirement(componentKey, selection.In, loggingComponents)
-	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, sets.NewString(openshiftValue))
+	compReq, _ := labels.NewRequirement(componentKey, selection.In, loggingComponents.List())
+	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, []string{openshiftValue})
 	podSelector := labels.NewSelector().Add(*compReq, *provReq)
 	r.Debug("AGL0070", fmt.Sprintf("Getting pods that match selector '%s'", podSelector))
 	podList, err := adapter.pods(project, kapi.ListOptions{LabelSelector: podSelector})

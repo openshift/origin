@@ -33,7 +33,7 @@ Pass the \-\-insecure flag if your external registry does not have a valid HTTPS
 
 .PP
 \fB\-\-insecure\fP=false
-    Set to true if importing the specified Docker image requires HTTP or has a self\-signed certificate.
+    Set to true if importing the specified Docker image requires HTTP or has a self\-signed certificate. Defaults to false.
 
 .PP
 \fB\-\-reference\fP=false
@@ -41,7 +41,7 @@ Pass the \-\-insecure flag if your external registry does not have a valid HTTPS
 
 .PP
 \fB\-\-scheduled\fP=false
-    Set a Docker image to be periodically imported from a remote repository.
+    Set a Docker image to be periodically imported from a remote repository. Defaults to false.
 
 .PP
 \fB\-\-source\fP=""
@@ -56,6 +56,10 @@ Pass the \-\-insecure flag if your external registry does not have a valid HTTPS
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

@@ -2,11 +2,13 @@ package image
 
 import (
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
-	"github.com/openshift/origin/pkg/client/testclient"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -79,10 +81,17 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
-		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("list", "imagestreams", imagetest.GetFakeImageStreamListHandler(t, tc.iss...))
-
-		evaluator := NewImageStreamEvaluator(fakeClient)
+		isInformer := cache.NewSharedIndexInformer(
+			&cache.ListWatch{},
+			&imageapi.ImageStream{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		store := oscache.StoreToImageStreamLister{Indexer: isInformer.GetIndexer()}
+		for _, is := range tc.iss {
+			store.Indexer.Add(&is)
+		}
+		evaluator := NewImageStreamEvaluator(&store)
 
 		stats, err := evaluator.UsageStats(kquota.UsageStatsOptions{Namespace: tc.namespace})
 		if err != nil {
@@ -158,18 +167,23 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
-
 		newIS := &imageapi.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
 				Namespace: "test",
 				Name:      "is",
 			},
 		}
-
-		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.iss...))
-
-		evaluator := NewImageStreamEvaluator(fakeClient)
+		isInformer := cache.NewSharedIndexInformer(
+			&cache.ListWatch{},
+			&imageapi.ImageStream{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		store := oscache.StoreToImageStreamLister{Indexer: isInformer.GetIndexer()}
+		for _, is := range tc.iss {
+			store.Indexer.Add(&is)
+		}
+		evaluator := NewImageStreamEvaluator(&store)
 
 		usage := evaluator.Usage(newIS)
 		expectedUsage := imagetest.ExpectedResourceListFor(tc.expectedISCount)

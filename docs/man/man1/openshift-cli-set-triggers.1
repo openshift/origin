@@ -28,11 +28,15 @@ Build configs support triggering off of image changes, config changes, and webho
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Select all resources in the namespace of the specified resource types
+    If true, select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-auto\fP=false
-    Enable all triggers, or just the specified trigger
+    If true, enable all triggers, or just the specified trigger
 
 .PP
 \fB\-c\fP, \fB\-\-containers\fP=""
@@ -48,7 +52,7 @@ Build configs support triggering off of image changes, config changes, and webho
 
 .PP
 \fB\-\-from\-github\fP=false
-    A GitHub webhook \- a secret value will be generated automatically
+    If true, a GitHub webhook \- a secret value will be generated automatically
 
 .PP
 \fB\-\-from\-image\fP=""
@@ -56,15 +60,15 @@ Build configs support triggering off of image changes, config changes, and webho
 
 .PP
 \fB\-\-from\-webhook\fP=false
-    A generic webhook \- a secret value will be generated automatically
+    If true, a generic webhook \- a secret value will be generated automatically
 
 .PP
 \fB\-\-from\-webhook\-allow\-env\fP=false
-    A generic webhook which can provide environment variables \- a secret value will be generated automatically
+    If true, a generic webhook which can provide environment variables \- a secret value will be generated automatically
 
 .PP
 \fB\-\-manual\fP=false
-    Set all triggers to manual, or just the specified trigger
+    If true, set all triggers to manual, or just the specified trigger
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -119,6 +123,10 @@ Build configs support triggering off of image changes, config changes, and webho
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

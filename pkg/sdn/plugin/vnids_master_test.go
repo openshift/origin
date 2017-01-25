@@ -9,7 +9,7 @@ import (
 )
 
 func TestMasterVNIDMap(t *testing.T) {
-	vmap := newMasterVNIDMap()
+	vmap := newMasterVNIDMap(true)
 
 	// empty vmap
 	checkCurrentVNIDs(t, vmap, 0, 0)

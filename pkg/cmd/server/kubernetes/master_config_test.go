@@ -24,35 +24,34 @@ import (
 )
 
 func TestAPIServerDefaults(t *testing.T) {
-	defaults := apiserveroptions.NewAPIServer()
+	defaults := apiserveroptions.NewServerRunOptions()
 
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
-	expectedDefaults := &apiserveroptions.APIServer{
-		ServerRunOptions: &genericapiserveroptions.ServerRunOptions{
-			BindAddress:            net.ParseIP("0.0.0.0"),
-			CertDirectory:          "/var/run/kubernetes",
-			InsecureBindAddress:    net.ParseIP("127.0.0.1"),
-			InsecurePort:           8080,
-			LongRunningRequestRE:   "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
-			MaxRequestsInFlight:    400,
-			SecurePort:             6443,
-			APIGroupPrefix:         "/apis",
-			APIPrefix:              "/api",
-			EnableLogsSupport:      true,
-			EnableProfiling:        true,
-			EnableWatchCache:       true,
-			MinRequestTimeout:      1800,
-			ServiceNodePortRange:   genericapiserveroptions.DefaultServiceNodePortRange,
-			RuntimeConfig:          utilconfig.ConfigurationMap{},
-			StorageVersions:        registered.AllPreferredGroupVersions(),
-			MasterCount:            1,
-			DefaultStorageVersions: registered.AllPreferredGroupVersions(),
+	expectedDefaults := &apiserveroptions.ServerRunOptions{
+		GenericServerRunOptions: &genericapiserveroptions.ServerRunOptions{
+			AnonymousAuth:           false,
+			BindAddress:             net.ParseIP("0.0.0.0"),
+			CertDirectory:           "/var/run/kubernetes",
+			InsecureBindAddress:     net.ParseIP("127.0.0.1"),
+			InsecurePort:            8080,
+			LongRunningRequestRE:    "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
+			MaxRequestsInFlight:     400,
+			SecurePort:              6443,
+			EnableProfiling:         true,
+			EnableGarbageCollection: true,
+			EnableWatchCache:        true,
+			MinRequestTimeout:       1800,
+			ServiceNodePortRange:    genericapiserveroptions.DefaultServiceNodePortRange,
+			RuntimeConfig:           utilconfig.ConfigurationMap{},
+			StorageVersions:         registered.AllPreferredGroupVersions(),
+			MasterCount:             1,
+			DefaultStorageVersions:  registered.AllPreferredGroupVersions(),
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",
-				DeserializationCacheSize: genericapiserveroptions.DefaultDeserializationCacheSize,
+				DeserializationCacheSize: 0,
 			},
 			DefaultStorageMediaType:                  "application/json",
 			AdmissionControl:                         "AlwaysAdmit",
@@ -64,7 +63,13 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
-			Port:        10250,
+			Port: 10250,
+			PreferredAddressTypes: []string{
+				string(apiv1.NodeHostName),
+				string(apiv1.NodeInternalIP),
+				string(apiv1.NodeExternalIP),
+				string(apiv1.NodeLegacyHostIP),
+			},
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
@@ -104,7 +109,6 @@ func TestCMServerDefaults(t *testing.T) {
 			ConfigureCloudRoutes:              true,
 			NodeCIDRMaskSize:                  24,
 			ServiceSyncPeriod:                 unversioned.Duration{Duration: 5 * time.Minute},
-			NodeSyncPeriod:                    unversioned.Duration{Duration: 10 * time.Second},
 			ResourceQuotaSyncPeriod:           unversioned.Duration{Duration: 5 * time.Minute},
 			NamespaceSyncPeriod:               unversioned.Duration{Duration: 5 * time.Minute},
 			PVClaimBinderSyncPeriod:           unversioned.Duration{Duration: 15 * time.Second},
@@ -112,6 +116,7 @@ func TestCMServerDefaults(t *testing.T) {
 			DeploymentControllerSyncPeriod:    unversioned.Duration{Duration: 30 * time.Second},
 			MinResyncPeriod:                   unversioned.Duration{Duration: 12 * time.Hour},
 			RegisterRetryCount:                10,
+			RouteReconciliationPeriod:         unversioned.Duration{Duration: 10 * time.Second},
 			PodEvictionTimeout:                unversioned.Duration{Duration: 5 * time.Minute},
 			NodeMonitorGracePeriod:            unversioned.Duration{Duration: 40 * time.Second},
 			NodeStartupGracePeriod:            unversioned.Duration{Duration: 60 * time.Second},
@@ -139,9 +144,10 @@ func TestCMServerDefaults(t *testing.T) {
 				RenewDeadline: unversioned.Duration{Duration: 10 * time.Second},
 				RetryPeriod:   unversioned.Duration{Duration: 2 * time.Second},
 			},
-			ClusterSigningCertFile: "/etc/kubernetes/ca/ca.pem",
-			ClusterSigningKeyFile:  "/etc/kubernetes/ca/ca.key",
-			EnableGarbageCollector: true,
+			ClusterSigningCertFile:   "/etc/kubernetes/ca/ca.pem",
+			ClusterSigningKeyFile:    "/etc/kubernetes/ca/ca.key",
+			EnableGarbageCollector:   true,
+			ReconcilerSyncLoopPeriod: unversioned.Duration{Duration: 5 * time.Second},
 		},
 	}
 

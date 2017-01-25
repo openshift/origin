@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/client-go/pkg/api/validation/path"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
@@ -51,15 +51,15 @@ func TestNameFunc(t *testing.T) {
 		apiObjectMeta := apiValue.Elem().FieldByName("ObjectMeta")
 
 		// check for illegal names
-		for _, illegalName := range api.NameMayNotBe {
+		for _, illegalName := range []string{".", ".."} {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
 			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
-			reasons := api.MinimalNameRequirements(illegalName, false)
+			reasons := path.ValidatePathSegmentName(illegalName, false)
 			requiredMessage := strings.Join(reasons, ", ")
 
 			if len(errList) == 0 {
-				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator..", illegalName, apiType.Elem(), errList)
+				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add path.ValidatePathSegmentName to your name validator..", illegalName, apiType.Elem(), errList)
 				continue
 			}
 
@@ -73,7 +73,7 @@ func TestNameFunc(t *testing.T) {
 					foundExpectedError = true
 					break
 				}
-				// this message is from a stock name validation method in kube that covers our requirements in MinimalNameRequirements
+				// this message is from a stock name validation method in kube that covers our requirements in ValidatePathSegmentName
 				if validationError.Detail == nameRulesMessage {
 					foundExpectedError = true
 					break
@@ -81,22 +81,22 @@ func TestNameFunc(t *testing.T) {
 			}
 
 			if !foundExpectedError {
-				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator.", illegalName, apiType.Elem(), errList)
+				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add path.ValidatePathSegmentName to your name validator.", illegalName, apiType.Elem(), errList)
 			}
 		}
 
 		// check for illegal contents
-		for _, illegalContent := range api.NameMayNotContain {
+		for _, illegalContent := range []string{"/", "%"} {
 			illegalName := "a" + illegalContent + "b"
 
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
 			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
-			reasons := api.MinimalNameRequirements(illegalName, false)
+			reasons := path.ValidatePathSegmentName(illegalName, false)
 			requiredMessage := strings.Join(reasons, ", ")
 
 			if len(errList) == 0 {
-				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator.", illegalName, apiType.Elem(), errList)
+				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add path.ValidatePathSegmentName to your name validator.", illegalName, apiType.Elem(), errList)
 				continue
 			}
 
@@ -111,7 +111,7 @@ func TestNameFunc(t *testing.T) {
 					foundExpectedError = true
 					break
 				}
-				// this message is from a stock name validation method in kube that covers our requirements in MinimalNameRequirements
+				// this message is from a stock name validation method in kube that covers our requirements in ValidatePathSegmentName
 				if validationError.Detail == nameRulesMessage {
 					foundExpectedError = true
 					break
@@ -119,7 +119,7 @@ func TestNameFunc(t *testing.T) {
 			}
 
 			if !foundExpectedError {
-				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator.", illegalName, apiType.Elem(), errList)
+				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add path.ValidatePathSegmentName to your name validator.", illegalName, apiType.Elem(), errList)
 			}
 		}
 	}
@@ -141,7 +141,7 @@ func TestObjectMeta(t *testing.T) {
 		}
 
 		errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
-		requiredErrors := validation.ValidateObjectMeta(apiObjectMeta.Addr().Interface().(*kapi.ObjectMeta), validationInfo.IsNamespaced, api.MinimalNameRequirements, field.NewPath("metadata"))
+		requiredErrors := validation.ValidateObjectMeta(apiObjectMeta.Addr().Interface().(*kapi.ObjectMeta), validationInfo.IsNamespaced, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
 		if len(errList) == 0 {
 			t.Errorf("expected errors %v in %v not found amongst %v.  You probably need to call kube/validation.ValidateObjectMeta in your validator.", requiredErrors, apiType.Elem(), errList)

@@ -64,11 +64,15 @@ func SetDefaults_DeploymentStrategy(obj *DeploymentStrategy) {
 	if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
 		obj.RecreateParams = &RecreateDeploymentStrategyParams{}
 	}
+
+	if obj.ActiveDeadlineSeconds == nil {
+		obj.ActiveDeadlineSeconds = mkintp(deployapi.MaxDeploymentDurationSeconds)
+	}
 }
 
 func SetDefaults_RecreateDeploymentStrategyParams(obj *RecreateDeploymentStrategyParams) {
 	if obj.TimeoutSeconds == nil {
-		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+		obj.TimeoutSeconds = mkintp(deployapi.DefaultRecreateTimeoutSeconds)
 	}
 }
 
@@ -124,6 +128,7 @@ func mkintp(i int64) *int64 {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_DeploymentConfigSpec,
 		SetDefaults_DeploymentStrategy,

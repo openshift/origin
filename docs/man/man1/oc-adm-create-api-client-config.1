@@ -33,6 +33,10 @@ This command creates a folder containing a client certificate, a client key, a s
     The client data directory.
 
 .PP
+\fB\-\-expire\-days\fP=730
+    Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-groups\fP=[]
     The list of groups this user belongs to. Comma delimited list
 
@@ -70,6 +74,10 @@ This command creates a folder containing a client certificate, a client key, a s
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-client\-certificate\fP=""

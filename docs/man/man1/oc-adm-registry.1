@@ -34,12 +34,8 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
     deprecated; this is now the default behavior
 
 .PP
-\fB\-\-credentials\fP=""
-    Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.
-
-.PP
 \fB\-\-daemonset\fP=false
-    Use a daemonset instead of a deployment config.
+    If true, use a daemonset instead of a deployment config.
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -47,7 +43,7 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 
 .PP
 \fB\-\-enforce\-quota\fP=false
-    If set, the registry will refuse to write blobs if they exceed quota limits
+    If true, the registry will refuse to write blobs if they exceed quota limits
 
 .PP
 \fB\-\-images\fP="openshift/origin\-${component}:${version}"
@@ -114,6 +110,10 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

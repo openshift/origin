@@ -14,10 +14,16 @@ openshift kube run \- Run a particular image on the cluster
 .SH DESCRIPTION
 .PP
 Create and run a particular image, possibly replicated.
+
+.PP
 Creates a deployment or job to manage the created container(s).
 
 
 .SH OPTIONS
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
 .PP
 \fB\-\-attach\fP=false
     If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '\-i/\-\-stdin' is set, in which case the default is true. With '\-\-restart=Never' the exit code of the container process is returned.
@@ -40,7 +46,8 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-generator\fP=""
-    The name of the API generator to use.  Default is 'deployment/v1beta1' if \-\-restart=Always, 'job/v1' for OnFailure and 'run\-pod/v1' for Never.  This will happen only for cluster version at least 1.3, for 1.2 we will fallback to 'deployment/v1beta1' for \-\-restart=Always, 'job/v1' for others, for olders we will fallback to 'run/v1' for \-\-restart=Always, 'run\-pod/v1' for others.
+    The name of the API generator to use, see 
+\[la]http://kubernetes.io/docs/user-guide/kubectl-conventions/#generators\[ra] for a list.
 
 .PP
 \fB\-\-hostport\fP=\-1
@@ -90,7 +97,7 @@ Creates a deployment or job to manage the created container(s).
     An inline JSON override for the generated object. If this is non\-empty, it is used to override the generated object. Requires that the object supply a valid apiVersion field.
 
 .PP
-\fB\-\-port\fP=\-1
+\fB\-\-port\fP=""
     The port that this container exposes.  If \-\-expose is true, this is also the port used by the service that is created.
 
 .PP
@@ -111,7 +118,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-restart\fP="Always"
-    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created for this pod, if set to 'OnFailure', a job is created for this pod, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always'
+    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created, if set to 'OnFailure' a job is created, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always', for CronJobs \fB\fCNever\fR.
 
 .PP
 \fB\-\-rm\fP=false
@@ -179,6 +186,10 @@ Creates a deployment or job to manage the created container(s).
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -266,7 +277,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -274,7 +285,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -390,39 +401,38 @@ Creates a deployment or job to manage the created container(s).
 .RS
 
 .nf
-
-# Start a single instance of nginx.
-kubectl run nginx \-\-image=nginx
-
-# Start a single instance of hazelcast and let the container expose port 5701 .
-kubectl run hazelcast \-\-image=hazelcast \-\-port=5701
-
-# Start a single instance of hazelcast and set environment variables "DNS\_DOMAIN=cluster" and "POD\_NAMESPACE=default" in the container.
-kubectl run hazelcast \-\-image=hazelcast \-\-env="DNS\_DOMAIN=cluster" \-\-env="POD\_NAMESPACE=default"
-
-# Start a replicated instance of nginx.
-kubectl run nginx \-\-image=nginx \-\-replicas=5
-
-# Dry run. Print the corresponding API objects without creating them.
-kubectl run nginx \-\-image=nginx \-\-dry\-run
-
-# Start a single instance of nginx, but overload the spec of the deployment with a partial set of values parsed from JSON.
-kubectl run nginx \-\-image=nginx \-\-overrides='{ "apiVersion": "v1", "spec": { ... } }'
-
-# Start a pod of busybox and keep it in the foreground, don't restart it if it exits.
-kubectl run \-i \-t busybox \-\-image=busybox \-\-restart=Never
-
-# Start the nginx container using the default command, but use custom arguments (arg1 .. argN) for that command.
-kubectl run nginx \-\-image=nginx \-\- <arg1> <arg2> ... <argN>
-
-# Start the nginx container using a different command and custom arguments.
-kubectl run nginx \-\-image=nginx \-\-command \-\- <cmd> <arg1> ... <argN>
-
-# Start the perl container to compute π to 2000 places and print it out.
-kubectl run pi \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
-
-# Start the scheduled job to compute π to 2000 places and print it out every 5 minutes.
-kubectl run pi \-\-schedule="0/5 * * * ?" \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
+  # Start a single instance of nginx.
+  kubectl run nginx \-\-image=nginx
+  
+  # Start a single instance of hazelcast and let the container expose port 5701 .
+  kubectl run hazelcast \-\-image=hazelcast \-\-port=5701
+  
+  # Start a single instance of hazelcast and set environment variables "DNS\_DOMAIN=cluster" and "POD\_NAMESPACE=default" in the container.
+  kubectl run hazelcast \-\-image=hazelcast \-\-env="DNS\_DOMAIN=cluster" \-\-env="POD\_NAMESPACE=default"
+  
+  # Start a replicated instance of nginx.
+  kubectl run nginx \-\-image=nginx \-\-replicas=5
+  
+  # Dry run. Print the corresponding API objects without creating them.
+  kubectl run nginx \-\-image=nginx \-\-dry\-run
+  
+  # Start a single instance of nginx, but overload the spec of the deployment with a partial set of values parsed from JSON.
+  kubectl run nginx \-\-image=nginx \-\-overrides='{ "apiVersion": "v1", "spec": { ... } }'
+  
+  # Start a pod of busybox and keep it in the foreground, don't restart it if it exits.
+  kubectl run \-i \-t busybox \-\-image=busybox \-\-restart=Never
+  
+  # Start the nginx container using the default command, but use custom arguments (arg1 .. argN) for that command.
+  kubectl run nginx \-\-image=nginx \-\- <arg1> <arg2> ... <argN>
+  
+  # Start the nginx container using a different command and custom arguments.
+  kubectl run nginx \-\-image=nginx \-\-command \-\- <cmd> <arg1> ... <argN>
+  
+  # Start the perl container to compute π to 2000 places and print it out.
+  kubectl run pi \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
+  
+  # Start the cron job to compute π to 2000 places and print it out every 5 minutes.
+  kubectl run pi \-\-schedule="0/5 * * * ?" \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
 
 .fi
 .RE

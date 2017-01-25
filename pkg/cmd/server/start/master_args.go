@@ -9,11 +9,12 @@ import (
 
 	"github.com/spf13/pflag"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/yaml"
 
@@ -59,7 +60,7 @@ type MasterArgs struct {
 
 	// EtcdDir is the etcd data directory.
 	EtcdDir   string
-	ConfigDir *util.StringFlag
+	ConfigDir *flag.StringFlag
 
 	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
 	// An allowed origin can be a regular expression to support subdomain matching.
@@ -106,7 +107,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:8053", DefaultScheme: "tcp", DefaultPort: 8053, AllowPrefix: true}.Default(),
 
-		ConfigDir: &util.StringFlag{},
+		ConfigDir: &flag.StringFlag{},
 
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
@@ -346,13 +347,13 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	// Default storage backend to etcd3 with protobuf storage for our innate config when starting both
 	// Kubernetes and etcd.
-	// if km := config.KubernetesMasterConfig; km != nil && config.EtcdConfig != nil {
-	// 	if len(km.APIServerArguments) == 0 {
-	// 		km.APIServerArguments = configapi.ExtendedArguments{}
-	// 		km.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
-	// 		km.APIServerArguments["storage-backend"] = []string{"etcd3"}
-	// 	}
-	// }
+	if km := config.KubernetesMasterConfig; km != nil && config.EtcdConfig != nil {
+		if len(km.APIServerArguments) == 0 {
+			km.APIServerArguments = configapi.ExtendedArguments{}
+			km.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
+			km.APIServerArguments["storage-backend"] = []string{"etcd3"}
+		}
+	}
 
 	return config, nil
 }
@@ -468,15 +469,18 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 
 func (args MasterArgs) Validate() error {
 	masterAddr, err := args.GetMasterAddress()
-	if addr, err := masterAddr, err; err != nil {
+	if err != nil {
 		return err
-	} else if len(addr.Path) != 0 {
-		return fmt.Errorf("master url may not include a path: '%v'", addr.Path)
+	}
+	if len(masterAddr.Path) != 0 {
+		return fmt.Errorf("master url may not include a path: '%v'", masterAddr.Path)
 	}
 
-	if addr, err := args.GetMasterPublicAddress(); err != nil {
+	addr, err := args.GetMasterPublicAddress()
+	if err != nil {
 		return err
-	} else if len(addr.Path) != 0 {
+	}
+	if len(addr.Path) != 0 {
 		return fmt.Errorf("master public url may not include a path: '%v'", addr.Path)
 	}
 
@@ -484,9 +488,11 @@ func (args MasterArgs) Validate() error {
 		return err
 	}
 
-	if addr, err := args.KubeConnectionArgs.GetKubernetesAddress(masterAddr); err != nil {
+	addr, err = args.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
+	if err != nil {
 		return err
-	} else if len(addr.Path) != 0 {
+	}
+	if len(addr.Path) != 0 {
 		return fmt.Errorf("kubernetes url may not include a path: '%v'", addr.Path)
 	}
 
@@ -680,6 +686,7 @@ func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (run
 	if err != nil {
 		return nil, err
 	}
+	kapi.Scheme.Default(ext)
 	return configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 }
 

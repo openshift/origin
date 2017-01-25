@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"github.com/golang/glog"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 var (
@@ -101,13 +101,13 @@ func rsyncSpecificFlags(o *RsyncOptions) []string {
 }
 
 type podAPIChecker struct {
-	client    *kclient.Client
+	client    kclientset.Interface
 	namespace string
 	podName   string
 }
 
 // CheckPods will check if pods exists in the provided context
 func (p podAPIChecker) CheckPod() error {
-	_, err := p.client.Pods(p.namespace).Get(p.podName)
+	_, err := p.client.Core().Pods(p.namespace).Get(p.podName)
 	return err
 }

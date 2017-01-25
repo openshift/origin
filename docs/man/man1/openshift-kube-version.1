@@ -21,6 +21,10 @@ Print the client and server version information
 \fB\-\-client\fP=false
     Client version only (no server required).
 
+.PP
+\fB\-\-short\fP=false
+    Print just the version number.
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -42,6 +46,10 @@ Print the client and server version information
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -129,7 +137,7 @@ Print the client and server version information
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -137,7 +145,7 @@ Print the client and server version information
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false

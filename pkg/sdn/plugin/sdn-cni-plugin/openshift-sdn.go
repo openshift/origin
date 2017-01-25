@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
@@ -111,6 +113,7 @@ func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath)
 	skel.PluginMain(p.skelCmdAdd, p.CmdDel, version.Legacy)
 }

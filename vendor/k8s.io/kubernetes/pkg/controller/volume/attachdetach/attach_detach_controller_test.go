@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/controller/framework/informers"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	controllervolumetesting "k8s.io/kubernetes/pkg/controller/volume/attachdetach/testing"
 )
 
@@ -44,7 +44,9 @@ func Test_NewAttachDetachController_Positive(t *testing.T) {
 		pvInformer,
 		nil, /* cloud */
 		nil, /* plugins */
-		fakeRecorder)
+		fakeRecorder,
+		false,
+		time.Second*5)
 
 	// Assert
 	if err != nil {

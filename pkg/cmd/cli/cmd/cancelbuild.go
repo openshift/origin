@@ -123,7 +123,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	client, _, _, err := f.Clients()
+	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.Client = client
 	o.BuildLister = buildclient.NewOSClientBuildClient(client)
 	o.BuildClient = client.Builds(namespace)
-	o.Mapper, _ = f.Object(false)
+	o.Mapper, _ = f.Object()
 
 	for _, item := range args {
 		resource, name, err := cmdutil.ResolveResource(buildapi.Resource("builds"), item, o.Mapper)
@@ -241,7 +241,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 	if o.Restart {
 		for _, b := range builds {
-			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: b.Name}}
+			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
 			build, err := o.BuildClient.Clone(request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))

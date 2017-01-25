@@ -16,14 +16,18 @@ openshift admin drain \- Drain node in preparation for maintenance
 Drain node in preparation for maintenance.
 
 .PP
-The given node will be marked unschedulable to prevent new pods from arriving. Then drain deletes all pods except mirror pods (which cannot be deleted through the API server).  If there are DaemonSet\-managed pods, drain will not proceed without \-\-ignore\-daemonsets, and regardless it will not delete any DaemonSet\-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed\-\-by ReplicationController, ReplicaSet, DaemonSet or Job\-\-, then drain will not delete any pods unless you use \-\-force.
+The given node will be marked unschedulable to prevent new pods from arriving. 'drain' evicts the pods if the APIServer supports eviciton (
+\[la]http://kubernetes.io/docs/admin/disruptions/\[ra]). Otherwise, it will use normal DELETE to delete the pods. The 'drain' evicts or deletes all pods except mirror pods (which cannot be deleted through the API server).  If there are DaemonSet\-managed pods, drain will not proceed without \-\-ignore\-daemonsets, and regardless it will not delete any DaemonSet\-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed by ReplicationController, ReplicaSet, DaemonSet, StatefulSet or Job, then drain will not delete any pods unless you use \-\-force.
+
+.PP
+'drain' waits for graceful termination. You should not operate on the machine until the command completes.
 
 .PP
 When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
 
 .PP
 ! 
-\[la]http://kubernetes.io/images/docs/kubectl_drain.svg\[ra]
+\[la]http://kubernetes.io/images/docs/kubectl\[ra] \_drain.svg
 
 
 .SH OPTIONS
@@ -33,7 +37,7 @@ When you are ready to put the node back into service, use kubectl uncordon, whic
 
 .PP
 \fB\-\-force\fP=false
-    Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet.
+    Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet.
 
 .PP
 \fB\-\-grace\-period\fP=\-1
@@ -42,6 +46,10 @@ When you are ready to put the node back into service, use kubectl uncordon, whic
 .PP
 \fB\-\-ignore\-daemonsets\fP=false
     Ignore DaemonSet\-managed pods.
+
+.PP
+\fB\-\-timeout\fP=0
+    The length of time to wait before giving up, zero means infinite
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -52,6 +60,10 @@ When you are ready to put the node back into service, use kubectl uncordon, whic
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
@@ -119,10 +131,10 @@ When you are ready to put the node back into service, use kubectl uncordon, whic
 .RS
 
 .nf
-  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet on it.
   $ openshift admin drain foo \-\-force
   
-  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet, and use a grace period of 15 minutes.
   $ openshift admin drain foo \-\-grace\-period=900
 
 .fi

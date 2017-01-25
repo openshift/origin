@@ -104,7 +104,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			kubeConfig := obj.KubernetesMasterConfig
 			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
-				cidr := "172.46.0.0/16"
+				cidr := configapi.DefaultIngressIPNetworkCIDR
 				if !(configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
 					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}
@@ -474,10 +474,10 @@ func TestSpecificRoundTrips(t *testing.T) {
 	for i, test := range testCases {
 		var s runtime.Serializer
 		if len(test.mediaType) != 0 {
-			info, _ := f.SerializerForMediaType(test.mediaType, nil)
+			info, _ := runtime.SerializerInfoForMediaType(f.SupportedMediaTypes(), test.mediaType)
 			s = info.Serializer
 		} else {
-			info, _ := f.SerializerForMediaType(f.SupportedMediaTypes()[0], nil)
+			info, _ := runtime.SerializerInfoForMediaType(f.SupportedMediaTypes(), f.SupportedMediaTypes()[0].MediaType)
 			s = info.Serializer
 		}
 		data, err := runtime.Encode(f.LegacyCodec(test.to), test.in)

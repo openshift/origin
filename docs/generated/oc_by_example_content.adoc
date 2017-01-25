@@ -225,10 +225,10 @@ Drain node in preparation for maintenance
 
 [options="nowrap"]
 ----
-  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet on it.
   $ oc adm drain foo --force
   
-  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet, and use a grace period of 15 minutes.
   $ oc adm drain foo --grace-period=900
 ----
 ====
@@ -649,7 +649,7 @@ Remove unreferenced images
   oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
   
   # See, what the prune command would delete if we're interested in removing images
-  # exceeding currently set LimitRanges ('openshift.io/Image')
+  # exceeding currently set limit ranges ('openshift.io/Image')
   oc adm prune images --prune-over-size-limit
   
   # To actually perform the prune operation, the confirm flag must be appended
@@ -928,6 +928,25 @@ Stop OpenShift on Docker
 ====
 
 
+== oc cluster join
+Join an existing OpenShift cluster
+
+====
+
+[options="nowrap"]
+----
+  # Start a new OpenShift node on a new docker machine named 'node'
+  oc cluster join --create-machine
+  
+  # Start OpenShift node and preserve data and config between restarts
+  oc cluster join --host-data-dir=/mydata --use-existing-config
+  
+  # Use a different set of images
+  oc cluster join --image="registry.example.com/origin" --version="v1.1"
+----
+====
+
+
 == oc cluster status
 Show OpenShift on Docker status
 
@@ -962,6 +981,9 @@ Start OpenShift on Docker with reasonable defaults
   
   # Use a different set of images
   oc cluster up --image="registry.example.com/origin" --version="v1.1"
+  
+  # Specify which set of image streams to use
+  oc cluster up --image-streams=centos7
 ----
 ====
 
@@ -1136,6 +1158,32 @@ Convert config files between different API versions
 ====
 
 
+== oc cp
+Copy files and directories to and from containers.
+
+====
+
+[options="nowrap"]
+----
+  # !!!Important Note!!!
+  # Requires that the 'tar' binary is present in your container
+  # image.  If 'tar' is not present, 'kubectl cp' will fail.
+  
+  # Copy /tmp/foo_dir local directory to /tmp/bar_dir in a remote pod in the default namespace
+  oc cp /tmp/foo_dir <some-pod>:/tmp/bar_dir
+  
+  # Copy /tmp/foo local file to /tmp/bar in a remote pod in a specific container
+  oc cp /tmp/foo <some-pod>:/tmp/bar -c <specific-container>
+  
+  # Copy /tmp/foo local file to /tmp/bar in a remote pod in namespace <some-namespace>
+  oc cp /tmp/foo <some-namespace>/<some-pod>:/tmp/bar
+  
+  # Copy /tmp/foo from a remote pod to /tmp/bar locally
+  oc cp <some-namespace>/<some-pod>:/tmp/foo /tmp/bar
+----
+====
+
+
 == oc create
 Create a resource by filename or stdin
 
@@ -1250,7 +1298,7 @@ Create a namespace with the specified name
 
 
 == oc create policybinding
-Create a policy binding that references the policy in the targetted namespace.
+Create a policy binding that references the policy in the targeted namespace.
 
 ====
 
@@ -1269,10 +1317,10 @@ Create a quota with the specified name.
 
 [options="nowrap"]
 ----
-  // Create a new resourcequota named my-quota
+  # Create a new resourcequota named my-quota
   $ oc create quota my-quota --hard=cpu=1,memory=1G,pods=2,services=3,replicationcontrollers=2,resourcequotas=1,secrets=5,persistentvolumeclaims=10
   
-  // Create a new resourcequota named best-effort
+  # Create a new resourcequota named best-effort
   $ oc create quota best-effort --hard=pods=100 --scopes=BestEffort
 ----
 ====
@@ -1397,7 +1445,7 @@ Create a LoadBalancer service.
 
 [options="nowrap"]
 ----
-  # Create a new nodeport service named my-lbs
+  # Create a new LoadBalancer service named my-lbs
   oc create service loadbalancer my-lbs --tcp=5678:8080
 ----
 ====
@@ -1694,6 +1742,10 @@ Expose a replicated application as a service or route
   
   # Create a route and specify a hostname
   oc expose service nginx --hostname=www.example.com
+  
+  # Create a route with wildcard
+  oc expose service nginx --hostname=x.example.com --wildcard=Subdomain
+  This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
   
   # Expose a deployment configuration as a service and use the specified port
   oc expose dc ruby-hello-world --port=8080
@@ -2159,6 +2211,19 @@ Revert part of an application back to a previous deployment
 ====
 
 
+== oc rollout cancel
+cancel the in-progress deployment
+
+====
+
+[options="nowrap"]
+----
+  # Cancel the in-progress deployment based on 'nginx'
+  oc rollout cancel dc/nginx
+----
+====
+
+
 == oc rollout history
 View rollout history
 
@@ -2216,8 +2281,22 @@ Resume a paused resource
 ====
 
 
+== oc rollout retry
+Retry the latest failed rollout
+
+====
+
+[options="nowrap"]
+----
+  # Retry the latest failed deployment based on 'frontend'
+  # The deployer pod and any hook pods are deleted for the latest failed deployment
+  oc rollout retry dc/frontend
+----
+====
+
+
 == oc rollout status
-Watch rollout status until it's done
+Show the status of the rollout
 
 ====
 
@@ -2468,6 +2547,19 @@ Detach secrets from a ServiceAccount
 ----
   # Unlink a secret currently associated with a service account:
   oc secrets unlink serviceaccount-name secret-name another-secret-name ...
+----
+====
+
+
+== oc serviceaccounts create-kubeconfig
+Generate a kubeconfig file for a service account
+
+====
+
+[options="nowrap"]
+----
+  # Create a kubeconfig file for service account 'default'
+  oc serviceaccounts create-kubeconfig 'default' > default.kubeconfig
 ----
 ====
 

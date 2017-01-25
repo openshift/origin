@@ -22,7 +22,7 @@ By default, the prune operation performs a dry run making no changes to the depl
 .SH OPTIONS
 .PP
 \fB\-\-confirm\fP=false
-    Specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.
+    If true, specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.
 
 .PP
 \fB\-\-keep\-complete\fP=5
@@ -38,7 +38,7 @@ By default, the prune operation performs a dry run making no changes to the depl
 
 .PP
 \fB\-\-orphans\fP=false
-    Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.
+    If true, prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -49,6 +49,10 @@ By default, the prune operation performs a dry run making no changes to the depl
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

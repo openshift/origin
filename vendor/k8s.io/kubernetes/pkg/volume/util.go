@@ -33,7 +33,9 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
+	volutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
 type RecycleEventRecorder func(eventtype, message string)
@@ -83,7 +85,12 @@ func internalRecycleVolumeByWatchingPodUntilCompletion(pvName string, pod *api.P
 			return fmt.Errorf("unexpected error creating recycler pod:  %+v\n", err)
 		}
 	}
-	defer recyclerClient.DeletePod(pod.Name, pod.Namespace)
+	defer func(pod *api.Pod) {
+		glog.V(2).Infof("deleting recycler pod %s/%s", pod.Namespace, pod.Name)
+		if err := recyclerClient.DeletePod(pod.Name, pod.Namespace); err != nil {
+			glog.Errorf("failed to delete recycler pod %s/%s: %v", pod.Namespace, pod.Name, err)
+		}
+	}(pod)
 
 	// Now only the old pod or the new pod run. Watch it until it finishes
 	// and send all events on the pod to the PV
@@ -274,7 +281,7 @@ func GetPath(mounter Mounter) (string, error) {
 // ChooseZone implements our heuristics for choosing a zone for volume creation based on the volume name
 // Volumes are generally round-robin-ed across all active zones, using the hash of the PVC Name.
 // However, if the PVCName ends with `-<integer>`, we will hash the prefix, and then add the integer to the hash.
-// This means that a PetSet's volumes (`claimname-petsetname-id`) will spread across available zones,
+// This means that a StatefulSet's volumes (`claimname-statefulsetname-id`) will spread across available zones,
 // assuming the id values are consecutive.
 func ChooseZoneForVolume(zones sets.String, pvcName string) string {
 	// We create the volume in a zone determined by the name
@@ -290,8 +297,8 @@ func ChooseZoneForVolume(zones sets.String, pvcName string) string {
 	} else {
 		hashString := pvcName
 
-		// Heuristic to make sure that volumes in a PetSet are spread across zones
-		// PetSet PVCs are (currently) named ClaimName-PetSetName-Id,
+		// Heuristic to make sure that volumes in a StatefulSet are spread across zones
+		// StatefulSet PVCs are (currently) named ClaimName-StatefulSetName-Id,
 		// where Id is an integer index
 		lastDash := strings.LastIndexByte(pvcName, '-')
 		if lastDash != -1 {
@@ -302,7 +309,7 @@ func ChooseZoneForVolume(zones sets.String, pvcName string) string {
 				index = uint32(petID)
 				// We still hash the volume name, but only the base
 				hashString = pvcName[:lastDash]
-				glog.V(2).Infof("Detected PetSet-style volume name %q; index=%d", pvcName, index)
+				glog.V(2).Infof("Detected StatefulSet-style volume name %q; index=%d", pvcName, index)
 			}
 		}
 
@@ -314,7 +321,7 @@ func ChooseZoneForVolume(zones sets.String, pvcName string) string {
 
 	// Zones.List returns zones in a consistent order (sorted)
 	// We do have a potential failure case where volumes will not be properly spread,
-	// if the set of zones changes during PetSet volume creation.  However, this is
+	// if the set of zones changes during StatefulSet volume creation.  However, this is
 	// probably relatively unlikely because we expect the set of zones to be essentially
 	// static for clusters.
 	// Hopefully we can address this problem if/when we do full scheduler integration of
@@ -325,4 +332,24 @@ func ChooseZoneForVolume(zones sets.String, pvcName string) string {
 
 	glog.V(2).Infof("Creating volume for PVC %q; chose zone=%q from zones=%q", pvcName, zone, zoneSlice)
 	return zone
+}
+
+// UnmountViaEmptyDir delegates the tear down operation for secret, configmap, git_repo and downwardapi
+// to empty_dir
+func UnmountViaEmptyDir(dir string, host VolumeHost, volName string, volSpec Spec, podUID types.UID) error {
+	glog.V(3).Infof("Tearing down volume %v for pod %v at %v", volName, podUID, dir)
+
+	if pathExists, pathErr := volutil.PathExists(dir); pathErr != nil {
+		return fmt.Errorf("Error checking if path exists: %v", pathErr)
+	} else if !pathExists {
+		glog.Warningf("Warning: Unmount skipped because path does not exist: %v", dir)
+		return nil
+	}
+
+	// Wrap EmptyDir, let it do the teardown.
+	wrapped, err := host.NewWrapperUnmounter(volName, volSpec, podUID)
+	if err != nil {
+		return err
+	}
+	return wrapped.TearDownAt(dir)
 }

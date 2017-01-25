@@ -44,18 +44,17 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			}
 
 			var err error
-			options.client, _, _, err = f.Clients()
+			options.client, _, err = f.Clients()
 			kcmdutil.CheckErr(err)
 
 			options.bindingNamespace, _, err = f.DefaultNamespace()
 			kcmdutil.CheckErr(err)
 
-			err = options.run()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(options.run())
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If present, list who can perform the specified action in all namespaces.")
+	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
 
 	return cmd
 }
@@ -66,7 +65,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 		o.resourceName = args[2]
 		fallthrough
 	case 2:
-		restMapper, _ := f.Object(false)
+		restMapper, _ := f.Object()
 		o.verb = args[0]
 		o.resource = resourceFor(restMapper, args[1])
 	default:

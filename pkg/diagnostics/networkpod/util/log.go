@@ -20,7 +20,7 @@ type LogInterface struct {
 	Logdir string
 }
 
-func (l *LogInterface) LogNode(kubeClient *kclientset.Clientset) {
+func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 	l.LogSystem()
 	l.LogServices()
 
@@ -163,7 +163,7 @@ func (l *LogInterface) logNetworkInterfaces() {
 	})
 }
 
-func (l *LogInterface) logPodInfo(kubeClient *kclientset.Clientset) {
+func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
 	pods, _, err := GetLocalAndNonLocalDiagnosticPods(kubeClient)
 	if err != nil {
 		l.Result.Error("DLogNet1003", err, err.Error())

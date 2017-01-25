@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Kubernetes DNS example
 
 This is a toy example demonstrating how to use kubernetes DNS.
@@ -180,13 +175,6 @@ kubectl config use-context prod
 kubectl create -f examples/cluster-dns/dns-frontend-pod.yaml
 kubectl logs dns-frontend
 ```
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

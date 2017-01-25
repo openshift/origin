@@ -22,8 +22,12 @@ Update existing container image(s) of resources.
     select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-\-local\fP=false
@@ -86,6 +90,10 @@ Update existing container image(s) of resources.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

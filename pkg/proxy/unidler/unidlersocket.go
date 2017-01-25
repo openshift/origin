@@ -1,19 +1,3 @@
-/*
-Copyright 2015 The Kubernetes Authors All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package unidler
 
 import (
@@ -212,7 +196,7 @@ func (tcp *tcpUnidlerSocket) acceptConns(ch chan<- net.Conn, svcInfo *userspace.
 }
 
 // awaitAwakening collects new connections and signals once that pods are needed to fulfill them.  The function
-// will return when the listening socket is closed, which indicates that endpoints have succesfully appeared
+// will return when the listening socket is closed, which indicates that endpoints have successfully appeared
 // (and thus the hybrid proxy has switched this service over to using the normal proxy).  Connections will
 // be gradually timed out and dropped off the list of connections on a per-connection basis.  The list of current
 // connections is returned, in addition to whether or not we should retry this method.

@@ -16,8 +16,16 @@ func SetDefaults_ImageImportSpec(obj *ImageImportSpec) {
 	}
 }
 
+func SetDefaults_TagReferencePolicy(obj *TagReferencePolicy) {
+	if len(obj.Type) == 0 {
+		obj.Type = SourceTagReferencePolicy
+	}
+}
+
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_ImageImportSpec,
+		SetDefaults_TagReferencePolicy,
 	)
 }

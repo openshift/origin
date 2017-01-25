@@ -69,7 +69,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 	client.AddReactor("create", "pods", func(a core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
 	})
-	executor := &HookExecutor{
+	executor := &hookExecutor{
 		pods:    client.Core(),
 		decoder: kapi.Codecs.UniversalDecoder(),
 	}
@@ -116,7 +116,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		podsWatch.Modify(updatedPod)
 	}()
 
-	executor := &HookExecutor{
+	executor := &hookExecutor{
 		pods:    client.Core(),
 		out:     podLogs,
 		decoder: kapi.Codecs.UniversalDecoder(),
@@ -182,7 +182,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		podsWatch.Modify(updatedPod)
 	}()
 
-	executor := &HookExecutor{
+	executor := &hookExecutor{
 		pods:    client.Core(),
 		out:     ioutil.Discard,
 		decoder: kapi.Codecs.UniversalDecoder(),
@@ -306,6 +306,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -370,6 +371,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -429,6 +431,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 									Value: deploymentNamespace,
 								},
 							},
+							ImagePullPolicy: kapi.PullIfNotPresent,
 							Resources: kapi.ResourceRequirements{
 								Limits: kapi.ResourceList{
 									kapi.ResourceCPU:    resource.MustParse("10"),
@@ -450,6 +453,54 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				"label1": "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
+		},
+		{
+			name: "allways pull image",
+			hook: &deployapi.LifecycleHook{
+				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &deployapi.ExecNewPodHook{
+					ContainerName: "container2",
+				},
+			},
+			expected: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: namer.GetPodName(deploymentName, "hook"),
+					Labels: map[string]string{
+						deployapi.DeploymentPodTypeLabel:        "hook",
+						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+					},
+					Annotations: map[string]string{
+						deployapi.DeploymentAnnotation: deploymentName,
+					},
+				},
+				Spec: kapi.PodSpec{
+					RestartPolicy:         kapi.RestartPolicyNever,
+					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+					Containers: []kapi.Container{
+						{
+							Name:  "lifecycle",
+							Image: "registry:8080/repo1:ref2",
+							Env: []kapi.EnvVar{
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
+									Value: deploymentName,
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+									Value: deploymentNamespace,
+								},
+							},
+							ImagePullPolicy: kapi.PullAlways,
+						},
+					},
+					TerminationGracePeriodSeconds: &gracePeriod,
+					ImagePullSecrets: []kapi.LocalObjectReference{
+						{
+							Name: "secret-1",
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -507,7 +558,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 }
 
-func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
+func TestAcceptAvailablePods_scenarios(t *testing.T) {
 	scenarios := []struct {
 		name string
 		// any pods which are previously accepted
@@ -588,11 +639,11 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 		}
 
 		acceptorLogs := &bytes.Buffer{}
-		acceptor := &AcceptNewlyObservedReadyPods{
+		acceptor := &acceptAvailablePods{
 			out:      acceptorLogs,
 			timeout:  10 * time.Millisecond,
 			interval: 1 * time.Millisecond,
-			getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
+			getRcPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
 				return store, make(chan struct{})
 			},
 			acceptedPods: acceptedPods,
@@ -670,7 +721,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 						{
 							Name:            "container2",
 							Image:           "registry:8080/repo1:ref2",
-							ImagePullPolicy: kapi.PullIfNotPresent,
+							ImagePullPolicy: kapi.PullAlways,
 						},
 					},
 					Volumes: []kapi.Volume{

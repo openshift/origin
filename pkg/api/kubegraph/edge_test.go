@@ -40,13 +40,13 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		rc.Spec.Selector = map[string]string{"a": "1"}
 		kubegraph.EnsureReplicationControllerNode(g, rc)
 
-		p := &kapps.PetSet{}
+		p := &kapps.StatefulSet{}
 		p.Namespace = namespace
 		p.Name = "the-petset"
 		p.Spec.Selector = &unversioned.LabelSelector{
 			MatchLabels: map[string]string{"a": "1"},
 		}
-		kubegraph.EnsurePetSetNode(g, p)
+		kubegraph.EnsureStatefulSetNode(g, p)
 
 		svc := &kapi.Service{}
 		svc.Namespace = namespace
@@ -89,8 +89,8 @@ func namespaceFor(node graph.Node) (string, error) {
 		return node.(*kubegraph.PodSpecNode).Namespace, nil
 	case *kapi.ReplicationControllerSpec:
 		return node.(*kubegraph.ReplicationControllerSpecNode).Namespace, nil
-	case *kapps.PetSetSpec:
-		return node.(*kubegraph.PetSetSpecNode).Namespace, nil
+	case *kapps.StatefulSetSpec:
+		return node.(*kubegraph.StatefulSetSpecNode).Namespace, nil
 	case *kapi.PodTemplateSpec:
 		return node.(*kubegraph.PodTemplateSpecNode).Namespace, nil
 	default:

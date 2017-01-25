@@ -7,7 +7,7 @@ package v1
 
 var map_GroupResource = map[string]string{
 	"":         "GroupResource represents a resource in a specific group.",
-	"resource": "Resource is the name of an admission resource to process, e.g. 'petsets'.",
+	"resource": "Resource is the name of an admission resource to process, e.g. 'statefulsets'.",
 	"group":    "Group is the name of the group the resource is in, e.g. 'apps'.",
 }
 
@@ -18,7 +18,7 @@ func (GroupResource) SwaggerDoc() map[string]string {
 var map_ImageCondition = map[string]string{
 	"":     "ImageCondition defines the conditions for matching a particular image source. The conditions below are all required (logical AND). If Reject is specified, the condition is false if all conditions match, and true otherwise.",
 	"name": "Name is the name of this policy rule for reference. It must be unique across all rules.",
-	"ignoreNamespaceOverride": "IgnoreNamespaceOverride prevents this condition from being overriden when the `alpha.image.policy.openshift.io/ignore-rules` is set on a namespace and contains this rule name.",
+	"ignoreNamespaceOverride": "IgnoreNamespaceOverride prevents this condition from being overridden when the `alpha.image.policy.openshift.io/ignore-rules` is set on a namespace and contains this rule name.",
 	"onResources":             "OnResources determines which resources this applies to. Defaults to 'pods' for ImageExecutionPolicyRules.",
 	"invertMatch":             "InvertMatch means the value of the condition is logically inverted (true -> false, false -> true).",
 	"matchIntegratedRegistry": "MatchIntegratedRegistry will only match image sources that originate from the configured integrated registry.",

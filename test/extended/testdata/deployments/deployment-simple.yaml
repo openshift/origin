@@ -9,14 +9,6 @@ spec:
   strategy:
     type: Rolling
     rollingParams:
-      #TODO: add a hook for testing
-      #pre:
-      #  failurePolicy: Abort
-      #  execNewPod:
-      #    containerName: myapp
-      #    command:
-      #    - /bin/echo
-      #    - test pre hook executed
   template:
     metadata:
       labels:

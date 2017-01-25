@@ -16,6 +16,18 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-user" : "${MYSQL_USER}",
+        "database-password" : "${MYSQL_PASSWORD}",
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -100,11 +112,30 @@
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-root-password"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -171,6 +202,14 @@
       "name": "MYSQL_PASSWORD",
       "displayName": "MariaDB Connection Password",
       "description": "Password for the MariaDB connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "displayName": "MariaDB root Password",
+      "description": "Password for the MariaDB root user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true

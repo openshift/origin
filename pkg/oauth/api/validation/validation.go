@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
@@ -28,7 +28,7 @@ const (
 var CodeChallengeMethodsSupported = []string{codeChallengeMethodPlain, codeChallengeMethodSHA256}
 
 func ValidateTokenName(name string, prefix bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+	if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -187,7 +187,7 @@ func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) f
 }
 
 func ValidateClientAuthorizationName(name string, prefix bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+	if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -305,7 +305,7 @@ func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 }
 
 func ValidateOAuthRedirectReference(sref *api.OAuthRedirectReference) field.ErrorList {
-	allErrs := validation.ValidateObjectMeta(&sref.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMeta(&sref.ObjectMeta, true, path.ValidatePathSegmentName, field.NewPath("metadata"))
 	return append(allErrs, validateRedirectReference(&sref.Reference)...)
 }
 
@@ -314,7 +314,7 @@ func validateRedirectReference(ref *api.RedirectReference) field.ErrorList {
 	if len(ref.Name) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("name"), "may not be empty"))
 	} else {
-		for _, msg := range oapi.MinimalNameRequirements(ref.Name, false) {
+		for _, msg := range path.ValidatePathSegmentName(ref.Name, false) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("name"), ref.Name, msg))
 		}
 	}

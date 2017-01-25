@@ -225,10 +225,10 @@ Drain node in preparation for maintenance
 
 [options="nowrap"]
 ----
-  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet on it.
   $ oadm drain foo --force
   
-  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet, and use a grace period of 15 minutes.
   $ oadm drain foo --grace-period=900
 ----
 ====
@@ -649,7 +649,7 @@ Remove unreferenced images
   oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
   
   # See, what the prune command would delete if we're interested in removing images
-  # exceeding currently set LimitRanges ('openshift.io/Image')
+  # exceeding currently set limit ranges ('openshift.io/Image')
   oadm prune images --prune-over-size-limit
   
   # To actually perform the prune operation, the confirm flag must be appended

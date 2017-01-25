@@ -24,10 +24,10 @@ func isimage(name, pullSpec string) *imageapi.ImageStreamImage {
 	}
 }
 
-func istag(name, pullSpec string) *imageapi.ImageStreamTag {
+func istag(name, namespace, pullSpec string) *imageapi.ImageStreamTag {
 	i := image(pullSpec)
 	return &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: "default"},
+		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
 		Image:      *i,
 	}
 }
@@ -47,13 +47,13 @@ func TestResolveImagePullSpec(t *testing.T) {
 			expect: "registry.url/image/test:latest",
 		},
 		{
-			client: testclient.NewSimpleFake(istag("test:1.1", "registry.url/image/test:latest")),
+			client: testclient.NewSimpleFake(istag("test:1.1", "default", "registry.url/image/test:latest")),
 			source: "istag",
 			input:  "test:1.1",
 			expect: "registry.url/image/test:latest",
 		},
 		{
-			client: testclient.NewSimpleFake(istag("test:1.1", "registry.url/image/test:latest")),
+			client: testclient.NewSimpleFake(istag("test:1.1", "user", "registry.url/image/test:latest")),
 			source: "istag",
 			input:  "user/test:1.1",
 			expect: "registry.url/image/test:latest",

@@ -51,7 +51,7 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
-	osClient, _, kubeClient, err := f.Clients()
+	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -112,6 +112,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		"public-master-url": fmt.Sprintf("https://%s:8443", publicHostname),
 		"es-cluster-size":   "1",
 		"es-instance-ram":   "1024M",
+		"es-pvc-size":       "100G",
 	}
 	kubeClient.Core().ConfigMaps(loggingNamespace).Create(loggingConfig)
 

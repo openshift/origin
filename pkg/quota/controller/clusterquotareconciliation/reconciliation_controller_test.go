@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	utildiff "k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -161,7 +161,7 @@ func TestSyncFunc(t *testing.T) {
 			expectedRetries: []workItem{},
 		},
 		{
-			name: "update one, remove two, ignore three, fail four",
+			name: "update one, remove two, ignore three, fail four, remove deleted",
 			startingQuota: func() *quotaapi.ClusterResourceQuota {
 				ret := defaultQuota()
 				ret.Status.Total.Hard = ret.Spec.Quota.Hard
@@ -177,6 +177,10 @@ func TestSyncFunc(t *testing.T) {
 				ret.Status.Namespaces.Insert("three", kapi.ResourceQuotaStatus{
 					Hard: ret.Spec.Quota.Hard,
 					Used: kapi.ResourceList{kapi.ResourcePods: resource.MustParse("15")},
+				})
+				ret.Status.Namespaces.Insert("deleted", kapi.ResourceQuotaStatus{
+					Hard: ret.Spec.Quota.Hard,
+					Used: kapi.ResourceList{kapi.ResourcePods: resource.MustParse("0")},
 				})
 				return ret
 			},
@@ -249,7 +253,7 @@ func TestSyncFunc(t *testing.T) {
 
 		var actualQuota *quotaapi.ClusterResourceQuota
 		for _, action := range client.Actions() {
-			updateAction, ok := action.(ktestclient.UpdateActionImpl)
+			updateAction, ok := action.(core.UpdateActionImpl)
 			if !ok {
 				continue
 			}

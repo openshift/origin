@@ -23,6 +23,8 @@ type CreateServerCertOptions struct {
 	CertFile string
 	KeyFile  string
 
+	ExpireDays int
+
 	Hostnames []string
 	Overwrite bool
 	Output    io.Writer
@@ -46,7 +48,11 @@ var createServerLong = templates.LongDesc(`
 	`)
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
+	options := &CreateServerCertOptions{
+		SignerCertOptions: NewDefaultSignerCertOptions(),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		Output:            out,
+	}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -72,6 +78,8 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+
 	// autocompletion hints
 	cmd.MarkFlagFilename("cert")
 	cmd.MarkFlagFilename("key")
@@ -91,6 +99,10 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 	}
 	if len(o.KeyFile) == 0 {
 		return errors.New("key must be provided")
+	}
+
+	if o.ExpireDays <= 0 {
+		return errors.New("expire-days must be valid number of days")
 	}
 
 	if o.SignerCertOptions == nil {
@@ -114,9 +126,9 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 	var ca *crypto.TLSCertificateConfig
 	written := true
 	if o.Overwrite {
-		ca, err = signerCert.MakeAndWriteServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
+		ca, err = signerCert.MakeAndWriteServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
 	} else {
-		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
+		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
 	}
 	if written {
 		glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)

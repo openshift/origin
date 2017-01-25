@@ -147,6 +147,13 @@ func (d *downwardAPIVolume) GetAttributes() volume.Attributes {
 	}
 }
 
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *downwardAPIVolumeMounter) CanMount() error {
+	return nil
+}
+
 // SetUp puts in place the volume plugin.
 // This function is not idempotent by design. We want the data to be refreshed periodically.
 // The internal sync interval of kubelet will drive the refresh of data.
@@ -265,14 +272,7 @@ func (c *downwardAPIVolumeUnmounter) TearDown() error {
 }
 
 func (c *downwardAPIVolumeUnmounter) TearDownAt(dir string) error {
-	glog.V(3).Infof("Tearing down volume %v for pod %v at %v", c.volName, c.podUID, dir)
-
-	// Wrap EmptyDir, let it do the teardown.
-	wrapped, err := c.plugin.host.NewWrapperUnmounter(c.volName, wrappedVolumeSpec(), c.podUID)
-	if err != nil {
-		return err
-	}
-	return wrapped.TearDownAt(dir)
+	return volume.UnmountViaEmptyDir(dir, c.plugin.host, c.volName, wrappedVolumeSpec(), c.podUID)
 }
 
 func (b *downwardAPIVolumeMounter) getMetaDir() string {

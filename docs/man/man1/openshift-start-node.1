@@ -27,6 +27,10 @@ will start a node with given configuration file. The node will run in the foregr
 
 .SH OPTIONS
 .PP
+\fB\-\-bootstrap\fP=false
+    Use the provided .kubeconfig file to perform initial node setup (experimental).
+
+.PP
 \fB\-\-config\fP=""
     Location of the node configuration file to run from. When running from a configuration file, all other command\-line arguments are ignored.
 
@@ -37,6 +41,10 @@ will start a node with given configuration file. The node will run in the foregr
 .PP
 \fB\-\-enable\fP="kubelet,plugins,proxy"
     The set of node components to enable
+
+.PP
+\fB\-\-expire\-days\fP=730
+    Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.
 
 .PP
 \fB\-\-hostname\fP="<hostname>"
@@ -74,6 +82,10 @@ will start a node with given configuration file. The node will run in the foregr
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

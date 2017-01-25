@@ -59,7 +59,7 @@ func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (
 	if o.Source.Local() {
 		podName = o.Destination.PodName
 	}
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return nil, err
 	}

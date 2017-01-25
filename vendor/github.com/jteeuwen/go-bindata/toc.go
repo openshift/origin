@@ -53,23 +53,28 @@ func (root *assetTree) funcOrNil() string {
 }
 
 func (root *assetTree) writeGoMap(w io.Writer, nident int) {
-	fmt.Fprintf(w, "&bintree{%s, map[string]*bintree{\n", root.funcOrNil())
+	fmt.Fprintf(w, "&bintree{%s, map[string]*bintree{", root.funcOrNil())
 
-	// Sort to make output stable between invocations
-	filenames := make([]string, len(root.Children))
-	i := 0
-	for filename, _ := range root.Children {
-		filenames[i] = filename
-		i++
-	}
-	sort.Strings(filenames)
+	if len(root.Children) > 0 {
+		io.WriteString(w, "\n")
 
-	for _, p := range filenames {
-		ident(w, nident+1)
-		fmt.Fprintf(w, `"%s": `, p)
-		root.Children[p].writeGoMap(w, nident+1)
+		// Sort to make output stable between invocations
+		filenames := make([]string, len(root.Children))
+		i := 0
+		for filename, _ := range root.Children {
+			filenames[i] = filename
+			i++
+		}
+		sort.Strings(filenames)
+
+		for _, p := range filenames {
+			ident(w, nident+1)
+			fmt.Fprintf(w, `"%s": `, p)
+			root.Children[p].writeGoMap(w, nident+1)
+		}
+		ident(w, nident)
 	}
-	ident(w, nident)
+
 	io.WriteString(w, "}}")
 	if nident > 0 {
 		io.WriteString(w, ",")
@@ -79,7 +84,7 @@ func (root *assetTree) writeGoMap(w io.Writer, nident int) {
 
 func (root *assetTree) WriteAsGoMap(w io.Writer) error {
 	_, err := fmt.Fprint(w, `type bintree struct {
-	Func func() (*asset, error)
+	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
 var _bintree = `)
@@ -173,7 +178,7 @@ func Asset(name string) ([]byte, error) {
 // It simplifies safe initialization of global variables.
 func MustAsset(name string) []byte {
 	a, err := Asset(name)
-	if (err != nil) {
+	if err != nil {
 		panic("asset: Asset(" + name + "): " + err.Error())
 	}
 

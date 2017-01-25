@@ -39,6 +39,7 @@ var map_DeploymentCondition = map[string]string{
 	"":                   "DeploymentCondition describes the state of a deployment config at a certain point.",
 	"type":               "Type of deployment condition.",
 	"status":             "Status of the condition, one of True, False, Unknown.",
+	"lastUpdateTime":     "The last time this condition was updated.",
 	"lastTransitionTime": "The last time the condition transitioned from one status to another.",
 	"reason":             "The reason for the condition's last transition.",
 	"message":            "A human readable message indicating details about the transition.",
@@ -121,6 +122,7 @@ var map_DeploymentConfigStatus = map[string]string{
 	"unavailableReplicas": "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
 	"details":             "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
 	"conditions":          "Conditions represents the latest available observations of a deployment config's current state.",
+	"readyReplicas":       "Total number of ready pods targeted by this deployment.",
 }
 
 func (DeploymentConfigStatus) SwaggerDoc() map[string]string {
@@ -175,14 +177,15 @@ func (DeploymentRequest) SwaggerDoc() map[string]string {
 }
 
 var map_DeploymentStrategy = map[string]string{
-	"":               "DeploymentStrategy describes how to perform a deployment.",
-	"type":           "Type is the name of a deployment strategy.",
-	"customParams":   "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
-	"recreateParams": "RecreateParams are the input to the Recreate deployment strategy.",
-	"rollingParams":  "RollingParams are the input to the Rolling deployment strategy.",
-	"resources":      "Resources contains resource requirements to execute the deployment and any hooks.",
-	"labels":         "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-	"annotations":    "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"":                      "DeploymentStrategy describes how to perform a deployment.",
+	"type":                  "Type is the name of a deployment strategy.",
+	"customParams":          "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
+	"recreateParams":        "RecreateParams are the input to the Recreate deployment strategy.",
+	"rollingParams":         "RollingParams are the input to the Rolling deployment strategy.",
+	"resources":             "Resources contains resource requirements to execute the deployment and any hooks.",
+	"labels":                "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"annotations":           "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+	"activeDeadlineSeconds": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
 }
 
 func (DeploymentStrategy) SwaggerDoc() map[string]string {
@@ -251,7 +254,7 @@ var map_RollingDeploymentStrategyParams = map[string]string{
 	"updatePeriodSeconds": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
 	"intervalSeconds":     "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
 	"timeoutSeconds":      "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
-	"maxUnavailable":      "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
+	"maxUnavailable":      "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
 	"maxSurge":            "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods.",
 	"pre":                 "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
 	"post":                "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",

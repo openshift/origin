@@ -59,6 +59,17 @@ func TestCreateImageImport(t *testing.T) {
 				To:   &kapi.LocalObjectReference{Name: "latest"},
 			}},
 		},
+		"import from .spec.dockerImageRepository non-existing tag": {
+			name: "testis:nonexisting",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			err: `"nonexisting" does not exist on the image stream`,
+		},
 		"import all from .spec.dockerImageRepository": {
 			name: "testis",
 			all:  true,
@@ -342,7 +353,7 @@ func TestCreateImageImport(t *testing.T) {
 			All:      test.all,
 			Insecure: test.insecure,
 			Confirm:  test.confirm,
-			isClient: fake.ImageStreams(""),
+			isClient: fake.ImageStreams("other"),
 		}
 		// we need to run Validate, because it sets appropriate Name and Tag
 		if err := o.Validate(&cobra.Command{}); err != nil {

@@ -18,6 +18,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
@@ -88,6 +92,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-certificate\-authority\fP=""
     Path to a cert. file for the certificate authority
 
@@ -153,10 +161,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 .RS
 
 .nf
-  // Create a new resourcequota named my\-quota
+  # Create a new resourcequota named my\-quota
   $ oc create quota my\-quota \-\-hard=cpu=1,memory=1G,pods=2,services=3,replicationcontrollers=2,resourcequotas=1,secrets=5,persistentvolumeclaims=10
   
-  // Create a new resourcequota named best\-effort
+  # Create a new resourcequota named best\-effort
   $ oc create quota best\-effort \-\-hard=pods=100 \-\-scopes=BestEffort
 
 .fi

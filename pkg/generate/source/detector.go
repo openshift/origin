@@ -27,6 +27,7 @@ var DefaultDetectors = Detectors{
 	DetectScala,
 	DetectDotNet,
 	DetectLiteralDotNet,
+	DetectGolang,
 }
 
 // DetectRuby detects Ruby source
@@ -72,6 +73,11 @@ func DetectDotNet(dir string) *Info {
 // DetectLiteralDotNet detects .NET source and matches it to a .net supported annotation
 func DetectLiteralDotNet(dir string) *Info {
 	return detect(".net", dir, "project.json", "*.csproj")
+}
+
+// DetectGolang detects Go source
+func DetectGolang(dir string) *Info {
+	return detect("golang", dir, "main.go", "Godeps")
 }
 
 // detect returns an Info object with the given platform if the source at dir contains any of the argument files

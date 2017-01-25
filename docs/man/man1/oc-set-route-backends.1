@@ -41,11 +41,15 @@ Not all routers may support multiple or weighted backends.
 
 .PP
 \fB\-\-all\fP=false
-    Select all resources in the namespace of the specified resource types
+    If true, select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-equal\fP=false
-    Set the weight of all backends to 100.
+    If true, set the weight of all backends to 100.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
@@ -89,7 +93,7 @@ Not all routers may support multiple or weighted backends.
 
 .PP
 \fB\-\-zero\fP=false
-    Set the weight of all backends to zero.
+    If true, set the weight of all backends to zero.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -100,6 +104,10 @@ Not all routers may support multiple or weighted backends.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

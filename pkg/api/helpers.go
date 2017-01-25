@@ -2,34 +2,16 @@ package api
 
 import (
 	"fmt"
-	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation/path"
 )
-
-var NameMayNotBe = []string{".", ".."}
-var NameMayNotContain = []string{"/", "%"}
-
-func MinimalNameRequirements(name string, prefix bool) []string {
-	for _, illegalName := range NameMayNotBe {
-		if name == illegalName {
-			return []string{fmt.Sprintf(`name may not be %q`, illegalName)}
-		}
-	}
-
-	for _, illegalContent := range NameMayNotContain {
-		if strings.Contains(name, illegalContent) {
-			return []string{fmt.Sprintf(`name may not contain %q`, illegalContent)}
-		}
-	}
-
-	return nil
-}
 
 // GetNameValidationFunc returns a name validation function that includes the standard restrictions we want for all types
 func GetNameValidationFunc(nameFunc validation.ValidateNameFunc) validation.ValidateNameFunc {
 	return func(name string, prefix bool) []string {
-		if reasons := MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 			return reasons
 		}
 
@@ -51,4 +33,11 @@ func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabe
 		}
 		return "", "", fmt.Errorf("field label not supported: %s", label)
 	}
+}
+
+// GetResourceKey returns a string of the form [namespace]/[name] for
+// the given resource.  This is a common way of ensuring a key for a
+// resource that is unique across the cluster.
+func GetResourceKey(obj kapi.ObjectMeta) string {
+	return fmt.Sprintf("%s/%s", obj.Namespace, obj.Name)
 }

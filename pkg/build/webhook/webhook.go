@@ -50,12 +50,9 @@ func GitRefMatches(eventRef, configRef string, buildSource *buildapi.BuildSource
 // FindTriggerPolicy retrieves the BuildTrigger of a given type from a build
 // configuration
 func FindTriggerPolicy(triggerType buildapi.BuildTriggerType, config *buildapi.BuildConfig) (buildTriggers []buildapi.BuildTriggerPolicy, err error) {
-	err = ErrHookNotEnabled
-	for _, specTrigger := range config.Spec.Triggers {
-		if specTrigger.Type == triggerType {
-			buildTriggers = append(buildTriggers, specTrigger)
-			err = nil
-		}
+	buildTriggers = buildapi.FindTriggerPolicy(triggerType, config)
+	if len(buildTriggers) == 0 {
+		err = ErrHookNotEnabled
 	}
 	return buildTriggers, err
 }

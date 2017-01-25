@@ -21,6 +21,10 @@ There is also the ability to expose a deployment configuration, replication cont
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-cluster\-ip\fP=""
     ClusterIP to be assigned to the service. Leave empty to auto\-allocate, or set to 'None' to create a headless service.
 
@@ -42,7 +46,7 @@ There is also the ability to expose a deployment configuration, replication cont
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to expose a service
+    Filename, directory, or URL to files identifying the resource to expose a service
 
 .PP
 \fB\-\-generator\fP=""
@@ -140,6 +144,10 @@ There is also the ability to expose a deployment configuration, replication cont
 \fB\-\-type\fP=""
     Type for this service: ClusterIP, NodePort, or LoadBalancer. Default is 'ClusterIP'.
 
+.PP
+\fB\-\-wildcardpolicy\fP=""
+    Sets the WildcardPolicy for the hostname, the default is "None". Valid values are "None" and "Subdomain"
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -149,6 +157,10 @@ There is also the ability to expose a deployment configuration, replication cont
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
@@ -224,6 +236,10 @@ There is also the ability to expose a deployment configuration, replication cont
   
   # Create a route and specify a hostname
   oc expose service nginx \-\-hostname=www.example.com
+  
+  # Create a route with wildcard
+  oc expose service nginx \-\-hostname=x.example.com \-\-wildcard=Subdomain
+  This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
   
   # Expose a deployment configuration as a service and use the specified port
   oc expose dc ruby\-hello\-world \-\-port=8080

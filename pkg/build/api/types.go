@@ -25,6 +25,8 @@ const (
 	BuildJenkinsLogURLAnnotation = "openshift.io/jenkins-log-url"
 	// BuildJenkinsBuildURIAnnotation is an annotation holding a link to the Jenkins build
 	BuildJenkinsBuildURIAnnotation = "openshift.io/jenkins-build-uri"
+	// BuildSourceSecretMatchURIAnnotationPrefix is a prefix for annotations on a Secret which indicate a source URI against which the Secret can be used
+	BuildSourceSecretMatchURIAnnotationPrefix = "build.openshift.io/source-secret-match-uri-"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	// NOTE: The value for this label may not contain the entire Build name because it will be
 	// truncated to maximum label length.
@@ -52,6 +54,11 @@ const (
 	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
 	// New Builds cannot be instantiated from a paused BuildConfig.
 	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
+	// BuildAcceptedAnnotation is an annotation used to update a build that can now be
+	// run based on the RunPolicy (e.g. Serial). Updating the build with this annotation
+	// forces the build to be processed by the build controller queue without waiting
+	// for a resync.
+	BuildAcceptedAnnotation = "build.openshift.io/accepted"
 )
 
 // +genclient=true
@@ -222,6 +229,8 @@ type BuildStatus struct {
 	// StepInfo holds the information related to build execution steps in the
 	// build flow.
 	StepInfo []BuildStepInfo
+	// Output describes the Docker image the build has produced.
+	Output BuildStatusOutput
 }
 
 // BuildStepInfo has information about a step in the build process.
@@ -349,24 +358,47 @@ const (
 	// StatusReasonDockerBuildFailed indicates that the docker build strategy has
 	// failed.
 	StatusReasonDockerBuildFailed StatusReason = "DockerBuildFailed"
+
+	// StatusReasonBuildPodExists indicates that the build tried to create a
+	// build pod but one was already present.
+	StatusReasonBuildPodExists StatusReason = "BuildPodExists"
 )
 
 // NOTE: These messages might change.
 const (
-	StatusMessageCannotCreateBuildPodSpec  = "Failed to create pod spec"
-	StatusMessageCannotCreateBuildPod      = "Failed creating build pod"
-	StatusMessageInvalidOutputRef          = "Output image could not be resolved"
-	StatusMessageCancelBuildFailed         = "Failed to cancel build"
-	StatusMessageBuildPodDeleted           = "The pod for this build was deleted before the build completed"
-	StatusMessageExceededRetryTimeout      = "Build did not complete and retrying timed out"
-	StatusMessageMissingPushSecret         = "Missing push secret"
-	StatusMessagePostCommitHookFailed      = "Build failed because of post commit hook"
-	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry"
-	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image"
-	StatusMessageFetchSourceFailed         = "Failed to fetch the input source"
-	StatusMessageCancelledBuild            = "The build was cancelled by the user"
-	StatusMessageDockerBuildFailed         = "Docker build strategy has failed"
+	StatusMessageCannotCreateBuildPodSpec  = "Failed to create pod spec."
+	StatusMessageCannotCreateBuildPod      = "Failed creating build pod."
+	StatusMessageInvalidOutputRef          = "Output image could not be resolved."
+	StatusMessageCancelBuildFailed         = "Failed to cancel build."
+	StatusMessageBuildPodDeleted           = "The pod for this build was deleted before the build completed."
+	StatusMessageExceededRetryTimeout      = "Build did not complete and retrying timed out."
+	StatusMessageMissingPushSecret         = "Missing push secret."
+	StatusMessagePostCommitHookFailed      = "Build failed because of post commit hook."
+	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry."
+	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image."
+	StatusMessageFetchSourceFailed         = "Failed to fetch the input source."
+	StatusMessageCancelledBuild            = "The build was cancelled by the user."
+	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
+	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
 )
+
+// BuildStatusOutput contains the status of the built image.
+type BuildStatusOutput struct {
+	// To describes the status of the built image being pushed to a registry.
+	To *BuildStatusOutputTo
+}
+
+// BuildStatusOutputTo describes the status of the built image with regards to
+// image registry to which it was supposed to be pushed.
+type BuildStatusOutputTo struct {
+	// ImageDigest is the digest of the built Docker image. The digest uniquely
+	// identifies the image in the registry to which it was pushed.
+	//
+	// Please note that this field may not always be set even if the push
+	// completes successfully - e.g. when the registry returns no digest or
+	// returns it in a format that the builder doesn't understand.
+	ImageDigest string
+}
 
 // BuildSource is the input used for the build.
 type BuildSource struct {

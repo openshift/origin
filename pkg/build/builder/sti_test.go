@@ -74,10 +74,7 @@ func makeBuild() *api.Build {
 	return &api.Build{
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
-						URI: "http://localhost/123",
-					}},
+				Source: api.BuildSource{},
 				Strategy: api.BuildStrategy{
 					SourceStrategy: &api.SourceBuildStrategy{
 						Env: append([]kapi.EnvVar{},
@@ -173,6 +170,9 @@ func TestBuildEnvVars(t *testing.T) {
 			Name:  "OPENSHIFT_BUILD_SOURCE",
 			Value: "http://localhost/123",
 		}, s2iapi.EnvironmentSpec{
+			Name:  "OPENSHIFT_BUILD_COMMIT",
+			Value: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+		}, s2iapi.EnvironmentSpec{
 			Name:  "HTTPS_PROXY",
 			Value: "https://test/secure:8443",
 		}, s2iapi.EnvironmentSpec{
@@ -184,7 +184,10 @@ func TestBuildEnvVars(t *testing.T) {
 	mockBuild := makeBuild()
 	mockBuild.Name = "openshift-test-1-build"
 	mockBuild.Namespace = "openshift-demo"
-	resultedEnvList := buildEnvVars(mockBuild)
+	mockBuild.Spec.Source.Git = &api.GitBuildSource{URI: "http://localhost/123"}
+	sourceInfo := &git.SourceInfo{}
+	sourceInfo.CommitID = "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"
+	resultedEnvList := buildEnvVars(mockBuild, sourceInfo)
 	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
 		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
 	}
@@ -210,7 +213,7 @@ func TestScriptProxyConfig(t *testing.T) {
 	}
 	resultedProxyConf, err := scriptProxyConfig(newBuild)
 	if err != nil {
-		t.Fatalf("An error occured while parsing the proxy config: %v", err)
+		t.Fatalf("An error occurred while parsing the proxy config: %v", err)
 	}
 	if resultedProxyConf.HTTPProxy.Path != "/insecure" {
 		t.Errorf("Expected HTTP Proxy path to be /insecure, got: %v", resultedProxyConf.HTTPProxy.Path)

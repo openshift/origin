@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -58,7 +58,7 @@ type ClusterQuotaReconcilationController struct {
 	// knows how to calculate usage
 	registry utilquota.Registry
 	// controllers monitoring to notify for replenishment
-	replenishmentControllers []framework.ControllerInterface
+	replenishmentControllers []cache.ControllerInterface
 }
 
 type workItem struct {
@@ -80,7 +80,7 @@ func NewClusterQuotaReconcilationController(options ClusterQuotaReconcilationCon
 	}
 
 	// we need to trigger every time
-	options.ClusterQuotaInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	options.ClusterQuotaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addClusterQuota,
 		UpdateFunc: c.updateClusterQuota,
 	})
@@ -113,7 +113,7 @@ func (c *ClusterQuotaReconcilationController) Run(workers int, stopCh <-chan str
 	case <-stopCh:
 		return
 	}
-	glog.V(4).Infof("Starting the cluster quota reconcilation controller workers")
+	glog.V(4).Infof("Starting the cluster quota reconciliation controller workers")
 
 	// the controllers that replenish other resources to respond rapidly to state changes
 	for _, replenishmentController := range c.replenishmentControllers {
@@ -137,7 +137,7 @@ func (c *ClusterQuotaReconcilationController) waitForSyncedStores(ready chan<- s
 	defer utilruntime.HandleCrash()
 
 	for !c.clusterQuotaSynced() {
-		glog.V(4).Infof("Waiting for the caches to sync before starting the cluster quota reconcilation controller workers")
+		glog.V(4).Infof("Waiting for the caches to sync before starting the cluster quota reconciliation controller workers")
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-stopCh:
@@ -179,8 +179,19 @@ func (c *ClusterQuotaReconcilationController) calculateAll() {
 	}
 
 	for _, quota := range quotas {
+		// If we have namespaces we map to, force calculating those namespaces
 		namespaces, _ := c.clusterQuotaMapper.GetNamespacesFor(quota.Name)
-		c.forceCalculation(quota.Name, namespaces...)
+		if len(namespaces) > 0 {
+			c.forceCalculation(quota.Name, namespaces...)
+			continue
+		}
+
+		// If the quota status has namespaces when our mapper doesn't think it should,
+		// add it directly to the queue without any work items
+		if quota.Status.Namespaces.OrderedKeys().Front() != nil {
+			c.queue.AddWithData(quota.Name)
+			continue
+		}
 	}
 }
 
@@ -283,6 +294,17 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
 		quota.Status.Namespaces.Insert(namespaceName, recalculatedStatus)
+	}
+
+	// Remove any namespaces from quota.status that no longer match.
+	// Needed because we will never get workitems for namespaces that no longer exist if we missed the delete event (e.g. on startup)
+	for e := quota.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
+		namespaceName := e.Value.(string)
+		namespaceTotals, _ := quota.Status.Namespaces.Get(namespaceName)
+		if !matchingNamespaceNames.Has(namespaceName) {
+			quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
+			quota.Status.Namespaces.Remove(namespaceName)
+		}
 	}
 
 	quota.Status.Total.Hard = quota.Spec.Quota.Hard

@@ -226,6 +226,23 @@ func NewCommitFromOnelineLog(log string) (Commit, error) {
 	return commit, nil
 }
 
+func FetchRepo(repoDir string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(repoDir); err != nil {
+		return err
+	}
+
+	if stdout, stderr, err := run("git", "fetch", "origin"); err != nil {
+		return fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
+	}
+	return nil
+}
+
 func IsAncestor(commit1, commit2, repoDir string) (bool, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -235,10 +252,6 @@ func IsAncestor(commit1, commit2, repoDir string) (bool, error) {
 
 	if err := os.Chdir(repoDir); err != nil {
 		return false, err
-	}
-
-	if stdout, stderr, err := run("git", "fetch", "origin"); err != nil {
-		return false, fmt.Errorf("out=%s, err=%s, %s", strings.TrimSpace(stdout), strings.TrimSpace(stderr), err)
 	}
 
 	if stdout, stderr, err := run("git", "merge-base", "--is-ancestor", commit1, commit2); err != nil {

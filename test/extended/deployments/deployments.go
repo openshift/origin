@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -37,6 +38,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployments", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployments", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployments", "deployment-example.yaml")
+		resolutionFixture               = exutil.FixturePath("testdata", "deployments", "deployment-image-resolution.yaml")
 		anotherMultiICTFixture          = exutil.FixturePath("testdata", "deployments", "multi-ict-deployment.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
@@ -70,12 +72,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 				case n < 0.7:
 					// cancel any running deployment
 					e2e.Logf("%02d: cancelling deployment", i)
-					if out, err := oc.Run("deploy").Args("dc/deployment-simple", "--cancel").Output(); err != nil {
+					if out, err := oc.Run("rollout").Args("cancel", "dc/deployment-simple").Output(); err != nil {
 						// TODO: we should fix this
 						if !strings.Contains(out, "the object has been modified") {
 							o.Expect(err).NotTo(o.HaveOccurred())
 						}
-						e2e.Logf("--cancel deployment failed due to conflict: %v", err)
+						e2e.Logf("rollout cancel deployment failed due to conflict: %v", err)
 					}
 
 				case n < 0.0:
@@ -153,7 +155,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
 			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, name)
 				if err != nil {
 					return false, nil
@@ -193,6 +195,37 @@ var _ = g.Describe("deploymentconfigs", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+	})
+
+	g.It("should respect image stream tag reference policy [Conformance]", func() {
+		o.Expect(oc.Run("create").Args("-f", resolutionFixture).Execute()).NotTo(o.HaveOccurred())
+
+		name := "deployment-image-resolution"
+		o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
+
+		is, err := oc.Client().ImageStreams(oc.Namespace()).Get(name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
+		o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
+		o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
+
+		dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
+
+		imageID := is.Status.Tags["pullthrough"].Items[0].Image
+		resolvedReference := fmt.Sprintf("%s@%s", is.Status.DockerImageRepository, imageID)
+		directReference := is.Status.Tags["direct"].Items[0].DockerImageReference
+
+		// controller should be using pullthrough for this (pointing to local registry)
+		o.Expect(dc.Spec.Triggers[1].ImageChangeParams).NotTo(o.BeNil())
+		o.Expect(dc.Spec.Triggers[1].ImageChangeParams.LastTriggeredImage).To(o.Equal(resolvedReference))
+		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(resolvedReference))
+
+		// controller should have preferred the base image
+		o.Expect(dc.Spec.Triggers[2].ImageChangeParams).NotTo(o.BeNil())
+		o.Expect(dc.Spec.Triggers[2].ImageChangeParams.LastTriggeredImage).To(o.Equal(directReference))
+		o.Expect(dc.Spec.Template.Spec.Containers[1].Image).To(o.Equal(directReference))
 	})
 
 	g.Describe("with test deployments [Conformance]", func() {
@@ -265,9 +298,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
-			var out string
+			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
+				istag, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("sample-stream", "deployed")
 				if errors.IsNotFound(err) {
 					return false, nil
 				}
@@ -281,8 +314,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			}
 			o.Expect(pollErr).NotTo(o.HaveOccurred())
 
-			if !strings.Contains(out, "origin-pod") {
-				err = fmt.Errorf("expected %q to be part of the image reference in %q", "origin-pod", out)
+			if istag.Tag == nil || istag.Tag.From == nil || istag.Tag.From.Name != "openshift/origin-pod" {
+				err = fmt.Errorf("expected %q to be part of the image reference in %#v", "openshift/origin-pod", istag)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -290,7 +323,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 	g.Describe("with env in params referencing the configmap [Conformance]", func() {
 		g.AfterEach(func() {
-			failureTrap(oc, "deploymenty-simple", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 		g.It("should expand the config map key to a value", func() {
 			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()
@@ -554,14 +587,19 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
 			g.By("verifying that we cannot cancel a deployment")
-			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
+			out, err = oc.Run("rollout").Args("cancel", resource).Output()
 			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
+			o.Expect(out).To(o.ContainSubstring("unable to cancel paused deployment"))
 
 			g.By("verifying that we cannot retry a deployment")
 			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
+
+			g.By("verifying that we cannot rollout retry a deployment")
+			out, err = oc.Run("rollout").Args("retry", resource).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("unable to retry paused deployment"))
 
 			g.By("verifying that we cannot rollback a deployment")
 			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
@@ -767,7 +805,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			selector := labels.Set(config.Spec.Selector).AsSelector()
 			opts := kapi.ListOptions{LabelSelector: selector}
 			ready := 0
-			if err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)
 				if err != nil {
 					return false, nil

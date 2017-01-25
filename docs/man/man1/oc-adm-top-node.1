@@ -21,6 +21,22 @@ The top\-node command allows you to see the resource consumption of nodes.
 
 .SH OPTIONS
 .PP
+\fB\-\-heapster\-namespace\fP="kube\-system"
+    Namespace Heapster service is located in
+
+.PP
+\fB\-\-heapster\-port\fP=""
+    Port name in service to use
+
+.PP
+\fB\-\-heapster\-scheme\fP="http"
+    Scheme (http or https) to connect to Heapster as
+
+.PP
+\fB\-\-heapster\-service\fP="heapster"
+    Name of Heapster service
+
+.PP
 \fB\-l\fP, \fB\-\-selector\fP=""
     Selector (label query) to filter on
 
@@ -33,6 +49,10 @@ The top\-node command allows you to see the resource consumption of nodes.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

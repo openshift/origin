@@ -108,6 +108,7 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			err := options.Run()
+			// TODO: move me to kcmdutil
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -117,12 +118,12 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Transform.Adjust, "adjust", options.Transform.Adjust, "Adjust a single backend using an absolute or relative weight. If the primary backend is selected and there is more than one alternate an error will be returned.")
-	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "Set the weight of all backends to zero.")
-	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "Set the weight of all backends to 100.")
+	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "If true, set the weight of all backends to zero.")
+	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "If true, set the weight of all backends to 100.")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -161,11 +162,11 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.PrintTable = o.Transform.Empty()
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		SelectorParam(o.Selector).
 		SelectAllParam(o.All).
 		ResourceNames("route", resources...).
@@ -194,9 +195,9 @@ func (o *BackendsOptions) Validate() error {
 // Run executes the BackendOptions or returns an error.
 func (o *BackendsOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -210,11 +211,11 @@ func (o *BackendsOptions) Run() error {
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
 		return UpdateBackendsForObject(info.Object, o.Transform.Apply)
 	})
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

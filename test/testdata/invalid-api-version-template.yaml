@@ -39,7 +39,7 @@ objects:
   kind: Job
   metadata:
     annotations:
-      description: v1beta1 Job - used to test v1beta1 negotation of group k8s objects
+      description: v1beta1 Job - used to test v1beta1 negotiation of group k8s objects
     name: v1beta1-job
   spec:
     selector:
@@ -58,7 +58,7 @@ objects:
   kind: Job
   metadata:
     annotations:
-      description: v1beta1 Job - used to test v1beta1 negotation of group k8s objects
+      description: v1beta1 Job - used to test v1beta1 negotiation of group k8s objects
     name: v1beta2-job
   spec:
     selector:

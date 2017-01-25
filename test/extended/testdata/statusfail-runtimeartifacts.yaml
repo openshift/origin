@@ -1,0 +1,20 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-runtimeartifacts
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world"
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7
+      runtimeArtifacts:
+      - destinationDir: app
+        sourcePath: /tmp/failure
+      runtimeImage:
+        kind: DockerImage
+        name: centos/ruby-23-centos7
+    type: Source

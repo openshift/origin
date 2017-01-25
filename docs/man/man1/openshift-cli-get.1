@@ -25,12 +25,16 @@ Possible resources include builds, buildConfigs, services, pods, etc. To see a l
     If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-export\fP=false
     If true, use 'export' for the resources.  Exported resources are stripped of cluster\-specific information.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -105,6 +109,10 @@ Possible resources include builds, buildConfigs, services, pods, etc. To see a l
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

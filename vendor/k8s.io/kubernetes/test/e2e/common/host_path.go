@@ -81,7 +81,7 @@ var _ = framework.KubeDescribe("HostPath", func() {
 		})
 	})
 
-	It("should support subPath [Conformance]", func() {
+	It("should support subPath", func() {
 		volumePath := "/test-volume"
 		subPath := "sub-path"
 		fileName := "test-file"
@@ -132,6 +132,7 @@ func mount(source *api.HostPathVolumeSource) []api.Volume {
 //TODO: To merge this with the emptyDir tests, we can make source a lambda.
 func testPodWithHostVol(path string, source *api.HostPathVolumeSource) *api.Pod {
 	podName := "pod-host-path-test"
+	privileged := true
 
 	return &api.Pod{
 		TypeMeta: unversioned.TypeMeta{
@@ -145,22 +146,28 @@ func testPodWithHostVol(path string, source *api.HostPathVolumeSource) *api.Pod 
 			Containers: []api.Container{
 				{
 					Name:  containerName1,
-					Image: "gcr.io/google_containers/mounttest:0.6",
+					Image: "gcr.io/google_containers/mounttest:0.7",
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      volumeName,
 							MountPath: path,
 						},
 					},
+					SecurityContext: &api.SecurityContext{
+						Privileged: &privileged,
+					},
 				},
 				{
 					Name:  containerName2,
-					Image: "gcr.io/google_containers/mounttest:0.6",
+					Image: "gcr.io/google_containers/mounttest:0.7",
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      volumeName,
 							MountPath: path,
 						},
+					},
+					SecurityContext: &api.SecurityContext{
+						Privileged: &privileged,
 					},
 				},
 			},

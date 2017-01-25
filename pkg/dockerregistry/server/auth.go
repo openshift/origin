@@ -69,7 +69,7 @@ func NewRegistryClient(config *clientcmd.Config) RegistryClient {
 
 // Client returns the authenticated client to use with the server.
 func (r *registryClient) Clients() (client.Interface, kclientset.Interface, error) {
-	oc, _, kc, err := r.config.Clients()
+	oc, kc, err := r.config.Clients()
 	return oc, kc, err
 }
 
@@ -351,6 +351,22 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				}
 			}
 
+		case "signature":
+			namespace, name, err := getNamespaceName(access.Resource.Name)
+			if err != nil {
+				return nil, ac.wrapErr(ctx, err)
+			}
+			switch access.Action {
+			case "get":
+				if err := verifyImageStreamAccess(ctx, namespace, name, access.Action, osClient); err != nil {
+					return nil, ac.wrapErr(ctx, err)
+				}
+			case "put":
+				if err := verifyImageSignatureAccess(ctx, namespace, name, osClient); err != nil {
+					return nil, ac.wrapErr(ctx, err)
+				}
+			}
+
 		case "admin":
 			switch access.Action {
 			case "prune":
@@ -435,13 +451,13 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) erro
 	return nil
 }
 
-func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
+func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{
 			Verb:         verb,
 			Group:        imageapi.GroupName,
-			Resource:     "imagestreams/layers",
-			ResourceName: imageRepo,
+			Resource:     resource,
+			ResourceName: name,
 		},
 	}
 	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
@@ -460,6 +476,14 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 	}
 
 	return nil
+}
+
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagestreams/layers", namespace, imageRepo, verb, client)
+}
+
+func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, client client.LocalSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagesignatures", namespace, imageRepo, "create", client)
 }
 
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {

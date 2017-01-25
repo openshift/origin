@@ -10,7 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -98,8 +98,8 @@ func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out io.Writ
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "Specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
-	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "Preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.")
+	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
+	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.")
 	cmd.Flags().StringVar(&o.InfraNamespace, "infrastructure-namespace", o.InfraNamespace, "Name of the infrastructure namespace.")
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
@@ -112,7 +112,7 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory,
 		return kcmdutil.UsageError(cmd, "no arguments are allowed")
 	}
 
-	_, _, kClient, err := f.Clients()
+	_, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.
 		for _, item := range changedSCCs {
 			list.Items = append(list.Items, item)
 		}
-		mapper, _ := f.Object(false)
+		mapper, _ := f.Object()
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 		if err := fn(list); err != nil {
 			return err

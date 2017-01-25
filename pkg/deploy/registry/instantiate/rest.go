@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -136,14 +136,13 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 		}
 
 		// Find the latest tag event for the trigger reference.
-		latestEvent := imageapi.LatestTaggedImage(stream, tag)
-		if latestEvent == nil {
+		latestReference, ok := imageapi.ResolveLatestTaggedImage(stream, tag)
+		if !ok {
 			continue
 		}
 
 		// Ensure a change occurred
-		latestRef := latestEvent.DockerImageReference
-		if len(latestRef) == 0 || latestRef == params.LastTriggeredImage {
+		if len(latestReference) == 0 || latestReference == params.LastTriggeredImage {
 			continue
 		}
 
@@ -155,11 +154,11 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 				continue
 			}
 
-			if container.Image != latestRef {
+			if container.Image != latestReference {
 				// Update the image
-				container.Image = latestRef
+				container.Image = latestReference
 				// Log the last triggered image ID
-				params.LastTriggeredImage = latestRef
+				params.LastTriggeredImage = latestReference
 			}
 		}
 	}

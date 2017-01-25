@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
@@ -84,11 +85,13 @@ func (p *podAffinityPriorityMap) setError(err error) {
 }
 
 func (p *podAffinityPriorityMap) processTerm(term *api.PodAffinityTerm, podDefiningAffinityTerm, podToCheck *api.Pod, fixedNode *api.Node, weight float64) {
-	match, err := priorityutil.PodMatchesTermsNamespaceAndSelector(podToCheck, podDefiningAffinityTerm, term)
+	namespaces := priorityutil.GetNamespacesFromPodAffinityTerm(podDefiningAffinityTerm, term)
+	selector, err := unversioned.LabelSelectorAsSelector(term.LabelSelector)
 	if err != nil {
 		p.setError(err)
 		return
 	}
+	match := priorityutil.PodMatchesTermsNamespaceAndSelector(podToCheck, namespaces, selector)
 	if match {
 		func() {
 			p.Lock()
@@ -105,7 +108,7 @@ func (p *podAffinityPriorityMap) processTerm(term *api.PodAffinityTerm, podDefin
 func (p *podAffinityPriorityMap) processTerms(terms []api.WeightedPodAffinityTerm, podDefiningAffinityTerm, podToCheck *api.Pod, fixedNode *api.Node, multiplier int) {
 	for i := range terms {
 		term := &terms[i]
-		p.processTerm(&term.PodAffinityTerm, podDefiningAffinityTerm, podToCheck, fixedNode, float64(term.Weight*multiplier))
+		p.processTerm(&term.PodAffinityTerm, podDefiningAffinityTerm, podToCheck, fixedNode, float64(term.Weight*int32(multiplier)))
 	}
 }
 

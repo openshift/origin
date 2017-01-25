@@ -17,11 +17,11 @@ function usage() {
   echo "Usage: ${0} <exclude | unexclude>"
   echo
   echo "exclude | disable"
-  echo "  exclude packages via an excludes= line in ${CONF_FILE}"
+  echo "  exclude packages via an exclude= line in ${CONF_FILE}"
   echo "  This disables updates for ${PACKAGE_LIST} packages"
   echo
   echo "unexclude | enable"
-  echo "  removes ${PACKAGE_LIST} from the excludes= line in ${CONF_FILE}"
+  echo "  removes ${PACKAGE_LIST} from the exclude= line in ${CONF_FILE}"
   echo "  This re-enables updates for packages"
   echo
   } 1>&2
@@ -35,7 +35,7 @@ function exclude_packages() {
   # Ensure there is an exclude line
   if ! grep -q exclude= "${CONF_FILE}" ; then
     echo "Adding exclude= to ${CONF_FILE}"
-    sed -i 's|\(obsoletes=.*\)|\1\nexcludes=|' "${CONF_FILE}"
+    sed -i 's|\(installonly_limit=.*\)|\1\nexclude=|' "${CONF_FILE}"
   fi
   # Add each package to the exclude line
   for package in ${PACKAGE_LIST} ; do

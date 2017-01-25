@@ -4,37 +4,37 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
 
 func TestGetSecrets(t *testing.T) {
-	fake := testclient.NewSimpleFake(&kapi.SecretList{
+	fake := fake.NewSimpleClientset(&kapi.SecretList{
 		Items: []kapi.Secret{
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "secret-1"},
+				ObjectMeta: kapi.ObjectMeta{Name: "secret-1", Namespace: "default"},
 				Type:       kapi.SecretTypeDockercfg,
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "secret-2", Annotations: map[string]string{api.ExcludeImageSecretAnnotation: "true"}},
+				ObjectMeta: kapi.ObjectMeta{Name: "secret-2", Annotations: map[string]string{api.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
 				Type:       kapi.SecretTypeDockercfg,
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "secret-3"},
+				ObjectMeta: kapi.ObjectMeta{Name: "secret-3", Namespace: "default"},
 				Type:       kapi.SecretTypeOpaque,
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "secret-4"},
+				ObjectMeta: kapi.ObjectMeta{Name: "secret-4", Namespace: "default"},
 				Type:       kapi.SecretTypeServiceAccountToken,
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "secret-5"},
+				ObjectMeta: kapi.ObjectMeta{Name: "secret-5", Namespace: "default"},
 				Type:       kapi.SecretTypeDockerConfigJson,
 			},
 		},
 	})
-	rest := NewREST(fake)
+	rest := NewREST(fake.Core())
 	opts, _, _ := rest.NewGetOptions()
 	obj, err := rest.Get(kapi.NewDefaultContext(), "", opts)
 	if err != nil {

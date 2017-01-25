@@ -34,7 +34,7 @@ func GuessEntrypoint(fs util.FileSystem, sourceDir string) (string, error) {
 			return f.Name(), nil
 		}
 	}
-	return "", errors.New("No valid entrypoint specified")
+	return "", errors.New("no valid entrypoint specified")
 }
 
 // isValidEntrypoint checks if the given file exists and if it is a regular

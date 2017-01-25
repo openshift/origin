@@ -61,6 +61,10 @@ You may also pass \-\-kubeconfig= <path>to connect to an external Kubernetes clu
     The etcd data directory.
 
 .PP
+\fB\-\-expire\-days\fP=730
+    Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-hostname\fP="<hostname>"
     The hostname to identify this node with the master.
 
@@ -112,6 +116,10 @@ You may also pass \-\-kubeconfig= <path>to connect to an external Kubernetes clu
     The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as \-\-master.
 
 .PP
+\fB\-\-signer\-expire\-days\fP=1825
+    Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-volume\-dir\fP="openshift.local.volumes"
     The volume storage directory.
 
@@ -121,6 +129,10 @@ You may also pass \-\-kubeconfig= <path>to connect to an external Kubernetes clu
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

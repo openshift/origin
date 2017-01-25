@@ -170,10 +170,12 @@ function get-network-plugin() {
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
   local default_plugin="${multitenant_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
+          "${plugin}" != "${networkpolicy_plugin}" &&
           "${plugin}" != "cni" ]]; then
     if [[ -n "${plugin}" ]]; then
       >&2 echo "Invalid network plugin: ${plugin}"
@@ -359,9 +361,9 @@ case "${1:-""}" in
     build-images "${OS_ROOT}"
     ;;
   *)
-    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images}
+    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images} [options]
 
-start accepts the following arguments:
+start accepts the following options:
 
  -n [net plugin]   the name of the network plugin to deploy
 

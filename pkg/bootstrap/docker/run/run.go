@@ -1,11 +1,10 @@
 package run
 
 import (
+	"archive/tar"
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"sync"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -37,8 +36,8 @@ type Runner struct {
 	client          *docker.Client
 	config          *docker.Config
 	hostConfig      *docker.HostConfig
-	input           io.Reader
 	removeContainer bool
+	copies          map[string][]byte
 }
 
 // Name sets the name of the container to create
@@ -82,6 +81,11 @@ func (h *Runner) Command(cmd ...string) *Runner {
 	return h
 }
 
+func (h *Runner) Copy(contents map[string][]byte) *Runner {
+	h.copies = contents
+	return h
+}
+
 // HostPid tells Docker to run using the host's pid namespace
 func (h *Runner) HostPid() *Runner {
 	h.hostConfig.PidMode = "host"
@@ -119,11 +123,8 @@ func (h *Runner) DiscardContainer() *Runner {
 	return h
 }
 
-// Input sets an input stream for the Docker run command
-func (h *Runner) Input(reader io.Reader) *Runner {
-	h.config.OpenStdin = true
-	h.config.StdinOnce = true
-	h.input = reader
+func (h *Runner) DNS(address ...string) *Runner {
+	h.hostConfig.DNS = address
 	return h
 }
 
@@ -133,27 +134,21 @@ func (h *Runner) Start() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if err := h.copy(id); err != nil {
+		return id, err
+	}
 	return id, h.startContainer(id)
 }
 
 // Output starts the container, waits for it to finish and returns its output
 func (h *Runner) Output() (string, string, int, error) {
-	stdOut, errOut := &bytes.Buffer{}, &bytes.Buffer{}
-	rc, err := h.runWithOutput(h.input, stdOut, errOut)
-	return stdOut.String(), errOut.String(), rc, err
-}
-
-// CombinedOutput  is the same as Output, except both output and error streams
-// are combined into one.
-func (h *Runner) CombinedOutput() (string, int, error) {
-	out := &bytes.Buffer{}
-	rc, err := h.runWithOutput(h.input, out, out)
-	return out.String(), rc, err
+	return h.runWithOutput()
 }
 
 // Run executes the container and waits until it completes
 func (h *Runner) Run() (int, error) {
-	return h.runWithOutput(h.input, ioutil.Discard, ioutil.Discard)
+	_, _, rc, err := h.runWithOutput()
+	return rc, err
 }
 
 func (h *Runner) Create() (string, error) {
@@ -171,6 +166,46 @@ func (h *Runner) Create() (string, error) {
 	return container.ID, nil
 }
 
+func (h *Runner) copy(id string) error {
+	if len(h.copies) == 0 {
+		return nil
+	}
+	archive := streamingArchive(h.copies)
+	defer archive.Close()
+	err := h.client.UploadToContainer(id, docker.UploadToContainerOptions{
+		InputStream:          archive,
+		Path:                 "/",
+		NoOverwriteDirNonDir: true,
+	})
+	return err
+}
+
+// streamingArchive returns a ReadCloser containing a tar archive with contents serialized as files.
+func streamingArchive(contents map[string][]byte) io.ReadCloser {
+	r, w := io.Pipe()
+	go func() {
+		archive := tar.NewWriter(w)
+		for k, v := range contents {
+			if err := archive.WriteHeader(&tar.Header{
+				Name:     k,
+				Mode:     0644,
+				Size:     int64(len(v)),
+				Typeflag: tar.TypeReg,
+			}); err != nil {
+				w.CloseWithError(err)
+				return
+			}
+			if _, err := archive.Write(v); err != nil {
+				w.CloseWithError(err)
+				return
+			}
+		}
+		archive.Close()
+		w.Close()
+	}()
+	return r
+}
+
 func (h *Runner) startContainer(id string) error {
 	err := h.client.StartContainer(id, nil)
 	if err != nil {
@@ -179,10 +214,10 @@ func (h *Runner) startContainer(id string) error {
 	return nil
 }
 
-func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, error) {
+func (h *Runner) runWithOutput() (string, string, int, error) {
 	id, err := h.Create()
 	if err != nil {
-		return 0, err
+		return "", "", 0, err
 	}
 	if h.removeContainer {
 		defer func() {
@@ -192,64 +227,48 @@ func (h *Runner) runWithOutput(stdIn io.Reader, stdOut, stdErr io.Writer) (int, 
 			}
 		}()
 	}
-	logOut, logErr := &bytes.Buffer{}, &bytes.Buffer{}
-	outStream := io.MultiWriter(stdOut, logOut)
-	errStream := io.MultiWriter(stdErr, logErr)
-	attached := make(chan struct{})
-	attachErr := make(chan error)
-	streamingWG := &sync.WaitGroup{}
-	streamingWG.Add(1)
-	go func() {
-		glog.V(5).Infof("Attaching to container %q", id)
-		err = h.client.AttachToContainer(docker.AttachToContainerOptions{
-			Container:    id,
-			Logs:         true,
-			Stream:       true,
-			Stdout:       true,
-			Stderr:       true,
-			Stdin:        stdIn != nil,
-			OutputStream: outStream,
-			ErrorStream:  errStream,
-			InputStream:  stdIn,
-			Success:      attached,
-		})
-		if err != nil {
-			glog.V(2).Infof("Error occurred while attaching: %v", err)
-			attachErr <- err
-		}
-		streamingWG.Done()
-		glog.V(5).Infof("Done attaching to container %q", id)
-	}()
 
-	select {
-	case <-attached:
-		glog.V(5).Infof("Attach is successful.")
-	case err = <-attachErr:
-		return 0, err
-	}
 	glog.V(5).Infof("Starting container %q", id)
 	err = h.startContainer(id)
 	if err != nil {
 		glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
-		return 0, err
+		return "", "", 0, err
 	}
-	glog.V(5).Infof("signaling attached channel")
-	attached <- struct{}{}
+
 	glog.V(5).Infof("Waiting for container %q", id)
 	rc, err := h.client.WaitContainer(id)
 	if err != nil {
-		glog.V(2).Infof("Error occurred waiting for container %q: %v, rc = %d", id, err, rc)
+		glog.V(2).Infof("Error occurred waiting for container %q: %v", id, err)
+		return "", "", 0, err
 	}
-	glog.V(5).Infof("Done waiting for container %q, rc=%d. Waiting for attach routine", id, rc)
-	streamingWG.Wait()
-	glog.V(5).Infof("Done waiting for attach routine")
-	glog.V(5).Infof("Stdout:\n%s", logOut.String())
-	glog.V(5).Infof("Stderr:\n%s", logErr.String())
+	glog.V(5).Infof("Done waiting for container %q, rc=%d", id, rc)
+
+	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+
+	// changed to only reading logs after execution instead of streaming
+	// stdout/stderr to avoid race condition in (at least) docker 1.10-1.14-dev:
+	// https://github.com/docker/docker/issues/29285
+	glog.V(5).Infof("Reading logs from container %q", id)
+	err = h.client.Logs(docker.LogsOptions{
+		Container:    id,
+		Stdout:       true,
+		Stderr:       true,
+		OutputStream: stdOut,
+		ErrorStream:  stdErr,
+	})
+	if err != nil {
+		glog.V(2).Infof("Error occurred while reading logs: %v", err)
+		return "", "", 0, err
+	}
+	glog.V(5).Infof("Done reading logs from container %q", id)
+
+	glog.V(5).Infof("Stdout:\n%s", stdOut.String())
+	glog.V(5).Infof("Stderr:\n%s", stdErr.String())
 	if rc != 0 || err != nil {
-		return rc, newRunError(rc, err, logOut.Bytes(), logErr.Bytes(), h.config)
+		return stdOut.String(), stdErr.String(), rc, newRunError(rc, err, stdOut.Bytes(), stdErr.Bytes(), h.config)
 	}
 	glog.V(4).Infof("Container run successful\n")
-	return 0, nil
+	return stdOut.String(), stdErr.String(), rc, nil
 }
 
 // printConfig prints out the relevant parts of a container's Docker config
@@ -281,6 +300,12 @@ func printHostConfig(c *docker.HostConfig) string {
 	out := &bytes.Buffer{}
 	fmt.Fprintf(out, "  pid mode: %s\n", c.PidMode)
 	fmt.Fprintf(out, "  network mode: %s\n", c.NetworkMode)
+	if len(c.DNS) > 0 {
+		fmt.Fprintf(out, "  DNS:\n")
+		for _, h := range c.DNS {
+			fmt.Fprintf(out, "    %s\n", h)
+		}
+	}
 	if len(c.Binds) > 0 {
 		fmt.Fprintf(out, "  volume binds:\n")
 		for _, b := range c.Binds {

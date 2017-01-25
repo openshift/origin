@@ -38,6 +38,11 @@ var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 			g.By("starting a test build")
 			br, _ := exutil.StartBuildAndWait(oc, "s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
 			br.AssertSuccess()
+			o.Expect(br.Build.Status.StartTimestamp).NotTo(o.BeNil(), "Build start timestamp should be set")
+			o.Expect(br.Build.Status.CompletionTimestamp).NotTo(o.BeNil(), "Build completion timestamp should be set")
+			o.Expect(br.Build.Status.Duration).Should(o.BeNumerically(">", 0), "Build duration should be greater than zero")
+			duration := br.Build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(br.Build.Status.StartTimestamp.Rfc3339Copy().Time)
+			o.Expect(br.Build.Status.Duration).To(o.Equal(duration), "Build duration should be computed correctly")
 
 			g.By("expecting the build logs to contain the correct cgroups values")
 			buildLog, err := br.Logs()

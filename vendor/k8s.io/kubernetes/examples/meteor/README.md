@@ -1,7 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
 Meteor on Kubernetes
 ====================
 
@@ -102,7 +98,7 @@ your app image with your project ID, and push to GCR. Replace
 
 ```
 docker tag my-meteor gcr.io/<project>/my-meteor
-gcloud docker push gcr.io/<project>/my-meteor
+gcloud docker -- push gcr.io/<project>/my-meteor
 ```
 
 Running
@@ -151,7 +147,7 @@ You will have to open up port 80 if it's not open yet in your
 environment. On Google Compute Engine, you may run the below command.
 
 ```
-gcloud compute firewall-rules create meteor-80 --allow=tcp:80 --target-tags kubernetes-minion
+gcloud compute firewall-rules create meteor-80 --allow=tcp:80 --target-tags kubernetes-node
 ```
 
 What is going on?
@@ -212,13 +208,6 @@ container section:
       }
     ],
 ```
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

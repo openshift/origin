@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/ldap.v2"
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
@@ -258,9 +258,9 @@ func extractActualGroups(tc *testclient.Fake) []*userapi.Group {
 	ret := []*userapi.Group{}
 	for _, genericAction := range tc.Actions() {
 		switch action := genericAction.(type) {
-		case ktestclient.CreateAction:
+		case core.CreateAction:
 			ret = append(ret, action.GetObject().(*userapi.Group))
-		case ktestclient.UpdateAction:
+		case core.UpdateAction:
 			ret = append(ret, action.GetObject().(*userapi.Group))
 		}
 	}
@@ -315,12 +315,12 @@ func newDefaultOpenShiftGroups(host string) []*userapi.Group {
 
 func newTestSyncer() (*LDAPGroupSyncer, *testclient.Fake) {
 	tc := testclient.NewSimpleFake()
-	tc.PrependReactor("create", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		createAction := action.(ktestclient.CreateAction)
+	tc.PrependReactor("create", "groups", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		createAction := action.(core.CreateAction)
 		return true, createAction.GetObject(), nil
 	})
-	tc.PrependReactor("update", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		updateAction := action.(ktestclient.UpdateAction)
+	tc.PrependReactor("update", "groups", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		updateAction := action.(core.UpdateAction)
 		return true, updateAction.GetObject(), nil
 	})
 

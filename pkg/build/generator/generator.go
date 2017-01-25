@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
@@ -57,6 +57,7 @@ type GeneratorClient interface {
 	UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
 	GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) error
+	UpdateBuild(ctx kapi.Context, build *buildapi.Build) error
 	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 	GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
 	GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
@@ -68,6 +69,7 @@ type Client struct {
 	UpdateBuildConfigFunc   func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
 	GetBuildFunc            func(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
+	UpdateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
 	GetImageStreamFunc      func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 	GetImageStreamImageFunc func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
 	GetImageStreamTagFunc   func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
@@ -91,6 +93,11 @@ func (c Client) GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
 // CreateBuild creates a new build
 func (c Client) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
 	return c.CreateBuildFunc(ctx, build)
+}
+
+// UpdateBuild updates a build
+func (c Client) UpdateBuild(ctx kapi.Context, build *buildapi.Build) error {
+	return c.UpdateBuildFunc(ctx, build)
 }
 
 // GetImageStream retrieves a named image stream
@@ -346,12 +353,8 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 	newBuild := generateBuildFromBuild(build, buildConfig)
 	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
 
-	buildTriggerCauses := []buildapi.BuildTriggerCause{}
-	newBuild.Spec.TriggeredBy = append(buildTriggerCauses,
-		buildapi.BuildTriggerCause{
-			Message: buildapi.BuildTriggerCauseManualMsg,
-		},
-	)
+	// Copy build trigger information to the build object.
+	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {
@@ -814,7 +817,7 @@ func getServiceAccount(buildConfig *buildapi.BuildConfig, defaultServiceAccount 
 	return serviceAccount
 }
 
-//setBuildSource update build source by bianry status
+//setBuildSource update build source by binary status
 func setBuildSource(binary *buildapi.BinaryBuildSource, build *buildapi.Build) {
 	if binary != nil {
 		build.Spec.Source.Git = nil

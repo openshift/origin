@@ -1,19 +1,29 @@
 package origin
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/emicklei/go-restful"
+
+	"k8s.io/kubernetes/pkg/genericapiserver/mux"
+
+	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 func TestInitializeOpenshiftAPIVersionRouteHandler(t *testing.T) {
-	service := new(restful.WebService)
-	initAPIVersionRoute(service, "oapi", "v1")
+	apiContainer := mux.NewAPIContainer(http.NewServeMux(), api.Codecs)
+	initAPIVersionRoute(apiContainer, "oapi", "v1")
 
-	if len(service.Routes()) != 1 {
-		t.Fatalf("Exp. the OSAPI route but found none")
+	wss := apiContainer.RegisteredWebServices()
+	if len(wss) != 1 {
+		t.Fatalf("Exp. the OSAPI webservice but found none")
 	}
-	route := service.Routes()[0]
+	routes := wss[0].Routes()
+	if len(routes) != 1 {
+		t.Fatalf("Expected the OSAPI route but found none")
+	}
+	route := routes[0]
 	if !contains(route.Produces, restful.MIME_JSON) {
 		t.Fatalf("Exp. route to produce mimetype json")
 	}

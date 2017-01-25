@@ -6,7 +6,8 @@ import (
 	"net/url"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -20,8 +21,10 @@ type FakeBuildConfigs struct {
 	Namespace string
 }
 
+var buildConfigsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
+
 func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("buildconfigs", c.Namespace, name), &buildapi.BuildConfig{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
 	if obj == nil {
 		return nil, err
 	}
@@ -30,7 +33,7 @@ func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
 }
 
 func (c *FakeBuildConfigs) List(opts kapi.ListOptions) (*buildapi.BuildConfigList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("buildconfigs", c.Namespace, opts), &buildapi.BuildConfigList{})
+	obj, err := c.Fake.Invokes(core.NewListAction(buildConfigsResource, c.Namespace, opts), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,7 +42,7 @@ func (c *FakeBuildConfigs) List(opts kapi.ListOptions) (*buildapi.BuildConfigLis
 }
 
 func (c *FakeBuildConfigs) Create(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("buildconfigs", c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewCreateAction(buildConfigsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -48,7 +51,7 @@ func (c *FakeBuildConfigs) Create(inObj *buildapi.BuildConfig) (*buildapi.BuildC
 }
 
 func (c *FakeBuildConfigs) Update(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("buildconfigs", c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(buildConfigsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -57,12 +60,12 @@ func (c *FakeBuildConfigs) Update(inObj *buildapi.BuildConfig) (*buildapi.BuildC
 }
 
 func (c *FakeBuildConfigs) Delete(name string) error {
-	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("buildconfigs", c.Namespace, name), &buildapi.BuildConfig{})
+	_, err := c.Fake.Invokes(core.NewDeleteAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
 	return err
 }
 
 func (c *FakeBuildConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("buildconfigs", c.Namespace, opts))
+	return c.Fake.InvokesWatch(core.NewWatchAction(buildConfigsResource, c.Namespace, opts))
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
@@ -77,7 +80,7 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 }
 
 func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	action := ktestclient.NewCreateAction("builds", c.Namespace, request)
+	action := core.NewCreateAction(buildapi.SchemeGroupVersion.WithResource("builds"), c.Namespace, request)
 	action.Subresource = "instantiate"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {
@@ -88,7 +91,7 @@ func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *
 }
 
 func (c *FakeBuildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
-	action := ktestclient.NewCreateAction("builds", c.Namespace, request)
+	action := core.NewCreateAction(buildapi.SchemeGroupVersion.WithResource("builds"), c.Namespace, request)
 	action.Subresource = "instantiatebinary"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {

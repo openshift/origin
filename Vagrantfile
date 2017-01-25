@@ -43,7 +43,7 @@ VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # these are the default settings, overrides are in .vagrant-openshift.json
+  # These are the default settings, overrides are in .vagrant-openshift.json
   vagrant_openshift_config = {
     "instance_name"     => "origin-dev",
     "os"                => "fedora",
@@ -91,7 +91,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     },
   }
 
-  # attempt to read config in this repo's .vagrant-openshift.json if present
+  # Attempt to read config in this repo's .vagrant-openshift.json if present
   if File.exist?('.vagrant-openshift.json')
     json = File.read('.vagrant-openshift.json')
     begin
@@ -190,7 +190,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   else # Single VM dev environment
     ##########################
-    # define settings for the single VM being created.
+    # Define settings for the single VM being created.
     config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
@@ -316,7 +316,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
       end
 
-      # floating ip usually needed for accessing machines
+      # Floating ip usually needed for accessing machines
       floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
       os.floating_ip  = floating_ip == ":auto" ? :auto : floating_ip
       floating_ip_pool = creds['OSFloatingIPPool'] || ENV['OS_FLOATING_IP_POOL']
@@ -351,7 +351,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
-#cloud-config
+# cloud-config
 
 growpart:
   mode: auto

@@ -11,8 +11,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
@@ -23,6 +24,8 @@ type CreateClientOptions struct {
 
 	ClientDir string
 	BaseName  string
+
+	ExpireDays int
 
 	User   string
 	Groups []string
@@ -41,7 +44,11 @@ var createClientLong = templates.LongDesc(`
 	master as the provided user.`)
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
+	options := &CreateClientOptions{
+		SignerCertOptions: NewDefaultSignerCertOptions(),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		Output:            out,
+	}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -71,6 +78,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
 	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("client-dir")
@@ -96,7 +104,7 @@ func (o CreateClientOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := crypto.CertPoolFromFile(caFile); err != nil {
+			if _, err := cert.NewPool(caFile); err != nil {
 				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
 			}
 		}
@@ -108,7 +116,9 @@ func (o CreateClientOptions) Validate(args []string) error {
 	if err := o.SignerCertOptions.Validate(); err != nil {
 		return err
 	}
-
+	if o.ExpireDays <= 0 {
+		return errors.New("expire-days must be valid number of days")
+	}
 	return nil
 }
 
@@ -128,11 +138,15 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		SignerCertOptions: o.SignerCertOptions,
 		CertFile:          clientCertFile,
 		KeyFile:           clientKeyFile,
+		ExpireDays:        o.ExpireDays,
 
 		User:      o.User,
 		Groups:    o.Groups,
 		Overwrite: true,
 		Output:    o.Output,
+	}
+	if err := createClientCertOptions.Validate(nil); err != nil {
+		return err
 	}
 	if _, err := createClientCertOptions.CreateClientCert(); err != nil {
 		return err

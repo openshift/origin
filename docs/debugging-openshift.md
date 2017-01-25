@@ -6,11 +6,11 @@ This document contains some tips and suggestions for troubleshooting an OpenShif
 System Environment
 ------------------
 
-1. Run as root
+1. Run as root.
 
    Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `oc create`) do not need to be run as root.
 
-1. Properly configure or disable firewalld
+1. Properly configure or disable firewalld.
 
    On Fedora or other distributions using firewalld: Add docker0 to the public zone
 
@@ -25,7 +25,7 @@ System Environment
 
   Containers need to be able to resolve hostnames, so if you run a local DNS server on your host, you should update your /etc/resolv.conf to instead use a DNS server that will be reachable from within running containers.  Google's "8.8.8.8" server is a popular choice.
 
-1. Save iptables rules before restarting iptables and restore them afterwards. If iptables have to be restarted, then the iptables rules should be saved and restored, otherwise the docker inserted rules would get lost.
+1. Save iptables rules before restarting iptables and restore them afterwards. If iptables have to be restarted, then the iptables rules should be saved and restored, otherwise the docker inserted rules would get lost:
 
 
         $ iptables-save > /path/to/iptables.bkp
@@ -37,7 +37,7 @@ System Environment
 Build Failures
 --------------
 
-To investigate a build failure, first check the build logs.  You can view the build logs via
+To investigate a build failure, first check the build logs.  You can view the build logs via:
 
     $ oc logs build/[build_id]
 
@@ -64,7 +64,7 @@ One issue seen sometimes is not being able to resolve any hostname (for example 
 If this shows up in your build logs, restart docker and then resubmit a build:
 
     $ sudo systemctl restart docker
-    $ oc start-build <your build identifier>
+    $ oc start-build --from-build=<your build identifier>
 
 Another item seen stems from how OpenShift operates in a SELinux environment.  The SELinux policy requires that host directories that are bind mounted have the svirt_sandbox_file_t label.  Generally
 this simply happens for you under the covers, but there is a growing list of user operations which hamper the registry deployment to the point where the svrt_sandbox_file_t label ends up missing, and you can see
@@ -146,15 +146,15 @@ Benign Errors/Messages
 
 There are a number of suspicious looking messages that appear in the openshift log output which can normally be ignored:
 
-1. Failed to find an IP for pod (benign as long as it does not continuously repeat)
+1. Failed to find an IP for pod (benign as long as it does not continuously repeat):
 
         E1125 14:51:49.665095 04523 endpoints_controller.go:74] Failed to find an IP for pod: {{ } {7e5769d2-74dc-11e4-bc62-3c970e3bf0b7 default /api/v1beta1/pods/7e5769d2-74dc-11e4-bc62-3c970e3bf0b7  41 2014-11-25 14:51:48 -0500 EST map[template:ruby-helloworld-sample deployment:database-1 deploymentconfig:database name:database] map[]} {{v1beta1 7e5769d2-74dc-11e4-bc62-3c970e3bf0b7 7e5769d2-74dc-11e4-bc62-3c970e3bf0b7 [] [{ruby-helloworld-database mysql []  [{ 0 3306 TCP }] [{MYSQL_ROOT_PASSWORD rrKAcyW6} {MYSQL_DATABASE root}] 0 0 [] <nil> <nil>  false }] {0x1654910 <nil> <nil>}} Running localhost.localdomain   map[]} {{   [] [] {<nil> <nil> <nil>}} Pending localhost.localdomain   map[]} map[]}
 
-1. Proxy connection reset
+1. Proxy connection reset:
 
         E1125 14:52:36.605423 04523 proxier.go:131] I/O error: read tcp 10.192.208.170:57472: connection reset by peer
 
-1. No network settings
+1. No network settings:
 
         W1125 14:53:10.035539 04523 rest.go:231] No network settings: api.ContainerStatus{State:api.ContainerState{Waiting:(*api.ContainerStateWaiting)(0xc208b29b40), Running:(*api.ContainerStateRunning)(nil), Termination:(*api.ContainerStateTerminated)(nil)}, RestartCount:0, PodIP:"", Image:"kubernetes/pause:latest"}
 
@@ -193,7 +193,7 @@ If you find yourself still stuck, before seeking help in #openshift on freenode.
 
 1. Authorization rules:
 
-    If you are getting "forbidden" messages or 403 status codes that you aren't expecting, you should gather the policy bindings, roles, and rules being used for the namespace you are trying to access.  Run the following commands, substituting `<project-namespace>` with the namespace you're trying to access.
+    If you are getting "forbidden" messages or 403 status codes that you aren't expecting, you should gather the policy bindings, roles, and rules being used for the namespace you are trying to access.  Run the following commands, substituting `<project-namespace>` with the namespace you're trying to access:
 
         $ oc describe policy default --namespace=master
         $ oc describe policybindings master --namespace=master

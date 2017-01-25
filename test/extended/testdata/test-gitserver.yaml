@@ -57,7 +57,7 @@ objects:
 
           # The URL that builds must use to access the Git repositories
           # stored in this app.
-          # TOOD: support HTTPS
+          # TODO: support HTTPS
           - name: PUBLIC_URL
             value: http://gitserver.$(POD_NAMESPACE).svc.cluster.local:8080
           # The directory to store Git repositories in. If not backed

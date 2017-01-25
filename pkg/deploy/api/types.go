@@ -10,6 +10,8 @@ import (
 const (
 	// DefaultRollingTimeoutSeconds is the default TimeoutSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingTimeoutSeconds int64 = 10 * 60
+	// DefaultRecreateTimeoutSeconds is the default TimeoutSeconds for RecreateDeploymentStrategyParams.
+	DefaultRecreateTimeoutSeconds int64 = 10 * 60
 	// DefaultRollingIntervalSeconds is the default IntervalSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingIntervalSeconds int64 = 1
 	// DefaultRollingUpdatePeriodSeconds is the default PeriodSeconds for RollingDeploymentStrategyParams.
@@ -193,6 +195,10 @@ type DeploymentStrategy struct {
 	Labels map[string]string
 	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Annotations map[string]string
+
+	// ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
+	// config may be active on a node before the system actively tries to terminate them.
+	ActiveDeadlineSeconds *int64
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -249,7 +255,7 @@ type RollingDeploymentStrategyParams struct {
 	// MaxUnavailable is the maximum number of pods that can be unavailable
 	// during the update. Value can be an absolute number (ex: 5) or a
 	// percentage of total pods at the start of update (ex: 10%). Absolute
-	// number is calculated from percentage by rounding up.
+	// number is calculated from percentage by rounding down.
 	//
 	// This cannot be 0 if MaxSurge is 0. By default, 25% is used.
 	//
@@ -389,6 +395,8 @@ type DeploymentConfigStatus struct {
 	Details *DeploymentDetails
 	// Conditions represents the latest available observations of a deployment config's current state.
 	Conditions []DeploymentCondition
+	// Total number of ready pods targeted by this deployment.
+	ReadyReplicas int32
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
@@ -437,6 +445,8 @@ type DeploymentCondition struct {
 	Type DeploymentConditionType
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus
+	// The last time this condition was updated.
+	LastUpdateTime unversioned.Time
 	// The last time the condition transitioned from one status to another.
 	LastTransitionTime unversioned.Time
 	// The reason for the condition's last transition.

@@ -103,7 +103,7 @@ readonly -f os::test::junit::declare_test_end
 
 # os::test::junit::check_test_counters checks that we do not have any test suites or test cases in flight
 # This function should be called at the very end of any test script using jUnit markers to make sure no error in
-# marking has occured.
+# marking has occurred.
 #
 # Globals:
 #  - NUM_OS_JUNIT_SUITES_IN_FLIGHT

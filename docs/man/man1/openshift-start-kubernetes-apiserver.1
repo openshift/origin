@@ -26,7 +26,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-admission\-control\fP="AlwaysAdmit"
-    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, ClusterResourceOverride, DefaultStorageClass, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImagePolicyWebhook, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OwnerReferencesPermissionEnforcement, PersistentVolumeLabel, PodNodeConstraints, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/RestrictedEndpointsAdmission.
+    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, ClusterResourceOverride, DefaultStorageClass, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImagePolicyWebhook, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OwnerReferencesPermissionEnforcement, PersistentVolumeLabel, PodNodeConstraints, PodNodeSelector, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/BuildConfigSecretInjector, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/RestrictSubjectBindings, openshift.io/RestrictedEndpointsAdmission.
 
 .PP
 \fB\-\-admission\-control\-config\-file\fP=""
@@ -39,6 +39,10 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .PP
 \fB\-\-allow\-privileged\fP=false
     If true, allow privileged containers.
+
+.PP
+\fB\-\-anonymous\-auth\fP=false
+    Enables anonymous requests to the secure port of the API server. Requests that are not rejected by another authentication method are treated as anonymous requests. Anonymous requests have a username of system:anonymous, and a group name of system:unauthenticated.
 
 .PP
 \fB\-\-apiserver\-count\fP=1
@@ -117,6 +121,10 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The provider for cloud services. Empty string for no provider.
 
 .PP
+\fB\-\-contention\-profiling\fP=false
+    Enable contention profiling. Requires \-\-profiling to be set to work.
+
+.PP
 \fB\-\-cors\-allowed\-origins\fP=[]
     List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching. If this list is empty CORS will not be enabled.
 
@@ -125,11 +133,11 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     Number of workers spawned for DeleteCollection call. These are used to speed up namespace cleanup.
 
 .PP
-\fB\-\-deserialization\-cache\-size\fP=50000
+\fB\-\-deserialization\-cache\-size\fP=0
     Number of deserialized json objects to cache in memory.
 
 .PP
-\fB\-\-enable\-garbage\-collector\fP=false
+\fB\-\-enable\-garbage\-collector\fP=true
     Enables the generic garbage collector. MUST be synced with the corresponding flag of the kube\-controller\-manager.
 
 .PP
@@ -158,8 +166,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-etcd\-servers\fP=[]
-    List of etcd servers to connect with (
-\[la]http://ip:port\[ra]), comma separated.
+    List of etcd servers to connect with (scheme://ip:port), comma separated.
 
 .PP
 \fB\-\-etcd\-servers\-overrides\fP=[]
@@ -169,6 +176,10 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .PP
 \fB\-\-event\-ttl\fP=0
     Amount of time to retain events. Default is 1h.
+
+.PP
+\fB\-\-experimental\-keystone\-ca\-file\fP=""
+    If set, the Keystone server's certificate will be verified by one of the authorities in the experimental\-keystone\-ca\-file, otherwise the host's root CA set will be used.
 
 .PP
 \fB\-\-experimental\-keystone\-url\fP=""
@@ -182,10 +193,16 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 \fB\-\-feature\-gates\fP=
     A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
 AllAlpha=true|false (ALPHA \- default=false)
-AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (BETA \- default=true)
 AppArmor=true|false (BETA \- default=true)
 DynamicKubeletConfig=true|false (ALPHA \- default=false)
 DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
+ExperimentalHostUserNamespaceDefaulting=true|false (ALPHA \- default=false)
+StreamingProxyRedirects=true|false (ALPHA \- default=false)
+
+.PP
+\fB\-\-insecure\-allow\-any\-token\fP=false
+    If set, your server will be INSECURE.  Any token will be allowed and user information will be parsed from the token as \fB\fCusername/group1,group2\fR
 
 .PP
 \fB\-\-insecure\-bind\-address\fP=127.0.0.1
@@ -216,6 +233,10 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     DEPRECATED: kubelet port.
 
 .PP
+\fB\-\-kubelet\-preferred\-address\-types\fP=[Hostname,InternalIP,ExternalIP,LegacyHostIP]
+    List of the preferred NodeAddressTypes to use for kubelet connections.
+
+.PP
 \fB\-\-kubelet\-timeout\fP=0
     Timeout for kubelet operations.
 
@@ -229,7 +250,7 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-master\-service\-namespace\fP="default"
-    The namespace from which the kubernetes master services should be injected into pods.
+    DEPRECATED: the namespace from which the kubernetes master services should be injected into pods.
 
 .PP
 \fB\-\-max\-connection\-bytes\-per\-sec\fP=0
@@ -253,7 +274,7 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-oidc\-groups\-claim\fP=""
-    If provided, the name of a custom OpenID Connect claim for specifying user groups. The claim value is expected to be an array of strings. This flag is experimental, please see the authentication documentation for further details.
+    If provided, the name of a custom OpenID Connect claim for specifying user groups. The claim value is expected to be a string or array of strings. This flag is experimental, please see the authentication documentation for further details.
 
 .PP
 \fB\-\-oidc\-issuer\-url\fP=""
@@ -284,6 +305,18 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     If true, server will do its best to fix the update request to pass the validation, e.g., setting empty UID in update request to its existing value. This flag can be turned off after we fix all the clients that send malformed updates.
 
 .PP
+\fB\-\-requestheader\-allowed\-names\fP=[]
+    List of client certificate common names to allow to provide usernames in headers specified by \-\-requestheader\-username\-headers. If empty, any client certificate validated by the authorities in \-\-requestheader\-client\-ca\-file is allowed.
+
+.PP
+\fB\-\-requestheader\-client\-ca\-file\fP=""
+    Root certificate bundle to use to verify client certificates on incoming requests before trusting usernames in headers specified by \-\-requestheader\-username\-headers
+
+.PP
+\fB\-\-requestheader\-username\-headers\fP=[]
+    List of request headers to inspect for usernames. X\-Remote\-User is common.
+
+.PP
 \fB\-\-runtime\-config\fP=
     A set of key=value pairs that describe runtime configuration that may be passed to apiserver. apis/<groupVersion> key can be used to turn on/off specific api versions. apis/<groupVersion>/<resource> can be used to turn on/off specific resources. api/all and api/legacy are special keys to control all and legacy api versions respectively.
 
@@ -292,8 +325,8 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     The port on which to serve HTTPS with authentication and authorization. If 0, don't serve HTTPS at all.
 
 .PP
-\fB\-\-service\-account\-key\-file\fP=""
-    File containing PEM\-encoded x509 RSA private or public key, used to verify ServiceAccount tokens. If unspecified, \-\-tls\-private\-key\-file is used.
+\fB\-\-service\-account\-key\-file\fP=[]
+    File containing PEM\-encoded x509 RSA or ECDSA private or public keys, used to verify ServiceAccount tokens. If unspecified, \-\-tls\-private\-key\-file is used. The specified file can contain multiple keys, and the flag can be specified multiple times with different files.
 
 .PP
 \fB\-\-service\-account\-lookup\fP=false
@@ -332,7 +365,7 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     DEPRECATED: the version to store the legacy v1 resources with. Defaults to server preferred.
 
 .PP
-\fB\-\-storage\-versions\fP="apps/v1alpha1,authentication.k8s.io/v1beta1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,certificates.k8s.io/v1alpha1,componentconfig/v1alpha1,extensions/v1beta1,federation/v1beta1,imagepolicy.k8s.io/v1alpha1,policy/v1alpha1,rbac.authorization.k8s.io/v1alpha1,storage.k8s.io/v1beta1,v1"
+\fB\-\-storage\-versions\fP="apps/v1beta1,authentication.k8s.io/v1beta1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,certificates.k8s.io/v1alpha1,componentconfig/v1alpha1,extensions/v1beta1,federation/v1beta1,imagepolicy.k8s.io/v1alpha1,policy/v1beta1,rbac.authorization.k8s.io/v1alpha1,storage.k8s.io/v1beta1,v1"
     The per\-group version to store resources in. Specified in the format "group1/version1,group2/version2,...". In the case where objects are moved from one group to the other, you may specify the format "group1=group2/v1beta1,group3/v1beta1,...". You only need to pass the groups you wish to change from the defaults. It defaults to a list of preferred versions of all registered groups, which is derived from the KUBE\_API\_VERSIONS environment variable.
 
 .PP
@@ -340,12 +373,20 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     Memory limit for apiserver in MB (used to configure sizes of caches, etc.)
 
 .PP
+\fB\-\-tls\-ca\-file\fP=""
+    If set, this certificate authority will used for secure access from Admission Controllers. This must be a valid PEM\-encoded CA bundle.
+
+.PP
 \fB\-\-tls\-cert\-file\fP=""
-    File containing x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert). If HTTPS serving is enabled, and \-\-tls\-cert\-file and \-\-tls\-private\-key\-file are not provided, a self\-signed certificate and key are generated for the public address and saved to /var/run/kubernetes.
+    File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert). If HTTPS serving is enabled, and \-\-tls\-cert\-file and \-\-tls\-private\-key\-file are not provided, a self\-signed certificate and key are generated for the public address and saved to /var/run/kubernetes.
 
 .PP
 \fB\-\-tls\-private\-key\-file\fP=""
-    File containing x509 private key matching \-\-tls\-cert\-file.
+    File containing the default x509 private key matching \-\-tls\-cert\-file.
+
+.PP
+\fB\-\-tls\-sni\-cert\-key\fP=[]
+    A pair of x509 certificate and private key file paths, optionally suffixed with a list of domain patterns which are fully qualified domain names, possibly with prefixed wildcard segments. If no domain patterns are provided, the names of the certificate are extracted. Non\-wildcard matches trump over wildcard matches, explicit domain patterns trump over extracted names. For multiple key/certificate pairs, use the \-\-tls\-sni\-cert\-key multiple times. Examples: "example.key,example.crt" or "*.foo.com,foo.com:foo.key,foo.crt".
 
 .PP
 \fB\-\-token\-auth\-file\fP=""
@@ -361,6 +402,10 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

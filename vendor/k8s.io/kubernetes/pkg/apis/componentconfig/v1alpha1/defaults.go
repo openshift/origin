@@ -51,6 +51,7 @@ const (
 var zeroDuration = unversioned.Duration{}
 
 func addDefaultingFuncs(scheme *kruntime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_KubeProxyConfiguration,
 		SetDefaults_KubeSchedulerConfiguration,
@@ -89,6 +90,9 @@ func SetDefaults_KubeProxyConfiguration(obj *KubeProxyConfiguration) {
 		if obj.ConntrackMaxPerCore == 0 {
 			obj.ConntrackMaxPerCore = 32 * 1024
 		}
+		if obj.ConntrackMin == 0 {
+			obj.ConntrackMin = 128 * 1024
+		}
 	}
 	if obj.IPTablesMasqueradeBit == nil {
 		temp := int32(14)
@@ -96,6 +100,29 @@ func SetDefaults_KubeProxyConfiguration(obj *KubeProxyConfiguration) {
 	}
 	if obj.ConntrackTCPEstablishedTimeout == zero {
 		obj.ConntrackTCPEstablishedTimeout = unversioned.Duration{Duration: 24 * time.Hour} // 1 day (1/5 default)
+	}
+	if obj.ConntrackTCPCloseWaitTimeout == zero {
+		// See https://github.com/kubernetes/kubernetes/issues/32551.
+		//
+		// CLOSE_WAIT conntrack state occurs when the the Linux kernel
+		// sees a FIN from the remote server. Note: this is a half-close
+		// condition that persists as long as the local side keeps the
+		// socket open. The condition is rare as it is typical in most
+		// protocols for both sides to issue a close; this typically
+		// occurs when the local socket is lazily garbage collected.
+		//
+		// If the CLOSE_WAIT conntrack entry expires, then FINs from the
+		// local socket will not be properly SNAT'd and will not reach the
+		// remote server (if the connection was subject to SNAT). If the
+		// remote timeouts for FIN_WAIT* states exceed the CLOSE_WAIT
+		// timeout, then there will be an inconsistency in the state of
+		// the connection and a new connection reusing the SNAT (src,
+		// port) pair may be rejected by the remote side with RST. This
+		// can cause new calls to connect(2) to return with ECONNREFUSED.
+		//
+		// We set CLOSE_WAIT to one hour by default to better match
+		// typical server timeouts.
+		obj.ConntrackTCPCloseWaitTimeout = unversioned.Duration{Duration: 1 * time.Hour}
 	}
 }
 
@@ -143,6 +170,25 @@ func SetDefaults_LeaderElectionConfiguration(obj *LeaderElectionConfiguration) {
 }
 
 func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
+	if obj.Authentication.Anonymous.Enabled == nil {
+		obj.Authentication.Anonymous.Enabled = boolVar(true)
+	}
+	if obj.Authentication.Webhook.Enabled == nil {
+		obj.Authentication.Webhook.Enabled = boolVar(false)
+	}
+	if obj.Authentication.Webhook.CacheTTL == zeroDuration {
+		obj.Authentication.Webhook.CacheTTL = unversioned.Duration{Duration: 2 * time.Minute}
+	}
+	if obj.Authorization.Mode == "" {
+		obj.Authorization.Mode = KubeletAuthorizationModeAlwaysAllow
+	}
+	if obj.Authorization.Webhook.CacheAuthorizedTTL == zeroDuration {
+		obj.Authorization.Webhook.CacheAuthorizedTTL = unversioned.Duration{Duration: 5 * time.Minute}
+	}
+	if obj.Authorization.Webhook.CacheUnauthorizedTTL == zeroDuration {
+		obj.Authorization.Webhook.CacheUnauthorizedTTL = unversioned.Duration{Duration: 30 * time.Second}
+	}
+
 	if obj.Address == "" {
 		obj.Address = "0.0.0.0"
 	}
@@ -158,11 +204,8 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	if obj.CertDirectory == "" {
 		obj.CertDirectory = "/var/run/kubernetes"
 	}
-	if obj.ConfigureCBR0 == nil {
-		obj.ConfigureCBR0 = boolVar(false)
-	}
-	if obj.CgroupsPerQOS == nil {
-		obj.CgroupsPerQOS = boolVar(false)
+	if obj.ExperimentalCgroupsPerQOS == nil {
+		obj.ExperimentalCgroupsPerQOS = boolVar(false)
 	}
 	if obj.ContainerRuntime == "" {
 		obj.ContainerRuntime = "docker"
@@ -176,7 +219,7 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	if obj.DockerExecHandlerName == "" {
 		obj.DockerExecHandlerName = "native"
 	}
-	if obj.DockerEndpoint == "" {
+	if obj.DockerEndpoint == "" && runtime.GOOS != "windows" {
 		obj.DockerEndpoint = "unix:///var/run/docker.sock"
 	}
 	if obj.EventBurst == 0 {
@@ -331,6 +374,9 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	if obj.EvictionPressureTransitionPeriod == zeroDuration {
 		obj.EvictionPressureTransitionPeriod = unversioned.Duration{Duration: 5 * time.Minute}
 	}
+	if obj.ExperimentalKernelMemcgNotification == nil {
+		obj.ExperimentalKernelMemcgNotification = boolVar(false)
+	}
 	if obj.SystemReserved == nil {
 		obj.SystemReserved = make(map[string]string)
 	}
@@ -347,6 +393,23 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	if obj.IPTablesDropBit == nil {
 		temp := int32(defaultIPTablesDropBit)
 		obj.IPTablesDropBit = &temp
+	}
+	if obj.ExperimentalCgroupsPerQOS == nil {
+		temp := false
+		obj.ExperimentalCgroupsPerQOS = &temp
+	}
+	if obj.CgroupDriver == "" {
+		obj.CgroupDriver = "cgroupfs"
+	}
+	// NOTE: this is for backwards compatibility with earlier releases where cgroup-root was optional.
+	// if cgroups per qos is not enabled, and cgroup-root is not specified, we need to default to the
+	// container runtime default and not default to the root cgroup.
+	if obj.ExperimentalCgroupsPerQOS != nil {
+		if *obj.ExperimentalCgroupsPerQOS {
+			if obj.CgroupRoot == "" {
+				obj.CgroupRoot = "/"
+			}
+		}
 	}
 }
 

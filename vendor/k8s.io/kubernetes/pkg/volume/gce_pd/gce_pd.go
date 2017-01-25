@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/util"
 )
 
 // This is the primary entrypoint for volume plugins.
@@ -238,6 +239,13 @@ func (b *gcePersistentDiskMounter) GetAttributes() volume.Attributes {
 	}
 }
 
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *gcePersistentDiskMounter) CanMount() error {
+	return nil
+}
+
 // SetUp bind mounts the disk global mount to the volume path.
 func (b *gcePersistentDiskMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
@@ -247,7 +255,7 @@ func (b *gcePersistentDiskMounter) SetUp(fsGroup *int64) error {
 func (b *gcePersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
 	// TODO: handle failed mounts here.
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
-	glog.V(4).Infof("PersistentDisk set up: %s %v %v, pd name %v readOnly %v", dir, !notMnt, err, b.pdName, b.readOnly)
+	glog.V(4).Infof("GCE PersistentDisk set up: Dir (%s) PD name (%q) Mounted (%t) Error (%v), ReadOnly (%t)", dir, b.pdName, !notMnt, err, b.readOnly)
 	if err != nil && !os.IsNotExist(err) {
 		glog.Errorf("cannot validate mount point: %s %v", dir, err)
 		return err
@@ -307,7 +315,7 @@ func (b *gcePersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
 }
 
 func makeGlobalPDName(host volume.VolumeHost, devName string) string {
-	return path.Join(host.GetPluginDir(gcePersistentDiskPluginName), "mounts", devName)
+	return path.Join(host.GetPluginDir(gcePersistentDiskPluginName), mount.MountsInGlobalPDPath, devName)
 }
 
 func (b *gcePersistentDiskMounter) GetPath() string {
@@ -332,25 +340,7 @@ func (c *gcePersistentDiskUnmounter) TearDown() error {
 
 // TearDownAt unmounts the bind mount
 func (c *gcePersistentDiskUnmounter) TearDownAt(dir string) error {
-	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
-	if err != nil {
-		return err
-	}
-	if notMnt {
-		return os.Remove(dir)
-	}
-	if err := c.mounter.Unmount(dir); err != nil {
-		return err
-	}
-	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
-	if mntErr != nil {
-		glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
-		return err
-	}
-	if notMnt {
-		return os.Remove(dir)
-	}
-	return fmt.Errorf("Failed to unmount volume dir")
+	return util.UnmountPath(dir, c.mounter)
 }
 
 type gcePersistentDiskDeleter struct {

@@ -11,11 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/fake"
-	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/restclient/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -84,7 +87,8 @@ func imageWithLayers(id, ref string, configName *string, layers ...string) image
 				imageapi.ManagedByOpenShiftAnnotation: "true",
 			},
 		},
-		DockerImageReference: ref,
+		DockerImageReference:         ref,
+		DockerImageManifestMediaType: schema1.MediaTypeManifest,
 	}
 
 	if configName != nil {
@@ -92,6 +96,7 @@ func imageWithLayers(id, ref string, configName *string, layers ...string) image
 			ID: *configName,
 		}
 		image.DockerImageConfig = fmt.Sprintf("{Digest: %s}", *configName)
+		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 	}
 
 	image.DockerImageLayers = []imageapi.ImageLayer{}
@@ -967,7 +972,7 @@ func TestImageDeleter(t *testing.T) {
 
 	for name, test := range tests {
 		imageClient := testclient.Fake{}
-		imageClient.AddReactor("delete", "images", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		imageClient.AddReactor("delete", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
 		imageDeleter := NewImageDeleter(imageClient.Images())

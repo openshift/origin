@@ -72,7 +72,8 @@ RUN systemctl enable docker.service
 RUN echo "DOCKER_STORAGE_OPTIONS=--storage-driver vfs" >\
  /etc/sysconfig/docker-storage
 
-COPY dind-setup.sh /usr/local/bin
+RUN mkdir -p /usr/local/bin
+COPY dind-setup.sh /usr/local/bin/
 COPY dind-setup.service /etc/systemd/system/
 RUN systemctl enable dind-setup.service
 

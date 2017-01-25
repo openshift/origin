@@ -66,10 +66,10 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 		},
 	}
 	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
-	cmd.Flags().Bool("exact", false, "Preserve fields that may be cluster specific, such as service clusterIPs or generated names")
+	cmd.Flags().Bool("exact", false, "If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names")
 	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
+	cmd.Flags().Bool("all-namespaces", false, "If true, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file for the resource to export.")
 	cmd.MarkFlagFilename("filename")
 	cmd.Flags().Bool("all", true, "DEPRECATED: all is ignored, specifying a resource without a name selects all the instances of that resource")
@@ -102,16 +102,16 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
-		FilenameParam(explicit, false, filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
-	p, _, err := kubectl.GetPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"))
+	p, _, err := kubectl.GetPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"), kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"))
 	if err != nil {
 		return err
 	}

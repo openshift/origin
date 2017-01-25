@@ -44,9 +44,17 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
 	}
 	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(spec.MinReadySeconds), specPath.Child("minReadySeconds"))...)
-	if int64(spec.MinReadySeconds) >= deployapi.DefaultRollingTimeoutSeconds {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("minReadySeconds"), spec.MinReadySeconds,
-			fmt.Sprintf("must be less than the deployment timeout (%ds)", deployapi.DefaultRollingTimeoutSeconds)))
+	timeoutSeconds := deployapi.DefaultRollingTimeoutSeconds
+	if spec.Strategy.RollingParams != nil && spec.Strategy.RollingParams.TimeoutSeconds != nil {
+		timeoutSeconds = *(spec.Strategy.RollingParams.TimeoutSeconds)
+	} else if spec.Strategy.RecreateParams != nil && spec.Strategy.RecreateParams.TimeoutSeconds != nil {
+		timeoutSeconds = *(spec.Strategy.RecreateParams.TimeoutSeconds)
+	}
+	if timeoutSeconds > 0 && int64(spec.MinReadySeconds) >= timeoutSeconds {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("minReadySeconds"), spec.MinReadySeconds, fmt.Sprintf("must be less than the deployment timeout (%ds)", timeoutSeconds)))
+	}
+	if spec.Strategy.ActiveDeadlineSeconds != nil && int64(spec.MinReadySeconds) >= *(spec.Strategy.ActiveDeadlineSeconds) {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("minReadySeconds"), spec.MinReadySeconds, fmt.Sprintf("must be less than activeDeadlineSeconds (%ds - used by the deployer pod)", *(spec.Strategy.ActiveDeadlineSeconds))))
 	}
 	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
@@ -131,6 +139,7 @@ func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) fie
 	if status.ObservedGeneration < int64(0) {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), status.ObservedGeneration, "observedGeneration cannot be negative"))
 	}
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.ReadyReplicas), statusPath.Child("readyReplicas"))...)
 	return allErrs
 }
 
@@ -238,6 +247,19 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	}
 
 	errs = append(errs, validation.ValidateResourceRequirements(&strategy.Resources, fldPath.Child("resources"))...)
+
+	if strategy.ActiveDeadlineSeconds != nil {
+		errs = append(errs, kapivalidation.ValidateNonnegativeField(*strategy.ActiveDeadlineSeconds, fldPath.Child("activeDeadlineSeconds"))...)
+		var timeoutSeconds *int64
+		if strategy.RollingParams != nil {
+			timeoutSeconds = strategy.RollingParams.TimeoutSeconds
+		} else if strategy.RecreateParams != nil {
+			timeoutSeconds = strategy.RecreateParams.TimeoutSeconds
+		}
+		if timeoutSeconds != nil && *strategy.ActiveDeadlineSeconds <= *timeoutSeconds {
+			errs = append(errs, field.Invalid(fldPath.Child("activeDeadlineSeconds"), *strategy.ActiveDeadlineSeconds, "activeDeadlineSeconds must be greater than timeoutSeconds"))
+		}
+	}
 
 	return errs
 }

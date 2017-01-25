@@ -90,6 +90,7 @@ type NewBuildOptions struct {
 	CommandPath string
 	CommandName string
 
+	In            io.Reader
 	Out, ErrOut   io.Writer
 	Output        string
 	PrintObject   func(obj runtime.Object) error
@@ -100,7 +101,6 @@ type NewBuildOptions struct {
 func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
-	config.AddEnvironmentToBuild = true
 	o := &NewBuildOptions{Config: config}
 
 	cmd := &cobra.Command{
@@ -110,7 +110,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 		Example:    fmt.Sprintf(newBuildExample, baseName, name),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout, in))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
 			err := o.RunNewBuild()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -127,8 +127,15 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
-	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
-	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into resulting image.")
+	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "If true, have the build output push to a Docker repository.")
+	cmd.Flags().StringArrayVar(&config.BuildEnvironment, "build-env", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
+	cmd.Flags().MarkHidden("build-env")
+	cmd.Flags().StringArrayVarP(&config.BuildEnvironment, "env", "e", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
+	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "build-env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.MarkFlagFilename("build-env-file")
+	cmd.Flags().MarkHidden("build-env-file")
+	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.MarkFlagFilename("env-file")
 	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
@@ -147,12 +154,14 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer, in io.Reader) error {
+func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
+	o.Config.In = in
 	if len(o.Output) == 0 {
 		o.Config.Out = o.Out
 	} else {
@@ -175,8 +184,9 @@ func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Fa
 	o.CommandName = commandName
 
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
 
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {

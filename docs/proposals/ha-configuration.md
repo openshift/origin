@@ -57,7 +57,6 @@ ability to setup a high availability configuration on a selection of nodes.
             <options> = One or more of:
                 --type=keepalived  #  For now, always keepalived.
                 --create
-                --credentials=<credentials>
                 --no-headers=<headers>
                 -o|--output=<format>
                 --output-version=<version>
@@ -69,9 +68,6 @@ ability to setup a high availability configuration on a selection of nodes.
                 -i|--interface=<interface>
                 -w|--watch-port=<port>
                 -u|--unicast  # optional for now - add support later.
-            <credentials> = <string> - Path to .kubeconfig file containing
-                                       the credentials to use to contact
-                                       the master.
             <headers> = true|false - When using default output, whether or
                                      not to print headers.
             <format> = Output format.
@@ -169,14 +165,12 @@ example shown below.
         $ #  Note: This step can also be performed after starting the
         $ #        target or monitored service (in this example the
         $ #        HAProxy router below).
-        $ openshift admin ha-config --credentials="${KUBECONFIG}"   \
-                                    --virtual-ips=10.1.1.100-104    \
+        $ openshift admin ha-config --virtual-ips=10.1.1.100-104    \
                                     --selector="hac=router-west"    \
                                     --watch-port=80 --create
 
         $ #  Finally, start up the router using the same selector.
-        openshift admin router --credentials="${KUBECONFIG}"        \
-                               --selector="hac=router-west" --create
+        openshift admin router --selector="hac=router-west" --create
 
 
 ## Exclusions

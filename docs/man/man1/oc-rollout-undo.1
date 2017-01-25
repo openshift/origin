@@ -27,8 +27,12 @@ If you would like to review the outcome of the rollback, pass '\-\-dry\-run' to 
 
 .SH OPTIONS
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -47,6 +51,10 @@ If you would like to review the outcome of the rollback, pass '\-\-dry\-run' to 
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

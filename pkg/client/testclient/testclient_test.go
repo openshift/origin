@@ -14,7 +14,7 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oc, _, _ := NewFixtureClients(o...)
+	oc, _ := NewFixtureClients(o...)
 	list, err := oc.DeploymentConfigs("test").List(kapi.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -35,13 +35,13 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	oc, _, _ := NewErrorClients(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), ""))
+	oc, _ := NewErrorClients(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), ""))
 	_, err := oc.DeploymentConfigs("test").List(kapi.ListOptions{})
 	if !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	oc, _, _ = NewErrorClients(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil))
+	oc, _ = NewErrorClients(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil))
 	_, err = oc.DeploymentConfigs("test").List(kapi.ListOptions{})
 	if !errors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)

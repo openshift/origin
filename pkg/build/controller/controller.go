@@ -9,7 +9,7 @@ import (
 	errors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
@@ -73,8 +73,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	}
 
 	build.Status.Phase = buildapi.BuildPhaseCancelled
-	now := unversioned.Now()
-	build.Status.CompletionTimestamp = &now
+	setBuildCompletionTimeAndDuration(build)
 	// set the status details for the cancelled build before updating the build
 	// object.
 	build.Status.Reason = buildapi.StatusReasonCancelledBuild
@@ -97,18 +96,6 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 	glog.V(4).Infof("Handling build %s/%s (%s)", build.Namespace, build.Name, build.Status.Phase)
 
-	runPolicy := policy.ForBuild(build, bc.RunPolicies)
-	if runPolicy == nil {
-		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
-	}
-
-	if buildutil.IsBuildComplete(build) {
-		if err := runPolicy.OnComplete(build); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	// A cancelling event was triggered for the build, delete its pod and update build status.
 	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
@@ -125,6 +112,11 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	// Handle only new builds from this point
 	if build.Status.Phase != buildapi.BuildPhaseNew {
 		return nil
+	}
+
+	runPolicy := policy.ForBuild(build, bc.RunPolicies)
+	if runPolicy == nil {
+		return fmt.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
 	}
 
 	// The runPolicy decides whether to execute this build or not.
@@ -191,7 +183,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPodSpec
-		build.Status.Reason = buildapi.StatusMessageCannotCreateBuildPodSpec
+		build.Status.Message = buildapi.StatusMessageCannotCreateBuildPodSpec
 		if strategy.IsFatal(err) {
 			return strategy.FatalError(fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err))
 		}
@@ -210,6 +202,14 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		if errors.IsAlreadyExists(err) {
 			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
+
+			// If the existing pod was created before this build, switch to Error state.
+			existingPod, err := bc.PodManager.GetPod(podSpec.Namespace, podSpec.Name)
+			if err == nil && existingPod.CreationTimestamp.Before(build.CreationTimestamp) {
+				build.Status.Phase = buildapi.BuildPhaseError
+				build.Status.Reason = buildapi.StatusReasonBuildPodExists
+				build.Status.Message = buildapi.StatusMessageBuildPodExists
+			}
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
@@ -279,6 +279,7 @@ type BuildPodController struct {
 	BuildUpdater buildclient.BuildUpdater
 	SecretClient kcoreclient.SecretsGetter
 	PodManager   podManager
+	RunPolicies  []policy.RunPolicy
 }
 
 // HandlePod updates the state of the build based on the pod state
@@ -304,6 +305,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		build.Status.Reason = ""
 		build.Status.Message = ""
 		nextStatus = buildapi.BuildPhaseRunning
+
 	case kapi.PodPending:
 		build.Status.Reason = ""
 		build.Status.Message = ""
@@ -315,6 +317,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 			}
 		}
+
 	case kapi.PodSucceeded:
 		build.Status.Reason = ""
 		build.Status.Message = ""
@@ -333,8 +336,10 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 				}
 			}
 		}
+
 	case kapi.PodFailed:
 		nextStatus = buildapi.BuildPhaseFailed
+
 	default:
 		build.Status.Reason = ""
 		build.Status.Message = ""
@@ -352,8 +357,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		build.Status.Phase = nextStatus
 
 		if buildutil.IsBuildComplete(build) {
-			now := unversioned.Now()
-			build.Status.CompletionTimestamp = &now
+			setBuildCompletionTimeAndDuration(build)
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
 			now := unversioned.Now()
@@ -363,6 +367,17 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
+
+		runPolicy := policy.ForBuild(build, bc.RunPolicies)
+		if runPolicy == nil {
+			glog.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
+			return nil
+		}
+		if buildutil.IsBuildComplete(build) {
+			if err := runPolicy.OnComplete(build); err != nil {
+				glog.Errorf("failed to run policy on completed build: %v", err)
+			}
+		}
 	}
 	return nil
 }
@@ -413,8 +428,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		build.Status.Phase = nextStatus
 		build.Status.Reason = buildapi.StatusReasonBuildPodDeleted
 		build.Status.Message = buildapi.StatusMessageBuildPodDeleted
-		now := unversioned.Now()
-		build.Status.CompletionTimestamp = &now
+		setBuildCompletionTimeAndDuration(build)
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
@@ -480,4 +494,12 @@ func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
 		build.Annotations = map[string]string{}
 	}
 	build.Annotations[buildapi.BuildPodNameAnnotation] = podName
+}
+
+func setBuildCompletionTimeAndDuration(build *buildapi.Build) {
+	now := unversioned.Now()
+	build.Status.CompletionTimestamp = &now
+	if build.Status.StartTimestamp != nil {
+		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	}
 }

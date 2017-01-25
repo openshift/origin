@@ -3,123 +3,6 @@
 # This script provides common script functions for the hacks
 # Requires OS_ROOT to be set
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.6}"
-readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
-
-readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
-readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
-readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
-readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
-readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
-
-readonly OS_GO_PACKAGE=github.com/openshift/origin
-
-# Asks golang what it thinks the host platform is.  The go tool chain does some
-# slightly different things when the target platform matches the host platform.
-function os::build::host_platform() {
-  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::build::host_platform
-
-readonly OS_IMAGE_COMPILE_PLATFORMS=("$(os::build::host_platform)")
-
-readonly OS_SDN_COMPILE_TARGETS_LINUX=(
-  pkg/sdn/plugin/sdn-cni-plugin
-  vendor/github.com/containernetworking/cni/plugins/ipam/host-local
-  vendor/github.com/containernetworking/cni/plugins/main/loopback
-)
-readonly OS_IMAGE_COMPILE_TARGETS=(
-  images/pod
-  cmd/dockerregistry
-  cmd/gitserver
-  "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
-)
-readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
-readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
-  examples/hello-openshift
-  examples/deployment
-)
-readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
-
-OS_CROSS_COMPILE_PLATFORMS=(
-  linux/amd64
-  darwin/amd64
-  windows/amd64
-  linux/386
-)
-if [[ "$(os::build::host_platform)" == "linux/ppc64le" ]]; then
-  OS_CROSS_COMPILE_PLATFORMS+=(
-    "linux/ppc64le"
-  )
-fi
-
-readonly OS_IMAGE_COMPILE_PLATFORMS
-
-readonly OS_CROSS_COMPILE_TARGETS=(
-  cmd/openshift
-  cmd/oc
-)
-readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
-
-readonly OS_ALL_TARGETS=(
-  "${OS_CROSS_COMPILE_TARGETS[@]}"
-)
-readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
-
-#If you update this list, be sure to get the images/origin/Dockerfile
-readonly OPENSHIFT_BINARY_SYMLINKS=(
-  openshift-router
-  openshift-deploy
-  openshift-recycle
-  openshift-sti-build
-  openshift-docker-build
-  origin
-  atomic-enterprise
-  osc
-  oadm
-  osadm
-  kubectl
-  kubernetes
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-)
-readonly OPENSHIFT_BINARY_COPY=(
-  oadm
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-)
-readonly OC_BINARY_COPY=(
-  kubectl
-)
-readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
-  oc.exe
-  README.md
-  ./LICENSE
-)
-readonly OS_BINARY_RELEASE_CLIENT_MAC=(
-  oc
-  README.md
-  ./LICENSE
-)
-readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
-  ./oc
-  ./README.md
-  ./LICENSE
-)
-readonly OS_BINARY_RELEASE_SERVER_LINUX=(
-  './*'
-)
-readonly OS_BINARY_RELEASE_CLIENT_EXTRA=(
-  ${OS_ROOT}/README.md
-  ${OS_ROOT}/LICENSE
-)
-
 # os::build::binaries_from_targets take a list of build targets and return the
 # full go package to be built
 function os::build::binaries_from_targets() {
@@ -129,6 +12,13 @@ function os::build::binaries_from_targets() {
   done
 }
 readonly -f os::build::binaries_from_targets
+
+# Asks golang what it thinks the host platform is.  The go tool chain does some
+# slightly different things when the target platform matches the host platform.
+function os::build::host_platform() {
+  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
+}
+readonly -f os::build::host_platform
 
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
@@ -255,6 +145,9 @@ readonly -f os::build::build_static_binaries
 #   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
 #     then just the host architecture is built.
 function os::build::build_binaries() {
+  if [[ $# -eq 0 ]]; then
+    return
+  fi
   local -a binaries=( "$@" )
   # Create a sub-shell so that we don't pollute the outer environment
   ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )
@@ -278,6 +171,8 @@ os::build::internal::build_binaries() {
     # Use eval to preserve embedded quoted strings.
     local goflags
     eval "goflags=(${OS_GOFLAGS:-})"
+    local gotags
+    eval "gotags=(${OS_GOFLAGS_TAGS:-})"
 
     local arg
     for arg; do
@@ -317,16 +212,14 @@ os::build::internal::build_binaries() {
         unset GOBIN
       fi
 
-      if [[ ${#nonstatics[@]} -gt 0 ]]; then
-        # allow per-os/arch build flags like OS_GOFLAGS_LINUX_AMD64
-        local platform_goflags_envvar=OS_GOFLAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
-        local platform_goflags
-        eval "platform_goflags=(${!platform_goflags_envvar:-})"
+      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
 
+      if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          -pkgdir "${OS_OUTPUT_PKGDIR}" \
-          "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
+          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
           -ldflags "${version_ldflags}" \
+          "${goflags[@]:+${goflags[@]}}" \
           "${nonstatics[@]}"
 
         # GOBIN is not supported on cross-compile in Go 1.5+ - move to the correct target
@@ -339,10 +232,11 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -pkgdir "${OS_OUTPUT_PKGDIR}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
+          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
+          -ldflags "${version_ldflags}" \
           -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
-          -ldflags "${version_ldflags}" \
           "$(dirname ${test})"
       done
     done
@@ -369,10 +263,6 @@ function os::build::export_targets() {
   binaries=($(os::build::binaries_from_targets "${targets[@]}"))
 
   platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
-  if [[ ${#platforms[@]} -eq 0 ]]; then
-    echo "No platforms to build for!"
-    exit 1
-  fi
 }
 readonly -f os::build::export_targets
 
@@ -487,7 +377,7 @@ function os::build::place_bins() {
 readonly -f os::build::place_bins
 
 function os::build::archive_name() {
-  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
+  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1" | tr '+' '-'
 }
 readonly -f os::build::archive_name
 
@@ -653,9 +543,16 @@ readonly -f os::build::detect_local_release_tars
 # os::build::get_version_vars loads the standard version variables as
 # ENV vars
 function os::build::get_version_vars() {
-  if [[ -n ${OS_VERSION_FILE-} ]]; then
-    source "${OS_VERSION_FILE}"
-    return
+  if [[ -n "${OS_VERSION_FILE-}" ]]; then
+    if [[ -f "${OS_VERSION_FILE}" ]]; then
+      source "${OS_VERSION_FILE}"
+      return
+    fi
+    if [[ ! -d "${OS_ROOT}/.git" ]]; then
+      os::log::warn "No version file at ${OS_VERSION_FILE}"
+      exit 1
+    fi
+    os::log::warn "No version file at ${OS_VERSION_FILE}, falling back to git versions"
   fi
   os::build::os_version_vars
   os::build::kube_version_vars
@@ -742,10 +639,10 @@ readonly -f os::build::kube_version_vars
 # Saves the environment flags to $1
 function os::build::save_version_vars() {
   local version_file=${1-}
-  [[ -n ${version_file} ]] || {
+  if [[ -z ${version_file} ]]; then
     echo "!!! Internal error.  No file specified in os::build::save_version_vars"
     return 1
-  }
+  fi
 
   cat <<EOF >"${version_file}"
 OS_GIT_COMMIT='${OS_GIT_COMMIT-}'
@@ -804,6 +701,41 @@ function os::build::ldflags() {
   echo "${ldflags[*]-}"
 }
 readonly -f os::build::ldflags
+
+# os::build::image builds an image from a directory, to a tag, with an optional dockerfile to
+# use as the third argument. The environment variable OS_BUILD_IMAGE_ARGS adds additional
+# options to the command. The default is to use the imagebuilder binary if it is available
+# on the path with fallback to docker build if it is not available.
+function os::build::image() {
+  local directory=$1
+  local tag=$2
+  local dockerfile="${3-}"
+  local options="${OS_BUILD_IMAGE_ARGS-}"
+  local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
+
+  if [[ "${mode}" == "imagebuilder" ]]; then
+    if os::util::find::system_binary 'imagebuilder'; then
+      if [[ -n "${dockerfile}" ]]; then
+        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+        return $?
+      fi
+      eval "imagebuilder -t '${tag}' ${options} '${directory}'"
+      return $?
+    fi
+
+    os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+    # clear options since we were unable to select imagebuilder
+    options=""
+  fi
+
+  if [[ -n "${dockerfile}" ]]; then
+    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    return $?
+  fi
+  eval "docker build -t '${tag}' ${options} '${directory}'"
+  return $?
+}
+readonly -f os::build::image
 
 # os::build::enable_swap attempts to enable swap for the system if a) this is Linux and b)
 # the amount of physical memory is less than 10GB. This is a stopgap until we have

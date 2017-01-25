@@ -189,10 +189,10 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 	}
 
 	// flags controlling what to select
-	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", false, "If present, list the requested object(s) across all projects. Project in current context is ignored.")
+	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", false, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
 
 	// to perform deletion synchronization
-	cmd.Flags().VarP(&options.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify mulitple times to add arguments.")
+	cmd.Flags().VarP(&options.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
 	cmd.Flags().Var(&options.nameSyncCommand, "names", "A command that will list all of the currently known names, optional. Specify multiple times to add arguments. Use to get notifications when objects are deleted.")
 
 	// add additional arguments / info to the server
@@ -208,14 +208,14 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 	cmd.Flags().IntVar(&options.retryCount, "retry-count", options.retryCount, "The number of times to retry a failing command before continuing.")
 
 	// control observe program behavior
-	cmd.Flags().BoolVar(&options.once, "once", false, "Exit with a status code 0 after all current objects have been processed.")
+	cmd.Flags().BoolVar(&options.once, "once", false, "If true, exit with a status code 0 after all current objects have been processed.")
 	cmd.Flags().DurationVar(&options.exitAfterPeriod, "exit-after", 0, "Exit with status code 0 after the provided duration, optional.")
 	cmd.Flags().DurationVar(&options.resyncPeriod, "resync-period", 0, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date. Requires --names")
-	cmd.Flags().BoolVar(&options.printMetricsOnExit, "print-metrics-on-exit", false, "On exit write all metrics to stdout.")
+	cmd.Flags().BoolVar(&options.printMetricsOnExit, "print-metrics-on-exit", false, "If true, on exit write all metrics to stdout.")
 	cmd.Flags().StringVar(&options.listenAddr, "listen-addr", options.listenAddr, "The name of an interface to listen on to expose metrics and health checking.")
 
 	// additional debug output
-	cmd.Flags().BoolVar(&options.noHeaders, "no-headers", false, "Skip printing information about each event prior to executing the command.")
+	cmd.Flags().BoolVar(&options.noHeaders, "no-headers", false, "If true, skip printing information about each event prior to executing the command.")
 
 	return cmd
 }
@@ -294,7 +294,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("unknown resource argument")
 	}
 
-	mapper, _ := f.Object(true)
+	mapper, _ := f.Object()
 
 	version, err := mapper.KindFor(gr.WithVersion(""))
 	if err != nil {
@@ -843,7 +843,7 @@ func (p *GoTemplateColumnPrinter) Print(obj interface{}) ([]string, []byte, erro
 			return nil, nil, fmt.Errorf("error executing template '%v': '%v'\n----data----\n%+v\n", p.rawTemplates[i], err, obj)
 		}
 		// if the template resolves to the special <no value> result, return it as an empty string
-		// most arguments will prefer empty vs an arbitary constant, and we are making gotemplates consistent with
+		// most arguments will prefer empty vs an arbitrary constant, and we are making gotemplates consistent with
 		// jsonpath
 		if p.buf.String() == "<no value>" {
 			if p.strict {

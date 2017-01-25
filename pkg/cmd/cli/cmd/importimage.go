@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -17,10 +19,9 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/spf13/cobra"
-
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
 )
 
 var (
@@ -98,7 +99,7 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Namespace = namespace
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -285,6 +286,18 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 			return nil, nil, fmt.Errorf("no image stream named %q exists, pass --confirm to create and import", o.Name)
 		}
 		stream, isi = o.newImageStream()
+		// ensure defaulting is applied by round trip converting
+		// TODO: convert to using versioned types.
+		external, err := kapi.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+		if err != nil {
+			return nil, nil, err
+		}
+		kapi.Scheme.Default(external)
+		internal, err := kapi.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+		if err != nil {
+			return nil, nil, err
+		}
+		stream = internal.(*imageapi.ImageStream)
 		return stream, isi, nil
 	}
 
@@ -383,7 +396,7 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 
 	} else {
 		// create a new tag
-		if len(from) == 0 {
+		if len(from) == 0 && tag == imageapi.DefaultImageTag {
 			from = stream.Spec.DockerImageRepository
 		}
 		// if the from is still empty this means there's no such tag defined

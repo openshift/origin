@@ -21,6 +21,10 @@ Creates a deployment config to manage the created container(s). You can choose t
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-attach\fP=false
     If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '\-i/\-\-stdin' is set, in which case the default is true. With '\-\-restart=Never' the exit code of the container process is returned.
 
@@ -92,7 +96,7 @@ Creates a deployment config to manage the created container(s). You can choose t
     An inline JSON override for the generated object. If this is non\-empty, it is used to override the generated object. Requires that the object supply a valid apiVersion field.
 
 .PP
-\fB\-\-port\fP=\-1
+\fB\-\-port\fP=""
     The port that this container exposes.  If \-\-expose is true, this is also the port used by the service that is created.
 
 .PP
@@ -113,7 +117,7 @@ Creates a deployment config to manage the created container(s). You can choose t
 
 .PP
 \fB\-\-restart\fP="Always"
-    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created for this pod, if set to 'OnFailure', a job is created for this pod, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always'
+    The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created, if set to 'OnFailure' a job is created, if set to 'Never', a regular pod is created. For the latter two \-\-replicas must be 1.  Default 'Always', for CronJobs \fB\fCNever\fR.
 
 .PP
 \fB\-\-rm\fP=false
@@ -169,6 +173,10 @@ Creates a deployment config to manage the created container(s). You can choose t
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

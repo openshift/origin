@@ -25,7 +25,11 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Select all resources in the namespace of the specified resource types
+    If true, select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
@@ -41,11 +45,11 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 
 .PP
 \fB\-\-from\fP=""
-    The name of a resource from which to inject enviroment variables
+    The name of a resource from which to inject environment variables
 
 .PP
 \fB\-\-list\fP=false
-    Display the environment and any changes in the standard format
+    If true, display the environment and any changes in the standard format
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -72,7 +76,7 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 
 .PP
 \fB\-\-resolve\fP=false
-    Show secret or configmap references when listing variables
+    If true, show secret or configmap references when listing variables
 
 .PP
 \fB\-\-resource\-version\fP=""
@@ -108,6 +112,10 @@ If "\-\-env \-" is passed, environment variables can be read from STDIN using th
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

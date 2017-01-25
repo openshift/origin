@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/generate/app"
 )
 
 var (
@@ -55,7 +56,7 @@ type DockerbuildOptions struct {
 	DockerfilePath string
 	AllowPull      bool
 	Keyring        credentialprovider.DockerKeyring
-	Arguments      cmdutil.Environment
+	Arguments      app.Environment
 }
 
 func NewCmdDockerbuild(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
@@ -72,7 +73,7 @@ func NewCmdDockerbuild(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
-				// TODO: move met to kcmdutil
+				// TODO: move me to kcmdutil
 				if err == cmdutil.ErrExit {
 					os.Exit(1)
 				}
@@ -97,7 +98,7 @@ func (o *DockerbuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if len(paths) != 2 {
 		return kcmdutil.UsageError(cmd, "the directory to build and tag must be specified")
 	}
-	o.Arguments, _, _ = cmdutil.ParseEnvironmentArguments(envArgs)
+	o.Arguments, _, _ = app.ParseEnvironment(envArgs...)
 	o.Directory = paths[0]
 	o.Tag = paths[1]
 	if len(o.DockerfilePath) == 0 {

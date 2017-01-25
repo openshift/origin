@@ -18,7 +18,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 		runnerConf            = filepath.Join(testDataDir, "jvm-runner.yaml")
 		runnerWithScriptsConf = filepath.Join(testDataDir, "jvm-runner-with-scripts.yaml")
 		scriptsFromRepoBc     = filepath.Join(testDataDir, "bc-scripts-in-repo.yaml")
-		scriptsFromUrlBc      = filepath.Join(testDataDir, "bc-scripts-by-url.yaml")
+		scriptsFromURLBc      = filepath.Join(testDataDir, "bc-scripts-by-url.yaml")
 		scriptsFromImageBc    = filepath.Join(testDataDir, "bc-scripts-in-the-image.yaml")
 	)
 
@@ -85,7 +85,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			br.AssertSuccess()
 
 			g.By("creating build config")
-			err = exutil.CreateResource(scriptsFromUrlBc, oc)
+			err = exutil.CreateResource(scriptsFromURLBc, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
@@ -97,7 +97,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			}
 
 			g.By("expecting that .s2i/bin/assemble-runtime was executed")
-			o.Expect(buildLog).To(o.ContainSubstring(`Using "assemble-runtime" installed from "https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime"`))
+			o.Expect(buildLog).To(o.ContainSubstring(`Using "assemble-runtime" installed from "https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime"`))
 			o.Expect(buildLog).To(o.ContainSubstring(".s2i/bin/assemble-runtime: assembling app within runtime image"))
 
 			g.By("expecting that environment variable from BuildConfig is available")

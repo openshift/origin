@@ -23,7 +23,7 @@ Deprecated: This command is deprecated, all its functionalities are covered by "
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file of resource(s) to be stopped.
+    Filename, directory, or URL to files of resource(s) to be stopped.
 
 .PP
 \fB\-\-grace\-period\fP=\-1
@@ -74,6 +74,10 @@ Deprecated: This command is deprecated, all its functionalities are covered by "
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -161,7 +165,7 @@ Deprecated: This command is deprecated, all its functionalities are covered by "
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -169,7 +173,7 @@ Deprecated: This command is deprecated, all its functionalities are covered by "
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -285,18 +289,17 @@ Deprecated: This command is deprecated, all its functionalities are covered by "
 .RS
 
 .nf
-
-# Shut down foo.
-kubectl stop replicationcontroller foo
-
-# Stop pods and services with label name=myLabel.
-kubectl stop pods,services \-l name=myLabel
-
-# Shut down the service defined in service.json
-kubectl stop \-f service.json
-
-# Shut down all resources in the path/to/resources directory
-kubectl stop \-f path/to/resources
+  # Shut down foo.
+  kubectl stop replicationcontroller foo
+  
+  # Stop pods and services with label name=myLabel.
+  kubectl stop pods,services \-l name=myLabel
+  
+  # Shut down the service defined in service.json
+  kubectl stop \-f service.json
+  
+  # Shut down all resources in the path/to/resources directory
+  kubectl stop \-f path/to/resources
 
 .fi
 .RE

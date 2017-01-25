@@ -2,17 +2,15 @@ package set
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
@@ -79,15 +77,10 @@ func getFakeMapping() *meta.RESTMapping {
 }
 
 func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
-	ns := testapi.Default.NegotiatedSerializer()
 	f := clientcmd.NewFactory(nil)
-	client := &fake.RESTClient{
-		NegotiatedSerializer: ns,
-		Client:               fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) { return nil, nil }),
-	}
 	fakeMapping := getFakeMapping()
 	info := &resource.Info{
-		Client:    client,
+		Client:    fake.NewSimpleClientset().Core().RESTClient(),
 		Mapping:   fakeMapping,
 		Namespace: "default",
 		Name:      "fakepod",
@@ -207,6 +200,46 @@ func TestValidateAddOptions(t *testing.T) {
 			"creating pvc with storage class",
 			&AddVolumeOptions{Type: "persistentVolumeClaim", ClaimName: "sandbox-pvc", ClaimClass: "slow", ClaimSize: "5G"},
 			nil,
+		},
+		{
+			"creating secret with good default-mode",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "0644"},
+			nil,
+		},
+		{
+			"creating secret with good default-mode, three number variant",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "777"},
+			nil,
+		},
+		{
+			"creating secret with bad default-mode, bad bits",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "0888"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating secret with bad default-mode, too long",
+			&AddVolumeOptions{Type: "secret", SecretName: "sandbox-pv", DefaultMode: "07777"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating configmap with good default-mode",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "0644"},
+			nil,
+		},
+		{
+			"creating configmap with good default-mode, three number variant",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "777"},
+			nil,
+		},
+		{
+			"creating configmap with bad default-mode, bad bits",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "0888"},
+			errors.New("--default-mode must be between 0000 and 0777"),
+		},
+		{
+			"creating configmap with bad default-mode, too long",
+			&AddVolumeOptions{Type: "configmap", ConfigMapName: "sandbox-pv", DefaultMode: "07777"},
+			errors.New("--default-mode must be between 0000 and 0777"),
 		},
 	}
 

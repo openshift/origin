@@ -22,7 +22,7 @@ const (
 
 // CheckServiceNetwork is a Diagnostic to check communication between services in the cluster.
 type CheckServiceNetwork struct {
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 	OSClient   *osclient.Client
 
 	vnidMap map[string]uint32
@@ -141,7 +141,7 @@ func (d CheckServiceNetwork) checkConnection(pods []kapi.Pod, services []kapi.Se
 	}
 }
 
-func getAllServices(kubeClient *kclientset.Clientset) ([]kapi.Service, error) {
+func getAllServices(kubeClient kclientset.Interface) ([]kapi.Service, error) {
 	filtered_srvs := []kapi.Service{}
 	serviceList, err := kubeClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {

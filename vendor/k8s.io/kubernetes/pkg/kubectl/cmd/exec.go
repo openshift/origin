@@ -22,12 +22,13 @@ import (
 	"net/url"
 
 	dockerterm "github.com/docker/docker/pkg/term"
-	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
+
 	"k8s.io/kubernetes/pkg/api"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/util/interrupt"
@@ -35,7 +36,7 @@ import (
 )
 
 var (
-	exec_example = dedent.Dedent(`
+	exec_example = templates.Examples(`
 		# Get output from running 'date' from pod 123456-7890, using the first container by default
 		kubectl exec 123456-7890 date
 
@@ -51,7 +52,7 @@ const (
 	execUsageStr = "expected 'exec POD_NAME COMMAND [ARG1] [ARG2] ... [ARGN]'.\nPOD_NAME and COMMAND are required arguments for the exec command"
 )
 
-func NewCmdExec(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
+func NewCmdExec(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	options := &ExecOptions{
 		StreamOptions: StreamOptions{
 			In:  cmdIn,
@@ -61,7 +62,6 @@ func NewCmdExec(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *
 
 		Executor: &DefaultRemoteExecutor{},
 	}
-
 	cmd := &cobra.Command{
 		Use:     "exec POD [-c CONTAINER] -- COMMAND [args...]",
 		Short:   "Execute a command in a container",
@@ -128,18 +128,18 @@ type StreamOptions struct {
 type ExecOptions struct {
 	StreamOptions
 
+	Command []string
+
 	FullCmdName       string
 	SuggestedCmdUsage string
 
-	Command []string
-
-	Executor RemoteExecutor
-	Client   *client.Client
-	Config   *restclient.Config
+	Executor  RemoteExecutor
+	PodClient coreclient.PodsGetter
+	Config    *restclient.Config
 }
 
 // Complete verifies command line arguments and loads data from the command environment
-func (p *ExecOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn []string, argsLenAtDash int) error {
+func (p *ExecOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, argsIn []string, argsLenAtDash int) error {
 	// Let kubectl exec follow rules for `--`, see #13004 issue
 	if len(p.PodName) == 0 && (len(argsIn) == 0 || argsLenAtDash == 0) {
 		return cmdutil.UsageError(cmd, execUsageStr)
@@ -178,11 +178,11 @@ func (p *ExecOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn []
 	}
 	p.Config = config
 
-	client, err := f.Client()
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	p.Client = client
+	p.PodClient = clientset.Core()
 
 	return nil
 }
@@ -198,7 +198,7 @@ func (p *ExecOptions) Validate() error {
 	if p.Out == nil || p.Err == nil {
 		return fmt.Errorf("both output and error output must be provided")
 	}
-	if p.Executor == nil || p.Client == nil || p.Config == nil {
+	if p.Executor == nil || p.PodClient == nil || p.Config == nil {
 		return fmt.Errorf("client, client config, and executor must be provided")
 	}
 	return nil
@@ -258,7 +258,7 @@ func (o *StreamOptions) setupTTY() term.TTY {
 
 // Run executes a validated remote execution against a pod.
 func (p *ExecOptions) Run() error {
-	pod, err := p.Client.Pods(p.Namespace).Get(p.PodName)
+	pod, err := p.PodClient.Pods(p.Namespace).Get(p.PodName)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,6 @@ func (p *ExecOptions) Run() error {
 			if len(p.SuggestedCmdUsage) > 0 {
 				usageString = fmt.Sprintf("%s\n%s", usageString, p.SuggestedCmdUsage)
 			}
-
 			fmt.Fprintf(p.Err, "%s\n", usageString)
 		}
 		containerName = pod.Spec.Containers[0].Name
@@ -294,8 +293,13 @@ func (p *ExecOptions) Run() error {
 	}
 
 	fn := func() error {
+		restClient, err := restclient.RESTClientFor(p.Config)
+		if err != nil {
+			return err
+		}
+
 		// TODO: consider abstracting into a client invocation or client helper
-		req := p.Client.RESTClient.Post().
+		req := restClient.Post().
 			Resource("pods").
 			Name(pod.Name).
 			Namespace(pod.Namespace).

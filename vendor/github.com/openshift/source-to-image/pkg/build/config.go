@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
@@ -11,10 +12,10 @@ import (
 // image labels.
 func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) error {
 	if config == nil {
-		return fmt.Errorf("config must be provided to GenerateConfigFromLabels")
+		return errors.New("config must be provided to GenerateConfigFromLabels")
 	}
 	if metadata == nil {
-		return fmt.Errorf("image metadata must be provided to GenerateConfigFromLabels")
+		return errors.New("image metadata must be provided to GenerateConfigFromLabels")
 	}
 
 	labels := metadata.Image.Config.Labels
@@ -36,13 +37,13 @@ func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) e
 	if builder, ok := labels[api.DefaultNamespace+"build.image"]; ok {
 		config.BuilderImage = builder
 	} else {
-		return fmt.Errorf("Required label %q not found in image", api.DefaultNamespace+"build.image")
+		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"build.image")
 	}
 
 	if repo, ok := labels[api.DefaultNamespace+"build.source-location"]; ok {
 		config.Source = repo
 	} else {
-		return fmt.Errorf("Required label %q not found in image", api.DefaultNamespace+"source-location")
+		return fmt.Errorf("required label %q not found in image", api.DefaultNamespace+"source-location")
 	}
 
 	config.ContextDir = labels[api.DefaultNamespace+"build.source-context-dir"]

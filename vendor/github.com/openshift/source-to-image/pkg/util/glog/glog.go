@@ -51,16 +51,47 @@ var (
 // discard is a Logger that outputs nothing.
 type discard struct{}
 
-func (discard) Is(level int32) bool                    { return false }
-func (discarding discard) V(level int32) VerboseLogger { return discarding }
-func (discard) Infof(_ string, _ ...interface{})       {}
-func (discard) Info(_ ...interface{})                  {}
-func (discard) Errorf(_ string, _ ...interface{})      {}
-func (discard) Error(_ ...interface{})                 {}
-func (discard) Warningf(_ string, _ ...interface{})    {}
-func (discard) Warning(_ ...interface{})               {}
-func (discard) Fatalf(_ string, _ ...interface{})      {}
-func (discard) Fatal(_ ...interface{})                 {}
+// Is returns whether the current logging level is greater than or equal to the parameter.
+func (discard) Is(level int32) bool {
+	return false
+}
+
+// V will returns a logger which will discard output if the specified level is greater than the current logging level.
+func (discarding discard) V(level int32) VerboseLogger {
+	return discarding
+}
+
+// Infof records an info log entry.
+func (discard) Infof(string, ...interface{}) {
+}
+
+// Info records an info log entry.
+func (discard) Info(...interface{}) {
+}
+
+// Errorf records an error log entry.
+func (discard) Errorf(string, ...interface{}) {
+}
+
+// Error records an error log entry.
+func (discard) Error(...interface{}) {
+}
+
+// Warningf records an warning log entry.
+func (discard) Warningf(string, ...interface{}) {
+}
+
+// Warning records an warning log entry.
+func (discard) Warning(...interface{}) {
+}
+
+// Fatalf records a fatal log entry.
+func (discard) Fatalf(string, ...interface{}) {
+}
+
+// Fatal records a fatal log entry.
+func (discard) Fatal(...interface{}) {
+}
 
 // FileLogger logs the provided messages at level or below to the writer, or delegates
 // to glog.

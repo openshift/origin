@@ -25,11 +25,11 @@ Upon receiving network traffic, the services (and any associated routes) will "w
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Select all services in the namespace
+    if true, select all services in the namespace
 
 .PP
 \fB\-\-all\-namespaces\fP=false
-    Select services across all namespaces
+    if true, select services across all namespaces
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -52,6 +52,10 @@ Upon receiving network traffic, the services (and any associated routes) will "w
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

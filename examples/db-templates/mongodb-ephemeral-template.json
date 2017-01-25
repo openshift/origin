@@ -17,6 +17,18 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-user" : "${MONGODB_USER}",
+        "database-password" : "${MONGODB_PASSWORD}",
+        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -113,19 +125,34 @@
                 "env": [
                   {
                     "name": "MONGODB_USER",
-                    "value": "${MONGODB_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_PASSWORD",
-                    "value": "${MONGODB_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MONGODB_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-admin-password"
+                      }
+                    }
                   },
                   {
                     "name": "MONGODB_DATABASE",
                     "value": "${MONGODB_DATABASE}"
-                  },
-                  {
-                    "name": "MONGODB_ADMIN_PASSWORD",
-                    "value": "${MONGODB_ADMIN_PASSWORD}"
                   }
                 ],
                 "resources": {

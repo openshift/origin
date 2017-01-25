@@ -83,6 +83,8 @@ type RouteIngress struct {
 	Conditions []RouteIngressCondition
 	// Wildcard policy is the wildcard policy that was allowed where this route is exposed.
 	WildcardPolicy WildcardPolicyType
+	// CanonicalHostname is an external host name for the router; this value is optional
+	RouterCanonicalHostname string
 }
 
 // RouteIngressConditionType is a valid value for RouteCondition

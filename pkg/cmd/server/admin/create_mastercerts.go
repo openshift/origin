@@ -14,9 +14,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
@@ -36,7 +37,6 @@ var masterCertLong = templates.LongDesc(`
 	    openshift.local.config/master/
 		    ca.{crt,key,serial.txt}
 		    master.server.{crt,key}
-			openshift-router.{crt,key,kubeconfig}
 			admin.{crt,key,kubeconfig}
 			...
 
@@ -72,6 +72,9 @@ type CreateMasterCertsOptions struct {
 	CertDir    string
 	SignerName string
 
+	ExpireDays       int
+	SignerExpireDays int
+
 	APIServerCAFiles []string
 	CABundleFile     string
 
@@ -85,7 +88,11 @@ type CreateMasterCertsOptions struct {
 }
 
 func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateMasterCertsOptions{Output: out}
+	options := &CreateMasterCertsOptions{
+		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+		Output:           out,
+	}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -113,6 +120,9 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP that server certs should be valid for (comma-delimited list)")
 	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
 
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	flags.IntVar(&options.SignerExpireDays, "signer-expire-days", options.SignerExpireDays, "Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
+
 	// set dynamic value annotation - allows man pages  to be generated and verified
 	flags.SetAnnotation("signer-name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
 
@@ -136,6 +146,12 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 	if len(o.SignerName) == 0 {
 		return errors.New("signer-name must be provided")
 	}
+	if o.ExpireDays <= 0 {
+		return errors.New("expire-days must be valid number of days")
+	}
+	if o.SignerExpireDays <= 0 {
+		return errors.New("signer-expire-days must be valid number of days")
+	}
 	if len(o.APIServerURL) == 0 {
 		return errors.New("master must be provided")
 	} else if u, err := url.Parse(o.APIServerURL); err != nil {
@@ -153,7 +169,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 	}
 
 	for _, caFile := range o.APIServerCAFiles {
-		if _, err := crypto.CertPoolFromFile(caFile); err != nil {
+		if _, err := cert.NewPool(caFile); err != nil {
 			return fmt.Errorf("certificate authority must be a valid certificate file: %v", err)
 		}
 	}
@@ -168,6 +184,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
 		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
 		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
+		ExpireDays: o.SignerExpireDays,
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
 		Output:     o.Output,
@@ -261,10 +278,15 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 		CertFile: clientCertInfo.CertLocation.CertFile,
 		KeyFile:  clientCertInfo.CertLocation.KeyFile,
 
+		ExpireDays: o.ExpireDays,
+
 		User:      clientCertInfo.User,
 		Groups:    clientCertInfo.Groups.List(),
 		Overwrite: o.Overwrite,
 		Output:    o.Output,
+	}
+	if err := clientCertOptions.Validate(nil); err != nil {
+		return err
 	}
 	if _, err := clientCertOptions.CreateClientCert(); err != nil {
 		return err
@@ -294,6 +316,8 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *Signer
 
 			CertFile: serverCertInfo.CertFile,
 			KeyFile:  serverCertInfo.KeyFile,
+
+			ExpireDays: o.ExpireDays,
 
 			Hostnames: o.Hostnames,
 			Overwrite: o.Overwrite,
@@ -333,6 +357,7 @@ func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *S
 		CertFile:   caInfo.CertFile,
 		KeyFile:    caInfo.KeyFile,
 		SerialFile: "", // we want the random cert serial for this one
+		ExpireDays: o.SignerExpireDays,
 		Name:       DefaultServiceServingCertSignerName(),
 		Output:     o.Output,
 

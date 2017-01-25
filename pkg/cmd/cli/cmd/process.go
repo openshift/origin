@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -58,14 +59,14 @@ var (
 )
 
 // NewCmdProcess implements the OpenShift cli process command
-func NewCmdProcess(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
 		Short:   "Process a template into list of resources",
 		Long:    processLong,
 		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunProcess(f, out, errout, cmd, args)
+			err := RunProcess(f, in, out, errout, cmd, args)
 			kcmdutil.CheckErr(err)
 		},
 	}
@@ -75,25 +76,35 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out, errout io.Writer)
 	cmd.Flags().MarkDeprecated("value", "Use -p, --param instead.")
 	cmd.Flags().MarkHidden("value")
 	cmd.Flags().StringArrayVarP(params, "param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
-	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
+	cmd.Flags().StringArray("param-file", []string{}, "File containing template parameter values to set/override in the template.")
+	cmd.MarkFlagFilename("param-file")
+	cmd.Flags().BoolP("parameters", "", false, "If true, do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
-	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|template|templatefile.")
-	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
+	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=...")
+	cmd.Flags().Bool("raw", false, "If true, output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=go-template, -o=go-templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+
+	// kcmdutil.PrinterForCommand needs these flags, however they are useless
+	// here because oc process returns list of heterogeneous objects that is
+	// not suitable for formatting as a table.
+	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
+	cmd.Flags().MarkHidden("no-headers")
+	cmd.Flags().String("sort-by", "", "If non-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. 'ObjectMeta.Name'). The field in the API resource specified by this JSONPath expression must be an integer or a string.")
+	cmd.Flags().MarkHidden("sort-by")
 
 	return cmd
 }
 
 // RunProcess contains all the necessary functionality for the OpenShift cli process command
-func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command, args []string) error {
-	templateName, valueArgs := "", []string{}
+func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, args []string) error {
+	templateName, templateParams := "", []string{}
 	for _, s := range args {
 		isValue := strings.Contains(s, "=")
 		switch {
 		case isValue:
-			valueArgs = append(valueArgs, s)
+			templateParams = append(templateParams, s)
 		case !isValue && len(templateName) == 0:
 			templateName = s
 		case !isValue && len(templateName) > 0:
@@ -101,33 +112,23 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 		}
 	}
 
-	keys := sets.NewString()
-	duplicatedKeys := sets.NewString()
-
-	var flagValues []string
 	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
-		flagValues = getFlagStringArray(cmd, "param")
+		flagValues := getFlagStringArray(cmd, "param")
 		cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--param")
+		templateParams = append(templateParams, flagValues...)
 	}
 
-	for _, value := range flagValues {
-		key := strings.Split(value, "=")[0]
-		if keys.Has(key) {
+	duplicatedKeys := sets.NewString()
+	params, paramErr := app.ParseAndCombineEnvironment(templateParams, getFlagStringArray(cmd, "param-file"), in, func(key, file string) error {
+		if file == "" {
 			duplicatedKeys.Insert(key)
+		} else {
+			fmt.Fprintf(errout, "warning: Template parameter %q already defined, ignoring value from file %q", key, file)
 		}
-		keys.Insert(key)
-	}
-
-	for _, value := range valueArgs {
-		key := strings.Split(value, "=")[0]
-		if keys.Has(key) {
-			duplicatedKeys.Insert(key)
-		}
-		keys.Insert(key)
-	}
-
+		return nil
+	})
 	if len(duplicatedKeys) != 0 {
-		return kcmdutil.UsageError(cmd, fmt.Sprintf("The following values were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
+		return kcmdutil.UsageError(cmd, fmt.Sprintf("The following parameters were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
 	}
 
 	filename := kcmdutil.GetFlagString(cmd, "filename")
@@ -148,9 +149,9 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
-	client, _, _, err := f.Clients()
+	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -195,7 +196,7 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 	} else {
 		infos, err = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(namespace).RequireNamespace().
-			FilenameParam(explicit, false, filename).
+			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
 			Infos()
 		if err != nil {
@@ -240,16 +241,11 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 		}
 	}
 
-	// Override the parameter values for the current template parameters
-	// when user specifies --param
-	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
-		values := getFlagStringArray(cmd, "param")
-		if errs := injectUserVars(values, obj); errs != nil {
-			return kerrors.NewAggregate(errs)
-		}
+	// Raise parameter parsing errors here after we had chance to return UsageErrors first
+	if paramErr != nil {
+		return paramErr
 	}
-
-	if errs := injectUserVars(valueArgs, obj); errs != nil {
+	if errs := injectUserVars(params, obj); errs != nil {
 		return kerrors.NewAggregate(errs)
 	}
 
@@ -273,7 +269,7 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 	}
 	objects = append(objects, resultObj.Objects...)
 
-	p, _, err := kubectl.GetPrinter(outputFormat, "", false)
+	p, _, err := kcmdutil.PrinterForCommand(cmd)
 	if err != nil {
 		return err
 	}
@@ -299,19 +295,14 @@ func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command,
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values []string, t *templateapi.Template) []error {
+func injectUserVars(values app.Environment, t *templateapi.Template) []error {
 	var errors []error
-	for _, keypair := range values {
-		p := strings.SplitN(keypair, "=", 2)
-		if len(p) != 2 {
-			errors = append(errors, fmt.Errorf("invalid parameter assignment in %q: %q\n", t.Name, keypair))
+	for param, val := range values {
+		if v := template.GetParameterByName(t, param); v != nil {
+			v.Value = val
+			v.Generate = ""
 		} else {
-			if v := template.GetParameterByName(t, p[0]); v != nil {
-				v.Value = p[1]
-				v.Generate = ""
-			} else {
-				errors = append(errors, fmt.Errorf("unknown parameter name %q\n", p[0]))
-			}
+			errors = append(errors, fmt.Errorf("unknown parameter name %q\n", param))
 		}
 	}
 	return errors

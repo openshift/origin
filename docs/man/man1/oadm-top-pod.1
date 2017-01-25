@@ -32,6 +32,22 @@ Due to the metrics pipeline delay, they may be unavailable for a few minutes sin
     If present, print usage of containers within a pod.
 
 .PP
+\fB\-\-heapster\-namespace\fP="kube\-system"
+    Namespace Heapster service is located in
+
+.PP
+\fB\-\-heapster\-port\fP=""
+    Port name in service to use
+
+.PP
+\fB\-\-heapster\-scheme\fP="http"
+    Scheme (http or https) to connect to Heapster as
+
+.PP
+\fB\-\-heapster\-service\fP="heapster"
+    Name of Heapster service
+
+.PP
 \fB\-l\fP, \fB\-\-selector\fP=""
     Selector (label query) to filter on
 
@@ -44,6 +60,10 @@ Due to the metrics pipeline delay, they may be unavailable for a few minutes sin
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

@@ -12,12 +12,12 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	kpath "k8s.io/kubernetes/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -162,7 +162,7 @@ func ValidateBuildConfigUpdate(config *buildapi.BuildConfig, older *buildapi.Bui
 
 // ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) field.ErrorList {
-	return validation.ValidateObjectMeta(&request.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	return validation.ValidateObjectMeta(&request.ObjectMeta, true, kpath.ValidatePathSegmentName, field.NewPath("metadata"))
 }
 
 func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.ErrorList {
@@ -201,10 +201,6 @@ const (
 	maxDockerfileLengthBytes  = 60 * 1000
 	maxJenkinsfileLengthBytes = 100 * 1000
 )
-
-func hasProxy(source *buildapi.GitBuildSource) bool {
-	return (source.HTTPProxy != nil && len(*source.HTTPProxy) > 0) || (source.HTTPSProxy != nil && len(*source.HTTPSProxy) > 0)
-}
 
 func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrategy, isJenkinsPipelineStrategyFromRepo bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -273,14 +269,6 @@ func validateSecretRef(ref *kapi.LocalObjectReference, fldPath *field.Path) fiel
 	return allErrs
 }
 
-func isHTTPScheme(in string) bool {
-	u, err := url.Parse(in)
-	if err != nil {
-		return false
-	}
-	return u.Scheme == "http" || u.Scheme == "https"
-}
-
 func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(git.URI) == 0 {
@@ -293,9 +281,6 @@ func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.
 	}
 	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 && !IsValidURL(*git.HTTPSProxy) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, "proxy is not a valid url"))
-	}
-	if hasProxy(git) && !isHTTPScheme(git.URI) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, "only http:// and https:// GIT protocols are allowed with HTTP or HTTPS proxy set"))
 	}
 	return allErrs
 }

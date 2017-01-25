@@ -36,7 +36,11 @@ Note that the delete command does NOT do resource version checks, so if someone 
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file containing the resource to delete.
+    Filename, directory, or URL to files containing the resource to delete.
+
+.PP
+\fB\-\-force\fP=false
+    Immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.
 
 .PP
 \fB\-\-grace\-period\fP=\-1
@@ -52,7 +56,7 @@ Note that the delete command does NOT do resource version checks, so if someone 
 
 .PP
 \fB\-\-now\fP=false
-    If true, resources are force terminated without graceful deletion (same as \-\-grace\-period=0).
+    If true, resources are signaled for immediate shutdown (same as \-\-grace\-period=1).
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
@@ -79,6 +83,10 @@ Note that the delete command does NOT do resource version checks, so if someone 
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

@@ -67,6 +67,10 @@ Once the build configuration is created a new build will be automatically trigge
     Specify a key\-value pair for an environment variable to set into resulting image.
 
 .PP
+\fB\-\-env\-file\fP=[]
+    File containing key\-value pairs of environment variables to set into each container.
+
+.PP
 \fB\-\-image\fP=[]
     Name of an image stream to to use as a builder. (deprecated)
 
@@ -112,7 +116,7 @@ Once the build configuration is created a new build will be automatically trigge
 
 .PP
 \fB\-\-to\-docker\fP=false
-    Have the build output push to a Docker repository.
+    If true, have the build output push to a Docker repository.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -123,6 +127,10 @@ Once the build configuration is created a new build will be automatically trigge
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

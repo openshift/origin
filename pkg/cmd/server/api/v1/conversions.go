@@ -86,7 +86,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
-				cidr := "172.46.0.0/16"
+				cidr := internal.DefaultIngressIPNetworkCIDR
 				if !(internal.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
 					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}

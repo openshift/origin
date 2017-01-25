@@ -4,7 +4,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 )
 
 // IndexerToSecurityContextConstraintsLister gives a store List and Exists methods. The store must contain only SecurityContextConstraints.
@@ -23,7 +22,7 @@ func (s *IndexerToSecurityContextConstraintsLister) List() ([]*kapi.SecurityCont
 
 func (s *IndexerToSecurityContextConstraintsLister) Get(name string) (*kapi.SecurityContextConstraints, error) {
 	keyObj := &kapi.SecurityContextConstraints{ObjectMeta: kapi.ObjectMeta{Name: name}}
-	key, _ := framework.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
+	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := s.GetByKey(key)
 	if getErr != nil {

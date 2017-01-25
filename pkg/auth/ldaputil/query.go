@@ -105,10 +105,15 @@ type LDAPQueryOnAttribute struct {
 // the attribute to be filtered as well as any attributes that need to be recovered
 func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attributes []string) (*ldap.SearchRequest, error) {
 	if strings.EqualFold(o.QueryAttribute, "dn") {
-		if _, err := ldap.ParseDN(attributeValue); err != nil {
+		dn, err := ldap.ParseDN(attributeValue)
+		if err != nil {
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
 		}
-		if !strings.Contains(attributeValue, o.BaseDN) {
+		baseDN, err := ldap.ParseDN(o.BaseDN)
+		if err != nil {
+			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
+		}
+		if !baseDN.AncestorOf(dn) && !baseDN.Equal(dn) {
 			return nil, NewQueryOutOfBoundsError(attributeValue, o.BaseDN)
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil

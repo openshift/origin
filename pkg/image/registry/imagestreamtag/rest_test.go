@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
-	etcd "github.com/coreos/etcd/client"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -63,10 +63,9 @@ func (u *fakeUser) GetExtra() map[string][]string {
 	return map[string][]string{}
 }
 
-func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
-
+func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	etcdClient := etcd.NewKeysAPI(server.Client)
+	etcdClient := etcd.NewKV(server.V3Client)
 
 	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
 	if err != nil {
@@ -177,14 +176,14 @@ func TestGetImageStreamTag(t *testing.T) {
 			defer server.Terminate(t)
 
 			if testCase.image != nil {
-				client.Create(
+				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/images/"+testCase.image.Name),
 					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image),
 				)
 			}
 			if testCase.repo != nil {
-				client.Create(
+				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/default/test"),
 					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
@@ -251,12 +250,12 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 
 	client, server, storage := setup(t)
 	defer server.Terminate(t)
-	client.Create(
+	client.Put(
 		context.TODO(),
 		etcdtest.AddPrefix("/images/"+image.Name),
 		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image),
 	)
-	client.Create(
+	client.Put(
 		context.TODO(),
 		etcdtest.AddPrefix("/imagestreams/default/test"),
 		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
@@ -381,7 +380,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 			defer server.Terminate(t)
 
 			if testCase.repo != nil {
-				client.Create(
+				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/default/test"),
 					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
@@ -419,6 +418,9 @@ func TestDeleteImageStreamTag(t *testing.T) {
 						Name: "test:foo",
 					},
 					Generation: &three,
+					ReferencePolicy: api.TagReferencePolicy{
+						Type: api.SourceTagReferencePolicy,
+					},
 				},
 			}
 			expectedStreamStatus := map[string]api.TagEventList{

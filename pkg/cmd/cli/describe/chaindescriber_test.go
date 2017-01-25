@@ -204,7 +204,7 @@ func TestChainDescriber(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		oc, _, _ := testclient.NewFixtureClients(objs...)
+		oc, _ := testclient.NewFixtureClients(objs...)
 		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
 		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)

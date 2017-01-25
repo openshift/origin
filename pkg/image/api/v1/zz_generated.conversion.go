@@ -7,9 +7,11 @@ package v1
 import (
 	api "github.com/openshift/origin/pkg/image/api"
 	pkg_api "k8s.io/kubernetes/pkg/api"
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -76,6 +78,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_TagImportPolicy_To_v1_TagImportPolicy,
 		Convert_v1_TagReference_To_api_TagReference,
 		Convert_api_TagReference_To_v1_TagReference,
+		Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy,
+		Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy,
 	)
 }
 
@@ -105,8 +109,65 @@ func Convert_api_DockerImageReference_To_v1_DockerImageReference(in *api.DockerI
 	return autoConvert_api_DockerImageReference_To_v1_DockerImageReference(in, out, s)
 }
 
+func autoConvert_v1_Image_To_api_Image(in *Image, out *api.Image, s conversion.Scope) error {
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.DockerImageReference = in.DockerImageReference
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.DockerImageMetadata, &out.DockerImageMetadata, 0); err != nil {
+		return err
+	}
+	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
+	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageLayers = *(*[]api.ImageLayer)(unsafe.Pointer(&in.DockerImageLayers))
+	if in.Signatures != nil {
+		in, out := &in.Signatures, &out.Signatures
+		*out = make([]api.ImageSignature, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ImageSignature_To_api_ImageSignature(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Signatures = nil
+	}
+	out.DockerImageSignatures = *(*[][]byte)(unsafe.Pointer(&in.DockerImageSignatures))
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
+	return nil
+}
+
+func autoConvert_api_Image_To_v1_Image(in *api.Image, out *Image, s conversion.Scope) error {
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.DockerImageReference = in.DockerImageReference
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.DockerImageMetadata, &out.DockerImageMetadata, 0); err != nil {
+		return err
+	}
+	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
+	out.DockerImageManifest = in.DockerImageManifest
+	out.DockerImageLayers = *(*[]ImageLayer)(unsafe.Pointer(&in.DockerImageLayers))
+	if in.Signatures != nil {
+		in, out := &in.Signatures, &out.Signatures
+		*out = make([]ImageSignature, len(*in))
+		for i := range *in {
+			if err := Convert_api_ImageSignature_To_v1_ImageSignature(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Signatures = nil
+	}
+	out.DockerImageSignatures = *(*[][]byte)(unsafe.Pointer(&in.DockerImageSignatures))
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
+	return nil
+}
+
 func autoConvert_v1_ImageImportSpec_To_api_ImageImportSpec(in *ImageImportSpec, out *api.ImageImportSpec, s conversion.Scope) error {
-	SetDefaults_ImageImportSpec(in)
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
@@ -215,12 +276,7 @@ func Convert_api_ImageLayer_To_v1_ImageLayer(in *api.ImageLayer, out *ImageLayer
 }
 
 func autoConvert_v1_ImageList_To_api_ImageList(in *ImageList, out *api.ImageList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.Image, len(*in))
@@ -240,12 +296,7 @@ func Convert_v1_ImageList_To_api_ImageList(in *ImageList, out *api.ImageList, s 
 }
 
 func autoConvert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Image, len(*in))
@@ -265,48 +316,17 @@ func Convert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList, s 
 }
 
 func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *api.ImageSignature, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.Type = in.Type
-	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
-		return err
-	}
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]api.SignatureCondition, len(*in))
-		for i := range *in {
-			if err := Convert_v1_SignatureCondition_To_api_SignatureCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
+	out.Conditions = *(*[]api.SignatureCondition)(unsafe.Pointer(&in.Conditions))
 	out.ImageIdentity = in.ImageIdentity
-	out.SignedClaims = in.SignedClaims
-	out.Created = in.Created
-	if in.IssuedBy != nil {
-		in, out := &in.IssuedBy, &out.IssuedBy
-		*out = new(api.SignatureIssuer)
-		if err := Convert_v1_SignatureIssuer_To_api_SignatureIssuer(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.IssuedBy = nil
-	}
-	if in.IssuedTo != nil {
-		in, out := &in.IssuedTo, &out.IssuedTo
-		*out = new(api.SignatureSubject)
-		if err := Convert_v1_SignatureSubject_To_api_SignatureSubject(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.IssuedTo = nil
-	}
+	out.SignedClaims = *(*map[string]string)(unsafe.Pointer(&in.SignedClaims))
+	out.Created = (*unversioned.Time)(unsafe.Pointer(in.Created))
+	out.IssuedBy = (*api.SignatureIssuer)(unsafe.Pointer(in.IssuedBy))
+	out.IssuedTo = (*api.SignatureSubject)(unsafe.Pointer(in.IssuedTo))
 	return nil
 }
 
@@ -315,48 +335,17 @@ func Convert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *ap
 }
 
 func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.Type = in.Type
-	if err := conversion.Convert_Slice_byte_To_Slice_byte(&in.Content, &out.Content, s); err != nil {
-		return err
-	}
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]SignatureCondition, len(*in))
-		for i := range *in {
-			if err := Convert_api_SignatureCondition_To_v1_SignatureCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
+	out.Conditions = *(*[]SignatureCondition)(unsafe.Pointer(&in.Conditions))
 	out.ImageIdentity = in.ImageIdentity
-	out.SignedClaims = in.SignedClaims
-	out.Created = in.Created
-	if in.IssuedBy != nil {
-		in, out := &in.IssuedBy, &out.IssuedBy
-		*out = new(SignatureIssuer)
-		if err := Convert_api_SignatureIssuer_To_v1_SignatureIssuer(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.IssuedBy = nil
-	}
-	if in.IssuedTo != nil {
-		in, out := &in.IssuedTo, &out.IssuedTo
-		*out = new(SignatureSubject)
-		if err := Convert_api_SignatureSubject_To_v1_SignatureSubject(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.IssuedTo = nil
-	}
+	out.SignedClaims = *(*map[string]string)(unsafe.Pointer(&in.SignedClaims))
+	out.Created = (*unversioned.Time)(unsafe.Pointer(in.Created))
+	out.IssuedBy = (*SignatureIssuer)(unsafe.Pointer(in.IssuedBy))
+	out.IssuedTo = (*SignatureSubject)(unsafe.Pointer(in.IssuedTo))
 	return nil
 }
 
@@ -365,9 +354,6 @@ func Convert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature, out
 }
 
 func autoConvert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *api.ImageStream, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -385,9 +371,6 @@ func Convert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *api.ImageSt
 }
 
 func autoConvert_api_ImageStream_To_v1_ImageStream(in *api.ImageStream, out *ImageStream, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -405,9 +388,6 @@ func Convert_api_ImageStream_To_v1_ImageStream(in *api.ImageStream, out *ImageSt
 }
 
 func autoConvert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *api.ImageStreamImage, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -422,9 +402,6 @@ func Convert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, o
 }
 
 func autoConvert_api_ImageStreamImage_To_v1_ImageStreamImage(in *api.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -439,9 +416,6 @@ func Convert_api_ImageStreamImage_To_v1_ImageStreamImage(in *api.ImageStreamImag
 }
 
 func autoConvert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport, out *api.ImageStreamImport, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -459,9 +433,6 @@ func Convert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport
 }
 
 func autoConvert_api_ImageStreamImport_To_v1_ImageStreamImport(in *api.ImageStreamImport, out *ImageStreamImport, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -611,12 +582,7 @@ func Convert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *api.I
 }
 
 func autoConvert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out *api.ImageStreamList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.ImageStream, len(*in))
@@ -636,12 +602,7 @@ func Convert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out 
 }
 
 func autoConvert_api_ImageStreamList_To_v1_ImageStreamList(in *api.ImageStreamList, out *ImageStreamList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ImageStream, len(*in))
@@ -661,9 +622,6 @@ func Convert_api_ImageStreamList_To_v1_ImageStreamList(in *api.ImageStreamList, 
 }
 
 func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapping, out *api.ImageStreamMapping, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -675,12 +633,10 @@ func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStream
 }
 
 func autoConvert_api_ImageStreamMapping_To_v1_ImageStreamMapping(in *api.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
+	// INFO: in.DockerImageRepository opted out of conversion generation
 	if err := Convert_api_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
@@ -688,10 +644,31 @@ func autoConvert_api_ImageStreamMapping_To_v1_ImageStreamMapping(in *api.ImageSt
 	return nil
 }
 
+func autoConvert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *api.ImageStreamSpec, s conversion.Scope) error {
+	out.DockerImageRepository = in.DockerImageRepository
+	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/origin/pkg/image/api/v1.TagReference vs map[string]github.com/openshift/origin/pkg/image/api.TagReference)
+	return nil
+}
+
+func autoConvert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *api.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
+	out.DockerImageRepository = in.DockerImageRepository
+	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/api.TagReference vs []github.com/openshift/origin/pkg/image/api/v1.TagReference)
+	return nil
+}
+
+func autoConvert_v1_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *api.ImageStreamStatus, s conversion.Scope) error {
+	out.DockerImageRepository = in.DockerImageRepository
+	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/origin/pkg/image/api/v1.NamedTagEventList vs map[string]github.com/openshift/origin/pkg/image/api.TagEventList)
+	return nil
+}
+
+func autoConvert_api_ImageStreamStatus_To_v1_ImageStreamStatus(in *api.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
+	out.DockerImageRepository = in.DockerImageRepository
+	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/api.TagEventList vs []github.com/openshift/origin/pkg/image/api/v1.NamedTagEventList)
+	return nil
+}
+
 func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *api.ImageStreamTag, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -705,17 +682,7 @@ func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out
 		out.Tag = nil
 	}
 	out.Generation = in.Generation
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]api.TagEventCondition, len(*in))
-		for i := range *in {
-			if err := Convert_v1_TagEventCondition_To_api_TagEventCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Conditions = *(*[]api.TagEventCondition)(unsafe.Pointer(&in.Conditions))
 	if err := Convert_v1_Image_To_api_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
@@ -727,9 +694,6 @@ func Convert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *ap
 }
 
 func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag, out *ImageStreamTag, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -743,17 +707,7 @@ func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag,
 		out.Tag = nil
 	}
 	out.Generation = in.Generation
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]TagEventCondition, len(*in))
-		for i := range *in {
-			if err := Convert_api_TagEventCondition_To_v1_TagEventCondition(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Conditions = nil
-	}
+	out.Conditions = *(*[]TagEventCondition)(unsafe.Pointer(&in.Conditions))
 	if err := Convert_api_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
@@ -765,12 +719,7 @@ func Convert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag, out
 }
 
 func autoConvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagList, out *api.ImageStreamTagList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.ImageStreamTag, len(*in))
@@ -790,12 +739,7 @@ func Convert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagL
 }
 
 func autoConvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *api.ImageStreamTagList, out *ImageStreamTagList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ImageStreamTag, len(*in))
@@ -857,7 +801,7 @@ func autoConvert_v1_RepositoryImportStatus_To_api_RepositoryImportStatus(in *Rep
 	} else {
 		out.Images = nil
 	}
-	out.AdditionalTags = in.AdditionalTags
+	out.AdditionalTags = *(*[]string)(unsafe.Pointer(&in.AdditionalTags))
 	return nil
 }
 
@@ -878,7 +822,7 @@ func autoConvert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *api
 	} else {
 		out.Images = nil
 	}
-	out.AdditionalTags = in.AdditionalTags
+	out.AdditionalTags = *(*[]string)(unsafe.Pointer(&in.AdditionalTags))
 	return nil
 }
 
@@ -889,12 +833,8 @@ func Convert_api_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *api.Rep
 func autoConvert_v1_SignatureCondition_To_api_SignatureCondition(in *SignatureCondition, out *api.SignatureCondition, s conversion.Scope) error {
 	out.Type = api.SignatureConditionType(in.Type)
 	out.Status = pkg_api.ConditionStatus(in.Status)
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastProbeTime, &out.LastProbeTime, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
-		return err
-	}
+	out.LastProbeTime = in.LastProbeTime
+	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
 	return nil
@@ -907,12 +847,8 @@ func Convert_v1_SignatureCondition_To_api_SignatureCondition(in *SignatureCondit
 func autoConvert_api_SignatureCondition_To_v1_SignatureCondition(in *api.SignatureCondition, out *SignatureCondition, s conversion.Scope) error {
 	out.Type = SignatureConditionType(in.Type)
 	out.Status = api_v1.ConditionStatus(in.Status)
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastProbeTime, &out.LastProbeTime, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
-		return err
-	}
+	out.LastProbeTime = in.LastProbeTime
+	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
 	return nil
@@ -989,9 +925,7 @@ func Convert_api_SignatureSubject_To_v1_SignatureSubject(in *api.SignatureSubjec
 }
 
 func autoConvert_v1_TagEvent_To_api_TagEvent(in *TagEvent, out *api.TagEvent, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.Created, &out.Created, s); err != nil {
-		return err
-	}
+	out.Created = in.Created
 	out.DockerImageReference = in.DockerImageReference
 	out.Image = in.Image
 	out.Generation = in.Generation
@@ -1003,9 +937,7 @@ func Convert_v1_TagEvent_To_api_TagEvent(in *TagEvent, out *api.TagEvent, s conv
 }
 
 func autoConvert_api_TagEvent_To_v1_TagEvent(in *api.TagEvent, out *TagEvent, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.Created, &out.Created, s); err != nil {
-		return err
-	}
+	out.Created = in.Created
 	out.DockerImageReference = in.DockerImageReference
 	out.Image = in.Image
 	out.Generation = in.Generation
@@ -1019,9 +951,7 @@ func Convert_api_TagEvent_To_v1_TagEvent(in *api.TagEvent, out *TagEvent, s conv
 func autoConvert_v1_TagEventCondition_To_api_TagEventCondition(in *TagEventCondition, out *api.TagEventCondition, s conversion.Scope) error {
 	out.Type = api.TagEventConditionType(in.Type)
 	out.Status = pkg_api.ConditionStatus(in.Status)
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
-		return err
-	}
+	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
 	out.Generation = in.Generation
@@ -1035,9 +965,7 @@ func Convert_v1_TagEventCondition_To_api_TagEventCondition(in *TagEventCondition
 func autoConvert_api_TagEventCondition_To_v1_TagEventCondition(in *api.TagEventCondition, out *TagEventCondition, s conversion.Scope) error {
 	out.Type = TagEventConditionType(in.Type)
 	out.Status = api_v1.ConditionStatus(in.Status)
-	if err := pkg_api.Convert_unversioned_Time_To_unversioned_Time(&in.LastTransitionTime, &out.LastTransitionTime, s); err != nil {
-		return err
-	}
+	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
 	out.Generation = in.Generation
@@ -1070,7 +998,7 @@ func Convert_api_TagImportPolicy_To_v1_TagImportPolicy(in *api.TagImportPolicy, 
 
 func autoConvert_v1_TagReference_To_api_TagReference(in *TagReference, out *api.TagReference, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Annotations = in.Annotations
+	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(pkg_api.ObjectReference)
@@ -1081,8 +1009,11 @@ func autoConvert_v1_TagReference_To_api_TagReference(in *TagReference, out *api.
 		out.From = nil
 	}
 	out.Reference = in.Reference
-	out.Generation = in.Generation
+	out.Generation = (*int64)(unsafe.Pointer(in.Generation))
 	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
 		return err
 	}
 	return nil
@@ -1094,7 +1025,7 @@ func Convert_v1_TagReference_To_api_TagReference(in *TagReference, out *api.TagR
 
 func autoConvert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *TagReference, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Annotations = in.Annotations
+	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
 	if in.From != nil {
 		in, out := &in.From, &out.From
 		*out = new(api_v1.ObjectReference)
@@ -1105,8 +1036,11 @@ func autoConvert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *
 		out.From = nil
 	}
 	out.Reference = in.Reference
-	out.Generation = in.Generation
+	out.Generation = (*int64)(unsafe.Pointer(in.Generation))
 	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	if err := Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
 		return err
 	}
 	return nil
@@ -1114,4 +1048,22 @@ func autoConvert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *
 
 func Convert_api_TagReference_To_v1_TagReference(in *api.TagReference, out *TagReference, s conversion.Scope) error {
 	return autoConvert_api_TagReference_To_v1_TagReference(in, out, s)
+}
+
+func autoConvert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in *TagReferencePolicy, out *api.TagReferencePolicy, s conversion.Scope) error {
+	out.Type = api.TagReferencePolicyType(in.Type)
+	return nil
+}
+
+func Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in *TagReferencePolicy, out *api.TagReferencePolicy, s conversion.Scope) error {
+	return autoConvert_v1_TagReferencePolicy_To_api_TagReferencePolicy(in, out, s)
+}
+
+func autoConvert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in *api.TagReferencePolicy, out *TagReferencePolicy, s conversion.Scope) error {
+	out.Type = TagReferencePolicyType(in.Type)
+	return nil
+}
+
+func Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in *api.TagReferencePolicy, out *TagReferencePolicy, s conversion.Scope) error {
+	return autoConvert_api_TagReferencePolicy_To_v1_TagReferencePolicy(in, out, s)
 }

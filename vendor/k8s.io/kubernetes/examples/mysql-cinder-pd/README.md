@@ -1,9 +1,4 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
-# Mysql installation with cinder volume plugin
+# MySQL installation with cinder volume plugin
 
 Cinder is a Block Storage service for OpenStack. This example shows how it can be used as an attachment mounted to a pod in Kubernets.
 
@@ -49,13 +44,6 @@ This should now
 2. Format the volume if required (only if the volume specified is not already formatted to the fstype specified)
 3. Mount it on the kubelet's host machine
 4. Spin up a container with this volume mounted to the path specified in the pod definition
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

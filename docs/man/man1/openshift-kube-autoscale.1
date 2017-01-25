@@ -16,11 +16,14 @@ openshift kube autoscale \- Auto\-scale a Deployment, ReplicaSet, or Replication
 Creates an autoscaler that automatically chooses and sets the number of pods that run in a kubernetes cluster.
 
 .PP
-Looks up a Deployment, ReplicaSet, or ReplicationController by name and creates an autoscaler that uses the given resource as a reference.
-An autoscaler can automatically increase or decrease number of pods deployed within the system as needed.
+Looks up a Deployment, ReplicaSet, or ReplicationController by name and creates an autoscaler that uses the given resource as a reference. An autoscaler can automatically increase or decrease number of pods deployed within the system as needed.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
 .PP
 \fB\-\-cpu\-percent\fP=\-1
     The target average CPU utilization (represented as a percent of requested CPU) over all the pods. If it's not specified or negative, a default autoscaling policy will be used.
@@ -31,7 +34,7 @@ An autoscaler can automatically increase or decrease number of pods deployed wit
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to autoscale.
+    Filename, directory, or URL to files identifying the resource to autoscale.
 
 .PP
 \fB\-\-generator\fP="horizontalpodautoscaler/v1"
@@ -120,6 +123,10 @@ An autoscaler can automatically increase or decrease number of pods deployed wit
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -205,7 +212,7 @@ An autoscaler can automatically increase or decrease number of pods deployed wit
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -213,7 +220,7 @@ An autoscaler can automatically increase or decrease number of pods deployed wit
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -329,12 +336,11 @@ An autoscaler can automatically increase or decrease number of pods deployed wit
 .RS
 
 .nf
-
-# Auto scale a deployment "foo", with the number of pods between 2 and 10, target CPU utilization specified so a default autoscaling policy will be used:
-kubectl autoscale deployment foo \-\-min=2 \-\-max=10
-
-# Auto scale a replication controller "foo", with the number of pods between 1 and 5, target CPU utilization at 80%:
-kubectl autoscale rc foo \-\-max=5 \-\-cpu\-percent=80
+  # Auto scale a deployment "foo", with the number of pods between 2 and 10, target CPU utilization specified so a default autoscaling policy will be used:
+  kubectl autoscale deployment foo \-\-min=2 \-\-max=10
+  
+  # Auto scale a replication controller "foo", with the number of pods between 1 and 5, target CPU utilization at 80%:
+  kubectl autoscale rc foo \-\-max=5 \-\-cpu\-percent=80
 
 .fi
 .RE

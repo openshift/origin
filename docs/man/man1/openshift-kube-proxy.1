@@ -16,13 +16,13 @@ openshift kube proxy \- Run a proxy to the Kubernetes API server
 To proxy all of the kubernetes api and nothing else, use:
 
 .PP
-kubectl proxy \-\-api\-prefix=/
+$ kubectl proxy \-\-api\-prefix=/
 
 .PP
 To proxy only part of the kubernetes api and also some static files:
 
 .PP
-kubectl proxy \-\-www=/my/files \-\-www\-prefix=/static/ \-\-api\-prefix=/api/
+$ kubectl proxy \-\-www=/my/files \-\-www\-prefix=/static/ \-\-api\-prefix=/api/
 
 .PP
 The above lets you 'curl localhost:8001/api/v1/pods'.
@@ -31,7 +31,7 @@ The above lets you 'curl localhost:8001/api/v1/pods'.
 To proxy the entire kubernetes api at a different root, use:
 
 .PP
-kubectl proxy \-\-api\-prefix=/custom/
+$ kubectl proxy \-\-api\-prefix=/custom/
 
 .PP
 The above lets you 'curl localhost:8001/custom/api/v1/pods'
@@ -103,6 +103,10 @@ The above lets you 'curl localhost:8001/custom/api/v1/pods'
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -190,7 +194,7 @@ The above lets you 'curl localhost:8001/custom/api/v1/pods'
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -198,7 +202,7 @@ The above lets you 'curl localhost:8001/custom/api/v1/pods'
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -314,17 +318,16 @@ The above lets you 'curl localhost:8001/custom/api/v1/pods'
 .RS
 
 .nf
-
-# Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
-kubectl proxy \-\-port=8011 \-\-www=./local/www/
-
-# Run a proxy to kubernetes apiserver on an arbitrary local port.
-# The chosen port for the server will be output to stdout.
-kubectl proxy \-\-port=0
-
-# Run a proxy to kubernetes apiserver, changing the api prefix to k8s\-api
-# This makes e.g. the pods api available at localhost:8011/k8s\-api/v1/pods/
-kubectl proxy \-\-api\-prefix=/k8s\-api
+  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+  kubectl proxy \-\-port=8011 \-\-www=./local/www/
+  
+  # Run a proxy to kubernetes apiserver on an arbitrary local port.
+  # The chosen port for the server will be output to stdout.
+  kubectl proxy \-\-port=0
+  
+  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s\-api
+  # This makes e.g. the pods api available at localhost:8011/k8s\-api/v1/pods/
+  kubectl proxy \-\-api\-prefix=/k8s\-api
 
 .fi
 .RE

@@ -13,7 +13,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
 type testCase struct {
@@ -33,6 +33,11 @@ var (
 		{
 			"5.6",
 			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.6/examples/replica/mysql_replica.json",
+			false,
+		},
+		{
+			"5.7",
+			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.7/examples/replica/mysql_replica.json",
 			false,
 		},
 	}
@@ -90,7 +95,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		err = oc.Run("new-app").Args("-f", tc.TemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
+		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("MYSQL_VERSION=%s", tc.Version), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,

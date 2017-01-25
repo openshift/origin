@@ -22,7 +22,7 @@ By default, the prune operation performs a dry run making no changes to internal
 .SH OPTIONS
 .PP
 \fB\-\-confirm\fP=false
-    Specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.
+    If true, specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.
 
 .PP
 \fB\-\-keep\-complete\fP=5
@@ -38,7 +38,7 @@ By default, the prune operation performs a dry run making no changes to internal
 
 .PP
 \fB\-\-orphans\fP=false
-    Prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.
+    If true, prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or cancelled.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -49,6 +49,10 @@ By default, the prune operation performs a dry run making no changes to internal
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

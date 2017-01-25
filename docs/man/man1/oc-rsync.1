@@ -30,23 +30,23 @@ If no container is specified, the first container of the pod is used for the cop
 
 .PP
 \fB\-\-delete\fP=false
-    Delete files not present in source
+    If true, delete files not present in source
 
 .PP
 \fB\-\-exclude\fP=[]
-    rsync \- exclude files matching specified pattern
+    If true, exclude files matching specified pattern
 
 .PP
 \fB\-\-include\fP=[]
-    rsync \- include files matching specified pattern
+    If true, include files matching specified pattern
 
 .PP
 \fB\-\-no\-perms\fP=false
-    rsync \- do not transfer permissions
+    If true, do not transfer permissions
 
 .PP
 \fB\-\-progress\fP=false
-    rsync \- show progress during transfer
+    If true, show progress during transfer
 
 .PP
 \fB\-q\fP, \fB\-\-quiet\fP=false
@@ -69,6 +69,10 @@ If no container is specified, the first container of the pod is used for the cop
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

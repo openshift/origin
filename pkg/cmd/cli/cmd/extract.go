@@ -69,6 +69,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, in, out, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
+			// TODO: move me to kcmdutil
 			err := options.Run()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -76,7 +77,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().BoolVar(&options.Overwrite, "confirm", options.Overwrite, "Overwrite files that already exist.")
+	cmd.Flags().BoolVar(&options.Overwrite, "confirm", options.Overwrite, "If true, overwrite files that already exist.")
 	cmd.Flags().StringVar(&options.TargetDirectory, "to", options.TargetDirectory, "Directory to extract files to.")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to identify to extract the resource.")
 	cmd.MarkFlagFilename("filename")
@@ -93,10 +94,10 @@ func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ResourceNames("", args...).
 		ContinueOnError().
 		Flatten()

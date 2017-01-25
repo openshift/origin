@@ -95,13 +95,12 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdTypes(fullName, f, out),
 				loginCmd,
 				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, out, errout),
-				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, out, errout),
+				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, in, out, errout),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
 				cmd.NewCmdProjects(fullName, f, out),
 				cmd.NewCmdExplain(fullName, f, out, errout),
-				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, out, errout),
-				cmd.NewCmdIdle(fullName, f, out, errout),
+				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, in, out, errout),
 			},
 		},
 		{
@@ -127,7 +126,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
-				cmd.NewCmdDelete(fullName, f, out),
+				cmd.NewCmdDelete(fullName, f, out, errout),
 				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdAutoscale(fullName, f, out),
 				secretcmds,
@@ -146,6 +145,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdProxy(fullName, f, out),
 				cmd.NewCmdAttach(fullName, f, in, out, errout),
 				cmd.NewCmdRun(fullName, f, in, out, errout),
+				cmd.NewCmdCp(fullName, f, in, out, errout),
 			},
 		},
 		{
@@ -156,9 +156,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdApply(fullName, f, out),
 				cmd.NewCmdPatch(fullName, f, out),
-				cmd.NewCmdProcess(fullName, f, out, errout),
+				cmd.NewCmdProcess(fullName, f, in, out, errout),
 				cmd.NewCmdExport(fullName, f, in, out),
 				cmd.NewCmdExtract(fullName, f, in, out, errout),
+				cmd.NewCmdIdle(fullName, f, out, errout),
 				observe.NewCmdObserve(fullName, f, out, errout),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				cmd.NewCmdConvert(fullName, f, out),
@@ -183,7 +184,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out, errout)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
-		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f.Factory, out)),
+		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, out)),
 	}
 
 	changeSharedFlagDefaults(cmds)
@@ -247,7 +248,7 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, out, os.Stderr)
+	cmds := kubecmd.NewKubectlCommand(f, os.Stdin, out, os.Stderr)
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"

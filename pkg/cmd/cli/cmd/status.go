@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -83,7 +84,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 
 	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
 	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", opts.verbose, "See details for resolving issues.")
-	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "Display status for all namespaces (must have cluster admin)")
+	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "If true, display status for all namespaces (must have cluster admin)")
 
 	return cmd
 }
@@ -98,12 +99,17 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	o.securityPolicyCommandFormat = "oadm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
-	client, kclient, kclientset, err := f.Clients()
+	client, kclientset, err := f.Clients()
 	if err != nil {
 		return err
 	}
 
-	config, err := f.OpenShiftClientConfig.ClientConfig()
+	config, err := f.OpenShiftClientConfig().ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	rawConfig, err := f.OpenShiftClientConfig().RawConfig()
 	if err != nil {
 		return err
 	}
@@ -122,14 +128,25 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		baseCLIName = "oc"
 	}
 
+	currentNamespace := ""
+	if currentContext, exists := rawConfig.Contexts[rawConfig.CurrentContext]; exists {
+		currentNamespace = currentContext.Namespace
+	}
+
+	nsFlag := kcmdutil.GetFlagString(cmd, "namespace")
+	canRequestProjects, _ := loginutil.CanRequestProjects(config, o.namespace)
+
 	o.describer = &describe.ProjectStatusDescriber{
-		OldK:    kclient,
 		K:       kclientset,
 		C:       client,
 		Server:  config.Host,
 		Suggest: o.verbose,
 
-		CommandBaseName: baseCLIName,
+		CommandBaseName:    baseCLIName,
+		RequestedNamespace: nsFlag,
+		CurrentNamespace:   currentNamespace,
+
+		CanRequestProjects: canRequestProjects,
 
 		// TODO: Remove these and reference them inside the markers using constants.
 		LogsCommandName:             o.logsCommandName,

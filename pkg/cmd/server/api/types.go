@@ -16,6 +16,10 @@ const (
 	AllVersions = "*"
 )
 
+const (
+	DefaultIngressIPNetworkCIDR = "172.29.0.0/16"
+)
+
 var (
 	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
 	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
@@ -54,12 +58,12 @@ var (
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
 		APIGroupKube:           {"v1"},
 		APIGroupExtensions:     {"v1beta1"},
-		APIGroupApps:           {"v1alpha1"},
+		APIGroupApps:           {"v1beta1"},
 		APIGroupAuthentication: {"v1beta1"},
 		APIGroupAutoscaling:    {"v1"},
 		APIGroupBatch:          {"v1", "v2alpha1"},
 		APIGroupCertificates:   {"v1alpha1"},
-		APIGroupPolicy:         {"v1alpha1"},
+		APIGroupPolicy:         {"v1beta1"},
 		APIGroupStorage:        {"v1beta1"},
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},

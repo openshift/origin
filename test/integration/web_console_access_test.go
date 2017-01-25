@@ -241,3 +241,41 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
 	}
 }
+
+func TestAccessStandaloneOriginWebConsole(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
+	masterOptions, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	addr, err := testserver.FindAvailableBindAddress(13000, 13999)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	masterOptions.AssetConfig.ServingInfo.BindAddress = addr
+	assetBaseURL := "https://" + addr
+	masterOptions.AssetConfig.PublicURL = assetBaseURL + "/console/"
+	masterOptions.OAuthConfig.AssetPublicURL = assetBaseURL + "/console/"
+
+	if _, err = testserver.StartConfiguredMaster(masterOptions); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for endpoint, exp := range map[string]struct {
+		statusCode int
+		location   string
+	}{
+		"":             {http.StatusFound, "/console/"},
+		"blarg":        {http.StatusFound, "/console/"},
+		"console":      {http.StatusMovedPermanently, "/console/"},
+		"console/":     {http.StatusOK, ""},
+		"console/java": {http.StatusOK, ""},
+	} {
+		url := assetBaseURL + "/" + endpoint
+		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
+	}
+}

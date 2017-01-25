@@ -119,7 +119,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
-				// TODO: move met to kcmdutil
+				// TODO: move me to kcmdutil
 				if err == cmdutil.ErrExit {
 					os.Exit(1)
 				}
@@ -130,20 +130,20 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified trigger(s).")
 	cmd.Flags().BoolVar(&options.RemoveAll, "remove-all", options.RemoveAll, "If true, remove all triggers.")
-	cmd.Flags().BoolVar(&options.Auto, "auto", options.Auto, "Enable all triggers, or just the specified trigger")
-	cmd.Flags().BoolVar(&options.Manual, "manual", options.Manual, "Set all triggers to manual, or just the specified trigger")
+	cmd.Flags().BoolVar(&options.Auto, "auto", options.Auto, "If true, enable all triggers, or just the specified trigger")
+	cmd.Flags().BoolVar(&options.Manual, "manual", options.Manual, "If true, set all triggers to manual, or just the specified trigger")
 
 	cmd.Flags().BoolVar(&options.FromConfig, "from-config", options.FromConfig, "If set, configuration changes will result in a change")
 	cmd.Flags().StringVarP(&options.ContainerNames, "containers", "c", options.ContainerNames, "Comma delimited list of container names this trigger applies to on deployments; defaults to the name of the only container")
 	cmd.Flags().StringVar(&options.FromImage, "from-image", options.FromImage, "An image stream tag to trigger off of")
-	options.FromGitHub = cmd.Flags().Bool("from-github", false, "A GitHub webhook - a secret value will be generated automatically")
-	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "A generic webhook - a secret value will be generated automatically")
-	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "A generic webhook which can provide environment variables - a secret value will be generated automatically")
+	options.FromGitHub = cmd.Flags().Bool("from-github", false, "If true, a GitHub webhook - a secret value will be generated automatically")
+	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "If true, a generic webhook - a secret value will be generated automatically")
+	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "If true, a generic webhook which can provide environment variables - a secret value will be generated automatically")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -200,11 +200,11 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Auto = true
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, args...).
 		Flatten()
@@ -264,9 +264,9 @@ func (o *TriggersOptions) Validate() error {
 
 func (o *TriggersOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func (o *TriggersOptions) Run() error {
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
 		return UpdateTriggersForObject(info.Object, updateTriggerFn)
 	})
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {

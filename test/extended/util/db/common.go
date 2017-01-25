@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/test/extended/util"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
 // PodConfig holds configuration for a pod.
@@ -15,7 +15,7 @@ type PodConfig struct {
 	Env       map[string]string
 }
 
-func getPodConfig(c kclient.PodInterface, podName string) (conf *PodConfig, err error) {
+func getPodConfig(c kcoreclient.PodInterface, podName string) (conf *PodConfig, err error) {
 	pod, err := c.Get(podName)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func getPodConfig(c kclient.PodInterface, podName string) (conf *PodConfig, err 
 	return &PodConfig{pod.Spec.Containers[0].Name, env}, nil
 }
 
-func firstContainerName(c kclient.PodInterface, podName string) (string, error) {
+func firstContainerName(c kcoreclient.PodInterface, podName string) (string, error) {
 	pod, err := c.Get(podName)
 	if err != nil {
 		return "", err

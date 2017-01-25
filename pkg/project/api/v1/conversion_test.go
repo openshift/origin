@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/namespace"
+	"k8s.io/kubernetes/pkg/registry/core/namespace"
 
 	testutil "github.com/openshift/origin/test/util/api"
 

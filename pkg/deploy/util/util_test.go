@@ -136,11 +136,11 @@ func TestMakeDeploymentOk(t *testing.T) {
 }
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
-	mkdeployment := func(version int64) kapi.ReplicationController {
+	mkdeployment := func(version int64) *kapi.ReplicationController {
 		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
-		return *deployment
+		return deployment
 	}
-	deployments := []kapi.ReplicationController{
+	deployments := []*kapi.ReplicationController{
 		mkdeployment(4),
 		mkdeployment(1),
 		mkdeployment(2),
@@ -148,13 +148,13 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 	}
 	sort.Sort(ByLatestVersionAsc(deployments))
 	for i := int64(0); i < 4; i++ {
-		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
+		if e, a := i+1, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}
 	sort.Sort(ByLatestVersionDesc(deployments))
 	for i := int64(0); i < 4; i++ {
-		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
+		if e, a := 4-i, DeploymentVersionFor(deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}
@@ -354,8 +354,9 @@ func TestCanTransitionPhase(t *testing.T) {
 }
 
 var (
-	now   = unversioned.Now()
-	later = unversioned.Time{Time: now.Add(time.Minute)}
+	now     = unversioned.Now()
+	later   = unversioned.Time{Time: now.Add(time.Minute)}
+	earlier = unversioned.Time{Time: now.Add(-time.Minute)}
 
 	condProgressing = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
@@ -386,9 +387,11 @@ var (
 
 	condNotProgressing = func() deployapi.DeploymentCondition {
 		return deployapi.DeploymentCondition{
-			Type:   deployapi.DeploymentProgressing,
-			Status: kapi.ConditionFalse,
-			Reason: "NotYet",
+			Type:               deployapi.DeploymentProgressing,
+			Status:             kapi.ConditionFalse,
+			LastUpdateTime:     earlier,
+			LastTransitionTime: earlier,
+			Reason:             "NotYet",
 		}
 	}
 
@@ -532,9 +535,10 @@ func TestSetCondition(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		t.Logf("running test %q", test.name)
 		SetDeploymentCondition(test.status, test.cond)
 		if !reflect.DeepEqual(test.status, test.expectedStatus) {
-			t.Errorf("%s: expected status: %v, got: %v", test.name, test.expectedStatus, test.status)
+			t.Errorf("expected status: %v, got: %v", test.expectedStatus, test.status)
 		}
 	}
 }

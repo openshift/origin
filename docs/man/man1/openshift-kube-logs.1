@@ -80,6 +80,10 @@ Print the logs for a container in a pod. If the pod has only one container, the 
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -165,7 +169,7 @@ Print the logs for a container in a pod. If the pod has only one container, the 
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -173,7 +177,7 @@ Print the logs for a container in a pod. If the pod has only one container, the 
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -289,21 +293,20 @@ Print the logs for a container in a pod. If the pod has only one container, the 
 .RS
 
 .nf
-
-# Return snapshot logs from pod nginx with only one container
-kubectl logs nginx
-
-# Return snapshot of previous terminated ruby container logs from pod web\-1
-kubectl logs \-p \-c ruby web\-1
-
-# Begin streaming the logs of the ruby container in pod web\-1
-kubectl logs \-f \-c ruby web\-1
-
-# Display only the most recent 20 lines of output in pod nginx
-kubectl logs \-\-tail=20 nginx
-
-# Show all logs from pod nginx written in the last hour
-kubectl logs \-\-since=1h nginx
+  # Return snapshot logs from pod nginx with only one container
+  kubectl logs nginx
+  
+  # Return snapshot of previous terminated ruby container logs from pod web\-1
+  kubectl logs \-p \-c ruby web\-1
+  
+  # Begin streaming the logs of the ruby container in pod web\-1
+  kubectl logs \-f \-c ruby web\-1
+  
+  # Display only the most recent 20 lines of output in pod nginx
+  kubectl logs \-\-tail=20 nginx
+  
+  # Show all logs from pod nginx written in the last hour
+  kubectl logs \-\-since=1h nginx
 
 .fi
 .RE

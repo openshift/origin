@@ -13,12 +13,11 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/secret"
+	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -68,7 +67,7 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	}
 
 	var serviceAccountCache cache.Store
-	serviceAccountCache, e.serviceAccountController = framework.NewInformer(
+	serviceAccountCache, e.serviceAccountController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return e.client.Core().ServiceAccounts(api.NamespaceAll).List(options)
@@ -79,7 +78,7 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 		},
 		&api.ServiceAccount{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				serviceAccount := obj.(*api.ServiceAccount)
 				glog.V(5).Infof("Adding service account %s", serviceAccount.Name)
@@ -96,7 +95,7 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
 
 	tokenSecretSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	e.secretCache, e.secretController = framework.NewInformer(
+	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = tokenSecretSelector
@@ -109,7 +108,7 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 		},
 		&api.Secret{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{
+		cache.ResourceEventHandlerFuncs{
 			AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
 			UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
 			DeleteFunc: e.handleTokenSecretDelete,
@@ -130,9 +129,9 @@ type DockercfgController struct {
 	dockerURLsIntialized chan struct{}
 
 	serviceAccountCache      MutationCache
-	serviceAccountController *framework.Controller
+	serviceAccountController *cache.Controller
 	secretCache              cache.Store
-	secretController         *framework.Controller
+	secretController         *cache.Controller
 
 	queue workqueue.RateLimitingInterface
 
@@ -368,7 +367,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 	}
 
 	first := true
-	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		if !first {
 			obj, exists, err := e.serviceAccountCache.GetByKey(key)
 			if err != nil {

@@ -214,18 +214,18 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	oc, _, kc, err := o.Config.Clients()
+	oc, kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName)
-	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
-	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.F5RouteAdmitterFunc(), false, statusPlugin)
+	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName, "")
+	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
+	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.F5RouteAdmitterFunc(), false, o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
-	controller := factory.Create(plugin, watchNodes)
+	controller := factory.Create(plugin, watchNodes, o.EnableIngress)
 	controller.Run()
 
 	select {}

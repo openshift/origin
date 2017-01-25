@@ -8,7 +8,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -54,7 +54,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 }
 
 func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, options)
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 }
 
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 		if kapierrors.IsNotFound(err) {
 			return kapierrors.NewNotFound(m.Resource, name)
@@ -144,7 +144,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 	}
 
 	// Retry if we hit a conflict on the underlying PolicyBinding object
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
 		if err != nil {
 			return err
@@ -178,7 +178,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInf
 	var updatedRoleBinding *authorizationapi.RoleBinding
 	var roleBindingConflicted = false
 
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Do an initial fetch
 		old, err := m.Get(ctx, name)
 		if err != nil {

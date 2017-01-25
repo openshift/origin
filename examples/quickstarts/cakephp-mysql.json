@@ -16,6 +16,20 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "cakephp-secret-token" : "${CAKEPHP_SECRET_TOKEN}",
+        "cakephp-security-salt" : "${CAKEPHP_SECURITY_SALT}",
+        "cakephp-security-cipher-seed" : "${CAKEPHP_SECURITY_CIPHER_SEED}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -86,12 +100,12 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "php:5.6"
+              "name": "php:7.0"
             },
             "env":  [
               {
-                  "name": "COMPOSER_MIRROR",
-                  "value": "${COMPOSER_MIRROR}"
+                "name": "COMPOSER_MIRROR",
+                "value": "${COMPOSER_MIRROR}"
               }
             ]
           }
@@ -190,12 +204,12 @@
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
-                    "initialDelaySeconds": 30,
-                    "httpGet": {
-                        "path": "/",
-                        "port": 8080
-                    }
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080
+                  }
                 },
                 "env": [
                   {
@@ -212,23 +226,48 @@
                   },
                   {
                     "name": "DATABASE_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "DATABASE_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECRET_TOKEN",
-                    "value": "${CAKEPHP_SECRET_TOKEN}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-secret-token"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECURITY_SALT",
-                    "value": "${CAKEPHP_SECURITY_SALT}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-security-salt"
+                      }
+                    }
                   },
                   {
                     "name": "CAKEPHP_SECURITY_CIPHER_SEED",
-                    "value": "${CAKEPHP_SECURITY_CIPHER_SEED}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "cakephp-security-cipher-seed"
+                      }
+                    }
                   },
                   {
                     "name": "OPCACHE_REVALIDATE_FREQ",
@@ -236,9 +275,9 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -292,7 +331,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mysql:5.6"
+                "name": "mysql:5.7"
               }
             }
           },
@@ -341,30 +380,40 @@
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 1,
-                    "initialDelaySeconds": 30,
-                    "tcpSocket": {
-                        "port": 3306
-                    }
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
                 },
                 "env": [
-                    {
-                        "name": "MYSQL_USER",
-                        "value": "${DATABASE_USER}"
-                    },
-                    {
-                        "name": "MYSQL_PASSWORD",
-                        "value": "${DATABASE_PASSWORD}"
-                    },
-                    {
-                        "name": "MYSQL_DATABASE",
-                        "value": "${DATABASE_NAME}"
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
                     }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  }
                 ],
                 "resources": {
-                    "limits": {
-                        "memory": "${MEMORY_MYSQL_LIMIT}"
-                    }
+                  "limits": {
+                    "memory": "${MEMORY_MYSQL_LIMIT}"
+                  }
                 }
               }
             ]

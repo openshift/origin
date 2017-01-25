@@ -24,8 +24,12 @@ You can limit which keys are extracted with the \-\-keys=NAME flag, or set the d
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-confirm\fP=false
-    Overwrite files that already exist.
+    If true, overwrite files that already exist.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
@@ -80,6 +84,10 @@ You can limit which keys are extracted with the \-\-keys=NAME flag, or set the d
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

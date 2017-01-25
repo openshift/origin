@@ -42,6 +42,10 @@ Create a configuration bundle for a node
     DNS server IP for the cluster.
 
 .PP
+\fB\-\-expire\-days\fP=730
+    Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-hostnames\fP=[]
     Every hostname or IP you want server certs to be valid for. Comma delimited list
 
@@ -112,6 +116,10 @@ Create a configuration bundle for a node
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-cluster\fP=""

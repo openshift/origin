@@ -21,6 +21,10 @@ const (
 	// DefaultSelector is the default resource selector.
 	DefaultSelector = "ipfailover=<name>"
 
+	// DefaultCheckInterval is the default default interval in seconds
+	// between calls to the CheckScript
+	DefaultCheckInterval = 2
+
 	// DefaultIptablesChain is the default iptables chain on which to add
 	// a rule that accesses 224.0.0.18 (if none exists).
 	DefaultIptablesChain = "INPUT"
@@ -35,7 +39,6 @@ type IPFailoverConfigCmdOptions struct {
 
 	Type           string
 	ImageTemplate  variable.ImageTemplate
-	Credentials    string
 	ServicePort    int
 	Selector       string
 	Create         bool
@@ -44,6 +47,9 @@ type IPFailoverConfigCmdOptions struct {
 	//  Failover options.
 	VirtualIPs       string
 	IptablesChain    string
+	NotifyScript     string
+	CheckScript      string
+	CheckInterval    int
 	NetworkInterface string
 	WatchPort        int
 	VRRPIDOffset     int

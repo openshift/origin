@@ -3,10 +3,13 @@ package templaterouter
 import (
 	"crypto/md5"
 	"fmt"
+	"reflect"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/intstr"
+
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
@@ -56,6 +59,10 @@ func TestAddEndpoints(t *testing.T) {
 
 	router.AddEndpoints(suKey, []Endpoint{endpoint})
 
+	if !router.stateChanged {
+		t.Errorf("Expected router stateChanged to be true")
+	}
+
 	su, ok := router.FindServiceUnit(suKey)
 
 	if !ok {
@@ -78,7 +85,7 @@ func TestAddEndpointDuplicates(t *testing.T) {
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 	if _, ok := router.FindServiceUnit(suKey); !ok {
-		t.Fatalf("Unable to find serivce unit %s after creation", suKey)
+		t.Fatalf("Unable to find service unit %s after creation", suKey)
 	}
 
 	endpoint := Endpoint{
@@ -120,9 +127,10 @@ func TestAddEndpointDuplicates(t *testing.T) {
 	}
 
 	for _, v := range testCases {
-		added := router.AddEndpoints(suKey, v.endpoints)
-		if added != v.expected {
-			t.Errorf("%s expected to return %v but got %v", v.name, v.expected, added)
+		router.stateChanged = false
+		router.AddEndpoints(suKey, v.endpoints)
+		if router.stateChanged != v.expected {
+			t.Errorf("%s expected to set router stateChanged to %v but got %v", v.name, v.expected, router.stateChanged)
 		}
 		su, ok := router.FindServiceUnit(suKey)
 		if !ok {
@@ -168,7 +176,11 @@ func TestDeleteEndpoints(t *testing.T) {
 		if len(su.EndpointTable) != 1 {
 			t.Errorf("Expected endpoint table to contain 1 entry")
 		} else {
+			router.stateChanged = false
 			router.DeleteEndpoints(suKey)
+			if !router.stateChanged {
+				t.Errorf("Expected router stateChanged to be true")
+			}
 
 			su, ok := router.FindServiceUnit(suKey)
 
@@ -233,13 +245,6 @@ func TestRouteKey(t *testing.T) {
 		},
 	}
 
-	suKey := "test"
-	router.CreateServiceUnit(suKey)
-	_, ok := router.FindServiceUnit(suKey)
-	if !ok {
-		t.Fatalf("Unable to find created service unit %s", suKey)
-	}
-
 	startCount := len(router.state)
 	for _, tc := range testCases {
 		route := &routeapi.Route{
@@ -260,12 +265,7 @@ func TestRouteKey(t *testing.T) {
 			},
 		}
 
-		// add route always returns true
-		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("expected AddRoute to return true but got false")
-		}
-
+		router.AddRoute(route)
 		routeKey := router.routeKey(route)
 		_, ok := router.state[routeKey]
 		if !ok {
@@ -281,17 +281,29 @@ func TestRouteKey(t *testing.T) {
 	}
 }
 
-// TestAddRoute tests adding a service alias config to a service unit
-func TestAddRoute(t *testing.T) {
+// TestCreateServiceAliasConfig validates creation of a ServiceAliasConfig from a route and the router state
+func TestCreateServiceAliasConfig(t *testing.T) {
 	router := NewFakeTemplateRouter()
+
+	namespace := "foo"
+	serviceName := "TestService"
+	serviceWeight := int32(30)
+
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo",
+			Namespace: namespace,
 			Name:      "bar",
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "host",
 			Path: "path",
+			Port: &routeapi.RoutePort{
+				TargetPort: intstr.FromInt(8080),
+			},
+			To: routeapi.RouteTargetReference{
+				Name:   serviceName,
+				Weight: &serviceWeight,
+			},
 			TLS: &routeapi.TLSConfig{
 				Termination:              routeapi.TLSTerminationEdge,
 				Certificate:              "abc",
@@ -301,29 +313,108 @@ func TestAddRoute(t *testing.T) {
 			},
 		},
 	}
-	suKey := "test"
-	router.CreateServiceUnit(suKey)
 
-	// add route always returns true
-	added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-	if !added {
-		t.Fatalf("expected AddRoute to return true but got false")
+	config := *router.createServiceAliasConfig(route, "foo")
+
+	suName := fmt.Sprintf("%s/%s", namespace, serviceName)
+	expectedSUs := map[string]int32{
+		suName: serviceWeight,
 	}
 
-	_, ok := router.FindServiceUnit(suKey)
+	// Basic sanity, validate more fields as necessary
+	if config.Host != route.Spec.Host || config.Path != route.Spec.Path || !compareTLS(route, config, t) ||
+		config.PreferPort != route.Spec.Port.TargetPort.String() || !reflect.DeepEqual(expectedSUs, config.ServiceUnitNames) {
+		t.Errorf("Route %v did not match service alias config %v", route, config)
+	}
+}
 
-	if !ok {
-		t.Errorf("Unable to find created service unit %s", suKey)
-	} else {
-		routeKey := router.routeKey(route)
-		saCfg, ok := router.state[routeKey]
+// TestAddRoute validates that adding a route creates a service alias config and associated service units
+func TestAddRoute(t *testing.T) {
+	router := NewFakeTemplateRouter()
 
-		if !ok {
-			t.Errorf("Unable to find created service alias config for route %s", routeKey)
-		} else {
-			if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) {
-				t.Errorf("Route %v did not match serivce alias config %v", route, saCfg)
-			}
+	namespace := "foo"
+	serviceName := "TestService"
+
+	route := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      "bar",
+		},
+		Spec: routeapi.RouteSpec{
+			Host: "host",
+			Path: "path",
+			To: routeapi.RouteTargetReference{
+				Name: serviceName,
+			},
+		},
+	}
+
+	router.AddRoute(route)
+	if !router.stateChanged {
+		t.Fatalf("router state not marked as changed")
+	}
+
+	suName := fmt.Sprintf("%s/%s", namespace, serviceName)
+	expectedSUs := map[string]ServiceUnit{
+		suName: {
+			Name:          suName,
+			EndpointTable: []Endpoint{},
+		},
+	}
+
+	if !reflect.DeepEqual(expectedSUs, router.serviceUnits) {
+		t.Fatalf("Expected %v service units, got %v", expectedSUs, router.serviceUnits)
+	}
+
+	routeKey := router.routeKey(route)
+
+	if config, ok := router.state[routeKey]; !ok {
+		t.Errorf("Unable to find created service alias config for route %s", routeKey)
+	} else if config.Host != route.Spec.Host {
+		// This test is not validating createServiceAliasConfig, so superficial validation should be good enough.
+		t.Errorf("Route %v did not match service alias config %v", route, config)
+	}
+}
+
+func TestUpdateRoute(t *testing.T) {
+	router := NewFakeTemplateRouter()
+
+	// Add a route that can be targeted for an update
+	route := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Spec: routeapi.RouteSpec{
+			Host: "host",
+			Path: "/foo",
+		},
+	}
+	router.AddRoute(route)
+
+	testCases := []struct {
+		name    string
+		path    string
+		updated bool
+	}{
+		{
+			name:    "Same route does not update state",
+			path:    "/foo",
+			updated: false,
+		},
+		{
+			name:    "Different route updates state",
+			path:    "/bar",
+			updated: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		router.stateChanged = false
+		route.Spec.Path = tc.path
+		router.AddRoute(route)
+		if router.stateChanged != tc.updated {
+			t.Errorf("%s: expected stateChanged = %v, but got %v", tc.name, tc.updated, router.stateChanged)
 		}
 	}
 }
@@ -385,8 +476,8 @@ func TestRemoveRoute(t *testing.T) {
 	suKey := "test"
 
 	router.CreateServiceUnit(suKey)
-	router.AddRoute(suKey, 100, route, route.Spec.Host)
-	router.AddRoute(suKey, 100, route2, route2.Spec.Host)
+	router.AddRoute(route)
+	router.AddRoute(route2)
 
 	_, ok := router.FindServiceUnit(suKey)
 	if !ok {
@@ -561,32 +652,18 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 			},
 		}
 
-		suKey := fmt.Sprintf("%s-test", tc.Name)
-		router.CreateServiceUnit(suKey)
+		router.AddRoute(route)
 
-		// add route always returns true
-		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return true but got false", tc.Name)
-		}
-
-		_, ok := router.FindServiceUnit(suKey)
+		routeKey := router.routeKey(route)
+		saCfg, ok := router.state[routeKey]
 
 		if !ok {
-			t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service unit %s",
-				tc.Name, suKey)
+			t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service alias config for route %s",
+				tc.Name, routeKey)
 		} else {
-			routeKey := router.routeKey(route)
-			saCfg, ok := router.state[routeKey]
-
-			if !ok {
-				t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service alias config for route %s",
-					tc.Name, routeKey)
-			} else {
-				if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) || saCfg.InsecureEdgeTerminationPolicy != tc.InsecurePolicy {
-					t.Errorf("InsecureEdgeTerminationPolicy test %s: route %v did not match serivce alias config %v",
-						tc.Name, route, saCfg)
-				}
+			if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path || !compareTLS(route, saCfg, t) || saCfg.InsecureEdgeTerminationPolicy != tc.InsecurePolicy {
+				t.Errorf("InsecureEdgeTerminationPolicy test %s: route %v did not match serivce alias config %v",
+					tc.Name, route, saCfg)
 			}
 		}
 	}

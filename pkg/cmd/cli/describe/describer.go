@@ -16,11 +16,12 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -35,37 +36,38 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
+func describerMap(c *client.Client, kclient kclientset.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
 	m := map[unversioned.GroupKind]kctl.Describer{
-		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
-		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, kclient, host},
-		deployapi.Kind("DeploymentConfig"):            &DeploymentConfigDescriber{c, kclient, nil},
-		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
-		imageapi.Kind("Image"):                        &ImageDescriber{c},
-		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},
-		imageapi.Kind("ImageStreamTag"):               &ImageStreamTagDescriber{c},
-		imageapi.Kind("ImageStreamImage"):             &ImageStreamImageDescriber{c},
-		routeapi.Kind("Route"):                        &RouteDescriber{c, kclient},
-		projectapi.Kind("Project"):                    &ProjectDescriber{c, kclient},
-		templateapi.Kind("Template"):                  &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
-		authorizationapi.Kind("Policy"):               &PolicyDescriber{c},
-		authorizationapi.Kind("PolicyBinding"):        &PolicyBindingDescriber{c},
-		authorizationapi.Kind("RoleBinding"):          &RoleBindingDescriber{c},
-		authorizationapi.Kind("Role"):                 &RoleDescriber{c},
-		authorizationapi.Kind("ClusterPolicy"):        &ClusterPolicyDescriber{c},
-		authorizationapi.Kind("ClusterPolicyBinding"): &ClusterPolicyBindingDescriber{c},
-		authorizationapi.Kind("ClusterRoleBinding"):   &ClusterRoleBindingDescriber{c},
-		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
-		oauthapi.Kind("OAuthAccessToken"):             &OAuthAccessTokenDescriber{c},
-		userapi.Kind("User"):                          &UserDescriber{c},
-		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
-		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
-		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
-		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
-		sdnapi.Kind("ClusterNetwork"):                 &ClusterNetworkDescriber{c},
-		sdnapi.Kind("HostSubnet"):                     &HostSubnetDescriber{c},
-		sdnapi.Kind("NetNamespace"):                   &NetNamespaceDescriber{c},
-		sdnapi.Kind("EgressNetworkPolicy"):            &EgressNetworkPolicyDescriber{c},
+		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
+		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
+		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{c, kclient, nil},
+		authorizationapi.Kind("Identity"):               &IdentityDescriber{c},
+		imageapi.Kind("Image"):                          &ImageDescriber{c},
+		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{c},
+		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{c},
+		imageapi.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{c},
+		routeapi.Kind("Route"):                          &RouteDescriber{c, kclient},
+		projectapi.Kind("Project"):                      &ProjectDescriber{c, kclient},
+		templateapi.Kind("Template"):                    &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		authorizationapi.Kind("Policy"):                 &PolicyDescriber{c},
+		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{c},
+		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{c},
+		authorizationapi.Kind("Role"):                   &RoleDescriber{c},
+		authorizationapi.Kind("ClusterPolicy"):          &ClusterPolicyDescriber{c},
+		authorizationapi.Kind("ClusterPolicyBinding"):   &ClusterPolicyBindingDescriber{c},
+		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{c},
+		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{c},
+		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{c},
+		userapi.Kind("User"):                            &UserDescriber{c},
+		userapi.Kind("Group"):                           &GroupDescriber{c.Groups()},
+		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{c},
+		quotaapi.Kind("ClusterResourceQuota"):           &ClusterQuotaDescriber{c},
+		quotaapi.Kind("AppliedClusterResourceQuota"):    &AppliedClusterQuotaDescriber{c},
+		sdnapi.Kind("ClusterNetwork"):                   &ClusterNetworkDescriber{c},
+		sdnapi.Kind("HostSubnet"):                       &HostSubnetDescriber{c},
+		sdnapi.Kind("NetNamespace"):                     &NetNamespaceDescriber{c},
+		sdnapi.Kind("EgressNetworkPolicy"):              &EgressNetworkPolicyDescriber{c},
+		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{c},
 	}
 	return m
 }
@@ -83,7 +85,7 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kctl.Describer, bool) {
 	f, ok := describerMap(c, kclient, host)[kind]
 	if ok {
 		return f, true
@@ -94,7 +96,7 @@ func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclient.
 // BuildDescriber generates information about a build
 type BuildDescriber struct {
 	osClient   client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 // Describe returns the description of a build
@@ -104,13 +106,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.Events(namespace).Search(build)
+	events, _ := d.kubeClient.Core().Events(namespace).Search(build)
 	if events == nil {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
-		if podEvents, _ := d.kubeClient.Events(namespace).Search(pod); podEvents != nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
+		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
@@ -138,6 +140,10 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
+		if build.Status.Output.To != nil && len(build.Status.Output.To.ImageDigest) > 0 {
+			formatString(out, "Image Digest", build.Status.Output.To.ImageDigest)
+		}
+
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
@@ -163,15 +169,17 @@ func describeBuildDuration(build *buildapi.Build) string {
 		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp != nil && build.Status.CompletionTimestamp == nil {
 		// time a still running build has been running in a pod
-		return fmt.Sprintf("running for %v", build.Status.Duration)
+		duration := unversioned.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+		return fmt.Sprintf("running for %v", duration)
 	}
-	return fmt.Sprintf("%v", build.Status.Duration)
+	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	return fmt.Sprintf("%v", duration)
 }
 
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
 	client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 	host       string
 }
 
@@ -461,7 +469,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.De
 		}
 
 		if settings.ShowEvents {
-			events, _ := d.kubeClient.Events(namespace).Search(buildConfig)
+			events, _ := d.kubeClient.Core().Events(namespace).Search(buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
 				kctl.DescribeEvents(events, out)
@@ -666,7 +674,7 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.De
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
 	client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 type routeEndpointInfo struct {
@@ -689,11 +697,12 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		if backend.Weight != nil {
 			totalWeight += *backend.Weight
 		}
-		ep, endpointsErr := d.kubeClient.Endpoints(namespace).Get(backend.Name)
+		ep, endpointsErr := d.kubeClient.Core().Endpoints(namespace).Get(backend.Name)
 		endpoints[backend.Name] = routeEndpointInfo{ep, endpointsErr}
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
+		var hostName string
 		formatMeta(out, route.ObjectMeta)
 		if len(route.Spec.Host) > 0 {
 			formatString(out, "Requested Host", route.Spec.Host)
@@ -701,11 +710,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 				if route.Spec.Host != ingress.Host {
 					continue
 				}
+				hostName = ""
+				if len(ingress.RouterCanonicalHostname) > 0 {
+					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+				}
 				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 				case kapi.ConditionTrue:
-					fmt.Fprintf(out, "\t  exposed on router %s %s ago\n", ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case kapi.ConditionFalse:
-					fmt.Fprintf(out, "\t  rejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  rejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 					if len(condition.Message) > 0 {
 						fmt.Fprintf(out, "\t    %s\n", condition.Message)
 					}
@@ -719,11 +732,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 			if route.Spec.Host == ingress.Host {
 				continue
 			}
+			hostName = ""
+			if len(ingress.RouterCanonicalHostname) > 0 {
+				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+			}
 			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionTrue:
-				fmt.Fprintf(out, "\t%s exposed on router %s %s ago\n", ingress.Host, ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case kapi.ConditionFalse:
-				fmt.Fprintf(out, "\trejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\trejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				if len(condition.Message) > 0 {
 					fmt.Fprintf(out, "\t  %s\n", condition.Message)
 				}
@@ -796,7 +813,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
 	osClient   client.Interface
-	kubeClient kclient.Interface
+	kubeClient kclientset.Interface
 }
 
 // Describe returns the description of a project
@@ -806,12 +823,12 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.Descri
 	if err != nil {
 		return "", err
 	}
-	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
+	resourceQuotasClient := d.kubeClient.Core().ResourceQuotas(name)
 	resourceQuotaList, err := resourceQuotasClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
 	}
-	limitRangesClient := d.kubeClient.LimitRanges(name)
+	limitRangesClient := d.kubeClient.Core().LimitRanges(name)
 	limitRangeList, err := limitRangesClient.List(kapi.ListOptions{})
 	if err != nil {
 		return "", err
@@ -826,8 +843,8 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.Descri
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
-		formatString(out, "Display Name", project.Annotations[projectapi.ProjectDisplayName])
-		formatString(out, "Description", project.Annotations[projectapi.ProjectDescription])
+		formatString(out, "Display Name", project.Annotations[oapi.OpenShiftDisplayName])
+		formatString(out, "Description", project.Annotations[oapi.OpenShiftDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
 		if len(resourceQuotaList.Items) == 0 {
@@ -1493,8 +1510,16 @@ func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) 
 		return "", err
 	}
 
+	nsSelector := make([]interface{}, 0, quota.Status.Namespaces.OrderedKeys().Len())
+	ns := quota.Status.Namespaces.OrderedKeys().Front()
+	for ns != nil {
+		nsSelector = append(nsSelector, ns.Value)
+		ns = ns.Next()
+	}
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, quota.ObjectMeta)
+		fmt.Fprintf(out, "Namespace Selector: %q\n", nsSelector)
 		fmt.Fprintf(out, "Label Selector: %s\n", labelSelector)
 		fmt.Fprintf(out, "AnnotationSelector: %s\n", quota.Spec.Selector.AnnotationSelector)
 		if len(quota.Spec.Quota.Scopes) > 0 {
@@ -1610,6 +1635,67 @@ func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings
 		for _, rule := range policy.Spec.Egress {
 			fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
 		}
+		return nil
+	})
+}
+
+type RoleBindingRestrictionDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a RoleBindingRestriction.
+func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	rbr, err := d.RoleBindingRestrictions(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, rbr.ObjectMeta)
+
+		subjectType := roleBindingRestrictionType(rbr)
+		if subjectType == "" {
+			subjectType = "<none>"
+		}
+		formatString(out, "Subject type", subjectType)
+
+		var labelSelectors []unversioned.LabelSelector
+
+		switch {
+		case rbr.Spec.UserRestriction != nil:
+			formatString(out, "Users",
+				strings.Join(rbr.Spec.UserRestriction.Users, ", "))
+			formatString(out, "Users in groups",
+				strings.Join(rbr.Spec.UserRestriction.Groups, ", "))
+			labelSelectors = rbr.Spec.UserRestriction.Selectors
+		case rbr.Spec.GroupRestriction != nil:
+			formatString(out, "Groups",
+				strings.Join(rbr.Spec.GroupRestriction.Groups, ", "))
+			labelSelectors = rbr.Spec.GroupRestriction.Selectors
+		case rbr.Spec.ServiceAccountRestriction != nil:
+			serviceaccounts := []string{}
+			for _, sa := range rbr.Spec.ServiceAccountRestriction.ServiceAccounts {
+				serviceaccounts = append(serviceaccounts, sa.Name)
+			}
+			formatString(out, "ServiceAccounts", strings.Join(serviceaccounts, ", "))
+			formatString(out, "Namespaces",
+				strings.Join(rbr.Spec.ServiceAccountRestriction.Namespaces, ", "))
+		}
+
+		if rbr.Spec.UserRestriction != nil || rbr.Spec.GroupRestriction != nil {
+			if len(labelSelectors) == 0 {
+				formatString(out, "Label selectors", "")
+			} else {
+				fmt.Fprintf(out, "Label selectors:\n")
+				for _, labelSelector := range labelSelectors {
+					selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+					if err != nil {
+						return err
+					}
+					fmt.Fprintf(out, "\t%s\n", selector)
+				}
+			}
+		}
+
 		return nil
 	})
 }

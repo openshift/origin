@@ -2,13 +2,16 @@ package resourcequota
 
 import (
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/controller/informers"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/quota"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
@@ -29,9 +32,11 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 		},
 	}
 	kubeClient := kfake.NewSimpleClientset(resourceQuota)
-	osClient := testclient.NewSimpleFake(&imageapi.ImageStream{})
+	osClient := testclient.NewSimpleFake()
+	kubeInformerFactory := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeClient, osClient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
 	plugin := NewOriginResourceQuota(kubeClient).(*originQuotaAdmission)
-	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistry(osClient))
+	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistry(informerFactory.ImageStreams(), osClient))
 	if err := plugin.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

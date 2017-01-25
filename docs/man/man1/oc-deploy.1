@@ -44,23 +44,23 @@ If no options are given, shows information about the latest deployment.
 .SH OPTIONS
 .PP
 \fB\-\-cancel\fP=false
-    Cancel the in\-progress deployment.
+    If true, cancel the in\-progress deployment.
 
 .PP
 \fB\-\-enable\-triggers\fP=false
-    Enables all image triggers for the deployment config.
+    If true, enables all image triggers for the deployment config.
 
 .PP
 \fB\-\-follow\fP=false
-    Follow the logs of a deployment
+    If true, follow the logs of a deployment
 
 .PP
 \fB\-\-latest\fP=false
-    Start a new deployment now.
+    If true, start a new deployment now.
 
 .PP
 \fB\-\-retry\fP=false
-    Retry the latest failed deployment.
+    If true, retry the latest failed deployment.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -71,6 +71,10 @@ If no options are given, shows information about the latest deployment.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

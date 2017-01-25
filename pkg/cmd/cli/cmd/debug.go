@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -33,6 +35,7 @@ import (
 
 type DebugOptions struct {
 	Attach kcmd.AttachOptions
+	Client *client.Client
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
 	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
@@ -138,7 +141,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().String("template", "", "Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].")
 	cmd.MarkFlagFilename("template")
-	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
+	cmd.Flags().Bool("no-headers", false, "If true, when using the default output, don't print headers.")
 	cmd.Flags().MarkHidden("no-headers")
 	cmd.Flags().String("sort-by", "", "If non-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. 'ObjectMeta.Name'). The field in the API resource specified by this JSONPath expression must be an integer or a string.")
 	cmd.Flags().MarkHidden("sort-by")
@@ -150,13 +153,13 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
 
 	cmd.Flags().StringVarP(&options.Attach.ContainerName, "container", "c", "", "Container name; defaults to first container")
-	cmd.Flags().BoolVar(&options.KeepAnnotations, "keep-annotations", false, "Keep the original pod annotations")
-	cmd.Flags().BoolVar(&options.KeepLiveness, "keep-liveness", false, "Keep the original pod liveness probes")
+	cmd.Flags().BoolVar(&options.KeepAnnotations, "keep-annotations", false, "If true, keep the original pod annotations")
+	cmd.Flags().BoolVar(&options.KeepLiveness, "keep-liveness", false, "If true, keep the original pod liveness probes")
 	cmd.Flags().BoolVar(&options.KeepInitContainers, "keep-init-containers", true, "Run the init containers for the pod. Defaults to true.")
-	cmd.Flags().BoolVar(&options.KeepReadiness, "keep-readiness", false, "Keep the original pod readiness probes")
-	cmd.Flags().BoolVar(&options.OneContainer, "one-container", false, "Run only the selected container, remove all others")
+	cmd.Flags().BoolVar(&options.KeepReadiness, "keep-readiness", false, "If true, keep the original pod readiness probes")
+	cmd.Flags().BoolVar(&options.OneContainer, "one-container", false, "If true, run only the selected container, remove all others")
 	cmd.Flags().StringVar(&options.NodeName, "node-name", "", "Set a specific node to run on - by default the pod will run on any valid node")
-	cmd.Flags().BoolVar(&options.AsRoot, "as-root", false, "Try to run the container as the root user")
+	cmd.Flags().BoolVar(&options.AsRoot, "as-root", false, "If true, try to run the container as the root user")
 	cmd.Flags().Int64Var(&options.AsUser, "as-user", -1, "Try to run the container as a specific user UID (note: admins may limit your ability to use this flag)")
 
 	cmd.Flags().StringVarP(&options.Filename, "filename", "f", "", "Filename or URL to file to read a template")
@@ -213,14 +216,14 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
 		ResourceNames("pods", resources...).
 		Flatten()
 	if len(o.Filename) > 0 {
-		b.FilenameParam(explicit, false, o.Filename)
+		b.FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.Filename}})
 	}
 
 	o.AddEnv, o.RemoveEnv, err = cmdutil.ParseEnv(envArgs, nil)
@@ -229,7 +232,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}
@@ -274,11 +277,12 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 	o.Attach.Config = config
 
-	_, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.Attach.Client = kc
+	o.Attach.PodClient = kc.Core()
+	o.Client = oc
 	return nil
 }
 func (o DebugOptions) Validate() error {
@@ -338,7 +342,7 @@ func (o *DebugOptions) Debug() error {
 				stderr = os.Stderr
 			}
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
-			if err := o.Attach.Client.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
+			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
@@ -348,7 +352,7 @@ func (o *DebugOptions) Debug() error {
 
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
-		w, err := o.Attach.Client.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
+		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
 		if err != nil {
 			return err
 		}
@@ -390,6 +394,21 @@ func (o *DebugOptions) Debug() error {
 	})
 }
 
+func (o *DebugOptions) getContainerImageCommand(container *kapi.Container) ([]string, error) {
+	image := container.Image[strings.LastIndex(container.Image, "/")+1:]
+	name, id, ok := imageapi.SplitImageStreamImage(image)
+	if !ok {
+		return nil, errors.New("container image did not contain an id")
+	}
+	isimage, err := o.Client.ImageStreamImages(o.Attach.Pod.Namespace).Get(name, id)
+	if err != nil {
+		return nil, err
+	}
+
+	config := isimage.Image.DockerImageMetadata.Config
+	return append(config.Entrypoint, config.Cmd...), nil
+}
+
 // transformPodForDebug alters the input pod to be debuggable
 func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kapi.Pod, []string) {
 	pod := o.Attach.Pod
@@ -405,9 +424,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	originalCommand := append(container.Command, container.Args...)
 	container.Command = o.Command
 	if len(originalCommand) == 0 {
-		if cmd, ok := imageapi.ContainerImageEntrypointByAnnotation(pod.Annotations, o.Attach.ContainerName); ok {
-			originalCommand = cmd
-		}
+		originalCommand, _ = o.getContainerImageCommand(container)
 	}
 	container.Args = nil
 
@@ -499,13 +516,13 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	namespace, name := pod.Namespace, pod.Name
 
 	// create the pod
-	created, err := o.Attach.Client.Pods(namespace).Create(pod)
+	created, err := o.Attach.PodClient.Pods(namespace).Create(pod)
 	if err == nil || !kapierrors.IsAlreadyExists(err) {
 		return created, err
 	}
 
 	// only continue if the pod has the right annotations
-	existing, err := o.Attach.Client.Pods(namespace).Get(name)
+	existing, err := o.Attach.PodClient.Pods(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
@@ -514,10 +531,10 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// delete the existing pod
-	if err := o.Attach.Client.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
+	if err := o.Attach.PodClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("unable to delete existing debug pod %q: %v", name, err)
 	}
-	return o.Attach.Client.Pods(namespace).Create(pod)
+	return o.Attach.PodClient.Pods(namespace).Create(pod)
 }
 
 func containerForName(pod *kapi.Pod, name string) *kapi.Container {

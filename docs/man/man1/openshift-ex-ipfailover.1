@@ -24,12 +24,16 @@ If an IP failover configuration does not exist with the given name, the \-\-crea
 
 .SH OPTIONS
 .PP
-\fB\-\-create\fP=false
-    Create the configuration if it does not exist.
+\fB\-\-check\-interval\fP=2
+    Run the check\-script at this interval (seconds)
 
 .PP
-\fB\-\-credentials\fP=""
-    Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.
+\fB\-\-check\-script\fP=""
+    Run this script at the check\-interval to verify service is OK
+
+.PP
+\fB\-\-create\fP=false
+    If true, create the configuration if it does not exist.
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -50,6 +54,10 @@ If an IP failover configuration does not exist with the given name, the \-\-crea
 .PP
 \fB\-\-latest\-images\fP=false
     If true, attempt to use the latest images instead of the current release
+
+.PP
+\fB\-\-notify\-script\fP=""
+    Run this script when state changes.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
@@ -96,6 +104,10 @@ If an IP failover configuration does not exist with the given name, the \-\-crea
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

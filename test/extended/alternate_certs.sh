@@ -24,7 +24,7 @@ function cleanup()
 		# use the junitreport tool to generate us a report
 		os::util::ensure::built_binary_exists 'junitreport'
 
-		cat "${JUNIT_REPORT_OUTPUT}" "${junit_gssapi_output}" \
+		cat "${JUNIT_REPORT_OUTPUT}" \
 			| junitreport --type oscmd \
 			--suites nested \
 			--roots github.com/openshift/origin \
@@ -58,6 +58,8 @@ ps -ef | grep openshift
 
 mkdir -p "${SERVER_CONFIG_DIR}"
 pushd "${SERVER_CONFIG_DIR}"
+
+os::test::junit::declare_suite_start "extended/alternate_certs"
 
 # Make custom CA and server cert
 os::cmd::expect_success 'oadm ca create-signer-cert --overwrite=true --cert=master/custom-ca.crt --key=master/custom-ca.key --serial=master/custom-ca.txt --name=my-custom-ca@`date +%s`'
@@ -98,6 +100,8 @@ os::cmd::expect_success_and_text "oc whoami --config=master/openshift-master.kub
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig"                                        'system:node:mynode'
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://localhost:${API_PORT}" 'system:node:mynode'
 os::cmd::expect_success_and_text "oc whoami --config=node-mynode/node.kubeconfig --server=https://127.0.0.1:${API_PORT}" 'system:node:mynode'
+
+os::test::junit::declare_suite_end
 
 kill $OS_PID
 

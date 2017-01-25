@@ -14,9 +14,9 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/flag"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -26,19 +26,34 @@ func TestKubeletDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesNodeConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeletoptions.KubeletServer{
-		AuthPath:   util.NewStringFlag(""),
-		KubeConfig: util.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+		AuthPath:   flag.NewStringFlag(""),
+		KubeConfig: flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
 
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
-			Address:                     "0.0.0.0", // overridden
-			AllowPrivileged:             false,     // overridden
-			CAdvisorPort:                4194,      // disabled
+			Address:         "0.0.0.0", // overridden
+			AllowPrivileged: false,     // overridden
+			Authentication: componentconfig.KubeletAuthentication{
+				Webhook: componentconfig.KubeletWebhookAuthentication{
+					CacheTTL: unversioned.Duration{Duration: 2 * time.Minute},
+				},
+				Anonymous: componentconfig.KubeletAnonymousAuthentication{
+					Enabled: true,
+				},
+			},
+			Authorization: componentconfig.KubeletAuthorization{
+				Mode: componentconfig.KubeletAuthorizationModeAlwaysAllow,
+				Webhook: componentconfig.KubeletWebhookAuthorization{
+					CacheAuthorizedTTL:   unversioned.Duration{Duration: 5 * time.Minute},
+					CacheUnauthorizedTTL: unversioned.Duration{Duration: 30 * time.Second},
+				},
+			},
+			CAdvisorPort:                4194, // disabled
 			VolumeStatsAggPeriod:        unversioned.Duration{Duration: time.Minute},
 			CertDirectory:               "/var/run/kubernetes",
 			CgroupRoot:                  "",
+			CgroupDriver:                "cgroupfs",
 			ClusterDNS:                  "", // overridden
 			ClusterDomain:               "", // overridden
-			ConfigureCBR0:               false,
 			ContainerRuntime:            "docker",
 			Containerized:               false, // overridden based on OPENSHIFT_CONTAINERIZED
 			CPUCFSQuota:                 true,  // forced to true
@@ -101,7 +116,6 @@ func TestKubeletDefaults(t *testing.T) {
 			ReconcileCIDR:                  true,
 			KubeAPIQPS:                     5.0,
 			KubeAPIBurst:                   10,
-			ExperimentalFlannelOverlay:     false,
 			OutOfDiskTransitionFrequency:   unversioned.Duration{Duration: 5 * time.Minute},
 			HairpinMode:                    "promiscuous-bridge",
 			BabysitDaemons:                 false,
@@ -111,7 +125,8 @@ func TestKubeletDefaults(t *testing.T) {
 			ContentType:                    "application/vnd.kubernetes.protobuf",
 			EnableControllerAttachDetach:   true,
 
-			EvictionPressureTransitionPeriod: unversioned.Duration{Duration: 5 * time.Minute},
+			EvictionPressureTransitionPeriod:    unversioned.Duration{Duration: 5 * time.Minute},
+			ExperimentalKernelMemcgNotification: false,
 
 			SystemReserved: utilconfig.ConfigurationMap{},
 			KubeReserved:   utilconfig.ConfigurationMap{},
@@ -132,13 +147,15 @@ func TestProxyConfig(t *testing.T) {
 	ipTablesMasqueratebit := int32(14)
 	expectedDefaultConfig := &proxyoptions.ProxyServerConfig{
 		KubeProxyConfiguration: componentconfig.KubeProxyConfiguration{
-			BindAddress:        "0.0.0.0",
-			ClusterCIDR:        "",
-			HealthzPort:        10249,         // disabled
-			HealthzBindAddress: "127.0.0.1",   // disabled
-			OOMScoreAdj:        &oomScoreAdj,  // disabled
-			ResourceContainer:  "/kube-proxy", // disabled
-			IPTablesSyncPeriod: unversioned.Duration{Duration: 30 * time.Second},
+			BindAddress:                  "0.0.0.0",
+			ClusterCIDR:                  "",
+			ConntrackMin:                 128 * 1024,
+			ConntrackTCPCloseWaitTimeout: unversioned.Duration{Duration: 1 * time.Hour},
+			HealthzPort:                  10249,         // disabled
+			HealthzBindAddress:           "127.0.0.1",   // disabled
+			OOMScoreAdj:                  &oomScoreAdj,  // disabled
+			ResourceContainer:            "/kube-proxy", // disabled
+			IPTablesSyncPeriod:           unversioned.Duration{Duration: 30 * time.Second},
 			// from k8s.io/kubernetes/cmd/kube-proxy/app/options/options.go
 			// defaults to 14.
 			IPTablesMasqueradeBit:          &ipTablesMasqueratebit,

@@ -17,10 +17,16 @@ Modify kubeconfig files using subcommands like "kubectl config set current\-cont
 
 .PP
 The loading order follows these rules:
-1. If the \-\-kubeconfig flag is set, then only that file is loaded.  The flag may only be set once and no merging takes place.
-2. If $KUBECONFIG environment variable is set, then it is used a list of paths (normal path delimitting rules for your system).  These paths are merged.  When a value is modified, it is modified in the file that defines the stanza.  When a value is created, it is created in the first file that exists.  If no files in the chain exist, then it creates the last file in the list.
-3. Otherwise, ${HOME}/.kube/config is used and no merging takes place.
+.IP \(bu 2
 
+.IP
+\(bu If the \-\-kubeconfig flag is set, then only that file is loaded.  The flag may only be set once and no merging takes place.
+.br
+.IP
+\(bu If $KUBECONFIG environment variable is set, then it is used a list of paths (normal path delimitting rules for your system).  These paths are merged.  When a value is modified, it is modified in the file that defines the stanza.  When a value is created, it is created in the first file that exists.  If no files in the chain exist, then it creates the last file in the list.
+.br
+.IP
+\(bu Otherwise, ${HOME}/.kube/config is used and no merging takes place.
 
 .SH OPTIONS
 .PP
@@ -48,6 +54,10 @@ The loading order follows these rules:
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -135,7 +145,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -143,7 +153,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false

@@ -25,13 +25,15 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"k8s.io/kubernetes/pkg/types"
 )
 
 const (
 	loadBalancerMinimumPriority = 500
 	loadBalancerMaximumPriority = 4096
 
-	machineResourceIDTemplate   = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/virtualMachines/%s"
+	machineIDTemplate           = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/virtualMachines/%s"
+	availabilitySetIDTemplate   = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/availabilitySets/%s"
 	frontendIPConfigIDTemplate  = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/loadBalancers/%s/frontendIPConfigurations/%s"
 	backendPoolIDTemplate       = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/loadBalancers/%s/backendAddressPools/%s"
 	loadBalancerRuleIDTemplate  = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/loadBalancers/%s/loadBalancingRules/%s"
@@ -42,10 +44,19 @@ const (
 // returns the full identifier of a machine
 func (az *Cloud) getMachineID(machineName string) string {
 	return fmt.Sprintf(
-		machineResourceIDTemplate,
+		machineIDTemplate,
 		az.SubscriptionID,
 		az.ResourceGroup,
 		machineName)
+}
+
+// returns the full identifier of an availabilitySet
+func (az *Cloud) getAvailabilitySetID(availabilitySetName string) string {
+	return fmt.Sprintf(
+		availabilitySetIDTemplate,
+		az.SubscriptionID,
+		az.ResourceGroup,
+		availabilitySetName)
 }
 
 // returns the full identifier of a loadbalancer frontendipconfiguration.
@@ -122,12 +133,12 @@ func getProtocolsFromKubernetesProtocol(protocol api.Protocol) (network.Transpor
 
 // This returns the full identifier of the primary NIC for the given VM.
 func getPrimaryInterfaceID(machine compute.VirtualMachine) (string, error) {
-	if len(*machine.Properties.NetworkProfile.NetworkInterfaces) == 1 {
-		return *(*machine.Properties.NetworkProfile.NetworkInterfaces)[0].ID, nil
+	if len(*machine.NetworkProfile.NetworkInterfaces) == 1 {
+		return *(*machine.NetworkProfile.NetworkInterfaces)[0].ID, nil
 	}
 
-	for _, ref := range *machine.Properties.NetworkProfile.NetworkInterfaces {
-		if *ref.Properties.Primary {
+	for _, ref := range *machine.NetworkProfile.NetworkInterfaces {
+		if *ref.Primary {
 			return *ref.ID, nil
 		}
 	}
@@ -136,13 +147,16 @@ func getPrimaryInterfaceID(machine compute.VirtualMachine) (string, error) {
 }
 
 func getPrimaryIPConfig(nic network.Interface) (*network.InterfaceIPConfiguration, error) {
-	if len(*nic.Properties.IPConfigurations) == 1 {
-		return &((*nic.Properties.IPConfigurations)[0]), nil
+	if len(*nic.IPConfigurations) == 1 {
+		return &((*nic.IPConfigurations)[0]), nil
 	}
 
-	// we're here because we either have multiple ipconfigs and can't determine the primary:
-	//   https://github.com/Azure/azure-rest-api-specs/issues/305
-	// or somehow we had zero ipconfigs
+	for _, ref := range *nic.IPConfigurations {
+		if *ref.Primary {
+			return &ref, nil
+		}
+	}
+
 	return nil, fmt.Errorf("failed to determine the determine primary ipconfig. nicname=%q", *nic.Name)
 }
 
@@ -190,7 +204,7 @@ func getNextAvailablePriority(rules []network.SecurityRule) (int32, error) {
 outer:
 	for smallest < loadBalancerMaximumPriority {
 		for _, rule := range rules {
-			if *rule.Properties.Priority == smallest {
+			if *rule.Priority == smallest {
 				smallest += spread
 				continue outer
 			}
@@ -202,8 +216,8 @@ outer:
 	return -1, fmt.Errorf("SecurityGroup priorities are exhausted")
 }
 
-func (az *Cloud) getIPForMachine(machineName string) (string, error) {
-	machine, exists, err := az.getVirtualMachine(machineName)
+func (az *Cloud) getIPForMachine(nodeName types.NodeName) (string, error) {
+	machine, exists, err := az.getVirtualMachine(nodeName)
 	if !exists {
 		return "", cloudprovider.InstanceNotFound
 	}
@@ -231,6 +245,6 @@ func (az *Cloud) getIPForMachine(machineName string) (string, error) {
 		return "", err
 	}
 
-	targetIP := *ipConfig.Properties.PrivateIPAddress
+	targetIP := *ipConfig.PrivateIPAddress
 	return targetIP, nil
 }

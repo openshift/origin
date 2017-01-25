@@ -8,8 +8,9 @@ import (
 	"os"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -25,16 +26,16 @@ type SecretOptions struct {
 
 	Namespace string
 
-	Mapper          meta.RESTMapper
-	Typer           runtime.ObjectTyper
-	ClientMapper    resource.ClientMapper
-	ClientInterface client.Interface
+	Mapper         meta.RESTMapper
+	Typer          runtime.ObjectTyper
+	ClientMapper   resource.ClientMapper
+	KubeCoreClient kcoreclient.CoreInterface
 
 	Out io.Writer
 }
 
 // Complete Parses the command line arguments and populates SecretOptions
-func (o *SecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
+func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if len(args) < 2 {
 		return errors.New("must have service account name and at least one secret name")
 	}
@@ -42,17 +43,18 @@ func (o *SecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
 	o.SecretNames = args[1:]
 
 	var err error
-	o.ClientInterface, err = f.Client()
+	kubeClientSet, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
+	o.KubeCoreClient = kubeClientSet.Core()
 
 	o.Namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	o.Mapper, o.Typer = f.Object(false)
+	o.Mapper, o.Typer = f.Object()
 	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil
@@ -75,8 +77,8 @@ func (o SecretOptions) Validate() error {
 	if o.ClientMapper == nil {
 		return errors.New("ClientMapper must be present")
 	}
-	if o.ClientInterface == nil {
-		return errors.New("ClientInterface must be present")
+	if o.KubeCoreClient == nil {
+		return errors.New("KubeCoreClient must be present")
 	}
 
 	return nil
@@ -144,9 +146,10 @@ func (o SecretOptions) GetOut() io.Writer {
 }
 
 // GetSecrets Return a list of secret objects in the default namespace
-func (o SecretOptions) GetSecrets() ([]*kapi.Secret, bool, error) {
+// If allowNonExisting is set to true, we will return the non-existing secrets as well.
+func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, error) {
 	secrets := []*kapi.Secret{}
-	failLater := false
+	hasNotFound := false
 
 	for _, secretName := range o.SecretNames {
 		r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
@@ -159,11 +162,23 @@ func (o SecretOptions) GetSecrets() ([]*kapi.Secret, bool, error) {
 		}
 		obj, err := r.Object()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "secrets \"%s\" not found\n", secretName)
-			// Missing secrets are non-fatal but the command should not return
-			// success.
-			failLater = true
-			continue
+			// If the secret is not found it means it was deleted but we want still to allow to
+			// unlink a removed secret from the service account
+			if kerrors.IsNotFound(err) {
+				fmt.Fprintf(os.Stderr, "secret %q not found\n", secretName)
+				hasNotFound = true
+				if allowNonExisting {
+					obj = &kapi.Secret{
+						ObjectMeta: kapi.ObjectMeta{
+							Name: secretName,
+						},
+					}
+				} else {
+					continue
+				}
+			} else if err != nil {
+				return nil, false, err
+			}
 		}
 		switch t := obj.(type) {
 		case *kapi.Secret:
@@ -177,5 +192,5 @@ func (o SecretOptions) GetSecrets() ([]*kapi.Secret, bool, error) {
 		return nil, false, errors.New("No valid secrets found")
 	}
 
-	return secrets, failLater, nil
+	return secrets, hasNotFound, nil
 }

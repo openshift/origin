@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,22 +10,16 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
-	regapi "github.com/docker/distribution/registry/api/v2"
 	repomw "github.com/docker/distribution/registry/middleware/repository"
-	"github.com/docker/libtrust"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 const (
@@ -54,6 +47,12 @@ const (
 	// belongs to repository> entries. The higher the value, the faster queries but also a higher risk of
 	// leaking a blob that is no longer tagged in given repository.
 	BlobRepositoryCacheTTLEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_BLOBREPOSITORYCACHETTL"
+
+	// Pullthrough is a boolean environment variable that controls whether pullthrough is enabled.
+	PullthroughEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PULLTHROUGH"
+
+	// MirrorPullthrough is a boolean environment variable that controls mirroring of blobs on pullthrough.
+	MirrorPullthroughEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH"
 
 	// Default values
 
@@ -136,6 +135,8 @@ type repository struct {
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
 	pullthrough bool
+	// mirrorPullthrough will mirror remote blobs into the local repository if set
+	mirrorPullthrough bool
 	// acceptschema2 allows to refuse the manifest schema version 2
 	acceptschema2 bool
 	// blobrepositorycachettl is an eviction timeout for <blob belongs to repository> entries of cachedLayers
@@ -145,8 +146,6 @@ type repository struct {
 	// when session affinity is on for the registry, but in practice the first pull will fill the cache.
 	cachedLayers digestToRepositoryCache
 }
-
-var _ distribution.ManifestService = &repository{}
 
 // newRepositoryWithClient returns a new repository middleware.
 func newRepositoryWithClient(
@@ -170,7 +169,11 @@ func newRepositoryWithClient(
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
-	pullthrough, err := getBoolOption("", "pullthrough", false, options)
+	pullthrough, err := getBoolOption(PullthroughEnvVar, "pullthrough", true, options)
+	if err != nil {
+		context.GetLogger(ctx).Error(err)
+	}
+	mirrorPullthrough, err := getBoolOption(MirrorPullthroughEnvVar, "mirrorpullthrough", true, options)
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
@@ -193,18 +196,38 @@ func newRepositoryWithClient(
 		acceptschema2:          acceptschema2,
 		blobrepositorycachettl: blobrepositorycachettl,
 		pullthrough:            pullthrough,
+		mirrorPullthrough:      mirrorPullthrough,
 		cachedLayers:           cachedLayers,
 	}, nil
 }
 
 // Manifests returns r, which implements distribution.ManifestService.
 func (r *repository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
-	if r.ctx == ctx {
-		return r, nil
+	ms, err := r.Repository.Manifests(WithRepository(ctx, r))
+	if err != nil {
+		return nil, err
 	}
-	repo := repository(*r)
-	repo.ctx = ctx
-	return &repo, nil
+
+	ms = &manifestService{
+		ctx:           WithRepository(ctx, r),
+		repo:          r,
+		manifests:     ms,
+		acceptschema2: r.acceptschema2,
+	}
+
+	if r.pullthrough {
+		ms = &pullthroughManifestService{
+			ManifestService: ms,
+			repo:            r,
+		}
+	}
+
+	ms = &errorManifestService{
+		manifests: ms,
+		repo:      r,
+	}
+
+	return ms, nil
 }
 
 // Blobs returns a blob store which can delegate to remote repositories.
@@ -228,6 +251,7 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 
 			repo:          &repo,
 			digestToStore: make(map[string]distribution.BlobStore),
+			mirror:        r.mirrorPullthrough,
 		}
 	}
 
@@ -254,268 +278,6 @@ func (r *repository) Tags(ctx context.Context) distribution.TagService {
 	}
 
 	return ts
-}
-
-// Exists returns true if the manifest specified by dgst exists.
-func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
-	if err := r.checkPendingErrors(ctx); err != nil {
-		return false, err
-	}
-
-	image, err := r.getImage(dgst)
-	if err != nil {
-		return false, err
-	}
-	return image != nil, nil
-}
-
-// Get retrieves the manifest with digest `dgst`.
-func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
-	if err := r.checkPendingErrors(ctx); err != nil {
-		return nil, err
-	}
-
-	if _, err := r.getImageStreamImage(dgst); err != nil {
-		context.GetLogger(r.ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
-		return nil, err
-	}
-
-	image, err := r.getImage(dgst)
-	if err != nil {
-		context.GetLogger(r.ctx).Errorf("error retrieving image %s: %v", dgst.String(), err)
-		return nil, err
-	}
-
-	ref := imageapi.DockerImageReference{Namespace: r.namespace, Name: r.name, Registry: r.registryAddr}
-	if managed := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; managed == "true" {
-		// Repository without a registry part is refers to repository containing locally managed images.
-		// Such an entry is retrieved, checked and set by blobDescriptorService operating only on local blobs.
-		ref.Registry = ""
-	} else {
-		// Repository with a registry points to remote repository. This is used by pullthrough middleware.
-		ref = ref.DockerClientDefaults().AsRepository()
-	}
-
-	manifest, err := r.manifestFromImageWithCachedLayers(image, ref.Exact())
-
-	return manifest, err
-}
-
-// Put creates or updates the named manifest.
-func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
-	if err := r.checkPendingErrors(ctx); err != nil {
-		return "", err
-	}
-
-	var canonical []byte
-
-	// Resolve the payload in the manifest.
-	mediatype, payload, err := manifest.Payload()
-	if err != nil {
-		return "", err
-	}
-
-	switch manifest.(type) {
-	case *schema1.SignedManifest:
-		canonical = manifest.(*schema1.SignedManifest).Canonical
-	case *schema2.DeserializedManifest:
-		canonical = payload
-	default:
-		err = fmt.Errorf("unrecognized manifest type %T", manifest)
-		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
-	}
-
-	if !r.acceptschema2 {
-		if _, ok := manifest.(*schema1.SignedManifest); !ok {
-			err = fmt.Errorf("schema version 2 disabled")
-			return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
-		}
-	}
-
-	// Calculate digest
-	dgst := digest.FromBytes(canonical)
-
-	// Upload to openshift
-	ism := imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: r.namespace,
-			Name:      r.name,
-		},
-		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: dgst.String(),
-				Annotations: map[string]string{
-					imageapi.ManagedByOpenShiftAnnotation: "true",
-				},
-			},
-			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", r.registryAddr, r.namespace, r.name, dgst.String()),
-			DockerImageManifest:          string(payload),
-			DockerImageManifestMediaType: mediatype,
-		},
-	}
-
-	for _, option := range options {
-		if opt, ok := option.(distribution.WithTagOption); ok {
-			ism.Tag = opt.Tag
-			break
-		}
-	}
-
-	if err = r.fillImageWithMetadata(manifest, &ism.Image); err != nil {
-		return "", err
-	}
-
-	if err = r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-		// if the error was that the image stream wasn't found, try to auto provision it
-		statusErr, ok := err.(*kerrors.StatusError)
-		if !ok {
-			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-
-		if quotautil.IsErrorQuotaExceeded(statusErr) {
-			context.GetLogger(r.ctx).Errorf("denied creating ImageStreamMapping: %v", statusErr)
-			return "", distribution.ErrAccessDenied
-		}
-
-		status := statusErr.ErrStatus
-		if status.Code != http.StatusNotFound || (strings.ToLower(status.Details.Kind) != "imagestream" /*pre-1.2*/ && strings.ToLower(status.Details.Kind) != "imagestreams") || status.Details.Name != r.name {
-			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-
-		stream := imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: r.name,
-			},
-		}
-
-		uclient, ok := UserClientFrom(r.ctx)
-		if !ok {
-			context.GetLogger(r.ctx).Errorf("error creating user client to auto provision image stream: Origin user client unavailable")
-			return "", statusErr
-		}
-
-		if _, err := uclient.ImageStreams(r.namespace).Create(&stream); err != nil {
-			if quotautil.IsErrorQuotaExceeded(err) {
-				context.GetLogger(r.ctx).Errorf("denied creating ImageStream: %v", err)
-				return "", distribution.ErrAccessDenied
-			}
-			context.GetLogger(r.ctx).Errorf("error auto provisioning ImageStream: %s", err)
-			return "", statusErr
-		}
-
-		// try to create the ISM again
-		if err := r.registryOSClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			if quotautil.IsErrorQuotaExceeded(err) {
-				context.GetLogger(r.ctx).Errorf("denied a creation of ImageStreamMapping: %v", err)
-				return "", distribution.ErrAccessDenied
-			}
-			context.GetLogger(r.ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-	}
-
-	return dgst, nil
-}
-
-// fillImageWithMetadata fills a given image with metadata.
-func (r *repository) fillImageWithMetadata(manifest distribution.Manifest, image *imageapi.Image) error {
-	if deserializedManifest, ok := manifest.(*schema2.DeserializedManifest); ok {
-		r.deserializedManifestFillImageMetadata(deserializedManifest, image)
-	} else if signedManifest, ok := manifest.(*schema1.SignedManifest); ok {
-		r.signedManifestFillImageMetadata(signedManifest, image)
-	} else {
-		return fmt.Errorf("unrecognized manifest type %T", manifest)
-	}
-
-	context.GetLogger(r.ctx).Infof("total size of image %s with docker ref %s: %d", image.Name, image.DockerImageReference, image.DockerImageMetadata.Size)
-	return nil
-}
-
-// signedManifestFillImageMetadata fills a given image with metadata. It also corrects layer sizes with blob sizes. Newer
-// Docker client versions don't set layer sizes in the manifest at all. Origin master needs correct layer
-// sizes for proper image quota support. That's why we need to fill the metadata in the registry.
-func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedManifest, image *imageapi.Image) error {
-	signatures, err := manifest.Signatures()
-	if err != nil {
-		return err
-	}
-
-	for _, signDigest := range signatures {
-		image.DockerImageSignatures = append(image.DockerImageSignatures, signDigest)
-	}
-
-	if err := imageapi.ImageWithMetadata(image); err != nil {
-		return err
-	}
-
-	refs := manifest.References()
-
-	blobSet := sets.NewString()
-	image.DockerImageMetadata.Size = int64(0)
-
-	blobs := r.Blobs(r.ctx)
-	for i := range image.DockerImageLayers {
-		layer := &image.DockerImageLayers[i]
-		// DockerImageLayers represents manifest.Manifest.FSLayers in reversed order
-		desc, err := blobs.Stat(r.ctx, refs[len(image.DockerImageLayers)-i-1].Digest)
-		if err != nil {
-			context.GetLogger(r.ctx).Errorf("failed to stat blobs %s of image %s", layer.Name, image.DockerImageReference)
-			return err
-		}
-		if layer.MediaType == "" {
-			if desc.MediaType != "" {
-				layer.MediaType = desc.MediaType
-			} else {
-				layer.MediaType = schema1.MediaTypeManifestLayer
-			}
-		}
-		layer.LayerSize = desc.Size
-		// count empty layer just once (empty layer may actually have non-zero size)
-		if !blobSet.Has(layer.Name) {
-			image.DockerImageMetadata.Size += desc.Size
-			blobSet.Insert(layer.Name)
-		}
-	}
-	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
-		blobSet.Insert(image.DockerImageMetadata.ID)
-		image.DockerImageMetadata.Size += int64(len(image.DockerImageConfig))
-	}
-
-	return nil
-}
-
-// deserializedManifestFillImageMetadata fills a given image with metadata.
-func (r *repository) deserializedManifestFillImageMetadata(manifest *schema2.DeserializedManifest, image *imageapi.Image) error {
-	configBytes, err := r.Blobs(r.ctx).Get(r.ctx, manifest.Config.Digest)
-	if err != nil {
-		context.GetLogger(r.ctx).Errorf("failed to get image config %s: %v", manifest.Config.Digest.String(), err)
-		return err
-	}
-	image.DockerImageConfig = string(configBytes)
-
-	if err := imageapi.ImageWithMetadata(image); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Delete deletes the manifest with digest `dgst`. Note: Image resources
-// in OpenShift are deleted via 'oadm prune images'. This function deletes
-// the content related to the manifest in the registry's storage (signatures).
-func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
-	if err := r.checkPendingErrors(ctx); err != nil {
-		return err
-	}
-
-	ms, err := r.Repository.Manifests(r.ctx)
-	if err != nil {
-		return err
-	}
-	ctx = WithRepository(ctx, r)
-	return ms.Delete(ctx, dgst)
 }
 
 // importContext loads secrets for this image stream and returns a context for getting distribution
@@ -546,6 +308,11 @@ func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStr
 	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
+// updateImage modifies the Image.
+func (r *repository) updateImage(image *imageapi.Image) (*imageapi.Image, error) {
+	return r.registryOSClient.Images().Update(image)
+}
+
 // rememberLayersOfImage caches the layer digests of given image
 func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName string) {
 	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 && len(image.DockerImageConfig) == 0 {
@@ -563,17 +330,24 @@ func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName stri
 		}
 		return
 	}
-
-	manifest, err := r.getManifestFromImage(image)
+	mh, err := NewManifestHandlerFromImage(r, image)
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("cannot remember layers of image %q: %v", image.Name, err)
 		return
 	}
-	r.rememberLayersOfManifest(manifest, cacheName)
+	dgst, err := mh.Digest()
+	if err != nil {
+		context.GetLogger(r.ctx).Errorf("cannot get manifest digest of image %q: %v", image.Name, err)
+		return
+	}
+
+	r.rememberLayersOfManifest(dgst, mh.Manifest(), cacheName)
 }
 
 // rememberLayersOfManifest caches the layer digests of given manifest
-func (r *repository) rememberLayersOfManifest(manifest distribution.Manifest, cacheName string) {
+func (r *repository) rememberLayersOfManifest(manifestDigest digest.Digest, manifest distribution.Manifest, cacheName string) {
+	r.cachedLayers.RememberDigest(manifestDigest, r.blobrepositorycachettl, cacheName)
+
 	// remember the layers in the cache as an optimization to avoid searching all remote repositories
 	for _, layer := range manifest.References() {
 		r.cachedLayers.RememberDigest(layer.Digest, r.blobrepositorycachettl, cacheName)
@@ -582,74 +356,19 @@ func (r *repository) rememberLayersOfManifest(manifest distribution.Manifest, ca
 
 // manifestFromImageWithCachedLayers loads the image and then caches any located layers
 func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, cacheName string) (manifest distribution.Manifest, err error) {
-	manifest, err = r.getManifestFromImage(image)
+	mh, err := NewManifestHandlerFromImage(r, image)
 	if err != nil {
 		return
 	}
-
-	r.rememberLayersOfManifest(manifest, cacheName)
-	return
-}
-
-// getManifestFromImage returns a manifest object constructed from a blob stored in the given image.
-func (r *repository) getManifestFromImage(image *imageapi.Image) (manifest distribution.Manifest, err error) {
-	switch image.DockerImageManifestMediaType {
-	case schema2.MediaTypeManifest:
-		manifest, err = deserializedManifestFromImage(image)
-	case schema1.MediaTypeManifest, "":
-		manifest, err = r.signedManifestFromImage(image)
-	default:
-		err = regapi.ErrorCodeManifestInvalid.WithDetail(fmt.Errorf("unknown manifest media type %q", image.DockerImageManifestMediaType))
-	}
-	return
-}
-
-// signedManifestFromImage converts an Image to a SignedManifest.
-func (r *repository) signedManifestFromImage(image *imageapi.Image) (*schema1.SignedManifest, error) {
-	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest {
-		context.GetLogger(r.ctx).Errorf("old client pulling new image %s", image.DockerImageReference)
-		return nil, fmt.Errorf("unable to convert new image to old one")
-	}
-
-	raw := []byte(image.DockerImageManifest)
-	// prefer signatures from the manifest
-	if _, err := libtrust.ParsePrettySignature(raw, "signatures"); err == nil {
-		sm := schema1.SignedManifest{Canonical: raw}
-		if err = json.Unmarshal(raw, &sm); err == nil {
-			return &sm, nil
-		}
-	}
-
-	var signBytes [][]byte
-	for _, sign := range image.DockerImageSignatures {
-		signBytes = append(signBytes, sign)
-	}
-
-	jsig, err := libtrust.NewJSONSignature(raw, signBytes...)
+	dgst, err := mh.Digest()
 	if err != nil {
-		return nil, err
+		context.GetLogger(r.ctx).Errorf("cannot get payload from manifest handler: %v", err)
+		return
 	}
+	manifest = mh.Manifest()
 
-	// Extract the pretty JWS
-	raw, err = jsig.PrettySignature("signatures")
-	if err != nil {
-		return nil, err
-	}
-
-	var sm schema1.SignedManifest
-	if err = json.Unmarshal(raw, &sm); err != nil {
-		return nil, err
-	}
-	return &sm, err
-}
-
-// deserializedManifestFromImage converts an Image to a DeserializedManifest.
-func (r *repository) deserializedManifestFromImage(image *imageapi.Image) (*schema2.DeserializedManifest, error) {
-	var manifest schema2.DeserializedManifest
-	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-		return nil, err
-	}
-	return &manifest, nil
+	r.rememberLayersOfManifest(dgst, manifest, cacheName)
+	return
 }
 
 func (r *repository) checkPendingErrors(ctx context.Context) error {

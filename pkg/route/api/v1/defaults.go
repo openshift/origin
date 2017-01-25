@@ -2,6 +2,10 @@ package v1
 
 import "k8s.io/kubernetes/pkg/runtime"
 
+// If adding or changing route defaults, updates may be required to
+// pkg/router/controller/controller.go to ensure the routes generated from
+// ingress resources will match routes created via the api.
+
 func SetDefaults_RouteSpec(obj *RouteSpec) {
 	if len(obj.WildcardPolicy) == 0 {
 		obj.WildcardPolicy = WildcardPolicyNone
@@ -39,6 +43,7 @@ func SetDefaults_RouteIngress(obj *RouteIngress) {
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	RegisterDefaults(scheme)
 	return scheme.AddDefaultingFuncs(
 		SetDefaults_RouteSpec,
 		SetDefaults_RouteTargetReference,

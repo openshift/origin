@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
-	stitar "github.com/openshift/source-to-image/pkg/tar"
+
+	s2itar "github.com/openshift/source-to-image/pkg/tar"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
 )
 
 // removeLeadingDirectoryAdapter wraps a tar.Reader and strips the first leading
@@ -18,7 +20,7 @@ import (
 // the case that files with differing first leading directory names are
 // encountered.
 type removeLeadingDirectoryAdapter struct {
-	stitar.Reader
+	s2itar.Reader
 	leadingDir    string
 	setLeadingDir bool
 }
@@ -116,18 +118,21 @@ func DownloadDirFromContainer(client *docker.Client, container, src, dst string)
 	defer downloader.Close()
 	tarReader := &removeLeadingDirectoryAdapter{Reader: tar.NewReader(downloader)}
 
-	t := stitar.New()
+	t := s2itar.New(s2iutil.NewFileSystem())
 	return t.ExtractTarStreamFromTarReader(dst, tarReader, nil)
 }
 
 // UploadFileToContainer uploads a file to a remote container.
 func UploadFileToContainer(client *docker.Client, container, src, dest string) error {
-	uploader, errch := newContainerUploader(client, container, filepath.Dir(dest))
+	uploader, errch := newContainerUploader(client, container, path.Dir(dest))
 
-	nullWalkFunc := func(path string, info os.FileInfo, err error) error { return err }
+	t := s2itar.New(s2iutil.NewFileSystem())
+	tarWriter := s2itar.RenameAdapter{Writer: tar.NewWriter(uploader), Old: filepath.Base(src), New: path.Base(dest)}
 
-	t := stitar.New()
-	err := t.StreamFileAsTarWithCallback(src, filepath.Base(dest), uploader, nullWalkFunc, false)
+	err := t.CreateTarStreamToTarWriter(src, true, tarWriter, nil)
+	if err == nil {
+		err = tarWriter.Close()
+	}
 	uploader.Close()
 	if err != nil {
 		return err

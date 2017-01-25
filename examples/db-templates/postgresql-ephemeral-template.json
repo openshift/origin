@@ -17,6 +17,17 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-user" : "${POSTGRESQL_USER}",
+        "database-password" : "${POSTGRESQL_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -113,11 +124,21 @@
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${POSTGRESQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${POSTGRESQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",

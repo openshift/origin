@@ -28,11 +28,15 @@ You can see which cluster roles have recommended changed by choosing an output t
 .SH OPTIONS
 .PP
 \fB\-\-additive\-only\fP=true
-    Preserves modified cluster roles.
+    If true, preserves modified cluster roles.
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-confirm\fP=false
-    Specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.
+    If true, specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -75,6 +79,10 @@ You can see which cluster roles have recommended changed by choosing an output t
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

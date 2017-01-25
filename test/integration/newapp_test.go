@@ -21,16 +21,17 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
+	clicmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate"
@@ -46,6 +47,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/test/util"
 )
 
 func skipExternalGit(t *testing.T) {
@@ -306,6 +308,10 @@ func TestNewAppRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
+	failClient := &client.Fake{}
+	failClient.AddReactor("get", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, errors.NewInternalError(fmt.Errorf(""))
+	})
 	tests := []struct {
 		name            string
 		config          *cmd.AppConfig
@@ -734,11 +740,7 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{Errs: []error{errors.NewInternalError(fmt.Errorf("test error"))}},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client: client.NewSimpleFake(&unversioned.Status{
-							Status: unversioned.StatusFailure,
-							Code:   http.StatusInternalServerError,
-							Reason: unversioned.StatusReasonInternalError,
-						}),
+						Client:            failClient,
 						ImageStreamImages: &client.Fake{},
 						Namespaces:        []string{"default"},
 					},
@@ -1412,7 +1414,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 	}
 }
 
-func TestBuildOutputCycleDetection(t *testing.T) {
+func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 	skipExternalGit(t)
 	tests := []struct {
 		name   string
@@ -1658,9 +1660,8 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 					DockerImages:       []string{"centos/ruby-22-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					AddEnvironmentToBuild: true,
-					OutputDocker:          true,
-					Environment:           []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
+					OutputDocker:     true,
+					BuildEnvironment: []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				},
 
 				Resolvers: cmd.Resolvers{
@@ -1826,7 +1827,7 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		url := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
+		url, tempRepoDir := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
 
 		sourceRepo, err := app.NewSourceRepository(url, generate.StrategySource)
 		if err != nil {
@@ -1851,12 +1852,60 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 		if test.expectAuthRequired != sourceRef.RequiresAuth {
 			t.Errorf("%s: unexpected auth required result. Expected: %v. Actual: %v", test.name, test.expectAuthRequired, sourceRef.RequiresAuth)
 		}
+		os.RemoveAll(tempRepoDir)
 	}
 }
 
-func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) string {
+func TestNewAppListAndSearch(t *testing.T) {
+	tests := []struct {
+		name           string
+		options        clicmd.NewAppOptions
+		expectedOutput string
+	}{
+		{
+			name: "search, no oldversion",
+			options: clicmd.NewAppOptions{
+				Config: &cmd.AppConfig{
+					ComponentInputs: cmd.ComponentInputs{
+						ImageStreams: []string{"ruby"},
+					},
+					AsSearch: true,
+				},
+			},
+			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
+		},
+		{
+			name: "list, no oldversion",
+			options: clicmd.NewAppOptions{
+				Config: &cmd.AppConfig{
+					AsList: true,
+				},
+			},
+			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
+		},
+	}
+	for _, test := range tests {
+		stdout, stderr := PrepareAppConfig(test.options.Config)
+		test.options.Out, test.options.ErrOut = stdout, stderr
+		test.options.BaseName = "oc"
+		test.options.CommandName = "new-app"
+
+		err := test.options.RunNewApp()
+		if err != nil {
+			t.Errorf("expected err == nil, got err == %v", err)
+		}
+		if stderr.Len() > 0 {
+			t.Errorf("expected stderr == %q, got stderr == %q", "", stderr.Bytes())
+		}
+		if string(stdout.Bytes()) != test.expectedOutput {
+			t.Errorf("expected stdout == %q, got stdout == %q", test.expectedOutput, stdout.Bytes())
+		}
+	}
+}
+
+func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) (string, string) {
 	// Create test directories
-	testDir, err := ioutil.TempDir("", "gitauth")
+	testDir, err := ioutil.TempDir(util.GetBaseDir(), "gitauth")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -1968,7 +2017,7 @@ insteadOf = %s
 	os.Setenv("HOME", userHomeDir)
 	os.Setenv("GIT_ASKPASS", "true")
 
-	return gitURLString
+	return gitURLString, testDir
 
 }
 
@@ -1976,11 +2025,28 @@ func builderImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:            "ruby",
+			Namespace:       "default",
 			ResourceVersion: "1",
+		},
+		Spec: imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{
+				"oldversion": {
+					Annotations: map[string]string{
+						"tags": "hidden",
+					},
+				},
+			},
 		},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				"latest": {
+					Items: []imageapi.TagEvent{
+						{
+							Image: "the-image-id",
+						},
+					},
+				},
+				"oldversion": {
 					Items: []imageapi.TagEvent{
 						{
 							Image: "the-image-id",
@@ -2034,13 +2100,13 @@ func dockerBuilderImage() *docker.Image {
 
 func fakeImageStreamSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStream(), nil
 	})
-	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStreams(), nil
 	})
-	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImage(), nil
 	})
 
@@ -2053,7 +2119,7 @@ func fakeImageStreamSearcher() app.Searcher {
 
 func fakeTemplateSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 

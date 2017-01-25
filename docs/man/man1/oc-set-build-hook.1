@@ -28,7 +28,11 @@ The command for a build hook may be specified as a shell script (with the \-\-sc
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
-    Select all build configs in the namespace
+    If true, select all build configs in the namespace
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-command\fP=false
@@ -95,6 +99,10 @@ The command for a build hook may be specified as a shell script (with the \-\-sc
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

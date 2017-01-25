@@ -53,7 +53,7 @@ type ImageExecutionPolicyRule struct {
 type ImageCondition struct {
 	// Name is the name of this policy rule for reference. It must be unique across all rules.
 	Name string
-	// IgnoreNamespaceOverride prevents this condition from being overriden when the
+	// IgnoreNamespaceOverride prevents this condition from being overridden when the
 	// `alpha.image.policy.openshift.io/ignore-rules` is set on a namespace and contains this rule name.
 	IgnoreNamespaceOverride bool
 

@@ -92,7 +92,7 @@ func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Write
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
-				// TODO: move met to kcmdutil
+				// TODO: move me to kcmdutil
 				if err == cmdutil.ErrExit {
 					os.Exit(1)
 				}
@@ -103,7 +103,7 @@ func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Write
 
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter build configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all build configs in the namespace")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all build configs in the namespace")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.PostCommit, "post-commit", options.PostCommit, "If true, set the post-commit build hook on a build config")
@@ -139,11 +139,11 @@ func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		SelectorParam(o.Selector).
 		ResourceNames("buildconfigs", resources...).
 		Flatten()
@@ -195,9 +195,9 @@ func (o *BuildHookOptions) Validate() error {
 
 func (o *BuildHookOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -213,7 +213,7 @@ func (o *BuildHookOptions) Run() error {
 		return true, nil
 	})
 
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 

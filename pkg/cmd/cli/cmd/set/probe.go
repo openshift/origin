@@ -127,7 +127,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
-				// TODO: move met to kcmdutil
+				// TODO: move me to kcmdutil
 				if err == cmdutil.ErrExit {
 					os.Exit(1)
 				}
@@ -139,7 +139,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", options.ContainerSelector, "The names of containers in the selected pod templates to change - may use wildcards")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified probe(s).")
@@ -184,11 +184,11 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, resources...).
 		Flatten()
@@ -289,9 +289,9 @@ func (o *ProbeOptions) Validate() error {
 
 func (o *ProbeOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -315,7 +315,7 @@ func (o *ProbeOptions) Run() error {
 		})
 		return transformed, err
 	})
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
 

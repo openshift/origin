@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift cli rollout status \- Watch rollout status until it's done
+openshift cli rollout status \- Show the status of the rollout
 
 
 .SH SYNOPSIS
@@ -19,7 +19,7 @@ Watch the status of the latest rollout, until it's done.
 .SH OPTIONS
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -28,6 +28,10 @@ Watch the status of the latest rollout, until it's done.
 .PP
 \fB\-\-revision\fP=0
     Pin to a specific revision for showing its status. Defaults to 0 (last revision).
+
+.PP
+\fB\-w\fP, \fB\-\-watch\fP=true
+    Watch the status of the rollout until it's done.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -38,6 +42,10 @@ Watch the status of the latest rollout, until it's done.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

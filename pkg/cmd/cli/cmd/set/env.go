@@ -89,13 +89,13 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 		},
 	}
 	cmd.Flags().StringP("containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject enviroment variables")
+	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject environment variables")
 	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
 	cmd.Flags().StringArrayVarP(&env, "env", "e", env, "Specify a key-value pair for an environment variable to set into each container.")
-	cmd.Flags().Bool("list", false, "Display the environment and any changes in the standard format")
-	cmd.Flags().Bool("resolve", false, "Show secret or configmap references when listing variables")
+	cmd.Flags().Bool("list", false, "If true, display the environment and any changes in the standard format")
+	cmd.Flags().Bool("resolve", false, "If true, show secret or configmap references when listing variables")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all", false, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().Bool("all", false, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file to use to edit the resource.")
 	cmd.Flags().Bool("overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
@@ -136,7 +136,7 @@ func newResourceStore() *resourceStore {
 func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelector *kapi.SecretKeySelector) (string, error) {
 	secret, ok := store.secretStore[secretSelector.Name]
 	if !ok {
-		kubeClient, err := f.Client()
+		kubeClient, err := f.ClientSet()
 		if err != nil {
 			return "", err
 		}
@@ -159,7 +159,7 @@ func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelecto
 func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapSelector *kapi.ConfigMapKeySelector) (string, error) {
 	configMap, ok := store.configMapStore[configMapSelector.Name]
 	if !ok {
-		kubeClient, err := f.Client()
+		kubeClient, err := f.ClientSet()
 		if err != nil {
 			return "", err
 		}
@@ -267,17 +267,17 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 	}
 
 	if len(from) != 0 {
-		mapper, typer := f.Object(false)
+		mapper, typer := f.Object()
 		b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
-			FilenameParam(explicit, false, filenames...).
+			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 			SelectorParam(selector).
 			ResourceTypeOrNameArgs(all, from).
 			Flatten()
 
 		one := false
-		infos, err := b.Do().IntoSingular(&one).Infos()
+		infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 		if err != nil {
 			return err
 		}
@@ -326,17 +326,17 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(all, resources...).
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ Check whether an action is allowed
 .SH OPTIONS
 .PP
 \fB\-\-all\-namespaces\fP=false
-    Check the specified action in all namespaces.
+    If true, check the specified action in all namespaces.
 
 .PP
 \fB\-\-groups\fP=[]
@@ -27,15 +27,15 @@ Check whether an action is allowed
 
 .PP
 \fB\-\-ignore\-scopes\fP=false
-    Disregard any scopes present on this request and evaluate considering full permissions.
+    If true, disregard any scopes present on this request and evaluate considering full permissions.
 
 .PP
 \fB\-\-list\fP=false
-    List all the actions you can perform in a namespace, cannot be specified with \-\-all\-namespaces or a VERB RESOURCE
+    If true, list all the actions you can perform in a namespace, cannot be specified with \-\-all\-namespaces or a VERB RESOURCE
 
 .PP
 \fB\-q\fP, \fB\-\-quiet\fP=false
-    Suppress output and just return the exit code.
+    If true, suppress output and just return the exit code.
 
 .PP
 \fB\-\-scopes\fP=[]
@@ -54,6 +54,10 @@ Check whether an action is allowed
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

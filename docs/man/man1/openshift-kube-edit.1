@@ -16,31 +16,19 @@ openshift kube edit \- Edit a resource on the server
 Edit a resource from the default editor.
 
 .PP
-The edit command allows you to directly edit any API resource you can retrieve via the
-command line tools. It will open the editor defined by your KUBE\_EDITOR, or EDITOR
-environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows.
-You can edit multiple objects, although changes are applied one at a time. The command
-accepts filenames as well as command line arguments, although the files you point to must
-be previously saved versions of resources.
+The edit command allows you to directly edit any API resource you can retrieve via the command line tools. It will open the editor defined by your KUBE \_EDITOR, or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows. You can edit multiple objects, although changes are applied one at a time. The command accepts filenames as well as command line arguments, although the files you point to must be previously saved versions of resources.
 
 .PP
-The files to edit will be output in the default API version, or a version specified
-by \-\-output\-version. The default format is YAML \- if you would like to edit in JSON
-pass \-o json. The flag \-\-windows\-line\-endings can be used to force Windows line endings,
-otherwise the default for your operating system will be used.
+The files to edit will be output in the default API version, or a version specified by \-\-output\-version. The default format is YAML \- if you would like to edit in JSON pass \-o json. The flag \-\-windows\-line\-endings can be used to force Windows line endings, otherwise the default for your operating system will be used.
 
 .PP
-In the event an error occurs while updating, a temporary file will be created on disk
-that contains your unapplied changes. The most common error when updating a resource
-is another editor changing the resource on the server. When this occurs, you will have
-to apply your changes to the newer version of the resource, or update your temporary
-saved copy to include the latest resource version.
+In the event an error occurs while updating, a temporary file will be created on disk that contains your unapplied changes. The most common error when updating a resource is another editor changing the resource on the server. When this occurs, you will have to apply your changes to the newer version of the resource, or update your temporary saved copy to include the latest resource version.
 
 
 .SH OPTIONS
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file to use to edit the resource
+    Filename, directory, or URL to files to use to edit the resource
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -99,6 +87,10 @@ saved copy to include the latest resource version.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -186,7 +178,7 @@ saved copy to include the latest resource version.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -194,7 +186,7 @@ saved copy to include the latest resource version.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -310,15 +302,14 @@ saved copy to include the latest resource version.
 .RS
 
 .nf
-
-# Edit the service named 'docker\-registry':
-kubectl edit svc/docker\-registry
-
-# Use an alternative editor
-KUBE\_EDITOR="nano" kubectl edit svc/docker\-registry
-
-# Edit the service 'docker\-registry' in JSON using the v1 API format:
-kubectl edit svc/docker\-registry \-\-output\-version=v1 \-o json
+  # Edit the service named 'docker\-registry':
+  kubectl edit svc/docker\-registry
+  
+  # Use an alternative editor
+  KUBE\_EDITOR="nano" kubectl edit svc/docker\-registry
+  
+  # Edit the service 'docker\-registry' in JSON using the v1 API format:
+  kubectl edit svc/docker\-registry \-\-output\-version=v1 \-o json
 
 .fi
 .RE

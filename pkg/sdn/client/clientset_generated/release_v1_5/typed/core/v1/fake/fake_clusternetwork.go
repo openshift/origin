@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeClusterNetworks implements ClusterNetworkInterface
 type FakeClusterNetworks struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -37,14 +38,14 @@ func (c *FakeClusterNetworks) Update(clusterNetwork *v1.ClusterNetwork) (result 
 	return obj.(*v1.ClusterNetwork), err
 }
 
-func (c *FakeClusterNetworks) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeClusterNetworks) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(clusternetworksResource, c.ns, name), &v1.ClusterNetwork{})
 
 	return err
 }
 
-func (c *FakeClusterNetworks) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeClusterNetworks) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(clusternetworksResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ClusterNetworkList{})
@@ -61,7 +62,7 @@ func (c *FakeClusterNetworks) Get(name string) (result *v1.ClusterNetwork, err e
 	return obj.(*v1.ClusterNetwork), err
 }
 
-func (c *FakeClusterNetworks) List(opts api.ListOptions) (result *v1.ClusterNetworkList, err error) {
+func (c *FakeClusterNetworks) List(opts api_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(clusternetworksResource, c.ns, opts), &v1.ClusterNetworkList{})
 
@@ -69,7 +70,7 @@ func (c *FakeClusterNetworks) List(opts api.ListOptions) (result *v1.ClusterNetw
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,7 +84,7 @@ func (c *FakeClusterNetworks) List(opts api.ListOptions) (result *v1.ClusterNetw
 }
 
 // Watch returns a watch.Interface that watches the requested clusterNetworks.
-func (c *FakeClusterNetworks) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterNetworks) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(clusternetworksResource, c.ns, opts))
 

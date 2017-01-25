@@ -102,10 +102,12 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"postgresql-persistent-template": &templateapi.Template{},
 			"mongodb-persistent-template":    &templateapi.Template{},
 			"mariadb-persistent-template":    &templateapi.Template{},
+			"redis-persistent-template":      &templateapi.Template{},
 			"mysql-ephemeral-template":       &templateapi.Template{},
 			"postgresql-ephemeral-template":  &templateapi.Template{},
 			"mongodb-ephemeral-template":     &templateapi.Template{},
 			"mariadb-ephemeral-template":     &templateapi.Template{},
+			"redis-ephemeral-template":       &templateapi.Template{},
 		},
 		"../test/extended/testdata/ldap": {
 			"ldapserver-buildconfig":         &buildapi.BuildConfig{},

@@ -160,7 +160,7 @@ type AttachedVolume struct {
 
 // NewActualStateOfWorld returns a new instance of ActualStateOfWorld.
 func NewActualStateOfWorld(
-	nodeName string,
+	nodeName types.NodeName,
 	volumePluginMgr *volume.VolumePluginMgr) ActualStateOfWorld {
 	return &actualStateOfWorld{
 		nodeName:        nodeName,
@@ -185,7 +185,8 @@ func IsRemountRequiredError(err error) bool {
 
 type actualStateOfWorld struct {
 	// nodeName is the name of this node. This value is passed to Attach/Detach
-	nodeName string
+	nodeName types.NodeName
+
 	// attachedVolumes is a map containing the set of volumes the kubelet volume
 	// manager believes to be successfully attached to this node. Volume types
 	// that do not implement an attacher interface are assumed to be in this
@@ -193,6 +194,7 @@ type actualStateOfWorld struct {
 	// The key in this map is the name of the volume and the value is an object
 	// containing more information about the attached volume.
 	attachedVolumes map[api.UniqueVolumeName]attachedVolume
+
 	// volumePluginMgr is the volume plugin manager used to create volume
 	// plugin objects.
 	volumePluginMgr *volume.VolumePluginMgr
@@ -271,12 +273,12 @@ type mountedPod struct {
 }
 
 func (asw *actualStateOfWorld) MarkVolumeAsAttached(
-	volumeName api.UniqueVolumeName, volumeSpec *volume.Spec, _, devicePath string) error {
+	volumeName api.UniqueVolumeName, volumeSpec *volume.Spec, _ types.NodeName, devicePath string) error {
 	return asw.addVolume(volumeName, volumeSpec, devicePath)
 }
 
 func (asw *actualStateOfWorld) MarkVolumeAsDetached(
-	volumeName api.UniqueVolumeName, nodeName string) {
+	volumeName api.UniqueVolumeName, nodeName types.NodeName) {
 	asw.DeleteVolume(volumeName)
 }
 
@@ -296,11 +298,11 @@ func (asw *actualStateOfWorld) MarkVolumeAsMounted(
 		volumeGidValue)
 }
 
-func (asw *actualStateOfWorld) AddVolumeToReportAsAttached(volumeName api.UniqueVolumeName, nodeName string) {
+func (asw *actualStateOfWorld) AddVolumeToReportAsAttached(volumeName api.UniqueVolumeName, nodeName types.NodeName) {
 	// no operation for kubelet side
 }
 
-func (asw *actualStateOfWorld) RemoveVolumeFromReportAsAttached(volumeName api.UniqueVolumeName, nodeName string) error {
+func (asw *actualStateOfWorld) RemoveVolumeFromReportAsAttached(volumeName api.UniqueVolumeName, nodeName types.NodeName) error {
 	// no operation for kubelet side
 	return nil
 }
@@ -369,7 +371,6 @@ func (asw *actualStateOfWorld) addVolume(
 	} else {
 		// If volume object already exists, update the fields such as device path
 		volumeObj.devicePath = devicePath
-		volumeObj.spec = volumeSpec
 		glog.V(2).Infof("Volume %q is already added to attachedVolume list, update device path %q",
 			volumeName,
 			devicePath)

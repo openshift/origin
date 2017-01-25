@@ -2,9 +2,12 @@ package errors
 
 import (
 	"fmt"
+	"os"
+
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
-// Common STI errors
+// Common S2I errors
 const (
 	InspectImageError int = 1 + iota
 	PullImageError
@@ -24,7 +27,7 @@ const (
 	EmptyGitRepositoryError
 )
 
-// Error represents an error thrown during STI execution
+// Error represents an error thrown during S2I execution
 type Error struct {
 	Message    string
 	Details    error
@@ -243,4 +246,39 @@ func NewEmptyGitRepositoryError(source string) error {
 		ErrorCode:  EmptyGitRepositoryError,
 		Suggestion: "Either commit files to the Git repository, remove the .git directory from the project, or use --copy to ignore the repository.",
 	}
+}
+
+// glog is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using glog
+var glog = utilglog.StderrLog
+
+// CheckError checks input error.
+// 1. if the input error is nil, the function does nothing but return.
+// 2. if the input error is a kind of Error which is thrown during S2I execution,
+// the function handle it with Suggestion and Details.
+// 3. if the input error is a kind of system Error which is unknown, the function exit with 1.
+func CheckError(err error) {
+	if err == nil {
+		return
+	}
+
+	if e, ok := err.(Error); ok {
+		glog.Errorf("An error occurred: %v", e)
+		glog.Errorf("Suggested solution: %v", e.Suggestion)
+		if e.Details != nil {
+			glog.V(1).Infof("Details: %v", e.Details)
+		}
+		glog.Error("If the problem persists consult the docs at https://github.com/openshift/source-to-image/tree/master/docs. " +
+			"Eventually reach us on freenode #openshift or file an issue at https://github.com/openshift/source-to-image/issues " +
+			"providing us with a log from your build using --loglevel=3")
+		os.Exit(e.ErrorCode)
+	} else {
+		glog.Errorf("An error occurred: %v", err)
+		os.Exit(1)
+	}
+}
+
+// UsageError checks command usage error.
+func UsageError(msg string) error {
+	return fmt.Errorf("%s", msg)
 }

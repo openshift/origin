@@ -22,7 +22,11 @@ This command is appropriate for running manual rollouts. If you want full contro
 .SH OPTIONS
 .PP
 \fB\-\-again\fP=false
-    Deploy the current pod template without updating state from triggers
+    If true, deploy the current pod template without updating state from triggers
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -69,6 +73,10 @@ This command is appropriate for running manual rollouts. If you want full contro
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

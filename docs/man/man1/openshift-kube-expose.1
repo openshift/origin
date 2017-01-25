@@ -16,20 +16,20 @@ openshift kube expose \- Take a replication controller, service, deployment or p
 Expose a resource as a new Kubernetes service.
 
 .PP
-Looks up a deployment, service, replica set, replication controller or pod by name and uses the selector
-for that resource as the selector for a new service on the specified port. A deployment or replica set
-will be exposed as a service only if its selector is convertible to a selector that service supports,
-i.e. when the selector contains only the matchLabels component. Note that if no port is specified via
-\-\-port and the exposed resource has multiple ports, all will be re\-used by the new service. Also if no
-labels are specified, the new service will re\-use the labels from the resource it exposes.
+Looks up a deployment, service, replica set, replication controller or pod by name and uses the selector for that resource as the selector for a new service on the specified port. A deployment or replica set will be exposed as a service only if its selector is convertible to a selector that service supports, i.e. when the selector contains only the matchLabels component. Note that if no port is specified via \-\-port and the exposed resource has multiple ports, all will be re\-used by the new service. Also if no labels are specified, the new service will re\-use the labels from the resource it exposes.
 
 .PP
 Possible resources include (case insensitive):
-pod (po), service (svc), replicationcontroller (rc),
-deployment (deploy), replicaset (rs)
+
+.PP
+pod (po), service (svc), replicationcontroller (rc), deployment (deploy), replicaset (rs)
 
 
 .SH OPTIONS
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
 .PP
 \fB\-\-cluster\-ip\fP=""
     ClusterIP to be assigned to the service. Leave empty to auto\-allocate, or set to 'None' to create a headless service.
@@ -52,7 +52,7 @@ deployment (deploy), replicaset (rs)
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to expose a service
+    Filename, directory, or URL to files identifying the resource to expose a service
 
 .PP
 \fB\-\-generator\fP="service/v2"
@@ -165,6 +165,10 @@ deployment (deploy), replicaset (rs)
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -250,7 +254,7 @@ deployment (deploy), replicaset (rs)
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -258,7 +262,7 @@ deployment (deploy), replicaset (rs)
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -374,27 +378,26 @@ deployment (deploy), replicaset (rs)
 .RS
 
 .nf
-
-# Create a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000.
-kubectl expose rc nginx \-\-port=80 \-\-target\-port=8000
-
-# Create a service for a replication controller identified by type and name specified in "nginx\-controller.yaml", which serves on port 80 and connects to the containers on port 8000.
-kubectl expose \-f nginx\-controller.yaml \-\-port=80 \-\-target\-port=8000
-
-# Create a service for a pod valid\-pod, which serves on port 444 with the name "frontend"
-kubectl expose pod valid\-pod \-\-port=444 \-\-name=frontend
-
-# Create a second service based on the above service, exposing the container port 8443 as port 443 with the name "nginx\-https"
-kubectl expose service nginx \-\-port=443 \-\-target\-port=8443 \-\-name=nginx\-https
-
-# Create a service for a replicated streaming application on port 4100 balancing UDP traffic and named 'video\-stream'.
-kubectl expose rc streamer \-\-port=4100 \-\-protocol=udp \-\-name=video\-stream
-
-# Create a service for a replicated nginx using replica set, which serves on port 80 and connects to the containers on port 8000.
-kubectl expose rs nginx \-\-port=80 \-\-target\-port=8000
-
-# Create a service for an nginx deployment, which serves on port 80 and connects to the containers on port 8000.
-kubectl expose deployment nginx \-\-port=80 \-\-target\-port=8000
+  # Create a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000.
+  kubectl expose rc nginx \-\-port=80 \-\-target\-port=8000
+  
+  # Create a service for a replication controller identified by type and name specified in "nginx\-controller.yaml", which serves on port 80 and connects to the containers on port 8000.
+  kubectl expose \-f nginx\-controller.yaml \-\-port=80 \-\-target\-port=8000
+  
+  # Create a service for a pod valid\-pod, which serves on port 444 with the name "frontend"
+  kubectl expose pod valid\-pod \-\-port=444 \-\-name=frontend
+  
+  # Create a second service based on the above service, exposing the container port 8443 as port 443 with the name "nginx\-https"
+  kubectl expose service nginx \-\-port=443 \-\-target\-port=8443 \-\-name=nginx\-https
+  
+  # Create a service for a replicated streaming application on port 4100 balancing UDP traffic and named 'video\-stream'.
+  kubectl expose rc streamer \-\-port=4100 \-\-protocol=udp \-\-name=video\-stream
+  
+  # Create a service for a replicated nginx using replica set, which serves on port 80 and connects to the containers on port 8000.
+  kubectl expose rs nginx \-\-port=80 \-\-target\-port=8000
+  
+  # Create a service for an nginx deployment, which serves on port 80 and connects to the containers on port 8000.
+  kubectl expose deployment nginx \-\-port=80 \-\-target\-port=8000
 
 .fi
 .RE

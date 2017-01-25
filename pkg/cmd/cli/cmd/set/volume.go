@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -17,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	kresource "k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -129,6 +131,7 @@ type VolumeOptions struct {
 type AddVolumeOptions struct {
 	Type          string
 	MountPath     string
+	DefaultMode   string
 	Overwrite     bool
 	Path          string
 	ConfigMapName string
@@ -171,18 +174,19 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 		},
 	}
 	cmd.Flags().StringVarP(&opts.Selector, "selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&opts.All, "all", false, "select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&opts.Filenames, "filename", "f", opts.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-	cmd.Flags().BoolVar(&opts.Add, "add", false, "Add volume and/or volume mounts for containers")
-	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "Remove volume and/or volume mounts for containers")
-	cmd.Flags().BoolVar(&opts.List, "list", false, "List volumes and volume mounts for containers")
+	cmd.Flags().BoolVar(&opts.Add, "add", false, "If true, add volume and/or volume mounts for containers")
+	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "If true, remove volume and/or volume mounts for containers")
+	cmd.Flags().BoolVar(&opts.List, "list", false, "If true, list volumes and volume mounts for containers")
 
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Name of the volume. If empty, auto generated for add operation")
 	cmd.Flags().StringVarP(&opts.Containers, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "Confirm that you really want to remove multiple volumes")
+	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, confirm that you really want to remove multiple volumes")
 
 	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
+	cmd.Flags().StringVarP(&addOpts.DefaultMode, "default-mode", "", "", "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
 	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source and/or volume mount for the given resource")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
 	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
@@ -280,21 +284,40 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 		if len(a.Type) > 0 {
 			switch strings.ToLower(a.Type) {
 			case "emptydir":
+				if len(a.DefaultMode) > 0 {
+					return errors.New("--default-mode is only available for secrets and configmaps")
+				}
 			case "hostpath":
 				if len(a.Path) == 0 {
 					return errors.New("must provide --path for --type=hostPath")
+				}
+				if len(a.DefaultMode) > 0 {
+					return errors.New("--default-mode is only available for secrets and configmaps")
 				}
 			case "secret":
 				if len(a.SecretName) == 0 {
 					return errors.New("must provide --secret-name for --type=secret")
 				}
+				if len(a.DefaultMode) > 0 {
+					if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
+						return errors.New("--default-mode must be between 0000 and 0777")
+					}
+				}
 			case "configmap":
 				if len(a.ConfigMapName) == 0 {
 					return errors.New("must provide --configmap-name for --type=configmap")
 				}
+				if len(a.DefaultMode) > 0 {
+					if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
+						return errors.New("--default-mode must be between 0000 and 0777")
+					}
+				}
 			case "persistentvolumeclaim", "pvc":
 				if len(a.ClaimName) == 0 && len(a.ClaimSize) == 0 {
 					return errors.New("must provide --claim-name or --claim-size (to create a new claim) for --type=pvc")
+				}
+				if len(a.DefaultMode) > 0 {
+					return errors.New("--default-mode is only available for secrets and configmaps")
 				}
 			default:
 				return errors.New("invalid volume type. Supported types: emptyDir, hostPath, secret, persistentVolumeClaim")
@@ -343,7 +366,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	_, _, kc, err := f.Clients()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -353,7 +376,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	if len(v.Output) > 0 {
@@ -368,7 +391,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Err = errOut
 	v.Mapper = mapper
 	v.Typer = typer
-	v.RESTClientFactory = f.Factory.ClientForMapping
+	v.RESTClientFactory = f.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = f.JSONEncoder()
 
@@ -386,6 +409,9 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 			return fmt.Errorf("--claim-size is not valid: %v", err)
 		}
 		v.AddOpts.ClaimSize = q.String()
+	}
+	if len(v.AddOpts.DefaultMode) == 0 {
+		v.AddOpts.DefaultMode = "644"
 	}
 	switch strings.ToLower(v.AddOpts.ClaimMode) {
 	case strings.ToLower(string(kapi.ReadOnlyMany)), "rom":
@@ -406,13 +432,13 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.ExplicitNamespace, false, v.Filenames...).
+		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
 		SelectorParam(v.Selector).
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
 
-	singular := false
-	infos, err := b.Do().IntoSingular(&singular).Infos()
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 	if err != nil {
 		return err
 	}
@@ -447,7 +473,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		updateInfos = append(updateInfos, info)
 	}
 
-	patches, patchError := v.getVolumeUpdatePatches(infos, singular)
+	patches, patchError := v.getVolumeUpdatePatches(infos, singleItemImplied)
 
 	if patchError != nil {
 		return patchError
@@ -503,7 +529,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	return nil
 }
 
-func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular bool) ([]*Patch, error) {
+func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
 	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
@@ -511,7 +537,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 			var e error
 			switch {
 			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singular)
+				e = v.addVolumeToSpec(spec, info, singleItemImplied)
 				transformed = true
 			case v.Remove:
 				e = v.removeVolumeFromSpec(spec, info)
@@ -524,7 +550,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular 
 		}
 		return transformed, err
 	})
-	if singular && skipped == len(infos) {
+	if singleItemImplied && skipped == len(infos) {
 		patchError := fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 		return patches, patchError
 	}
@@ -540,14 +566,26 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 			Path: opts.Path,
 		}
 	case "secret":
+		defaultMode, err := strconv.ParseUint(opts.DefaultMode, 8, 32)
+		if err != nil {
+			return err
+		}
+		defaultMode32 := int32(defaultMode)
 		kv.Secret = &kapi.SecretVolumeSource{
-			SecretName: opts.SecretName,
+			SecretName:  opts.SecretName,
+			DefaultMode: &defaultMode32,
 		}
 	case "configmap":
+		defaultMode, err := strconv.ParseUint(opts.DefaultMode, 8, 32)
+		if err != nil {
+			return err
+		}
+		defaultMode32 := int32(defaultMode)
 		kv.ConfigMap = &kapi.ConfigMapVolumeSource{
 			LocalObjectReference: kapi.LocalObjectReference{
 				Name: opts.ConfigMapName,
 			},
+			DefaultMode: &defaultMode32,
 		}
 	case "persistentvolumeclaim", "pvc":
 		kv.PersistentVolumeClaim = &kapi.PersistentVolumeClaimVolumeSource{

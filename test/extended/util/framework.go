@@ -23,16 +23,16 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/unversioned"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/selection"
-	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -302,6 +302,8 @@ type BuildResult struct {
 	BuildSuccess bool
 	// BuildFailure is true if the build was finished with an error.
 	BuildFailure bool
+	// BuildCancelled is true if the build was canceled.
+	BuildCancelled bool
 	// BuildTimeout is true if there was a timeout waiting for the build to finish.
 	BuildTimeout bool
 	// The openshift client which created this build.
@@ -340,8 +342,8 @@ func (t *BuildResult) DumpLogs() {
 
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	ExamineDiskUsage()
-	ExaminePodDiskUsage(t.oc)
+	//ExamineDiskUsage()
+	//ExaminePodDiskUsage(t.oc)
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 }
@@ -354,7 +356,7 @@ func (t *BuildResult) Logs() (string, error) {
 
 	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
 	if err != nil {
-		return "", fmt.Errorf("Error retieving logs for %#v: %v", *t, err)
+		return "", fmt.Errorf("Error retrieving logs for %#v: %v", *t, err)
 	}
 
 	return buildOuput, nil
@@ -400,6 +402,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 		BuildAttempt:     false,
 		BuildSuccess:     false,
 		BuildFailure:     false,
+		BuildCancelled:   false,
 		BuildTimeout:     false,
 		oc:               oc,
 	}
@@ -428,6 +431,11 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 			result.BuildFailure = CheckBuildFailedFn(b)
 			return result.BuildFailure
 		},
+		func(b *buildapi.Build) bool {
+			result.Build = b
+			result.BuildCancelled = CheckBuildCancelledFn(b)
+			return result.BuildCancelled
+		},
 	)
 
 	if result.Build == nil {
@@ -436,14 +444,24 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	}
 
 	result.BuildAttempt = true
-	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess)
+	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
 	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", buildPath, *result)
 	return result, nil
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
-func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*buildapi.Build) bool) error {
+func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
+	if isOK == nil {
+		isOK = CheckBuildSuccessFn
+	}
+	if isFailed == nil {
+		isFailed = CheckBuildFailedFn
+	}
+	if isCanceled == nil {
+		isCanceled = CheckBuildCancelledFn
+	}
+
 	// wait 2 minutes for build to exist
 	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
 		if _, err := c.Get(name); err != nil {
@@ -464,7 +482,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 			return false, err
 		}
 		for i := range list.Items {
-			if name == list.Items[i].Name && isOK(&list.Items[i]) {
+			if name == list.Items[i].Name && (isOK(&list.Items[i]) || isCanceled(&list.Items[i])) {
 				return true, nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
@@ -487,6 +505,11 @@ var CheckBuildSuccessFn = func(b *buildapi.Build) bool {
 // CheckBuildFailedFn return true if the build failed
 var CheckBuildFailedFn = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
+}
+
+// CheckBuildCancelledFn return true if the build was canceled
+var CheckBuildCancelledFn = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseCancelled
 }
 
 // WaitForBuilderAccount waits until the builder service account gets fully
@@ -668,7 +691,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 	// waitForDeployment waits until okOrFailed returns true or the done
 	// channel is closed.
 	waitForDeployment := func() (err error, retry bool) {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, selection.Equals, sets.NewString(name))
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, selection.Equals, []string{name})
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err), false
 		}
@@ -811,7 +834,7 @@ func WaitForRegistry(
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, sets.NewString(fmt.Sprintf("docker-registry-%d", latestVersion)))
+	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{fmt.Sprintf("docker-registry-%d", latestVersion)})
 	pods, err := WaitForPods(kubeClient.Core().Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
 	now := time.Now()
 	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
@@ -1215,4 +1238,44 @@ func GetPodForImage(dockerImageReference string) *kapi.Pod {
 		Name:  "test",
 		Image: dockerImageReference,
 	})
+}
+
+// CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
+// vessel for kubectl exec commands.
+// Returns the name of the created pod.
+// TODO: expose upstream
+func CreateExecPodOrFail(client kcoreclient.CoreInterface, ns, name string) string {
+	framework.Logf("Creating new exec pod")
+	execPod := framework.NewHostExecPodSpec(ns, name)
+	created, err := client.Pods(ns).Create(execPod)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		if err != nil {
+			return false, nil
+		}
+		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return created.Name
+}
+
+// CreateExecPodOnNode launches a exec pod in the given namespace and node
+// waits until it's Running, created pod name would be returned
+// TODO: expose upstream
+func CreateExecPodOnNode(client kcoreclient.CoreInterface, ns, nodeName, name string) string {
+	framework.Logf("Creating exec pod %q in namespace %q", name, ns)
+	execPod := framework.NewHostExecPodSpec(ns, name)
+	execPod.Spec.NodeName = nodeName
+	created, err := client.Pods(ns).Create(execPod)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		if err != nil {
+			return false, nil
+		}
+		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return created.Name
 }

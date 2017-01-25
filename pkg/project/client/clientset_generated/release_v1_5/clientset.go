@@ -6,26 +6,38 @@ import (
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	_ "k8s.io/kubernetes/plugin/pkg/client/auth"
 )
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	Core() v1core.CoreInterface
+	CoreV1() v1core.CoreV1Interface
+	// Deprecated: please explicitly pick a version if possible.
+	Core() v1core.CoreV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*v1core.CoreClient
+	*v1core.CoreV1Client
 }
 
-// Core retrieves the CoreClient
-func (c *Clientset) Core() v1core.CoreInterface {
+// CoreV1 retrieves the CoreV1Client
+func (c *Clientset) CoreV1() v1core.CoreV1Interface {
 	if c == nil {
 		return nil
 	}
-	return c.CoreClient
+	return c.CoreV1Client
+}
+
+// Deprecated: Core retrieves the default version of CoreClient.
+// Please explicitly pick a version.
+func (c *Clientset) Core() v1core.CoreV1Interface {
+	if c == nil {
+		return nil
+	}
+	return c.CoreV1Client
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -41,7 +53,7 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 	}
 	var clientset Clientset
 	var err error
-	clientset.CoreClient, err = v1core.NewForConfig(&configShallowCopy)
+	clientset.CoreV1Client, err = v1core.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -58,16 +70,16 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *restclient.Config) *Clientset {
 	var clientset Clientset
-	clientset.CoreClient = v1core.NewForConfigOrDie(c)
+	clientset.CoreV1Client = v1core.NewForConfigOrDie(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &clientset
 }
 
 // New creates a new Clientset for the given RESTClient.
-func New(c *restclient.RESTClient) *Clientset {
+func New(c restclient.Interface) *Clientset {
 	var clientset Clientset
-	clientset.CoreClient = v1core.New(c)
+	clientset.CoreV1Client = v1core.New(c)
 
 	clientset.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &clientset

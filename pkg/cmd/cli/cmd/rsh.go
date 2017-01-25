@@ -16,14 +16,18 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const RshRecommendedName = "rsh"
+const (
+	RshRecommendedName = "rsh"
+	DefaultShell       = "/bin/sh"
+)
 
 var (
 	rshLong = templates.LongDesc(`
 		Open a remote shell session to a container
 
 		This command will attempt to start a shell session in a pod for the specified resource.
-		It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
+		It works with pods, deployment configs, deployments, jobs, daemon sets, replication controllers
+		and replica sets.
 		Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
 		It will default to the first container if none is specified, and will attempt to use
 		'/bin/sh' as the default shell. You may pass any flags supported by this command before
@@ -93,7 +97,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	}
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
-	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/sh", "Path to the shell command")
+	cmd.Flags().StringVar(&options.Executable, "shell", DefaultShell, "Path to the shell command")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", 10, "Request timeout for obtaining a pod from the server; defaults to 10 seconds")
 	cmd.Flags().StringVarP(&options.ContainerName, "container", "c", "", "Container name; defaults to first container")
 	cmd.Flags().SetInterspersed(false)
@@ -136,11 +140,11 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 	o.Config = config
 
-	client, err := f.Client()
+	client, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	o.Client = client
+	o.PodClient = client
 
 	o.PodName, err = f.PodForResource(resource, time.Duration(o.Timeout)*time.Second)
 	return err
@@ -154,8 +158,9 @@ func (o *RshOptions) Validate() error {
 // Run starts a remote shell session on the server
 func (o *RshOptions) Run() error {
 	// Insert the TERM into the command to be run
-	term := fmt.Sprintf("TERM=%s", util.Env("TERM", "xterm"))
-	o.Command = append([]string{"env", term}, o.Command...)
-
+	if len(o.Command) == 1 && o.Command[0] == DefaultShell {
+		termsh := fmt.Sprintf("TERM=%q %s", util.Env("TERM", "xterm"), DefaultShell)
+		o.Command = append(o.Command, "-c", termsh)
+	}
 	return o.ExecOptions.Run()
 }

@@ -34,7 +34,7 @@ type SelectionFields struct {
 
 // clusterQuotaMapper gives thread safe access to the actual mappings that are being stored.
 // Many method use a shareable read lock to check status followed by a non-shareable
-// write lock which double checks the condition before proceding.  Since locks aren't escalatable
+// write lock which double checks the condition before proceeding.  Since locks aren't escalatable
 // you have to perform the recheck because someone could have beaten you in.
 type clusterQuotaMapper struct {
 	lock sync.RWMutex
@@ -133,8 +133,13 @@ func (m *clusterQuotaMapper) removeQuota(quotaName string) {
 	delete(m.requiredQuotaToSelector, quotaName)
 	delete(m.completedQuotaToSelector, quotaName)
 	delete(m.quotaToNamespaces, quotaName)
-	for _, quotas := range m.namespaceToQuota {
-		quotas.Delete(quotaName)
+	for namespaceName, quotas := range m.namespaceToQuota {
+		if quotas.Has(quotaName) {
+			quotas.Delete(quotaName)
+			for _, listener := range m.listeners {
+				listener.RemoveMapping(quotaName, namespaceName)
+			}
+		}
 	}
 }
 
@@ -176,8 +181,13 @@ func (m *clusterQuotaMapper) removeNamespace(namespaceName string) {
 	delete(m.requiredNamespaceToLabels, namespaceName)
 	delete(m.completedNamespaceToLabels, namespaceName)
 	delete(m.namespaceToQuota, namespaceName)
-	for _, namespaces := range m.quotaToNamespaces {
-		namespaces.Delete(namespaceName)
+	for quotaName, namespaces := range m.quotaToNamespaces {
+		if namespaces.Has(namespaceName) {
+			namespaces.Delete(namespaceName)
+			for _, listener := range m.listeners {
+				listener.RemoveMapping(quotaName, namespaceName)
+			}
+		}
 	}
 }
 

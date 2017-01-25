@@ -36,6 +36,10 @@ CA=openshift.local.config/master
     The certificate file. Choose a name that indicates what the service is.
 
 .PP
+\fB\-\-expire\-days\fP=730
+    Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-hostnames\fP=[]
     Every hostname or IP you want server certs to be valid for. Comma delimited list
 
@@ -68,6 +72,10 @@ CA=openshift.local.config/master
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

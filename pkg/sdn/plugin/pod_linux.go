@@ -68,7 +68,7 @@ func getBandwidth(pod *kapi.Pod) (string, string, error) {
 func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 	privileged := false
 	for _, container := range pod.Spec.Containers {
-		if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
 			privileged = true
 			break
 		}
@@ -91,11 +91,9 @@ func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.
 	var err error
 
 	config := &PodConfig{}
-	if m.multitenant {
-		config.vnid, err = m.vnids.GetVNID(req.PodNamespace)
-		if err != nil {
-			return nil, nil, err
-		}
+	config.vnid, err = m.policy.GetVNID(req.PodNamespace)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
@@ -362,7 +360,7 @@ func (m *podManager) ipamGarbageCollection() {
 }
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubehostport.RunningPod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
 	podConfig, pod, err := m.getPodConfig(req)
 	if err != nil {
 		return nil, nil, err
@@ -395,7 +393,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 	}()
 
 	// Open any hostports the pod wants
-	newPod := &kubehostport.RunningPod{Pod: pod, IP: podIP}
+	newPod := &kubehostport.ActivePod{Pod: pod, IP: podIP}
 	if err := m.hostportHandler.OpenPodHostportsAndSync(newPod, TUN, m.getRunningPods()); err != nil {
 		return nil, nil, err
 	}
@@ -449,8 +447,14 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 		return nil, nil, err
 	}
 
+	ofport, err := m.ovs.GetOFPort(hostVeth.Attrs().Name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	m.policy.RefVNID(podConfig.vnid)
 	success = true
-	return ipamResult, newPod, nil
+	return ipamResult, &runningPod{activePod: newPod, vnid: podConfig.vnid, ofport: ofport}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -462,26 +466,26 @@ func (m *podManager) getContainerNetnsPath(id string) (string, error) {
 }
 
 // Update OVS flows when something (like the pod's namespace VNID) changes
-func (m *podManager) update(req *cniserver.PodRequest) error {
+func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
 	// Updates may come at startup and thus we may not have the pod's
 	// netns from kubelet (since kubelet doesn't have UPDATE actions).
 	// Read the missing netns from the pod's file.
 	if req.Netns == "" {
 		netns, err := m.getContainerNetnsPath(req.ContainerId)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		req.Netns = netns
 	}
 
-	podConfig, _, err := m.getPodConfig(req)
+	podConfig, pod, err := m.getPodConfig(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	vnidStr := vnidToString(podConfig.vnid)
@@ -489,12 +493,24 @@ func (m *podManager) update(req *cniserver.PodRequest) error {
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
-		return fmt.Errorf("error running network update script: %s", getScriptError(out))
+		return nil, fmt.Errorf("error running network update script: %s", getScriptError(out))
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	ofport, err := m.ovs.GetOFPort(hostVethName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runningPod{
+		activePod: &kubehostport.ActivePod{
+			Pod: pod,
+			IP:  net.ParseIP(podIP),
+		},
+		vnid:   podConfig.vnid,
+		ofport: ofport,
+	}, nil
 }
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
@@ -521,6 +537,10 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 			return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
 		} else if err != nil {
 			return err
+		}
+
+		if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
+			m.policy.UnrefVNID(vnid)
 		}
 	}
 

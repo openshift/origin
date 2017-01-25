@@ -71,14 +71,12 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Example: fmt.Sprintf(buildChainExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(f, cmd, args, out))
-
 			cmdutil.CheckErr(options.Validate())
-
 			cmdutil.CheckErr(options.RunBuildChain())
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
+	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "If true, build dependency tree for the specified image stream tag across all namespaces")
 	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
 	cmd.Flags().BoolVar(&options.reverse, "reverse", false, "If true, show the istags dependencies instead of its dependants.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")
@@ -92,14 +90,14 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 
 	// Setup client
-	oc, _, _, err := f.Clients()
+	oc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
 	o.c, o.t = oc, oc
 
 	resource := unversioned.GroupResource{}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err

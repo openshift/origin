@@ -42,7 +42,7 @@ type CreateDeploymentConfigOptions struct {
 	Printer      ObjectPrinter
 }
 
-// NewCmdCreateServiceAccount is a macro command to create a new service account
+// NewCmdCreateDeploymentConfig is a macro command to create a new deployment config.
 func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &CreateDeploymentConfigOptions{Out: out}
 
@@ -105,12 +105,12 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 		return err
 	}
 
-	o.Client, _, _, err = f.Clients()
+	o.Client, _, err = f.Clients()
 	if err != nil {
 		return err
 	}
 
-	o.Mapper, _ = f.Object(false)
+	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {

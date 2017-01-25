@@ -5,11 +5,12 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation/path"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -81,7 +82,7 @@ func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAcc
 }
 
 func ValidatePolicyName(name string, prefix bool) []string {
-	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+	if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
@@ -137,7 +138,7 @@ func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizat
 
 func PolicyBindingNameValidator(policyRefNamespace string) validation.ValidateNameFunc {
 	return func(name string, prefix bool) []string {
-		if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 			return reasons
 		}
 
@@ -227,7 +228,7 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorLis
 }
 
 func validateRole(role *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
-	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))
 }
 
 func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) field.ErrorList {
@@ -259,7 +260,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 
 func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))...)
 
 	// roleRef namespace is empty when referring to global policy.
 	if (len(roleBinding.RoleRef.Namespace) > 0) && len(kvalidation.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace)) != 0 {
@@ -269,7 +270,7 @@ func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	if len(roleBinding.RoleRef.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("roleRef", "name"), ""))
 	} else {
-		if reasons := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); len(reasons) != 0 {
+		if reasons := path.ValidatePathSegmentName(roleBinding.RoleRef.Name, false); len(reasons) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "name"), roleBinding.RoleRef.Name, strings.Join(reasons, ", ")))
 		}
 	}
@@ -345,6 +346,109 @@ func ValidateRoleBindingUpdate(roleBinding *authorizationapi.RoleBinding, oldRol
 
 	if oldRoleBinding.RoleRef != roleBinding.RoleRef {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("roleRef"), roleBinding.RoleRef, "cannot change roleRef"))
+	}
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&rbr.ObjectMeta, true,
+		validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+
+	allErrs = append(allErrs,
+		ValidateRoleBindingRestrictionSpec(&rbr.Spec, field.NewPath("spec"))...)
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestrictionUpdate(rbr, old *authorizationapi.RoleBindingRestriction) field.ErrorList {
+	allErrs := ValidateRoleBindingRestriction(rbr)
+
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&rbr.ObjectMeta,
+		&old.ObjectMeta, field.NewPath("metadata"))...)
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestrictionSpec(spec *authorizationapi.RoleBindingRestrictionSpec, fld *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	const invalidMsg = `must specify exactly one of userrestriction, grouprestriction, or serviceaccountrestriction`
+
+	if spec.UserRestriction != nil {
+		if spec.GroupRestriction != nil {
+			allErrs = append(allErrs, field.Invalid(fld.Child("grouprestriction"),
+				"both userrestriction and grouprestriction specified", invalidMsg))
+		}
+		if spec.ServiceAccountRestriction != nil {
+			allErrs = append(allErrs,
+				field.Invalid(fld.Child("serviceaccountrestriction"),
+					"both userrestriction and serviceaccountrestriction specified", invalidMsg))
+		}
+	} else if spec.GroupRestriction != nil {
+		if spec.ServiceAccountRestriction != nil {
+			allErrs = append(allErrs,
+				field.Invalid(fld.Child("serviceaccountrestriction"),
+					"both grouprestriction and serviceaccountrestriction specified", invalidMsg))
+		}
+	} else if spec.ServiceAccountRestriction == nil {
+		allErrs = append(allErrs, field.Required(fld.Child("userrestriction"),
+			invalidMsg))
+	}
+
+	if spec.UserRestriction != nil {
+		allErrs = append(allErrs, ValidateRoleBindingRestrictionUser(spec.UserRestriction, fld.Child("userrestriction"))...)
+	}
+	if spec.GroupRestriction != nil {
+		allErrs = append(allErrs, ValidateRoleBindingRestrictionGroup(spec.GroupRestriction, fld.Child("grouprestriction"))...)
+	}
+	if spec.ServiceAccountRestriction != nil {
+		allErrs = append(allErrs, ValidateRoleBindingRestrictionServiceAccount(spec.ServiceAccountRestriction, fld.Child("serviceaccountrestriction"))...)
+	}
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestrictionUser(user *authorizationapi.UserRestriction, fld *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	const invalidMsg = `must specify at least one user, group, or label selector`
+
+	if !(len(user.Users) > 0 || len(user.Groups) > 0 || len(user.Selectors) > 0) {
+		allErrs = append(allErrs, field.Required(fld.Child("users"), invalidMsg))
+	}
+
+	for i, selector := range user.Selectors {
+		allErrs = append(allErrs,
+			unversionedvalidation.ValidateLabelSelector(&selector,
+				fld.Child("selector").Index(i))...)
+	}
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestrictionGroup(group *authorizationapi.GroupRestriction, fld *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	const invalidMsg = `must specify at least one group or label selector`
+
+	if !(len(group.Groups) > 0 || len(group.Selectors) > 0) {
+		allErrs = append(allErrs, field.Required(fld.Child("groups"), invalidMsg))
+	}
+
+	for i, selector := range group.Selectors {
+		allErrs = append(allErrs,
+			unversionedvalidation.ValidateLabelSelector(&selector,
+				fld.Child("selector").Index(i))...)
+	}
+
+	return allErrs
+}
+
+func ValidateRoleBindingRestrictionServiceAccount(sa *authorizationapi.ServiceAccountRestriction, fld *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	const invalidMsg = `must specify at least one service account or namespace`
+
+	if !(len(sa.ServiceAccounts) > 0 || len(sa.Namespaces) > 0) {
+		allErrs = append(allErrs,
+			field.Required(fld.Child("serviceaccounts"), invalidMsg))
 	}
 
 	return allErrs

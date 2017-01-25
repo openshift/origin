@@ -19,7 +19,7 @@ import (
 const PolicyBindingRecommendedName = "policybinding"
 
 var (
-	policyBindingLong = templates.LongDesc(`Create a policy binding that references the policy in the targetted namespace.`)
+	policyBindingLong = templates.LongDesc(`Create a policy binding that references the policy in the targeted namespace.`)
 
 	policyBindingExample = templates.Examples(`
 		# Create a policy binding in namespace "foo" that references the policy in namespace "bar"
@@ -40,13 +40,13 @@ type CreatePolicyBindingOptions struct {
 
 type ObjectPrinter func(runtime.Object, io.Writer) error
 
-// NewCmdCreateServiceAccount is a macro command to create a new service account
+// NewCmdCreatePolicyBinding is a macro command to create a new policy binding.
 func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &CreatePolicyBindingOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:     name + " TARGET_POLICY_NAMESPACE",
-		Short:   "Create a policy binding that references the policy in the targetted namespace.",
+		Short:   "Create a policy binding that references the policy in the targeted namespace.",
 		Long:    policyBindingLong,
 		Example: fmt.Sprintf(policyBindingExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -71,13 +71,13 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
-	client, _, _, err := f.Clients()
+	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
 	o.BindingClient = client
 
-	o.Mapper, _ = f.Object(false)
+	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {

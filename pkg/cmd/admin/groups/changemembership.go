@@ -95,7 +95,7 @@ func (o *GroupModificationOptions) Complete(f *clientcmd.Factory, args []string)
 	o.Group = args[0]
 	o.Users = append(o.Users, args[1:]...)
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

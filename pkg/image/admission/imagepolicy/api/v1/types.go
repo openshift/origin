@@ -46,7 +46,7 @@ type ImageExecutionPolicyRule struct {
 
 // GroupResource represents a resource in a specific group.
 type GroupResource struct {
-	// Resource is the name of an admission resource to process, e.g. 'petsets'.
+	// Resource is the name of an admission resource to process, e.g. 'statefulsets'.
 	Resource string `json:"resource"`
 	// Group is the name of the group the resource is in, e.g. 'apps'.
 	Group string `json:"group"`
@@ -58,7 +58,7 @@ type GroupResource struct {
 type ImageCondition struct {
 	// Name is the name of this policy rule for reference. It must be unique across all rules.
 	Name string `json:"name"`
-	// IgnoreNamespaceOverride prevents this condition from being overriden when the
+	// IgnoreNamespaceOverride prevents this condition from being overridden when the
 	// `alpha.image.policy.openshift.io/ignore-rules` is set on a namespace and contains this rule name.
 	IgnoreNamespaceOverride bool `json:"ignoreNamespaceOverride"`
 

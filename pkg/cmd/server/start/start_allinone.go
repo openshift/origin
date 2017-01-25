@@ -19,10 +19,11 @@ import (
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -33,7 +34,9 @@ type AllInOneOptions struct {
 
 	NodeArgs *NodeArgs
 
-	ConfigDir          util.StringFlag
+	ExpireDays         int
+	SignerExpireDays   int
+	ConfigDir          flag.StringFlag
 	NodeConfigFile     string
 	PrintIP            bool
 	ServiceNetworkCIDR string
@@ -63,7 +66,14 @@ var allInOneLong = templates.LongDesc(`
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{Output: out, MasterOptions: &MasterOptions{Output: out}}
+	options := &AllInOneOptions{
+		MasterOptions: &MasterOptions{
+			Output: out,
+		},
+		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+		Output:           out,
+	}
 	options.MasterOptions.DefaultsFromName(basename)
 
 	cmds := &cobra.Command{
@@ -100,6 +110,8 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	flags.BoolVar(&options.MasterOptions.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created.")
 	flags.BoolVar(&options.PrintIP, "print-ip", false, "Print the IP that would be used if no master IP is specified and exit.")
 	flags.StringVar(&options.ServiceNetworkCIDR, "portal-net", NewDefaultNetworkArgs().ServiceNetworkCIDR, "The CIDR string representing the network that portal/service IPs will be assigned from. This must not overlap with any IP ranges assigned to nodes for pods.")
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
+	flags.IntVar(&options.SignerExpireDays, "signer-expire-days", options.SignerExpireDays, "Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterOptions.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
@@ -194,6 +206,13 @@ func (o AllInOneOptions) Validate(args []string) error {
 		return errors.New("all-in-one cannot start with a remote Kubernetes server, start the master instead")
 	}
 
+	if o.ExpireDays < 0 {
+		return errors.New("expire-days must be valid number of days")
+	}
+	if o.SignerExpireDays < 0 {
+		return errors.New("signer-expire-days must be valid number of days")
+	}
+
 	return nil
 }
 
@@ -268,11 +287,18 @@ func (o AllInOneOptions) StartAllInOne() error {
 		return nil
 	}
 	masterOptions := *o.MasterOptions
+	masterOptions.ExpireDays = o.ExpireDays
+	masterOptions.SignerExpireDays = o.SignerExpireDays
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
-	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile, o.MasterOptions.Output}
+	nodeOptions := NodeOptions{
+		NodeArgs:   o.NodeArgs,
+		ExpireDays: o.ExpireDays,
+		ConfigFile: o.NodeConfigFile,
+		Output:     o.MasterOptions.Output,
+	}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}

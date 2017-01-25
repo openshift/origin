@@ -1,0 +1,5 @@
+{"status":"The push refers to a repository [localhost:5000/busybox]"}
+{"status":"Preparing","progressDetail":{},"id":"e88b3f82283b"}
+{"status":"Layer already exists","progressDetail":{},"id":"e88b3f82283b"}
+{"status":"latest: digest: sha256:29f5d56d12684887bdfa50dcd29fc31eea4aaf4ad3bec43daf19026a7ce69912 size: 527"}
+{"progressDetail":{},"aux":{"Tag":"latest","Digest":"sha256:29f5d56d12684887bdfa50dcd29fc31eea4aaf4ad3bec43daf19026a7ce69912","Size":527}}

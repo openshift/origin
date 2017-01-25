@@ -32,7 +32,11 @@ Another use case for export is to create reusable templates for applications. Pa
 
 .PP
 \fB\-\-all\-namespaces\fP=false
-    If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
+    If true, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-\-as\-template\fP=""
@@ -40,7 +44,7 @@ Another use case for export is to create reusable templates for applications. Pa
 
 .PP
 \fB\-\-exact\fP=false
-    Preserve fields that may be cluster specific, such as service clusterIPs or generated names
+    If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
@@ -95,6 +99,10 @@ Another use case for export is to create reusable templates for applications. Pa
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

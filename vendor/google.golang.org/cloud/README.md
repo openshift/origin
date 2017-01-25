@@ -46,7 +46,7 @@ application to run in many environments without requiring explicit configuration
 Manually-configured authorization can be achieved using the
 [`golang.org/x/oauth2`](https://godoc.org/golang.org/x/oauth2) package to
 create an `oauth2.TokenSource`. This token source can be passed to the `NewClient`
-function for the relevant API using a
+function for the relevant API using a 
 [`cloud.WithTokenSource`][https://godoc.org/google.golang.org/cloud#WithTokenSource]
 option.
 

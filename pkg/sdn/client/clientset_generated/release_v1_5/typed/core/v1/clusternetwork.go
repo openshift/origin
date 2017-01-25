@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type ClusterNetworksGetter interface {
 type ClusterNetworkInterface interface {
 	Create(*v1.ClusterNetwork) (*v1.ClusterNetwork, error)
 	Update(*v1.ClusterNetwork) (*v1.ClusterNetwork, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.ClusterNetwork, error)
-	List(opts api.ListOptions) (*v1.ClusterNetworkList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.ClusterNetworkList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.ClusterNetwork, err error)
 	ClusterNetworkExpansion
 }
 
 // clusterNetworks implements ClusterNetworkInterface
 type clusterNetworks struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newClusterNetworks returns a ClusterNetworks
-func newClusterNetworks(c *CoreClient, namespace string) *clusterNetworks {
+func newClusterNetworks(c *CoreV1Client, namespace string) *clusterNetworks {
 	return &clusterNetworks{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *clusterNetworks) Update(clusterNetwork *v1.ClusterNetwork) (result *v1.
 }
 
 // Delete takes name of the clusterNetwork and deletes it. Returns an error if one occurs.
-func (c *clusterNetworks) Delete(name string, options *api.DeleteOptions) error {
+func (c *clusterNetworks) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -76,7 +78,7 @@ func (c *clusterNetworks) Delete(name string, options *api.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterNetworks) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *clusterNetworks) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -99,7 +101,7 @@ func (c *clusterNetworks) Get(name string) (result *v1.ClusterNetwork, err error
 }
 
 // List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
-func (c *clusterNetworks) List(opts api.ListOptions) (result *v1.ClusterNetworkList, err error) {
+func (c *clusterNetworks) List(opts api_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
 	result = &v1.ClusterNetworkList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *clusterNetworks) List(opts api.ListOptions) (result *v1.ClusterNetworkL
 }
 
 // Watch returns a watch.Interface that watches the requested clusterNetworks.
-func (c *clusterNetworks) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *clusterNetworks) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

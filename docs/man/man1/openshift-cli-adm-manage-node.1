@@ -30,6 +30,10 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     Show pods that will be migrated. Optional param for \-\-evacuate
 
@@ -102,6 +106,10 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

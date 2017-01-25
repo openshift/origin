@@ -102,7 +102,7 @@ Experimental: This command is under active development and may change without no
 .SH OPTIONS
 .PP
 \fB\-\-all\-namespaces\fP=false
-    If present, list the requested object(s) across all projects. Project in current context is ignored.
+    If true, list the requested object(s) across all projects. Project in current context is ignored.
 
 .PP
 \fB\-a\fP, \fB\-\-argument\fP=""
@@ -110,7 +110,7 @@ Experimental: This command is under active development and may change without no
 
 .PP
 \fB\-d\fP, \fB\-\-delete\fP=""
-    A command to run when resources are deleted. Specify mulitple times to add arguments.
+    A command to run when resources are deleted. Specify multiple times to add arguments.
 
 .PP
 \fB\-\-exit\-after\fP=0
@@ -130,7 +130,7 @@ Experimental: This command is under active development and may change without no
 
 .PP
 \fB\-\-no\-headers\fP=false
-    Skip printing information about each event prior to executing the command.
+    If true, skip printing information about each event prior to executing the command.
 
 .PP
 \fB\-\-object\-env\-var\fP=""
@@ -138,7 +138,7 @@ Experimental: This command is under active development and may change without no
 
 .PP
 \fB\-\-once\fP=false
-    Exit with a status code 0 after all current objects have been processed.
+    If true, exit with a status code 0 after all current objects have been processed.
 
 .PP
 \fB\-\-output\fP="jsonpath"
@@ -146,7 +146,7 @@ Experimental: This command is under active development and may change without no
 
 .PP
 \fB\-\-print\-metrics\-on\-exit\fP=false
-    On exit write all metrics to stdout.
+    If true, on exit write all metrics to stdout.
 
 .PP
 \fB\-\-resync\-period\fP=0
@@ -177,6 +177,10 @@ Experimental: This command is under active development and may change without no
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

@@ -6,7 +6,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -22,26 +23,26 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	podList := &kapi.PodList{}
 
 	fake := &testclient.Fake{}
-	fake.PrependReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.PrependReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
-	kFake := &ktestclient.Fake{}
-	kFake.PrependReactor("list", "horizontalpodautoscalers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kFake := kfake.NewSimpleClientset()
+	kFake.PrependReactor("list", "horizontalpodautoscalers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &autoscaling.HorizontalPodAutoscalerList{
 			Items: []autoscaling.HorizontalPodAutoscaler{
 				*deployapitest.OkHPAForDeploymentConfig(config, 1, 3),
 			}}, nil
 	})
-	kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kFake.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deployment, nil
 	})
-	kFake.PrependReactor("list", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kFake.PrependReactor("list", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.ReplicationControllerList{}, nil
 	})
-	kFake.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kFake.PrependReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, podList, nil
 	})
-	kFake.PrependReactor("list", "events", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	kFake.PrependReactor("list", "events", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.EventList{}, nil
 	})
 

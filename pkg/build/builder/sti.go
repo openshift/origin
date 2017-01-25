@@ -4,15 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
@@ -24,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 var (
@@ -62,10 +59,9 @@ func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validati
 
 // S2IBuilder performs an STI build given the build object
 type S2IBuilder struct {
-	builder   builderFactory
-	validator validator
-	gitClient GitClient
-
+	builder      builderFactory
+	validator    validator
+	gitClient    GitClient
 	dockerClient DockerClient
 	dockerSocket string
 	build        *api.Build
@@ -103,10 +99,6 @@ func (s *S2IBuilder) Build() error {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
-	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
-	if contextDir == "." || contextDir == "/" {
-		contextDir = ""
-	}
 	buildDir, err := ioutil.TempDir("", "s2i-build")
 	if err != nil {
 		return err
@@ -114,20 +106,6 @@ func (s *S2IBuilder) Build() error {
 	srcDir := filepath.Join(buildDir, s2iapi.Source)
 	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
 		return err
-	}
-	tmpDir := filepath.Join(buildDir, "tmp")
-	if err = os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return err
-	}
-
-	download := &downloader{
-		s:       s,
-		in:      os.Stdin,
-		timeout: initialURLCheckTimeout,
-
-		dir:        srcDir,
-		contextDir: contextDir,
-		tmpDir:     tmpDir,
 	}
 
 	var push bool
@@ -139,20 +117,30 @@ func (s *S2IBuilder) Build() error {
 		push = true
 	}
 	pushTag := s.build.Status.OutputDockerImageReference
-	git := s.build.Spec.Source.Git
 
-	var ref string
-	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
-		len(s.build.Spec.Revision.Git.Commit) != 0 {
-		ref = s.build.Spec.Revision.Git.Commit
-	} else if git != nil && len(git.Ref) != 0 {
-		ref = git.Ref
+	// fetch source
+	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
+	if err != nil {
+		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
+		s.build.Status.Message = api.StatusMessageFetchSourceFailed
+		handleBuildStatusUpdate(s.build, s.client, nil)
+		return err
 	}
-
-	sourceURI := &url.URL{
-		Scheme:   "file",
-		Path:     srcDir,
-		Fragment: ref,
+	if len(s.build.Spec.Source.ContextDir) > 0 {
+		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		if contextDir == "." || contextDir == "/" {
+			contextDir = ""
+		}
+		if sourceInfo != nil {
+			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
+		}
+		srcDir = filepath.Join(srcDir, s.build.Spec.Source.ContextDir)
+	}
+	download := &downloader{}
+	if sourceInfo != nil {
+		download.sourceInfo = &sourceInfo.SourceInfo
+		revision := updateBuildRevision(s.build, sourceInfo)
+		handleBuildStatusUpdate(s.build, s.client, revision)
 	}
 
 	injections := s2iapi.VolumeList{}
@@ -181,10 +169,12 @@ func (s *S2IBuilder) Build() error {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
 	config := &s2iapi.Config{
-		WorkingDir:     buildDir,
-		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
-		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
-		LabelNamespace: api.DefaultDockerLabelNamespace,
+		// Save some processing time by not cleaning up (the container will go away anyway)
+		PreserveWorkingDir: true,
+		WorkingDir:         buildDir,
+		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
+		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
+		LabelNamespace:     api.DefaultDockerLabelNamespace,
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
@@ -192,15 +182,17 @@ func (s *S2IBuilder) Build() error {
 		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
-		Environment:       buildEnvVars(s.build),
+		Environment:       buildEnvVars(s.build, sourceInfo),
 		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:                    sourceURI.String(),
-		Tag:                       buildTag,
-		ContextDir:                s.build.Spec.Source.ContextDir,
+		Source:     srcDir,
+		ForceCopy:  true,
+		Injections: injections,
+
+		Tag: buildTag,
+
 		CGroupLimits:              s.cgLimits,
-		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
 	}
@@ -256,10 +248,11 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
-		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(buildInfo.FailureReason.Reason, buildInfo.FailureReason.Message)
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
+			buildInfo.FailureReason.Reason,
+			buildInfo.FailureReason.Message,
+		)
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
@@ -268,10 +261,12 @@ func (s *S2IBuilder) Build() error {
 	// steps
 	result, err := builder.Build(config)
 	if err != nil {
-		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(result.BuildInfo.FailureReason.Reason, result.BuildInfo.FailureReason.Message)
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
+			result.BuildInfo.FailureReason.Reason,
+			result.BuildInfo.FailureReason.Message,
+		)
+		handleBuildStatusUpdate(s.build, s.client, nil)
+
 		return err
 	}
 
@@ -282,9 +277,7 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
@@ -312,15 +305,21 @@ func (s *S2IBuilder) Build() error {
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 
 		timeStart = time.Now()
-		err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+    digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		
 		s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PushImageToRegistryStep, timeStart)
+
 		if err != nil {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
-			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-			}
+			handleBuildStatusUpdate(s.build, s.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
+		}
+		if len(digest) > 0 {
+			s.build.Status.Output.To = &api.BuildStatusOutputTo{
+				ImageDigest: digest,
+			}
+			handleBuildStatusUpdate(s.build, s.client, nil)
 		}
 		glog.V(0).Infof("Push successful")
 	}
@@ -328,59 +327,15 @@ func (s *S2IBuilder) Build() error {
 }
 
 type downloader struct {
-	s       *S2IBuilder
-	in      io.Reader
-	timeout time.Duration
-
-	dir        string
-	contextDir string
-	tmpDir     string
+	sourceInfo *s2iapi.SourceInfo
 }
 
+// Download no-ops (because we already downloaded the source to the right location)
+// and returns the previously computed sourceInfo for the source.
 func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
-	var targetDir string
-	if len(d.contextDir) > 0 {
-		targetDir = d.tmpDir
-	} else {
-		targetDir = d.dir
-	}
+	config.WorkingSourceDir = config.Source
 
-	// fetch source
-	timeStart := time.Now()
-	sourceInfo, err := fetchSource(d.s.dockerClient, targetDir, d.s.build, d.timeout, d.in, d.s.gitClient)
-	d.s.build.Status.StepInfo = AddBuildStepInfo(d.s.build.Status.StepInfo, api.FetchSourceStep, timeStart)
-	if err != nil {
-		d.s.build.Status.Reason = api.StatusReasonFetchSourceFailed
-		d.s.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
-		return nil, err
-	}
-	if sourceInfo != nil {
-		revision := updateBuildRevision(d.s.build, sourceInfo)
-		if updateErr := retryBuildStatusUpdate(d.s.build, d.s.client, revision); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
-	}
-	if sourceInfo != nil {
-		sourceInfo.ContextDir = config.ContextDir
-	}
-
-	// if a context dir is provided, move the context dir contents into the src location
-	if len(d.contextDir) > 0 {
-		srcDir := filepath.Join(targetDir, d.contextDir)
-		if err := os.Remove(d.dir); err != nil {
-			return nil, err
-		}
-		if err := os.Rename(srcDir, d.dir); err != nil {
-			return nil, err
-		}
-	}
-	if sourceInfo != nil {
-		return &sourceInfo.SourceInfo, nil
-	}
-	return nil, nil
+	return d.sourceInfo, nil
 }
 
 // buildEnvVars returns a map with build metadata to be inserted into Docker
@@ -391,8 +346,8 @@ func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error)
 // 2. In case of repeated Keys, the last Value takes precedence right here,
 //    instead of deferring what to do with repeated environment variables to the
 //    Docker runtime.
-func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
-	bi := buildInfo(build)
+func buildEnvVars(build *api.Build, sourceInfo *git.SourceInfo) s2iapi.EnvironmentList {
+	bi := buildInfo(build, sourceInfo)
 	envVars := &s2iapi.EnvironmentList{}
 	for _, item := range bi {
 		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))

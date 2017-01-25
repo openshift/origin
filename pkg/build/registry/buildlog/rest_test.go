@@ -2,7 +2,6 @@ package buildlog
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -37,6 +37,21 @@ func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, erro
 		pod = mockPod(kapi.PodUnknown, name)
 	}
 	return pod, nil
+}
+
+type fakeConnectionInfoGetter struct{}
+
+func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+	rt, err := kubeletclient.MakeTransport(&kubeletclient.KubeletClientConfig{})
+	if err != nil {
+		return nil, err
+	}
+	return &kubeletclient.ConnectionInfo{
+		Scheme:    "https",
+		Hostname:  "foo-host",
+		Port:      "12345",
+		Transport: rt,
+	}, nil
 }
 
 // TestRegistryResourceLocation tests if proper resource location URL is returner
@@ -132,7 +147,7 @@ func TestWaitForBuild(t *testing.T) {
 			Getter:         watcher,
 			Watcher:        watcher,
 			PodGetter:      &testPodGetter{},
-			ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+			ConnectionInfo: &fakeConnectionInfoGetter{},
 			Timeout:        defaultTimeout,
 		}
 		go func() {
@@ -167,7 +182,7 @@ func TestWaitForBuildTimeout(t *testing.T) {
 		Getter:         watcher,
 		Watcher:        watcher,
 		PodGetter:      &testPodGetter{},
-		ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        100 * time.Millisecond,
 	}
 	_, err := storage.Get(ctx, build.Name, &api.BuildLogOptions{})
@@ -209,7 +224,7 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 	storage := &REST{
 		Getter:         internal,
 		PodGetter:      &testPodGetter{},
-		ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        defaultTimeout,
 	}
 	getter := rest.GetterWithOptions(storage)
@@ -290,7 +305,7 @@ func TestPreviousBuildLogs(t *testing.T) {
 	storage := &REST{
 		Getter:         internal,
 		PodGetter:      &anotherTestPodGetter{},
-		ConnectionInfo: &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        defaultTimeout,
 	}
 	getter := rest.GetterWithOptions(storage)

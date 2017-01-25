@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Building and releasing Guestbook Image
 
 This process employs building two docker images, one compiles the source and the other hosts the compiled binaries.
@@ -23,13 +18,6 @@ If you want to, you can build and push the image step by step:
     make clean
     make build
     make push
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

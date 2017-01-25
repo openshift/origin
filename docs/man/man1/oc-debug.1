@@ -31,7 +31,7 @@ The debug pod is deleted when the the remote command completes or the user inter
 .SH OPTIONS
 .PP
 \fB\-\-as\-root\fP=false
-    Try to run the container as the root user
+    If true, try to run the container as the root user
 
 .PP
 \fB\-\-as\-user\fP=\-1
@@ -47,7 +47,7 @@ The debug pod is deleted when the the remote command completes or the user inter
 
 .PP
 \fB\-\-keep\-annotations\fP=false
-    Keep the original pod annotations
+    If true, keep the original pod annotations
 
 .PP
 \fB\-\-keep\-init\-containers\fP=true
@@ -55,11 +55,11 @@ The debug pod is deleted when the the remote command completes or the user inter
 
 .PP
 \fB\-\-keep\-liveness\fP=false
-    Keep the original pod liveness probes
+    If true, keep the original pod liveness probes
 
 .PP
 \fB\-\-keep\-readiness\fP=false
-    Keep the original pod readiness probes
+    If true, keep the original pod readiness probes
 
 .PP
 \fB\-I\fP, \fB\-\-no\-stdin\fP=false
@@ -75,7 +75,7 @@ The debug pod is deleted when the the remote command completes or the user inter
 
 .PP
 \fB\-\-one\-container\fP=false
-    Run only the selected container, remove all others
+    If true, run only the selected container, remove all others
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
@@ -105,6 +105,10 @@ The debug pod is deleted when the the remote command completes or the user inter
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

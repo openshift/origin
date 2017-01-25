@@ -115,7 +115,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().StringVarP(&options.Container, "container", "c", options.Container, "The name of the container in the selected deployment config to use for the deployment hook")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter deployment configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "Select all deployment configs in the namespace")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all deployment configs in the namespace")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified deployment hook(s).")
@@ -158,11 +158,11 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		return err
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, o.Filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		Flatten()
 	if !o.Local {
 		o.Builder = o.Builder.
@@ -243,9 +243,9 @@ func (o *DeploymentHookOptions) Validate() error {
 
 func (o *DeploymentHookOptions) Run() error {
 	infos := o.Infos
-	singular := len(o.Infos) <= 1
+	singleItemImplied := len(o.Infos) <= 1
 	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingular(&singular).Infos()
+		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func (o *DeploymentHookOptions) Run() error {
 		return updated, err
 	})
 
-	if singular && len(patches) == 0 {
+	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or does not have an applicable strategy", infos[0].Mapping.Resource, infos[0].Name)
 	}
 

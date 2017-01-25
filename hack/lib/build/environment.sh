@@ -22,12 +22,19 @@ function os::build::environment::create() {
     elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
       # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
       # successive iterations can reuse shared code.
+      os::log::debug "Re-using volume ${OS_BUILD_ENV_REUSE_VOLUME}"
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
       name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
       docker volume create --name "${name}" > /dev/null
       additional_context+=" -v ${name}:${workingdir}"
     fi
+  fi
+
+  if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
+    additional_context+=" -e OS_VERSION_FILE=/tmp/os-version-defs"
+  else
+    additional_context+=" -e OS_VERSION_FILE="
   fi
 
   local args
@@ -37,7 +44,9 @@ function os::build::environment::create() {
     args=( "$@" )
   fi
 
-  # Create a new container to from the release environment
+  os::log::debug "Creating container: \`docker create ${additional_context} ${release_image} ${args[*]}\`"
+
+  # Create a new container from the release environment
   docker create ${additional_context} "${release_image}" "${args[@]}"
 }
 readonly -f os::build::environment::create
@@ -60,8 +69,10 @@ readonly -f os::build::environment::release::workingdir
 # (unless OS_BUILD_ENV_LEAVE_CONTAINER is set, in which case it will only stop the container).
 function os::build::environment::cleanup() {
   local container=$1
+  os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
+    os::log::debug "Removing container ${container}"
     docker rm "${container}" > /dev/null
   fi
 }
@@ -72,11 +83,15 @@ readonly -f os::build::environment::cleanup
 function os::build::environment::start() {
   local container=$1
 
+  os::log::debug "Starting container ${container}"
   docker start "${container}" > /dev/null
+  os::log::debug "Following container logs"
   docker logs -f "${container}"
 
   local exitcode
   exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
+
+  os::log::debug "Container exited with ${exitcode}"
 
   # extract content from the image
   if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
@@ -90,6 +105,7 @@ function os::build::environment::start() {
         parent="$( dirname "${path}" )"
         mkdir -p "${parent}"
       fi
+      os::log::debug "Copying from ${container}:${workingdir}/${path} to ${parent}"
       docker cp "${container}:${workingdir}/${path}" "${parent}"
     done
     IFS="${oldIFS}"
@@ -106,38 +122,43 @@ function os::build::environment::withsource() {
   local commit=${2:-HEAD}
 
   if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER-}" ]]; then
-    # running locally, no change necessary
-    os::build::get_version_vars
-    os::build::save_version_vars "${OS_ROOT}/os-version-defs"
-  else
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    if [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
-      local excluded=()
-      local oldIFS="${IFS}"
-      IFS=:
-      for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
-        excluded+=("--exclude=${exclude}")
-      done
-      IFS="${oldIFS}"
-      if which rsync &>/dev/null; then
-        local name
-        name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-        if ! rsync -a --blocking-io "${excluded[@]}" --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
-          # fall back to a tar if rsync is not in container
-          tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
-        fi
-      else
-        tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
-      fi
-    else
-      # Generate version definitions. Tree state is clean because we are pulling from git directly.
-      OS_GIT_TREE_STATE=clean os::build::get_version_vars
-      os::build::save_version_vars "/tmp/os-version-defs"
+    os::build::environment::start "${container}"
+    return
+  fi
 
-      tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
-      git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+  local workingdir
+  workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+
+  if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
+    # Generate version definitions. Tree state is clean because we are pulling from git directly.
+    OS_GIT_TREE_STATE=clean os::build::get_version_vars
+    os::build::save_version_vars "/tmp/os-version-defs"
+
+    os::log::debug "Generating source code archive"
+    tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:/tmp"
+    git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+    os::build::environment::start "${container}"
+    return
+  fi
+
+  local excluded=()
+  local oldIFS="${IFS}"
+  IFS=:
+  for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
+    excluded+=("--exclude=${exclude}")
+  done
+  IFS="${oldIFS}"
+  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
+    local name
+    name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
+    os::log::debug "Syncing source using \`rsync\`"
+    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+      os::log::debug "Falling back to \`tar\` and \`docker cp\` as \`rsync\` is not in container"
+      tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
     fi
+  else
+    os::log::debug "Syncing source using \`tar\` and \`docker cp\`"
+    tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
   fi
 
   os::build::environment::start "${container}"
@@ -153,9 +174,14 @@ function os::build::environment::run() {
     volume="origin-build-$( git rev-parse "${commit}" )"
   fi
 
+  os::log::debug "Using commit ${commit}"
+  os::log::debug "Using volume ${volume}"
+
   local container
   container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
+
+  os::log::debug "Using container ${container}"
 
   os::build::environment::withsource "${container}" "${commit}"
 }

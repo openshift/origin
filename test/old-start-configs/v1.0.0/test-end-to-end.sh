@@ -296,12 +296,13 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-# COMPATIBILITY add --service-account parameter
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
+# COMPATIBILITY remove --credentials parameter
+openshift admin router --create --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+# COMPATIBILITY remove --credentials parameter
+openshift admin registry --create --images="${USE_IMAGES}"
 
 echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 docker pull centos/ruby-22-centos7:latest

@@ -7,18 +7,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -38,7 +37,6 @@ type DockerBuilder struct {
 	gitClient    GitClient
 	tar          tar.Tar
 	build        *api.Build
-	urlTimeout   time.Duration
 	client       client.BuildInterface
 	cgLimits     *s2iapi.CGroupLimits
 }
@@ -49,8 +47,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		dockerClient: dockerClient,
 		build:        build,
 		gitClient:    gitClient,
-		tar:          tar.New(),
-		urlTimeout:   initialURLCheckTimeout,
+		tar:          tar.New(s2iutil.NewFileSystem()),
 		client:       buildsClient,
 		cgLimits:     cgLimits,
 	}
@@ -70,26 +67,24 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
+
 	timeStart = time.Now()
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, d.urlTimeout, os.Stdin, d.gitClient)
+  sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	d.build.Status.StepInfo = AddBuildStepInfo(d.build.Status.StepInfo, api.FetchSourceStep, timeStart)
+  
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
 
 	if sourceInfo != nil {
 		glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
 		revision := updateBuildRevision(d.build, sourceInfo)
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, revision); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(d.build, d.client, revision)
 	}
-	if err = d.addBuildParameters(buildDir); err != nil {
+	if err = d.addBuildParameters(buildDir, sourceInfo); err != nil {
 		return err
 	}
 
@@ -131,9 +126,7 @@ func (d *DockerBuilder) Build() error {
 			if err = pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
 				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
 				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
-				if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
-					utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-				}
+				handleBuildStatusUpdate(d.build, d.client, nil)
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
 		}
@@ -142,9 +135,7 @@ func (d *DockerBuilder) Build() error {
 	if err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
 		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
 		d.build.Status.Message = api.StatusMessageDockerBuildFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
 
@@ -154,9 +145,7 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
-		if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
 
@@ -180,13 +169,18 @@ func (d *DockerBuilder) Build() error {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
+		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
+		if err != nil {
 			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			d.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
-			if updateErr := retryBuildStatusUpdate(d.build, d.client, nil); updateErr != nil {
-				utilruntime.HandleError(fmt.Errorf("error: An error occured while updating the build status: %v", updateErr))
-			}
+			handleBuildStatusUpdate(d.build, d.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
+		}
+		if len(digest) > 0 {
+			d.build.Status.Output.To = &api.BuildStatusOutputTo{
+				ImageDigest: digest,
+			}
+			handleBuildStatusUpdate(d.build, d.client, nil)
 		}
 		glog.V(0).Infof("Push successful")
 	}
@@ -218,7 +212,7 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables and labels in the Dockerfile.
-func (d *DockerBuilder) addBuildParameters(dir string) error {
+func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInfo) error {
 	dockerfilePath := d.getDockerfilePath(dir)
 	node, err := parseDockerfile(dockerfilePath)
 	if err != nil {
@@ -239,13 +233,13 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	// Append build info as environment variables.
-	err = appendEnv(node, d.buildInfo())
+	err = appendEnv(node, d.buildEnv(sourceInfo))
 	if err != nil {
 		return err
 	}
 
 	// Append build labels.
-	err = appendLabel(node, d.buildLabels(dir))
+	err = appendLabel(node, d.buildLabels(sourceInfo))
 	if err != nil {
 		return err
 	}
@@ -266,10 +260,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	return ioutil.WriteFile(dockerfilePath, instructions, fi.Mode())
 }
 
-// buildInfo converts the buildInfo output to a format that appendEnv can
+// buildEnv converts the buildInfo output to a format that appendEnv can
 // consume.
-func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
-	bi := buildInfo(d.build)
+func (d *DockerBuilder) buildEnv(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
+	bi := buildInfo(d.build, sourceInfo)
 	kv := make([]dockerfile.KeyValue, len(bi))
 	for i, item := range bi {
 		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
@@ -279,18 +273,10 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 
 // buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
 // consume.
-func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
+func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
 	labels := map[string]string{}
-	// TODO: allow source info to be overridden by build
-	sourceInfo := &git.SourceInfo{}
-	if d.build.Spec.Source.Git != nil {
-		var errors []error
-		sourceInfo, errors = d.gitClient.GetInfo(dir)
-		if len(errors) > 0 {
-			for _, e := range errors {
-				glog.V(0).Infof("warning: Unable to retrieve Git info: %v", e.Error())
-			}
-		}
+	if sourceInfo == nil {
+		sourceInfo = &git.SourceInfo{}
 	}
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir

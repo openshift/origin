@@ -22,6 +22,10 @@ Create a self\-signed CA key/cert for signing certificates used by server compon
     The certificate file.
 
 .PP
+\fB\-\-expire\-days\fP=1825
+    Validity of the certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.
+
+.PP
 \fB\-\-key\fP="openshift.local.config/master/ca.key"
     The key file.
 
@@ -46,6 +50,10 @@ Create a self\-signed CA key/cert for signing certificates used by server compon
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

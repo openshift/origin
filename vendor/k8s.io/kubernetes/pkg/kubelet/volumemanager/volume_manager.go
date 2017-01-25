@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/populator"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/reconciler"
+	k8stypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -48,9 +49,9 @@ const (
 	// between successive executions
 	reconcilerLoopSleepPeriod time.Duration = 100 * time.Millisecond
 
-	// reconcilerReconstructSleepPeriod is the amount of time the reconciler reconstruct process
+	// reconcilerSyncStatesSleepPeriod is the amount of time the reconciler reconstruct process
 	// waits between successive executions
-	reconcilerReconstructSleepPeriod time.Duration = 3 * time.Minute
+	reconcilerSyncStatesSleepPeriod time.Duration = 3 * time.Minute
 
 	// desiredStateOfWorldPopulatorLoopSleepPeriod is the amount of time the
 	// DesiredStateOfWorldPopulator loop waits between successive executions
@@ -114,7 +115,7 @@ type VolumeManager interface {
 	// from annotations on persistent volumes that the pod depends on.
 	GetExtraSupplementalGroupsForPod(pod *api.Pod) []int64
 
-	// Returns a list of all volumes that implement the volume.Attacher
+	// GetVolumesInUse returns a list of all volumes that implement the volume.Attacher
 	// interface and are currently in use according to the actual and desired
 	// state of the world caches. A volume is considered "in use" as soon as it
 	// is added to the desired state of world, indicating it *should* be
@@ -124,6 +125,11 @@ type VolumeManager interface {
 	// TODO(#27653): VolumesInUse should be handled gracefully on kubelet'
 	// restarts.
 	GetVolumesInUse() []api.UniqueVolumeName
+
+	// ReconcilerStatesHasBeenSynced returns true only after the actual states in reconciler
+	// has been synced at least once after kubelet starts so that it is safe to update mounted
+	// volume list retrieved from actual state.
+	ReconcilerStatesHasBeenSynced() bool
 
 	// VolumeIsAttached returns true if the given volume is attached to this
 	// node.
@@ -143,33 +149,35 @@ type VolumeManager interface {
 //   Must be pre-initialized.
 func NewVolumeManager(
 	controllerAttachDetachEnabled bool,
-	hostName string,
+	nodeName k8stypes.NodeName,
 	podManager pod.Manager,
 	kubeClient internalclientset.Interface,
 	volumePluginMgr *volume.VolumePluginMgr,
 	kubeContainerRuntime kubecontainer.Runtime,
 	mounter mount.Interface,
 	kubeletPodsDir string,
-	recorder record.EventRecorder) (VolumeManager, error) {
+	recorder record.EventRecorder,
+	checkNodeCapabilitiesBeforeMount bool) (VolumeManager, error) {
 
 	vm := &volumeManager{
 		kubeClient:          kubeClient,
 		volumePluginMgr:     volumePluginMgr,
 		desiredStateOfWorld: cache.NewDesiredStateOfWorld(volumePluginMgr),
-		actualStateOfWorld:  cache.NewActualStateOfWorld(hostName, volumePluginMgr),
+		actualStateOfWorld:  cache.NewActualStateOfWorld(nodeName, volumePluginMgr),
 		operationExecutor: operationexecutor.NewOperationExecutor(
 			kubeClient,
 			volumePluginMgr,
-			recorder),
+			recorder,
+			checkNodeCapabilitiesBeforeMount),
 	}
 
 	vm.reconciler = reconciler.NewReconciler(
 		kubeClient,
 		controllerAttachDetachEnabled,
 		reconcilerLoopSleepPeriod,
-		reconcilerReconstructSleepPeriod,
+		reconcilerSyncStatesSleepPeriod,
 		waitForAttachTimeout,
-		hostName,
+		nodeName,
 		vm.desiredStateOfWorld,
 		vm.actualStateOfWorld,
 		vm.operationExecutor,
@@ -304,6 +312,10 @@ func (vm *volumeManager) GetVolumesInUse() []api.UniqueVolumeName {
 	return volumesToReportInUse
 }
 
+func (vm *volumeManager) ReconcilerStatesHasBeenSynced() bool {
+	return vm.reconciler.StatesHasBeenSynced()
+}
+
 func (vm *volumeManager) VolumeIsAttached(
 	volumeName api.UniqueVolumeName) bool {
 	return vm.actualStateOfWorld.VolumeExists(volumeName)
@@ -345,8 +357,8 @@ func (vm *volumeManager) WaitForAttachAndMount(pod *api.Pod) error {
 
 		return fmt.Errorf(
 			"timeout expired waiting for volumes to attach/mount for pod %q/%q. list of unattached/unmounted volumes=%v",
-			pod.Name,
 			pod.Namespace,
+			pod.Name,
 			ummountedVolumes)
 	}
 

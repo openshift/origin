@@ -64,7 +64,7 @@ func NewCommandValidateNodeConfig(name, fullName string, out io.Writer) *cobra.C
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(options.Out, "SUCCESS: Validation succeded for file: %s\n", options.NodeConfigFile)
+			fmt.Fprintf(options.Out, "SUCCESS: Validation succeeded for file: %s\n", options.NodeConfigFile)
 		},
 	}
 

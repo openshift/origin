@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 
 	"github.com/openshift/origin/pkg/security/uid"
 )

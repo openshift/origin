@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/template/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type TemplatesGetter interface {
 type TemplateInterface interface {
 	Create(*v1.Template) (*v1.Template, error)
 	Update(*v1.Template) (*v1.Template, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Template, error)
-	List(opts api.ListOptions) (*v1.TemplateList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.TemplateList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Template, err error)
 	TemplateExpansion
 }
 
 // templates implements TemplateInterface
 type templates struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newTemplates returns a Templates
-func newTemplates(c *CoreClient, namespace string) *templates {
+func newTemplates(c *CoreV1Client, namespace string) *templates {
 	return &templates{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *templates) Update(template *v1.Template) (result *v1.Template, err erro
 }
 
 // Delete takes name of the template and deletes it. Returns an error if one occurs.
-func (c *templates) Delete(name string, options *api.DeleteOptions) error {
+func (c *templates) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("templates").
@@ -76,7 +78,7 @@ func (c *templates) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *templates) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *templates) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("templates").
@@ -99,7 +101,7 @@ func (c *templates) Get(name string) (result *v1.Template, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Templates that match those selectors.
-func (c *templates) List(opts api.ListOptions) (result *v1.TemplateList, err error) {
+func (c *templates) List(opts api_v1.ListOptions) (result *v1.TemplateList, err error) {
 	result = &v1.TemplateList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *templates) List(opts api.ListOptions) (result *v1.TemplateList, err err
 }
 
 // Watch returns a watch.Interface that watches the requested templates.
-func (c *templates) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *templates) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

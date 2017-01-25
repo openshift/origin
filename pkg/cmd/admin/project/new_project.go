@@ -11,6 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	errorsutil "k8s.io/kubernetes/pkg/util/errors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -55,7 +56,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			}
 
 			var err error
-			if options.Client, _, _, err = f.Clients(); err != nil {
+			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 
@@ -99,8 +100,8 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	project := &projectapi.Project{}
 	project.Name = o.ProjectName
 	project.Annotations = make(map[string]string)
-	project.Annotations[projectapi.ProjectDescription] = o.Description
-	project.Annotations[projectapi.ProjectDisplayName] = o.DisplayName
+	project.Annotations[oapi.OpenShiftDescription] = o.Description
+	project.Annotations[oapi.OpenShiftDisplayName] = o.DisplayName
 	if useNodeSelector {
 		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
 	}

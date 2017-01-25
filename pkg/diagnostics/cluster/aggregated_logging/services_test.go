@@ -48,7 +48,7 @@ func (f *fakeServicesDiagnostic) addServiceNamed(name string) {
 	f.list.Items = append(f.list.Items, kapi.Service{ObjectMeta: meta})
 }
 
-// test error from client
+// Test error from client
 func TestCheckingServicesWhenFailedResponseFromClient(t *testing.T) {
 	d := newFakeServicesDiagnostic(t)
 	d.err = errors.New("an error")

@@ -28,11 +28,11 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/cache"
 	internalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_3"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	controllerframwork "k8s.io/kubernetes/pkg/controller/framework"
-	"k8s.io/kubernetes/pkg/controller/framework/informers"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/controller/replication"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/integration/framework"
@@ -104,7 +104,7 @@ func newMatchingPod(podName, namespace string) *v1.Pod {
 func verifyRemainingObjects(t *testing.T, clientSet clientset.Interface, namespace string, rcNum, podNum int) (bool, error) {
 	rcClient := clientSet.Core().ReplicationControllers(namespace)
 	podClient := clientSet.Core().Pods(namespace)
-	pods, err := podClient.List(api.ListOptions{})
+	pods, err := podClient.List(v1.ListOptions{})
 	if err != nil {
 		return false, fmt.Errorf("Failed to list pods: %v", err)
 	}
@@ -113,7 +113,7 @@ func verifyRemainingObjects(t *testing.T, clientSet clientset.Interface, namespa
 		ret = false
 		t.Logf("expect %d pods, got %d pods", podNum, len(pods.Items))
 	}
-	rcs, err := rcClient.List(api.ListOptions{})
+	rcs, err := rcClient.List(v1.ListOptions{})
 	if err != nil {
 		return false, fmt.Errorf("Failed to list replication controllers: %v", err)
 	}
@@ -124,9 +124,8 @@ func verifyRemainingObjects(t *testing.T, clientSet clientset.Interface, namespa
 	return ret, nil
 }
 
-func rmSetup(t *testing.T, enableGarbageCollector bool) (*httptest.Server, *replication.ReplicationManager, controllerframwork.SharedIndexInformer, clientset.Interface) {
+func rmSetup(t *testing.T, enableGarbageCollector bool) (*httptest.Server, *replication.ReplicationManager, cache.SharedIndexInformer, clientset.Interface) {
 	masterConfig := framework.NewIntegrationTestMasterConfig()
-	masterConfig.EnableCoreControllers = false
 	_, s := framework.RunAMaster(masterConfig)
 
 	config := restclient.Config{Host: s.URL}
@@ -157,7 +156,7 @@ func rmSetup(t *testing.T, enableGarbageCollector bool) (*httptest.Server, *repl
 // wait for the podInformer to observe the pods. Call this function before
 // running the RC manager to prevent the rc manager from creating new pods
 // rather than adopting the existing ones.
-func waitToObservePods(t *testing.T, podInformer controllerframwork.SharedIndexInformer, podNum int) {
+func waitToObservePods(t *testing.T, podInformer cache.SharedIndexInformer, podNum int) {
 	if err := wait.Poll(10*time.Second, 60*time.Second, func() (bool, error) {
 		objects := podInformer.GetIndexer().List()
 		if len(objects) == podNum {

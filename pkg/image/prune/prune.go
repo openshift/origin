@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 
+	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
@@ -55,6 +57,7 @@ type pruneAlgorithm struct {
 	keepTagRevisions   int
 	pruneOverSizeLimit bool
 	namespace          string
+	allImages          bool
 }
 
 // ImageDeleter knows how to remove images from OpenShift.
@@ -103,6 +106,9 @@ type PrunerOptions struct {
 	// PruneOverSizeLimit indicates that images exceeding defined limits (openshift.io/Image)
 	// will be considered as candidates for pruning.
 	PruneOverSizeLimit *bool
+	// AllImages considers all images for pruning, not just those pushed directly to the registry.
+	// Requires RegistryURL be set.
+	AllImages *bool
 	// Namespace to be pruned, if specified it should never remove Images.
 	Namespace string
 	// Images is the entire list of images in OpenShift. An image must be in this
@@ -224,9 +230,10 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 // cluster; otherwise, the pruning algorithm might result in incorrect
 // calculations and premature pruning.
 //
-// The ImageDeleter performs the following logic: remove any image containing the
-// annotation openshift.io/image.managed=true that was created at least *n*
-// minutes ago and is *not* currently referenced by:
+// The ImageDeleter performs the following logic:
+//
+// remove any image that was created at least *n* minutes ago and is *not*
+// currently referenced by:
 //
 // - any pod created less than *n* minutes ago
 // - any image stream created less than *n* minutes ago
@@ -238,22 +245,17 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 // - any builds
 // - the n most recent tag revisions in an image stream's status.tags
 //
+// including only images with the annotation openshift.io/image.managed=true
+// unless allImages is true.
+//
 // When removing an image, remove all references to the image from all
 // ImageStreams having a reference to the image in `status.tags`.
 //
 // Also automatically remove any image layer that is no longer referenced by any
 // images.
 func NewPruner(options PrunerOptions) Pruner {
-	keepTagRevisions := "<nil>"
-	if options.KeepTagRevisions != nil {
-		keepTagRevisions = fmt.Sprintf("%d", *options.KeepTagRevisions)
-	}
-	pruneOverSizeLimit := "<nil>"
-	if options.PruneOverSizeLimit != nil {
-		pruneOverSizeLimit = fmt.Sprintf("%v", *options.PruneOverSizeLimit)
-	}
-	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s",
-		options.KeepYoungerThan, keepTagRevisions, pruneOverSizeLimit)
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%s",
+		options.KeepYoungerThan, getValue(options.KeepTagRevisions), getValue(options.PruneOverSizeLimit), getValue(options.AllImages))
 
 	algorithm := pruneAlgorithm{}
 	if options.KeepYoungerThan != nil {
@@ -264,6 +266,9 @@ func NewPruner(options PrunerOptions) Pruner {
 	}
 	if options.PruneOverSizeLimit != nil {
 		algorithm.pruneOverSizeLimit = *options.PruneOverSizeLimit
+	}
+	if options.AllImages != nil {
+		algorithm.allImages = *options.AllImages
 	}
 	algorithm.namespace = options.Namespace
 
@@ -292,6 +297,13 @@ func NewPruner(options PrunerOptions) Pruner {
 	}
 }
 
+func getValue(option interface{}) string {
+	if v := reflect.ValueOf(option); !v.IsNil() {
+		return fmt.Sprintf("%v", v.Elem())
+	}
+	return "<nil>"
+}
+
 // addImagesToGraph adds all images to the graph that belong to one of the
 // registries in the algorithm and are at least as old as the minimum age
 // threshold as specified by the algorithm. It also adds all the images' layers
@@ -302,13 +314,11 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 
 		glog.V(4).Infof("Examining image %q", image.Name)
 
-		if image.Annotations == nil {
-			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
-			continue
-		}
-		if value, ok := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; !ok || value != "true" {
-			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
-			continue
+		if !algorithm.allImages {
+			if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
+				glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
+				continue
+			}
 		}
 
 		age := unversioned.Now().Sub(image.CreationTimestamp.Time)
@@ -320,7 +330,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
-		if len(image.DockerImageConfig) > 0 {
+		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(image.DockerImageMetadata.ID) > 0 {
 			configName := image.DockerImageMetadata.ID
 			glog.V(4).Infof("Adding image config %q to graph", configName)
 			configNode := imagegraph.EnsureImageComponentConfigNode(g, configName)

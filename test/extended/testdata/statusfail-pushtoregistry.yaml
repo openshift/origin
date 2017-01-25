@@ -1,7 +1,7 @@
 kind: BuildConfig
 apiVersion: v1
 metadata:
-  name: failstatus-pushtoregistry
+  name: statusfail-pushtoregistry
 spec:
   source:
     git:

@@ -11,13 +11,16 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
@@ -284,7 +287,7 @@ func TestImpersonationFilter(t *testing.T) {
 			delegate.ServeHTTP(w, req)
 		})
 	}(config.impersonationFilter(doNothingHandler))
-	handler, _ = kapi.NewRequestContextFilter(config.RequestContextMapper, handler)
+	handler = kapi.WithRequestContext(handler, config.RequestContextMapper)
 
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -361,7 +364,7 @@ var (
 // 1. oc kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
 // 2. oc openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f
 // 3. openshift kubectl kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-// 4. openshit kubectl openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
+// 4. openshift kubectl openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
 // 5. oadm kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
 // 6. oadm openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
 // 7. openshift cli kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
@@ -429,7 +432,9 @@ func TestVersionSkewFilterDenyOld(t *testing.T) {
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 	}
-	server := httptest.NewServer(config.versionSkewFilter(doNothingHandler))
+	requestContextMapper := kapi.NewRequestContextMapper()
+	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
+	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -476,7 +481,9 @@ func TestVersionSkewFilterDenySkewed(t *testing.T) {
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
-	server := httptest.NewServer(config.versionSkewFilter(doNothingHandler))
+	requestContextMapper := kapi.NewRequestContextMapper()
+	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
+	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -526,7 +533,10 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
-	server := httptest.NewServer(config.versionSkewFilter(doNothingHandler))
+
+	requestContextMapper := kapi.NewRequestContextMapper()
+	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
+	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -560,4 +570,13 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	for _, tc := range testCases {
 		tc.Run(server.URL+"/api/v1", t)
 	}
+}
+
+func testHandlerChain(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
+	kgenericconfig := genericapiserver.NewConfig()
+	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
+
+	handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)
+	handler = kapi.WithRequestContext(handler, contextMapper)
+	return handler
 }

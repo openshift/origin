@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"regexp"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -153,8 +153,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	authorizeURL := clientConfig.Host + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token"
-	proxyURL := proxyServer.URL + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token"
+	state := `{"then": "/index.html?a=1&b=2&c=%2F"}`
+	encodedState := (url.Values{"state": []string{state}}).Encode()
+
+	authorizeURL := clientConfig.Host + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token&" + encodedState
+	proxyURL := proxyServer.URL + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token&" + encodedState
 
 	testcases := map[string]struct {
 		transport                http.RoundTripper
@@ -245,14 +248,25 @@ func TestOAuthRequestHeader(t *testing.T) {
 			continue
 		}
 
-		// Extract the access_token
-
-		// group #0 is everything.                      #1                #2     #3
-		accessTokenRedirectRegex := regexp.MustCompile(`(^|&)access_token=([^&]+)($|&)`)
-		accessToken := ""
-		if matches := accessTokenRedirectRegex.FindStringSubmatch(tokenRedirect.Fragment); matches != nil {
-			accessToken = matches[2]
+		// Grab the raw fragment ourselves, since the stdlib URL parsing decodes parts of it
+		fragment := ""
+		if parts := strings.SplitN(authenticatedProxyResponse.Header.Get("Location"), "#", 2); len(parts) == 2 {
+			fragment = parts[1]
 		}
+		// Extract query-encoded values from the fragment
+		fragmentValues, err := url.ParseQuery(fragment)
+		if err != nil {
+			t.Errorf("%s: %v", k, err)
+			continue
+		}
+		// Ensure the state was retrieved correctly
+		returnedState := fragmentValues.Get("state")
+		if returnedState != state {
+			t.Errorf("%s: Expected state\n\t%v\ngot\n\t%v", k, state, returnedState)
+			continue
+		}
+		// Ensure the access_token was retrieved correctly
+		accessToken := fragmentValues.Get("access_token")
 		if accessToken == "" {
 			t.Errorf("%s: Expected access token, got %s", k, tokenRedirect.String())
 			continue

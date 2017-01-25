@@ -16,6 +16,20 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData" : {
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "application-user" : "${APPLICATION_USER}",
+        "application-password" : "${APPLICATION_PASSWORD}",
+        "keybase" : "${SECRET_KEY_BASE}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -90,8 +104,8 @@
             },
             "env": [
               {
-                  "name": "RUBYGEM_MIRROR",
-                  "value": "${RUBYGEM_MIRROR}"
+                "name": "RUBYGEM_MIRROR",
+                "value": "${RUBYGEM_MIRROR}"
               }
             ]
           }
@@ -134,7 +148,7 @@
         "strategy": {
           "type": "Recreate",
           "recreateParams": {
-          "pre": {
+            "pre": {
               "failurePolicy": "Abort",
               "execNewPod": {
                 "command": [
@@ -207,11 +221,21 @@
                   },
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -219,7 +243,12 @@
                   },
                   {
                     "name": "SECRET_KEY_BASE",
-                    "value": "${SECRET_KEY_BASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "keybase"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_MAX_CONNECTIONS",
@@ -235,11 +264,21 @@
                   },
                   {
                     "name": "APPLICATION_USER",
-                    "value": "${APPLICATION_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "application-user"
+                      }
+                    }
                   },
                   {
                     "name": "APPLICATION_PASSWORD",
-                    "value": "${APPLICATION_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "application-password"
+                      }
+                    }
                   },
                   {
                     "name": "RAILS_ENV",
@@ -247,9 +286,9 @@
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
                 }
               }
             ]
@@ -361,11 +400,21 @@
                 "env": [
                   {
                     "name": "POSTGRESQL_USER",
-                    "value": "${DATABASE_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-user"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_PASSWORD",
-                    "value": "${DATABASE_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
@@ -381,9 +430,9 @@
                   }
                 ],
                 "resources": {
-		      "limits": {
-			  "memory": "${MEMORY_POSTGRESQL_LIMIT}"
-		      }
+                  "limits": {
+                    "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+                  }
                 }
               }
             ]

@@ -89,7 +89,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	return openShiftClient, kubeClientset
 }
 
-func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig, user string) (*client.Client, *kclientset.Clientset) {
+func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig, user string) (*client.Client, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -222,7 +222,7 @@ func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[st
 	return dc
 }
 
-// testPodNodeConstraintsObjectCreationWithPodTemplate attemps to create different object types that contain pod templates
+// testPodNodeConstraintsObjectCreationWithPodTemplate attempts to create different object types that contain pod templates
 // using the passed in nodeName and nodeSelector. It will use the expectError flag to determine if an error should be returned or not
 func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name string, kclientset kclientset.Interface, client client.Interface, nodeName string, nodeSelector map[string]string, expectError bool) {
 

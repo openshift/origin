@@ -21,11 +21,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/sysctl"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/capabilities"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/group"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/seccomp"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
-	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/sysctl"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -440,5 +440,5 @@ func createSeccompStrategy(allowedProfiles []string) (seccomp.SeccompStrategy, e
 
 // createSysctlsStrategy creates a new unsafe sysctls strategy.
 func createSysctlsStrategy(sysctlsPatterns []string) (sysctl.SysctlsStrategy, error) {
-	return sysctl.NewMustMatchPatterns(sysctlsPatterns)
+	return sysctl.NewMustMatchPatterns(sysctlsPatterns), nil
 }

@@ -28,15 +28,15 @@ If you would like to review the outcome of the rollback, pass '\-\-dry\-run' to 
 .SH OPTIONS
 .PP
 \fB\-\-change\-scaling\-settings\fP=false
-    Include the previous deployment's replicationController replica count and selector in the rollback
+    If true, include the previous deployment's replicationController replica count and selector in the rollback
 
 .PP
 \fB\-\-change\-strategy\fP=false
-    Include the previous deployment's strategy in the rollback
+    If true, include the previous deployment's strategy in the rollback
 
 .PP
 \fB\-\-change\-triggers\fP=false
-    Include the previous deployment's triggers in the rollback
+    If true, include the previous deployment's triggers in the rollback
 
 .PP
 \fB\-d\fP, \fB\-\-dry\-run\fP=false
@@ -63,6 +63,10 @@ If you would like to review the outcome of the rollback, pass '\-\-dry\-run' to 
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
