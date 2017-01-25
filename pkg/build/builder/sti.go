@@ -305,8 +305,8 @@ func (s *S2IBuilder) Build() error {
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 
 		timeStart = time.Now()
-    digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
-		
+		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+
 		s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PushImageToRegistryStep, timeStart)
 
 		if err != nil {

@@ -69,9 +69,9 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	timeStart = time.Now()
-  sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
+	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	d.build.Status.StepInfo = AddBuildStepInfo(d.build.Status.StepInfo, api.FetchSourceStep, timeStart)
-  
+
 	if err != nil {
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed

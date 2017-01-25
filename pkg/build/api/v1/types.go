@@ -173,8 +173,8 @@ type BuildStatus struct {
 
 	// config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
-  
-  // output describes the Docker image the build has produced.
+
+	// output describes the Docker image the build has produced.
 	Output BuildStatusOutput `json:"output,omitempty" protobuf:"bytes,10,opt,name=output"`
 
 	// StepInfo holds the information related to build execution steps in the
