@@ -255,6 +255,7 @@ func (c *Client) OAuthClients() OAuthClientInterface {
 	return newOAuthClients(c)
 }
 
+//OAuthClientAuthorizations provides a REST client for oauthclientauthorizations
 func (c *Client) OAuthClientAuthorizations() OAuthClientAuthorizationInterface {
 	return newOAuthClientAuthorizations(c)
 }
