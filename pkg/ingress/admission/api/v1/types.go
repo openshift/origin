@@ -15,5 +15,5 @@ type IngressAdmissionConfig struct {
 	//UpstreamHostnameUpdate when true causes updates that attempt
 	//to add or modify hostnames to succeed. Otherwise those updates
 	//fail in order to ensure hostname behavior
-	UpstreamHostnameUpdate bool `json:"upstreamHostnameUpdate", description:"set to true to disable openshift protections and enable kubernetes style ingress objects"`
+	UpstreamHostnameUpdate bool `json:"upstreamHostnameUpdate"`
 }
