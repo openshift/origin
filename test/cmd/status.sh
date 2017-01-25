@@ -23,6 +23,7 @@ os::test::junit::declare_suite_start "cmd/status"
 # login and ensure no current projects exist
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 os::cmd::expect_success 'oc delete project --all'
+os::cmd::try_until_text "oc get projects -o jsonpath='{.items}'" "^\[\]$"
 os::cmd::expect_success 'oc logout'
 
 # remove self-provisioner role from user and test login prompt before creating any projects
