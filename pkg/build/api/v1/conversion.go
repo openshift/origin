@@ -6,7 +6,6 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -14,24 +13,6 @@ func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.Build
 	if err := autoConvert_v1_BuildConfig_To_api_BuildConfig(in, out, s); err != nil {
 		return err
 	}
-
-	newTriggers := []newer.BuildTriggerPolicy{}
-	// strip off any default imagechange triggers where the buildconfig's
-	// "from" is not an ImageStreamTag, because those triggers
-	// will never be invoked.
-	imageRef := buildutil.GetInputReference(out.Spec.Strategy)
-	hasIST := imageRef != nil && imageRef.Kind == "ImageStreamTag"
-	for _, trigger := range out.Spec.Triggers {
-		if trigger.Type != newer.ImageChangeBuildTriggerType {
-			newTriggers = append(newTriggers, trigger)
-			continue
-		}
-		if (trigger.ImageChange == nil || trigger.ImageChange.From == nil) && !hasIST {
-			continue
-		}
-		newTriggers = append(newTriggers, trigger)
-	}
-	out.Spec.Triggers = newTriggers
 	return nil
 }
 
