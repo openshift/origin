@@ -17,6 +17,7 @@ import (
 	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -31,6 +32,7 @@ import (
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	loginerrors "github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
+	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deployanalysis "github.com/openshift/origin/pkg/deploy/graph/analysis"
@@ -59,11 +61,9 @@ type ProjectStatusDescriber struct {
 	Suggest bool
 
 	// root command used when calling this command
-	CommandBaseName    string
-	RequestedNamespace string
-	CurrentNamespace   string
+	CommandBaseName string
 
-	CanRequestProjects bool
+	Config *restclient.Config
 
 	LogsCommandName             string
 	SecurityPolicyCommandFormat string
@@ -158,11 +158,12 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	if !allNamespaces {
 		p, err := d.C.Projects().Get(namespace)
 		if err != nil {
-			// a forbidden error here (without a --namespace value) means that
-			// the user has not created any projects, and is therefore using a
-			// default namespace that they cannot list projects from.
-			if kapierrors.IsForbidden(err) && len(d.RequestedNamespace) == 0 && len(d.CurrentNamespace) == 0 {
-				return loginerrors.NoProjectsExistMessage(d.CanRequestProjects, d.CommandBaseName), nil
+			// a forbidden error here means that the user has not created
+			// any projects, and is therefore using a default namespace
+			// that they cannot list projects from.
+			if kapierrors.IsForbidden(err) {
+				canRequestProjects, _ := loginutil.CanRequestProjects(d.Config, namespace)
+				return loginerrors.NoProjectsExistMessage(canRequestProjects, d.CommandBaseName), nil
 			}
 			if !kapierrors.IsNotFound(err) {
 				return "", err
