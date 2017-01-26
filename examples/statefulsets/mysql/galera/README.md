@@ -1,10 +1,10 @@
 # Mysql Galera
 
-This example runs mysql galera through a petset.
+This example runs mysql galera through a statefulset.
 
 ## Bootstrap
 
-Create the petset in this directory
+Create the statefulset in this directory
 ```
 $ kubectl create -f galera.yaml
 ```
@@ -23,11 +23,10 @@ a peer list of 1 will assume it's the leader.
 
 ## TODO
 
-Expect better solutions for the following as petset matures.
+Expect better solutions for the following as statefulset matures.
 
 * Failover
 * Scaling Up
 * Scaling Down
 * Image Upgrade
 * Maintenance
-

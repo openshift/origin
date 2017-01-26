@@ -65,9 +65,8 @@ const (
 	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
 	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
 
-	// TODO can we just rename these or how do we handle upgrades?
-	InfraPetSetControllerServiceAccountName = "pet-set-controller"
-	PetSetControllerRoleName                = "system:pet-set-controller"
+	InfraStatefulSetControllerServiceAccountName = "statefulset-controller"
+	StatefulSetControllerRoleName                = "system:statefulset-controller"
 
 	InfraCertificateSigningControllerServiceAccountName = "certificate-signing-controller"
 	CertificateSigningControllerRoleName                = "system:certificate-signing-controller"
@@ -874,10 +873,10 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
-		InfraPetSetControllerServiceAccountName,
+		InfraStatefulSetControllerServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: PetSetControllerRoleName,
+				Name: StatefulSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// StatefulSetController.podCache.ListWatch
@@ -890,19 +889,18 @@ func init() {
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("petsets", "statefulsets"),
+					Resources: sets.NewString("statefulsets"),
 				},
-				// TODO/REBASE reconcile who uses what (kubeClient vs petClient)
 				// StatefulSetController.petClient
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("petsets", "statefulsets"),
+					Resources: sets.NewString("statefulsets"),
 				},
 				{
 					APIGroups: []string{apps.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("petsets/status", "petsets/status"),
+					Resources: sets.NewString("statefulsets/status"),
 				},
 				// StatefulSetController.podClient
 				{
@@ -911,7 +909,7 @@ func init() {
 					Resources: sets.NewString("pods"),
 				},
 				// StatefulSetController.petClient (PVC)
-				// This is an escalating client and we must admission check the petset
+				// This is an escalating client and we must admission check the statefulset
 				{
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("get", "create"), // future "delete"

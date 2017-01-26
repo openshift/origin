@@ -1,10 +1,10 @@
 # Zookeeper
 
-This example runs zookeeper through a petset.
+This example runs zookeeper through a statefulset.
 
 ## Bootstrap
 
-Create the petset in this directory
+Create the statefulset in this directory
 ```
 $ kubetl create -f zookeeper.yaml
 ```
@@ -27,7 +27,7 @@ zoo-1 Mode: leader
 zoo-2 Mode: follower
 ```
 
-Delete pets and wait for the petset controller to bring the back up:
+Delete pets and wait for the statefulset controller to bring the back up:
 ```console
 $ kubectl delete po -l app=zk
 $ kubectl get po --watch-only
@@ -67,7 +67,7 @@ bar
 
 ## Scaling
 
-You can scale up by modifying the number of replicas on the PetSet.
+You can scale up by modifying the number of replicas on the StatefulSet.
 
 ## Image Upgrade
 
@@ -78,8 +78,7 @@ TODO: Add details
 TODO: Add details
 
 ## Limitations
-* Both petset and init containers are in alpha
+* Both statefulset and init containers are in alpha
 * Look through the on-start and on-change scripts for TODOs
-* Doesn't support the addition of observers through the petset
+* Doesn't support the addition of observers through the statefulset
 * Only supports storage options that have backends for persistent volume claims
-

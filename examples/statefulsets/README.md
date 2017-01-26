@@ -1,4 +1,4 @@
-# PetSet examples
+# StatefulSet examples
 
 These examples are tracked from the [Kubernetes contrib project @d6e4be](https://github.com/kubernetes/contrib/tree/d6e4be066cc076fbb91ff69691819e117711b30b/pets)
 
