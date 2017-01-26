@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
+	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	openapicommon "k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -54,6 +56,10 @@ import (
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	"github.com/openshift/origin/pkg/version"
 )
+
+// request paths that match this regular expression will be treated as long running
+// and not subjected to the default server timeout.
+const originLongRunningEndpointsRE = "(/|^)buildconfigs/.*/instantiatebinary$"
 
 var LegacyAPIGroupPrefixes = sets.NewString(genericapiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
 
@@ -300,6 +306,13 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		glog.Fatalf("Error parsing master public url %q: %v", options.MasterPublicURL, err)
 	}
 	genericConfig.ExternalAddress = url.Host
+
+	originLongRunningRequestRE := regexp.MustCompile(originLongRunningEndpointsRE)
+	originLongRunningFunc := kgenericfilters.BasicLongRunningRequestCheck(originLongRunningRequestRE, nil)
+	kubeLongRunningFunc := genericConfig.LongRunningFunc
+	genericConfig.LongRunningFunc = func(r *http.Request) bool {
+		return originLongRunningFunc(r) || kubeLongRunningFunc(r)
+	}
 
 	serviceIPRange, apiServerServiceIP, err := genericapiserver.DefaultServiceIPRange(server.GenericServerRunOptions.ServiceClusterIPRange)
 	if err != nil {
