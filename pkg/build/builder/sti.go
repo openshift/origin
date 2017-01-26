@@ -121,19 +121,20 @@ func (s *S2IBuilder) Build() error {
 		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
+	contextDir := ""
 	if len(s.build.Spec.Source.ContextDir) > 0 {
-		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
 		if contextDir == "." || contextDir == "/" {
 			contextDir = ""
 		}
 		if sourceInfo != nil {
 			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
 		}
-		srcDir = filepath.Join(srcDir, s.build.Spec.Source.ContextDir)
 	}
-	download := &downloader{}
+
+	var s2iSourceInfo *s2iapi.SourceInfo
 	if sourceInfo != nil {
-		download.sourceInfo = &sourceInfo.SourceInfo
+		s2iSourceInfo = &sourceInfo.SourceInfo
 		revision := updateBuildRevision(s.build, sourceInfo)
 		handleBuildStatusUpdate(s.build, s.client, revision)
 	}
@@ -182,6 +183,8 @@ func (s *S2IBuilder) Build() error {
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:     srcDir,
+		ContextDir: contextDir,
+		SourceInfo: s2iSourceInfo,
 		ForceCopy:  true,
 		Injections: injections,
 
@@ -241,7 +244,7 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
-	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
+	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			buildInfo.FailureReason.Reason,
