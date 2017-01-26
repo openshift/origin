@@ -396,6 +396,7 @@ func DeepCopy_componentconfig_KubeletConfiguration(in interface{}, out interface
 		out.EnableCRI = in.EnableCRI
 		out.ExperimentalFailSwapOn = in.ExperimentalFailSwapOn
 		out.ExperimentalCheckNodeCapabilitiesBeforeMount = in.ExperimentalCheckNodeCapabilitiesBeforeMount
+		out.KeepTerminatedPodVolumes = in.KeepTerminatedPodVolumes
 		return nil
 	}
 }
