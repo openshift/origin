@@ -383,7 +383,7 @@ func TestRepositoryBucketAddOversize(t *testing.T) {
 	for j := 0; j < bucketSize; j++ {
 		expected := fmt.Sprintf("%d", i-bucketSize+j)
 		if b.list[j].repository != expected {
-			t.Fatalf("unexpected repository on index %d: %s != %s", j, b.list[j].repository, expected)
+			t.Errorf("unexpected repository on index %d: %s != %s", j, b.list[j].repository, expected)
 		}
 	}
 }

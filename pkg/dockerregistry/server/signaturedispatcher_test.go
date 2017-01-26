@@ -102,7 +102,7 @@ func TestSignatureGet(t *testing.T) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		t.Errorf("failed to make request: %v", err)
+		t.Fatalf("failed to make request: %v", err)
 	}
 
 	httpclient := &http.Client{}
@@ -211,7 +211,7 @@ func TestSignaturePut(t *testing.T) {
 
 	req, err := http.NewRequest("PUT", url, bytes.NewReader(signData))
 	if err != nil {
-		t.Errorf("failed to make request: %v", err)
+		t.Fatalf("failed to make request: %v", err)
 	}
 
 	httpclient := &http.Client{}
@@ -226,12 +226,12 @@ func TestSignaturePut(t *testing.T) {
 	}
 
 	if testSignature.Name != newImageSignature.Name {
-		t.Fatalf("unexpected signature: name %#+v", newImageSignature.Name)
+		t.Errorf("unexpected signature: name %#+v", newImageSignature.Name)
 	}
 	if testSignature.Type != newImageSignature.Type {
-		t.Fatalf("unexpected signature: name %#+v", newImageSignature.Name)
+		t.Errorf("unexpected signature type: %#+v", newImageSignature.Type)
 	}
 	if !reflect.DeepEqual(testSignature.Content, newImageSignature.Content) {
-		t.Fatalf("unexpected signature content: %#+v", newImageSignature.Content)
+		t.Errorf("unexpected signature content: %#+v", newImageSignature.Content)
 	}
 }
