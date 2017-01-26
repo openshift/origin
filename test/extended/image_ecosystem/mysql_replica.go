@@ -41,7 +41,7 @@ var (
 			false,
 		},
 	}
-	helperTemplate = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
+	helperTemplate = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.yaml")
 	helperName     = "mysql-helper"
 )
 

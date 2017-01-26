@@ -21,7 +21,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/rails-ex --stra
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.yaml'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
@@ -56,15 +56,15 @@ os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'Deploy
 os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'Service "nginx" is invalid'
 
 # check if we can create from a stored template
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-s2ibuild.yaml'
 os::cmd::expect_success 'oc get template ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'MYSQL_USER'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'MYSQL_PASSWORD'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'ADMIN_USERNAME'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'ADMIN_PASSWORD'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=hello -o yaml' 'hello'
-os::cmd::expect_success_and_text  'oc new-app -e FOO=BAR -f examples/jenkins/jenkins-ephemeral-template.json -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"FOO\")].value}" ' '^BAR$'
-os::cmd::expect_success_and_text  'oc new-app -e OPENSHIFT_ENABLE_OAUTH=false -f examples/jenkins/jenkins-ephemeral-template.json -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"OPENSHIFT_ENABLE_OAUTH\")].value}" ' 'false'
+os::cmd::expect_success_and_text  'oc new-app -e FOO=BAR -f examples/jenkins/jenkins-ephemeral-template.yaml -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"FOO\")].value}" ' '^BAR$'
+os::cmd::expect_success_and_text  'oc new-app -e OPENSHIFT_ENABLE_OAUTH=false -f examples/jenkins/jenkins-ephemeral-template.yaml -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"OPENSHIFT_ENABLE_OAUTH\")].value}" ' 'false'
 
 # check that values are not split on commas
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=hello,MYSQL_USER=fail -o yaml' 'value: hello,MYSQL_USER=fail'
@@ -171,7 +171,7 @@ os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
 
 # verify that a template can be passed in stdin
-os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
+os::cmd::expect_success 'cat examples/sample-app/application-template-s2ibuild.yaml | oc new-app -o yaml -f -'
 
 # check search
 os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.6, 5.7, latest"
@@ -183,7 +183,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld
 os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.2, 2.3, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.2, 2.3, latest"
 # check search - check correct usage of filters
-os::cmd::expect_failure_and_not_text 'oc new-app --search --image-stream=ruby-heloworld-sample' 'application-template-stibuild'
+os::cmd::expect_failure_and_not_text 'oc new-app --search --image-stream=ruby-heloworld-sample' 'application-template-s2ibuild'
 os::cmd::expect_failure 'oc new-app --search --template=php'
 os::cmd::expect_failure 'oc new-app -S --template=nodejs'
 os::cmd::expect_failure 'oc new-app -S --template=perl'
@@ -380,7 +380,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --output-version=v1 -o=jsonpath="{.items[?(@.kind==\"BuildConfig\")].spec.source}"' 'dockerfile|binary'
 
 # We permit running new-app against a remote URL which returns a template
-os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/wordpress/template/wordpress-mysql.json --dry-run'
+os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/wordpress/template/wordpress-mysql.yaml --dry-run'
 
 echo "new-app: ok"
 os::test::junit::declare_suite_end

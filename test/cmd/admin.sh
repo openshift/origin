@@ -349,7 +349,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/build-chain"
 # Test building a dependency tree
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
+os::cmd::expect_success 'oc process -f examples/sample-app/application-template-s2ibuild.yaml -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 os::cmd::expect_success_and_text 'oadm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'

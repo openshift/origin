@@ -18,7 +18,7 @@ import (
 
 var (
 	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/sclorg/postgresql-container/master/examples/replica/postgresql_replica.json"
-	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
+	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.yaml")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
 		"postgresql:9.2",

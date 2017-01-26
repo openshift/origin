@@ -26,14 +26,14 @@ os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
 os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'
 # Does not require a real resource on the server
-os::cmd::expect_success_and_not_text "oc debug -T -f examples/hello-openshift/hello-pod.json -o yaml" 'tty'
-os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod.json --keep-liveness --keep-readiness -o yaml" ''
-os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" '\- /bin/env'
-os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'stdin'
-os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
+os::cmd::expect_success_and_not_text "oc debug -T -f examples/hello-openshift/hello-pod.yaml -o yaml" 'tty'
+os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod.yaml --keep-liveness --keep-readiness -o yaml" ''
+os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod.yaml -o yaml -- /bin/env" '\- /bin/env'
+os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.yaml -o yaml -- /bin/env" 'stdin'
+os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.yaml -o yaml -- /bin/env" 'tty'
 # TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
 
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.yaml'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image: openshift/wildfly-101-centos7'
 sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"

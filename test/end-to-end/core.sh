@@ -64,8 +64,8 @@ os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.de
 os::cmd::expect_success 'openshift admin policy add-role-to-user view e2e-user --namespace=default'
 
 # pre-load some image streams and templates
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/jenkins/application-template.json --namespace=openshift'
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-s2ibuild.yaml --namespace=openshift'
+os::cmd::expect_success 'oc create -f examples/jenkins/application-template.yaml --namespace=openshift'
 
 # create test project so that this shows up in the console
 os::cmd::expect_success "openshift admin new-project test --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
@@ -345,9 +345,9 @@ os::log::info "Submitting application template json for processing..."
 STI_CONFIG_FILE="${ARTIFACT_DIR}/stiAppConfig.json"
 DOCKER_CONFIG_FILE="${ARTIFACT_DIR}/dockerAppConfig.json"
 CUSTOM_CONFIG_FILE="${ARTIFACT_DIR}/customAppConfig.json"
-os::cmd::expect_success "oc process -n test -f examples/sample-app/application-template-stibuild.json > '${STI_CONFIG_FILE}'"
-os::cmd::expect_success "oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > '${DOCKER_CONFIG_FILE}'"
-os::cmd::expect_success "oc process -n custom -f examples/sample-app/application-template-custombuild.json > '${CUSTOM_CONFIG_FILE}'"
+os::cmd::expect_success "oc process -n test -f examples/sample-app/application-template-s2ibuild.yaml > '${STI_CONFIG_FILE}'"
+os::cmd::expect_success "oc process -n docker -f examples/sample-app/application-template-dockerbuild.yaml > '${DOCKER_CONFIG_FILE}'"
+os::cmd::expect_success "oc process -n custom -f examples/sample-app/application-template-custombuild.yaml > '${CUSTOM_CONFIG_FILE}'"
 
 os::log::info "Back to 'test' context with 'e2e-user' user"
 os::cmd::expect_success 'oc login -u e2e-user'
@@ -473,7 +473,7 @@ os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://localhost:
 # Rsync
 os::log::info "Validating rsync"
 os::cmd::expect_success "oc rsync examples/sample-app ${frontend_pod}:/tmp"
-os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'application-template-stibuild'
+os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'application-template-s2ibuild'
 
 #os::log::info "Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"

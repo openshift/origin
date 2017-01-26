@@ -196,7 +196,7 @@ The test suite should be organized into lower-level Ginkgo describe(s) container
 var _ = g.Describe("[default] STI build", func() {
 	defer GinkgoRecover()
 	var (
-		stiBuildFixture = filepath.Join("testdata", "test-build.json")
+		stiBuildFixture = filepath.Join("testdata", "test-build.yaml")
 		oc              = exutil.NewCLI("build-sti", kubeConfigPath())
 	)
 

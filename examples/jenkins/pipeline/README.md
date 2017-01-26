@@ -14,14 +14,14 @@ To walk through the example:
         $ oc cluster up
 
     If you do not use oc cluster up, ensure the imagestreams are registered in the openshift namespace, as well as the
-jenkins template represented by jenkinstemplate.json by running these commands as a cluster admin:
+jenkins template represented by jenkinstemplate.yaml by running these commands as a cluster admin:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-ephemeral-template.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.yaml -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-ephemeral-template.yaml -n openshift
 
-    Note: If you have persistent volumes available in your cluster and prefer to use persistent storage (recommended) for your Jenkins server, register the jenkins-persistent-template.json file as well:
+    Note: If you have persistent volumes available in your cluster and prefer to use persistent storage (recommended) for your Jenkins server, register the jenkins-persistent-template.yaml file as well:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.yaml -n openshift
 
 2. Login as a normal user (any user name is fine)
 

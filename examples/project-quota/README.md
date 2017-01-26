@@ -114,7 +114,7 @@ spec:
     terminationMessagePath: /dev/termination-log
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-status: {} 
+status: {}
 $ oc create -f pod-without-resources.yaml
 Error from server: error when creating "pod-without-resources.yaml": pods "pod-without-resources" is forbidden: Failed quota: quota: must specify cpu,memory
 ```
@@ -250,7 +250,7 @@ and cpu consumption as parameters in your template.
 To demonstrate this, let's provision a custom template that enumerates resources:
 
 ```shell
-$ oc create -f application-template-with-resources.json
+$ oc create -f application-template-with-resources.yaml
 $ oc describe template ruby-helloworld-sample-with-resources
 Name:           ruby-helloworld-sample-with-resources
 Created:        12 minutes ago
@@ -329,7 +329,7 @@ Parameters:
     Required:           false
     Value:              20m
 
-Object Labels:  template=application-template-stibuild
+Object Labels:  template=application-template-s2ibuild
 
 Objects:
     Service     frontend
@@ -400,7 +400,7 @@ Let's assume our 5th build exceeded quota:
 $ oc describe builds ruby-sample-build-5
 Name:     ruby-sample-build-5
 Created:    2 minutes ago
-Labels:     buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild
+Labels:     buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-s2ibuild
 BuildConfig:    ruby-sample-build
 Status:     New
 Duration:   waiting for 2m13s

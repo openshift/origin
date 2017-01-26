@@ -15,7 +15,7 @@ import (
 var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() {
 	defer g.GinkgoRecover()
 
-	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")
+	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.yaml")
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
 	g.Describe("creating from a template", func() {
