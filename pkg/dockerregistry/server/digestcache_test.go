@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	allowedDeviation = time.Millisecond * 10
-
 	ttl1m = time.Minute
 	ttl5m = time.Minute * 5
 	ttl8m = time.Minute * 8
