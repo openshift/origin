@@ -1,7 +1,10 @@
 package builds
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -13,36 +16,98 @@ import (
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
 
+func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
+	if !br.BuildSuccess {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
+		j := jenkins.NewRef(oc)
+		jobLog, err := j.GetLastJobConsoleLogs(name)
+		if err == nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n %s job log:\n%s", name, jobLog)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n error getting %s job log: %#v", name, err)
+		}
+		if dumpMaster {
+			exutil.DumpDeploymentLogs("jenkins", oc)
+		}
+		fmt.Fprintf(g.GinkgoWriter, "\n\n END debugAnyJenkinsFailure\n\n")
+	}
+}
+
 var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 	var (
-		jenkinsTemplatePath       = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-		mavenSlavePipelinePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
-		orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
-		blueGreenPipelinePath     = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
+		jenkinsTemplatePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		mavenSlavePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
+		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
+		blueGreenPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 
-		oc = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
-	)
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-	g.Context("Pipeline with maven slave", func() {
-		g.It("Should build and complete successfully", func() {
+		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		ticker                   *time.Ticker
+		j                        *jenkins.JenkinsRef
+		dcLogFollow              *exec.Cmd
+		dcLogStdOut, dcLogStdErr *bytes.Buffer
+		setup                    = func() {
 			// Deploy Jenkins
 			g.By(fmt.Sprintf("calling oc new-app -f %q", jenkinsTemplatePath))
 			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("waiting for jenkins deployment")
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			j = jenkins.NewRef(oc)
+
+			g.By("wait for jenkins to come up")
+			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
+
+			if err != nil {
+				exutil.DumpDeploymentLogs("jenkins", oc)
+			}
+
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
+				g.By("start jenkins gc tracking")
+				ticker = jenkins.StartJenkinsGCTracking(oc, oc.Namespace())
+			}
+
+			// Start capturing logs from this deployment config.
+			// This command will terminate if the Jenkins instance crashes. This
+			// ensures that even if the Jenkins DC restarts, we should capture
+			// logs from the crash.
+			dcLogFollow, dcLogStdOut, dcLogStdErr, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+		}
+		cleanup = func() {
+			if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
+				g.By("stop jenkins gc tracking")
+				ticker.Stop()
+			}
+		}
+	)
+
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.Context("Pipeline with maven slave", func() {
+		g.It("should build and complete successfully", func() {
+			setup()
+			defer cleanup()
+
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", mavenSlavePipelinePath))
-			err = oc.Run("new-app").Args("-f", mavenSlavePipelinePath).Execute()
+			err := oc.Run("new-app").Args("-f", mavenSlavePipelinePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// start the build
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, _ := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
 
 			// wait for the service to be running
@@ -52,21 +117,23 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		})
 	})
 
-	g.Context("Orchestration pipeline", func() {
-		g.It("Should build and complete successfully", func() {
-			// Deploy Jenkins
-			g.By(fmt.Sprintf("calling oc new-app -f %q", jenkinsTemplatePath))
-			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+	/*g.Context("Orchestration pipeline", func() {
+		g.It("should build and complete successfully", func() {
+			setup()
+			defer cleanup()
 
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", orchestrationPipelinePath))
-			err = oc.Run("new-app").Args("-f", orchestrationPipelinePath).Execute()
+			err := oc.Run("new-app").Args("-f", orchestrationPipelinePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// start the build
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, _ := exutil.StartBuildAndWait(oc, "mapsapp-pipeline")
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-mapsapp-pipeline", oc, true)
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-mlbparks-pipeline", oc, false)
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-nationalparks-pipeline", oc, false)
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-parksmap-pipeline", oc, false)
 			br.AssertSuccess()
 
 			// wait for the service to be running
@@ -74,20 +141,16 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			_, err = exutil.GetEndpointAddress(oc, "parksmap")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
-	})
+	})*/
 
 	g.Context("Blue-green pipeline", func() {
-		g.It("Should build and complete successfully", func() {
-			// Deploy Jenkins without oauth
-			g.By(fmt.Sprintf("calling oc new-app -f %q -p ENABLE_OAUTH=false", jenkinsTemplatePath))
-			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath, "-p", "ENABLE_OAUTH=false").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			j := jenkins.NewRef(oc)
+		g.It("Blue-green pipeline should build and complete successfully", func() {
+			setup()
+			defer cleanup()
 
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", blueGreenPipelinePath))
-			err = oc.Run("new-app").Args("-f", blueGreenPipelinePath).Execute()
+			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			wg := &sync.WaitGroup{}
@@ -95,8 +158,10 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 			// start the build
 			go func() {
+				defer g.GinkgoRecover()
 				g.By("starting the bluegreen pipeline build and waiting for it to complete")
 				br, _ := exutil.StartBuildAndWait(oc, "bluegreen-pipeline")
+				debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, true)
 				br.AssertSuccess()
 
 				g.By("verifying that the main route has been switched to green")
@@ -132,8 +197,10 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 			// start the build again
 			go func() {
+				defer g.GinkgoRecover()
 				g.By("starting the bluegreen pipeline build and waiting for it to complete")
 				br, _ := exutil.StartBuildAndWait(oc, "bluegreen-pipeline")
+				debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, true)
 				br.AssertSuccess()
 
 				g.By("verifying that the main route has been switched to blue")
@@ -162,4 +229,5 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			wg.Wait()
 		})
 	})
+
 })
