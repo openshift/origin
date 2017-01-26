@@ -67,7 +67,7 @@ func (t *tokenHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (t *tokenHandler) writeError(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(400)
 	json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid_request"})
 }
 

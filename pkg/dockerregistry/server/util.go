@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/manifest/schema2"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -108,15 +106,6 @@ func getDurationOption(envVar string, optionName string, defval time.Duration, o
 	})
 
 	return value.(time.Duration), err
-}
-
-// deserializedManifestFromImage converts an Image to a DeserializedManifest.
-func deserializedManifestFromImage(image *imageapi.Image) (*schema2.DeserializedManifest, error) {
-	var manifest schema2.DeserializedManifest
-	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-		return nil, err
-	}
-	return &manifest, nil
 }
 
 func getNamespaceName(resourceName string) (string, string, error) {
