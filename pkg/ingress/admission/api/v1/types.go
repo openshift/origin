@@ -6,14 +6,15 @@ import (
 
 // IngressAdmissionConfig is the configuration for the the ingress
 // controller limiter plugin. It changes the behavior of ingress
-//objects to behave better with openshift routes and routers.
-//*NOTE* Disabling this plugin causes ingress objects to behave
-//the same as in upstream kubernetes
+// objects to behave better with openshift routes and routers.
+// *NOTE* This has security implications in the router when handling
+// ingress objects
 type IngressAdmissionConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	//UpstreamHostnameUpdate when true causes updates that attempt
-	//to add or modify hostnames to succeed. Otherwise those updates
-	//fail in order to ensure hostname behavior
-	UpstreamHostnameUpdate bool `json:"upstreamHostnameUpdate"`
+	// AllowHostnameChanges when false or unset openshift does not
+	// allow changing or adding hostnames to ingress objects. If set
+	// to true then hostnames can be added or modified which has
+	// security implications in the router.
+	AllowHostnameChanges bool `json:"allowHostnameChanges"`
 }

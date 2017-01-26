@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-//SchemeGroupVersion is gorup version used to register these objects
+// SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
 var (

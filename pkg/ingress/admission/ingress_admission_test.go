@@ -81,7 +81,7 @@ func TestAdmission(t *testing.T) {
 				},
 			}
 		} else {
-			//Used to test deleteing a hostname
+			//Used to test deleting a hostname
 			newIngress = &kextensions.Ingress{
 				ObjectMeta: kapi.ObjectMeta{Name: "test"},
 			}
@@ -120,12 +120,12 @@ func emptyConfig() *api.IngressAdmissionConfig {
 
 func testConfigUpdateAllow() *api.IngressAdmissionConfig {
 	return &api.IngressAdmissionConfig{
-		UpstreamHostnameUpdate: true,
+		AllowHostnameChanges: true,
 	}
 }
 
 func testConfigUpdateDeny() *api.IngressAdmissionConfig {
 	return &api.IngressAdmissionConfig{
-		UpstreamHostnameUpdate: false,
+		AllowHostnameChanges: false,
 	}
 }

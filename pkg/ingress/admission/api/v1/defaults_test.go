@@ -42,7 +42,7 @@ func TestDefaults(t *testing.T) {
 		{
 			original: &ingressv1.IngressAdmissionConfig{},
 			expected: &ingressv1.IngressAdmissionConfig{
-				UpstreamHostnameUpdate: false,
+				AllowHostnameChanges: false,
 			},
 		},
 	}

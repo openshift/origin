@@ -62,7 +62,7 @@ func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
 
 func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
 	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") && a.GetOperation() == kadmission.Update {
-		if r.config == nil || r.config.UpstreamHostnameUpdate == false {
+		if r.config == nil || r.config.AllowHostnameChanges == false {
 			oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
 			if !ok {
 				return nil
@@ -71,7 +71,7 @@ func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
 			if !ok {
 				return nil
 			}
-			if !checkHostnames(oldIngress, newIngress) {
+			if !haveHostnamesChanged(oldIngress, newIngress) {
 				return fmt.Errorf("cannot change hostname")
 			}
 		}
@@ -79,15 +79,14 @@ func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
 	return nil
 }
 
-func checkHostnames(oldIngress, newIngress *kextensions.Ingress) bool {
+func haveHostnamesChanged(oldIngress, newIngress *kextensions.Ingress) bool {
 	m := make(map[string]int)
 	for _, element := range oldIngress.Spec.Rules {
 		m[element.Host] = 1
 	}
 
 	for _, element := range newIngress.Spec.Rules {
-		_, present := m[element.Host]
-		if !present {
+		if _, present := m[element.Host]; !present {
 			return false
 		}
 	}
