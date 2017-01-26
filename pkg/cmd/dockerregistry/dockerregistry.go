@@ -38,6 +38,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
+	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
 
 // Execute runs the Docker registry.
@@ -47,6 +48,7 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("error parsing configuration file: %s", err)
 	}
 	setDefaultMiddleware(config)
+	setDefaultLogParameters(config)
 
 	ctx := context.Background()
 	ctx, err = configureLogging(ctx, config)
@@ -277,4 +279,11 @@ func setDefaultMiddleware(config *configuration.Configuration) {
 		log.Errorf("obsolete configuration detected, please add openshift %s middleware into registry config file", middlewareType)
 	}
 	return
+}
+
+func setDefaultLogParameters(config *configuration.Configuration) {
+	if len(config.Log.Fields) == 0 {
+		config.Log.Fields = make(map[string]interface{})
+	}
+	config.Log.Fields[audit.LogEntryType] = audit.DefaultLoggerType
 }

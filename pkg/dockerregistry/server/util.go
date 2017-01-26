@@ -82,6 +82,17 @@ func getBoolOption(envVar string, optionName string, defval bool, options map[st
 	return value.(bool), err
 }
 
+func getStringOption(envVar string, optionName string, defval string, options map[string]interface{}) (string, error) {
+	value, err := getOptionValue(envVar, optionName, defval, options, func(value interface{}) (b interface{}, err error) {
+		s, ok := value.(string)
+		if !ok {
+			return defval, fmt.Errorf("expected string, not %T", value)
+		}
+		return s, err
+	})
+	return value.(string), err
+}
+
 func getDurationOption(envVar string, optionName string, defval time.Duration, options map[string]interface{}) (time.Duration, error) {
 	value, err := getOptionValue(envVar, optionName, defval, options, func(value interface{}) (d interface{}, err error) {
 		s, ok := value.(string)
