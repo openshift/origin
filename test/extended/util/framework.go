@@ -302,6 +302,8 @@ type BuildResult struct {
 	BuildSuccess bool
 	// BuildFailure is true if the build was finished with an error.
 	BuildFailure bool
+	// BuildCancelled is true if the build was canceled.
+	BuildCancelled bool
 	// BuildTimeout is true if there was a timeout waiting for the build to finish.
 	BuildTimeout bool
 	// The openshift client which created this build.
@@ -400,6 +402,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 		BuildAttempt:     false,
 		BuildSuccess:     false,
 		BuildFailure:     false,
+		BuildCancelled:   false,
 		BuildTimeout:     false,
 		oc:               oc,
 	}
@@ -428,6 +431,11 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 			result.BuildFailure = CheckBuildFailedFn(b)
 			return result.BuildFailure
 		},
+		func(b *buildapi.Build) bool {
+			result.Build = b
+			result.BuildCancelled = CheckBuildCancelledFn(b)
+			return result.BuildCancelled
+		},
 	)
 
 	if result.Build == nil {
@@ -436,14 +444,24 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	}
 
 	result.BuildAttempt = true
-	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess)
+	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
 	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", buildPath, *result)
 	return result, nil
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
-func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*buildapi.Build) bool) error {
+func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
+	if isOK == nil {
+		isOK = CheckBuildSuccessFn
+	}
+	if isFailed == nil {
+		isFailed = CheckBuildFailedFn
+	}
+	if isCanceled == nil {
+		isCanceled = CheckBuildCancelledFn
+	}
+
 	// wait 2 minutes for build to exist
 	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
 		if _, err := c.Get(name); err != nil {
@@ -464,7 +482,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 			return false, err
 		}
 		for i := range list.Items {
-			if name == list.Items[i].Name && isOK(&list.Items[i]) {
+			if name == list.Items[i].Name && (isOK(&list.Items[i]) || isCanceled(&list.Items[i])) {
 				return true, nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
@@ -487,6 +505,11 @@ var CheckBuildSuccessFn = func(b *buildapi.Build) bool {
 // CheckBuildFailedFn return true if the build failed
 var CheckBuildFailedFn = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
+}
+
+// CheckBuildCancelledFn return true if the build was canceled
+var CheckBuildCancelledFn = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseCancelled
 }
 
 // WaitForBuilderAccount waits until the builder service account gets fully

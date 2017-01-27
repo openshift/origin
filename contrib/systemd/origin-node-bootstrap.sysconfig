@@ -1,0 +1,14 @@
+OPTIONS="--loglevel=0 --bootstrap --kubeconfig=/etc/origin/node/node-bootstrap.kubeconfig"
+# /etc/origin/node/ should contain a node-bootstrap.kubeconfig file that can request
+# bootstrap certificates.
+#
+# If if your node is running on a separate host you can rsync the contents
+# rsync -a root@atomic-openshift-master:/var/lib/origin/origin.local.certificates/node-`hostname`/ /etc/origin/node
+CONFIG_FILE=/etc/origin/node/node-config.yaml
+
+# Proxy configuration
+# Origin uses standard HTTP_PROXY environment variables. Be sure to set
+# NO_PROXY for your master
+#NO_PROXY=master.example.com
+#HTTP_PROXY=http://USER:PASSWORD@IPADDR:PORT
+#HTTPS_PROXY=https://USER:PASSWORD@IPADDR:PORT

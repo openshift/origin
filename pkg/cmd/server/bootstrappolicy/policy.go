@@ -735,6 +735,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// TODO: change glusterfs to use DNS lookup so this isn't needed?
 				// Needed for glusterfs volumes
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
+				// Nodes are allowed to request CSRs (specifically, request serving certs)
+				authorizationapi.NewRule("get", "create").Groups(certificates.GroupName).Resources("certificatesigningrequests").RuleOrDie(),
 			},
 		},
 

@@ -230,7 +230,7 @@ func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(f, out)
+	cmd := kcmd.NewCmdCompletion(f, out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	return cmd

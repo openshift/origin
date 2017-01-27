@@ -136,7 +136,7 @@ function list_test_packages_under() {
 # Break up the positional arguments into packages that need to be tested and arguments that need to be passed to `go test`
 package_args=
 for arg in "$@"; do
-    if [[ "${arg}" =~ -.* ]]; then
+    if [[ "${arg}" =~ ^-.* ]]; then
         # we found an arg that begins with a dash, so we stop interpreting arguments
         # henceforth as packages and instead interpret them as flags to give to `go test`
         break

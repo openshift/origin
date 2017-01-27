@@ -69,9 +69,5 @@ func (args KubeConnectionArgs) GetKubernetesAddress(defaultAddress *url.URL) (*u
 	if ok && len(config.Host) > 0 {
 		return url.Parse(config.Host)
 	}
-
-	if defaultAddress == nil {
-		return nil, errors.New("no default KubernetesAddress present")
-	}
 	return defaultAddress, nil
 }

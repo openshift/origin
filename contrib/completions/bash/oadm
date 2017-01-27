@@ -1,17 +1,4 @@
 
-# Copyright 2016 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 # bash completion for oadm                                 -*- shell-script -*-
 
 __debug()
@@ -672,6 +659,169 @@ _oadm_ca()
     commands+=("create-signer-cert")
     commands+=("decrypt")
     commands+=("encrypt")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--as=")
+    flags+=("--azure-container-registry-config=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_oadm_certificate_approve()
+{
+    last_command="oadm_certificate_approve"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    local_nonpersistent_flags+=("--filename=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--recursive")
+    flags+=("-R")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--as=")
+    flags+=("--azure-container-registry-config=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_oadm_certificate_deny()
+{
+    last_command="oadm_certificate_deny"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    local_nonpersistent_flags+=("--filename=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--recursive")
+    flags+=("-R")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--as=")
+    flags+=("--azure-container-registry-config=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_oadm_certificate()
+{
+    last_command="oadm_certificate"
+    commands=()
+    commands+=("approve")
+    commands+=("deny")
 
     flags=()
     two_word_flags=()
@@ -4957,6 +5107,7 @@ _oadm()
     commands=()
     commands+=("build-chain")
     commands+=("ca")
+    commands+=("certificate")
     commands+=("completion")
     commands+=("config")
     commands+=("cordon")

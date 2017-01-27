@@ -46,3 +46,15 @@ function os::log::fatal() {
 	return 1
 }
 readonly -f os::log::fatal
+
+# os::log::debug writes the message to stderr if
+# the ${OS_DEBUG} variable is set.
+#
+# Arguments:
+#  - all: message to write
+function os::log::debug() {
+	if [[ -n "${OS_DEBUG:-}" ]]; then
+		os::text::print_blue "[DEBUG] $*" 1>&2
+	fi
+}
+readonly -f os::log::debug

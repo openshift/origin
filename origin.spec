@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 96019950579dcf91545b2105c6afae4ccef5c25e
+%global commit 22a063916fb90c94b2d8e282eebac7f7c05f9b89
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.7+9601995-70 OS_GIT_COMMIT=9601995 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.8+22a0639-52 OS_GIT_COMMIT=22a0639 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.8
+Version:        3.5.0.9
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,41 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Jan 25 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.9
+- bump(github.com/openshift/origin-web-console):
+  c9474fc80ed7b5174e97ff168531384dccb049ba (dmcphers+openshiftbot@redhat.com)
+- Replace utilruntime.HandleError with glog (cdaley@redhat.com)
+- Add a changelog generator for GitHub releases (ccoleman@redhat.com)
+- avoid to return erroneous sa (salvatore-dario.minonne@amadeus.com)
+- prevent ctx-switching from failing on server err (jvallejo@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2e4f477035b5cf5ce480d5aa2bbfe3ae0bf046a8 (dmcphers+openshiftbot@redhat.com)
+- Update "no projects" warning in `oc status` (jvallejo@redhat.com)
+- Add `os::log::debug` and add statements to `hack/env` (skuznets@redhat.com)
+- normalize server url before writing to config (jvallejo@redhat.com)
+- Make the OS_RELEASE=n ./hack/build-images.sh work again (miminar@redhat.com)
+-  modified the comment format (luo.yin@zte.com.cn)
+- Use - instead of + in tar filenames because GitHub changes them
+  (ccoleman@redhat.com)
+- generated: docs (ccoleman@redhat.com)
+- Add the certificate command into admin (ccoleman@redhat.com)
+- Blacklist pkg/bootstrap/run from govet (ccoleman@redhat.com)
+- Add a simple bootstrap mode that waits for a secret (ccoleman@redhat.com)
+- Add `oc cluster join` (ccoleman@redhat.com)
+- Fix build controller performance issues (cewong@redhat.com)
+- Test flakes? Just wait longer in more places (ccoleman@redhat.com)
+- Switch empty extension files to return 200 with Content-Length zero
+  (jforrest@redhat.com)
+- cancel binary builds if they hang (bparees@redhat.com)
+- Fix test-go.sh for directories with "-" in their names (danw@redhat.com)
+- Generated changes (maszulik@redhat.com)
+- Remove copyright from our source code (maszulik@redhat.com)
+- UPSTREAM: 40023: Allow setting copyright header file for generated
+  completions (maszulik@redhat.com)
+- Bug 1415440: Check image history for zero size (mfojtik@redhat.com)
+- Router improvement (yhlou@travelsky.com)
+- update issue template from oadm (surajssd009005@gmail.com)
+
 * Mon Jan 23 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.8
 - Merge remote-tracking branch upstream/master, bump origin-web-console 8e6fe69
   (tdawson@redhat.com)

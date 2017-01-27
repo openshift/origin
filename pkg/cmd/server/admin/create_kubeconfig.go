@@ -15,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/cert"
 
+	"github.com/openshift/origin/pkg/cmd/cli/config"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -174,6 +175,12 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	credentials[userNick] = &clientcmdapi.AuthInfo{
 		ClientCertificateData: certData,
 		ClientKeyData:         keyData,
+	}
+
+	// normalize the provided server to a format expected by config
+	o.APIServerURL, err = config.NormalizeServerURL(o.APIServerURL)
+	if err != nil {
+		return nil, err
 	}
 
 	clusters := make(map[string]*clientcmdapi.Cluster)

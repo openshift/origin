@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pborman/uuid"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/util/wait"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 // RunPolicy is an interface that define handler for the build runPolicy field.
@@ -124,7 +125,7 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 }
 
 // handleComplete represents the default OnComplete handler. This Handler will
-// check which build should be run next and update the StartTimestamp field for
+// check which build should be run next and set the accepted annotation for
 // that build. That will trigger HandleBuild() to process that build immediately
 // and as a result the build is immediately executed.
 func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
@@ -139,9 +140,9 @@ func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpd
 	if hasRunningBuilds || len(nextBuilds) == 0 {
 		return nil
 	}
-	now := unversioned.Now()
 	for _, build := range nextBuilds {
-		build.Status.StartTimestamp = &now
+		// TODO: replace with informer notification requeueing in the future
+		build.Annotations[buildapi.BuildAcceptedAnnotation] = uuid.NewRandom().String()
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
 			err := updater.Update(build.Namespace, build)
 			if err != nil && errors.IsConflict(err) {

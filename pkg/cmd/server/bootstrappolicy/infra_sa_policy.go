@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/storage"
@@ -68,6 +69,9 @@ const (
 	InfraPetSetControllerServiceAccountName = "pet-set-controller"
 	PetSetControllerRoleName                = "system:pet-set-controller"
 
+	InfraCertificateSigningControllerServiceAccountName = "certificate-signing-controller"
+	CertificateSigningControllerRoleName                = "system:certificate-signing-controller"
+
 	InfraUnidlingControllerServiceAccountName = "unidling-controller"
 	UnidlingControllerRoleName                = "system:unidling-controller"
 
@@ -79,6 +83,9 @@ const (
 
 	InfraServiceIngressIPControllerServiceAccountName = "service-ingress-ip-controller"
 	ServiceIngressIPControllerRoleName                = "system:service-ingress-ip-controller"
+
+	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
+	NodeBootstrapRoleName                = "system:node-bootstrapper"
 )
 
 type InfraServiceAccounts struct {
@@ -997,6 +1004,30 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
+		InfraCertificateSigningControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: CertificateSigningControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{certificates.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("certificatesigningrequests"),
+				},
+				{
+					APIGroups: []string{certificates.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("certificatesigningrequests/status", "certificatesigningrequests/approval"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
 		InfraEndpointControllerServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
@@ -1065,4 +1096,22 @@ func init() {
 		panic(err)
 	}
 
+	err = InfraSAs.addServiceAccount(
+		InfraNodeBootstrapServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeBootstrapRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{certificates.GroupName},
+					Verbs:     sets.NewString("create", "get"),
+					Resources: sets.NewString("certificatesigningrequests"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
 }
