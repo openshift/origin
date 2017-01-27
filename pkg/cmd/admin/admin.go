@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/admin/image"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	migrateimages "github.com/openshift/origin/pkg/cmd/admin/migrate/images"
 	migratestorage "github.com/openshift/origin/pkg/cmd/admin/migrate/storage"
@@ -94,6 +95,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
 				),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, out, errout),
+				image.NewCmdVerifyImageSignature("verify-image-signature", fullName, f, out, errout),
 			},
 		},
 		{
