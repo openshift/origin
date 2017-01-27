@@ -36,8 +36,7 @@ function os::test::junit::declare_suite_end() {
     local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
     if [[ "${num_suites}" -lt "1" ]]; then
         # we can't end a suite if none have been started yet
-        echo "[ERROR] jUnit suite marker could not be placed, expected suites in flight, got ${num_suites}"
-        return 1
+        os::log::fatal "jUnit suite marker could not be placed, expected suites in flight, got ${num_suites}"
     fi
 
     echo "=== END TEST SUITE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
@@ -60,15 +59,13 @@ function os::test::junit::declare_test_start() {
     local num_tests=${NUM_OS_JUNIT_TESTS_IN_FLIGHT:-0}
     if [[ "${num_tests}" -ne "0" ]]; then
         # someone's declaring the starting of a test when a test is already in flight
-        echo "[ERROR] jUnit test marker could not be placed, expected no tests in flight, got ${num_tests}"
-        return 1
+        os::log::fatal "jUnit test marker could not be placed, expected no tests in flight, got ${num_tests}"
     fi
 
     local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
     if [[ "${num_suites}" -lt "1" ]]; then
         # we can't end a test if no suites are in flight
-        echo "[ERROR] jUnit test marker could not be placed, expected suites in flight, got ${num_suites}"
-        return 1
+        os::log::fatal "jUnit test marker could not be placed, expected suites in flight, got ${num_suites}"
     fi
 
     echo "=== BEGIN TEST CASE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
@@ -91,8 +88,7 @@ function os::test::junit::declare_test_end() {
     local num_tests=${NUM_OS_JUNIT_TESTS_IN_FLIGHT:-0}
     if [[ "${num_tests}" -ne "1" ]]; then
         # someone's declaring the end of a test when a test is not in flight
-        echo "[ERROR] jUnit test marker could not be placed, expected one test in flight, got ${num_tests}"
-        return 1
+        os::log::fatal "jUnit test marker could not be placed, expected one test in flight, got ${num_tests}"
     fi
 
     echo "=== END TEST CASE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
@@ -114,11 +110,9 @@ readonly -f os::test::junit::declare_test_end
 #  None
 function os::test::junit::check_test_counters() {
     if [[ "${NUM_OS_JUNIT_SUITES_IN_FLIGHT-}" -ne "0" ]]; then
-        echo "[ERROR] Expected no test suites to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_SUITES_IN_FLIGHT-}"
-        return 1
+        os::log::fatal "Expected no test suites to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_SUITES_IN_FLIGHT-}"
     elif [[ "${NUM_OS_JUNIT_TESTS_IN_FLIGHT-}" -ne "0" ]]; then
-        echo "[ERROR] Expected no test cases to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_TESTS_IN_FLIGHT-}"
-        return 1
+        os::log::fatal "Expected no test cases to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_TESTS_IN_FLIGHT-}"
     fi
 }
 readonly -f os::test::junit::check_test_counters
