@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -109,11 +108,6 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		return err
 	}
 
-	rawConfig, err := f.OpenShiftClientConfig().RawConfig()
-	if err != nil {
-		return err
-	}
-
 	if o.allNamespaces {
 		o.namespace = kapi.NamespaceAll
 	} else {
@@ -128,25 +122,15 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		baseCLIName = "oc"
 	}
 
-	currentNamespace := ""
-	if currentContext, exists := rawConfig.Contexts[rawConfig.CurrentContext]; exists {
-		currentNamespace = currentContext.Namespace
-	}
-
-	nsFlag := kcmdutil.GetFlagString(cmd, "namespace")
-	canRequestProjects, _ := loginutil.CanRequestProjects(config, o.namespace)
-
 	o.describer = &describe.ProjectStatusDescriber{
 		K:       kclientset,
 		C:       client,
 		Server:  config.Host,
 		Suggest: o.verbose,
 
-		CommandBaseName:    baseCLIName,
-		RequestedNamespace: nsFlag,
-		CurrentNamespace:   currentNamespace,
+		CommandBaseName: baseCLIName,
 
-		CanRequestProjects: canRequestProjects,
+		Config: config,
 
 		// TODO: Remove these and reference them inside the markers using constants.
 		LogsCommandName:             o.logsCommandName,

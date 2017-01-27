@@ -27,7 +27,7 @@ type JenkinsRef struct {
 	port string
 	// The namespace in which the Jenkins server is running
 	namespace string
-	password  string
+	token     string
 }
 
 // FlowDefinition can be marshalled into XML to represent a Jenkins workflow job definition.
@@ -59,16 +59,17 @@ func NewRef(oc *exutil.CLI) *JenkinsRef {
 	port, err := oc.Run("get").Args("svc", "jenkins", "--config", exutil.KubeConfigPath()).Template("{{ $x := index .spec.ports 0}}{{$x.port}}").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By("get admin password")
-	password := GetAdminPassword(oc)
-	o.Expect(password).ShouldNot(o.BeEmpty())
+	g.By("get token via whoami")
+	token, err := oc.Run("whoami").Args("-t").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	ginkgolog("user token: %s", token)
 
 	j := &JenkinsRef{
 		oc:        oc,
 		host:      serviceIP,
 		port:      port,
 		namespace: oc.Namespace(),
-		password:  password,
+		token:     token,
 	}
 	return j
 }
@@ -97,7 +98,7 @@ func (j *JenkinsRef) GetResource(resourcePathFormat string, a ...interface{}) (s
 	// http://stackoverflow.com/questions/17714494/golang-http-request-results-in-eof-errors-when-making-multiple-requests-successi
 	req.Close = true
 
-	req.SetBasicAuth("admin", j.password)
+	req.Header.Set("Authorization", "Bearer "+j.token)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
@@ -130,7 +131,7 @@ func (j *JenkinsRef) Post(reqBody io.Reader, resourcePathFormat, contentType str
 		req.Header.Set("Content-Type", contentType)
 		req.Header.Del("Expect") // jenkins will return 417 if we have an expect hdr
 	}
-	req.SetBasicAuth("admin", j.password)
+	req.Header.Set("Authorization", "Bearer "+j.token)
 
 	client := &http.Client{}
 	ginkgolog("Posting to Jenkins resource: %q", uri)
@@ -319,20 +320,6 @@ func (j *JenkinsRef) GetJobConsoleLogs(jobName, buildNumber string) (string, err
 // GetLastJobConsoleLogs returns the last build associated with a Jenkins job.
 func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 	return j.GetJobConsoleLogs(jobName, "lastBuild")
-}
-
-func GetAdminPassword(oc *exutil.CLI) string {
-	envs, err := oc.Run("set").Args("env", "dc/jenkins", "--list").Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	kvs := strings.Split(envs, "\n")
-	for _, kv := range kvs {
-		if strings.HasPrefix(kv, "JENKINS_PASSWORD=") {
-			s := strings.Split(kv, "=")
-			fmt.Fprintf(g.GinkgoWriter, "\nJenkins admin password %s\n", s[1])
-			return s[1]
-		}
-	}
-	return "password"
 }
 
 // Finds the pod running Jenkins

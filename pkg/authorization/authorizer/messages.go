@@ -50,9 +50,6 @@ func NewForbiddenMessageResolver(projectRequestForbiddenTemplate string) *Forbid
 	}
 	messageResolver.addRootScopedForbiddenMessageMaker("create", "projectrequests", newTemplateForbiddenMessageMaker(projectRequestDeny))
 
-	// projects "get" request rejection
-	messageResolver.addNamespacedForbiddenMessageMaker("get", "projects", newTemplateForbiddenMessageMaker(`User "{{.User.GetName}}" cannot get project "{{.Namespace}}"`))
-
 	return messageResolver
 }
 

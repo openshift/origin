@@ -20,6 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/httprequest"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
 
 type deferredErrors map[string]error
@@ -39,6 +41,7 @@ const (
 	OpenShiftAuth = "openshift"
 
 	defaultTokenPath = "/openshift/token"
+	defaultUserName  = "anonymous"
 
 	RealmKey      = "realm"
 	TokenRealmKey = "tokenrealm"
@@ -95,6 +98,18 @@ func UserClientFrom(ctx context.Context) (client.Interface, bool) {
 	return userClient, ok
 }
 
+// WithUserInfoLogger creates a new context with provided user infomation.
+func WithUserInfoLogger(ctx context.Context, username, userid string) context.Context {
+	ctx = context.WithValue(ctx, audit.AuditUserEntry, username)
+	if len(userid) > 0 {
+		ctx = context.WithValue(ctx, audit.AuditUserIDEntry, userid)
+	}
+	return context.WithLogger(ctx, context.GetLogger(ctx,
+		audit.AuditUserEntry,
+		audit.AuditUserIDEntry,
+	))
+}
+
 const authPerformedKey = "openshift.auth.performed"
 
 func WithAuthPerformed(parent context.Context) context.Context {
@@ -120,6 +135,7 @@ type AccessController struct {
 	realm      string
 	tokenRealm *url.URL
 	config     restclient.Config
+	auditLog   bool
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -184,10 +200,10 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	log.Info("Using Origin Auth handler")
-	realm, ok := options[RealmKey].(string)
-	if !ok {
-		// Default to openshift if not present
-		realm = "origin"
+
+	realm, err := getStringOption("", RealmKey, "origin", options)
+	if err != nil {
+		return nil, err
 	}
 
 	tokenRealm, err := TokenRealm(options)
@@ -195,7 +211,28 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 		return nil, err
 	}
 
-	return &AccessController{realm: realm, tokenRealm: tokenRealm, config: DefaultRegistryClient.SafeClientConfig()}, nil
+	ac := &AccessController{
+		realm:      realm,
+		tokenRealm: tokenRealm,
+		config:     DefaultRegistryClient.SafeClientConfig(),
+	}
+
+	if audit, ok := options["audit"]; ok {
+		auditOptions := make(map[string]interface{})
+
+		for k, v := range audit.(map[interface{}]interface{}) {
+			if s, ok := k.(string); ok {
+				auditOptions[s] = v
+			}
+		}
+
+		ac.auditLog, err = getBoolOption("", "enabled", false, auditOptions)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ac, nil
 }
 
 // Error returns the internal error string for this authChallenge.
@@ -295,10 +332,19 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 
 	// In case of docker login, hits endpoint /v2
-	if len(accessRecords) == 0 {
-		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
+	if len(bearerToken) > 0 {
+		user, userid, err := verifyOpenShiftUser(ctx, osClient)
+		if err != nil {
 			return nil, ac.wrapErr(ctx, err)
 		}
+		ctx = WithUserInfoLogger(ctx, user, userid)
+	} else {
+		ctx = WithUserInfoLogger(ctx, defaultUserName, "")
+	}
+
+	if ac.auditLog {
+		// TODO: setup own log formatter.
+		ctx = audit.WithLogger(ctx, audit.GetLogger(ctx))
 	}
 
 	// pushChecks remembers which ns/name pairs had push access checks done
@@ -439,16 +485,17 @@ func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error
 	return token, nil
 }
 
-func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
-	if _, err := client.Users().Get("~"); err != nil {
+func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) (string, string, error) {
+	userInfo, err := client.Users().Get("~")
+	if err != nil {
 		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return ErrOpenShiftAccessDenied
+			return "", "", ErrOpenShiftAccessDenied
 		}
-		return err
+		return "", "", err
 	}
 
-	return nil
+	return userInfo.GetName(), string(userInfo.GetUID()), nil
 }
 
 func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {

@@ -1,6 +1,6 @@
 # Redis
 
-This example runs redis through a petset.
+This example runs redis through a statefulset.
 
 ## Master/slave
 
@@ -15,7 +15,7 @@ can run the "test.sh" script in this directory.
 
 ## TODO
 
-Expect cleaner solutions for the following as petset matures.
+Expect cleaner solutions for the following as statefulset matures.
 
 * Scaling Up/down
 * Image Upgrade

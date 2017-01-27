@@ -653,7 +653,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		_, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraStatefulSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}

@@ -134,32 +134,6 @@ items:
   userNames: null
 - apiVersion: v1
   groupNames:
-  - system:routers
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
-    name: system:routers
-  roleRef:
-    name: system:router
-  subjects:
-  - kind: SystemGroup
-    name: system:routers
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:registries
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
-    name: system:registrys
-  roleRef:
-    name: system:registry
-  subjects:
-  - kind: SystemGroup
-    name: system:registries
-  userNames: null
-- apiVersion: v1
-  groupNames:
   - system:nodes
   kind: ClusterRoleBinding
   metadata:

@@ -11,7 +11,7 @@ function os::build::environment::create() {
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
-    additional_context+="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+    additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
       # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
@@ -37,17 +37,31 @@ function os::build::environment::create() {
     additional_context+=" -e OS_VERSION_FILE="
   fi
 
-  local args
-  if [[ $# -eq 0 ]]; then
-    args=( "echo" "docker create ${additional_context} ${release_image}" )
-  else
-    args=( "$@" )
+  declare -a cmd=( )
+  declare -a env=( )
+  local prefix=1
+  for arg in "${@:1}"; do
+    if [[ "${arg}" != *"="* ]]; then
+      prefix=0
+    fi
+    if [[ "${prefix}" -eq 1 ]]; then
+      env+=( "-e" "${arg}" )
+    else
+      cmd+=( "${arg}" )
+    fi
+  done
+  if [[ -t 0 ]]; then
+    if [[ "${#cmd[@]}" -eq 0 ]]; then
+      cmd=( "/bin/sh" )
+    fi
+    if [[ "${cmd[0]}" == "/bin/sh" || "${cmd[0]}" == "/bin/bash" ]]; then
+      additional_context+=" -it"
+    fi
   fi
 
-  os::log::debug "Creating container: \`docker create ${additional_context} ${release_image} ${args[*]}\`"
-
   # Create a new container from the release environment
-  docker create ${additional_context} "${release_image}" "${args[@]}"
+  os::log::debug "Creating container: \`docker create ${additional_context} ${env[@]+"${env[@]}"} ${release_image} ${cmd[@]+"${cmd[@]}"}"
+  docker create ${additional_context} "${env[@]+"${env[@]}"}" "${release_image}" "${cmd[@]+"${cmd[@]}"}"
 }
 readonly -f os::build::environment::create
 
@@ -84,9 +98,13 @@ function os::build::environment::start() {
   local container=$1
 
   os::log::debug "Starting container ${container}"
-  docker start "${container}" > /dev/null
-  os::log::debug "Following container logs"
-  docker logs -f "${container}"
+  if [[ "$( docker inspect --type container -f '{{ .Config.OpenStdin }}' "${container}" )" == "true" ]]; then
+    docker start -ia "${container}"
+  else
+    docker start "${container}" > /dev/null
+    os::log::debug "Following container logs"
+    docker logs -f "${container}"
+  fi
 
   local exitcode
   exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"

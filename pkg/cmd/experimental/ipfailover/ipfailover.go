@@ -92,7 +92,6 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "The image to base this IP failover configurator on - ${component} will be replaced based on --type.")
 	cmd.Flags().BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images instead of the current release")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter nodes on.")
-	cmd.Flags().StringVar(&options.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&options.ServiceAccount, "service-account", options.ServiceAccount, "Name of the service account to use to run the ipfailover pod.")
 
 	cmd.Flags().BoolVar(&options.Create, "create", options.Create, "If true, create the configuration if it does not exist.")
@@ -107,10 +106,6 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")
 	cmd.Flags().IntVar(&options.VRRPIDOffset, "vrrp-id-offset", options.VRRPIDOffset, "Offset to use for setting ids of VRRP instances (default offset is 0). This allows multiple ipfailover instances to run within the same cluster.")
 	cmd.Flags().Int32VarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of this IP failover configuration; commonly 2 when high availability is desired. Please ensure this matches the number of nodes that satisfy the selector (or default selector) specified.")
-
-	// autocompletion hints
-	cmd.MarkFlagFilename("credentials", "kubeconfig")
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the ipfailover pod will use to make API calls")
 
 	options.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")

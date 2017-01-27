@@ -137,7 +137,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/status", "resourcequotas", "resourcequotas/status", "securitycontextconstraints", "serviceaccounts", "services",
 					"services/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets", "petsets/status", "statefulsets", "statefulsets/status").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers", "horizontalpodautoscalers/status").RuleOrDie(),
 
@@ -281,7 +281,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
@@ -345,7 +345,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
@@ -399,7 +399,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets", "statefulsets").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
@@ -1002,24 +1002,6 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: StatusCheckerRoleName,
 			},
 			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}, {Kind: authorizationapi.SystemGroupKind, Name: UnauthenticatedGroup}},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: RouterRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: RouterRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: RouterGroup}},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: RegistryRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: RegistryRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: RegistryGroup}},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
