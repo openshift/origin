@@ -46,7 +46,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		j                        *jenkins.JenkinsRef
 		dcLogFollow              *exec.Cmd
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
-		setup                    = func() {
+		setupJenkins             = func() {
 			// Deploy Jenkins
 			g.By(fmt.Sprintf("calling oc new-app -f %q", jenkinsTemplatePath))
 			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath).Execute()
@@ -67,11 +67,6 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
-				g.By("start jenkins gc tracking")
-				ticker = jenkins.StartJenkinsGCTracking(oc, oc.Namespace())
-			}
-
 			// Start capturing logs from this deployment config.
 			// This command will terminate if the Jenkins instance crashes. This
 			// ensures that even if the Jenkins DC restarts, we should capture
@@ -80,15 +75,23 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 		}
-		cleanup = func() {
-			if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
-				g.By("stop jenkins gc tracking")
-				ticker.Stop()
-			}
-		}
 	)
 
-	g.JustBeforeEach(func() {
+	g.AfterEach(func() {
+		if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
+			g.By("stop jenkins gc tracking")
+			ticker.Stop()
+		}
+	})
+
+	g.BeforeEach(func() {
+		setupJenkins()
+
+		if os.Getenv(jenkins.DisableJenkinsGCSTats) == "" {
+			g.By("start jenkins gc tracking")
+			ticker = jenkins.StartJenkinsGCTracking(oc, oc.Namespace())
+		}
+
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -96,9 +99,6 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline with maven slave", func() {
 		g.It("should build and complete successfully", func() {
-			setup()
-			defer cleanup()
-
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", mavenSlavePipelinePath))
 			err := oc.Run("new-app").Args("-f", mavenSlavePipelinePath).Execute()
@@ -119,8 +119,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	/*g.Context("Orchestration pipeline", func() {
 		g.It("should build and complete successfully", func() {
-			setup()
-			defer cleanup()
+			setupJenkins()
 
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", orchestrationPipelinePath))
@@ -145,9 +144,6 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Blue-green pipeline", func() {
 		g.It("Blue-green pipeline should build and complete successfully", func() {
-			setup()
-			defer cleanup()
-
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", blueGreenPipelinePath))
 			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath).Execute()
