@@ -178,7 +178,7 @@ function generate_vip_section() {
 #
 function generate_vrrpd_instance_config() {
   local servicename=$1
-  local iid=${2:-"0"}
+  local iid=${2:-"1"}
   local vips=$3
   local interface=$4
   local priority=${5:-"10"}

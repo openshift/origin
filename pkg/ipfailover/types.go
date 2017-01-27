@@ -12,8 +12,9 @@ const (
 	// DefaultType is the default IP Failover type.
 	DefaultType = "keepalived"
 
-	// DefaultServicePort is the default service port.
-	DefaultServicePort = 1985
+	// DefaultServicePort is the port associated with the ipfailover config.
+	// Each ipfailover config has a different ServicePort.
+	DefaultServicePort = 63000
 
 	// DefaultWatchPort is the default IP Failover watched port number.
 	DefaultWatchPort = 80
