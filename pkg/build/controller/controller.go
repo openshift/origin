@@ -83,6 +83,9 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	}
 
 	glog.V(4).Infof("Build %s/%s was successfully cancelled.", build.Namespace, build.Name)
+
+	handleBuildCompletion(build, bc.RunPolicies)
+
 	return nil
 }
 
@@ -368,16 +371,8 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 
-		runPolicy := policy.ForBuild(build, bc.RunPolicies)
-		if runPolicy == nil {
-			glog.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
-			return nil
-		}
-		if buildutil.IsBuildComplete(build) {
-			if err := runPolicy.OnComplete(build); err != nil {
-				glog.Errorf("failed to run policy on completed build: %v", err)
-			}
-		}
+		handleBuildCompletion(build, bc.RunPolicies)
+
 	}
 	return nil
 }
@@ -501,5 +496,19 @@ func setBuildCompletionTimeAndDuration(build *buildapi.Build) {
 	build.Status.CompletionTimestamp = &now
 	if build.Status.StartTimestamp != nil {
 		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	}
+}
+
+func handleBuildCompletion(build *buildapi.Build, runPolicies []policy.RunPolicy) {
+	if !buildutil.IsBuildComplete(build) {
+		return
+	}
+	runPolicy := policy.ForBuild(build, runPolicies)
+	if runPolicy == nil {
+		glog.Errorf("unable to determine build scheduler for %s/%s", build.Namespace, build.Name)
+		return
+	}
+	if err := runPolicy.OnComplete(build); err != nil {
+		glog.Errorf("failed to run policy on completed build: %v", err)
 	}
 }
