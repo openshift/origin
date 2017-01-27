@@ -182,7 +182,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"
@@ -205,7 +205,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"
@@ -294,7 +294,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/start-master/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"
@@ -320,7 +320,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/start-master/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"
@@ -347,7 +347,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/start-all/master/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"
@@ -383,7 +383,7 @@ for CERT_FILE in ca.crt ca-bundle.crt service-signer.crt; do
 done
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
-for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-{master,registry,router}.crt; do
+for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-client.crt openshift-master.crt; do
     os::cmd::expect_success_and_text \
         "openssl x509 -in '${CERT_DIR}/start-all/master/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
         "${expected_year}"

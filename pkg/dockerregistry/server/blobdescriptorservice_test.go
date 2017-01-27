@@ -257,6 +257,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		req, err := http.NewRequest(tc.method, u.String(), nil)
 		if err != nil {
 			t.Errorf("[%s] failed to make request: %v", tc.name, err)
+			continue
 		}
 
 		client := &http.Client{}
@@ -290,6 +291,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		stats, err := m.getStats(tc.expectedMethodInvocations, time.Second*5)
 		if err != nil {
 			t.Errorf("[%s] failed to get stats: %v", tc.name, err)
+			continue
 		}
 		for method, exp := range tc.expectedMethodInvocations {
 			invoked := stats[method]

@@ -49,15 +49,16 @@ func TestStatusNoOp(t *testing.T) {
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	admitter := NewStatusAdmitter(p, c, "test", "a.b.c.d")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
 		Status: routeapi.RouteStatus{
 			Ingress: []routeapi.RouteIngress{
 				{
-					Host:       "route1.test.local",
-					RouterName: "test",
+					Host:                    "route1.test.local",
+					RouterName:              "test",
+					RouterCanonicalHostname: "a.b.c.d",
 					Conditions: []routeapi.RouteIngressCondition{
 						{
 							Type:               routeapi.RouteAdmitted,

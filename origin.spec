@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 22a063916fb90c94b2d8e282eebac7f7c05f9b89
+%global commit 7713905d68c790a66e98a41ab8c1a71d241597dc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.8+22a0639-52 OS_GIT_COMMIT=22a0639 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.9+7713905-55 OS_GIT_COMMIT=7713905 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.9
+Version:        3.5.0.10
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,53 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Jan 27 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.10
+- bump(github.com/openshift/origin-web-console):
+  9989eefc00d8379246015350374f4cdfcdc89933 (dmcphers+openshiftbot@redhat.com)
+- backup and remove keys during migration (sjenning@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  960a94b5e2a1416e26fbb16f3d13eda3c45f4f77 (dmcphers+openshiftbot@redhat.com)
+- Update clusterup documentation (persistence, proxy) (cewong@redhat.com)
+- tweak pipeline build background monitor and ginkgo integration
+  (gmontero@redhat.com)
+- Router sets its dns name in admitted routes test (pcameron@redhat.com)
+- Fix http status for error and remove dead code (agladkov@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ad2fdea2b7ac03e14942f96c7447ad0bdbfed8fe (dmcphers+openshiftbot@redhat.com)
+- Minor fixes for dockerregistry/server tests (dmage@yandex-team.ru)
+- Revert "Update "no projects" warning in `oc status`" (ccoleman@redhat.com)
+- add migration script to fix etcd paths (sjenning@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f517fe8456628870ad7dfdac6e247abf385b43a2 (dmcphers+openshiftbot@redhat.com)
+- Upgrade hack/env to support shell, env vars (ccoleman@redhat.com)
+- leave oauth on jenkins extended test, use token for http-level access
+  (gmontero@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e202d9ff4575f32427d39ac3b2e0cf21a7a9ff60 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a506596e52864fbfbc8d3cafa40a83156164f4ca (dmcphers+openshiftbot@redhat.com)
+- Add audit log (agladkov@redhat.com)
+- Update extended tests to run StatefulSet tests (maszulik@redhat.com)
+- Rename PetSet to StatefulSet (maszulik@redhat.com)
+- Install tito from source in `openshift/origin-release` (skuznets@redhat.com)
+- Configure global git options in the release images (skuznets@redhat.com)
+- use correct context dir during s2i build (bparees@redhat.com)
+- Fix connection URL in postgresql examples (mmilata@redhat.com)
+- Existing images are tagged with correct reference on push
+  (miminar@redhat.com)
+- Stop generating router/registry client certs (jliggitt@redhat.com)
+- Remove deprecated credentials flag (jliggitt@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  72d1d47c7c9e543320db4f2622a152cd6a12fcb3 (bparees@redhat.com)
+- prevent Normalize from running twice on oadm drain (jvallejo@redhat.com)
+- UPSTREAM: <drop>: request logs when attaching to a container
+  (agoldste@redhat.com)
+- UPSTREAM: docker/engine-api: 26718: Add Logs to ContainerAttachOptions
+  (agoldste@redhat.com)
+- Add comment pointing out incorrect SDN annotation naming (danw@redhat.com)
+- UPSTREAM: 37846: error in setNodeStatus func should not abort node status
+  update (sjenning@redhat.com)
+
 * Wed Jan 25 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.9
 - bump(github.com/openshift/origin-web-console):
   c9474fc80ed7b5174e97ff168531384dccb049ba (dmcphers+openshiftbot@redhat.com)

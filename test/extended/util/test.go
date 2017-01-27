@@ -165,13 +165,16 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 	// Add anyuid and privileged permissions for upstream tests
 	if isKubernetesE2ETest() && !skipTestNamespaceCustomization() {
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
-		// add to the "privileged" scc to ensure pods that explicitly
+		// add the "privileged" scc to ensure pods that explicitly
 		// request extra capabilities are not rejected
 		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "privileged")
-		// add to the "anyuid" scc to ensure pods that don't specify a
+		// add the "anyuid" scc to ensure pods that don't specify a
 		// uid don't get forced into a range (mimics upstream
 		// behavior)
 		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "anyuid")
+		// add the "hostmount-anyuid" scc to ensure pods using hostPath
+		// can execute tests
+		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "hostmount-anyuid")
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.

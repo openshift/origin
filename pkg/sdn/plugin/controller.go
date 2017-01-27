@@ -422,7 +422,7 @@ func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	otx := plugin.ovs.NewTransaction()
 
 	otx.AddFlow("table=10, priority=100, tun_src=%s, actions=goto_table:30", subnet.HostIP)
-	if vnid, ok := subnet.Annotations[osapi.FixedVnidHost]; ok {
+	if vnid, ok := subnet.Annotations[osapi.FixedVNIDHostAnnotation]; ok {
 		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
 		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
 	} else {

@@ -14,6 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-kubectl exec zoo-0 -- /opt/zookeeper/bin/zkCli.sh create /foo bar;
-kubectl exec zoo-2 -- /opt/zookeeper/bin/zkCli.sh get /foo;
-
+kubectl exec rd-0 -- /opt/redis/redis-cli -h rd-0.redis SET replicated:test true
+kubectl exec rd-2 -- /opt/redis/redis-cli -h rd-2.redis GET replicated:test

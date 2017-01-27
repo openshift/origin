@@ -37,7 +37,6 @@ var masterCertLong = templates.LongDesc(`
 	    openshift.local.config/master/
 		    ca.{crt,key,serial.txt}
 		    master.server.{crt,key}
-			openshift-router.{crt,key,kubeconfig}
 			admin.{crt,key,kubeconfig}
 			...
 

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-kubectl exec rd-0 -- /opt/redis/redis-cli -h rd-0.redis SET replicated:test true
-kubectl exec rd-2 -- /opt/redis/redis-cli -h rd-2.redis GET replicated:test
-
+kubectl exec mysql-0 -- mysql -u root -e "create database test;"
+kubectl exec mysql-1 -- mysql -u root -e "use test; create table pet (id int(10), name varchar(20));"
+kubectl exec mysql-1 -- mysql -u root -e "use test; insert into pet (id, name) values (1, \"galera\");"
+kubectl exec mysql-2 -- mysql -u root -e "use test; select * from pet;"

@@ -61,4 +61,3 @@ cd "${TEMP_DIR}"/redis-"${VERSION}"/
 make distclean
 make install INSTALL_BIN="${INSTALL_VOLUME}"/redis
 cp "${TEMP_DIR}"/redis-"${VERSION}"/redis.conf ${INSTALL_VOLUME}/redis/redis.conf
-

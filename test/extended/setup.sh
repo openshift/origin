@@ -137,9 +137,10 @@ function os::test::extended::setup () {
 	fi
 	os::log::info "Using VOLUME_DIR=${VOLUME_DIR}"
 
-	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
+	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test
+	# and enable-hostpath-provisioner for StatefulSet tests
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"], "enable-hostpath-provisioner":["true"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
 
@@ -358,7 +359,7 @@ readonly CONFORMANCE_TESTS=(
 	"\[networking\]\[router\]"
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
-	"PetSet"
+	"StatefulSet"
 	"Downward API"
 	"DNS for ExternalName services"
 	"DNS for pods for Hostname and Subdomain annotation"
