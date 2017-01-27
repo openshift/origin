@@ -247,9 +247,34 @@ for test in "${tests[@]}"; do
   os::cmd::try_until_text "oc get projects -o name" "project/${namespace}"
   os::test::junit::declare_suite_end
 
-  if ! ${test}; then
-    failed="true"
-    tail -40 "${LOG_DIR}/openshift.log"
+  if [[ -x "${test}" ]]; then
+    if ! ${test}; then
+      failed="true"
+      tail -40 "${LOG_DIR}/openshift.log"
+    fi
+  else
+    # we are migrating tests from standalone scripts to libraries
+    # a library file won't be executable, but we can `source` it
+    # to load the test suite and cleanup functions. We expect each
+    # test library to give us `os::test::{suite,cleanup}` and we
+    # will unset them before `source`-ing the library, if they are
+    # set in the first place.
+    for test_function in "os::test::cleanup" "os::test::suite"; do
+      if declare -F | grep -q "${test_function}"; then
+        unset -f "${test_function}"
+      fi
+    done
+    source "${test}"
+    if ! output="$( os::test::cleanup )"; then
+      os::log::warn "Best-effort pre-suite cleanup failed!"$'\n'"${output}"
+    fi
+    os::test::junit::declare_suite_start "cmd/${namespace}"
+    if ! os::test::suite; then
+      failed="true"
+      tail -40 "${LOG_DIR}/openshift.log"
+    fi
+    os::test::junit::declare_suite_end
+    os::test::junit::reconcile_output
   fi
 
   os::test::junit::declare_suite_start "cmd/${namespace}-namespace-teardown"
