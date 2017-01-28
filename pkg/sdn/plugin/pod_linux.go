@@ -466,26 +466,26 @@ func (m *podManager) getContainerNetnsPath(id string) (string, error) {
 }
 
 // Update OVS flows when something (like the pod's namespace VNID) changes
-func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
+func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 	// Updates may come at startup and thus we may not have the pod's
 	// netns from kubelet (since kubelet doesn't have UPDATE actions).
 	// Read the missing netns from the pod's file.
 	if req.Netns == "" {
 		netns, err := m.getContainerNetnsPath(req.ContainerId)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		req.Netns = netns
 	}
 
-	podConfig, pod, err := m.getPodConfig(req)
+	podConfig, _, err := m.getPodConfig(req)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	vnidStr := vnidToString(podConfig.vnid)
@@ -493,24 +493,12 @@ func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
-		return nil, fmt.Errorf("error running network update script: %s", getScriptError(out))
+		return 0, fmt.Errorf("error running network update script: %s", getScriptError(out))
 	} else if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	ofport, err := m.ovs.GetOFPort(hostVethName)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runningPod{
-		activePod: &kubehostport.ActivePod{
-			Pod: pod,
-			IP:  net.ParseIP(podIP),
-		},
-		vnid:   podConfig.vnid,
-		ofport: ofport,
-	}, nil
+	return podConfig.vnid, nil
 }
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)

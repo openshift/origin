@@ -160,7 +160,11 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *osapi.NetNamespace) {
 }
 
 func (np *networkPolicyPlugin) UpdateNetNamespace(netns *osapi.NetNamespace, oldNetID uint32) {
-	glog.Warning("Got UpdateNetNamespace for namespace %s (%d) while using %s plugin", netns.NetName, netns.NetID, osapi.NetworkPolicyPluginName)
+	if netns.NetID != oldNetID {
+		glog.Warning("Got VNID change for namespace %s while using %s plugin", netns.NetName, osapi.NetworkPolicyPluginName)
+	}
+
+	np.node.podManager.UpdateLocalMulticastRules(netns.NetID)
 }
 
 func (np *networkPolicyPlugin) DeleteNetNamespace(netns *osapi.NetNamespace) {
@@ -176,6 +180,10 @@ func (np *networkPolicyPlugin) GetVNID(namespace string) (uint32, error) {
 
 func (np *networkPolicyPlugin) GetNamespaces(vnid uint32) []string {
 	return np.vnids.GetNamespaces(vnid)
+}
+
+func (np *networkPolicyPlugin) GetMulticastEnabled(vnid uint32) bool {
+	return np.vnids.GetMulticastEnabled(vnid)
 }
 
 func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
