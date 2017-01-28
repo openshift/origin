@@ -183,11 +183,10 @@ function os::util::curl_etcd() {
 
 		curl --fail --silent --cacert "${ca_bundle}" \
 		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
+	else
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 	fi
-
-
-	curl --fail --silent --cacert "${ca_bundle}" \
-	     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 }
 
 # os::util::host_platform determines what the host OS and architecture
