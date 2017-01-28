@@ -206,6 +206,16 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 
+	if cmds.Flag("namespace") != nil {
+		if cmds.Flag("namespace").Annotations == nil {
+			cmds.Flag("namespace").Annotations = map[string][]string{}
+		}
+		cmds.Flag("namespace").Annotations[cobra.BashCompCustom] = append(
+			cmds.Flag("namespace").Annotations[cobra.BashCompCustom],
+			"__oc_get_namespaces",
+		)
+	}
+
 	return cmds
 }
 
