@@ -297,6 +297,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
     The bit of the fwmark space to mark packets for SNAT. Must be within the range [0, 31]. Please match this parameter with corresponding parameter in kube\-proxy.
 
 .PP
+\fB\-\-keep\-terminated\-pod\-volumes\fP=false
+    Keep terminated pod volumes mounted to the node after the pod terminates.  Can be useful for debugging volume related issues.
+
+.PP
 \fB\-\-kube\-api\-burst\fP=10
     Burst to use while talking with kubernetes apiserver
 
