@@ -51,7 +51,7 @@ If you have downloaded the client tools from the [releases page](https://github.
 
 OpenShift builds a developer-centric workflow around Docker containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish Docker images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to redeploy whenever a new image becomes available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
 
-For more on the underyling concepts of OpenShift, please see the [documentation site](https://docs.openshift.org/latest/welcome/index.html).
+For more on the underlying concepts of OpenShift, please see the [documentation site](https://docs.openshift.org/latest/welcome/index.html).
 
 ### OpenShift API
 
