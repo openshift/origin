@@ -26,6 +26,9 @@
 #   $ hack/env make # slow
 #   $ hack/env make # fast!
 #
+#   # force a new volume to get created from the current source
+#   $ OS_BUILD_ENV_VOLUME_FORCE_NEW=TRUE hack/env
+#
 
 # NOTE:   only committed code is built.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
