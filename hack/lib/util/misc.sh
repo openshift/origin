@@ -78,10 +78,13 @@ function os::util::repository_relative_path() {
 	local directory; directory="$( dirname "${filename}" )"
 	filename="$( basename "${filename}" )"
 
-	pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
-	directory="$( os::util::absolute_path "${directory}" )"
+	if [[ "${directory}" != "${OS_ROOT}"* ]]; then
+		pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
+		directory="$( os::util::absolute_path "${directory}" )"
+		popd >/dev/null 2>&1
+	fi
+
 	directory="${directory##*${OS_ROOT}/}"
-	popd >/dev/null 2>&1
 
 	echo "${directory}/${filename}"
 }
