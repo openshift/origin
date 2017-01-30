@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -16,36 +17,14 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func TestPullthroughManifests(t *testing.T) {
-	ctx := context.Background()
-
-	installFakeAccessController(t)
-
-	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testImage.DockerImageManifest = ""
-
-	client := &testclient.Fake{}
-	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
-
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
+func createTestRegistryServer(t *testing.T, ctx context.Context) *httptest.Server {
 	// pullthrough middleware will attempt to pull from this registry instance
 	remoteRegistryApp := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
@@ -67,23 +46,51 @@ func TestPullthroughManifests(t *testing.T) {
 			"storage":    {{Name: "openshift"}},
 		},
 	})
+
 	remoteRegistryServer := httptest.NewServer(remoteRegistryApp)
-	defer remoteRegistryServer.Close()
 
 	serverURL, err := url.Parse(remoteRegistryServer.URL)
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
 	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
-	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, "user/app", testImage.Name)
 
-	testImageStream := registrytest.TestNewImageStreamObject("user", "app", "latest", testImage.Name, testImage.DockerImageReference)
-	if testImageStream.Annotations == nil {
-		testImageStream.Annotations = make(map[string]string)
+	return remoteRegistryServer
+}
+
+func TestPullthroughManifests(t *testing.T) {
+	namespace := "fuser"
+	repo := "zapp"
+	tag := "latest"
+
+	client := &testclient.Fake{}
+
+	// TODO: get rid of those nasty global vars
+	backupRegistryClient := DefaultRegistryClient
+	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
+	defer func() {
+		// set it back once this test finishes to make other unit tests working again
+		DefaultRegistryClient = backupRegistryClient
+	}()
+
+	installFakeAccessController(t)
+
+	ctx := context.Background()
+
+	remoteRegistryServer := createTestRegistryServer(t, ctx)
+	defer remoteRegistryServer.Close()
+
+	serverURL, err := url.Parse(remoteRegistryServer.URL)
+	if err != nil {
+		t.Fatalf("error parsing server url: %v", err)
 	}
-	testImageStream.Annotations[imageapi.InsecureRepositoryAnnotation] = "true"
 
-	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
+	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
+	testImage.DockerImageManifest = ""
+
+	testImageStream := createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+
+	client.AddReactor("get", "imagestreamimages", registrytest.GetFakeImageStreamImageGetHandler(t, testImageStream, *testImage))
 
 	signedManifest := &schema1.SignedManifest{}
 	if err := json.Unmarshal([]byte(etcdManifest), signedManifest); err != nil {
@@ -92,7 +99,6 @@ func TestPullthroughManifests(t *testing.T) {
 
 	for _, tc := range []struct {
 		name                  string
-		method                string
 		manifestDigest        digest.Digest
 		localData             map[digest.Digest]distribution.Manifest
 		expectedLocalCalls    map[string]int
@@ -101,7 +107,6 @@ func TestPullthroughManifests(t *testing.T) {
 	}{
 		{
 			name:           "manifest digest",
-			method:         "GET",
 			manifestDigest: etcdDigest,
 			localData: map[digest.Digest]distribution.Manifest{
 				etcdDigest: signedManifest,
@@ -111,8 +116,14 @@ func TestPullthroughManifests(t *testing.T) {
 			},
 		},
 		{
+			name:           "manifest digest XXX",
+			manifestDigest: digest.Digest(testImage.Name),
+			expectedLocalCalls: map[string]int{
+				"Get": 1,
+			},
+		},
+		{
 			name:                  "unknown manifest digest",
-			method:                "GET",
 			manifestDigest:        unknownBlobDigest,
 			expectedNotFoundError: true,
 			expectedLocalCalls: map[string]int{
@@ -120,7 +131,7 @@ func TestPullthroughManifests(t *testing.T) {
 			},
 		},
 	} {
-		localManifestService := newTestManifestService(tc.localData)
+		localManifestService := newTestManifestService(namespace+"/"+repo, tc.localData)
 
 		cachedLayers, err := newDigestToRepositoryCache(10)
 		if err != nil {
@@ -131,8 +142,8 @@ func TestPullthroughManifests(t *testing.T) {
 			ManifestService: localManifestService,
 			repo: &repository{
 				ctx:              ctx,
-				namespace:        "user",
-				name:             "app",
+				namespace:        namespace,
+				name:             repo,
 				pullthrough:      true,
 				cachedLayers:     cachedLayers,
 				registryOSClient: client,
@@ -156,11 +167,19 @@ func TestPullthroughManifests(t *testing.T) {
 			if tc.expectedNotFoundError && err == distribution.ErrBlobUnknown {
 				break
 			}
+			// TODO: The middleware should return distribution errors, not kube ones.
+			if e, ok := err.(*kerrors.StatusError); ok {
+				if tc.expectedNotFoundError && e.ErrStatus.Code == http.StatusNotFound {
+					break
+				}
+			}
 			t.Fatalf("[%s] unexpected error: %#+v", tc.name, err)
 		}
 
-		if manifestResult != nil && manifestResult != tc.localData[tc.manifestDigest] {
-			t.Fatalf("[%s] unexpected retult returned", tc.name)
+		if tc.localData != nil {
+			if manifestResult != nil && manifestResult != tc.localData[tc.manifestDigest] {
+				t.Fatalf("[%s] unexpected result returned", tc.name)
+			}
 		}
 
 		for name, count := range localManifestService.calls {
@@ -176,18 +195,20 @@ func TestPullthroughManifests(t *testing.T) {
 }
 
 type testManifestService struct {
+	name  string
 	data  map[digest.Digest]distribution.Manifest
 	calls map[string]int
 }
 
 var _ distribution.ManifestService = &testManifestService{}
 
-func newTestManifestService(data map[digest.Digest]distribution.Manifest) *testManifestService {
+func newTestManifestService(name string, data map[digest.Digest]distribution.Manifest) *testManifestService {
 	b := make(map[digest.Digest]distribution.Manifest)
 	for d, content := range data {
 		b[d] = content
 	}
 	return &testManifestService{
+		name:  name,
 		data:  b,
 		calls: make(map[string]int),
 	}
@@ -203,7 +224,10 @@ func (t *testManifestService) Get(ctx context.Context, dgst digest.Digest, optio
 	t.calls["Get"]++
 	content, exists := t.data[dgst]
 	if !exists {
-		return nil, distribution.ErrBlobUnknown
+		return nil, distribution.ErrManifestUnknownRevision{
+			Name:     t.name,
+			Revision: dgst,
+		}
 	}
 	return content, nil
 }
