@@ -51,6 +51,7 @@ type TemplatePluginConfig struct {
 	AllowWildcardRoutes    bool
 	PeerService            *ktypes.NamespacedName
 	BindPortsAfterSync     bool
+	MaxConnections         string
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
