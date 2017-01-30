@@ -4,6 +4,7 @@ import (
 	"github.com/docker/distribution/context"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
 
 type contextKey string
@@ -29,6 +30,9 @@ const (
 
 	// deferredErrorsKey is the key for deferred errors in Contexts.
 	deferredErrorsKey contextKey = "deferredErrors"
+
+	// configurationKey is the key for Configuration in Context.
+	configurationKey contextKey = "configuration"
 )
 
 // withRepository returns a new Context that carries value repo.
@@ -101,4 +105,15 @@ func withDeferredErrors(parent context.Context, errs deferredErrors) context.Con
 func deferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
 	errs, ok := ctx.Value(deferredErrorsKey).(deferredErrors)
 	return errs, ok
+}
+
+// WithConfiguration returns a new Context with provided configuration.
+func WithConfiguration(ctx context.Context, config *configuration.Configuration) context.Context {
+	return context.WithValue(ctx, configurationKey, config)
+}
+
+// ConfigurationFrom returns the configuration stored in ctx if present.
+// It will panic otherwise.
+func ConfigurationFrom(ctx context.Context) *configuration.Configuration {
+	return ctx.Value(configurationKey).(*configuration.Configuration)
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
+	"github.com/openshift/origin/pkg/dockerregistry/server/metrics"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
@@ -264,6 +265,15 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 		}
 	}
 
+	config := ConfigurationFrom(ctx)
+
+	if config.Metrics.Enabled {
+		ms = &metrics.ManifestService{
+			Manifests: ms,
+			Reponame:  r.Named().Name(),
+		}
+	}
+
 	return ms, nil
 }
 
@@ -299,6 +309,15 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		}
 	}
 
+	config := ConfigurationFrom(ctx)
+
+	if config.Metrics.Enabled {
+		bs = &metrics.BlobStore{
+			Store:    bs,
+			Reponame: r.Named().Name(),
+		}
+	}
+
 	return bs
 }
 
@@ -319,6 +338,15 @@ func (r *repository) Tags(ctx context.Context) distribution.TagService {
 	if audit.LoggerExists(ctx) {
 		ts = &auditTagService{
 			tags: ts,
+		}
+	}
+
+	config := ConfigurationFrom(ctx)
+
+	if config.Metrics.Enabled {
+		ts = &metrics.TagService{
+			Tags:     ts,
+			Reponame: r.Named().Name(),
 		}
 	}
 
