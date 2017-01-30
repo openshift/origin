@@ -75,17 +75,15 @@ fi
 #  None
 function os::util::repository_relative_path() {
 	local filename=$1
+	local directory; directory="$( dirname "${filename}" )"
+	filename="$( basename "${filename}" )"
 
-	if which realpath >/dev/null 2>&1; then
-		pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
-		local trim_path
-		trim_path="$( realpath "${OS_ROOT}" )/"
-		filename="$( realpath "${filename}" )"
-		filename="${filename##*${trim_path}}"
-		popd >/dev/null 2>&1
-	fi
+	pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
+	directory="$( os::util::absolute_path "${directory}" )"
+	directory="${directory##*${OS_ROOT}/}"
+	popd >/dev/null 2>&1
 
-	echo "${filename}"
+	echo "${directory}/${filename}"
 }
 readonly -f os::util::repository_relative_path
 
@@ -183,11 +181,10 @@ function os::util::curl_etcd() {
 
 		curl --fail --silent --cacert "${ca_bundle}" \
 		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
+	else
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 	fi
-
-
-	curl --fail --silent --cacert "${ca_bundle}" \
-	     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 }
 
 # os::util::host_platform determines what the host OS and architecture

@@ -78,7 +78,10 @@ os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --ipta
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --check-interval=1177 --dry-run -o yaml' 'value: "1177"'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --check-script="ChkScript.sh" --dry-run -o yaml' 'value: ChkScript.sh'
 os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --notify-script="NotScript.sh" --dry-run -o yaml' 'value: NotScript.sh'
+os::cmd::expect_success_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml --vrrp-id-offset=56' 'hostPort: 63056'
+os::cmd::expect_failure_and_text 'oadm ipfailover --virtual-ips="1.2.3.4" --dry-run -o yaml --vrrp-id-offset=255' 'error: The vrrp-id-offset must be in the range 0..254'
 os::cmd::expect_success 'oadm policy remove-scc-from-user privileged -z ipfailover'
+
 # TODO add tests for normal ipfailover creation
 # os::cmd::expect_success_and_text 'oadm ipfailover' 'deploymentconfig "ipfailover" created'
 # os::cmd::expect_failure_and_text 'oadm ipfailover' 'Error from server: deploymentconfig "ipfailover" already exists'

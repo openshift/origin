@@ -40,6 +40,7 @@ type osdnPolicy interface {
 
 	GetVNID(namespace string) (uint32, error)
 	GetNamespaces(vnid uint32) []string
+	GetMulticastEnabled(vnid uint32) bool
 
 	RefVNID(vnid uint32)
 	UnrefVNID(vnid uint32)

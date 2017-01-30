@@ -14,6 +14,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
+	sutil "github.com/openshift/source-to-image/pkg/util"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -155,6 +156,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			// start the build
 			go func() {
 				defer g.GinkgoRecover()
+				defer wg.Done()
 				g.By("starting the bluegreen pipeline build and waiting for it to complete")
 				br, _ := exutil.StartBuildAndWait(oc, "bluegreen-pipeline")
 				debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, true)
@@ -166,7 +168,6 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 				activeRoute := strings.TrimSpace(value)
 				g.By("verifying that the active route is 'nodejs-mongodb-example-green'")
 				o.Expect(activeRoute).To(o.Equal("nodejs-mongodb-example-green"))
-				wg.Done()
 			}()
 
 			// wait for the green service to be available
@@ -185,8 +186,14 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// wait for first build completion and verification
-			g.By("Waiting for the build to complete successfully")
-			wg.Wait()
+			g.By("Waiting for the first build to complete successfully")
+			err = sutil.TimeoutAfter(time.Minute*10, "first blue-green build timed out before WaitGroup quit blocking", func(timeoutTimer *time.Timer) error {
+				g.By("start wg.Wait() for build completion and verification")
+				wg.Wait()
+				g.By("build completion and verification good to go")
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			wg = &sync.WaitGroup{}
 			wg.Add(1)
@@ -194,6 +201,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			// start the build again
 			go func() {
 				defer g.GinkgoRecover()
+				defer wg.Done()
 				g.By("starting the bluegreen pipeline build and waiting for it to complete")
 				br, _ := exutil.StartBuildAndWait(oc, "bluegreen-pipeline")
 				debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, true)
@@ -205,7 +213,6 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 				activeRoute := strings.TrimSpace(value)
 				g.By("verifying that the active route is 'nodejs-mongodb-example-blue'")
 				o.Expect(activeRoute).To(o.Equal("nodejs-mongodb-example-blue"))
-				wg.Done()
 			}()
 
 			// wait for the blue service to be available
@@ -222,7 +229,15 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			_, _, err = j.Post(nil, fmt.Sprintf("job/%s/lastBuild/input/Approval/proceedEmpty", jobName), "")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			wg.Wait()
+			// wait for second build completion and verification
+			g.By("Waiting for the second build to complete successfully")
+			err = sutil.TimeoutAfter(time.Minute*10, "second blue-green build timed out before WaitGroup quit blocking", func(timeoutTimer *time.Timer) error {
+				g.By("start wg.Wait() for build completion and verification")
+				wg.Wait()
+				g.By("build completion and verification good to go")
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 

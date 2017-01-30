@@ -103,9 +103,6 @@ os::log::system::start
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-# test wrapper functions
-${OS_ROOT}/hack/test-util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
-
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
 unset OPENSHIFT_PROFILE

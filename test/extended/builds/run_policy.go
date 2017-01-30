@@ -2,6 +2,7 @@ package builds
 
 import (
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -163,6 +164,49 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				}
 				if counter == len(startedBuilds) {
 					break
+				}
+			}
+		})
+	})
+
+	g.Describe("build configuration with Serial build run policy handling cancellation", func() {
+		g.It("starts the next build immediately after one is canceled", func() {
+			g.By("starting multiple builds")
+			bcName := "sample-serial-build"
+
+			for i := 0; i < 3; i++ {
+				_, _, err := exutil.StartBuild(oc, bcName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			})
+			defer buildWatch.Stop()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var cancelTime, cancelTime2 time.Time
+			for {
+				event := <-buildWatch.ResultChan()
+				build := event.Object.(*buildapi.Build)
+				if build.Status.Phase == buildapi.BuildPhasePending {
+					if build.Name == "sample-serial-build-1" {
+						err := oc.Run("cancel-build").Args("sample-serial-build-1").Execute()
+						o.Expect(err).ToNot(o.HaveOccurred())
+						cancelTime = time.Now()
+					}
+					if build.Name == "sample-serial-build-2" {
+						duration := time.Now().Sub(cancelTime)
+						o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after canceled build")
+						err := oc.Run("cancel-build").Args("sample-serial-build-2").Execute()
+						o.Expect(err).ToNot(o.HaveOccurred())
+						cancelTime2 = time.Now()
+					}
+					if build.Name == "sample-serial-build-3" {
+						duration := time.Now().Sub(cancelTime2)
+						o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after canceled build")
+						break
+					}
 				}
 			}
 		})
