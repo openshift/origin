@@ -34,6 +34,8 @@ function os::build::host_platform_friendly() {
     echo "linux-32bit"
   elif [[ $platform == "linux/amd64" ]]; then
     echo "linux-64bit"
+  elif [[ $platform == "linux/ppc64le" ]]; then
+    echo "linux-powerpc64"
   else
     echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
   fi
@@ -341,31 +343,29 @@ function os::build::place_bins() {
       done
 
       # Create the release archive.
-      local platform_segment="${platform//\//-}"
+      platform="$( os::build::host_platform_friendly "${platform}" )"
       if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
         done
-        if [[ $platform == "windows/amd64" ]]; then
-          platform="windows" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_WINDOWS[@]}"
-        elif [[ $platform == "darwin/amd64" ]]; then
-          platform="mac" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_MAC[@]}"
-        elif [[ $platform == "linux/386" ]]; then
-          platform="linux/32bit" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
-        elif [[ $platform == "linux/amd64" ]]; then
-          platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
-          platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
-        elif [[ $platform == "linux/ppc64le" ]]; then
-          platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
-          platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        if [[ $platform == "windows" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_WINDOWS[@]}"
+        elif [[ $platform == "mac" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_zip "${OS_BINARY_RELEASE_CLIENT_MAC[@]}"
+        elif [[ $platform == "linux-32bit" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+        elif [[ $platform == "linux-64bit" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        elif [[ $platform == "linux-powerpc64" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
       else
-        if [[ $platform == "linux/amd64" ]]; then
-          platform="linux/64bit" os::build::archive_tar "./*"
-        elif [[ $platform == "linux/ppc64le" ]]; then
-          platform="linux/ppc64le" os::build::archive_tar "./*"
+        if [[ $platform == "linux-64bit" || $platform == "linux-powerpc64" ]]; then
+          os::build::archive_tar "./*"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
@@ -382,9 +382,8 @@ function os::build::archive_name() {
 readonly -f os::build::archive_name
 
 function os::build::archive_zip() {
-  local platform_segment="${platform//\//-}"
   local default_name
-  default_name="$( os::build::archive_name "${platform_segment}" ).zip"
+  default_name="$( os::build::archive_name "${platform}" ).zip"
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
   for file in "$@"; do
@@ -397,9 +396,8 @@ function os::build::archive_zip() {
 readonly -f os::build::archive_zip
 
 function os::build::archive_tar() {
-  local platform_segment="${platform//\//-}"
   local base_name
-  base_name="$( os::build::archive_name "${platform_segment}" )"
+  base_name="$( os::build::archive_name "${platform}" )"
   local default_name="${base_name}.tar.gz"
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
