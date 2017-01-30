@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7713905d68c790a66e98a41ab8c1a71d241597dc
+%global commit 28520d13bcb294eea56e4507a6c92967d6cca849
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.9+7713905-55 OS_GIT_COMMIT=7713905 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.10+28520d1-49 OS_GIT_COMMIT=28520d1 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.10
+Version:        3.5.0.11
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,44 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Jan 30 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.11
+- Merge remote-tracking branch upstream/master, bump origin-web-console 9989eef
+  (tdawson@redhat.com)
+- genman: error message update (mkargaki@redhat.com)
+- Update README.md (ccoleman@redhat.com)
+- Update README (ccoleman@redhat.com)
+- setup watches before creating the buildconfig (bparees@redhat.com)
+- Filter disallowed outbound multicast (danw@redhat.com)
+- Add an annotation for enabling multicast on a namespace (danw@redhat.com)
+- podManager simplification (danw@redhat.com)
+- Change how multicast rule updates on VNID change work (danw@redhat.com)
+- Update comments on multicast flow rules, simplify vxlan multicast rule
+  (danw@redhat.com)
+- Fix pod multicast route (danw@redhat.com)
+- Allow `os::log` functions to print multi-line messages (skuznets@redhat.com)
+- start the next serial build immediately after a build is canceled
+  (bparees@redhat.com)
+- Refactor logic for OSX etcd cURL statement (skuznets@redhat.com)
+- Break out `os::cmd` framework tests from `hack/test-cmd.sh`
+  (skuznets@redhat.com)
+- Make use of `os::util::absolute_path` over `realpath` (skuznets@redhat.com)
+- Update completions (jvallejo@redhat.com)
+- improve bash completions for namespace flags (jvallejo@redhat.com)
+- fix jenkins blue-green ext test so it does not block forever on build/deploy
+  error (gmontero@redhat.com)
+- Update version regex to handle longer dot-versions (skuznets@redhat.com)
+- Update version regex to handle longer dot-versions (skuznets@redhat.com)
+- regen origin docs/completions/openapi (sjenning@redhat.com)
+- UPSTREAM: 37228: kubelet: storage: teardown terminated pod volumes
+  (sjenning@redhat.com)
+- add persistent examples to quickstarts (bparees@redhat.com)
+- Fix messages, so that the ui tooltips don't have unicode characters.
+  (smitram@gmail.com)
+- Allow multiple ipfailover configs on same node (pcameron@redhat.com)
+- Increase test coverage (agladkov@redhat.com)
+- Restore `hack/common.sh` to the version in Origin (skuznets@redhat.com)
+- Remove back-ported container manifests from dist-git (skuznets@redhat.com)
+
 * Fri Jan 27 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.10
 - bump(github.com/openshift/origin-web-console):
   9989eefc00d8379246015350374f4cdfcdc89933 (dmcphers+openshiftbot@redhat.com)
