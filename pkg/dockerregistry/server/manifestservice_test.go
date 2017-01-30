@@ -9,6 +9,7 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/testutil"
 )
 
@@ -85,6 +86,7 @@ func TestManifestServicePut(t *testing.T) {
 	ctx := context.Background()
 	ctx = withAuthPerformed(ctx)
 	ctx = withUserClient(ctx, client)
+	ctx = WithConfiguration(ctx, &configuration.Configuration{})
 	dgst, err := ms.Put(ctx, manifest)
 	if err != nil {
 		t.Fatalf("ms.Put(ctx, manifest): %s", err)

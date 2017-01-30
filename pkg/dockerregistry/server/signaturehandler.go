@@ -4,15 +4,16 @@ import (
 	"net/http"
 
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 )
 
 // RegisterSignatureHandler registers the Docker image signature extension to Docker
 // registry.
 func RegisterSignatureHandler(app *handlers.App) {
-	extensionsRouter := app.NewRoute().PathPrefix("/extensions/v2/").Subrouter()
+	extensionsRouter := app.NewRoute().PathPrefix(api.ExtensionsPrefix).Subrouter()
 	var (
 		getSignatureAccess = func(r *http.Request) []auth.Access {
 			return []auth.Access{
@@ -38,13 +39,13 @@ func RegisterSignatureHandler(app *handlers.App) {
 		}
 	)
 	app.RegisterRoute(
-		extensionsRouter.Path("/{name:"+reference.NameRegexp.String()+"}/signatures/{digest:"+reference.DigestRegexp.String()+"}").Methods("GET"),
+		extensionsRouter.Path(api.SignaturesPath).Methods("GET"),
 		SignatureDispatcher,
 		handlers.NameRequired,
 		getSignatureAccess,
 	)
 	app.RegisterRoute(
-		extensionsRouter.Path("/{name:"+reference.NameRegexp.String()+"}/signatures/{digest:"+reference.DigestRegexp.String()+"}").Methods("PUT"),
+		extensionsRouter.Path(api.SignaturesPath).Methods("PUT"),
 		SignatureDispatcher,
 		handlers.NameRequired,
 		putSignatureAccess,

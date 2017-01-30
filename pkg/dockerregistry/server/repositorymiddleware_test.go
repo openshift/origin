@@ -29,6 +29,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -284,6 +285,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		}
 
 		ctx := context.Background()
+		ctx = WithConfiguration(ctx, &configuration.Configuration{})
 		if !tc.skipAuth {
 			ctx = withAuthPerformed(ctx)
 		}
@@ -333,6 +335,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 
 	quotaEnforcing = &quotaEnforcingConfig{}
 	ctx := withAuthPerformed(context.Background())
+	ctx = WithConfiguration(ctx, &configuration.Configuration{})
 
 	// this driver holds all the testing blobs in memory during the whole test run
 	driver := inmemory.New()

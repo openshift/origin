@@ -25,6 +25,8 @@ import (
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
 
 // TestVerifyImageStreamAccess mocks openshift http request/response and
@@ -405,6 +407,7 @@ func TestAccessController(t *testing.T) {
 		}
 		ctx := context.Background()
 		ctx = context.WithRequest(ctx, req)
+		ctx = WithConfiguration(ctx, &configuration.Configuration{})
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()
 
