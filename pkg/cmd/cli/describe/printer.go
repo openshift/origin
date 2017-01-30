@@ -36,7 +36,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARDPOLICY"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
@@ -591,7 +591,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 		port = "<all>"
 	}
 
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy, route.Spec.WildcardPolicy); err != nil {
 		return err
 	}
 
