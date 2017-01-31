@@ -2,6 +2,7 @@ package openshift
 
 import (
 	"fmt"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -21,6 +22,13 @@ const (
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
+	if !strings.EndsWith(imagePrefix, "/") {
+		// image prefixes like "openshift/origin" require a "-"
+		// separator between the prefix and the component name
+		// whereas prefixes like "openshift3/" do not
+		imagePrefix = imagePrefix + "-"
+	}
+
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -96,7 +104,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 		},
 		{
 			Name:  "IMAGE_PREFIX",
-			Value: fmt.Sprintf("%s-", imagePrefix),
+			Value: imagePrefix,
 		},
 		{
 			Name:  "IMAGE_VERSION",
@@ -169,7 +177,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 		},
 		Containers: []kapi.Container{
 			{
-				Image: fmt.Sprintf("%s-metrics-deployer:%s", imagePrefix, imageVersion),
+				Image: fmt.Sprintf("%smetrics-deployer:%s", imagePrefix, imageVersion),
 				Name:  "deployer",
 				VolumeMounts: []kapi.VolumeMount{
 					{

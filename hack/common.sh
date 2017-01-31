@@ -658,6 +658,25 @@ EOF
 }
 readonly -f os::build::save_version_vars
 
+# os::build::get_product_vars exports variables that we expect to change
+# depending on the distribution of Origin
+function os::build::get_product_vars() {
+  if [[ "${OS_ROOT}" == *origin* ]]; then
+    export OS_IMAGE_PREFIX="openshift/origin"
+    # TODO(skuznets): once the downstream images are published
+    # to always use the same template as the core OpenShift
+    # images do, we will not need to break these out anymore
+    export OS_LOGGING_IMAGE_PREFIX="${OS_IMAGE_TEMPLATE}"
+    export OS_METRICS_IMAGE_PREFIX="${OS_IMAGE_TEMPLATE}"
+    export OS_DEFAULT_IMAGE_STREAMS="centos7"
+  elif [[ "${OS_ROOT}" == *ose* ]]; then
+    export OS_IMAGE_PREFIX="openshift3/ose"
+    export OS_LOGGING_IMAGE_PREFIX="openshift3/"
+    export OS_METRICS_IMAGE_PREFIX="openshift3/"
+    export OS_DEFAULT_IMAGE_STREAMS="rhel7"
+  fi
+}
+
 # golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
 function os::build::ldflag() {
   local key=${1}
@@ -682,11 +701,16 @@ function os::build::ldflags() {
   cd "${OS_ROOT}"
 
   os::build::get_version_vars
+  os::build::get_product_vars
 
   local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
   declare -a ldflags=()
 
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultImageStreams" "${OS_DEFAULT_IMAGE_STREAMS}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultLoggingImagePrefix" "${OS_LOGGING_IMAGE_PREFIX}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultMetricsImagePrefix" "${OS_METRICS_IMAGE_PREFIX}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.defaultImagePrefix" "${OS_IMAGE_PREFIX}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
