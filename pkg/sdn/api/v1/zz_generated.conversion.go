@@ -185,6 +185,7 @@ func Convert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *api.E
 
 func autoConvert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(in *EgressNetworkPolicyPeer, out *api.EgressNetworkPolicyPeer, s conversion.Scope) error {
 	out.CIDRSelector = in.CIDRSelector
+	out.DNSName = in.DNSName
 	return nil
 }
 
@@ -194,6 +195,7 @@ func Convert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(in *Egres
 
 func autoConvert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer(in *api.EgressNetworkPolicyPeer, out *EgressNetworkPolicyPeer, s conversion.Scope) error {
 	out.CIDRSelector = in.CIDRSelector
+	out.DNSName = in.DNSName
 	return nil
 }
 
