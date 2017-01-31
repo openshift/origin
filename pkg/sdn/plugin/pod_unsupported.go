@@ -14,8 +14,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	return nil, nil, fmt.Errorf("openshift-sdn is unsupported on this OS!")
 }
 
-func (m *podManager) update(req *cniserver.PodRequest) (*runningPod, error) {
-	return nil, fmt.Errorf("openshift-sdn is unsupported on this OS!")
+func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
+	return 0, fmt.Errorf("openshift-sdn is unsupported on this OS!")
 }
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
