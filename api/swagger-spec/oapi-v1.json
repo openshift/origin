@@ -26928,13 +26928,14 @@
    "v1.EgressNetworkPolicyPeer": {
     "id": "v1.EgressNetworkPolicyPeer",
     "description": "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
-    "required": [
-     "cidrSelector"
-    ],
     "properties": {
      "cidrSelector": {
       "type": "string",
-      "description": "cidrSelector is the CIDR range to allow/deny traffic to"
+      "description": "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset"
+     },
+     "dnsName": {
+      "type": "string",
+      "description": "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset"
      }
     }
    },
