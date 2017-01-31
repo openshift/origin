@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 28520d13bcb294eea56e4507a6c92967d6cca849
+%global commit c5d25e779594a215a8339374b85a51e1523cac1b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.10+28520d1-49 OS_GIT_COMMIT=28520d1 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.11+c5d25e7-15 OS_GIT_COMMIT=c5d25e7 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.11
+Version:        3.5.0.12
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,18 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Tue Jan 31 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.12
+- Revert "Refactored custom `tito` tagger and builder" (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  46c6d8bc6c881c6ed4e520a62e8c2398ae464d9d (dmcphers+openshiftbot@redhat.com)
+- Revert the creation of `images/ose` symlink (skuznets@redhat.com)
+- Revert URL updates in source code and READMEs (skuznets@redhat.com)
+- Fix stub interface so Mac compilations work (bbennett@redhat.com)
+- Added an option to `hack/env` to use a new volume (skuznets@redhat.com)
+- Bumped minimum acceptable tito version (skuznets@redhat.com)
+- Refactored custom `tito` tagger and builder (skuznets@redhat.com)
+- Don't give up copying from `hack/env` on failure (skuznets@redhat.com)
+
 * Mon Jan 30 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.11
 - Merge remote-tracking branch upstream/master, bump origin-web-console 9989eef
   (tdawson@redhat.com)
