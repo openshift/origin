@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c5d25e779594a215a8339374b85a51e1523cac1b
+%global commit 565719de00a96f3a1460cb6bdae5dc6f282ae5ab
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.11+c5d25e7-15 OS_GIT_COMMIT=c5d25e7 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.12+565719d-6 OS_GIT_COMMIT=565719d OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.12
+Version:        3.5.0.13
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,12 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Tue Jan 31 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.13
+- Use a greedy match instead of a lazy one for versions (skuznets@redhat.com)
+- make sure all projects are deleted on test start (jvallejo@redhat.com)
+- Revert "Merge pull request #12671 from openshift/revert-12328-jvallejo
+  /update-oc-status-warning" (jvallejo@redhat.com)
+
 * Tue Jan 31 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.12
 - Revert "Refactored custom `tito` tagger and builder" (ccoleman@redhat.com)
 - bump(github.com/openshift/origin-web-console):
