@@ -26,4 +26,7 @@ LABEL io.k8s.display-name="OpenShift Origin Node" \
       io.k8s.description="This is a component of OpenShift Origin and contains the software for individual nodes when using SDN."
 VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
+
+COPY system-container/config.json.template system-container/service.template system-containers/tmpfiles.template /exports/
+
 ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]
