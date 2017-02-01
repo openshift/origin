@@ -43,7 +43,7 @@ readonly -f os::log::error
 #  - all: message to write
 function os::log::fatal() {
 	os::text::print_red "$( os::log::internal::prefix_lines "[FATAL]" "$*" )" 1>&2
-	return 1
+	exit 1
 }
 readonly -f os::log::fatal
 

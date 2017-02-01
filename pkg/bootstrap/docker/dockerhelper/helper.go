@@ -96,6 +96,15 @@ var (
 	rhelPackage   = regexp.MustCompile("\\.el[0-9_]*\\.")
 )
 
+// DockerRoot returns the root directory for Docker
+func (h *Helper) DockerRoot() (string, error) {
+	info, err := h.dockerInfo()
+	if err != nil {
+		return "", nil
+	}
+	return info.DockerRootDir, nil
+}
+
 // Version returns the Docker version and whether it is a Red Hat distro version
 func (h *Helper) Version() (*semver.Version, bool, error) {
 	glog.V(5).Infof("Retrieving Docker version")

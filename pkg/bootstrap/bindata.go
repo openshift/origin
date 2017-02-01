@@ -2378,7 +2378,8 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -2665,7 +2666,8 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -2942,7 +2944,8 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -3475,7 +3478,8 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -3744,7 +3748,8 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -3974,7 +3979,8 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",
@@ -4199,7 +4205,8 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     },
     {
       "name": "NAMESPACE",

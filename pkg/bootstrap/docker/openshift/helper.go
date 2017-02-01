@@ -44,9 +44,8 @@ var (
 	openShiftContainerBinds = []string{
 		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
-		"/sys:/sys:ro",
+		"/sys:/sys:rw",
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
-		"/var/lib/docker:/var/lib/docker",
 		"/dev:/dev",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
@@ -94,6 +93,7 @@ type StartOptions struct {
 	HTTPSProxy               string
 	NoProxy                  []string
 	KubeconfigContents       string
+	DockerRoot               string
 }
 
 // NewHelper creates a new OpenShift helper
@@ -258,6 +258,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
 	}
 	env = append(env, opt.Environment...)
+	binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.DockerRoot))
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))
 
 	// Kubelet needs to be able to write to
