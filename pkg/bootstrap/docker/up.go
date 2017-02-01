@@ -740,6 +740,11 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		c.updateNoProxy()
 	}
 
+	dockerRoot, err := c.DockerHelper().DockerRoot()
+	if err != nil {
+		return err
+	}
+
 	opt := &openshift.StartOptions{
 		ServerIP:                 c.ServerIP,
 		RouterIP:                 c.RouterIP,
@@ -759,6 +764,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		HTTPProxy:                c.HTTPProxy,
 		HTTPSProxy:               c.HTTPSProxy,
 		NoProxy:                  c.NoProxy,
+		DockerRoot:               dockerRoot,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
