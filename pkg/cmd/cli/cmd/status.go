@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/glog"
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/spf13/cobra"
 
@@ -99,6 +100,11 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	o.securityPolicyCommandFormat = "oadm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
+	fmt.Println("About to read the loglevel")
+	loglevel := cmd.Flags().Lookup("loglevel")
+	fmt.Println("Loglevel is", loglevel)
+	glog.Infof("Loglevel is %v", loglevel.Value)
+	glog.V(4).Infof("Complete:102")
 	client, kclientset, err := f.Clients()
 	if err != nil {
 		return err

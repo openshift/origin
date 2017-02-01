@@ -119,21 +119,28 @@ func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 }
 
 func (f *ring0Factory) Clients() (*client.Client, kclientset.Interface, error) {
+	glog.V(4).Infof("Clients:122")
 	kubeClientSet, err := f.ClientSet()
 	if err != nil {
+		glog.V(4).Infof("Clients:125 %#v", err)
 		return nil, nil, err
 	}
 
+	glog.V(4).Infof("Clients:129")
 	cfg, err := f.clientConfig.ClientConfig()
 	if err != nil {
+		glog.V(4).Infof("Clients:132 %#v", err)
 		return nil, nil, err
 	}
 
+	glog.V(4).Infof("Clients:136")
 	openShiftClient, err := client.New(cfg)
 	if err != nil {
+		glog.V(4).Infof("Clients:139 %#v", err)
 		return nil, nil, err
 	}
 
+	glog.V(4).Infof("Clients:143")
 	return openShiftClient, kubeClientSet, nil
 }
 
@@ -457,8 +464,10 @@ func IsConfigurationMissing(err error) bool {
 
 // ClientConfig returns a complete client config
 func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
+	glog.V(4).Infof("ClientConfig:460")
 	cfg, err := c.nested.ClientConfig()
 	if err == nil {
+		glog.V(4).Infof("ClientConfig:463")
 		return cfg, nil
 	}
 
@@ -468,7 +477,7 @@ func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 
 	// TODO: need to expose inClusterConfig upstream and use that
 	if icc, err := restclient.InClusterConfig(); err == nil {
-		glog.V(4).Infof("Using in-cluster configuration")
+		glog.V(4).Infof("(origin) Using in-cluster configuration")
 		return icc, nil
 	}
 

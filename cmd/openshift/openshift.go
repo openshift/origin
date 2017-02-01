@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -21,8 +22,18 @@ import (
 )
 
 func main() {
-	logs.InitLogs()
-	defer logs.FlushLogs()
+	special := len(os.Args) > 2 && os.Args[1] == "cli" && os.Args[2] == "status"
+	if special {
+		logs.SpecialInitLogs()
+	} else {
+		logs.InitLogs()
+	}
+	defer func() {
+		if special {
+			fmt.Println("Flushing logs...")
+		}
+		logs.FlushLogs()
+	}()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
