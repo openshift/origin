@@ -19,6 +19,8 @@ package util
 import (
 	"sync"
 
+	"github.com/golang/glog"
+
 	fed_clientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
@@ -67,9 +69,11 @@ func (c *ClientCache) getDefaultConfig() (restclient.Config, discovery.Discovery
 	defer c.defaultConfigLock.Unlock()
 
 	if c.defaultConfig != nil && c.discoveryClient != nil {
+		glog.V(4).Infof("getDefaultConfig:72")
 		return *c.defaultConfig, c.discoveryClient, nil
 	}
 
+	glog.V(4).Infof("getDefaultConfig:76")
 	config, err := c.loader.ClientConfig()
 	if err != nil {
 		return restclient.Config{}, nil, err
@@ -86,12 +90,14 @@ func (c *ClientCache) getDefaultConfig() (restclient.Config, discovery.Discovery
 
 	c.defaultConfig = config
 	c.discoveryClient = discoveryClient
+	glog.V(4).Infof("getDefaultConfig:93")
 	return *c.defaultConfig, c.discoveryClient, nil
 }
 
 // ClientConfigForVersion returns the correct config for a server
 func (c *ClientCache) ClientConfigForVersion(requiredVersion *unversioned.GroupVersion) (*restclient.Config, error) {
 	// TODO: have a better config copy method
+	glog.V(4).Infof("ClientConfigForVersion:100")
 	config, discoveryClient, err := c.getDefaultConfig()
 	if err != nil {
 		return nil, err
@@ -106,6 +112,7 @@ func (c *ClientCache) ClientConfigForVersion(requiredVersion *unversioned.GroupV
 	// before looking up from the cache
 	if requiredVersion != nil {
 		if config, ok := c.configs[*requiredVersion]; ok {
+			glog.V(4).Infof("ClientConfigForVersion:115 %v %#v", requiredVersion, c.configs)
 			return copyConfig(config), nil
 		}
 	} else if c.noVersionConfig != nil {
@@ -144,11 +151,14 @@ func copyConfig(in *restclient.Config) *restclient.Config {
 // ClientSetForVersion initializes or reuses a clientset for the specified version, or returns an
 // error if that is not possible
 func (c *ClientCache) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*internalclientset.Clientset, error) {
+	glog.V(4).Infof("ClientSetForVersion:154")
 	if requiredVersion != nil {
 		if clientset, ok := c.clientsets[*requiredVersion]; ok {
+			glog.V(4).Infof("ClientSetForVersion:157 %v: %#v", requiredVersion, c.clientsets)
 			return clientset, nil
 		}
 	}
+	glog.V(4).Infof("ClientSetForVersion:61")
 	config, err := c.ClientConfigForVersion(requiredVersion)
 	if err != nil {
 		return nil, err
