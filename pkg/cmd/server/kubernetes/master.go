@@ -61,6 +61,7 @@ import (
 	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/azure_dd"
 	"k8s.io/kubernetes/pkg/volume/cinder"
 	"k8s.io/kubernetes/pkg/volume/flexvolume"
 	"k8s.io/kubernetes/pkg/volume/gce_pd"
@@ -264,6 +265,7 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, glusterfs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, rbd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, azure_dd.ProbeVolumePlugins()...)
 
 	return allPlugins
 }
