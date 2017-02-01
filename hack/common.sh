@@ -358,6 +358,9 @@ function os::build::place_bins() {
         elif [[ $platform == "linux/ppc64le" ]]; then
           platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        elif [[ $platform == "linux/arm64" ]]; then
+          platform="linux/arm64" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          platform="linux/arm64" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
@@ -366,6 +369,8 @@ function os::build::place_bins() {
           platform="linux/64bit" os::build::archive_tar "./*"
         elif [[ $platform == "linux/ppc64le" ]]; then
           platform="linux/ppc64le" os::build::archive_tar "./*"
+        elif [[ $platform == "linux/arm64" ]]; then
+          platform="linux/arm64" os::build::archive_tar "./*"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
