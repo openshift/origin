@@ -112,7 +112,7 @@ os::cmd::expect_success 'oc set image dc/database ruby-helloworld-database=foo -
 # wait for the new deployment
 os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-55-centos7'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-57-centos7'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 
