@@ -39,7 +39,6 @@ type restrictUsersAdmission struct {
 
 var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsGroupCache(&restrictUsersAdmission{})
-var _ = oadmission.Validator(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.

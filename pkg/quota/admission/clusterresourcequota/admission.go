@@ -54,7 +54,6 @@ type clusterQuotaAdmission struct {
 var _ oadmission.WantsInformers = &clusterQuotaAdmission{}
 var _ oadmission.WantsOpenshiftClient = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuotaMapper = &clusterQuotaAdmission{}
-var _ oadmission.Validator = &clusterQuotaAdmission{}
 
 const (
 	timeToWaitForCacheSync = 10 * time.Second

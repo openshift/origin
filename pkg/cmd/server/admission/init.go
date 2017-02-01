@@ -81,7 +81,7 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 // the Validator interface.
 func Validate(plugins []admission.Interface) error {
 	for _, plugin := range plugins {
-		if validater, ok := plugin.(Validator); ok {
+		if validater, ok := plugin.(admission.Validator); ok {
 			err := validater.Validate()
 			if err != nil {
 				return err

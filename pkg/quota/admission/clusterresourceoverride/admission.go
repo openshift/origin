@@ -59,7 +59,6 @@ type clusterResourceOverridePlugin struct {
 type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
-var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
 var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 var _ = admission.WantsInformerFactory(&clusterResourceOverridePlugin{})
 
