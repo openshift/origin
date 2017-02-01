@@ -44,7 +44,7 @@ var (
 	openShiftContainerBinds = []string{
 		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
-		"/sys:/sys:ro",
+		"/sys:/sys:rw",
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
 		"/var/lib/docker:/var/lib/docker",
 		"/dev:/dev",

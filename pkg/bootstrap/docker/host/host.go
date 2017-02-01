@@ -145,7 +145,7 @@ func (h *HostHelper) Hostname() (string, error) {
 	return strings.ToLower(strings.TrimSpace(hostname)), nil
 }
 
-func (h *HostHelper) EnsureHostDirectories() error {
+func (h *HostHelper) EnsureHostDirectories(createVolumeShare bool) error {
 	// Attempt to create host directories only if they are
 	// the default directories. If the user specifies them, then the
 	// user is responsible for ensuring they exist, are mountable, etc.
@@ -171,6 +171,9 @@ func (h *HostHelper) EnsureHostDirectories() error {
 		if err != nil || rc != 0 {
 			return errors.NewError("cannot create host volumes directory").WithCause(err)
 		}
+	}
+	if createVolumeShare {
+		return h.EnsureVolumeShare()
 	}
 	return nil
 }
