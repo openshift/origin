@@ -339,6 +339,11 @@ func (o *ProbeOptions) Run() error {
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			handlePodUpdateError(o.Err, err, "probes")
+
+			// if no port was specified, inform that one must be provided
+			if len(o.HTTPGet) > 0 && len(o.HTTPGetAction.Port.String()) == 0 {
+				fmt.Fprintf(o.Err, "\nA port must be specified as part of a url (http://127.0.0.1:3306).\nSee 'oc set probe -h' for help and examples.\n")
+			}
 			failed = true
 			continue
 		}
