@@ -1,7 +1,7 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-if ! os::util::ensure::system_binary_exists 'protoc' || [[ "$(protoc --version)" != "libprotoc 3.0."* ]]; then
+if ! os::util::find::system_binary 'protoc' || [[ "$(protoc --version)" != "libprotoc 3.0."* ]]; then
   echo "Generating protobuf requires protoc 3.0.x. Please download and"
   echo "install the platform appropriate Protobuf package for your OS: "
   echo
