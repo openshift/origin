@@ -171,8 +171,6 @@ os::build::internal::build_binaries() {
     # Use eval to preserve embedded quoted strings.
     local goflags
     eval "goflags=(${OS_GOFLAGS:-})"
-    local gotags
-    eval "gotags=(${OS_GOFLAGS_TAGS:-})"
 
     local arg
     for arg; do
@@ -213,6 +211,7 @@ os::build::internal::build_binaries() {
       fi
 
       local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
@@ -231,9 +230,10 @@ os::build::internal::build_binaries() {
 
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
-        GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+        # disabling cgo allows use of delve
+        CGO_ENABLED=0 GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
-          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
+          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${version_ldflags}" \
           -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
