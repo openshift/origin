@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 565719de00a96f3a1460cb6bdae5dc6f282ae5ab
+%global commit 9ee18386ba8bdf6fd6231704cc49480c490a9d32
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.12+565719d-6 OS_GIT_COMMIT=565719d OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.13+9ee1838-27 OS_GIT_COMMIT=9ee1838 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.13
+Version:        3.5.0.14
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,32 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Feb 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.14
+- bump(github.com/openshift/origin-web-console):
+  7b83464ba2c7fbc936d40ed1ed5f4f4a93d180a3 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5fe0d17f41073fdd3e271cb8f8a746ce762cc66c (dmcphers+openshiftbot@redhat.com)
+- Pick a smaller image for idling unit tests (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  63ae71a1ec299c1d0198bdfa518c25aab36b8c41 (dmcphers+openshiftbot@redhat.com)
+- cluster up: remove hard-coded docker root mount (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  285733b9e8b762b06a301ca4d67e4f8fe870aee9 (dmcphers+openshiftbot@redhat.com)
+- cluster up: fix port checking, Mac startup (cewong@redhat.com)
+- Change MEMORY LIMIT parameter to be required one for multiple DBs
+  (vdinh@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e14b670c7a12564723b573bf9e98af431df270e6 (dmcphers+openshiftbot@redhat.com)
+- Replace find with grep -rl in update scripts (agoldste@redhat.com)
+- treat binary buildconfig instantiate requests as long running
+  (bparees@redhat.com)
+- Remove List and ListOptions from non-round-trippable types in serialization
+  test (mfojtik@redhat.com)
+- deploy: add support for dc --dry-run to rollout undo (mfojtik@redhat.com)
+- Short-circuit path shortening logic when possible (skuznets@redhat.com)
+- Use `os::log` better in `os::util::ensure` functions (skuznets@redhat.com)
+- Use `exit` instead of `return` in `os::log::fatal` (skuznets@redhat.com)
+
 * Tue Jan 31 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.13
 - Use a greedy match instead of a lazy one for versions (skuznets@redhat.com)
 - make sure all projects are deleted on test start (jvallejo@redhat.com)
