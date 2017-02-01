@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 
+	"k8s.io/client-go/pkg/util/sets"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -80,13 +81,13 @@ func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
 }
 
 func haveHostnamesChanged(oldIngress, newIngress *kextensions.Ingress) bool {
-	m := make(map[string]int)
+	hostnameSet := sets.NewString()
 	for _, element := range oldIngress.Spec.Rules {
-		m[element.Host] = 1
+		hostnameSet.Insert(element.Host)
 	}
 
 	for _, element := range newIngress.Spec.Rules {
-		if _, present := m[element.Host]; !present {
+		if present := hostnameSet.Has(element.Host); !present {
 			return false
 		}
 	}

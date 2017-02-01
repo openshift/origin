@@ -67,6 +67,13 @@ func TestAdmission(t *testing.T) {
 			oldHost:  "bar.com",
 			testName: "Upstream Hostname updates enabled",
 		},
+		{
+			admit:    true,
+			config:   testConfigUpdateAllow(),
+			op:       admission.Update,
+			newHost:  "foo.com",
+			testName: "add new hostname with upstream rules",
+		},
 	}
 	for _, test := range tests {
 		if len(test.newHost) > 0 {
