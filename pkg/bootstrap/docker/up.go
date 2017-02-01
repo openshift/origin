@@ -97,6 +97,10 @@ var (
 		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
 	}
 
+	// defaultImageStreams is the default key for the above imageStreams
+	// mapping. It should be set during build via -ldflags.
+	defaultImageStreams string
+
 	templateLocations = map[string]string{
 		"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
 		"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
@@ -223,8 +227,8 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
 	flags.StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	flags.StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
-	flags.StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
-	flags.StringVar(&config.ImageStreams, "image-streams", "centos7", "Specify which image streams to use, centos7|rhel7")
+	flags.StringVar(&config.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&config.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
 	flags.BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
