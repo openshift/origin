@@ -186,7 +186,7 @@ function os::log::system::internal::plot() {
         printf '\n\n'
     } >> "${LOG_DIR}/gnuplot.log"
 
-    os::log::info "Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
+    os::log::debug "Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
 }
 readonly -f os::log::system::internal::plot
 
@@ -201,7 +201,7 @@ readonly -f os::log::system::internal::plot
 #  - export SAR_LOGFILE
 function os::log::system::start() {
     if ! which sar >/dev/null 2>&1; then
-        os::log::warn "System logger could not be started, 'sar' binary not found in this environment."
+        os::log::debug "System logger could not be started, 'sar' binary not found in this environment."
         return 0
     fi
 

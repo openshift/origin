@@ -282,8 +282,6 @@ function os::build::place_bins() {
     local host_platform
     host_platform=$(os::build::host_platform)
 
-    echo "++ Placing binaries"
-
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::get_version_vars
       mkdir -p "${OS_LOCAL_RELEASEPATH}"
