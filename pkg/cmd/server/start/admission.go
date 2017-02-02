@@ -65,7 +65,6 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
@@ -85,6 +84,7 @@ var (
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",
+		"LimitPodHardAntiAffinityTopology",
 	)
 )
 
