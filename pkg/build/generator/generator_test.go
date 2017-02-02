@@ -370,6 +370,38 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 				bc = buildConfig
 				return nil
 			}
+		client.GetImageStreamFunc =
+			func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				return &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{Name: name},
+					Status: imageapi.ImageStreamStatus{
+						DockerImageRepository: originalImage,
+						Tags: map[string]imageapi.TagEventList{
+							"tag1": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: "ref/" + name + ":tag1",
+									},
+								},
+							},
+							"tag2": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: "ref/" + name + ":tag2",
+									},
+								},
+							},
+							"tag3": {
+								Items: []imageapi.TagEvent{
+									{
+										DockerImageReference: "ref/" + name + ":tag3",
+									},
+								},
+							},
+						},
+					},
+				}, nil
+			}
 		generator.Client = client
 
 		req := &buildapi.BuildRequest{
@@ -395,7 +427,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 			if i == tc.triggerIndex {
 				// Verify that the trigger got updated
 				if bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID != imageID {
-					t.Errorf("%s: expeccted trigger at index %d to contain imageID %s", tc.name, i, imageID)
+					t.Errorf("%s: expected trigger at index %d to contain imageID %s", tc.name, i, imageID)
 				}
 				continue
 			}
@@ -405,8 +437,8 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 				if from == nil {
 					from = buildutil.GetInputReference(bc.Spec.Strategy)
 				}
-				if bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID != ("ref@" + from.Name) {
-					t.Errorf("%s: expected LastTriggeredImageID for trigger at %d to be %s. Got: %s", tc.name, i, "ref@"+from.Name, bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID)
+				if bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID != ("ref/" + from.Name) {
+					t.Errorf("%s: expected LastTriggeredImageID for trigger at %d (%+v) to be %s. Got: %s", tc.name, i, bc.Spec.Triggers[i].ImageChange.From, "ref/"+from.Name, bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID)
 				}
 			}
 		}
@@ -447,8 +479,8 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 func TestInstantiateWithMissingImageStream(t *testing.T) {
 	g := mockBuildGenerator()
 	c := g.Client.(Client)
-	c.GetImageStreamTagFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreamtags"), "testRepo")
+	c.GetImageStreamFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), "testRepo")
 	}
 	g.Client = c
 
@@ -456,7 +488,7 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 	se, ok := err.(*errors.StatusError)
 
 	if !ok {
-		t.Errorf("Expected errors.StatusError, got %T", err)
+		t.Fatalf("Expected errors.StatusError, got %T", err)
 	}
 
 	if se.ErrStatus.Code != errors.StatusUnprocessableEntity {
@@ -1421,7 +1453,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 				Name: imageRepoName + ":" + tagName,
 			},
 			expectedSuccess:   true,
-			expectedDockerRef: latestDockerReference,
+			expectedDockerRef: dockerReference,
 		},
 		{
 			streamRef: kapi.ObjectReference{
@@ -1445,7 +1477,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 			t.Errorf("Scenario %d: did not get expected error", i)
 		}
 		if ref != test.expectedDockerRef {
-			t.Errorf("Scenario %d: Resolved reference %s did not match expected value %s", i, ref, test.expectedDockerRef)
+			t.Errorf("Scenario %d: Resolved reference %q did not match expected value %q", i, ref, test.expectedDockerRef)
 		}
 	}
 }
@@ -1554,7 +1586,6 @@ func mockBuildGeneratorForInstantiate() *BuildGenerator {
 			},
 		}, nil
 	}
-	g.Client = c
 	return g
 }
 
@@ -1603,7 +1634,7 @@ func mockBuildGenerator() *BuildGenerator {
 							},
 							imageapi.DefaultImageTag: {
 								Items: []imageapi.TagEvent{
-									{DockerImageReference: latestDockerReference},
+									{DockerImageReference: latestDockerReference, Image: "myid"},
 								},
 							},
 						},
