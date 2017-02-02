@@ -1139,6 +1139,8 @@ func newStatefulSet(name, ns, governingSvcName string, replicas int32, petMounts
 		})
 	}
 
+	// host mounts require privileged access when SELinux is on
+	privileged := len(vols) > 0
 	return &apps.StatefulSet{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "StatefulSet",
@@ -1164,6 +1166,9 @@ func newStatefulSet(name, ns, governingSvcName string, replicas int32, petMounts
 							Name:         "nginx",
 							Image:        nginxImage,
 							VolumeMounts: mounts,
+							SecurityContext: &api.SecurityContext{
+								Privileged: &privileged,
+							},
 						},
 					},
 					Volumes: vols,
