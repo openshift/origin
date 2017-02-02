@@ -292,7 +292,7 @@ backend be_edge_http_{{$cfgIdx}}
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
   {{ if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
-    {{ if and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "None") }}
+    {{ if and (eq $cfg.TLSTermination "edge") (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ else }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
