@@ -53,6 +53,7 @@ DEFAULT_SKIP_LIST=(
 
 MINIMAL_SKIP_LIST=(
   "OVS"
+  "multicast"
 )
 
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
