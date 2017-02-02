@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	IngressAdmission = "IngressAdmission"
+	IngressAdmission = "openshift.io/IngressAdmission"
 )
 
 func init() {
