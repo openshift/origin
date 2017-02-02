@@ -1,0 +1,7 @@
+---
+build:
+  - target: release-rpms
+download:
+  - /tmp/openshift
+environment:
+  OS_BUILD_ENV_LOCAL_DOCKER=y hack/env
