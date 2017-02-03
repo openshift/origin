@@ -37,12 +37,12 @@ func NewNodeComponentFlag() *utilflags.ComponentFlag {
 	return utilflags.NewComponentFlag(
 		map[string][]string{ComponentGroupNetwork: {ComponentProxy, ComponentPlugins}},
 		ComponentKubelet, ComponentProxy, ComponentPlugins, ComponentDNS,
-	).DefaultDisable(ComponentDNS)
+	)
 }
 
 // NewNodeComponentFlag returns a flag capable of handling enabled components for the network
 func NewNetworkComponentFlag() *utilflags.ComponentFlag {
-	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins, ComponentDNS).DefaultDisable(ComponentDNS)
+	return utilflags.NewComponentFlag(nil, ComponentProxy, ComponentPlugins, ComponentDNS)
 }
 
 // NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting a node.
@@ -69,6 +69,8 @@ type NodeArgs struct {
 	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
 	ClusterDNS           net.IP
+	// DNSBindAddr is provided for the all-in-one start only and is not exposed via a flag
+	DNSBindAddr string
 
 	// NetworkPluginName is the network plugin to be called for configuring networking for pods.
 	NetworkPluginName string
@@ -186,8 +188,9 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		VolumeDirectory:     args.VolumeDir,
 		AllowDisabledDocker: args.AllowDisabledDocker,
 
-		DNSDomain: args.ClusterDomain,
-		DNSIP:     dnsIP,
+		DNSBindAddress: args.DNSBindAddr,
+		DNSDomain:      args.ClusterDomain,
+		DNSIP:          dnsIP,
 
 		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
 

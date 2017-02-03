@@ -297,6 +297,7 @@ func (o NodeOptions) createNodeConfig() (string, error) {
 		VolumeDir:           o.NodeArgs.VolumeDir,
 		ImageTemplate:       o.NodeArgs.ImageFormatArgs.ImageTemplate,
 		AllowDisabledDocker: o.NodeArgs.AllowDisabledDocker,
+		DNSBindAddress:      o.NodeArgs.DNSBindAddr,
 		DNSDomain:           o.NodeArgs.ClusterDomain,
 		DNSIP:               dnsIP,
 		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
@@ -325,7 +326,7 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS))
+	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {
 		return err
 	}
@@ -367,7 +368,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	if components.Enabled(ComponentProxy) {
 		config.RunProxy()
 	}
-	if components.Enabled(ComponentDNS) {
+	if components.Enabled(ComponentDNS) && config.DNSServer != nil {
 		config.RunDNS()
 	}
 
