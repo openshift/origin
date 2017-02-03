@@ -369,9 +369,7 @@ func TestRouter(t *testing.T) {
 
 		//clean up
 		routeEvent.Type = watch.Deleted
-		endpointEvent.Type = watch.Modified
-		endpoints := endpointEvent.Object.(*kapi.Endpoints)
-		endpoints.Subsets = []kapi.EndpointSubset{}
+		endpointEvent.Type = watch.Deleted
 
 		sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
 		sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
