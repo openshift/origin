@@ -86,6 +86,8 @@ func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefin
 			config.RequestHeaderConfig.ClientCA,
 			config.RequestHeaderConfig.AllowedClientNames,
 			config.RequestHeaderConfig.UsernameHeaders,
+			[]string{},
+			[]string{},
 		)
 		if err != nil {
 			return nil, nil, err
