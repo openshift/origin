@@ -46,8 +46,6 @@ items:
     labels:
       test: router
       select: weighted
-    annotations:
-      haproxy.router.openshift.io/balance: roundrobin
   spec:
     host: weighted.example.com
     to:
@@ -69,8 +67,6 @@ items:
     labels:
       test: router
       select: weighted
-    annotations:
-      haproxy.router.openshift.io/balance: roundrobin
   spec:
     host: zeroweight.example.com
     to:
