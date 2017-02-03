@@ -13,7 +13,7 @@ if ! os::util::find::system_binary 'protoc' || [[ "$(protoc --version)" != "libp
   exit 1
 fi
 
-os::util::ensure::gopath_binary_exists 'goimports'
+os::util::ensure::system_binary_exists 'goimports'
 os::build::setup_env
 
 os::util::ensure::built_binary_exists 'genprotobuf'
