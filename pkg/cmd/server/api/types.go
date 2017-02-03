@@ -252,6 +252,10 @@ type MasterConfig struct {
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo
 
+	// AuthConfig configures authentication options in addition to the standard
+	// oauth token and client certificate authenticators
+	AuthConfig MasterAuthConfig
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
@@ -340,6 +344,29 @@ type MasterConfig struct {
 
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig
+}
+
+// MasterAuthConfig configures authentication options in addition to the standard
+// oauth token and client certificate authenticators
+type MasterAuthConfig struct {
+	// RequestHeader holds options for setting up a front proxy against the the API.  It is optional.
+	RequestHeader *RequestHeaderAuthenticationOptions
+}
+
+// RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
+// API instead of against the /oauth endpoint.
+type RequestHeaderAuthenticationOptions struct {
+	// ClientCA is a file with the trusted signer certs.  It is required.
+	ClientCA string
+	// ClientCommonNames is a required list of common names to require a match from.
+	ClientCommonNames []string
+
+	// UsernameHeaders is the list of headers to check for user information.  First hit wins.
+	UsernameHeaders []string
+	// GroupNameHeader is the set of headers to check for group information.  All are unioned.
+	GroupHeaders []string
+	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
+	ExtraHeaderPrefixes []string
 }
 
 // AuditConfig holds configuration for the audit capabilities
