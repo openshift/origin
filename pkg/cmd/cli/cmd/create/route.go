@@ -204,6 +204,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
+	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("wildcardpolicy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
@@ -243,6 +244,11 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 
 	route.Spec.TLS = new(api.TLSConfig)
 	route.Spec.TLS.Termination = api.TLSTerminationPassthrough
+
+	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
+	if len(insecurePolicy) > 0 {
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
 	actualRoute := route
@@ -305,6 +311,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
+	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
@@ -376,6 +383,11 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 		return err
 	}
 	route.Spec.TLS.DestinationCACertificate = string(destCACert)
+
+	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
+	if len(insecurePolicy) > 0 {
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
 	actualRoute := route
