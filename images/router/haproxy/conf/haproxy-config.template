@@ -9,7 +9,7 @@ global
   # maxconn 4096
   daemon
 {{ with (env "ROUTER_SYSLOG_ADDRESS" "") }}
-  log {{.}} local1 {{env "ROUTER_LOG_LEVEL" "warning"}}
+  log {{.}} {{env "ROUTER_LOG_FACILITY" "local1"}} {{env "ROUTER_LOG_LEVEL" "warning"}}
 {{ end}}
   ca-base /etc/ssl
   crt-base /etc/ssl
