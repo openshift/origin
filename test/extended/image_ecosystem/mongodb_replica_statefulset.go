@@ -62,23 +62,21 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				).Execute(),
 			).Should(o.Succeed())
 
-			g.By("waiting for pods to running")
+			g.By("waiting for all pods to reach running status")
 			podNames, err := exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsRunningFn,
 				3,
-				2*time.Minute,
+				4*time.Minute,
 			)
 			if err != nil {
-				desc, _ := oc.Run("describe", "petset").Output()
-				ginkgolog("\n\nPetset at failure:\n%s\n\n", desc)
-				desc, _ = oc.Run("describe", "pods").Output()
-				ginkgolog("\n\nPods at petset failure:\n%s\n\n", desc)
-
+				desc, _ := oc.Run("describe").Args("statefulset").Output()
+				ginkgolog("\n\nStatefulset at failure:\n%s\n\n", desc)
+				desc, _ = oc.Run("describe").Args("pods").Output()
+				ginkgolog("\n\nPods at statefulset failure:\n%s\n\n", desc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(podNames).Should(o.HaveLen(3))
 
 			g.By("expecting that we can insert a new record on primary node")
 			mongo := dbutil.NewMongoDB(podNames[0])
@@ -96,7 +94,7 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 			err = oc.Run("delete").Args("pods", "--all", "-n", oc.Namespace()).Execute()
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
-			g.By("waiting for restarting of the pods")
+			g.By("waiting for all pods to reach running status")
 			podNames, err = exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
@@ -105,7 +103,6 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				2*time.Minute,
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(podNames).Should(o.HaveLen(3))
 
 			g.By("expecting that we can read a record from all members after its restart")
 			for _, podName := range podNames {

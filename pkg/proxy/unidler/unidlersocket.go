@@ -112,7 +112,7 @@ var (
 	// to be dropped after the limit is reached)
 	MaxHeldConnections = 16
 
-	needPodsWaitTimeout = 30 * time.Second
+	needPodsWaitTimeout = 120 * time.Second
 	needPodsTickLen     = 5 * time.Second
 )
 
