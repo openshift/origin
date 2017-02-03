@@ -296,6 +296,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
+	genericConfig.SecureServingInfo.BindAddress = options.ServingInfo.BindAddress
 	genericConfig.SecureServingInfo.BindNetwork = options.ServingInfo.BindNetwork
 	genericConfig.SecureServingInfo.ExtraClientCACerts, err = configapi.GetOAuthClientCertCAs(options)
 	if err != nil {
