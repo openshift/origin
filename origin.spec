@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c0e608be83100a5c94fd4408c1cd0010befcde6e
+%global commit 9c523f9064ddcac9525998674c8904261071ee73
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.14+c0e608b-40 OS_GIT_COMMIT=c0e608b OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.15+9c523f9-6 OS_GIT_COMMIT=9c523f9 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.15
+Version:        3.5.0.16
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,13 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Feb 03 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.16
+- Revert "Merge pull request #12751 from stevekuznetsov/skuznets/path-updates"
+  (tdawson@redhat.com)
+- Router tests should check for curl errors (ccoleman@redhat.com)
+- Add DisableAttachDetachReconcilerSync new flag to master_config_test
+  (maszulik@redhat.com)
+
 * Fri Feb 03 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.15
 - Merge remote-tracking branch enterprise-3.5, bump origin-web-console 7d868ff
   (tdawson@redhat.com)
