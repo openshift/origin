@@ -221,7 +221,7 @@ func (f *FakeFactory) RESTClient() (*restclient.RESTClient, error) {
 	return nil, nil
 }
 
-func (f *FakeFactory) ClientSet() (*internalclientset.Clientset, error) {
+func (f *FakeFactory) ClientSet() (internalclientset.Interface, error) {
 	return nil, nil
 }
 
@@ -239,7 +239,7 @@ func (f *FakeFactory) FederationClientSetForVersion(version *unversioned.GroupVe
 func (f *FakeFactory) FederationClientForVersion(version *unversioned.GroupVersion) (*restclient.RESTClient, error) {
 	return nil, nil
 }
-func (f *FakeFactory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*internalclientset.Clientset, error) {
+func (f *FakeFactory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (internalclientset.Interface, error) {
 	return nil, nil
 }
 func (f *FakeFactory) ClientConfigForVersion(requiredVersion *unversioned.GroupVersion) (*restclient.Config, error) {
@@ -453,7 +453,7 @@ func (f *fakeAPIFactory) JSONEncoder() runtime.Encoder {
 	return testapi.Default.Codec()
 }
 
-func (f *fakeAPIFactory) ClientSet() (*internalclientset.Clientset, error) {
+func (f *fakeAPIFactory) ClientSet() (internalclientset.Interface, error) {
 	// Swap the HTTP client out of the REST client with the fake
 	// version.
 	fakeClient := f.tf.Client.(*fake.RESTClient)

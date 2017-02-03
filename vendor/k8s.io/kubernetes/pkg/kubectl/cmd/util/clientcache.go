@@ -31,7 +31,7 @@ import (
 
 func NewClientCache(loader clientcmd.ClientConfig, discoveryClientFactory DiscoveryClientFactory) *ClientCache {
 	return &ClientCache{
-		clientsets:             make(map[unversioned.GroupVersion]*internalclientset.Clientset),
+		clientsets:             make(map[unversioned.GroupVersion]internalclientset.Interface),
 		configs:                make(map[unversioned.GroupVersion]*restclient.Config),
 		fedClientSets:          make(map[unversioned.GroupVersion]fed_clientset.Interface),
 		loader:                 loader,
@@ -43,7 +43,7 @@ func NewClientCache(loader clientcmd.ClientConfig, discoveryClientFactory Discov
 // is invoked only once
 type ClientCache struct {
 	loader        clientcmd.ClientConfig
-	clientsets    map[unversioned.GroupVersion]*internalclientset.Clientset
+	clientsets    map[unversioned.GroupVersion]internalclientset.Interface
 	fedClientSets map[unversioned.GroupVersion]fed_clientset.Interface
 	configs       map[unversioned.GroupVersion]*restclient.Config
 
@@ -130,7 +130,7 @@ func (c *ClientCache) ClientConfigForVersion(requiredVersion *unversioned.GroupV
 
 // ClientSetForVersion initializes or reuses a clientset for the specified version, or returns an
 // error if that is not possible
-func (c *ClientCache) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*internalclientset.Clientset, error) {
+func (c *ClientCache) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (internalclientset.Interface, error) {
 	if requiredVersion != nil {
 		if clientset, ok := c.clientsets[*requiredVersion]; ok {
 			return clientset, nil

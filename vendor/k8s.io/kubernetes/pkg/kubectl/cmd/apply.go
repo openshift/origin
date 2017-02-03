@@ -403,7 +403,7 @@ func getRESTMappings(pruneResources *[]pruneResource) (namespaced, nonNamespaced
 type pruner struct {
 	mapper        meta.RESTMapper
 	clientFunc    resource.ClientMapperFunc
-	clientsetFunc func() (*internalclientset.Clientset, error)
+	clientsetFunc func() (internalclientset.Interface, error)
 
 	visitedUids sets.String
 	selector    labels.Selector
@@ -465,7 +465,7 @@ func (p *pruner) delete(namespace, name string, mapping *meta.RESTMapping, c res
 	return runDelete(namespace, name, mapping, c, nil, p.cascade, p.gracePeriod, p.clientsetFunc)
 }
 
-func runDelete(namespace, name string, mapping *meta.RESTMapping, c resource.RESTClient, helper *resource.Helper, cascade bool, gracePeriod int, clientsetFunc func() (*internalclientset.Clientset, error)) error {
+func runDelete(namespace, name string, mapping *meta.RESTMapping, c resource.RESTClient, helper *resource.Helper, cascade bool, gracePeriod int, clientsetFunc func() (internalclientset.Interface, error)) error {
 	if !cascade {
 		if helper == nil {
 			helper = resource.NewHelper(c, mapping)
@@ -503,7 +503,7 @@ type patcher struct {
 
 	mapping       *meta.RESTMapping
 	helper        *resource.Helper
-	clientsetFunc func() (*internalclientset.Clientset, error)
+	clientsetFunc func() (internalclientset.Interface, error)
 
 	overwrite bool
 	backOff   clockwork.Clock
