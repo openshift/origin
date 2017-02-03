@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/headerrequest"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -664,16 +665,28 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
-	ret := &unionrequest.Authenticator{
-		FailOnError: true,
-		Handlers: []authenticator.Request{
-			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}),
-			anonymous.NewAuthenticator(),
-		},
+	topLevelAuthenticators := []authenticator.Request{}
+	//	if we have a front proxy providing authentication configuration, wire it up and it should come first
+	if config.AuthConfig.RequestHeader != nil {
+		requestHeaderAuthenticator, err := headerrequest.NewSecure(
+			config.AuthConfig.RequestHeader.ClientCA,
+			config.AuthConfig.RequestHeader.ClientCommonNames,
+			config.AuthConfig.RequestHeader.UsernameHeaders,
+			config.AuthConfig.RequestHeader.GroupHeaders,
+			config.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+		)
+		if err != nil {
+			return nil, err
+		}
+		topLevelAuthenticators = append(topLevelAuthenticators, requestHeaderAuthenticator)
 	}
+	topLevelAuthenticators = append(topLevelAuthenticators, group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}))
+	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return ret, nil
+	return &unionrequest.Authenticator{
+		FailOnError: true,
+		Handlers:    topLevelAuthenticators,
+	}, nil
 }
 
 func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
