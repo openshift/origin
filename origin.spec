@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9ee18386ba8bdf6fd6231704cc49480c490a9d32
+%global commit c0e608be83100a5c94fd4408c1cd0010befcde6e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.13+9ee1838-27 OS_GIT_COMMIT=9ee1838 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.14+c0e608b-40 OS_GIT_COMMIT=c0e608b OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.14
+Version:        3.5.0.15
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,45 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Feb 03 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.15
+- Merge remote-tracking branch enterprise-3.5, bump origin-web-console 7d868ff
+  (tdawson@redhat.com)
+- Use watch.Deleted event on the endpoints to ensure we do a valid transition
+  Deleted -> Added instead of Modified -> Added. Otherwise the event queue code
+  panics and kills the cache reflector goroutine which causes events to never
+  be delivered to the test router process. fixes #12736 (smitram@gmail.com)
+- Make sure to honor address binding request for all services
+  (jonh.wendell@redhat.com)
+- UPSTREAM: 38527: Fail kubelet if runtime is unresponsive for 30 seconds
+  (decarr@redhat.com)
+- Increased the time the proxy will hold connections when unidling
+  (bbennett@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  16ebed8ff9127d6316caa01888935dc48ec69838 (dmcphers+openshiftbot@redhat.com)
+- use secrets in sample templates (bparees@redhat.com)
+- No one needs this info (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  774a733104caa86180127ea8cf5d05639a76e8fb (dmcphers+openshiftbot@redhat.com)
+- Search for `goimports` in `$GOPATH`, not `$PATH` (skuznets@redhat.com)
+- Update `$PATH` to include `$GOPATH/bin` by default (skuznets@redhat.com)
+- increase mongodb test image pull timeout (jminter@redhat.com)
+- Preserve file and directory validation errors (mkhan@redhat.com)
+- UPSTREAM: 40763: reduce log noise when aws cannot find public-ip4 metadata
+  (decarr@redhat.com)
+- only set CGO_ENABLED=0 for tests (jminter@redhat.com)
+- enable Azure disk provisioner (hchen@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  936eff71a6d7bc105b642642c8698d42f1474865 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4eaf2880b0992378b873ab223237110d1408a0bf (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  52f496aef9bd29703bf878b68f1d3bdafe05d205 (dmcphers+openshiftbot@redhat.com)
+- include thin_ls package in base image (sjenning@redhat.com)
+- generated-protobuf is using the wrong method (ccoleman@redhat.com)
+- Adding wildcardpolicy flag to `oc create route` and a column for the
+  wildcardpolicy to `oc get route' (jtanenba@redhat.com)
+- Add check for empty directory to recycler (jsafrane@redhat.com)
+
 * Wed Feb 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.14
 - bump(github.com/openshift/origin-web-console):
   7b83464ba2c7fbc936d40ed1ed5f4f4a93d180a3 (dmcphers+openshiftbot@redhat.com)
