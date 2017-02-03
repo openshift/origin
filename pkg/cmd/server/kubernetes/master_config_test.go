@@ -144,10 +144,11 @@ func TestCMServerDefaults(t *testing.T) {
 				RenewDeadline: unversioned.Duration{Duration: 10 * time.Second},
 				RetryPeriod:   unversioned.Duration{Duration: 2 * time.Second},
 			},
-			ClusterSigningCertFile:   "/etc/kubernetes/ca/ca.pem",
-			ClusterSigningKeyFile:    "/etc/kubernetes/ca/ca.key",
-			EnableGarbageCollector:   true,
-			ReconcilerSyncLoopPeriod: unversioned.Duration{Duration: 5 * time.Second},
+			ClusterSigningCertFile:            "/etc/kubernetes/ca/ca.pem",
+			ClusterSigningKeyFile:             "/etc/kubernetes/ca/ca.key",
+			EnableGarbageCollector:            true,
+			DisableAttachDetachReconcilerSync: false,
+			ReconcilerSyncLoopPeriod:          unversioned.Duration{Duration: 5 * time.Second},
 		},
 	}
 

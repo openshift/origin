@@ -131,13 +131,17 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 	cmd := fmt.Sprintf(`
 		set -e
 		for i in $(seq 1 %d); do
-			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q )
-			echo $code
-			if [[ $code -eq 200 ]]; then
-				exit 0
-			fi
-			if [[ $code -ne 503 ]]; then
-				exit 1
+			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+			if [[ "${rc:-0}" -eq 0 ]]; then
+				echo $code
+				if [[ $code -eq 200 ]]; then
+					exit 0
+				fi
+				if [[ $code -ne 503 ]]; then
+					exit 1
+				fi
+			else
+				echo "error ${rc}" 1>&2
 			fi
 			sleep 1
 		done
@@ -157,10 +161,14 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 	cmd := fmt.Sprintf(`
 		set -e
 		for i in $(seq 1 %d); do
-			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q )
-			echo $code
-			if [[ $code -ne %d ]]; then
-				exit 1
+			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+			if [[ "${rc:-0}" -eq 0 ]]; then
+				echo $code
+				if [[ $code -ne %d ]]; then
+					exit 1
+				fi
+			else
+				echo "error ${rc}" 1>&2
 			fi
 		done
 		`, times, host, url, statusCode)
