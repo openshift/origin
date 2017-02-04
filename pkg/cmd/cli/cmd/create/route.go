@@ -85,7 +85,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	cmd.MarkFlagFilename("key")
 	cmd.Flags().String("ca-cert", "", "Path to a CA certificate file.")
 	cmd.MarkFlagFilename("ca-cert")
-	cmd.Flags().String("wildcardpolicy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
@@ -113,7 +113,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		return err
 	}
 
-	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcardpolicy")
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
 		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
 	}
@@ -207,7 +207,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
-	cmd.Flags().String("wildcardpolicy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
@@ -235,7 +235,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		return err
 	}
 
-	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcardpolicy")
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
 		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
 	}
@@ -324,7 +324,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	cmd.Flags().String("dest-ca-cert", "", "Path to a CA certificate file, used for securing the connection from the router to the destination.")
 	cmd.MarkFlagRequired("dest-ca-cert")
 	cmd.MarkFlagFilename("dest-ca-cert")
-	cmd.Flags().String("wildcardpolicy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
@@ -352,7 +352,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 		return err
 	}
 
-	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcardpolicy")
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
 		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
 	}
