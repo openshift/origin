@@ -73,7 +73,7 @@ func TestKubeletDefaults(t *testing.T) {
 			HostIPCSources:              []string{"*"},                                    // overridden
 			HTTPCheckFrequency:          unversioned.Duration{Duration: 20 * time.Second}, // disabled
 			ImageMinimumGCAge:           unversioned.Duration{Duration: 120 * time.Second},
-			ImageGCHighThresholdPercent: 90,
+			ImageGCHighThresholdPercent: 85,
 			ImageGCLowThresholdPercent:  80,
 			IPTablesMasqueradeBit:       14,
 			IPTablesDropBit:             15,
