@@ -1874,7 +1874,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 	// Verify that the routes are accessible
 	url := fmt.Sprintf("%s%s", routeAddress, path)
 	if err := waitForRoute(url, host, "http", nil, tr.HelloPodPath); err != nil {
-		t.Fatalf("Error accessing ingress configured route: %v", err)
+		t.Fatalf("Error accessing unsecured ingress configured route: %v", err)
 	}
 
 	// Once the unsecured route is exposed, the controller will have a cache entry for the referenced
