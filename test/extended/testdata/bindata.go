@@ -38,6 +38,7 @@
 // test/extended/testdata/build-timing/test-docker-build.json
 // test/extended/testdata/build-timing/test-is.json
 // test/extended/testdata/build-timing/test-s2i-build.json
+// test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
@@ -1547,6 +1548,84 @@ func testExtendedTestdataBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterMasterVertYaml = []byte(`provider: local
+ClusterLoader:
+  cleanup: true
+  projects:
+    - num: 1
+      basename: cakephp-mysql
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/cakephp/cakephp-mysql.json
+  
+    - num: 1
+      basename: dancer-mysql
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/dancer/dancer-mysql.json
+  
+    - num: 1
+      basename: django-postgresql
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/django/django-postgresql.json
+  
+    - num: 1
+      basename: nodejs-mongodb
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/nodejs/nodejs-mongodb.json
+  
+    - num: 1
+      basename: rails-postgresql
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/rails/rails-postgresql.json
+  
+    - num: 1
+      basename: eap64-mysql
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/eap/eap64-mysql.json
+  
+    - num: 1
+      basename: tomcat8-mongodb
+      tuning: default
+      templates:
+        - num: 1
+          file: ./testdata/quickstarts/tomcat/tomcat8-mongodb.json
+  
+  tuningsets:
+    - name: default
+      pods:
+        stepping:
+          stepsize: 5
+          pause: 0 min
+        rate_limit:
+          delay: 0 ms
+`)
+
+func testExtendedTestdataClusterMasterVertYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterMasterVertYaml, nil
+}
+
+func testExtendedTestdataClusterMasterVertYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterMasterVertYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/master-vert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -21838,6 +21917,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-timing/test-docker-build.json": testExtendedTestdataBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/build-timing/test-is.json": testExtendedTestdataBuildTimingTestIsJson,
 	"test/extended/testdata/build-timing/test-s2i-build.json": testExtendedTestdataBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
@@ -22196,6 +22276,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-docker-build.json": &bintree{testExtendedTestdataBuildTimingTestDockerBuildJson, map[string]*bintree{}},
 					"test-is.json": &bintree{testExtendedTestdataBuildTimingTestIsJson, map[string]*bintree{}},
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildTimingTestS2iBuildJson, map[string]*bintree{}},
+				}},
+				"cluster": &bintree{nil, map[string]*bintree{
+					"master-vert.yaml": &bintree{testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
 				}},
 				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
