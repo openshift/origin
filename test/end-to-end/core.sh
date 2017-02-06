@@ -424,7 +424,7 @@ BUILD_ID="$( oc get builds --namespace test -o jsonpath='{.items[0].metadata.nam
 # Ensure that the build pod doesn't allow exec
 os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
 os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-os::cmd::expect_success "oc build-logs --namespace test '${BUILD_ID}' > '${LOG_DIR}/test-build.log'"
+os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test  > '${LOG_DIR}/test-build.log'"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
@@ -481,7 +481,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-# os::cmd::expect_success "oc build-logs --namespace docker '${BUILD_ID}' > '${LOG_DIR}/docker-build.log'"
+# os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace docker > '${LOG_DIR}/docker-build.log'"
 #wait_for_app "docker"
 
 #os::log::info "Applying Custom application config"
@@ -490,7 +490,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace custom -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace custom -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-# os::cmd::expect_success "oc build-logs --namespace custom '${BUILD_ID}' > '${LOG_DIR}/custom-build.log'"
+# os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace custom > '${LOG_DIR}/custom-build.log'"
 #wait_for_app "custom"
 
 os::log::info "Back to 'default' project with 'admin' user..."

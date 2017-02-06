@@ -153,7 +153,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if gt (len .DefaultCertificate) 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
 
   # check re-encrypt backends first - from most specific to general path.
@@ -187,7 +187,7 @@ backend be_no_sni
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if gt (len .DefaultCertificate) 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
   mode http
 
   # check re-encrypt backends first - path or host based.
@@ -255,7 +255,7 @@ backend be_edge_http_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance leastconn
+  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
@@ -337,7 +337,11 @@ backend be_tcp_{{$cfgIdx}}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
-  balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
+      {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_TCP_BALANCE_SCHEME" "")) }}
+  balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source"}}
+      {{ else }}
+  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}source{{ end }}
+      {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
@@ -403,7 +407,7 @@ backend be_secure_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance leastconn
+  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
