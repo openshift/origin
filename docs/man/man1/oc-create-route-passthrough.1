@@ -33,6 +33,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
     Set a hostname for the new route
 
 .PP
+\fB\-\-insecure\-policy\fP=""
+    Set an insecure policy for the new route
+
+.PP
 \fB\-\-no\-headers\fP=false
     When using the default or custom\-column output format, don't print headers.
 
@@ -79,6 +83,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
 .PP
 \fB\-\-validate\fP=false
     If true, use a schema to validate the input before sending it
+
+.PP
+\fB\-\-wildcard\-policy\fP=""
+    Sets the WilcardPolicy for the hostname, the default is "None". valid values are "None" and "Subdomain"
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

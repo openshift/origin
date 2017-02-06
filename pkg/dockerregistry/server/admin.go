@@ -6,7 +6,6 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
@@ -19,7 +18,7 @@ import (
 // BlobDispatcher takes the request context and builds the appropriate handler
 // for handling blob requests.
 func BlobDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
-	reference := ctxu.GetStringValue(ctx, "vars.digest")
+	reference := context.GetStringValue(ctx, "vars.digest")
 	dgst, _ := digest.ParseDigest(reference)
 
 	blobHandler := &blobHandler{

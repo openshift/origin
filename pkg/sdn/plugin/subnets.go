@@ -231,13 +231,13 @@ func (master *OsdnMaster) watchSubnets() {
 					return nil
 				}
 				var hsAnnotations map[string]string
-				if vnid, ok := hs.Annotations[osapi.FixedVnidHost]; ok {
+				if vnid, ok := hs.Annotations[osapi.FixedVNIDHostAnnotation]; ok {
 					vnidInt, err := strconv.Atoi(vnid)
 					if err == nil && vnidInt >= 0 && uint32(vnidInt) <= osapi.MaxVNID {
 						hsAnnotations = make(map[string]string)
-						hsAnnotations[osapi.FixedVnidHost] = strconv.Itoa(vnidInt)
+						hsAnnotations[osapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
 					} else {
-						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVnidHost)
+						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVNIDHostAnnotation)
 					}
 				}
 				err = master.addNode(name, hostIP, hsAnnotations)
@@ -272,7 +272,7 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 			tun_dsts += fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP)
 		}
 	}
-	otx.AddFlow("table=110, ip, nw_dst=224.0.0.0/3, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
+	otx.AddFlow("table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
 
 	if err := otx.EndTransaction(); err != nil {
 		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)

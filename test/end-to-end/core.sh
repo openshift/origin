@@ -358,23 +358,24 @@ os::log::info "Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
 os::cmd::try_until_success "oc sa get-token default"
 oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
-# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
-#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
-#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
-os::cmd::expect_success_and_text "oc logs cli-with-token" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "oc logs cli-with-token" 'In project test'
+# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+set +o errexit
+os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
+os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
+set -o errexit
 os::cmd::expect_success 'oc delete pod cli-with-token'
 oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
-# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
-#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
-os::cmd::expect_success_and_text "oc logs cli-with-token-2" 'system:serviceaccount:test:default'
+# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+set +o errexit
+os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
+set -o errexit
 os::cmd::expect_success 'oc delete pod cli-with-token-2'
 oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
-# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
-#os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
-#os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
-os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'kubectl-with-token'
+# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+set +o errexit
+os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
+os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
+set -o errexit
 
 os::log::info "Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
@@ -423,7 +424,7 @@ BUILD_ID="$( oc get builds --namespace test -o jsonpath='{.items[0].metadata.nam
 # Ensure that the build pod doesn't allow exec
 os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
 os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-os::cmd::expect_success "oc build-logs --namespace test '${BUILD_ID}' > '${LOG_DIR}/test-build.log'"
+os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test  > '${LOG_DIR}/test-build.log'"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
@@ -480,7 +481,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-# os::cmd::expect_success "oc build-logs --namespace docker '${BUILD_ID}' > '${LOG_DIR}/docker-build.log'"
+# os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace docker > '${LOG_DIR}/docker-build.log'"
 #wait_for_app "docker"
 
 #os::log::info "Applying Custom application config"
@@ -489,7 +490,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace custom -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace custom -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-# os::cmd::expect_success "oc build-logs --namespace custom '${BUILD_ID}' > '${LOG_DIR}/custom-build.log'"
+# os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace custom > '${LOG_DIR}/custom-build.log'"
 #wait_for_app "custom"
 
 os::log::info "Back to 'default' project with 'admin' user..."

@@ -44,9 +44,8 @@ var (
 	openShiftContainerBinds = []string{
 		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
-		"/sys:/sys:ro",
+		"/sys:/sys:rw",
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
-		"/var/lib/docker:/var/lib/docker",
 		"/dev:/dev",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
@@ -75,6 +74,7 @@ type Helper struct {
 type StartOptions struct {
 	ServerIP                 string
 	RouterIP                 string
+	RoutingSuffix            string
 	DNSPort                  int
 	UseSharedVolume          bool
 	SetPropagationMode       bool
@@ -92,6 +92,8 @@ type StartOptions struct {
 	HTTPProxy                string
 	HTTPSProxy               string
 	NoProxy                  []string
+	KubeconfigContents       string
+	DockerRoot               string
 }
 
 // NewHelper creates a new OpenShift helper
@@ -256,6 +258,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
 	}
 	env = append(env, opt.Environment...)
+	binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.DockerRoot))
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))
 
 	// Kubelet needs to be able to write to
@@ -326,8 +329,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt)
-		if err != nil {
+		if err := h.updateConfig(configDir, opt); err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
 		}
@@ -439,6 +441,73 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	return configDir, nil
 }
 
+// StartNode starts the OpenShift node as a Docker container
+// and returns a directory in the local file system where
+// the OpenShift configuration has been copied
+func (h *Helper) StartNode(opt *StartOptions, out io.Writer) error {
+	binds := openShiftContainerBinds
+	env := []string{}
+	if opt.UseSharedVolume {
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:shared", opt.HostVolumesDir))
+		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
+	} else {
+		binds = append(binds, "/:/rootfs:ro")
+		propagationMode := ""
+		if opt.SetPropagationMode {
+			propagationMode = ":rslave"
+		}
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
+	}
+	env = append(env, opt.Environment...)
+
+	kubeconfig := "/var/lib/origin/openshift.local.config/node/node-bootstrap.kubeconfig"
+
+	fmt.Fprintf(out, "Starting OpenShift Node using container '%s'\n", h.containerName)
+	startCmd := []string{
+		"start", "node", "--bootstrap",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfig),
+	}
+	if opt.LogLevel > 0 {
+		startCmd = append(startCmd, fmt.Sprintf("--loglevel=%d", opt.LogLevel))
+	}
+
+	_, err := h.runHelper.New().Image(h.image).
+		Name(h.containerName).
+		Privileged().
+		HostNetwork().
+		HostPid().
+		Bind(binds...).
+		Env(env...).
+		Command(startCmd...).
+		Copy(map[string][]byte{
+			kubeconfig: []byte(opt.KubeconfigContents),
+		}).
+		Start()
+	if err != nil {
+		return errors.NewError("cannot start OpenShift Node daemon").WithCause(err)
+	}
+
+	// Wait a minimum amount of time and check whether we're still running. If not, we know the daemon didn't start
+	time.Sleep(initialStatusCheckWait)
+	_, running, err := h.dockerHelper.GetContainerState(h.containerName)
+	if err != nil {
+		return errors.NewError("cannot get state of OpenShift container %s", h.containerName).WithCause(err)
+	}
+	if !running {
+		return ErrOpenShiftFailedToStart(h.containerName).WithDetails(h.OriginLog())
+	}
+
+	// Wait until the API server is listening
+	fmt.Fprintf(out, "Waiting for server to start listening\n")
+	masterHost := fmt.Sprintf("%s:10250", opt.ServerIP)
+	if err = cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
+		return ErrTimedOutWaitingForStart(h.containerName).WithDetails(h.OriginLog())
+	}
+
+	fmt.Fprintf(out, "OpenShift server started\n")
+	return nil
+}
+
 func (h *Helper) OriginLog() string {
 	log := h.dockerHelper.ContainerLog(h.containerName, 10)
 	if len(log) > 0 {
@@ -521,8 +590,8 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		return err
 	}
 
-	if len(h.routingSuffix) > 0 {
-		cfg.RoutingConfig.Subdomain = h.routingSuffix
+	if len(opt.RoutingSuffix) > 0 {
+		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
 	} else {
 		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", opt.RouterIP)
 	}

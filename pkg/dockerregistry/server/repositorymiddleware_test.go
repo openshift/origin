@@ -35,8 +35,7 @@ import (
 
 const (
 	// testImageLayerCount says how many layers to generate per image
-	testImageLayerCount        = 2
-	testBlobRepositoryCacheTTL = time.Millisecond * 500
+	testImageLayerCount = 2
 )
 
 func TestRepositoryBlobStat(t *testing.T) {

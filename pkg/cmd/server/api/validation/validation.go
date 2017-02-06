@@ -331,7 +331,7 @@ func ValidateFile(path string, fldPath *field.Path) field.ErrorList {
 	if len(path) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath, ""))
 	} else if _, err := os.Stat(path); err != nil {
-		allErrs = append(allErrs, field.Invalid(fldPath, path, "could not read file"))
+		allErrs = append(allErrs, field.Invalid(fldPath, path, fmt.Sprintf("could not read file: %v", err)))
 	}
 
 	return allErrs
@@ -344,7 +344,7 @@ func ValidateDir(path string, fldPath *field.Path) field.ErrorList {
 	} else {
 		fileInfo, err := os.Stat(path)
 		if err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath, path, "could not read info"))
+			allErrs = append(allErrs, field.Invalid(fldPath, path, fmt.Sprintf("could not read info: %v", err)))
 		} else if !fileInfo.IsDir() {
 			allErrs = append(allErrs, field.Invalid(fldPath, path, "not a directory"))
 		}

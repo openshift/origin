@@ -91,8 +91,6 @@ items:
     - apps
     attributeRestrictions: null
     resources:
-    - petsets
-    - petsets/status
     - statefulsets
     - statefulsets/status
     verbs:
@@ -630,7 +628,6 @@ items:
     - apps
     attributeRestrictions: null
     resources:
-    - petsets
     - statefulsets
     verbs:
     - create
@@ -1039,7 +1036,6 @@ items:
     - apps
     attributeRestrictions: null
     resources:
-    - petsets
     - statefulsets
     verbs:
     - create
@@ -1336,7 +1332,6 @@ items:
     - apps
     attributeRestrictions: null
     resources:
-    - petsets
     - statefulsets
     verbs:
     - get
@@ -2160,6 +2155,14 @@ items:
     - endpoints
     verbs:
     - get
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests
+    verbs:
+    - create
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -2569,6 +2572,30 @@ items:
     verbs:
     - create
     - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:certificate-signing-controller
+  rules:
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests/approval
+    - certificatesigningrequests/status
+    verbs:
     - update
 - apiVersion: v1
   kind: ClusterRole
@@ -3025,67 +3052,16 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:pet-set-controller
+    name: system:node-bootstrapper
   rules:
   - apiGroups:
-    - ""
+    - certificates.k8s.io
     attributeRestrictions: null
     resources:
-    - pods
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - petsets
-    - statefulsets
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - petsets
-    - statefulsets
-    verbs:
-    - get
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - petsets/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
+    - certificatesigningrequests
     verbs:
     - create
     - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -3618,6 +3594,71 @@ items:
     - list
     - update
     - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:statefulset-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - statefulsets
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - statefulsets
+    verbs:
+    - get
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - statefulsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - create
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

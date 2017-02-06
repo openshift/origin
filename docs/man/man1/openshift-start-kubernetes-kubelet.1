@@ -277,8 +277,8 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
     Duration between checking http for new data
 
 .PP
-\fB\-\-image\-gc\-high\-threshold\fP=90
-    The percent of disk usage after which image garbage collection is always run. Default: 90%
+\fB\-\-image\-gc\-high\-threshold\fP=85
+    The percent of disk usage after which image garbage collection is always run. Default: 85%
 
 .PP
 \fB\-\-image\-gc\-low\-threshold\fP=80
@@ -295,6 +295,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 .PP
 \fB\-\-iptables\-masquerade\-bit\fP=14
     The bit of the fwmark space to mark packets for SNAT. Must be within the range [0, 31]. Please match this parameter with corresponding parameter in kube\-proxy.
+
+.PP
+\fB\-\-keep\-terminated\-pod\-volumes\fP=false
+    Keep terminated pod volumes mounted to the node after the pod terminates.  Can be useful for debugging volume related issues.
 
 .PP
 \fB\-\-kube\-api\-burst\fP=10

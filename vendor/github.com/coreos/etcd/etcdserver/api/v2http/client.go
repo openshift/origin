@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/pprof"
 	"net/url"
 	"path"
 	"strconv"
@@ -57,7 +56,6 @@ const (
 	healthPath               = "/health"
 	versionPath              = "/version"
 	configPath               = "/config"
-	pprofPrefix              = "/debug/pprof"
 )
 
 // NewClientHandler generates a muxed http.Handler with the given parameters to serve etcd client requests.
@@ -112,23 +110,6 @@ func NewClientHandler(server *etcdserver.EtcdServer, timeout time.Duration) http
 	mux.Handle(membersPrefix+"/", mh)
 	mux.Handle(deprecatedMachinesPrefix, dmh)
 	handleAuth(mux, sech)
-
-	if server.IsPprofEnabled() {
-		plog.Infof("pprof is enabled under %s", pprofPrefix)
-
-		mux.HandleFunc(pprofPrefix+"/", pprof.Index)
-		mux.HandleFunc(pprofPrefix+"/profile", pprof.Profile)
-		mux.HandleFunc(pprofPrefix+"/symbol", pprof.Symbol)
-		mux.HandleFunc(pprofPrefix+"/cmdline", pprof.Cmdline)
-		// TODO: currently, we don't create an entry for pprof.Trace,
-		// because go 1.4 doesn't provide it. After support of go 1.4 is dropped,
-		// we should add the entry.
-
-		mux.Handle(pprofPrefix+"/heap", pprof.Handler("heap"))
-		mux.Handle(pprofPrefix+"/goroutine", pprof.Handler("goroutine"))
-		mux.Handle(pprofPrefix+"/threadcreate", pprof.Handler("threadcreate"))
-		mux.Handle(pprofPrefix+"/block", pprof.Handler("block"))
-	}
 
 	return requestLogger(mux)
 }
@@ -365,32 +346,23 @@ func serveVars(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\n}\n")
 }
 
-// TODO: change etcdserver to raft interface when we have it.
-//       add test for healthHandler when we have the interface ready.
 func healthHandler(server *etcdserver.EtcdServer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !allowMethod(w, r.Method, "GET") {
 			return
 		}
-
 		if uint64(server.Leader()) == raft.None {
 			http.Error(w, `{"health": "false"}`, http.StatusServiceUnavailable)
 			return
 		}
-
-		// wait for raft's progress
-		index := server.Index()
-		for i := 0; i < 3; i++ {
-			time.Sleep(250 * time.Millisecond)
-			if server.Index() > index {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"health": "true"}`))
-				return
-			}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if _, err := server.Do(ctx, etcdserverpb.Request{Method: "QGET"}); err != nil {
+			http.Error(w, `{"health": "false"}`, http.StatusServiceUnavailable)
+			return
 		}
-
-		http.Error(w, `{"health": "false"}`, http.StatusServiceUnavailable)
-		return
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"health": "true"}`))
 	}
 }
 

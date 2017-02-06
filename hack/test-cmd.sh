@@ -25,7 +25,7 @@ function cleanup()
     ${sudo} rm -rf "${ETCD_DATA_DIR}"
 
     if go tool -n pprof >/dev/null 2>&1; then
-        os::log::info "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
+        os::log::debug "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
         go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
@@ -102,9 +102,6 @@ os::log::system::start
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
-
-# test wrapper functions
-${OS_ROOT}/hack/test-util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -259,7 +256,7 @@ for test in "${tests[@]}"; do
   os::test::junit::declare_suite_end
 done
 
-os::log::info "Metrics information logged to ${LOG_DIR}/metrics.log"
+os::log::debug "Metrics information logged to ${LOG_DIR}/metrics.log"
 oc get --raw /metrics --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
 
 if [[ -n "${failed:-}" ]]; then

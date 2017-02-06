@@ -5,15 +5,14 @@ os::build::setup_env
 
 os::util::ensure::built_binary_exists 'gendefaults'
 
-PREFIX=github.com/openshift/origin
+PREFIX="${OS_GO_PACKAGE}/"
 
 INPUT_DIRS=$(
-  find . -not  \( \( -wholename '*/vendor/*' \) -prune \) -name '*.go' | \
-	xargs grep --color=never -l '+k8s:defaulter-gen=' | \
-	xargs -n1 dirname | \
-	sed "s,^\.,${PREFIX}," | \
-	sort -u | \
-	paste -sd,
+  grep --color=never -rl '+k8s:defaulter-gen=' pkg | \
+  xargs -n1 dirname | \
+  sed "s,^,${PREFIX}," | \
+  sort -u | \
+  paste -sd,
 )
 
 EXTRA_PEER_DIRS=$(
@@ -25,8 +24,8 @@ EXTRA_PEER_DIRS=$(
 )
 
 gendefaults \
-	--logtostderr \
-	--output-base="${GOPATH}/src" \
-	--input-dirs ${INPUT_DIRS[@]} \
-  --extra-peer-dirs ${EXTRA_PEER_DIRS[@]} \
-	"$@"
+  --logtostderr \
+  --output-base="${GOPATH}/src" \
+  --input-dirs "${INPUT_DIRS}" \
+  --extra-peer-dirs "${EXTRA_PEER_DIRS}" \
+  "$@"

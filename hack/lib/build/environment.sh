@@ -11,7 +11,7 @@ function os::build::environment::create() {
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
-    additional_context+="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+    additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
       # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
@@ -19,14 +19,18 @@ function os::build::environment::create() {
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
-    elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
-      # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
-      # successive iterations can reuse shared code.
+    elif [[ -n "${OS_BUILD_ENV_VOLUME:-}" ]]; then
+      if docker volume inspect "${OS_BUILD_ENV_VOLUME}" >/dev/null 2>&1; then
+        os::log::debug "Re-using volume ${OS_BUILD_ENV_VOLUME}"
+      else
+        # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
+        # store the working output so successive iterations can reuse shared code.
+        os::log::debug "Creating volume ${OS_BUILD_ENV_VOLUME}"
+        docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
+      fi
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
-      name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-      docker volume create --name "${name}" > /dev/null
-      additional_context+=" -v ${name}:${workingdir}"
+      additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
     fi
   fi
 
@@ -36,15 +40,31 @@ function os::build::environment::create() {
     additional_context+=" -e OS_VERSION_FILE="
   fi
 
-  local args
-  if [[ $# -eq 0 ]]; then
-    args=( "echo" "docker create ${additional_context} ${release_image}" )
-  else
-    args=( "$@" )
+  declare -a cmd=( )
+  declare -a env=( )
+  local prefix=1
+  for arg in "${@:1}"; do
+    if [[ "${arg}" != *"="* ]]; then
+      prefix=0
+    fi
+    if [[ "${prefix}" -eq 1 ]]; then
+      env+=( "-e" "${arg}" )
+    else
+      cmd+=( "${arg}" )
+    fi
+  done
+  if [[ -t 0 ]]; then
+    if [[ "${#cmd[@]}" -eq 0 ]]; then
+      cmd=( "/bin/sh" )
+    fi
+    if [[ "${cmd[0]}" == "/bin/sh" || "${cmd[0]}" == "/bin/bash" ]]; then
+      additional_context+=" -it"
+    fi
   fi
 
   # Create a new container from the release environment
-  docker create ${additional_context} "${release_image}" "${args[@]}"
+  os::log::debug "Creating container: \`docker create ${additional_context} ${env[@]+"${env[@]}"} ${release_image} ${cmd[@]+"${cmd[@]}"}"
+  docker create ${additional_context} "${env[@]+"${env[@]}"}" "${release_image}" "${cmd[@]+"${cmd[@]}"}"
 }
 readonly -f os::build::environment::create
 
@@ -66,8 +86,10 @@ readonly -f os::build::environment::release::workingdir
 # (unless OS_BUILD_ENV_LEAVE_CONTAINER is set, in which case it will only stop the container).
 function os::build::environment::cleanup() {
   local container=$1
+  os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
+    os::log::debug "Removing container ${container}"
     docker rm "${container}" > /dev/null
   fi
 }
@@ -78,11 +100,19 @@ readonly -f os::build::environment::cleanup
 function os::build::environment::start() {
   local container=$1
 
-  docker start "${container}" > /dev/null
-  docker logs -f "${container}"
+  os::log::debug "Starting container ${container}"
+  if [[ "$( docker inspect --type container -f '{{ .Config.OpenStdin }}' "${container}" )" == "true" ]]; then
+    docker start -ia "${container}"
+  else
+    docker start "${container}" > /dev/null
+    os::log::debug "Following container logs"
+    docker logs -f "${container}"
+  fi
 
   local exitcode
   exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
+
+  os::log::debug "Container exited with ${exitcode}"
 
   # extract content from the image
   if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
@@ -96,7 +126,11 @@ function os::build::environment::start() {
         parent="$( dirname "${path}" )"
         mkdir -p "${parent}"
       fi
-      docker cp "${container}:${workingdir}/${path}" "${parent}"
+      os::log::debug "Copying from ${container}:${workingdir}/${path} to ${parent}"
+      if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
+        os::log::warn "Copying ${path} from the container failed!"
+        os::log::warn "${output}"
+      fi
     done
     IFS="${oldIFS}"
   fi
@@ -124,6 +158,7 @@ function os::build::environment::withsource() {
     OS_GIT_TREE_STATE=clean os::build::get_version_vars
     os::build::save_version_vars "/tmp/os-version-defs"
 
+    os::log::debug "Generating source code archive"
     tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:/tmp"
     git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
     os::build::environment::start "${container}"
@@ -137,14 +172,14 @@ function os::build::environment::withsource() {
     excluded+=("--exclude=${exclude}")
   done
   IFS="${oldIFS}"
-  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
-    local name
-    name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
-    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
-      # fall back to a tar if rsync is not in container
+  if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_VOLUME-}" ]]; then
+    os::log::debug "Syncing source using \`rsync\`"
+    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+      os::log::debug "Falling back to \`tar\` and \`docker cp\` as \`rsync\` is not in container"
       tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
     fi
   else
+    os::log::debug "Syncing source using \`tar\` and \`docker cp\`"
     tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
   fi
 
@@ -160,10 +195,24 @@ function os::build::environment::run() {
   if [[ -z "${volume}" ]]; then
     volume="origin-build-$( git rev-parse "${commit}" )"
   fi
+  volume="$( echo "${volume}" | tr '[:upper:]' '[:lower:]' )"
+  export OS_BUILD_ENV_VOLUME="${volume}"
+
+  if [[ -n "${OS_BUILD_ENV_VOLUME_FORCE_NEW:-}" ]]; then
+    if docker volume inspect "${volume}" >/dev/null 2>&1; then
+      os::log::debug "Removing volume ${volume}"
+      docker volume rm "${volume}"
+    fi
+  fi
+
+  os::log::debug "Using commit ${commit}"
+  os::log::debug "Using volume ${volume}"
 
   local container
-  container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
+  container="$( os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
+
+  os::log::debug "Using container ${container}"
 
   os::build::environment::withsource "${container}" "${commit}"
 }

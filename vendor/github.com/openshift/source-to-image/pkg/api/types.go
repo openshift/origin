@@ -238,6 +238,10 @@ type Config struct {
 	// must have non-zero length. The labels defined here override generated labels in case
 	// they have the same name.
 	Labels map[string]string
+
+	// SourceInfo provides the info about the source to be built rather than relying
+	// on the Downloader to retrieve it.
+	SourceInfo *SourceInfo
 }
 
 // EnvironmentSpec specifies a single environment variable.

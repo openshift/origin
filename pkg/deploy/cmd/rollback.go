@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -33,8 +34,6 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 		return "", fmt.Errorf("cannot rollback a paused config; resume it first with 'rollout resume dc/%s' and try again", config.Name)
 	}
 
-	//TODO/REBASE support dryRun
-
 	rollback := &deployapi.DeploymentConfigRollback{
 		Name:               config.Name,
 		UpdatedAnnotations: updatedAnnotations,
@@ -47,6 +46,12 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 	rolledback, err := r.dn.DeploymentConfigs(config.Namespace).Rollback(rollback)
 	if err != nil {
 		return "", err
+	}
+
+	if dryRun {
+		out := bytes.NewBuffer([]byte("\n"))
+		kubectl.DescribePodTemplate(rolledback.Spec.Template, out)
+		return out.String(), nil
 	}
 
 	_, err = r.dn.DeploymentConfigs(config.Namespace).Update(rolledback)

@@ -17,6 +17,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy"
+	_ "github.com/openshift/origin/pkg/ingress/admission"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
@@ -65,13 +66,13 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
 		"OwnerReferencesPermissionEnforcement",
 		quotaadmission.PluginName,
 		"openshift.io/ClusterResourceQuota",
+		"openshift.io/IngressAdmission",
 	)
 
 	// defaultOffPlugins includes plugins which require explicit configuration to run
@@ -85,6 +86,7 @@ var (
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",
+		"LimitPodHardAntiAffinityTopology",
 	)
 )
 

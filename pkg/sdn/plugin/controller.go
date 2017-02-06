@@ -313,10 +313,16 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// eg, "table=100, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
 	otx.AddFlow("table=100, priority=0, actions=output:2")
 
-	// Table 110: multicast delivery from local pods to the VXLAN
+	// Table 110: outbound multicast filtering, updated by updateLocalMulticastFlows() in pod.go
+	// eg, "table=110, priority=100, reg0=${tenant_id}, actions=goto_table:111
 	otx.AddFlow("table=110, priority=0, actions=drop")
 
-	// Table 120: multicast delivery to local pods (either from VXLAN or local pods)
+	// Table 111: multicast delivery from local pods to the VXLAN; only one rule, updated by updateVXLANMulticastRules() in subnets.go
+	// eg, "table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:${remote_node_ip_1}->tun_dst,output:1,set_field:${remote_node_ip_2}->tun_dst,output:1,goto_table:120"
+	otx.AddFlow("table=111, priority=0, actions=drop")
+
+	// Table 120: multicast delivery to local pods (either from VXLAN or local pods); updated by updateLocalMulticastFlows() in pod.go
+	// eg, "table=120, priority=100, reg0=${tenant_id}, actions=output:${ovs_port_1},output:${ovs_port_2}"
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
 	err = otx.EndTransaction()
@@ -422,7 +428,7 @@ func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	otx := plugin.ovs.NewTransaction()
 
 	otx.AddFlow("table=10, priority=100, tun_src=%s, actions=goto_table:30", subnet.HostIP)
-	if vnid, ok := subnet.Annotations[osapi.FixedVnidHost]; ok {
+	if vnid, ok := subnet.Annotations[osapi.FixedVNIDHostAnnotation]; ok {
 		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
 		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
 	} else {

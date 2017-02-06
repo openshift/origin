@@ -38,6 +38,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
+	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
 
 // Execute runs the Docker registry.
@@ -47,6 +48,7 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("error parsing configuration file: %s", err)
 	}
 	setDefaultMiddleware(config)
+	setDefaultLogParameters(config)
 
 	ctx := context.Background()
 	ctx, err = configureLogging(ctx, config)
@@ -75,7 +77,6 @@ func Execute(configFile io.Reader) {
 
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
-
 	pruneAccessRecords := func(*http.Request) []auth.Access {
 		return []auth.Access{
 			{
@@ -97,6 +98,16 @@ func Execute(configFile io.Reader) {
 		// custom access records
 		pruneAccessRecords,
 	)
+
+	// Registry extensions endpoint provides extra functionality to handle the image
+	// signatures.
+	server.RegisterSignatureHandler(app)
+
+	// Advertise features supported by OpenShift
+	if app.Config.HTTP.Headers == nil {
+		app.Config.HTTP.Headers = http.Header{}
+	}
+	app.Config.HTTP.Headers.Set("X-Registry-Supports-Signatures", "1")
 
 	app.RegisterHealthChecks()
 	handler := alive("/", app)
@@ -268,4 +279,11 @@ func setDefaultMiddleware(config *configuration.Configuration) {
 		log.Errorf("obsolete configuration detected, please add openshift %s middleware into registry config file", middlewareType)
 	}
 	return
+}
+
+func setDefaultLogParameters(config *configuration.Configuration) {
+	if len(config.Log.Fields) == 0 {
+		config.Log.Fields = make(map[string]interface{})
+	}
+	config.Log.Fields[audit.LogEntryType] = audit.DefaultLoggerType
 }

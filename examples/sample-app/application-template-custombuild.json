@@ -5,10 +5,23 @@
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This example shows how to create a simple ruby application in openshift origin v3"
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
     }
   },
   "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -94,19 +107,20 @@
       "spec": {
         "triggers": [
           {
-            "type": "github",
+            "type": "GitHub",
             "github": {
               "secret": "secret101"
             }
           },
           {
-            "type": "generic",
+            "type": "Generic",
             "generic": {
-              "secret": "secret101"
+              "secret": "secret101",
+              "allowEnv": true
             }
           },
           {
-            "type": "imageChange",
+            "type": "ImageChange",
             "imageChange": {}
           },
           {
@@ -116,7 +130,7 @@
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -141,6 +155,9 @@
             "name": "origin-ruby-sample:latest"
           }
         },
+        "postCommit": {
+          "args": ["bundle", "exec", "rake", "test"]
+        },
         "resources": {}
       },
       "status": {
@@ -160,7 +177,37 @@
           "rollingParams": {
             "updatePeriodSeconds": 1,
             "intervalSeconds": 1,
-            "timeoutSeconds": 120
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
           },
           "resources": {}
         },
@@ -175,8 +222,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "origin-ruby-sample:latest"
-              },
-              "lastTriggeredImage": ""
+              }
             }
           },
           {
@@ -207,20 +253,22 @@
                 ],
                 "env": [
                   {
-                    "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
-                  },
-                  {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -230,7 +278,6 @@
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -238,8 +285,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -282,6 +328,56 @@
       "spec": {
         "strategy": {
           "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
           "resources": {}
         },
         "triggers": [
@@ -304,7 +400,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "openshift/mysql-55-centos7",
+                "image": "centos/mysql-57-centos7:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -314,11 +410,21 @@
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -333,8 +439,7 @@
                   }
                 ],
                 "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
+                "imagePullPolicy": "Always",
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -350,8 +455,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -360,33 +464,24 @@
   ],
   "parameters": [
     {
-      "name": "ADMIN_USERNAME",
-      "description": "administrator username",
-      "generate": "expression",
-      "from": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "description": "administrator password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
-    },
-    {
       "name": "MYSQL_USER",
       "description": "database username",
       "generate": "expression",
-      "from": "user[A-Z0-9]{3}"
+      "from": "user[A-Z0-9]{3}",
+      "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
       "description": "database password",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
     },
     {
       "name": "MYSQL_DATABASE",
       "description": "database name",
-      "value": "root"
+      "value": "root",
+      "required": true
     }
   ],
   "labels": {

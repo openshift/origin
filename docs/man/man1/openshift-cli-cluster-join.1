@@ -1,0 +1,214 @@
+.TH "OPENSHIFT CLI CLUSTER" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli cluster join \- Join an existing OpenShift cluster
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli cluster join\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Add a new node to an existing OpenShift cluster
+
+.PP
+Uses an existing connection to a Docker daemon to start an OpenShift node. You must provide a secret to connect to the master. Before running command, ensure that you can execute docker commands successfully (ie. 'docker ps').
+
+.PP
+Optionally, the command can create a new Docker machine for your OpenShift node using the VirtualBox driver when the \-\-create\-machine argument is specified. The machine will be named 'node' by default. To name the machine differently, use the \-\-docker\-machine=NAME argument. If the \-\-docker\-machine=NAME argument is specified, but \-\-create\-machine is not, the command will attempt to find an existing docker machine with that name and start it if it's not running.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-create\-machine\fP=false
+    Create a Docker machine if one doesn't exist
+
+.PP
+\fB\-\-docker\-machine\fP=""
+    Specify the Docker machine to use
+
+.PP
+\fB\-e\fP, \fB\-\-env\fP=[]
+    Specify a key\-value pair for an environment variable to set on OpenShift container
+
+.PP
+\fB\-\-forward\-ports\fP=false
+    Use Docker port\-forwarding to communicate with origin container. Requires 'socat' locally.
+
+.PP
+\fB\-\-host\-config\-dir\fP="/var/lib/origin/openshift.local.config"
+    Directory on Docker host for OpenShift configuration
+
+.PP
+\fB\-\-host\-data\-dir\fP=""
+    Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.
+
+.PP
+\fB\-\-host\-pv\-dir\fP="/var/lib/origin/openshift.local.pv"
+    Directory on host for OpenShift persistent volumes
+
+.PP
+\fB\-\-host\-volumes\-dir\fP="/var/lib/origin/openshift.local.volumes"
+    Directory on Docker host for OpenShift volumes
+
+.PP
+\fB\-\-http\-proxy\fP=""
+    HTTP proxy to use for master and builds
+
+.PP
+\fB\-\-https\-proxy\fP=""
+    HTTPS proxy to use for master and builds
+
+.PP
+\fB\-\-image\fP="openshift/origin"
+    Specify the images to use for OpenShift
+
+.PP
+\fB\-\-image\-streams\fP="centos7"
+    Specify which image streams to use, centos7|rhel7
+
+.PP
+\fB\-\-logging\fP=false
+    Install logging (experimental)
+
+.PP
+\fB\-\-metrics\fP=false
+    Install metrics (experimental)
+
+.PP
+\fB\-\-no\-proxy\fP=[]
+    List of hosts or subnets for which a proxy should not be used
+
+.PP
+\fB\-\-public\-hostname\fP=""
+    Public hostname for OpenShift cluster
+
+.PP
+\fB\-\-routing\-suffix\fP=""
+    Default suffix for server routes
+
+.PP
+\fB\-\-secret\fP=""
+    Pass the secret to use to connect to the cluster
+
+.PP
+\fB\-\-server\-loglevel\fP=0
+    Log level for OpenShift server
+
+.PP
+\fB\-\-skip\-registry\-check\fP=false
+    Skip Docker daemon registry check
+
+.PP
+\fB\-\-use\-existing\-config\fP=false
+    Use existing configuration if present
+
+.PP
+\fB\-\-version\fP=""
+    Specify the tag for OpenShift images
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Start a new OpenShift node on a new docker machine named 'node'
+  openshift cli cluster join \-\-create\-machine
+  
+  # Start OpenShift node and preserve data and config between restarts
+  openshift cli cluster join \-\-host\-data\-dir=/mydata \-\-use\-existing\-config
+  
+  # Use a different set of images
+  openshift cli cluster join \-\-image="registry.example.com/origin" \-\-version="v1.1"
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-cluster(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

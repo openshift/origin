@@ -69,6 +69,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -361,6 +362,7 @@ var (
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
+		ingressadmission.IngressAdmission,
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -398,6 +400,7 @@ var (
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
+		ingressadmission.IngressAdmission,
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,

@@ -39,6 +39,9 @@ const (
 	DefaultMaxSnapshots = 5
 	DefaultMaxWALs      = 5
 
+	DefaultListenPeerURLs   = "http://localhost:2380"
+	DefaultListenClientURLs = "http://localhost:2379"
+
 	// maxElectionMs specifies the maximum value of election timeout.
 	// More details are listed in ../Documentation/tuning.md#time-parameters.
 	maxElectionMs = 50000
@@ -49,8 +52,6 @@ var (
 		"Choose one of \"initial-cluster\", \"discovery\" or \"discovery-srv\"")
 	ErrUnsetAdvertiseClientURLsFlag = fmt.Errorf("--advertise-client-urls is required when --listen-client-urls is set explicitly")
 
-	DefaultListenPeerURLs           = "http://localhost:2380"
-	DefaultListenClientURLs         = "http://localhost:2379"
 	DefaultInitialAdvertisePeerURLs = "http://localhost:2380"
 	DefaultAdvertiseClientURLs      = "http://localhost:2379"
 
@@ -114,6 +115,7 @@ type Config struct {
 	Debug        bool   `json:"debug"`
 	LogPkgLevels string `json:"log-package-levels"`
 	EnablePprof  bool
+	Metrics      string `json:"metrics"`
 
 	// ForceNewCluster starts a new cluster even if previously started; unsafe.
 	ForceNewCluster bool `json:"force-new-cluster"`
@@ -172,6 +174,7 @@ func NewConfig() *Config {
 		ClusterState:        ClusterStateFlagNew,
 		InitialClusterToken: "etcd-cluster",
 		StrictReconfigCheck: true,
+		Metrics:             "basic",
 	}
 	cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
 	return cfg
@@ -353,6 +356,24 @@ func (cfg Config) IsDefaultHost() (string, error) {
 		return defaultHostname, defaultHostStatus
 	}
 	return "", defaultHostStatus
+}
+
+// UpdateDefaultClusterFromName updates cluster advertise URLs with default host.
+// TODO: check whether fields are set instead of whether fields have default value
+func (cfg *Config) UpdateDefaultClusterFromName(defaultInitialCluster string) {
+	defaultHost, defaultHostErr := cfg.IsDefaultHost()
+	defaultHostOverride := defaultHost == "" || defaultHostErr == nil
+	if (defaultHostOverride || cfg.Name != DefaultName) && cfg.InitialCluster == defaultInitialCluster {
+		cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
+		ip, _, _ := net.SplitHostPort(cfg.LCUrls[0].Host)
+		// if client-listen-url is 0.0.0.0, just use detected default host
+		// otherwise, rewrite advertise-client-url with localhost
+		if ip != "0.0.0.0" {
+			_, acPort, _ := net.SplitHostPort(cfg.ACUrls[0].Host)
+			cfg.ACUrls[0] = url.URL{Scheme: cfg.ACUrls[0].Scheme, Host: fmt.Sprintf("localhost:%s", acPort)}
+			cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
+		}
+	}
 }
 
 // checkBindURLs returns an error if any URL uses a domain name.

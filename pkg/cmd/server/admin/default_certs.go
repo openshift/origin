@@ -104,32 +104,6 @@ func DefaultAPIClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
 		DefaultClusterAdminClientCertInfo(certDir),
-		DefaultRouterClientCertInfo(certDir),
-		DefaultRegistryClientCertInfo(certDir),
-	}
-}
-
-func DefaultRouterClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
-			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
-		},
-		UnqualifiedUser: bootstrappolicy.RouterUnqualifiedUsername,
-		User:            bootstrappolicy.RouterUsername,
-		Groups:          sets.NewString(bootstrappolicy.RouterGroup),
-	}
-}
-
-func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
-			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
-		},
-		UnqualifiedUser: bootstrappolicy.RegistryUnqualifiedUsername,
-		User:            bootstrappolicy.RegistryUsername,
-		Groups:          sets.NewString(bootstrappolicy.RegistryGroup),
 	}
 }
 

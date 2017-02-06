@@ -19,6 +19,9 @@ Manage a local OpenShift cluster
 The OpenShift cluster will run as an all\-in\-one container on a Docker host. The Docker host may be a local VM (ie. using docker\-machine on OS X and Windows clients), remote machine, or the local Unix host.
 
 .PP
+Use the 'up' command to start a new cluster (master and node) on a single machine. Use the 'join' command on another machine to connect to the first cluster.
+
+.PP
 To use an existing Docker connection, ensure that Docker commands are working and that you can create new containers. For OS X and Windows clients, a docker\-machine with the VirtualBox driver can be created for you using the \-\-create\-machine option.
 
 .PP
@@ -104,7 +107,7 @@ Default routes are setup using xip.io and the host ip of your cluster. To use a 
 
 .SH SEE ALSO
 .PP
-\fBoc(1)\fP, \fBoc\-cluster\-down(1)\fP, \fBoc\-cluster\-status(1)\fP, \fBoc\-cluster\-up(1)\fP,
+\fBoc(1)\fP, \fBoc\-cluster\-down(1)\fP, \fBoc\-cluster\-join(1)\fP, \fBoc\-cluster\-status(1)\fP, \fBoc\-cluster\-up(1)\fP,
 
 
 .SH HISTORY

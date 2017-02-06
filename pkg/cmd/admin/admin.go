@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
@@ -66,6 +66,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out, errout),
 				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out, errout),
 				admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
+				kubecmd.NewCmdCertificate(f, out),
 			},
 		},
 		{
@@ -73,10 +74,10 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 			Commands: []*cobra.Command{
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdCordon(f, out))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdUncordon(f, out))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdDrain(f, out, errout))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdTaint(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdCordon(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdUncordon(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, out, errout)),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdTaint(f, out))),
 				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, out, errout),
 			},
 		},

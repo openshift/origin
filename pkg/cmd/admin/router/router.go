@@ -17,8 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -130,10 +128,6 @@ type RouterConfig struct {
 
 	// SecretsAsEnv sets the credentials as env vars, instead of secrets.
 	SecretsAsEnv bool
-
-	// Credentials specifies the path to a .kubeconfig file with the credentials
-	// with which the router may contact the master.
-	Credentials string
 
 	// DefaultCertificate holds the certificate that will be used if no more
 	// specific certificate is found.  This is typically a wildcard certificate.
@@ -284,7 +278,6 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "If true, use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
-	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
@@ -306,12 +299,6 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
-
-	cmd.MarkFlagFilename("credentials", "kubeconfig")
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
-
-	// Deprecate credentials
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -619,35 +606,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	// create new router
 	secretEnv := app.Environment{}
-	switch {
-	case len(cfg.Credentials) == 0 && len(cfg.ServiceAccount) == 0:
-		return fmt.Errorf("router could not be created; you must specify a service account with --service-account, or a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
-	case len(cfg.Credentials) > 0:
-		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials, Precedence: []string{}}
-		credentials, err := clientConfigLoadingRules.Load()
-		if err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not be loaded: %v", cfg.Credentials, err)
-		}
-		config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not be used: %v", cfg.Credentials, err)
-		}
-		if err := restclient.LoadTLSFiles(config); err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
-		}
-		insecure := "false"
-		if config.Insecure {
-			insecure = "true"
-		}
-		secretEnv.Add(app.Environment{
-			"OPENSHIFT_MASTER":    config.Host,
-			"OPENSHIFT_CA_DATA":   string(config.CAData),
-			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-			"OPENSHIFT_CERT_DATA": string(config.CertData),
-			"OPENSHIFT_INSECURE":  insecure,
-		})
+	if len(cfg.ServiceAccount) == 0 {
+		return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
 	}
-	createServiceAccount := len(cfg.ServiceAccount) > 0 && len(cfg.Credentials) == 0
 
 	defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
 	if err != nil {
@@ -752,25 +713,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	for _, s := range secrets {
 		objects = append(objects, s)
 	}
-	if createServiceAccount {
-		objects = append(objects,
-			&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
-			&authapi.ClusterRoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
-				Subjects: []kapi.ObjectReference{
-					{
-						Kind:      "ServiceAccount",
-						Name:      cfg.ServiceAccount,
-						Namespace: namespace,
-					},
-				},
-				RoleRef: kapi.ObjectReference{
-					Kind: "ClusterRole",
-					Name: "system:router",
+
+	objects = append(objects,
+		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
+		&authapi.ClusterRoleBinding{
+			ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind:      "ServiceAccount",
+					Name:      cfg.ServiceAccount,
+					Namespace: namespace,
 				},
 			},
-		)
-	}
+			RoleRef: kapi.ObjectReference{
+				Kind: "ClusterRole",
+				Name: "system:router",
+			},
+		},
+	)
+
 	objects = append(objects, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -835,8 +796,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	levelPrefixFilter := func(e error) string {
-		// only ignore SA/RB errors if we were creating the service account
-		if createServiceAccount && ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
+		// ignore SA/RB errors if we were creating the service account
+		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
 			return "warning"
 		}
 		return "error"

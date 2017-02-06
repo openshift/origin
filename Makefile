@@ -45,10 +45,16 @@ all build:
 #
 # Example:
 #   make build-tests
-build-tests:
-	hack/build-go.sh test/extended/extended.test
-	hack/build-go.sh test/integration/integration.test -tags='integration docker'
+build-tests: build-extended-test build-integration-test
 .PHONY: build-tests
+
+build-extended-test:
+	hack/build-go.sh test/extended/extended.test
+.PHONY: build-extended-test
+
+build-integration-test:
+	hack/build-go.sh test/integration/integration.test
+.PHONY: build-integration-test
 
 # Run core verification and all self contained tests.
 #
@@ -152,6 +158,7 @@ test-integration:
 # Example:
 #   make test-cmd
 test-cmd: build
+	hack/test-util.sh
 	hack/test-cmd.sh
 .PHONY: test-cmd
 

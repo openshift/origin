@@ -47,6 +47,7 @@ var (
 	ErrRootUserNotExist     = errors.New("auth: root user does not exist")
 	ErrRootRoleNotExist     = errors.New("auth: root user does not have root role")
 	ErrUserAlreadyExist     = errors.New("auth: user already exists")
+	ErrUserEmpty            = errors.New("auth: user name is empty")
 	ErrUserNotFound         = errors.New("auth: user not found")
 	ErrRoleAlreadyExist     = errors.New("auth: role already exists")
 	ErrRoleNotFound         = errors.New("auth: role not found")
@@ -146,6 +147,12 @@ type AuthStore interface {
 
 	// Revision gets current revision of authStore
 	Revision() uint64
+
+	// CheckPassword checks a given pair of username and password is correct
+	CheckPassword(username, password string) (uint64, error)
+
+	// Close does cleanup of AuthStore
+	Close() error
 }
 
 type authStore struct {
@@ -155,13 +162,20 @@ type authStore struct {
 
 	rangePermCache map[string]*unifiedRangePermissions // username -> unifiedRangePermissions
 
-	simpleTokensMu sync.RWMutex
-	simpleTokens   map[string]string // token -> username
+	simpleTokensMu    sync.RWMutex
+	simpleTokens      map[string]string // token -> username
+	simpleTokenKeeper *simpleTokenTTLKeeper
 
 	revision uint64
 }
 
 func (as *authStore) AuthEnable() error {
+	as.enabledMu.Lock()
+	defer as.enabledMu.Unlock()
+	if as.enabled {
+		plog.Noticef("Authentication already enabled")
+		return nil
+	}
 	b := as.be
 	tx := b.BatchTx()
 	tx.Lock()
@@ -181,9 +195,17 @@ func (as *authStore) AuthEnable() error {
 
 	tx.UnsafePut(authBucketName, enableFlagKey, authEnabled)
 
-	as.enabledMu.Lock()
 	as.enabled = true
-	as.enabledMu.Unlock()
+
+	tokenDeleteFunc := func(t string) {
+		as.simpleTokensMu.Lock()
+		defer as.simpleTokensMu.Unlock()
+		if username, ok := as.simpleTokens[t]; ok {
+			plog.Infof("deleting token %s for user %s", t, username)
+			delete(as.simpleTokens, t)
+		}
+	}
+	as.simpleTokenKeeper = NewSimpleTokenTTLKeeper(tokenDeleteFunc)
 
 	as.rangePermCache = make(map[string]*unifiedRangePermissions)
 
@@ -195,6 +217,11 @@ func (as *authStore) AuthEnable() error {
 }
 
 func (as *authStore) AuthDisable() {
+	as.enabledMu.Lock()
+	defer as.enabledMu.Unlock()
+	if !as.enabled {
+		return
+	}
 	b := as.be
 	tx := b.BatchTx()
 	tx.Lock()
@@ -203,15 +230,30 @@ func (as *authStore) AuthDisable() {
 	tx.Unlock()
 	b.ForceCommit()
 
-	as.enabledMu.Lock()
 	as.enabled = false
-	as.enabledMu.Unlock()
 
 	as.simpleTokensMu.Lock()
 	as.simpleTokens = make(map[string]string) // invalidate all tokens
 	as.simpleTokensMu.Unlock()
+	if as.simpleTokenKeeper != nil {
+		as.simpleTokenKeeper.stop()
+		as.simpleTokenKeeper = nil
+	}
 
 	plog.Noticef("Authentication disabled")
+}
+
+func (as *authStore) Close() error {
+	as.enabledMu.Lock()
+	defer as.enabledMu.Unlock()
+	if !as.enabled {
+		return nil
+	}
+	if as.simpleTokenKeeper != nil {
+		as.simpleTokenKeeper.stop()
+		as.simpleTokenKeeper = nil
+	}
+	return nil
 }
 
 func (as *authStore) Authenticate(ctx context.Context, username, password string) (*pb.AuthenticateResponse, error) {
@@ -232,16 +274,29 @@ func (as *authStore) Authenticate(ctx context.Context, username, password string
 		return nil, ErrAuthFailed
 	}
 
-	if bcrypt.CompareHashAndPassword(user.Password, []byte(password)) != nil {
-		plog.Noticef("authentication failed, invalid password for user %s", username)
-		return &pb.AuthenticateResponse{}, ErrAuthFailed
-	}
-
 	token := fmt.Sprintf("%s.%d", simpleToken, index)
 	as.assignSimpleTokenToUser(username, token)
 
 	plog.Infof("authorized %s, token is %s", username, token)
 	return &pb.AuthenticateResponse{Token: token}, nil
+}
+
+func (as *authStore) CheckPassword(username, password string) (uint64, error) {
+	tx := as.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
+	user := getUser(tx, username)
+	if user == nil {
+		return 0, ErrAuthFailed
+	}
+
+	if bcrypt.CompareHashAndPassword(user.Password, []byte(password)) != nil {
+		plog.Noticef("authentication failed, invalid password for user %s", username)
+		return 0, ErrAuthFailed
+	}
+
+	return getRevision(tx), nil
 }
 
 func (as *authStore) Recover(be backend.Backend) {
@@ -266,6 +321,10 @@ func (as *authStore) Recover(be backend.Backend) {
 }
 
 func (as *authStore) UserAdd(r *pb.AuthUserAddRequest) (*pb.AuthUserAddResponse, error) {
+	if len(r.Name) == 0 {
+		return nil, ErrUserEmpty
+	}
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(r.Password), BcryptCost)
 	if err != nil {
 		plog.Errorf("failed to hash password: %s", err)
@@ -400,11 +459,7 @@ func (as *authStore) UserGet(r *pb.AuthUserGetRequest) (*pb.AuthUserGetResponse,
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
-
-	for _, role := range user.Roles {
-		resp.Roles = append(resp.Roles, role)
-	}
-
+	resp.Roles = append(resp.Roles, user.Roles...)
 	return &resp, nil
 }
 
@@ -470,11 +525,7 @@ func (as *authStore) RoleGet(r *pb.AuthRoleGetRequest) (*pb.AuthRoleGetResponse,
 	if role == nil {
 		return nil, ErrRoleNotFound
 	}
-
-	for _, perm := range role.KeyPermission {
-		resp.Perm = append(resp.Perm, perm)
-	}
-
+	resp.Perm = append(resp.Perm, role.KeyPermission...)
 	return &resp, nil
 }
 
@@ -587,6 +638,9 @@ func (as *authStore) AuthInfoFromToken(token string) (*AuthInfo, bool) {
 	as.simpleTokensMu.RLock()
 	defer as.simpleTokensMu.RUnlock()
 	t, ok := as.simpleTokens[token]
+	if ok {
+		as.simpleTokenKeeper.resetSimpleToken(token)
+	}
 	return &AuthInfo{Username: t, Revision: as.revision}, ok
 }
 
@@ -650,6 +704,11 @@ func (as *authStore) isOpPermitted(userName string, revision uint64, key, rangeE
 	// TODO(mitake): this function would be costly so we need a caching mechanism
 	if !as.isAuthEnabled() {
 		return nil
+	}
+
+	// only gets rev == 0 when passed AuthInfo{}; no user given
+	if revision == 0 {
+		return ErrUserEmpty
 	}
 
 	if revision < as.revision {

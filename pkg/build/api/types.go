@@ -54,6 +54,11 @@ const (
 	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
 	// New Builds cannot be instantiated from a paused BuildConfig.
 	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
+	// BuildAcceptedAnnotation is an annotation used to update a build that can now be
+	// run based on the RunPolicy (e.g. Serial). Updating the build with this annotation
+	// forces the build to be processed by the build controller queue without waiting
+	// for a resync.
+	BuildAcceptedAnnotation = "build.openshift.io/accepted"
 )
 
 // +genclient=true

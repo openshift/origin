@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
+	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	openapicommon "k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -54,6 +56,10 @@ import (
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	"github.com/openshift/origin/pkg/version"
 )
+
+// request paths that match this regular expression will be treated as long running
+// and not subjected to the default server timeout.
+const originLongRunningEndpointsRE = "(/|^)buildconfigs/.*/instantiatebinary$"
 
 var LegacyAPIGroupPrefixes = sets.NewString(genericapiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
 
@@ -184,7 +190,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 		master.DefaultAPIResourceConfigSource(),
 	)*/
 	// the order here is important, it defines which version will be used for storage
-	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
+	storageFactory.AddCohabitatingResources(batch.Resource("jobs"), extensions.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
 
 	return server, storageFactory, nil
@@ -206,6 +212,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// Defaults are tested in TestCMServerDefaults
 	cmserver := cmapp.NewCMServer()
 	// Adjust defaults
+	cmserver.ClusterSigningCertFile = ""
+	cmserver.ClusterSigningKeyFile = ""
 	cmserver.Address = ""                   // no healthz endpoint
 	cmserver.Port = 0                       // no healthz endpoint
 	cmserver.EnableGarbageCollector = false // disabled until we add the controller
@@ -288,6 +296,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
+	genericConfig.SecureServingInfo.BindAddress = options.ServingInfo.BindAddress
 	genericConfig.SecureServingInfo.BindNetwork = options.ServingInfo.BindNetwork
 	genericConfig.SecureServingInfo.ExtraClientCACerts, err = configapi.GetOAuthClientCertCAs(options)
 	if err != nil {
@@ -298,6 +307,13 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		glog.Fatalf("Error parsing master public url %q: %v", options.MasterPublicURL, err)
 	}
 	genericConfig.ExternalAddress = url.Host
+
+	originLongRunningRequestRE := regexp.MustCompile(originLongRunningEndpointsRE)
+	originLongRunningFunc := kgenericfilters.BasicLongRunningRequestCheck(originLongRunningRequestRE, nil)
+	kubeLongRunningFunc := genericConfig.LongRunningFunc
+	genericConfig.LongRunningFunc = func(r *http.Request) bool {
+		return originLongRunningFunc(r) || kubeLongRunningFunc(r)
+	}
 
 	serviceIPRange, apiServerServiceIP, err := genericapiserver.DefaultServiceIPRange(server.GenericServerRunOptions.ServiceClusterIPRange)
 	if err != nil {

@@ -171,8 +171,6 @@ os::build::internal::build_binaries() {
     # Use eval to preserve embedded quoted strings.
     local goflags
     eval "goflags=(${OS_GOFLAGS:-})"
-    local gotags
-    eval "gotags=(${OS_GOFLAGS_TAGS:-})"
 
     local arg
     for arg; do
@@ -213,6 +211,7 @@ os::build::internal::build_binaries() {
       fi
 
       local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
@@ -231,9 +230,10 @@ os::build::internal::build_binaries() {
 
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
-        GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+        # disabling cgo allows use of delve
+        CGO_ENABLED=0 GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
-          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
+          -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${version_ldflags}" \
           -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
@@ -281,8 +281,6 @@ function os::build::place_bins() {
   (
     local host_platform
     host_platform=$(os::build::host_platform)
-
-    echo "++ Placing binaries"
 
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::get_version_vars
@@ -377,7 +375,7 @@ function os::build::place_bins() {
 readonly -f os::build::place_bins
 
 function os::build::archive_name() {
-  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
+  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1" | tr '+' '-'
 }
 readonly -f os::build::archive_name
 
@@ -578,7 +576,7 @@ function os::build::os_version_vars() {
       # Try to match the "git describe" output to a regex to try to extract
       # the "major" and "minor" versions and whether this is the exact tagged
       # version or whether the tree is between two tagged versions.
-      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)*([-].*)?$ ]]; then
         OS_GIT_MAJOR=${BASH_REMATCH[1]}
         OS_GIT_MINOR=${BASH_REMATCH[2]}
         if [[ -n "${BASH_REMATCH[4]}" ]]; then
@@ -626,7 +624,7 @@ function os::build::kube_version_vars() {
   # Try to match the "git describe" output to a regex to try to extract
   # the "major" and "minor" versions and whether this is the exact tagged
   # version or whether the tree is between two tagged versions.
-  if [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+  if [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)*([-].*)?$ ]]; then
     KUBE_GIT_MAJOR=${BASH_REMATCH[1]}
     KUBE_GIT_MINOR=${BASH_REMATCH[2]}
     if [[ -n "${BASH_REMATCH[4]}" ]]; then

@@ -37,6 +37,10 @@ func (sp *singleTenantPlugin) GetNamespaces(vnid uint32) []string {
 	return nil
 }
 
+func (sp *singleTenantPlugin) GetMulticastEnabled(vnid uint32) bool {
+	return false
+}
+
 func (sp *singleTenantPlugin) RefVNID(vnid uint32) {
 }
 

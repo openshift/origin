@@ -322,19 +322,23 @@ func (s *store) Compact(rev int64) (<-chan struct{}, error) {
 	return ch, nil
 }
 
+// DefaultIgnores is a map of keys to ignore in hash checking.
+var DefaultIgnores map[backend.IgnoreKey]struct{}
+
+func init() {
+	DefaultIgnores = map[backend.IgnoreKey]struct{}{
+		// consistent index might be changed due to v2 internal sync, which
+		// is not controllable by the user.
+		{Bucket: string(metaBucketName), Key: string(consistentIndexKeyName)}: {},
+	}
+}
+
 func (s *store) Hash() (uint32, int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.b.ForceCommit()
 
-	// ignore hash consistent index field for now.
-	// consistent index might be changed due to v2 internal sync, which
-	// is not controllable by the user.
-	ignores := make(map[backend.IgnoreKey]struct{})
-	bk := backend.IgnoreKey{Bucket: string(metaBucketName), Key: string(consistentIndexKeyName)}
-	ignores[bk] = struct{}{}
-
-	h, err := s.b.Hash(ignores)
+	h, err := s.b.Hash(DefaultIgnores)
 	rev := s.currentRev.main
 	return h, rev, err
 }
@@ -376,6 +380,11 @@ func (s *store) restore() error {
 
 	keyToLease := make(map[string]lease.LeaseID)
 
+	// use an unordered map to hold the temp index data to speed up
+	// the initial key index recovery.
+	// we will convert this unordered map into the tree index later.
+	unordered := make(map[string]*keyIndex, 100000)
+
 	// restore index
 	tx := s.b.BatchTx()
 	tx.Lock()
@@ -398,11 +407,20 @@ func (s *store) restore() error {
 		// restore index
 		switch {
 		case isTombstone(key):
-			s.kvindex.Tombstone(kv.Key, rev)
+			if ki, ok := unordered[string(kv.Key)]; ok {
+				ki.tombstone(rev.main, rev.sub)
+			}
 			delete(keyToLease, string(kv.Key))
 
 		default:
-			s.kvindex.Restore(kv.Key, revision{kv.CreateRevision, 0}, rev, kv.Version)
+			ki, ok := unordered[string(kv.Key)]
+			if ok {
+				ki.put(rev.main, rev.sub)
+			} else {
+				ki = &keyIndex{key: kv.Key}
+				ki.restore(revision{kv.CreateRevision, 0}, rev, kv.Version)
+				unordered[string(kv.Key)] = ki
+			}
 
 			if lid := lease.LeaseID(kv.Lease); lid != lease.NoLease {
 				keyToLease[string(kv.Key)] = lid
@@ -413,6 +431,11 @@ func (s *store) restore() error {
 
 		// update revision
 		s.currentRev = rev
+	}
+
+	// restore the tree index from the unordered index.
+	for _, v := range unordered {
+		s.kvindex.Insert(v)
 	}
 
 	// keys in the range [compacted revision -N, compaction] might all be deleted due to compaction.
