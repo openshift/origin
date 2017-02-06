@@ -29,14 +29,6 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The scheduling algorithm provider to use, one of: ClusterAutoscalerProvider | DefaultProvider
 
 .PP
-\fB\-\-bind\-pods\-burst\fP=0
-    unused, use \-\-kube\-api\-burst
-
-.PP
-\fB\-\-bind\-pods\-qps\fP=0
-    unused, use \-\-kube\-api\-qps
-
-.PP
 \fB\-\-failure\-domains\fP="kubernetes.io/hostname,failure\-domain.beta.kubernetes.io/zone,failure\-domain.beta.kubernetes.io/region"
     Indicate the "all topologies" set for an empty topologyKey when it's used for PreferredDuringScheduling pod anti\-affinity.
 
@@ -44,10 +36,12 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 \fB\-\-feature\-gates\fP=
     A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
 AllAlpha=true|false (ALPHA \- default=false)
-AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (BETA \- default=true)
 AppArmor=true|false (BETA \- default=true)
 DynamicKubeletConfig=true|false (ALPHA \- default=false)
 DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
+ExperimentalHostUserNamespaceDefaulting=true|false (ALPHA \- default=false)
+StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 .PP
 \fB\-\-hard\-pod\-affinity\-symmetric\-weight\fP=1
@@ -107,6 +101,10 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

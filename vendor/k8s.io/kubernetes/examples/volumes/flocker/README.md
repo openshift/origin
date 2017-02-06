@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Using Flocker volumes
 
 [Flocker](https://clusterhq.com/flocker) is an open-source clustered container data volume manager. It provides management
@@ -114,13 +109,6 @@ Read more about the [Flocker Cluster Architecture](https://docs.clusterhq.com/en
 #### Video Demo
 
 To see a demo example of using Kubernetes and Flocker, visit [Flocker's blog post on High Availability with Kubernetes and Flocker](https://clusterhq.com/2015/12/22/ha-demo-kubernetes-flocker/)
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/volumes/flocker/README.md?pixel)]()

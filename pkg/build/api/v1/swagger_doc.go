@@ -191,10 +191,29 @@ var map_BuildStatus = map[string]string{
 	"duration":                   "duration contains time.Duration object describing build time.",
 	"outputDockerImageReference": "outputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
 	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on.",
+	"output":                     "output describes the Docker image the build has produced.",
 }
 
 func (BuildStatus) SwaggerDoc() map[string]string {
 	return map_BuildStatus
+}
+
+var map_BuildStatusOutput = map[string]string{
+	"":   "BuildStatusOutput contains the status of the built image.",
+	"to": "to describes the status of the built image being pushed to a registry.",
+}
+
+func (BuildStatusOutput) SwaggerDoc() map[string]string {
+	return map_BuildStatusOutput
+}
+
+var map_BuildStatusOutputTo = map[string]string{
+	"":            "BuildStatusOutputTo describes the status of the built image with regards to image registry to which it was supposed to be pushed.",
+	"imageDigest": "imageDigest is the digest of the built Docker image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand.",
+}
+
+func (BuildStatusOutputTo) SwaggerDoc() map[string]string {
+	return map_BuildStatusOutputTo
 }
 
 var map_BuildStrategy = map[string]string{

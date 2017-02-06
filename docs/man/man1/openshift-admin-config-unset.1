@@ -13,7 +13,10 @@ openshift admin config unset \- Unsets an individual value in a kubeconfig file
 
 .SH DESCRIPTION
 .PP
-Unsets an individual value in a kubeconfig file PROPERTY \_NAME is a dot delimited name where each token represents either an attribute name or a map key.  Map keys may not contain dots.
+Unsets an individual value in a kubeconfig file
+
+.PP
+PROPERTY \_NAME is a dot delimited name where each token represents either an attribute name or a map key.  Map keys may not contain dots.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -24,6 +27,10 @@ Unsets an individual value in a kubeconfig file PROPERTY \_NAME is a dot delimit
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

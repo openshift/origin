@@ -13,7 +13,10 @@ oc adm config set\-context \- Sets a context entry in kubeconfig
 
 .SH DESCRIPTION
 .PP
-Sets a context entry in kubeconfig Specifying a name that already exists will merge new fields on top of existing values for those fields.
+Sets a context entry in kubeconfig
+
+.PP
+Specifying a name that already exists will merge new fields on top of existing values for those fields.
 
 
 .SH OPTIONS
@@ -38,6 +41,10 @@ Sets a context entry in kubeconfig Specifying a name that already exists will me
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

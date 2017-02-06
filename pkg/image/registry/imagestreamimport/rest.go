@@ -244,6 +244,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err != nil {
 		return nil, err
 	}
+	kapi.Scheme.Default(external)
 	internal, err := kapi.Scheme.ConvertToVersion(external, api.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
@@ -435,6 +436,7 @@ func clearManifests(isi *api.ImageStreamImport) {
 		if !isi.Spec.Images[i].IncludeManifest {
 			if isi.Status.Images[i].Image != nil {
 				isi.Status.Images[i].Image.DockerImageManifest = ""
+				isi.Status.Images[i].Image.DockerImageConfig = ""
 			}
 		}
 	}
@@ -442,6 +444,7 @@ func clearManifests(isi *api.ImageStreamImport) {
 		for i := range isi.Status.Repository.Images {
 			if isi.Status.Repository.Images[i].Image != nil {
 				isi.Status.Repository.Images[i].Image.DockerImageManifest = ""
+				isi.Status.Repository.Images[i].Image.DockerImageConfig = ""
 			}
 		}
 	}

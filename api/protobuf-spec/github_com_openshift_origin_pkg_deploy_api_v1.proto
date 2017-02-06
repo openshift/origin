@@ -193,6 +193,9 @@ message DeploymentConfigStatus {
 
   // Conditions represents the latest available observations of a deployment config's current state.
   repeated DeploymentCondition conditions = 8;
+
+  // Total number of ready pods targeted by this deployment.
+  optional int32 readyReplicas = 9;
 }
 
 // DeploymentDetails captures information about the causes of a deployment.

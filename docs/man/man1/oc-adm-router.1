@@ -28,12 +28,12 @@ If a router does not exist with the given name, this command will create a deplo
     deprecated; this is now the default behavior
 
 .PP
-\fB\-\-credentials\fP=""
-    Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.
-
-.PP
 \fB\-\-default\-cert\fP=""
     Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.
+
+.PP
+\fB\-\-disable\-namespace\-ownership\-check\fP=false
+    Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub\-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -128,6 +128,10 @@ If a router does not exist with the given name, this command will create a deplo
     The replication factor of the router; commonly 2 when high availability is desired.
 
 .PP
+\fB\-\-router\-canonical\-hostname\fP=""
+    CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.
+
+.PP
 \fB\-\-secrets\-as\-env\fP=false
     If true, use environment variables for master secrets.
 
@@ -168,6 +172,10 @@ If a router does not exist with the given name, this command will create a deplo
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

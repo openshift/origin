@@ -174,7 +174,7 @@ func PodSucceeded(event watch.Event) (bool, error) {
 
 func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, expect int) {
 	By("submitting the pod to kubernetes")
-	podClient := f.Client.Pods(f.Namespace.Name)
+	podClient := f.ClientSet.Core().Pods(f.Namespace.Name)
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
@@ -185,7 +185,7 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	w, err := f.Client.Pods(f.Namespace.Name).Watch(api.SingleObject(api.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(api.SingleObject(api.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
@@ -274,23 +274,23 @@ var _ = Describe("DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {
-		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
+		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)
 		}
-		if _, err := f.Client.Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
+		if _, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
+		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
 			e2e.Failf("unable to create clusterip service: %v", err)
 		}
-		if _, err := f.Client.Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
+		if _, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.Client.Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
+		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
 			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
-		ep, err := f.Client.Endpoints("default").Get("kubernetes")
+		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes")
 		if err != nil {
 			e2e.Failf("unable to find endpoints for kubernetes.default: %v", err)
 		}

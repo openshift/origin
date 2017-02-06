@@ -27,7 +27,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 	g.Describe("testing postCommit hook", func() {
 
 		g.It("successful postCommit script with args", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"script\":\"echo hello $1\",\"args\":[\"world\"],\"command\":null}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"script":"echo hello $1","args":["world"],"command":null}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertSuccess()
@@ -35,7 +35,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 		})
 
 		g.It("successful postCommit explicit command", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"command\":[\"sh\",\"-c\"],\"args\":[\"echo explicit command\"],\"script\":\"\"}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo explicit command"],"script":""}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertSuccess()
@@ -43,7 +43,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 		})
 
 		g.It("successful postCommit default entrypoint", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"args\":[\"echo\",\"default entrypoint\"],\"command\":null,\"script\":\"\"}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"args":["echo","default entrypoint"],"command":null,"script":""}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertSuccess()
@@ -51,7 +51,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 		})
 
 		g.It("failing postCommit script", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"script\":\"echo about to fail && false\",\"command\":null}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"script":"echo about to fail && false","command":null}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertFailure()
@@ -59,7 +59,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 		})
 
 		g.It("failing postCommit explicit command", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"command\":[\"sh\",\"-c\"],\"args\":[\"echo about to fail && false\"],\"script\":\"\"}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"command":["sh","-c"],"args":["echo about to fail && false"],"script":""}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertFailure()
@@ -67,7 +67,7 @@ var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
 		})
 
 		g.It("failing postCommit default entrypoint", func() {
-			err := oc.Run("patch").Args("bc/busybox", "-p", "{\"spec\":{\"postCommit\":{\"args\":[\"echo about to fail && false\"],\"command\":null,\"script\":\"\"}}}").Execute()
+			err := oc.Run("patch").Args("bc/busybox", "-p", `{"spec":{"postCommit":{"args":["sh","-c","echo about to fail && false"],"command":null,"script":""}}}`).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br, _ := exutil.StartBuildAndWait(oc, "busybox")
 			br.AssertFailure()

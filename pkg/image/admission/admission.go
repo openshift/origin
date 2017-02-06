@@ -10,8 +10,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/runtime"
-	limitranger "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
+	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -42,6 +43,8 @@ type imageLimitRangerPlugin struct {
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
+var _ kadmission.WantsInformerFactory = &imageLimitRangerPlugin{}
+var _ kadmission.Validator = &imageLimitRangerPlugin{}
 
 // NewImageLimitRangerPlugin provides a new imageLimitRangerPlugin.
 func NewImageLimitRangerPlugin(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
@@ -55,6 +58,22 @@ func NewImageLimitRangerPlugin(client clientset.Interface, config io.Reader) (ka
 	plugin.limitRanger = limitRanger
 
 	return plugin, nil
+}
+
+func (a *imageLimitRangerPlugin) SetInformerFactory(f informers.SharedInformerFactory) {
+	w, ok := a.limitRanger.(kadmission.WantsInformerFactory)
+	if !ok {
+		return
+	}
+	w.SetInformerFactory(f)
+}
+
+func (a *imageLimitRangerPlugin) Validate() error {
+	v, ok := a.limitRanger.(kadmission.Validator)
+	if !ok {
+		return fmt.Errorf("limitRanger does not implement kadmission.Validator")
+	}
+	return v.Validate()
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.

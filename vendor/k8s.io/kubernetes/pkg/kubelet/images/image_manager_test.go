@@ -106,7 +106,7 @@ func TestParallelPuller(t *testing.T) {
 
 		fakeRuntime := &ctest.FakeRuntime{}
 		fakeRecorder := &record.FakeRecorder{}
-		puller := NewImageManager(fakeRecorder, fakeRuntime, backOff, false)
+		puller := NewImageManager(fakeRecorder, fakeRuntime, backOff, false, 0, 0)
 
 		fakeRuntime.ImageList = []Image{{ID: "present_image", Size: 1}}
 		fakeRuntime.Err = c.pullerErr
@@ -197,7 +197,7 @@ func TestSerializedPuller(t *testing.T) {
 
 		fakeRuntime := &ctest.FakeRuntime{}
 		fakeRecorder := &record.FakeRecorder{}
-		puller := NewImageManager(fakeRecorder, fakeRuntime, backOff, true)
+		puller := NewImageManager(fakeRecorder, fakeRuntime, backOff, true, 0, 0)
 
 		fakeRuntime.ImageList = []Image{{ID: "present_image"}}
 		fakeRuntime.Err = c.pullerErr
@@ -208,6 +208,24 @@ func TestSerializedPuller(t *testing.T) {
 			err, _ := puller.EnsureImageExists(pod, container, nil)
 			fakeRuntime.AssertCalls(c.calledFunctions)
 			assert.Equal(t, expected, err, "in test %d tick=%d", i, tick)
+		}
+	}
+}
+
+func TestApplyDefaultImageTag(t *testing.T) {
+	for _, testCase := range []struct {
+		Input  string
+		Output string
+	}{
+		{Input: "root", Output: "root:latest"},
+		{Input: "root:tag", Output: "root:tag"},
+		{Input: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Output: "root@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+	} {
+		image, err := applyDefaultImageTag(testCase.Input)
+		if err != nil {
+			t.Errorf("applyDefaultImageTag(%s) failed: %v", testCase.Input, err)
+		} else if image != testCase.Output {
+			t.Errorf("Expected image reference: %q, got %q", testCase.Output, image)
 		}
 	}
 }

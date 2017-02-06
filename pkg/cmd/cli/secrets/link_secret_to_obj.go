@@ -43,7 +43,7 @@ type LinkSecretOptions struct {
 }
 
 // NewCmdLinkSecret creates a command object for linking a secret reference to a service account
-func NewCmdLinkSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdLinkSecret(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &LinkSecretOptions{SecretOptions{Out: out}, false, false, nil}
 
 	cmd := &cobra.Command{
@@ -72,7 +72,7 @@ func NewCmdLinkSecret(name, fullName string, f *kcmdutil.Factory, out io.Writer)
 	return cmd
 }
 
-func (o *LinkSecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
+func (o *LinkSecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if err := o.SecretOptions.Complete(f, args); err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (o LinkSecretOptions) linkSecretsToServiceAccount(serviceaccount *kapi.Serv
 		}
 	}
 	if updated {
-		_, err = o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		_, err = o.KubeCoreClient.ServiceAccounts(o.Namespace).Update(serviceaccount)
 		return err
 	}
 

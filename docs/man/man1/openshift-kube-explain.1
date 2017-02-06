@@ -17,43 +17,127 @@ Documentation of resources.
 
 .PP
 Valid resource types include:
-   * buildconfigs (aka 'bc')
-   * builds
-   * clusters (valid only for federation apiservers)
-   * componentstatuses (aka 'cs')
-   * configmaps (aka 'cm')
-   * daemonsets (aka 'ds')
-   * deployments (aka 'deploy')
-   * deploymentconfigs (aka 'dc')
-   * events (aka 'ev')
-   * endpoints (aka 'ep')
-   * horizontalpodautoscalers (aka 'hpa')
-   * imagestreamimages (aka 'isimage')
-   * imagestreams (aka 'is')
-   * imagestreamtags (aka 'istag')
-   * ingress (aka 'ing')
-   * groups
-   * jobs
-   * limitranges (aka 'limits')
-   * nodes (aka 'no')
-   * namespaces (aka 'ns')
-   * petsets (alpha feature, may be unstable)
-   * pods (aka 'po')
-   * persistentvolumes (aka 'pv')
-   * persistentvolumeclaims (aka 'pvc')
-   * policies
-   * projects
-   * quota
-   * resourcequotas (aka 'quota')
-   * replicasets (aka 'rs')
-   * replicationcontrollers (aka 'rc')
-   * rolebindings
-   * routes
-   * secrets
-   * serviceaccounts (aka 'sa')
-   * services (aka 'svc')
-   * users
+.IP 
 
+.IP
+\(bu buildconfigs (aka 'bc')
+.br
+.IP
+\(bu builds
+.br
+.IP
+\(bu clusters (valid only for federation apiservers)
+.br
+.IP
+\(bu componentstatuses (aka 'cs')
+.br
+.IP
+\(bu configmaps (aka 'cm')
+.br
+.IP
+\(bu daemonsets (aka 'ds')
+.br
+.IP
+\(bu deployments (aka 'deploy')
+.br
+.IP
+\(bu deploymentconfigs (aka 'dc')
+.br
+.IP
+\(bu endpoints (aka 'ep')
+.br
+.IP
+\(bu events (aka 'ev')
+.br
+.IP
+\(bu horizontalpodautoscalers (aka 'hpa')
+.br
+.IP
+\(bu imagestreamimages (aka 'isimage')
+.br
+.IP
+\(bu imagestreams (aka 'is')
+.br
+.IP
+\(bu imagestreamtags (aka 'istag')
+.br
+.IP
+\(bu ingresses (aka 'ing')
+.br
+.IP
+\(bu groups
+.br
+.IP
+\(bu jobs
+.br
+.IP
+\(bu limitranges (aka 'limits')
+.br
+.IP
+\(bu namespaces (aka 'ns')
+.br
+.IP
+\(bu networkpolicies
+.br
+.IP
+\(bu nodes (aka 'no')
+.br
+.IP
+\(bu persistentvolumeclaims (aka 'pvc')
+.br
+.IP
+\(bu persistentvolumes (aka 'pv')
+.br
+.IP
+\(bu pods (aka 'po')
+.br
+.IP
+\(bu podsecuritypolicies (aka 'psp')
+.br
+.IP
+\(bu podtemplates
+.br
+.IP
+\(bu policies
+.br
+.IP
+\(bu projects
+.br
+.IP
+\(bu replicasets (aka 'rs')
+.br
+.IP
+\(bu replicationcontrollers (aka 'rc')
+.br
+.IP
+\(bu resourcequotas (aka 'quota')
+.br
+.IP
+\(bu rolebindings
+.br
+.IP
+\(bu routes
+.br
+.IP
+\(bu secrets
+.br
+.IP
+\(bu serviceaccounts (aka 'sa')
+.br
+.IP
+\(bu services (aka 'svc')
+.br
+.IP
+\(bu statefulsets
+.br
+.IP
+\(bu users
+.br
+.IP
+\(bu storageclasses
+.br
+.IP
+\(bu thirdpartyresources
 
 .SH OPTIONS
 .PP
@@ -85,6 +169,10 @@ Valid resource types include:
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -172,7 +260,7 @@ Valid resource types include:
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -180,7 +268,7 @@ Valid resource types include:
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -296,12 +384,11 @@ Valid resource types include:
 .RS
 
 .nf
-
-# Get the documentation of the resource and its fields
-kubectl explain pods
-
-# Get the documentation of a specific field of a resource
-kubectl explain pods.spec.containers
+  # Get the documentation of the resource and its fields
+  kubectl explain pods
+  
+  # Get the documentation of a specific field of a resource
+  kubectl explain pods.spec.containers
 
 .fi
 .RE

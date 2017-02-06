@@ -4,7 +4,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -31,7 +30,7 @@ func (i *IndexerToClusterResourceQuotaLister) List(options kapi.ListOptions) ([]
 
 func (i *IndexerToClusterResourceQuotaLister) Get(name string) (*quotaapi.ClusterResourceQuota, error) {
 	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: kapi.ObjectMeta{Name: name}}
-	key, _ := framework.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
+	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetByKey(key)
 	if getErr != nil {

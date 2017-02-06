@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/storage/etcd"
@@ -149,14 +148,10 @@ func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName strin
 	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
 		var namespaceSelectionFields clusterquotamapping.SelectionFields
 		clusterQuotaNames, namespaceSelectionFields = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
-		obj, ok, err := e.namespaceLister.Get(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespaceName}})
+		namespace, err := e.namespaceLister.Get(namespaceName)
 		if err != nil {
 			return false, err
 		}
-		if !ok {
-			return false, kapierrors.NewNotFound(unversioned.GroupResource{Resource: "namespace"}, namespaceName)
-		}
-		namespace := obj.(*kapi.Namespace)
 		if kapi.Semantic.DeepEqual(namespaceSelectionFields, clusterquotamapping.GetSelectionFields(namespace)) {
 			return true, nil
 		}

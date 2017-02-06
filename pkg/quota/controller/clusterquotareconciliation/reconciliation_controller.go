@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -58,7 +58,7 @@ type ClusterQuotaReconcilationController struct {
 	// knows how to calculate usage
 	registry utilquota.Registry
 	// controllers monitoring to notify for replenishment
-	replenishmentControllers []framework.ControllerInterface
+	replenishmentControllers []cache.ControllerInterface
 }
 
 type workItem struct {
@@ -80,7 +80,7 @@ func NewClusterQuotaReconcilationController(options ClusterQuotaReconcilationCon
 	}
 
 	// we need to trigger every time
-	options.ClusterQuotaInformer.Informer().AddEventHandler(framework.ResourceEventHandlerFuncs{
+	options.ClusterQuotaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addClusterQuota,
 		UpdateFunc: c.updateClusterQuota,
 	})

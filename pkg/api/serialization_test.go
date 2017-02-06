@@ -604,7 +604,7 @@ func TestSpecificKind(t *testing.T) {
 
 // Keep this in sync with the respective upstream set
 // WatchEvent does not have TypeMeta and cannot be roundtripped.
-var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "WatchEvent")
+var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {

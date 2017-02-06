@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -26,16 +26,16 @@ type SecretOptions struct {
 
 	Namespace string
 
-	Mapper          meta.RESTMapper
-	Typer           runtime.ObjectTyper
-	ClientMapper    resource.ClientMapper
-	ClientInterface client.Interface
+	Mapper         meta.RESTMapper
+	Typer          runtime.ObjectTyper
+	ClientMapper   resource.ClientMapper
+	KubeCoreClient kcoreclient.CoreInterface
 
 	Out io.Writer
 }
 
 // Complete Parses the command line arguments and populates SecretOptions
-func (o *SecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
+func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	if len(args) < 2 {
 		return errors.New("must have service account name and at least one secret name")
 	}
@@ -43,17 +43,18 @@ func (o *SecretOptions) Complete(f *kcmdutil.Factory, args []string) error {
 	o.SecretNames = args[1:]
 
 	var err error
-	o.ClientInterface, err = f.Client()
+	kubeClientSet, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
+	o.KubeCoreClient = kubeClientSet.Core()
 
 	o.Namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	o.Mapper, o.Typer = f.Object(false)
+	o.Mapper, o.Typer = f.Object()
 	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil
@@ -76,8 +77,8 @@ func (o SecretOptions) Validate() error {
 	if o.ClientMapper == nil {
 		return errors.New("ClientMapper must be present")
 	}
-	if o.ClientInterface == nil {
-		return errors.New("ClientInterface must be present")
+	if o.KubeCoreClient == nil {
+		return errors.New("KubeCoreClient must be present")
 	}
 
 	return nil

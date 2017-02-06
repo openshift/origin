@@ -9,15 +9,15 @@ import (
 
 type openshiftAuthorizationAttributeBuilder struct {
 	contextMapper kapi.RequestContextMapper
-	infoResolver  RequestInfoResolver
+	infoFactory   RequestInfoFactory
 }
 
-func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver RequestInfoResolver) AuthorizationAttributeBuilder {
-	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
+func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoFactory RequestInfoFactory) AuthorizationAttributeBuilder {
+	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoFactory}
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (Action, error) {
-	requestInfo, err := a.infoResolver.GetRequestInfo(req)
+	requestInfo, err := a.infoFactory.NewRequestInfo(req)
 	if err != nil {
 		return nil, err
 	}

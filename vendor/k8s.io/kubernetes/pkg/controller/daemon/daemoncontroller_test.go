@@ -24,11 +24,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/informers"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/securitycontext"
 )
 
@@ -80,7 +83,7 @@ func newDaemonSet(name string) *extensions.DaemonSet {
 
 func newNode(name string, label map[string]string) *api.Node {
 	return &api.Node{
-		TypeMeta: unversioned.TypeMeta{APIVersion: testapi.Default.GroupVersion().String()},
+		TypeMeta: unversioned.TypeMeta{APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String()},
 		ObjectMeta: api.ObjectMeta{
 			Name:      name,
 			Labels:    label,
@@ -105,7 +108,7 @@ func addNodes(nodeStore cache.Store, startIndex, numNodes int, label map[string]
 
 func newPod(podName string, nodeName string, label map[string]string) *api.Pod {
 	pod := &api.Pod{
-		TypeMeta: unversioned.TypeMeta{APIVersion: testapi.Default.GroupVersion().String()},
+		TypeMeta: unversioned.TypeMeta{APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String()},
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: podName,
 			Labels:       label,
@@ -134,13 +137,18 @@ func addPods(podStore cache.Store, nodeName string, label map[string]string, num
 	}
 }
 
-func newTestController() (*DaemonSetsController, *controller.FakePodControl) {
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: "", ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
-	manager := NewDaemonSetsControllerFromClient(clientset, controller.NoResyncPeriodFunc, 0)
+func newTestController(initialObjects ...runtime.Object) (*DaemonSetsController, *controller.FakePodControl, *fake.Clientset) {
+	clientset := fake.NewSimpleClientset(initialObjects...)
+	informerFactory := informers.NewSharedInformerFactory(clientset, controller.NoResyncPeriodFunc())
+
+	manager := NewDaemonSetsController(informerFactory.DaemonSets(), informerFactory.Pods(), informerFactory.Nodes(), clientset, 0)
+
 	manager.podStoreSynced = alwaysReady
+	manager.nodeStoreSynced = alwaysReady
+	manager.dsStoreSynced = alwaysReady
 	podControl := &controller.FakePodControl{}
 	manager.podControl = podControl
-	return manager, podControl
+	return manager, podControl, clientset
 }
 
 func validateSyncDaemonSets(t *testing.T, fakePodControl *controller.FakePodControl, expectedCreates, expectedDeletes int) {
@@ -162,7 +170,7 @@ func syncAndValidateDaemonSets(t *testing.T, manager *DaemonSetsController, ds *
 }
 
 func TestDeleteFinalStateUnknown(t *testing.T) {
-	manager, _ := newTestController()
+	manager, _, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 1, nil)
 	ds := newDaemonSet("foo")
 	// DeletedFinalStateUnknown should queue the embedded DS if found.
@@ -175,7 +183,7 @@ func TestDeleteFinalStateUnknown(t *testing.T) {
 
 // DaemonSets without node selectors should launch pods on every node.
 func TestSimpleDaemonSetLaunchesPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	ds := newDaemonSet("foo")
 	manager.dsStore.Add(ds)
@@ -184,7 +192,7 @@ func TestSimpleDaemonSetLaunchesPods(t *testing.T) {
 
 // DaemonSets should do nothing if there aren't any nodes
 func TestNoNodesDoesNothing(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	ds := newDaemonSet("foo")
 	manager.dsStore.Add(ds)
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0)
@@ -193,7 +201,7 @@ func TestNoNodesDoesNothing(t *testing.T) {
 // DaemonSets without node selectors should launch on a single node in a
 // single node cluster.
 func TestOneNodeDaemonLaunchesPod(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	manager.nodeStore.Add(newNode("only-node", nil))
 	ds := newDaemonSet("foo")
 	manager.dsStore.Add(ds)
@@ -202,7 +210,7 @@ func TestOneNodeDaemonLaunchesPod(t *testing.T) {
 
 // DaemonSets should place onto NotReady nodes
 func TestNotReadNodeDaemonDoesNotLaunchPod(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("not-ready", nil)
 	node.Status.Conditions = []api.NodeCondition{
 		{Type: api.NodeReady, Status: api.ConditionFalse},
@@ -215,7 +223,7 @@ func TestNotReadNodeDaemonDoesNotLaunchPod(t *testing.T) {
 
 // DaemonSets should not place onto OutOfDisk nodes
 func TestOutOfDiskNodeDaemonDoesNotLaunchPod(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("not-enough-disk", nil)
 	node.Status.Conditions = []api.NodeCondition{{Type: api.NodeOutOfDisk, Status: api.ConditionTrue}}
 	manager.nodeStore.Add(node)
@@ -246,11 +254,11 @@ func allocatableResources(memory, cpu string) api.ResourceList {
 // DaemonSets should not place onto nodes with insufficient free resource
 func TestInsufficentCapacityNodeDaemonDoesNotLaunchPod(t *testing.T) {
 	podSpec := resourcePodSpec("too-much-mem", "75M", "75m")
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("too-much-mem", nil)
 	node.Status.Allocatable = allocatableResources("100M", "200m")
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec: podSpec,
 	})
 	ds := newDaemonSet("foo")
@@ -261,11 +269,11 @@ func TestInsufficentCapacityNodeDaemonDoesNotLaunchPod(t *testing.T) {
 
 func TestSufficentCapacityWithTerminatedPodsDaemonLaunchesPod(t *testing.T) {
 	podSpec := resourcePodSpec("too-much-mem", "75M", "75m")
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("too-much-mem", nil)
 	node.Status.Allocatable = allocatableResources("100M", "200m")
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec:   podSpec,
 		Status: api.PodStatus{Phase: api.PodSucceeded},
 	})
@@ -278,11 +286,11 @@ func TestSufficentCapacityWithTerminatedPodsDaemonLaunchesPod(t *testing.T) {
 // DaemonSets should place onto nodes with sufficient free resource
 func TestSufficentCapacityNodeDaemonLaunchesPod(t *testing.T) {
 	podSpec := resourcePodSpec("not-too-much-mem", "75M", "75m")
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("not-too-much-mem", nil)
 	node.Status.Allocatable = allocatableResources("200M", "200m")
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec: podSpec,
 	})
 	ds := newDaemonSet("foo")
@@ -294,11 +302,11 @@ func TestSufficentCapacityNodeDaemonLaunchesPod(t *testing.T) {
 // DaemonSets not take any actions when being deleted
 func TestDontDoAnythingIfBeingDeleted(t *testing.T) {
 	podSpec := resourcePodSpec("not-too-much-mem", "75M", "75m")
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("not-too-much-mem", nil)
 	node.Status.Allocatable = allocatableResources("200M", "200m")
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec: podSpec,
 	})
 	ds := newDaemonSet("foo")
@@ -319,10 +327,10 @@ func TestPortConflictNodeDaemonDoesNotLaunchPod(t *testing.T) {
 			}},
 		}},
 	}
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("port-conflict", nil)
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec: podSpec,
 	})
 
@@ -345,10 +353,10 @@ func TestPortConflictWithSameDaemonPodDoesNotDeletePod(t *testing.T) {
 			}},
 		}},
 	}
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("port-conflict", nil)
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Labels:    simpleDaemonSetLabel,
 			Namespace: api.NamespaceDefault,
@@ -379,10 +387,10 @@ func TestNoPortConflictNodeDaemonLaunchesPod(t *testing.T) {
 			}},
 		}},
 	}
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	node := newNode("no-port-conflict", nil)
 	manager.nodeStore.Add(node)
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		Spec: podSpec1,
 	})
 	ds := newDaemonSet("foo")
@@ -395,10 +403,10 @@ func TestNoPortConflictNodeDaemonLaunchesPod(t *testing.T) {
 //
 // issue https://github.com/kubernetes/kubernetes/pull/23223
 func TestPodIsNotDeletedByDaemonsetWithEmptyLabelSelector(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	manager.nodeStore.Store.Add(newNode("node1", nil))
 	// Create pod not controlled by a daemonset.
-	manager.podStore.Add(&api.Pod{
+	manager.podStore.Indexer.Add(&api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Labels:    map[string]string{"bang": "boom"},
 			Namespace: api.NamespaceDefault,
@@ -428,7 +436,7 @@ func TestPodIsNotDeletedByDaemonsetWithEmptyLabelSelector(t *testing.T) {
 
 // Controller should not create pods on nodes which have daemon pods, and should remove excess pods from nodes that have extra pods.
 func TestDealsWithExistingPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	addPods(manager.podStore.Indexer, "node-1", simpleDaemonSetLabel, 1)
 	addPods(manager.podStore.Indexer, "node-2", simpleDaemonSetLabel, 2)
@@ -441,7 +449,7 @@ func TestDealsWithExistingPods(t *testing.T) {
 
 // Daemon with node selector should launch pods on nodes matching selector.
 func TestSelectorDaemonLaunchesPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 4, nil)
 	addNodes(manager.nodeStore.Store, 4, 3, simpleNodeLabel)
 	daemon := newDaemonSet("foo")
@@ -452,7 +460,7 @@ func TestSelectorDaemonLaunchesPods(t *testing.T) {
 
 // Daemon with node selector should delete pods from nodes that do not satisfy selector.
 func TestSelectorDaemonDeletesUnselectedPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	addNodes(manager.nodeStore.Store, 5, 5, simpleNodeLabel)
 	addPods(manager.podStore.Indexer, "node-0", simpleDaemonSetLabel2, 2)
@@ -467,7 +475,7 @@ func TestSelectorDaemonDeletesUnselectedPods(t *testing.T) {
 
 // DaemonSet with node selector should launch pods on nodes matching selector, but also deal with existing pods on nodes.
 func TestSelectorDaemonDealsWithExistingPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	addNodes(manager.nodeStore.Store, 5, 5, simpleNodeLabel)
 	addPods(manager.podStore.Indexer, "node-0", simpleDaemonSetLabel, 1)
@@ -486,7 +494,7 @@ func TestSelectorDaemonDealsWithExistingPods(t *testing.T) {
 
 // DaemonSet with node selector which does not match any node labels should not launch pods.
 func TestBadSelectorDaemonDoesNothing(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 4, nil)
 	addNodes(manager.nodeStore.Store, 4, 3, simpleNodeLabel)
 	ds := newDaemonSet("foo")
@@ -497,7 +505,7 @@ func TestBadSelectorDaemonDoesNothing(t *testing.T) {
 
 // DaemonSet with node name should launch pod on node with corresponding name.
 func TestNameDaemonSetLaunchesPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	ds := newDaemonSet("foo")
 	ds.Spec.Template.Spec.NodeName = "node-0"
@@ -507,7 +515,7 @@ func TestNameDaemonSetLaunchesPods(t *testing.T) {
 
 // DaemonSet with node name that does not exist should not launch pods.
 func TestBadNameDaemonSetDoesNothing(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	ds := newDaemonSet("foo")
 	ds.Spec.Template.Spec.NodeName = "node-10"
@@ -517,7 +525,7 @@ func TestBadNameDaemonSetDoesNothing(t *testing.T) {
 
 // DaemonSet with node selector, and node name, matching a node, should launch a pod on the node.
 func TestNameAndSelectorDaemonSetLaunchesPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 4, nil)
 	addNodes(manager.nodeStore.Store, 4, 3, simpleNodeLabel)
 	ds := newDaemonSet("foo")
@@ -529,7 +537,7 @@ func TestNameAndSelectorDaemonSetLaunchesPods(t *testing.T) {
 
 // DaemonSet with node selector that matches some nodes, and node name that matches a different node, should do nothing.
 func TestInconsistentNameSelectorDaemonSetDoesNothing(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 4, nil)
 	addNodes(manager.nodeStore.Store, 4, 3, simpleNodeLabel)
 	ds := newDaemonSet("foo")
@@ -539,31 +547,9 @@ func TestInconsistentNameSelectorDaemonSetDoesNothing(t *testing.T) {
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0)
 }
 
-func TestDSManagerNotReady(t *testing.T) {
-	manager, podControl := newTestController()
-	manager.podStoreSynced = func() bool { return false }
-	addNodes(manager.nodeStore.Store, 0, 1, nil)
-
-	// Simulates the ds reflector running before the pod reflector. We don't
-	// want to end up creating daemon pods in this case until the pod reflector
-	// has synced, so the ds manager should just requeue the ds.
-	ds := newDaemonSet("foo")
-	manager.dsStore.Add(ds)
-
-	dsKey := getKey(ds, t)
-	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0)
-	queueDS, _ := manager.queue.Get()
-	if queueDS != dsKey {
-		t.Fatalf("Expected to find key %v in queue, found %v", dsKey, queueDS)
-	}
-
-	manager.podStoreSynced = alwaysReady
-	syncAndValidateDaemonSets(t, manager, ds, podControl, 1, 0)
-}
-
 // Daemon with node affinity should launch pods on nodes matching affinity.
 func TestNodeAffinityDaemonLaunchesPods(t *testing.T) {
-	manager, podControl := newTestController()
+	manager, podControl, _ := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 4, nil)
 	addNodes(manager.nodeStore.Store, 4, 3, simpleNodeLabel)
 	daemon := newDaemonSet("foo")
@@ -582,4 +568,41 @@ func TestNodeAffinityDaemonLaunchesPods(t *testing.T) {
 	daemon.Spec.Template.ObjectMeta.Annotations = affinity
 	manager.dsStore.Add(daemon)
 	syncAndValidateDaemonSets(t, manager, daemon, podControl, 3, 0)
+}
+
+func TestNumberReadyStatus(t *testing.T) {
+	daemon := newDaemonSet("foo")
+	manager, podControl, clientset := newTestController()
+	var updated *extensions.DaemonSet
+	clientset.PrependReactor("update", "daemonsets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() != "status" {
+			return false, nil, nil
+		}
+		if u, ok := action.(core.UpdateAction); ok {
+			updated = u.GetObject().(*extensions.DaemonSet)
+		}
+		return false, nil, nil
+	})
+
+	addNodes(manager.nodeStore.Store, 0, 2, simpleNodeLabel)
+	addPods(manager.podStore.Indexer, "node-0", simpleDaemonSetLabel, 1)
+	addPods(manager.podStore.Indexer, "node-1", simpleDaemonSetLabel, 1)
+	manager.dsStore.Add(daemon)
+
+	syncAndValidateDaemonSets(t, manager, daemon, podControl, 0, 0)
+	if updated.Status.NumberReady != 0 {
+		t.Errorf("Wrong daemon %s status: %v", updated.Name, updated.Status)
+	}
+
+	selector, _ := unversioned.LabelSelectorAsSelector(daemon.Spec.Selector)
+	daemonPods, _ := manager.podStore.Pods(daemon.Namespace).List(selector)
+	for _, pod := range daemonPods {
+		condition := api.PodCondition{Type: api.PodReady, Status: api.ConditionTrue}
+		pod.Status.Conditions = append(pod.Status.Conditions, condition)
+	}
+
+	syncAndValidateDaemonSets(t, manager, daemon, podControl, 0, 0)
+	if updated.Status.NumberReady != 2 {
+		t.Errorf("Wrong daemon %s status: %v", updated.Name, updated.Status)
+	}
 }

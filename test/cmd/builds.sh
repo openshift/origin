@@ -65,7 +65,7 @@ os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.co
 os::cmd::expect_success 'oc delete all --all'
 
 os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
-os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '^nil$'
+os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '.'
 
 # Ensure output is valid JSON
 os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
@@ -121,6 +121,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/builds/cancel-build"
 os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "restarted build \"${started}\""
 os::cmd::expect_success 'oc delete all --all'
+os::cmd::expect_success 'oc delete secret dbsecret'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
@@ -140,6 +141,7 @@ done
 # Running this command again when all builds are cancelled should be no-op.
 os::cmd::expect_success 'oc cancel-build bc/ruby-sample-build'
 os::cmd::expect_success 'oc delete all --all'
+os::cmd::expect_success 'oc delete secret dbsecret'
 echo "cancel-build: ok"
 os::test::junit::declare_suite_end
 

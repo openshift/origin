@@ -88,12 +88,12 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		return err
 	}
 
-	o.Client, _, _, err = f.Clients()
+	o.Client, _, err = f.Clients()
 	if err != nil {
 		return err
 	}
 
-	o.Mapper, _ = f.Object(false)
+	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {

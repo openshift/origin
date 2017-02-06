@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	v1buildapi "github.com/openshift/origin/pkg/build/api/v1"
@@ -58,7 +57,7 @@ func TestClientSet_v1_3(t *testing.T) {
 		if _, err := c.Builds(namespace).Create(build); err != nil {
 			t.Fatal(err)
 		}
-		result, err := c.Builds(namespace).List(api.ListOptions{})
+		result, err := c.Builds(namespace).List(kapiv1.ListOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}

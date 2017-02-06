@@ -3,7 +3,7 @@ package cache
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/client/cache"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -12,7 +12,7 @@ import (
 )
 
 type InformerToClusterPolicyBindingLister struct {
-	framework.SharedIndexInformer
+	cache.SharedIndexInformer
 }
 
 // LastSyncResourceVersion exposes the LastSyncResourceVersion of the internal reflector
@@ -39,7 +39,7 @@ func (i *InformerToClusterPolicyBindingLister) List(options kapi.ListOptions) (*
 
 func (i *InformerToClusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
 	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: kapi.ObjectMeta{Name: name}}
-	key, _ := framework.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
+	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetIndexer().GetByKey(key)
 	if getErr != nil {

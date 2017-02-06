@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -113,4 +114,12 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 		return errs
 	}
 	return nil
+}
+
+func (h *manifestSchema2Handler) Digest() (digest.Digest, error) {
+	_, p, err := h.manifest.Payload()
+	if err != nil {
+		return "", err
+	}
+	return digest.FromBytes(p), nil
 }

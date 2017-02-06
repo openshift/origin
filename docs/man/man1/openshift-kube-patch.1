@@ -20,13 +20,17 @@ JSON and YAML formats are accepted.
 
 .PP
 Please refer to the models in 
-\[la]https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/release-1.4/docs/api-reference/v1/definitions.html\[ra] to find if a field is mutable.
+\[la]https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/HEAD/docs/api-reference/v1/definitions.html\[ra] to find if a field is mutable.
 
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to update
+    Filename, directory, or URL to files identifying the resource to update
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -105,6 +109,10 @@ Please refer to the models in
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -192,7 +200,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -200,7 +208,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -316,19 +324,17 @@ Please refer to the models in
 .RS
 
 .nf
-
-
-# Partially update a node using strategic merge patch
-kubectl patch node k8s\-node\-1 \-p '{"spec":{"unschedulable":true}}'
-
-# Partially update a node identified by the type and name specified in "node.json" using strategic merge patch
-kubectl patch \-f node.json \-p '{"spec":{"unschedulable":true}}'
-
-# Update a container's image; spec.containers[*].name is required because it's a merge key
-kubectl patch pod valid\-pod \-p '{"spec":{"containers":[{"name":"kubernetes\-serve\-hostname","image":"new image"}]}}'
-
-# Update a container's image using a json patch with positional arrays
-kubectl patch pod valid\-pod \-\-type='json' \-p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'
+  # Partially update a node using strategic merge patch
+  kubectl patch node k8s\-node\-1 \-p '{"spec":{"unschedulable":true}}'
+  
+  # Partially update a node identified by the type and name specified in "node.json" using strategic merge patch
+  kubectl patch \-f node.json \-p '{"spec":{"unschedulable":true}}'
+  
+  # Update a container's image; spec.containers[*].name is required because it's a merge key
+  kubectl patch pod valid\-pod \-p '{"spec":{"containers":[{"name":"kubernetes\-serve\-hostname","image":"new image"}]}}'
+  
+  # Update a container's image using a json patch with positional arrays
+  kubectl patch pod valid\-pod \-\-type='json' \-p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'
 
 .fi
 .RE

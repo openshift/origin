@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -119,7 +119,7 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 }
 
 func determineSourceKind(f *clientcmd.Factory, input string) string {
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	gvks, err := mapper.KindsFor(unversioned.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
 		return gvks[0].Kind
@@ -145,7 +145,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 	// Setup client.
 	var err error
-	o.osClient, _, _, err = f.Clients()
+	o.osClient, _, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -318,7 +318,7 @@ func (o TagOptions) RunTag() error {
 			return fmt.Errorf("%q must be of the form <stream_name>:<tag>", destNameAndTag)
 		}
 
-		err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			isc := o.osClient.ImageStreams(o.destNamespace[i])
 
 			if o.deleteTag {

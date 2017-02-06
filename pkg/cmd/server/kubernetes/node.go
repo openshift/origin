@@ -21,7 +21,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
@@ -263,12 +263,12 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 		return
 	}
 
-	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient, "services", kapi.NamespaceAll, fields.Everything())
+	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", kapi.NamespaceAll, fields.Everything())
 	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
 	serviceReflector.Run()
 
 	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient, "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", kapi.NamespaceAll, fields.Everything())
 		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
 		endpointReflector.Run()
 
@@ -397,6 +397,7 @@ func (c *NodeConfig) RunProxy() {
 			utilsysctl.New(),
 			execer,
 			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
 			c.ProxyConfig.MasqueradeAll,
 			int(*c.ProxyConfig.IPTablesMasqueradeBit),
 			c.ProxyConfig.ClusterCIDR,
@@ -429,6 +430,7 @@ func (c *NodeConfig) RunProxy() {
 			iptInterface,
 			*portRange,
 			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
 			c.ProxyConfig.UDPIdleTimeout.Duration,
 		)
 		if err != nil {

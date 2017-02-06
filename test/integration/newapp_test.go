@@ -21,10 +21,10 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -308,6 +308,10 @@ func TestNewAppRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
+	failClient := &client.Fake{}
+	failClient.AddReactor("get", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, errors.NewInternalError(fmt.Errorf(""))
+	})
 	tests := []struct {
 		name            string
 		config          *cmd.AppConfig
@@ -736,11 +740,7 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{Errs: []error{errors.NewInternalError(fmt.Errorf("test error"))}},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client: client.NewSimpleFake(&unversioned.Status{
-							Status: unversioned.StatusFailure,
-							Code:   http.StatusInternalServerError,
-							Reason: unversioned.StatusReasonInternalError,
-						}),
+						Client:            failClient,
 						ImageStreamImages: &client.Fake{},
 						Namespaces:        []string{"default"},
 					},
@@ -1660,9 +1660,8 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 					DockerImages:       []string{"centos/ruby-22-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					AddEnvironmentToBuild: true,
-					OutputDocker:          true,
-					Environment:           []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
+					OutputDocker:     true,
+					BuildEnvironment: []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				},
 
 				Resolvers: cmd.Resolvers{
@@ -2101,13 +2100,13 @@ func dockerBuilderImage() *docker.Image {
 
 func fakeImageStreamSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStream(), nil
 	})
-	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStreams(), nil
 	})
-	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImage(), nil
 	})
 
@@ -2120,7 +2119,7 @@ func fakeImageStreamSearcher() app.Searcher {
 
 func fakeTemplateSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 

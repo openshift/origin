@@ -21,12 +21,32 @@ JSON and YAML formats are accepted.
 
 .SH OPTIONS
 .PP
+\fB\-\-all\fP=false
+    [\-all] to select all the specified resources.
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
+\fB\-\-cascade\fP=true
+    Only relevant during a prune or a force apply. If true, cascade the deletion of the resources managed by pruned or deleted resources (e.g. Pods created by a ReplicationController).
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file that contains the configuration to apply
+    Filename, directory, or URL to files that contains the configuration to apply
+
+.PP
+\fB\-\-force\fP=false
+    Delete and re\-create the specified resource, when PATCH encounters conflict and has retried for 5 times.
+
+.PP
+\fB\-\-grace\-period\fP=\-1
+    Only relevant during a prune or a force apply. Period of time in seconds given to pruned or deleted resources to terminate gracefully. Ignored if negative.
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -52,6 +72,14 @@ JSON and YAML formats are accepted.
     Automatically resolve conflicts between the modified and live configuration by using values from the modified configuration
 
 .PP
+\fB\-\-prune\fP=false
+    Automatically delete resource objects that do not appear in the configs and are created by either apply or create \-\-save\-config. Should be used with either \-l or \-\-all.
+
+.PP
+\fB\-\-prune\-whitelist\fP=[]
+    Overwrite the default whitelist with <group/version/kind> for \-\-prune
+
+.PP
 \fB\-\-record\fP=false
     Record current kubectl command in the resource annotation. If set to false, do not record the command. If set to true, record the command. If not set, default to updating the existing annotation value only if one already exists.
 
@@ -62,6 +90,10 @@ JSON and YAML formats are accepted.
 .PP
 \fB\-\-schema\-cache\-dir\fP="\~/.kube/schema"
     If non\-empty, load/store cached API schemas in this directory, default is '$HOME/.kube/schema'
+
+.PP
+\fB\-l\fP, \fB\-\-selector\fP=""
+    Selector (label query) to filter on
 
 .PP
 \fB\-a\fP, \fB\-\-show\-all\fP=true
@@ -81,6 +113,10 @@ JSON and YAML formats are accepted.
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]].
 
 .PP
+\fB\-\-timeout\fP=0
+    Only relevant during a force apply. The length of time to wait before giving up on a delete of the old resource, zero means determine a timeout from the size of the object. Any other values should contain a corresponding time unit (e.g. 1s, 2m, 3h).
+
+.PP
 \fB\-\-validate\fP=false
     If true, use a schema to validate the input before sending it
 
@@ -93,6 +129,10 @@ JSON and YAML formats are accepted.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

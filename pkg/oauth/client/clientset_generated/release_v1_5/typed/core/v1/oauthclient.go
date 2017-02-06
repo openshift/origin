@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/oauth/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -16,25 +18,25 @@ type OAuthClientsGetter interface {
 type OAuthClientInterface interface {
 	Create(*v1.OAuthClient) (*v1.OAuthClient, error)
 	Update(*v1.OAuthClient) (*v1.OAuthClient, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.OAuthClient, error)
-	List(opts api.ListOptions) (*v1.OAuthClientList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.OAuthClientList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.OAuthClient, err error)
 	OAuthClientExpansion
 }
 
 // oAuthClients implements OAuthClientInterface
 type oAuthClients struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newOAuthClients returns a OAuthClients
-func newOAuthClients(c *CoreClient, namespace string) *oAuthClients {
+func newOAuthClients(c *CoreV1Client, namespace string) *oAuthClients {
 	return &oAuthClients{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -65,7 +67,7 @@ func (c *oAuthClients) Update(oAuthClient *v1.OAuthClient) (result *v1.OAuthClie
 }
 
 // Delete takes name of the oAuthClient and deletes it. Returns an error if one occurs.
-func (c *oAuthClients) Delete(name string, options *api.DeleteOptions) error {
+func (c *oAuthClients) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("oauthclients").
@@ -76,7 +78,7 @@ func (c *oAuthClients) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *oAuthClients) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *oAuthClients) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("oauthclients").
@@ -99,7 +101,7 @@ func (c *oAuthClients) Get(name string) (result *v1.OAuthClient, err error) {
 }
 
 // List takes label and field selectors, and returns the list of OAuthClients that match those selectors.
-func (c *oAuthClients) List(opts api.ListOptions) (result *v1.OAuthClientList, err error) {
+func (c *oAuthClients) List(opts api_v1.ListOptions) (result *v1.OAuthClientList, err error) {
 	result = &v1.OAuthClientList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -111,7 +113,7 @@ func (c *oAuthClients) List(opts api.ListOptions) (result *v1.OAuthClientList, e
 }
 
 // Watch returns a watch.Interface that watches the requested oAuthClients.
-func (c *oAuthClients) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *oAuthClients) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

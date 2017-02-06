@@ -26,3 +26,8 @@ import (
 func GetDefaultHost() (string, error) {
 	return "", fmt.Errorf("default host not supported on %s_%s", runtime.GOOS, runtime.GOARCH)
 }
+
+// GetDefaultInterface fetches the device name of default routable interface.
+func GetDefaultInterface() (string, error) {
+	return "", fmt.Errorf("default host not supported on %s_%s", runtime.GOOS, runtime.GOARCH)
+}

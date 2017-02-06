@@ -47,7 +47,7 @@ other options for 'oadm manage-node').
 
 // NodeDefinitions is a Diagnostic for analyzing the nodes in a cluster.
 type NodeDefinitions struct {
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 	OsClient   *osclient.Client
 }
 

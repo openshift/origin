@@ -157,8 +157,8 @@ func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*ST
 		config.Source = sourceURL
 	}
 	builder.garbage = build.NewDefaultCleaner(builder.fs, builder.docker)
-	builder.layered, err = layered.New(config, builder.fs, builder, overrides)
 
+	builder.layered, err = layered.New(config, builder.fs, builder, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*ST
 	builder.postExecutor = builder
 	builder.initPostExecutorSteps()
 
-	return builder, err
+	return builder, nil
 }
 
 // Build processes a Request and returns a *api.Result and an error.
@@ -347,6 +347,9 @@ func (builder *STI) Prepare(config *api.Config) error {
 				utilstatus.ReasonMessageFetchSourceFailed,
 			)
 			return err
+		}
+		if config.SourceInfo != nil {
+			builder.sourceInfo = config.SourceInfo
 		}
 	}
 

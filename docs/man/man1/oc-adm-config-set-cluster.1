@@ -13,7 +13,10 @@ oc adm config set\-cluster \- Sets a cluster entry in kubeconfig
 
 .SH DESCRIPTION
 .PP
-Sets a cluster entry in kubeconfig. Specifying a name that already exists will merge new fields on top of existing values for those fields.
+Sets a cluster entry in kubeconfig.
+
+.PP
+Specifying a name that already exists will merge new fields on top of existing values for those fields.
 
 
 .SH OPTIONS
@@ -42,6 +45,10 @@ Sets a cluster entry in kubeconfig. Specifying a name that already exists will m
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-client\-certificate\fP=""

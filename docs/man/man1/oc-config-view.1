@@ -21,6 +21,10 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-flatten\fP=false
     flatten the resulting kubeconfig file into self\-contained output (useful for creating portable kubeconfig files)
 
@@ -77,6 +81,10 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

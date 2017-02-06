@@ -14,52 +14,143 @@ openshift kube annotate \- Update the annotations on a resource
 .SH DESCRIPTION
 .PP
 Update the annotations on one or more resources.
+.IP 
 
-.PP
-An annotation is a key/value pair that can hold larger (compared to a label), and possibly not human\-readable, data.
-It is intended to store non\-identifying auxiliary data, especially data manipulated by tools and system extensions.
-If \-\-overwrite is true, then existing annotations can be overwritten, otherwise attempting to overwrite an annotation will result in an error.
-If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
-
+.IP
+\(bu An annotation is a key/value pair that can hold larger (compared to a label), and possibly not human\-readable, data.
+.br
+.IP
+\(bu It is intended to store non\-identifying auxiliary data, especially data manipulated by tools and system extensions.
+.br
+.IP
+\(bu If \-\-overwrite is true, then existing annotations can be overwritten, otherwise attempting to overwrite an annotation will result in an error.
+.br
+.IP
+\(bu If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
+.br
 .PP
 Valid resource types include:
-   * buildconfigs (aka 'bc')
-   * builds
-   * clusters (valid only for federation apiservers)
-   * componentstatuses (aka 'cs')
-   * configmaps (aka 'cm')
-   * daemonsets (aka 'ds')
-   * deployments (aka 'deploy')
-   * deploymentconfigs (aka 'dc')
-   * events (aka 'ev')
-   * endpoints (aka 'ep')
-   * horizontalpodautoscalers (aka 'hpa')
-   * imagestreamimages (aka 'isimage')
-   * imagestreams (aka 'is')
-   * imagestreamtags (aka 'istag')
-   * ingress (aka 'ing')
-   * groups
-   * jobs
-   * limitranges (aka 'limits')
-   * nodes (aka 'no')
-   * namespaces (aka 'ns')
-   * petsets (alpha feature, may be unstable)
-   * pods (aka 'po')
-   * persistentvolumes (aka 'pv')
-   * persistentvolumeclaims (aka 'pvc')
-   * policies
-   * projects
-   * quota
-   * resourcequotas (aka 'quota')
-   * replicasets (aka 'rs')
-   * replicationcontrollers (aka 'rc')
-   * rolebindings
-   * routes
-   * secrets
-   * serviceaccounts (aka 'sa')
-   * services (aka 'svc')
-   * users
+.IP 
 
+.IP
+\(bu buildconfigs (aka 'bc')
+.br
+.IP
+\(bu builds
+.br
+.IP
+\(bu clusters (valid only for federation apiservers)
+.br
+.IP
+\(bu componentstatuses (aka 'cs')
+.br
+.IP
+\(bu configmaps (aka 'cm')
+.br
+.IP
+\(bu daemonsets (aka 'ds')
+.br
+.IP
+\(bu deployments (aka 'deploy')
+.br
+.IP
+\(bu deploymentconfigs (aka 'dc')
+.br
+.IP
+\(bu endpoints (aka 'ep')
+.br
+.IP
+\(bu events (aka 'ev')
+.br
+.IP
+\(bu horizontalpodautoscalers (aka 'hpa')
+.br
+.IP
+\(bu imagestreamimages (aka 'isimage')
+.br
+.IP
+\(bu imagestreams (aka 'is')
+.br
+.IP
+\(bu imagestreamtags (aka 'istag')
+.br
+.IP
+\(bu ingresses (aka 'ing')
+.br
+.IP
+\(bu groups
+.br
+.IP
+\(bu jobs
+.br
+.IP
+\(bu limitranges (aka 'limits')
+.br
+.IP
+\(bu namespaces (aka 'ns')
+.br
+.IP
+\(bu networkpolicies
+.br
+.IP
+\(bu nodes (aka 'no')
+.br
+.IP
+\(bu persistentvolumeclaims (aka 'pvc')
+.br
+.IP
+\(bu persistentvolumes (aka 'pv')
+.br
+.IP
+\(bu pods (aka 'po')
+.br
+.IP
+\(bu podsecuritypolicies (aka 'psp')
+.br
+.IP
+\(bu podtemplates
+.br
+.IP
+\(bu policies
+.br
+.IP
+\(bu projects
+.br
+.IP
+\(bu replicasets (aka 'rs')
+.br
+.IP
+\(bu replicationcontrollers (aka 'rc')
+.br
+.IP
+\(bu resourcequotas (aka 'quota')
+.br
+.IP
+\(bu rolebindings
+.br
+.IP
+\(bu routes
+.br
+.IP
+\(bu secrets
+.br
+.IP
+\(bu serviceaccounts (aka 'sa')
+.br
+.IP
+\(bu services (aka 'svc')
+.br
+.IP
+\(bu statefulsets
+.br
+.IP
+\(bu users
+.br
+.IP
+\(bu storageclasses
+.br
+.IP
+\(bu thirdpartyresources
 
 .SH OPTIONS
 .PP
@@ -67,12 +158,24 @@ Valid resource types include:
     select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to update the annotation
+    Filename, directory, or URL to files identifying the resource to update the annotation
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
     If true, include definitions of new APIs via calls to the API server. [default true]
+
+.PP
+\fB\-\-local\fP=false
+    If true, annotation will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -147,6 +250,10 @@ Valid resource types include:
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -234,7 +341,7 @@ Valid resource types include:
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -242,7 +349,7 @@ Valid resource types include:
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -358,26 +465,25 @@ Valid resource types include:
 .RS
 
 .nf
-
-# Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
-# If the same annotation is set multiple times, only the last value will be applied
-kubectl annotate pods foo description='my frontend'
-
-# Update a pod identified by type and name in "pod.json"
-kubectl annotate \-f pod.json description='my frontend'
-
-# Update pod 'foo' with the annotation 'description' and the value 'my frontend running nginx', overwriting any existing value.
-kubectl annotate \-\-overwrite pods foo description='my frontend running nginx'
-
-# Update all pods in the namespace
-kubectl annotate pods \-\-all description='my frontend running nginx'
-
-# Update pod 'foo' only if the resource is unchanged from version 1.
-kubectl annotate pods foo description='my frontend running nginx' \-\-resource\-version=1
-
-# Update pod 'foo' by removing an annotation named 'description' if it exists.
-# Does not require the \-\-overwrite flag.
-kubectl annotate pods foo description\-
+  # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  # If the same annotation is set multiple times, only the last value will be applied
+  kubectl annotate pods foo description='my frontend'
+  
+  # Update a pod identified by type and name in "pod.json"
+  kubectl annotate \-f pod.json description='my frontend'
+  
+  # Update pod 'foo' with the annotation 'description' and the value 'my frontend running nginx', overwriting any existing value.
+  kubectl annotate \-\-overwrite pods foo description='my frontend running nginx'
+  
+  # Update all pods in the namespace
+  kubectl annotate pods \-\-all description='my frontend running nginx'
+  
+  # Update pod 'foo' only if the resource is unchanged from version 1.
+  kubectl annotate pods foo description='my frontend running nginx' \-\-resource\-version=1
+  
+  # Update pod 'foo' by removing an annotation named 'description' if it exists.
+  # Does not require the \-\-overwrite flag.
+  kubectl annotate pods foo description\-
 
 .fi
 .RE

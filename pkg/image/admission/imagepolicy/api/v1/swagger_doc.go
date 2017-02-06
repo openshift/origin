@@ -7,7 +7,7 @@ package v1
 
 var map_GroupResource = map[string]string{
 	"":         "GroupResource represents a resource in a specific group.",
-	"resource": "Resource is the name of an admission resource to process, e.g. 'petsets'.",
+	"resource": "Resource is the name of an admission resource to process, e.g. 'statefulsets'.",
 	"group":    "Group is the name of the group the resource is in, e.g. 'apps'.",
 }
 

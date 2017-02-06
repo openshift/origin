@@ -21,7 +21,7 @@ const (
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
 type DiagnosticPod struct {
-	KubeClient          kclientset.Clientset
+	KubeClient          kclientset.Interface
 	Namespace           string
 	Level               int
 	Factory             *osclientcmd.Factory

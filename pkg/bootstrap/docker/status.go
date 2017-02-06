@@ -98,7 +98,7 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 }
 
 func isHealthy(f *clientcmd.Factory) (bool, error) {
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return false, err
 	}
@@ -113,6 +113,13 @@ func status(container *docker.Container, config *api.MasterConfig) string {
 	mountMap := make(map[string]string)
 	for _, mount := range container.Mounts {
 		mountMap[mount.Destination] = mount.Source
+	}
+
+	pvDir := ""
+	for _, env := range container.Config.Env {
+		if strings.HasPrefix(env, "OPENSHIFT_PV_DIR=") {
+			pvDir = strings.TrimPrefix(env, "OPENSHIFT_PV_DIR=")
+		}
 	}
 
 	duration := strings.ToLower(units.HumanDuration(time.Now().Sub(container.State.StartedAt)))
@@ -130,6 +137,9 @@ func status(container *docker.Container, config *api.MasterConfig) string {
 
 	status = status + fmt.Sprintf("Config is at host directory %s\n", mountMap["/var/lib/origin/openshift.local.config"])
 	status = status + fmt.Sprintf("Volumes are at host directory %s\n", mountMap["/var/lib/origin/openshift.local.volumes"])
+	if len(pvDir) > 0 {
+		status = status + fmt.Sprintf("Persistent volumes are at host directory %s\n", pvDir)
+	}
 	if _, hasKey := mountMap["/var/lib/origin/openshift.local.etcd"]; hasKey {
 		status = status + fmt.Sprintf("Data is at host directory %s\n", mountMap["/var/lib/origin/openshift.local.etcd"])
 	} else {

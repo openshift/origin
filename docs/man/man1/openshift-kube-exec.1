@@ -56,6 +56,10 @@ Execute a command in a container.
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -141,7 +145,7 @@ Execute a command in a container.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -149,7 +153,7 @@ Execute a command in a container.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -265,16 +269,15 @@ Execute a command in a container.
 .RS
 
 .nf
-
-# Get output from running 'date' from pod 123456\-7890, using the first container by default
-kubectl exec 123456\-7890 date
-
-# Get output from running 'date' in ruby\-container from pod 123456\-7890
-kubectl exec 123456\-7890 \-c ruby\-container date
-
-# Switch to raw terminal mode, sends stdin to 'bash' in ruby\-container from pod 123456\-7890
-# and sends stdout/stderr from 'bash' back to the client
-kubectl exec 123456\-7890 \-c ruby\-container \-i \-t \-\- bash \-il
+  # Get output from running 'date' from pod 123456\-7890, using the first container by default
+  kubectl exec 123456\-7890 date
+  
+  # Get output from running 'date' in ruby\-container from pod 123456\-7890
+  kubectl exec 123456\-7890 \-c ruby\-container date
+  
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby\-container from pod 123456\-7890
+  # and sends stdout/stderr from 'bash' back to the client
+  kubectl exec 123456\-7890 \-c ruby\-container \-i \-t \-\- bash \-il
 
 .fi
 .RE

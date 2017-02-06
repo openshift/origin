@@ -93,7 +93,7 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapi.Pod) (isRunn
 	return running, completed, nil
 }
 
-func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) error {
+func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) error {
 	deployers, err := deploymentPods(pods)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []kapi.Replic
 	sawStatus := sets.NewString()
 	statuses := []string{}
 	for _, rc := range rcs {
-		status := deployutil.DeploymentStatusFor(&rc)
+		status := deployutil.DeploymentStatusFor(rc)
 		if sawStatus.Len() != 0 {
 			switch status {
 			case deployapi.DeploymentStatusComplete, deployapi.DeploymentStatusFailed:
@@ -161,17 +161,17 @@ func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []kapi.Replic
 	return nil
 }
 
-func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
 	rc := rcs[len(rcs)-1]
-	version := deployutil.DeploymentVersionFor(&rc)
+	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
 
-	if !deployutil.IsCompleteDeployment(&rc) {
+	if !deployutil.IsCompleteDeployment(rc) {
 		return false, nil
 	}
 	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
@@ -193,28 +193,28 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 	return true, nil
 }
 
-func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
+func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
 	rc := rcs[len(rcs)-1]
-	version := deployutil.DeploymentVersionFor(&rc)
+	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
-	if !deployutil.IsFailedDeployment(&rc) {
+	if !deployutil.IsFailedDeployment(rc) {
 		return false, nil
 	}
 	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
 	return cond != nil && cond.Reason == deployutil.TimedOutReason, nil
 }
 
-func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
 	rc := rcs[len(rcs)-1]
-	version := deployutil.DeploymentVersionFor(&rc)
+	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
 		return false, nil
@@ -223,14 +223,14 @@ func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationCon
 	status := rc.Annotations[deployapi.DeploymentStatusAnnotation]
 	switch deployapi.DeploymentStatus(status) {
 	case deployapi.DeploymentStatusFailed:
-		if deployutil.IsDeploymentCancelled(&rc) {
+		if deployutil.IsDeploymentCancelled(rc) {
 			return true, nil
 		}
-		reason := deployutil.DeploymentStatusReasonFor(&rc)
+		reason := deployutil.DeploymentStatusReasonFor(rc)
 		if reason == "deployer pod no longer exists" {
 			return true, nil
 		}
-		return false, fmt.Errorf("deployment failed: %v", deployutil.DeploymentStatusReasonFor(&rc))
+		return false, fmt.Errorf("deployment failed: %v", deployutil.DeploymentStatusReasonFor(rc))
 	case deployapi.DeploymentStatusRunning, deployapi.DeploymentStatusComplete:
 		return true, nil
 	default:
@@ -238,7 +238,7 @@ func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationCon
 	}
 }
 
-func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	var preHook *kapi.Pod
 	for i := range pods {
 		pod := pods[i]
@@ -256,8 +256,8 @@ func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []kapi.Replica
 	return preHook.Status.ContainerStatuses[0].RestartCount > 0, nil
 }
 
-func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
-	return func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
+	return func(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 		expect := 0
 		for _, t := range dc.Spec.Triggers {
 			if t.Type != deployapi.DeploymentTriggerOnImageChange {
@@ -278,7 +278,7 @@ func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.Depl
 	}
 }
 
-func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []kapi.ReplicationController, []kapi.Pod, error) {
+func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []*kapi.ReplicationController, []kapi.Pod, error) {
 	dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
 	if err != nil {
 		return nil, nil, nil, err
@@ -296,12 +296,18 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	sort.Sort(deployutil.ByLatestVersionAsc(rcs.Items))
 
-	return dc, rcs.Items, pods.Items, nil
+	deployments := make([]*kapi.ReplicationController, 0, len(rcs.Items))
+	for i := range rcs.Items {
+		deployments = append(deployments, &rcs.Items[i])
+	}
+
+	sort.Sort(deployutil.ByLatestVersionAsc(deployments))
+
+	return dc, deployments, pods.Items, nil
 }
 
-type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error)
+type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {

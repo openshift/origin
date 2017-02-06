@@ -18,7 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/runtime"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -68,7 +68,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
-			if err := options.CreateNodeFolder(); err != nil {
+			if _, err := options.CreateNodeFolder(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
@@ -166,7 +166,7 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 		return fmt.Errorf("--certificate-authority must be a valid certificate file")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := kcrypto.CertPoolFromFile(caFile); err != nil {
+			if _, err := cert.NewPool(caFile); err != nil {
 				return fmt.Errorf("--certificate-authority must be a valid certificate file: %v", err)
 			}
 		}
@@ -238,7 +238,7 @@ func CopyFile(src, dest string, permissions os.FileMode) error {
 	return nil
 }
 
-func (o CreateNodeConfigOptions) CreateNodeFolder() error {
+func (o CreateNodeConfigOptions) CreateNodeFolder() (string, error) {
 	servingCertInfo := DefaultNodeServingCertInfo(o.NodeConfigDir)
 	clientCertInfo := DefaultNodeClientCertInfo(o.NodeConfigDir)
 
@@ -257,34 +257,34 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 	fmt.Fprintf(o.Output, "Generating node credentials ...\n")
 
 	if err := o.MakeClientCert(clientCertFile, clientKeyFile); err != nil {
-		return err
+		return "", err
 	}
 	if o.UseTLS() {
 		if err := o.MakeAndWriteServerCert(serverCertFile, serverKeyFile); err != nil {
-			return err
+			return "", err
 		}
 		if o.UseNodeClientCA() {
 			if err := o.MakeNodeClientCA(nodeClientCAFile); err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
 	if err := o.MakeAPIServerCA(apiServerCAFile); err != nil {
-		return err
+		return "", err
 	}
 	if err := o.MakeKubeConfig(clientCertFile, clientKeyFile, apiServerCAFile, kubeConfigFile); err != nil {
-		return err
+		return "", err
 	}
 	if err := o.MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile); err != nil {
-		return err
+		return "", err
 	}
 	if err := o.MakeNodeJSON(nodeJSONFile); err != nil {
-		return err
+		return "", err
 	}
 
 	fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 
-	return nil
+	return nodeConfigFile, nil
 }
 
 func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile string) error {
@@ -452,6 +452,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	if err != nil {
 		return err
 	}
+	kapi.Scheme.Default(ext)
 	internal, err := configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 	if err != nil {
 		return err

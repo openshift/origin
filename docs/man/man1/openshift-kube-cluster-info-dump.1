@@ -13,14 +13,10 @@ openshift kube cluster\-info dump \- Dump lots of relevant info for debugging an
 
 .SH DESCRIPTION
 .PP
-Dumps cluster info out suitable for debugging and diagnosing cluster problems.  By default, dumps everything to
-stdout. You can optionally specify a directory with \-\-output\-directory.  If you specify a directory, kubernetes will
-build a set of files in that directory.  By default only dumps things in the 'kube\-system' namespace, but you can
-switch to a different namespace with the \-\-namespaces flag, or specify \-\-all\-namespaces to dump all namespaces.
+Dumps cluster info out suitable for debugging and diagnosing cluster problems.  By default, dumps everything to stdout. You can optionally specify a directory with \-\-output\-directory.  If you specify a directory, kubernetes will build a set of files in that directory.  By default only dumps things in the 'kube\-system' namespace, but you can switch to a different namespace with the \-\-namespaces flag, or specify \-\-all\-namespaces to dump all namespaces.
 
 .PP
-The command also dumps the logs of all of the pods in the cluster, these logs are dumped into different directories
-based on namespace and pod name.
+The command also dumps the logs of all of the pods in the cluster, these logs are dumped into different directories based on namespace and pod name.
 
 
 .SH OPTIONS
@@ -57,6 +53,10 @@ based on namespace and pod name.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -144,7 +144,7 @@ based on namespace and pod name.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -152,7 +152,7 @@ based on namespace and pod name.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -268,17 +268,17 @@ based on namespace and pod name.
 .RS
 
 .nf
-# Dump current cluster state to stdout
-kubectl cluster\-info dump
-
-# Dump current cluster state to /path/to/cluster\-state
-kubectl cluster\-info dump \-\-output\-directory=/path/to/cluster\-state
-
-# Dump all namespaces to stdout
-kubectl cluster\-info dump \-\-all\-namespaces
-
-# Dump a set of namespaces to /path/to/cluster\-state
-kubectl cluster\-info dump \-\-namespaces default,kube\-system \-\-output\-directory=/path/to/cluster\-state
+  # Dump current cluster state to stdout
+  kubectl cluster\-info dump
+  
+  # Dump current cluster state to /path/to/cluster\-state
+  kubectl cluster\-info dump \-\-output\-directory=/path/to/cluster\-state
+  
+  # Dump all namespaces to stdout
+  kubectl cluster\-info dump \-\-all\-namespaces
+  
+  # Dump a set of namespaces to /path/to/cluster\-state
+  kubectl cluster\-info dump \-\-namespaces default,kube\-system \-\-output\-directory=/path/to/cluster\-state
 
 .fi
 .RE

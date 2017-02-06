@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 
 ## Guestbook Example
 
@@ -103,7 +98,7 @@ $ kubectl delete -f examples/guestbook/
 
 ### Step One: Start up the redis master
 
-Before continuing to the gory details, we also recommend you to read [Quick walkthrough](../../docs/user-guide/#quick-walkthrough), [Thorough walkthough](../../docs/user-guide/#thorough-walkthrough) and [Concept guide](../../docs/user-guide/#concept-guide).
+Before continuing to the gory details, we also recommend you to read [Quick walkthrough](../../docs/user-guide/#quick-walkthrough), [Thorough walkthrough](../../docs/user-guide/#thorough-walkthrough) and [Concept guide](../../docs/user-guide/#concept-guide).
 **Note**: The redis master in this example is *not* highly available.  Making it highly available would be an interesting, but intricate exercise — redis doesn't actually support multi-master Deployments at this point in time, so high availability would be a somewhat tricky thing to implement, and might involve periodic serialization to disk, and so on.
 
 #### Define a Deployment
@@ -293,7 +288,7 @@ You can get information about a pod, including the machine that it is running on
 ```console
 $ kubectl describe pods redis-master-2353460263-1ecey
 Name:		redis-master-2353460263-1ecey
-Node:		kubernetes-minion-m0k7/10.240.0.5
+Node:		kubernetes-node-m0k7/10.240.0.5
 ...
 Labels:		app=redis,pod-template-hash=2353460263,role=master,tier=backend
 Status:		Running
@@ -308,7 +303,7 @@ Containers:
 ...
 ```
 
-The `Node` is the name and IP of the machine, e.g. `kubernetes-minion-m0k7` in the example above. You can find more details about this node with `kubectl describe nodes kubernetes-minion-m0k7`.
+The `Node` is the name and IP of the machine, e.g. `kubernetes-node-m0k7` in the example above. You can find more details about this node with `kubectl describe nodes kubernetes-node-m0k7`.
 
 If you want to view the container logs for a given pod, you can run:
 
@@ -327,7 +322,7 @@ me@workstation$ gcloud compute ssh <NODE-NAME>
 Then, you can look at the Docker containers on the remote machine.  You should see something like this (the specifics of the IDs will be different):
 
 ```console
-me@kubernetes-minion-krxw:~$ sudo docker ps
+me@kubernetes-node-krxw:~$ sudo docker ps
 CONTAINER ID        IMAGE                                 COMMAND                 CREATED              STATUS              PORTS                   NAMES
 ...
 0ffef9649265        redis:latest                          "/entrypoint.sh redi"   About a minute ago   Up About a minute                           k8s_master.869d22f3_redis-master-dz33o_default_1449a58a-5ead-11e5-a104-688f84ef8ef6_d74cb2b5
@@ -649,7 +644,7 @@ $ <kubernetes>/cluster/kube-down.sh
 
 If you are having trouble bringing up your guestbook app, double check that your external IP is properly defined for your frontend Service, and that the firewall for your cluster nodes is open to port 80.
 
-Then, see the [troubleshooting documentation](../../docs/troubleshooting.md) for a further list of common issues and how you can diagnose them.
+Then, see the [troubleshooting documentation](http://kubernetes.io/docs/troubleshooting/) for a further list of common issues and how you can diagnose them.
 
 
 
@@ -689,10 +684,10 @@ NAME                  REGION      IP_ADDRESS     IP_PROTOCOL TARGET
 frontend              us-central1 130.211.188.51 TCP         us-central1/targetPools/frontend
 ```
 
-In Google Compute Engine, you also may need to open the firewall for port 80 using the [console][cloud-console] or the `gcloud` tool. The following command will allow traffic from any source to instances tagged `kubernetes-minion` (replace with your tags as appropriate):
+In Google Compute Engine, you also may need to open the firewall for port 80 using the [console][cloud-console] or the `gcloud` tool. The following command will allow traffic from any source to instances tagged `kubernetes-node` (replace with your tags as appropriate):
 
 ```console
-$ gcloud compute firewall-rules create --allow=tcp:80 --target-tags=kubernetes-minion kubernetes-minion-80
+$ gcloud compute firewall-rules create --allow=tcp:80 --target-tags=kubernetes-node kubernetes-node-80
 ```
 
 For GCE Kubernetes startup details, see the [Getting started on Google Compute Engine](../../docs/getting-started-guides/gce.md)
@@ -701,13 +696,6 @@ For Google Compute Engine details about limiting traffic to specific sources, se
 
 [cloud-console]: https://console.developer.google.com
 [gce-firewall-docs]: https://cloud.google.com/compute/docs/networking#firewalls
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
-
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/guestbook/README.md?pixel)]()

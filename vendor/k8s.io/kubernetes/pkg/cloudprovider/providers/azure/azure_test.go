@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	serviceapi "k8s.io/kubernetes/pkg/api/service"
 	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -49,7 +50,36 @@ func TestReconcileLoadBalancerAddPort(t *testing.T) {
 	}
 
 	// ensure we got a frontend ip configuration
-	if len(*lb.Properties.FrontendIPConfigurations) != 1 {
+	if len(*lb.FrontendIPConfigurations) != 1 {
+		t.Error("Expected the loadbalancer to have a frontend ip configuration")
+	}
+
+	validateLoadBalancer(t, lb, svc)
+}
+
+func TestReconcileLoadBalancerNodeHealth(t *testing.T) {
+	az := getTestCloud()
+	svc := getTestService("servicea", 80)
+	svc.Annotations = map[string]string{
+		serviceapi.BetaAnnotationExternalTraffic:     serviceapi.AnnotationValueExternalTrafficLocal,
+		serviceapi.BetaAnnotationHealthCheckNodePort: "32456",
+	}
+	pip := getTestPublicIP()
+	lb := getTestLoadBalancer()
+
+	hosts := []string{}
+
+	lb, updated, err := az.reconcileLoadBalancer(lb, &pip, testClusterName, &svc, hosts)
+	if err != nil {
+		t.Errorf("Unexpected error: %q", err)
+	}
+
+	if !updated {
+		t.Error("Expected the loadbalancer to need an update")
+	}
+
+	// ensure we got a frontend ip configuration
+	if len(*lb.FrontendIPConfigurations) != 1 {
 		t.Error("Expected the loadbalancer to have a frontend ip configuration")
 	}
 
@@ -79,8 +109,8 @@ func TestReconcileLoadBalancerRemoveAllPortsRemovesFrontendConfig(t *testing.T) 
 		t.Error("Expected the loadbalancer to need an update")
 	}
 
-	// ensure we abandonded the frontend ip configuration
-	if len(*lb.Properties.FrontendIPConfigurations) != 0 {
+	// ensure we abandoned the frontend ip configuration
+	if len(*lb.FrontendIPConfigurations) != 0 {
 		t.Error("Expected the loadbalancer to have no frontend ip configuration")
 	}
 
@@ -157,6 +187,23 @@ func TestReconcileSecurityGroupRemoveServiceRemovesPort(t *testing.T) {
 	validateSecurityGroup(t, sg, svcUpdated)
 }
 
+func TestReconcileSecurityWithSourceRanges(t *testing.T) {
+	az := getTestCloud()
+	svc := getTestService("servicea", 80, 443)
+	svc.Spec.LoadBalancerSourceRanges = []string{
+		"192.168.0.1/24",
+		"10.0.0.1/32",
+	}
+
+	sg := getTestSecurityGroup(svc)
+	sg, _, err := az.reconcileSecurityGroup(sg, testClusterName, &svc)
+	if err != nil {
+		t.Errorf("Unexpected error: %q", err)
+	}
+
+	validateSecurityGroup(t, sg, svc)
+}
+
 func getTestCloud() *Cloud {
 	return &Cloud{
 		Config: Config{
@@ -215,14 +262,14 @@ func getTestLoadBalancer(services ...api.Service) network.LoadBalancer {
 			ruleName := getRuleName(&service, port)
 			rules = append(rules, network.LoadBalancingRule{
 				Name: to.StringPtr(ruleName),
-				Properties: &network.LoadBalancingRulePropertiesFormat{
+				LoadBalancingRulePropertiesFormat: &network.LoadBalancingRulePropertiesFormat{
 					FrontendPort: to.Int32Ptr(port.Port),
-					BackendPort:  to.Int32Ptr(port.NodePort),
+					BackendPort:  to.Int32Ptr(port.Port),
 				},
 			})
 			probes = append(probes, network.Probe{
 				Name: to.StringPtr(ruleName),
-				Properties: &network.ProbePropertiesFormat{
+				ProbePropertiesFormat: &network.ProbePropertiesFormat{
 					Port: to.Int32Ptr(port.NodePort),
 				},
 			})
@@ -230,7 +277,7 @@ func getTestLoadBalancer(services ...api.Service) network.LoadBalancer {
 	}
 
 	lb := network.LoadBalancer{
-		Properties: &network.LoadBalancerPropertiesFormat{
+		LoadBalancerPropertiesFormat: &network.LoadBalancerPropertiesFormat{
 			LoadBalancingRules: &rules,
 			Probes:             &probes,
 		},
@@ -239,23 +286,35 @@ func getTestLoadBalancer(services ...api.Service) network.LoadBalancer {
 	return lb
 }
 
+func getServiceSourceRanges(service *api.Service) []string {
+	if len(service.Spec.LoadBalancerSourceRanges) == 0 {
+		return []string{"Internet"}
+	}
+	return service.Spec.LoadBalancerSourceRanges
+}
+
 func getTestSecurityGroup(services ...api.Service) network.SecurityGroup {
 	rules := []network.SecurityRule{}
 
 	for _, service := range services {
 		for _, port := range service.Spec.Ports {
 			ruleName := getRuleName(&service, port)
-			rules = append(rules, network.SecurityRule{
-				Name: to.StringPtr(ruleName),
-				Properties: &network.SecurityRulePropertiesFormat{
-					DestinationPortRange: to.StringPtr(fmt.Sprintf("%d", port.NodePort)),
-				},
-			})
+
+			sources := getServiceSourceRanges(&service)
+			for _, src := range sources {
+				rules = append(rules, network.SecurityRule{
+					Name: to.StringPtr(ruleName),
+					SecurityRulePropertiesFormat: &network.SecurityRulePropertiesFormat{
+						SourceAddressPrefix:  to.StringPtr(src),
+						DestinationPortRange: to.StringPtr(fmt.Sprintf("%d", port.Port)),
+					},
+				})
+			}
 		}
 	}
 
 	sg := network.SecurityGroup{
-		Properties: &network.SecurityGroupPropertiesFormat{
+		SecurityGroupPropertiesFormat: &network.SecurityGroupPropertiesFormat{
 			SecurityRules: &rules,
 		},
 	}
@@ -270,37 +329,53 @@ func validateLoadBalancer(t *testing.T, loadBalancer network.LoadBalancer, servi
 			expectedRuleCount++
 			wantedRuleName := getRuleName(&svc, wantedRule)
 			foundRule := false
-			for _, actualRule := range *loadBalancer.Properties.LoadBalancingRules {
+			for _, actualRule := range *loadBalancer.LoadBalancingRules {
 				if strings.EqualFold(*actualRule.Name, wantedRuleName) &&
-					*actualRule.Properties.FrontendPort == wantedRule.Port &&
-					*actualRule.Properties.BackendPort == wantedRule.NodePort {
+					*actualRule.FrontendPort == wantedRule.Port &&
+					*actualRule.BackendPort == wantedRule.Port {
 					foundRule = true
 					break
 				}
 			}
 			if !foundRule {
-				t.Errorf("Expected rule but didn't find it: %q", wantedRuleName)
+				t.Errorf("Expected load balancer rule but didn't find it: %q", wantedRuleName)
 			}
 
 			foundProbe := false
-			for _, actualProbe := range *loadBalancer.Properties.Probes {
-				if strings.EqualFold(*actualProbe.Name, wantedRuleName) &&
-					*actualProbe.Properties.Port == wantedRule.NodePort {
-					foundProbe = true
-					break
+			if serviceapi.NeedsHealthCheck(&svc) {
+				path, port := serviceapi.GetServiceHealthCheckPathPort(&svc)
+				for _, actualProbe := range *loadBalancer.Probes {
+					if strings.EqualFold(*actualProbe.Name, wantedRuleName) &&
+						*actualProbe.Port == port &&
+						*actualProbe.RequestPath == path &&
+						actualProbe.Protocol == network.ProbeProtocolHTTP {
+						foundProbe = true
+						break
+					}
+				}
+			} else {
+				for _, actualProbe := range *loadBalancer.Probes {
+					if strings.EqualFold(*actualProbe.Name, wantedRuleName) &&
+						*actualProbe.Port == wantedRule.NodePort {
+						foundProbe = true
+						break
+					}
 				}
 			}
 			if !foundProbe {
-				t.Errorf("Expected probe but didn't find it: %q", wantedRuleName)
+				for _, actualProbe := range *loadBalancer.Probes {
+					t.Logf("Probe: %s %d", *actualProbe.Name, *actualProbe.Port)
+				}
+				t.Errorf("Expected loadbalancer probe but didn't find it: %q", wantedRuleName)
 			}
 		}
 	}
 
-	lenRules := len(*loadBalancer.Properties.LoadBalancingRules)
+	lenRules := len(*loadBalancer.LoadBalancingRules)
 	if lenRules != expectedRuleCount {
-		t.Errorf("Expected the loadbalancer to have %d rules. Found %d.", expectedRuleCount, lenRules)
+		t.Errorf("Expected the loadbalancer to have %d rules. Found %d.\n%v", expectedRuleCount, lenRules, loadBalancer.LoadBalancingRules)
 	}
-	lenProbes := len(*loadBalancer.Properties.Probes)
+	lenProbes := len(*loadBalancer.Probes)
 	if lenProbes != expectedRuleCount {
 		t.Errorf("Expected the loadbalancer to have %d probes. Found %d.", expectedRuleCount, lenProbes)
 	}
@@ -310,25 +385,30 @@ func validateSecurityGroup(t *testing.T, securityGroup network.SecurityGroup, se
 	expectedRuleCount := 0
 	for _, svc := range services {
 		for _, wantedRule := range svc.Spec.Ports {
-			expectedRuleCount++
-			wantedRuleName := getRuleName(&svc, wantedRule)
-			foundRule := false
-			for _, actualRule := range *securityGroup.Properties.SecurityRules {
-				if strings.EqualFold(*actualRule.Name, wantedRuleName) &&
-					*actualRule.Properties.DestinationPortRange == fmt.Sprintf("%d", wantedRule.NodePort) {
-					foundRule = true
-					break
+			sources := getServiceSourceRanges(&svc)
+
+			for _, source := range sources {
+				expectedRuleCount++
+				wantedRuleName := getRuleName(&svc, wantedRule)
+				foundRule := false
+				for _, actualRule := range *securityGroup.SecurityRules {
+					if strings.EqualFold(*actualRule.Name, wantedRuleName) &&
+						*actualRule.SourceAddressPrefix == source &&
+						*actualRule.DestinationPortRange == fmt.Sprintf("%d", wantedRule.Port) {
+						foundRule = true
+						break
+					}
 				}
-			}
-			if !foundRule {
-				t.Errorf("Expected rule but didn't find it: %q", wantedRuleName)
+				if !foundRule {
+					t.Errorf("Expected security group rule but didn't find it: %q", wantedRuleName)
+				}
 			}
 		}
 	}
 
-	lenRules := len(*securityGroup.Properties.SecurityRules)
+	lenRules := len(*securityGroup.SecurityRules)
 	if lenRules != expectedRuleCount {
-		t.Errorf("Expected the loadbalancer to have %d rules. Found %d.", expectedRuleCount, lenRules)
+		t.Errorf("Expected the loadbalancer to have %d rules. Found %d.\n", expectedRuleCount, lenRules)
 	}
 }
 
@@ -340,7 +420,7 @@ func TestSecurityRulePriorityPicksNextAvailablePriority(t *testing.T) {
 	var i int32
 	for i = loadBalancerMinimumPriority; i < expectedPriority; i++ {
 		rules = append(rules, network.SecurityRule{
-			Properties: &network.SecurityRulePropertiesFormat{
+			SecurityRulePropertiesFormat: &network.SecurityRulePropertiesFormat{
 				Priority: to.Int32Ptr(i),
 			},
 		})
@@ -362,7 +442,7 @@ func TestSecurityRulePriorityFailsIfExhausted(t *testing.T) {
 	var i int32
 	for i = loadBalancerMinimumPriority; i < loadBalancerMaximumPriority; i++ {
 		rules = append(rules, network.SecurityRule{
-			Properties: &network.SecurityRulePropertiesFormat{
+			SecurityRulePropertiesFormat: &network.SecurityRulePropertiesFormat{
 				Priority: to.Int32Ptr(i),
 			},
 		})
@@ -412,7 +492,8 @@ func TestNewCloudFromJSON(t *testing.T) {
 		"subnetName": "--subnet-name--",
 		"securityGroupName": "--security-group-name--",
 		"vnetName": "--vnet-name--",
-		"routeTableName": "--route-table-name--"
+		"routeTableName": "--route-table-name--",
+		"primaryAvailabilitySetName": "--primary-availability-set-name--"
 	}`
 	validateConfig(t, config)
 }
@@ -430,6 +511,7 @@ subnetName: --subnet-name--
 securityGroupName: --security-group-name--
 vnetName: --vnet-name--
 routeTableName: --route-table-name--
+primaryAvailabilitySetName: --primary-availability-set-name--
 `
 	validateConfig(t, config)
 }
@@ -475,6 +557,9 @@ func validateConfig(t *testing.T, config string) {
 	}
 	if azureCloud.RouteTableName != "--route-table-name--" {
 		t.Errorf("got incorrect value for RouteTableName")
+	}
+	if azureCloud.PrimaryAvailabilitySetName != "--primary-availability-set-name--" {
+		t.Errorf("got incorrect value for PrimaryAvailabilitySetName")
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
@@ -16,11 +16,11 @@ import (
 func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) client.Interface {
 	fake := &testclient.Fake{}
 
-	fake.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		return true, imageStreams, nil
 	})
-	fake.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, images[action.(ktestclient.GetAction).GetName()], nil
+	fake.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, images[action.(core.GetAction).GetName()], nil
 	})
 
 	return fake

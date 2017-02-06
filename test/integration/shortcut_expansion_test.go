@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -45,14 +46,14 @@ func TestCachingDiscoveryClient(t *testing.T) {
 		}
 	}()
 	// this client should prime the cache
-	originCachedDiscoveryClient := clientcmd.NewCachedDiscoveryClient(originDiscoveryClient, cacheDir, time.Duration(10*time.Minute))
+	originCachedDiscoveryClient := kcmdutil.NewCachedDiscoveryClient(originDiscoveryClient, cacheDir, time.Duration(10*time.Minute))
 	originCachedMapper := clientcmd.NewShortcutExpander(originCachedDiscoveryClient, nil)
 	if !sets.NewString(originCachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected %v, got: %v", resourceType, originCachedMapper.All)
 	}
 
 	// this client will fail if the cache fails
-	unbackedDiscoveryClient := clientcmd.NewCachedDiscoveryClient(nil, cacheDir, time.Duration(10*time.Minute))
+	unbackedDiscoveryClient := kcmdutil.NewCachedDiscoveryClient(nil, cacheDir, time.Duration(10*time.Minute))
 	unbackedOriginCachedMapper := clientcmd.NewShortcutExpander(unbackedDiscoveryClient, nil)
 	if !sets.NewString(unbackedOriginCachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected %v, got: %v", resourceType, unbackedOriginCachedMapper.All)
@@ -80,14 +81,14 @@ func TestCachingDiscoveryClient(t *testing.T) {
 	}
 
 	// this client will give different results if the cache fails
-	conflictingDiscoveryClient := clientcmd.NewCachedDiscoveryClient(atomicDiscoveryClient, cacheDir, time.Duration(10*time.Minute))
+	conflictingDiscoveryClient := kcmdutil.NewCachedDiscoveryClient(atomicDiscoveryClient, cacheDir, time.Duration(10*time.Minute))
 	conflictingCachedMapper := clientcmd.NewShortcutExpander(conflictingDiscoveryClient, nil)
 	if !sets.NewString(conflictingCachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected %v, got: %v", resourceType, conflictingCachedMapper.All)
 	}
 
 	// this client should give different results as result of a live lookup
-	expiredDiscoveryClient := clientcmd.NewCachedDiscoveryClient(atomicDiscoveryClient, cacheDir, time.Duration(-1*time.Second))
+	expiredDiscoveryClient := kcmdutil.NewCachedDiscoveryClient(atomicDiscoveryClient, cacheDir, time.Duration(-1*time.Second))
 	expiredAtomicCachedMapper := clientcmd.NewShortcutExpander(expiredDiscoveryClient, nil)
 	if sets.NewString(expiredAtomicCachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected no %v, got: %v", resourceType, expiredAtomicCachedMapper.All)

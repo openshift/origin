@@ -36,6 +36,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildSource, InType: reflect.TypeOf(&BuildSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildSpec, InType: reflect.TypeOf(&BuildSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStatus, InType: reflect.TypeOf(&BuildStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStatusOutput, InType: reflect.TypeOf(&BuildStatusOutput{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStatusOutputTo, InType: reflect.TypeOf(&BuildStatusOutputTo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildStrategy, InType: reflect.TypeOf(&BuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildTriggerCause, InType: reflect.TypeOf(&BuildTriggerCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BuildTriggerPolicy, InType: reflect.TypeOf(&BuildTriggerPolicy{})},
@@ -496,6 +498,33 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 		} else {
 			out.Config = nil
 		}
+		if err := DeepCopy_v1_BuildStatusOutput(&in.Output, &out.Output, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_BuildStatusOutput(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BuildStatusOutput)
+		out := out.(*BuildStatusOutput)
+		if in.To != nil {
+			in, out := &in.To, &out.To
+			*out = new(BuildStatusOutputTo)
+			**out = **in
+		} else {
+			out.To = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_BuildStatusOutputTo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BuildStatusOutputTo)
+		out := out.(*BuildStatusOutputTo)
+		out.ImageDigest = in.ImageDigest
 		return nil
 	}
 }

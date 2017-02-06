@@ -45,6 +45,10 @@ DEFAULT_SKIP_LIST=(
   "should work after restarting kube-proxy"
   "should work after restarting apiserver"
   "should be able to change the type and ports of a service"
+
+  # Assumes kube-proxy (aka OpenShift node) is serving /healthz at port 10249, which we currently
+  # have disabled
+  "Networking.*should check kube-proxy urls"
 )
 
 MINIMAL_SKIP_LIST=(
@@ -261,12 +265,11 @@ esac
 
 TEST_EXTRA_ARGS="$@"
 
-if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
+if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]] &&
      os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
-  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
+  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
 else
-  # cgo must be disabled to have the symbol table available
-  CGO_ENABLED=0 hack/build-go.sh test/extended/extended.test
+  hack/build-go.sh test/extended/extended.test
 fi
 
 # enable-selinux/disable-selinux use the shared control variable

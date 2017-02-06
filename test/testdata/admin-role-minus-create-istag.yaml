@@ -87,6 +87,20 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  attributeRestrictions: null
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - batch
   attributeRestrictions: null
   resources:
@@ -104,8 +118,10 @@ rules:
   - extensions
   attributeRestrictions: null
   resources:
+  - deployments
   - horizontalpodautoscalers
   - jobs
+  - replicasets
   - replicationcontrollers/scale
   verbs:
   - create

@@ -2,7 +2,8 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -16,8 +17,10 @@ type FakeRoleBindingRestrictions struct {
 	Namespace string
 }
 
+var roleBindingRestritionsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "rolebindingrestrictions"}
+
 func (c *FakeRoleBindingRestrictions) Get(name string) (*authorizationapi.RoleBindingRestriction, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("rolebindingrestrictions", c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(roleBindingRestritionsResource, c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,7 +29,7 @@ func (c *FakeRoleBindingRestrictions) Get(name string) (*authorizationapi.RoleBi
 }
 
 func (c *FakeRoleBindingRestrictions) List(opts kapi.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewListAction("rolebindingrestrictions", c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
+	obj, err := c.Fake.Invokes(core.NewListAction(roleBindingRestritionsResource, c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -35,7 +38,7 @@ func (c *FakeRoleBindingRestrictions) List(opts kapi.ListOptions) (*authorizatio
 }
 
 func (c *FakeRoleBindingRestrictions) Create(inObj *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("rolebindingrestrictions", c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewCreateAction(roleBindingRestritionsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -44,7 +47,7 @@ func (c *FakeRoleBindingRestrictions) Create(inObj *authorizationapi.RoleBinding
 }
 
 func (c *FakeRoleBindingRestrictions) Update(inObj *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("rolebindingrestrictions", c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(roleBindingRestritionsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -52,10 +55,10 @@ func (c *FakeRoleBindingRestrictions) Update(inObj *authorizationapi.RoleBinding
 	return obj.(*authorizationapi.RoleBindingRestriction), err
 }
 func (c *FakeRoleBindingRestrictions) Delete(name string) error {
-	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("rolebindingrestrictions", c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
+	_, err := c.Fake.Invokes(core.NewDeleteAction(roleBindingRestritionsResource, c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
 	return err
 }
 
 func (c *FakeRoleBindingRestrictions) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("rolebindingrestrictions", c.Namespace, opts))
+	return c.Fake.InvokesWatch(core.NewWatchAction(roleBindingRestritionsResource, c.Namespace, opts))
 }

@@ -59,8 +59,8 @@ var fakeWrapperFunc = func(http.RoundTripper) http.RoundTripper {
 
 type fakeNegotiatedSerializer struct{}
 
-func (n *fakeNegotiatedSerializer) SupportedMediaTypes() []string {
-	return []string{}
+func (n *fakeNegotiatedSerializer) SupportedMediaTypes() []runtime.SerializerInfo {
+	return []runtime.SerializerInfo{}
 }
 
 func (n *fakeNegotiatedSerializer) SerializerForMediaType(mediaType string, params map[string]string) (s runtime.SerializerInfo, ok bool) {

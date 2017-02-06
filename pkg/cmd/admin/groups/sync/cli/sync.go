@@ -220,7 +220,7 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 		return err
 	}
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -409,7 +409,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 	if err := fn(list); err != nil {
 		return err

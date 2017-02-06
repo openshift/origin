@@ -3,13 +3,16 @@ package admission
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/controller/informers"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -42,18 +45,18 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		var fakeKubeClient clientset.Interface
+		var fakeKubeClient kclientset.Interface
 		if v.limitRange != nil {
-			fakeKubeClient = clientsetfake.NewSimpleClientset(v.limitRange)
+			fakeKubeClient = fake.NewSimpleClientset(v.limitRange)
 		} else {
-			fakeKubeClient = clientsetfake.NewSimpleClientset()
+			fakeKubeClient = fake.NewSimpleClientset()
 		}
-
-		plugin, err := NewImageLimitRangerPlugin(fakeKubeClient, nil)
+		plugin, informerFactory, err := newHandlerForTest(fakeKubeClient)
 		if err != nil {
 			t.Errorf("%s failed creating plugin %v", k, err)
 			continue
 		}
+		informerFactory.Start(wait.NeverStop)
 
 		attrs := kadmission.NewAttributesRecord(v.imageStreamMapping, nil,
 			imageapi.Kind("ImageStreamMapping").WithVersion("version"),
@@ -170,7 +173,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 		},
 	}
 
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -188,7 +191,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 }
 
 func TestHandles(t *testing.T) {
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -208,7 +211,7 @@ func TestHandles(t *testing.T) {
 
 func TestSupports(t *testing.T) {
 	resources := []string{"imagestreammappings"}
-	plugin, err := NewImageLimitRangerPlugin(clientsetfake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -267,4 +270,17 @@ func getImageStreamMapping() *imageapi.ImageStreamMapping {
 		},
 		Image: getBaseImageWith1Layer(),
 	}
+}
+
+func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.SharedInformerFactory, error) {
+	plugin, err := NewImageLimitRangerPlugin(c, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
+	plugins := []kadmission.Interface{plugin}
+	pluginInitializer := kadmission.NewPluginInitializer(f, nil)
+	pluginInitializer.Initialize(plugins)
+	err = kadmission.Validate(plugins)
+	return plugin, f, err
 }

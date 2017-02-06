@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"reflect"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
+	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -280,6 +282,104 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if fromTag.Name != "test:brandnew" || fromTag.Image.UID == "" || fromTag.Tag.From.Name != "newest" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
+}
+
+func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	stream := mockImageStream()
+
+	expected, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(stream)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if expected.Name == "" {
+		t.Errorf("Unexpected empty image Name %v", expected)
+	}
+
+	imageConfig := imageapi.DockerConfig{
+		Hostname: "example.com",
+		Env:      []string{"A=B"},
+	}
+
+	imageConfigBytes, err := json.Marshal(imageConfig)
+	if err != nil {
+		t.Fatalf("error marshaling image config: %s", err)
+	}
+
+	image := imageapi.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: imagetest.BaseImageWith1LayerDigest,
+		},
+		DockerImageMetadata: imageapi.DockerImage{
+			Config: &imageapi.DockerConfig{
+				Hostname: "example.com",
+				Env:      []string{"A=B"},
+			},
+		},
+		DockerImageConfig:    string(imageConfigBytes),
+		DockerImageReference: "some/namespace/name",
+	}
+
+	// create a mapping to an image that doesn't exist
+	mapping := &imageapi.ImageStreamMapping{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: stream.Name,
+		},
+		Tag:   "newer",
+		Image: image,
+	}
+	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	img, err := clusterAdminClient.Images().Get(image.Name)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if img.Name != image.Name {
+		t.Fatalf("unexpected image: %#v", img)
+	}
+	if len(img.DockerImageConfig) == 0 {
+		t.Fatalf("image has an empty config: %#v", img)
+	}
+
+	ist, err := clusterAdminClient.ImageStreamTags(testutil.Namespace()).Get(stream.Name, "newer")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if ist.Image.Name != image.Name {
+		t.Fatalf("unexpected image: %#v", img)
+	}
+	if len(ist.Image.DockerImageConfig) != 0 {
+		t.Errorf("image has a not empty config: %#v", ist)
+	}
+
+	isi, err := clusterAdminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, imagetest.BaseImageWith1LayerDigest)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if isi.Image.Name != image.Name {
+		t.Fatalf("unexpected image: %#v", img)
+	}
+	if len(isi.Image.DockerImageConfig) != 0 {
+		t.Errorf("image has a not empty config: %#v", isi)
+	}
+
 }
 
 func TestImageStreamTagLifecycleHook(t *testing.T) {

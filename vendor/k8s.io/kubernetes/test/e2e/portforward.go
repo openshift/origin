@@ -29,8 +29,8 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	utilversion "k8s.io/kubernetes/pkg/util/version"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -43,7 +43,7 @@ const (
 // TODO support other ports besides 80
 var (
 	portForwardRegexp        = regexp.MustCompile("Forwarding from 127.0.0.1:([0-9]+) -> 80")
-	portForwardPortToStdOutV = version.MustParse("v1.3.0-alpha.4")
+	portForwardPortToStdOutV = utilversion.MustParseSemantic("v1.3.0-alpha.4")
 )
 
 func pfPod(expectedClientData, chunks, chunkSize, chunkIntervalMillis string) *api.Pod {
@@ -177,14 +177,14 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 		It("should support a client that connects, sends no data, and disconnects [Conformance]", func() {
 			By("creating the target pod")
 			pod := pfPod("abc", "1", "1", "1")
-			if _, err := f.Client.Pods(f.Namespace.Name).Create(pod); err != nil {
+			if _, err := f.ClientSet.Core().Pods(f.Namespace.Name).Create(pod); err != nil {
 				framework.Failf("Couldn't create pod: %v", err)
 			}
 			if err := f.WaitForPodRunning(pod.Name); err != nil {
 				framework.Failf("Pod did not start running: %v", err)
 			}
 			defer func() {
-				logs, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+				logs, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 				if err != nil {
 					framework.Logf("Error getting pod log: %v", err)
 				} else {
@@ -211,7 +211,7 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 			}
 
 			By("Verifying logs")
-			logOutput, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+			logOutput, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 			if err != nil {
 				framework.Failf("Error retrieving pod logs: %v", err)
 			}
@@ -222,14 +222,14 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 		It("should support a client that connects, sends data, and disconnects [Conformance]", func() {
 			By("creating the target pod")
 			pod := pfPod("abc", "10", "10", "100")
-			if _, err := f.Client.Pods(f.Namespace.Name).Create(pod); err != nil {
+			if _, err := f.ClientSet.Core().Pods(f.Namespace.Name).Create(pod); err != nil {
 				framework.Failf("Couldn't create pod: %v", err)
 			}
 			if err := f.WaitForPodRunning(pod.Name); err != nil {
 				framework.Failf("Pod did not start running: %v", err)
 			}
 			defer func() {
-				logs, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+				logs, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 				if err != nil {
 					framework.Logf("Error getting pod log: %v", err)
 				} else {
@@ -277,7 +277,7 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 			}
 
 			By("Verifying logs")
-			logOutput, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+			logOutput, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 			if err != nil {
 				framework.Failf("Error retrieving pod logs: %v", err)
 			}
@@ -290,14 +290,14 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 		It("should support a client that connects, sends no data, and disconnects [Conformance]", func() {
 			By("creating the target pod")
 			pod := pfPod("", "10", "10", "100")
-			if _, err := f.Client.Pods(f.Namespace.Name).Create(pod); err != nil {
+			if _, err := f.ClientSet.Core().Pods(f.Namespace.Name).Create(pod); err != nil {
 				framework.Failf("Couldn't create pod: %v", err)
 			}
 			if err := f.WaitForPodRunning(pod.Name); err != nil {
 				framework.Failf("Pod did not start running: %v", err)
 			}
 			defer func() {
-				logs, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+				logs, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 				if err != nil {
 					framework.Logf("Error getting pod log: %v", err)
 				} else {
@@ -335,7 +335,7 @@ var _ = framework.KubeDescribe("Port forwarding", func() {
 			}
 
 			By("Verifying logs")
-			logOutput, err := framework.GetPodLogs(f.Client, f.Namespace.Name, pod.Name, "portforwardtester")
+			logOutput, err := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
 			if err != nil {
 				framework.Failf("Error retrieving pod logs: %v", err)
 			}

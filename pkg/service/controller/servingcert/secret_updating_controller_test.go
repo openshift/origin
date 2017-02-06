@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/types"
 )
 
@@ -45,7 +44,25 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "service-uid-mismatch",
 			primeServices: func(serviceCache cache.Store) {
 				serviceCache.Add(&kapi.Service{
-					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-2")},
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-2"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
+				})
+			},
+			secret: &kapi.Secret{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "ns1", Name: "mysecret",
+					Annotations: map[string]string{
+						ServiceNameAnnotation: "foo",
+						ServiceUIDAnnotation:  "uid-1",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "service secret name mismatch",
+			primeServices: func(serviceCache cache.Store) {
+				serviceCache.Add(&kapi.Service{
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret2"}},
 				})
 			},
 			secret: &kapi.Secret{
@@ -63,7 +80,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "no expiry",
 			primeServices: func(serviceCache cache.Store) {
 				serviceCache.Add(&kapi.Service{
-					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1")},
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &kapi.Secret{
@@ -81,7 +98,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "bad expiry",
 			primeServices: func(serviceCache cache.Store) {
 				serviceCache.Add(&kapi.Service{
-					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1")},
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &kapi.Secret{
@@ -100,7 +117,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "expired expiry",
 			primeServices: func(serviceCache cache.Store) {
 				serviceCache.Add(&kapi.Service{
-					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1")},
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &kapi.Secret{
@@ -119,7 +136,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 			name: "distant expiry",
 			primeServices: func(serviceCache cache.Store) {
 				serviceCache.Add(&kapi.Service{
-					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1")},
+					ObjectMeta: kapi.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
 			},
 			secret: &kapi.Secret{
@@ -137,12 +154,15 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 	}
 	for _, tc := range tests {
 		c := &ServiceServingCertUpdateController{
-			serviceCache: cache.NewStore(framework.DeletionHandlingMetaNamespaceKeyFunc),
+			serviceCache: cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc),
 		}
 		tc.primeServices(c.serviceCache)
-		actual := c.requiresRegeneration(tc.secret)
+		actual, service := c.requiresRegeneration(tc.secret)
 		if tc.expected != actual {
 			t.Errorf("%s: expected %v, got %v", tc.name, tc.expected, actual)
+		}
+		if service == nil && tc.expected {
+			t.Errorf("%s: should have returned service", tc.name)
 		}
 	}
 }

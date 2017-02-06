@@ -23,7 +23,7 @@ func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError,
 
 // use the base factory to return a raw config (not specific to a context)
 func (o DiagnosticsOptions) buildRawConfig() (*clientcmdapi.Config, error) {
-	kubeConfig, configErr := o.Factory.OpenShiftClientConfig.RawConfig()
+	kubeConfig, configErr := o.Factory.OpenShiftClientConfig().RawConfig()
 	if configErr != nil {
 		return nil, configErr
 	}

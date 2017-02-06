@@ -97,7 +97,7 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Out = out
 
-	osClient, _, _, err := f.Clients()
+	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}

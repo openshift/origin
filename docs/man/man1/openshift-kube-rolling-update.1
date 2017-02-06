@@ -16,15 +16,18 @@ openshift kube rolling\-update \- Perform a rolling update of the given Replicat
 Perform a rolling update of the given ReplicationController.
 
 .PP
-Replaces the specified replication controller with a new replication controller by updating one pod at a time to use the
-new PodTemplate. The new\-controller.json must specify the same namespace as the
-existing replication controller and overwrite at least one (common) label in its replicaSelector.
+Replaces the specified replication controller with a new replication controller by updating one pod at a time to use the new PodTemplate. The new\-controller.json must specify the same namespace as the existing replication controller and overwrite at least one (common) label in its replicaSelector.
 
 .PP
-
+! 
+\[la]http://kubernetes.io/images/docs/kubectl_rollingupdate.svg\[ra]
 
 
 .SH OPTIONS
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
 .PP
 \fB\-\-container\fP=""
     Container name which will have its image upgraded. Only relevant when \-\-image is specified, ignored otherwise. Required when using \-\-image on a multi\-container pod
@@ -132,6 +135,10 @@ existing replication controller and overwrite at least one (common) label in its
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -217,7 +224,7 @@ existing replication controller and overwrite at least one (common) label in its
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -225,7 +232,7 @@ existing replication controller and overwrite at least one (common) label in its
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -341,23 +348,21 @@ existing replication controller and overwrite at least one (common) label in its
 .RS
 
 .nf
-
-# Update pods of frontend\-v1 using new replication controller data in frontend\-v2.json.
-kubectl rolling\-update frontend\-v1 \-f frontend\-v2.json
-
-# Update pods of frontend\-v1 using JSON data passed into stdin.
-cat frontend\-v2.json | kubectl rolling\-update frontend\-v1 \-f \-
-
-# Update the pods of frontend\-v1 to frontend\-v2 by just changing the image, and switching the
-# name of the replication controller.
-kubectl rolling\-update frontend\-v1 frontend\-v2 \-\-image=image:v2
-
-# Update the pods of frontend by just changing the image, and keeping the old name.
-kubectl rolling\-update frontend \-\-image=image:v2
-
-# Abort and reverse an existing rollout in progress (from frontend\-v1 to frontend\-v2).
-kubectl rolling\-update frontend\-v1 frontend\-v2 \-\-rollback
-
+  # Update pods of frontend\-v1 using new replication controller data in frontend\-v2.json.
+  kubectl rolling\-update frontend\-v1 \-f frontend\-v2.json
+  
+  # Update pods of frontend\-v1 using JSON data passed into stdin.
+  cat frontend\-v2.json | kubectl rolling\-update frontend\-v1 \-f \-
+  
+  # Update the pods of frontend\-v1 to frontend\-v2 by just changing the image, and switching the
+  # name of the replication controller.
+  kubectl rolling\-update frontend\-v1 frontend\-v2 \-\-image=image:v2
+  
+  # Update the pods of frontend by just changing the image, and keeping the old name.
+  kubectl rolling\-update frontend \-\-image=image:v2
+  
+  # Abort and reverse an existing rollout in progress (from frontend\-v1 to frontend\-v2).
+  kubectl rolling\-update frontend\-v1 frontend\-v2 \-\-rollback
 
 .fi
 .RE

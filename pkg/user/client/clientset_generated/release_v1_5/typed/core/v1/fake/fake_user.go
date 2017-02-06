@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/user/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 
 // FakeUsers implements UserInterface
 type FakeUsers struct {
-	Fake *FakeCore
+	Fake *FakeCoreV1
 	ns   string
 }
 
@@ -37,14 +38,14 @@ func (c *FakeUsers) Update(user *v1.User) (result *v1.User, err error) {
 	return obj.(*v1.User), err
 }
 
-func (c *FakeUsers) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeUsers) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(usersResource, c.ns, name), &v1.User{})
 
 	return err
 }
 
-func (c *FakeUsers) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeUsers) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(usersResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.UserList{})
@@ -61,7 +62,7 @@ func (c *FakeUsers) Get(name string) (result *v1.User, err error) {
 	return obj.(*v1.User), err
 }
 
-func (c *FakeUsers) List(opts api.ListOptions) (result *v1.UserList, err error) {
+func (c *FakeUsers) List(opts api_v1.ListOptions) (result *v1.UserList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(usersResource, c.ns, opts), &v1.UserList{})
 
@@ -69,7 +70,7 @@ func (c *FakeUsers) List(opts api.ListOptions) (result *v1.UserList, err error) 
 		return nil, err
 	}
 
-	label := opts.LabelSelector
+	label, _, _ := core.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,7 +84,7 @@ func (c *FakeUsers) List(opts api.ListOptions) (result *v1.UserList, err error) 
 }
 
 // Watch returns a watch.Interface that watches the requested users.
-func (c *FakeUsers) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeUsers) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(usersResource, c.ns, opts))
 

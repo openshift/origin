@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -19,39 +15,27 @@ import (
 
 // replenishmentControllerFactory implements ReplenishmentControllerFactory
 type replenishmentControllerFactory struct {
-	osClient osclient.Interface
+	isInformer shared.ImageStreamInformer
 }
 
 var _ kresourcequota.ReplenishmentControllerFactory = &replenishmentControllerFactory{}
 
 // NewReplenishmentControllerFactory returns a factory that knows how to build controllers
 // to replenish resources when updated or deleted
-func NewReplenishmentControllerFactory(osClient osclient.Interface) kresourcequota.ReplenishmentControllerFactory {
+func NewReplenishmentControllerFactory(isInformer shared.ImageStreamInformer) kresourcequota.ReplenishmentControllerFactory {
 	return &replenishmentControllerFactory{
-		osClient: osClient,
+		isInformer: isInformer,
 	}
 }
 
-func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (framework.ControllerInterface, error) {
+func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.ControllerInterface, error) {
 	switch options.GroupKind {
 	case imageapi.Kind("ImageStream"):
-		_, result := framework.NewInformer(
-			&cache.ListWatch{
-				ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-					return r.osClient.ImageStreams(api.NamespaceAll).List(options)
-				},
-				WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-					return r.osClient.ImageStreams(api.NamespaceAll).Watch(options)
-				},
-			},
-			&imageapi.ImageStream{},
-			options.ResyncPeriod(),
-			framework.ResourceEventHandlerFuncs{
-				UpdateFunc: ImageStreamReplenishmentUpdateFunc(options),
-				DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),
-			},
-		)
-		return result, nil
+		r.isInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+			UpdateFunc: ImageStreamReplenishmentUpdateFunc(options),
+			DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),
+		})
+		return r.isInformer.Informer().GetController(), nil
 	default:
 		return nil, fmt.Errorf("no replenishment controller available for %s", options.GroupKind)
 	}
@@ -71,7 +55,7 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
 func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
-		kresourcequota.NewReplenishmentControllerFactory(informerFactory.Pods().Informer(), kubeClientSet),
-		NewReplenishmentControllerFactory(osClient),
+		kresourcequota.NewReplenishmentControllerFactory(informerFactory.KubernetesInformers(), kubeClientSet),
+		NewReplenishmentControllerFactory(informerFactory.ImageStreams()),
 	}
 }

@@ -9,7 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -48,15 +49,16 @@ func TestStatusNoOp(t *testing.T) {
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
-	admitter := NewStatusAdmitter(p, c, "test")
+	admitter := NewStatusAdmitter(p, c, "test", "a.b.c.d")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
 		Status: routeapi.RouteStatus{
 			Ingress: []routeapi.RouteIngress{
 				{
-					Host:       "route1.test.local",
-					RouterName: "test",
+					Host:                    "route1.test.local",
+					RouterName:              "test",
+					RouterCanonicalHostname: "a.b.c.d",
 					Conditions: []routeapi.RouteIngressCondition{
 						{
 							Type:               routeapi.RouteAdmitted,
@@ -84,10 +86,10 @@ func checkResult(t *testing.T, err error, c *testclient.Fake, admitter *StatusAd
 		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 	action := c.Actions()[actionInd]
-	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[actionInd].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[actionInd].(core.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != ingressInd+1 || obj.Status.Ingress[ingressInd].Host != targetHost {
 		t.Fatalf("expected route reset: expected %q / actual %q -- %#v", targetHost, obj.Status.Ingress[ingressInd].Host, obj)
 	}
@@ -102,7 +104,7 @@ func checkResult(t *testing.T, err error, c *testclient.Fake, admitter *StatusAd
 		}
 	} else {
 		if v, ok := admitter.expected.Peek(types.UID("uid1")); !ok || !reflect.DeepEqual(v, *targetCachedTime) {
-			t.Fatalf("did not record last modification time: %#v %#v", admitter.expected, v)
+			t.Fatalf("did not record last modification time: %#v %#v", targetCachedTime, v)
 		}
 	}
 
@@ -114,8 +116,8 @@ func TestStatusResetsHost(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -144,8 +146,14 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&(errors.NewForbidden(kapi.Resource("Route"), "route1", nil).ErrStatus))
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() != "status" {
+			return false, nil, nil
+		}
+		return true, nil, errors.NewForbidden(kapi.Resource("Route"), "route1", nil)
+	})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -173,8 +181,14 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&(errors.NewConflict(kapi.Resource("Route"), "route1", nil).ErrStatus))
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() != "status" {
+			return false, nil, nil
+		}
+		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+	})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -201,8 +215,8 @@ func TestStatusRecordRejection(t *testing.T) {
 	now := nowFn()
 	nowFn = func() unversioned.Time { return now }
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -212,10 +226,10 @@ func TestStatusRecordRejection(t *testing.T) {
 		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 	action := c.Actions()[0]
-	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -233,8 +247,8 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -270,8 +284,8 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -296,10 +310,10 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 	action := c.Actions()[0]
-	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -317,8 +331,8 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -345,10 +359,10 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 	action := c.Actions()[0]
-	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -366,8 +380,14 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	nowFn = func() unversioned.Time { return now }
 	touched := unversioned.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&(errors.NewConflict(kapi.Resource("Route"), "route1", nil).ErrStatus))
-	admitter := NewStatusAdmitter(p, c, "test")
+	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() != "status" {
+			return false, nil, nil
+		}
+		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+	})
+	admitter := NewStatusAdmitter(p, c, "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -392,10 +412,10 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 		t.Fatalf("unexpected actions: %#v", c.Actions())
 	}
 	action := c.Actions()[0]
-	if action.GetVerb() != "update" || action.GetResource() != "routes" || action.GetSubresource() != "status" {
+	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(ktestclient.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -414,8 +434,8 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the initial pre-population
 	now1 := unversioned.Now()
 	nowFn = func() unversioned.Time { return now1 }
-	c1 := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter1 := NewStatusAdmitter(p, c1, "test")
+	c1 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter1 := NewStatusAdmitter(p, c1, "test", "")
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -427,8 +447,8 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the new deployment's replica
 	now2 := unversioned.Time{Time: now1.Time.Add(time.Minute)}
 	nowFn = func() unversioned.Time { return now2 }
-	c2 := testclient.NewSimpleFake(&routeapi.Route{})
-	admitter2 := NewStatusAdmitter(p, c2, "test")
+	c2 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter2 := NewStatusAdmitter(p, c2, "test", "")
 	outObj1.Spec.Host = "route1.test-new.local"
 	err = admitter2.HandleRoute(watch.Added, outObj1)
 
@@ -457,8 +477,19 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	now1 := unversioned.Now()
 	nowFn = func() unversioned.Time { return now1 }
 	touched1 := unversioned.Time{Time: now1.Add(-time.Minute)}
-	c1 := testclient.NewSimpleFake(&(errors.NewConflict(kapi.Resource("Route"), "route1", nil).ErrStatus), &routeapi.Route{})
-	admitter1 := NewStatusAdmitter(p, c1, "test2")
+	c1 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	returnConflict := true
+	c1.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() != "status" {
+			return false, nil, nil
+		}
+		if returnConflict {
+			returnConflict = false
+			return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+		}
+		return false, nil, nil
+	})
+	admitter1 := NewStatusAdmitter(p, c1, "test2", "")
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
@@ -533,11 +564,14 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 
 func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *routeapi.Route, expectUpdate bool, conflict bool) *routeapi.Route {
 	// initialize a new client
-	var c *testclient.Fake
+	c := testclient.NewSimpleFake(srcObj)
 	if conflict {
-		c = testclient.NewSimpleFake(&(errors.NewConflict(kapi.Resource("Route"), "route1", nil).ErrStatus))
-	} else {
-		c = testclient.NewSimpleFake(&routeapi.Route{})
+		c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+			if action.GetSubresource() != "status" {
+				return false, nil, nil
+			}
+			return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
+		})
 	}
 
 	admitter.client = c
@@ -595,11 +629,11 @@ func TestProtractedStatusFightBetweenRouters(t *testing.T) {
 
 	// NB: contention period is 1 minute
 
-	newAdmitter1 := NewStatusAdmitter(p, nil, "test")
-	newAdmitter2 := NewStatusAdmitter(p, nil, "test")
+	newAdmitter1 := NewStatusAdmitter(p, nil, "test", "")
+	newAdmitter2 := NewStatusAdmitter(p, nil, "test", "")
 
-	oldAdmitter1 := NewStatusAdmitter(p, nil, "test")
-	oldAdmitter2 := NewStatusAdmitter(p, nil, "test")
+	oldAdmitter1 := NewStatusAdmitter(p, nil, "test", "")
+	oldAdmitter2 := NewStatusAdmitter(p, nil, "test", "")
 
 	t.Logf("Setup up the two 'old' routers")
 	currObj := makePass(t, oldHost, oldAdmitter1, initObj, true, false)
@@ -702,7 +736,7 @@ func TestFindOrCreateIngress(t *testing.T) {
 	}
 
 	routerName := "foo"
-	ingress, changed := findOrCreateIngress(route, routerName)
+	ingress, changed := findOrCreateIngress(route, routerName, "")
 	if !changed {
 		t.Errorf("expected the route list to be changed: %#v", route.Status.Ingress)
 	}

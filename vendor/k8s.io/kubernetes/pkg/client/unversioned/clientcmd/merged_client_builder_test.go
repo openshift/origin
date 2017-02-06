@@ -230,7 +230,7 @@ func TestInClusterConfigNamespace(t *testing.T) {
 		ok         bool
 		err        error
 	}{
-		"in-cluster checked on other error": {
+		"in-cluster checked on empty error": {
 			clientConfig: &testClientConfig{err: ErrEmptyConfig},
 			icc:          &testICC{},
 
@@ -260,7 +260,7 @@ func TestInClusterConfigNamespace(t *testing.T) {
 			ok:     true,
 		},
 
-		"in-cluster checked when namespcae is not specified, but is defaulted": {
+		"in-cluster checked when namespace is not specified, but is defaulted": {
 			clientConfig: &testClientConfig{namespace: "test", namespaceSpecified: false},
 			icc:          &testICC{},
 
@@ -297,7 +297,7 @@ func TestInClusterConfigNamespace(t *testing.T) {
 			ok:         true,
 		},
 
-		"in-cluster config returned when config is empty with default": {
+		"in-cluster config returned when config is empty and namespace is defaulted but not explicitly set": {
 			clientConfig: &testClientConfig{err: ErrEmptyConfig},
 			icc: &testICC{
 				possible: true,

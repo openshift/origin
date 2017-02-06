@@ -18,11 +18,18 @@ Specify compute resource requirements (cpu, memory) for any resource that define
 .PP
 for each compute resource, if a limit is specified and a request is omitted, the request will default to the limit.
 
+.PP
+Possible resources include (case insensitive): replicationcontroller, deployment, daemonset, job, replicaset.
+
 
 .SH OPTIONS
 .PP
 \fB\-\-all\fP=false
     select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
 
 .PP
 \fB\-c\fP, \fB\-\-containers\fP="*"
@@ -34,7 +41,7 @@ for each compute resource, if a limit is specified and a request is omitted, the
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory or URL to file to use to edit the resource
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-\-limits\fP=""
@@ -62,6 +69,10 @@ for each compute resource, if a limit is specified and a request is omitted, the
 .PP
 \fB\-\-record\fP=false
     Record current kubectl command in the resource annotation. If set to false, do not record the command. If set to true, record the command. If not set, default to updating the existing annotation value only if one already exists.
+
+.PP
+\fB\-R\fP, \fB\-\-recursive\fP=false
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-requests\fP=""
@@ -109,6 +120,10 @@ for each compute resource, if a limit is specified and a request is omitted, the
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -196,7 +211,7 @@ for each compute resource, if a limit is specified and a request is omitted, the
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -204,7 +219,7 @@ for each compute resource, if a limit is specified and a request is omitted, the
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -320,23 +335,17 @@ for each compute resource, if a limit is specified and a request is omitted, the
 .RS
 
 .nf
-
-# Set a deployments nginx container cpu limits to "200m and memory to "512Mi"
-
-kubectl set resources deployment nginx \-c=nginx \-\-limits=cpu=200m,memory=512Mi
-
-# Set the resource request and limits for all containers in nginx
-
-kubectl set resources deployment nginx \-\-limits=cpu=200m,memory=512Mi \-\-requests=cpu=100m,memory=256Mi
-
-# Remove the resource requests for resources on containers in nginx
-
-kubectl set resources deployment nginx \-\-limits=cpu=0,memory=0 \-\-requests=cpu=0,memory=0
-
-# Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
-
-kubectl set resources \-f path/to/file.yaml \-\-limits=cpu=200m,memory=512Mi \-\-local \-o yaml
-
+  # Set a deployments nginx container cpu limits to "200m" and memory to "512Mi"
+  kubectl set resources deployment nginx \-c=nginx \-\-limits=cpu=200m,memory=512Mi
+  
+  # Set the resource request and limits for all containers in nginx
+  kubectl set resources deployment nginx \-\-limits=cpu=200m,memory=512Mi \-\-requests=cpu=100m,memory=256Mi
+  
+  # Remove the resource requests for resources on containers in nginx
+  kubectl set resources deployment nginx \-\-limits=cpu=0,memory=0 \-\-requests=cpu=0,memory=0
+  
+  # Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
+  kubectl set resources \-f path/to/file.yaml \-\-limits=cpu=200m,memory=512Mi \-\-local \-o yaml
 
 .fi
 .RE

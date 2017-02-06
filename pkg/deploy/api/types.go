@@ -395,6 +395,8 @@ type DeploymentConfigStatus struct {
 	Details *DeploymentDetails
 	// Conditions represents the latest available observations of a deployment config's current state.
 	Conditions []DeploymentCondition
+	// Total number of ready pods targeted by this deployment.
+	ReadyReplicas int32
 }
 
 // DeploymentDetails captures information about the causes of a deployment.

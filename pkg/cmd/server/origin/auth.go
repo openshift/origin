@@ -12,14 +12,13 @@ import (
 
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
-	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -78,11 +77,14 @@ const (
 	OpenShiftCLIClientID         = "openshift-challenging-client"
 )
 
-// InstallAPI registers endpoints for an OAuth2 server into the provided mux,
-// then returns an array of strings indicating what endpoints were started
-// (these are format strings that will expect to be sent a single string value).
-func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) {
-	mux := c.getMux(container)
+// WithOAuth decorates the given handler by serving the OAuth2 endpoints while
+// passing through all other requests to the given handler.
+func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
+	baseMux := http.NewServeMux()
+	mux := c.possiblyWrapMux(baseMux)
+
+	// pass through all other requests
+	mux.Handle("/", handler)
 
 	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
 	if err != nil {
@@ -185,21 +187,19 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 	// glog.Infof("grant checker: %#v", grantChecker)
 	// glog.Infof("grant handler: %#v", grantHandler)
 
-	return []string{
-		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
-	}, nil
+	return baseMux, nil
 }
 
-func (c *AuthConfig) getMux(container *restful.Container) cmdutil.Mux {
-	// Register directly into the container's mux
+func (c *AuthConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
+	// Register directly into the given mux
 	if c.HandlerWrapper == nil {
-		return container.ServeMux
+		return mux
 	}
 
 	// Wrap all handlers before registering into the container's mux
 	// This lets us do things like defer session clearing to the end of a request
 	return &handlerWrapperMux{
-		mux:     container.ServeMux,
+		mux:     mux,
 		wrapper: c.HandlerWrapper,
 	}
 }
@@ -247,7 +247,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 		return err
 	}
 
-	return unversioned.RetryOnConflict(unversioned.DefaultRetry, func() error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		existing, err := clientRegistry.GetClient(ctx, client.Name)
 		if err != nil {
 			return err

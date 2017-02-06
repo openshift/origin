@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -154,7 +155,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
 			// TODO when #11016 gets fixed this can be reverted to 30seconds
-			err = wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, 5*time.Minute, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, name)
 				if err != nil {
 					return false, nil
@@ -297,9 +298,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
-			var out string
+			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
+				istag, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("sample-stream", "deployed")
 				if errors.IsNotFound(err) {
 					return false, nil
 				}
@@ -313,8 +314,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			}
 			o.Expect(pollErr).NotTo(o.HaveOccurred())
 
-			if !strings.Contains(out, "origin-pod") {
-				err = fmt.Errorf("expected %q to be part of the image reference in %q", "origin-pod", out)
+			if istag.Tag == nil || istag.Tag.From == nil || istag.Tag.From.Name != "openshift/origin-pod" {
+				err = fmt.Errorf("expected %q to be part of the image reference in %#v", "openshift/origin-pod", istag)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -804,7 +805,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			selector := labels.Set(config.Spec.Selector).AsSelector()
 			opts := kapi.ListOptions{LabelSelector: selector}
 			ready := 0
-			if err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)
 				if err != nil {
 					return false, nil

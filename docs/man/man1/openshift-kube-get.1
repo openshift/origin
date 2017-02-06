@@ -17,50 +17,133 @@ Display one or many resources.
 
 .PP
 Valid resource types include:
-   * buildconfigs (aka 'bc')
-   * builds
-   * clusters (valid only for federation apiservers)
-   * componentstatuses (aka 'cs')
-   * configmaps (aka 'cm')
-   * daemonsets (aka 'ds')
-   * deployments (aka 'deploy')
-   * deploymentconfigs (aka 'dc')
-   * events (aka 'ev')
-   * endpoints (aka 'ep')
-   * horizontalpodautoscalers (aka 'hpa')
-   * imagestreamimages (aka 'isimage')
-   * imagestreams (aka 'is')
-   * imagestreamtags (aka 'istag')
-   * ingress (aka 'ing')
-   * groups
-   * jobs
-   * limitranges (aka 'limits')
-   * nodes (aka 'no')
-   * namespaces (aka 'ns')
-   * petsets (alpha feature, may be unstable)
-   * pods (aka 'po')
-   * persistentvolumes (aka 'pv')
-   * persistentvolumeclaims (aka 'pvc')
-   * policies
-   * projects
-   * quota
-   * resourcequotas (aka 'quota')
-   * replicasets (aka 'rs')
-   * replicationcontrollers (aka 'rc')
-   * rolebindings
-   * routes
-   * secrets
-   * serviceaccounts (aka 'sa')
-   * services (aka 'svc')
-   * users
+.IP 
+
+.IP
+\(bu buildconfigs (aka 'bc')
+.br
+.IP
+\(bu builds
+.br
+.IP
+\(bu clusters (valid only for federation apiservers)
+.br
+.IP
+\(bu componentstatuses (aka 'cs')
+.br
+.IP
+\(bu configmaps (aka 'cm')
+.br
+.IP
+\(bu daemonsets (aka 'ds')
+.br
+.IP
+\(bu deployments (aka 'deploy')
+.br
+.IP
+\(bu deploymentconfigs (aka 'dc')
+.br
+.IP
+\(bu endpoints (aka 'ep')
+.br
+.IP
+\(bu events (aka 'ev')
+.br
+.IP
+\(bu horizontalpodautoscalers (aka 'hpa')
+.br
+.IP
+\(bu imagestreamimages (aka 'isimage')
+.br
+.IP
+\(bu imagestreams (aka 'is')
+.br
+.IP
+\(bu imagestreamtags (aka 'istag')
+.br
+.IP
+\(bu ingresses (aka 'ing')
+.br
+.IP
+\(bu groups
+.br
+.IP
+\(bu jobs
+.br
+.IP
+\(bu limitranges (aka 'limits')
+.br
+.IP
+\(bu namespaces (aka 'ns')
+.br
+.IP
+\(bu networkpolicies
+.br
+.IP
+\(bu nodes (aka 'no')
+.br
+.IP
+\(bu persistentvolumeclaims (aka 'pvc')
+.br
+.IP
+\(bu persistentvolumes (aka 'pv')
+.br
+.IP
+\(bu pods (aka 'po')
+.br
+.IP
+\(bu podsecuritypolicies (aka 'psp')
+.br
+.IP
+\(bu podtemplates
+.br
+.IP
+\(bu policies
+.br
+.IP
+\(bu projects
+.br
+.IP
+\(bu replicasets (aka 'rs')
+.br
+.IP
+\(bu replicationcontrollers (aka 'rc')
+.br
+.IP
+\(bu resourcequotas (aka 'quota')
+.br
+.IP
+\(bu rolebindings
+.br
+.IP
+\(bu routes
+.br
+.IP
+\(bu secrets
+.br
+.IP
+\(bu serviceaccounts (aka 'sa')
+.br
+.IP
+\(bu services (aka 'svc')
+.br
+.IP
+\(bu statefulsets
+.br
+.IP
+\(bu users
+.br
+.IP
+\(bu storageclasses
+.br
+.IP
+\(bu thirdpartyresources
+.br
+.PP
+This command will hide resources that have completed. For instance, pods that are in the Succeeded or Failed phases. You can see the full results for any resource by providing the '\-\-show\-all' flag.
 
 .PP
-This command will hide resources that have completed. For instance, pods that are in the Succeeded or Failed phases.
-You can see the full results for any resource by providing the '\-\-show\-all' flag.
-
-.PP
-By specifying the output as 'template' and providing a Go template as the value
-of the \-\-template flag, you can filter the attributes of the fetched resource(s).
+By specifying the output as 'template' and providing a Go template as the value of the \-\-template flag, you can filter the attributes of the fetched resource(s).
 
 
 .SH OPTIONS
@@ -69,12 +152,16 @@ of the \-\-template flag, you can filter the attributes of the fetched resource(
     If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-export\fP=false
     If true, use 'export' for the resources.  Exported resources are stripped of cluster\-specific information.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -163,6 +250,10 @@ of the \-\-template flag, you can filter the attributes of the fetched resource(
     Username to impersonate for the operation
 
 .PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
     Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
@@ -248,7 +339,7 @@ of the \-\-template flag, you can filter the attributes of the fetched resource(
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -256,7 +347,7 @@ of the \-\-template flag, you can filter the attributes of the fetched resource(
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -372,30 +463,29 @@ of the \-\-template flag, you can filter the attributes of the fetched resource(
 .RS
 
 .nf
-
-# List all pods in ps output format.
-kubectl get pods
-
-# List all pods in ps output format with more information (such as node name).
-kubectl get pods \-o wide
-
-# List a single replication controller with specified NAME in ps output format.
-kubectl get replicationcontroller web
-
-# List a single pod in JSON output format.
-kubectl get \-o json pod web\-pod\-13je7
-
-# List a pod identified by type and name specified in "pod.yaml" in JSON output format.
-kubectl get \-f pod.yaml \-o json
-
-# Return only the phase value of the specified pod.
-kubectl get \-o template pod/web\-pod\-13je7 \-\-template={{.status.phase}}
-
-# List all replication controllers and services together in ps output format.
-kubectl get rc,services
-
-# List one or more resources by their type and names.
-kubectl get rc/web service/frontend pods/web\-pod\-13je7
+  # List all pods in ps output format.
+  kubectl get pods
+  
+  # List all pods in ps output format with more information (such as node name).
+  kubectl get pods \-o wide
+  
+  # List a single replication controller with specified NAME in ps output format.
+  kubectl get replicationcontroller web
+  
+  # List a single pod in JSON output format.
+  kubectl get \-o json pod web\-pod\-13je7
+  
+  # List a pod identified by type and name specified in "pod.yaml" in JSON output format.
+  kubectl get \-f pod.yaml \-o json
+  
+  # Return only the phase value of the specified pod.
+  kubectl get \-o template pod/web\-pod\-13je7 \-\-template={{.status.phase}}
+  
+  # List all replication controllers and services together in ps output format.
+  kubectl get rc,services
+  
+  # List one or more resources by their type and names.
+  kubectl get rc/web service/frontend pods/web\-pod\-13je7
 
 .fi
 .RE

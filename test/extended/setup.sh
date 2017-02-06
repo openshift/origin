@@ -137,9 +137,10 @@ function os::test::extended::setup () {
 	fi
 	os::log::info "Using VOLUME_DIR=${VOLUME_DIR}"
 
-	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test.
+	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test
+	# and enable-hostpath-provisioner for StatefulSet tests
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"], "enable-hostpath-provisioner":["true"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
 
@@ -336,6 +337,9 @@ readonly EXCLUDED_TESTS=(
 
 	# We don't install KubeDNS
 	"should check if Kubernetes master services is included in cluster-info"
+
+	# this tests dns federation configuration via configmap, which we don't support yet
+	"DNS config map"
 )
 
 readonly SERIAL_TESTS=(
@@ -343,6 +347,7 @@ readonly SERIAL_TESTS=(
 	"\[Feature:ManualPerformance\]" # requires isolation
 	"Service endpoints latency" # requires low latency
 	"\[Feature:HighDensityPerformance\]" # requires no other namespaces
+	"Clean up pods on node" # schedules max pods per node
 )
 
 readonly CONFORMANCE_TESTS=(
@@ -354,7 +359,7 @@ readonly CONFORMANCE_TESTS=(
 	"\[networking\]\[router\]"
 	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
-	"PetSet"
+	"StatefulSet"
 	"Downward API"
 	"DNS for ExternalName services"
 	"DNS for pods for Hostname and Subdomain annotation"
@@ -376,4 +381,5 @@ readonly CONFORMANCE_TESTS=(
 	"\[Feature\:PodDisruptionbudget\]"
 	"should create a pod that reads a secret"
 	"should create a pod that prints his name and namespace"
+	"manifest migration from etcd to registry storage"
 )

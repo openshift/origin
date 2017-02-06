@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube rollout status \- Watch rollout status until it's done
+openshift kube rollout status \- Show the status of the rollout
 
 
 .SH SYNOPSIS
@@ -13,13 +13,16 @@ openshift kube rollout status \- Watch rollout status until it's done
 
 .SH DESCRIPTION
 .PP
-Watch the status of current rollout, until it's done.
+Show the status of the rollout.
+
+.PP
+By default 'rollout status' will watch the status of the latest rollout until it's done. If you don't want to wait for the rollout to finish then you can use \-\-watch=false. Note that if a new rollout starts in\-between, then 'rollout status' will continue watching the latest revision. If you want to pin to a specific revision and abort if it is rolled over by another revision, use \-\-revision=N where N is the revision you need to watch for.
 
 
 .SH OPTIONS
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -28,6 +31,10 @@ Watch the status of current rollout, until it's done.
 .PP
 \fB\-\-revision\fP=0
     Pin to a specific revision for showing its status. Defaults to 0 (last revision).
+
+.PP
+\fB\-w\fP, \fB\-\-watch\fP=true
+    Watch the status of the rollout until it's done.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -50,6 +57,10 @@ Watch the status of current rollout, until it's done.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -137,7 +148,7 @@ Watch the status of current rollout, until it's done.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -145,7 +156,7 @@ Watch the status of current rollout, until it's done.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -261,9 +272,8 @@ Watch the status of current rollout, until it's done.
 .RS
 
 .nf
-
-# Watch the rollout status of a deployment
-kubectl rollout status deployment/nginx
+  # Watch the rollout status of a deployment
+  kubectl rollout status deployment/nginx
 
 .fi
 .RE

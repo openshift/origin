@@ -21,13 +21,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/renstrom/dedent"
-
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -36,7 +35,7 @@ import (
 )
 
 var (
-	convert_long = dedent.Dedent(`
+	convert_long = templates.LongDesc(`
 		Convert config files between different API versions. Both YAML
 		and JSON formats are accepted.
 
@@ -45,10 +44,9 @@ var (
 		not supported, convert to latest version.
 
 		The default output will be printed to stdout in YAML format. One can use -o option
-		to change to output destination.
-		`)
+		to change to output destination.`)
 
-	convert_example = dedent.Dedent(`
+	convert_example = templates.Examples(`
 		# Convert 'pod.yaml' to latest version and print to stdout.
 		kubectl convert -f pod.yaml
 
@@ -57,13 +55,12 @@ var (
 		kubectl convert -f pod.yaml --local -o json
 
 		# Convert all files under current directory to latest version and create them all.
-		kubectl convert -f . | kubectl create -f -
-		`)
+		kubectl convert -f . | kubectl create -f -`)
 )
 
 // NewCmdConvert creates a command object for the generic "convert" action, which
 // translates the config file into a given version.
-func NewCmdConvert(f *cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdConvert(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &ConvertOptions{}
 
 	cmd := &cobra.Command{
@@ -79,9 +76,8 @@ func NewCmdConvert(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 
-	usage := "Filename, directory, or URL to file to need to get converted."
-	kubectl.AddJsonFilenameFlag(cmd, &options.filenames, usage)
-	cmdutil.AddRecursiveFlag(cmd, &options.recursive)
+	usage := "to need to get converted."
+	cmdutil.AddFilenameOptionFlags(cmd, &options.FilenameOptions, usage)
 	cmd.MarkFlagRequired("filename")
 	cmdutil.AddValidateFlags(cmd)
 	cmdutil.AddPrinterFlags(cmd)
@@ -92,21 +88,20 @@ func NewCmdConvert(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 // ConvertOptions have the data required to perform the convert operation
 type ConvertOptions struct {
-	builder   *resource.Builder
-	filenames []string
-	local     bool
+	resource.FilenameOptions
+
+	builder *resource.Builder
+	local   bool
 
 	encoder runtime.Encoder
 	out     io.Writer
 	printer kubectl.ResourcePrinter
 
 	outputVersion unversioned.GroupVersion
-
-	recursive bool
 }
 
 // Complete collects information required to run Convert command from command line.
-func (o *ConvertOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) (err error) {
+func (o *ConvertOptions) Complete(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) (err error) {
 	o.outputVersion, err = cmdutil.OutputVersion(cmd, &registered.EnabledVersionsForGroup(api.GroupName)[0])
 	if err != nil {
 		return err
@@ -116,7 +111,7 @@ func (o *ConvertOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.
 	}
 
 	// build the builder
-	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
+	mapper, typer := f.Object()
 	clientMapper := resource.ClientMapperFunc(f.ClientForMapping)
 
 	if o.local {
@@ -136,7 +131,7 @@ func (o *ConvertOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.
 	}
 	o.builder = o.builder.NamespaceParam(cmdNamespace).
 		ContinueOnError().
-		FilenameParam(false, o.recursive, o.filenames...).
+		FilenameParam(false, &o.FilenameOptions).
 		Flatten()
 
 	// build the printer
@@ -151,7 +146,7 @@ func (o *ConvertOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.
 		}
 	}
 	o.encoder = f.JSONEncoder()
-	o.printer, _, err = kubectl.GetPrinter(outputFormat, templateFile, false)
+	o.printer, _, err = kubectl.GetPrinter(outputFormat, templateFile, false, cmdutil.GetFlagBool(cmd, "allow-missing-template-keys"))
 	if err != nil {
 		return err
 	}
@@ -167,8 +162,8 @@ func (o *ConvertOptions) RunConvert() error {
 		return err
 	}
 
-	singular := false
-	infos, err := r.IntoSingular(&singular).Infos()
+	singleItemImplied := false
+	infos, err := r.IntoSingleItemImplied(&singleItemImplied).Infos()
 	if err != nil {
 		return err
 	}
@@ -177,7 +172,7 @@ func (o *ConvertOptions) RunConvert() error {
 		return fmt.Errorf("no objects passed to convert")
 	}
 
-	objects, err := resource.AsVersionedObject(infos, !singular, o.outputVersion, o.encoder)
+	objects, err := resource.AsVersionedObject(infos, !singleItemImplied, o.outputVersion, o.encoder)
 	if err != nil {
 		return err
 	}

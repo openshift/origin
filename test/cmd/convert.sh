@@ -29,7 +29,7 @@ os::cmd::expect_success "oc convert -f test/testdata/convert --output-version=ba
 os::cmd::expect_failure "oc convert -f test/testdata/convert --output-version=batch/v2alpha1 | grep 'apiVersion: batch/v1'"
 
 os::cmd::expect_success_and_text "oc convert -f test/testdata/convert | oc create --dry-run -f -" 'job "pi" created'
-os::cmd::expect_success_and_text "oc convert -f test/testdata/convert | oc create --dry-run -f -" 'scheduledjob "hello" created'
+os::cmd::expect_success_and_text "oc convert -f test/testdata/convert | oc create --dry-run -f -" 'cronjob "hello" created'
 
 echo "convert: ok"
 os::test::junit::declare_suite_end

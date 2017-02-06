@@ -21,13 +21,13 @@ type ServiceGroup struct {
 
 	DeploymentConfigPipelines []DeploymentConfigPipeline
 	ReplicationControllers    []ReplicationController
-	PetSets                   []PetSet
+	StatefulSets              []StatefulSet
 
 	// TODO: this has to stop
-	FulfillingPetSets []*kubegraph.PetSetNode
-	FulfillingDCs     []*deploygraph.DeploymentConfigNode
-	FulfillingRCs     []*kubegraph.ReplicationControllerNode
-	FulfillingPods    []*kubegraph.PodNode
+	FulfillingStatefulSets []*kubegraph.StatefulSetNode
+	FulfillingDCs          []*deploygraph.DeploymentConfigNode
+	FulfillingRCs          []*kubegraph.ReplicationControllerNode
+	FulfillingPods         []*kubegraph.PodNode
 
 	ExposingRoutes []*routegraph.RouteNode
 }
@@ -69,8 +69,8 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 			service.FulfillingRCs = append(service.FulfillingRCs, castContainer)
 		case *kubegraph.PodNode:
 			service.FulfillingPods = append(service.FulfillingPods, castContainer)
-		case *kubegraph.PetSetNode:
-			service.FulfillingPetSets = append(service.FulfillingPetSets, castContainer)
+		case *kubegraph.StatefulSetNode:
+			service.FulfillingStatefulSets = append(service.FulfillingStatefulSets, castContainer)
 		default:
 			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
 		}
@@ -102,11 +102,11 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		service.ReplicationControllers = append(service.ReplicationControllers, rcView)
 	}
 
-	for _, fulfillingPetSet := range service.FulfillingPetSets {
-		view, covers := NewPetSet(g, fulfillingPetSet)
+	for _, fulfillingStatefulSet := range service.FulfillingStatefulSets {
+		view, covers := NewStatefulSet(g, fulfillingStatefulSet)
 
 		covered.Insert(covers.List()...)
-		service.PetSets = append(service.PetSets, view)
+		service.StatefulSets = append(service.StatefulSets, view)
 	}
 
 	for _, fulfillingPod := range service.FulfillingPods {

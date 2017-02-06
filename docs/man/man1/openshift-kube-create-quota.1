@@ -18,6 +18,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
@@ -98,6 +102,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -185,7 +193,7 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -193,7 +201,7 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -309,10 +317,10 @@ Create a resourcequota with the specified name, hard limits and optional scopes
 .RS
 
 .nf
-  // Create a new resourcequota named my\-quota
+  # Create a new resourcequota named my\-quota
   $ kubectl create quota my\-quota \-\-hard=cpu=1,memory=1G,pods=2,services=3,replicationcontrollers=2,resourcequotas=1,secrets=5,persistentvolumeclaims=10
-
-  // Create a new resourcequota named best\-effort
+  
+  # Create a new resourcequota named best\-effort
   $ kubectl create quota best\-effort \-\-hard=pods=100 \-\-scopes=BestEffort
 
 .fi

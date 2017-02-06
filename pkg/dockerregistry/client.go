@@ -49,6 +49,9 @@ type Connection interface {
 	// (if not specified, "latest").
 	// If namespace is not specified, will default to "library" for Docker hub.
 	ImageByTag(namespace, name, tag string) (*Image, error)
+	// ImageManifest will return the raw image manifest and digest by namespace,
+	// name, and tag.
+	ImageManifest(namespace, name, tag string) (string, []byte, error)
 }
 
 // client implements the Client interface
@@ -229,7 +232,8 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 		return nil, err
 	}
 
-	return repo.getImage(c, imageID, "")
+	image, _, err := repo.getImage(c, imageID, "")
+	return image, err
 }
 
 // ImageByTag returns the specified image within the named Docker image repository
@@ -250,7 +254,33 @@ func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
 		return nil, err
 	}
 
-	return repo.getTaggedImage(c, searchTag, tag)
+	image, _, err := repo.getTaggedImage(c, searchTag, tag)
+	return image, err
+}
+
+// ImageManifest returns raw manifest of the specified image within the named Docker image repository
+func (c *connection) ImageManifest(namespace, name, tag string) (string, []byte, error) {
+	if len(name) == 0 {
+		return "", nil, fmt.Errorf("image name must be specified")
+	}
+	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
+		namespace = imageapi.DockerDefaultNamespace
+	}
+	searchTag := tag
+	if len(searchTag) == 0 {
+		searchTag = imageapi.DefaultImageTag
+	}
+
+	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
+	if err != nil {
+		return "", nil, err
+	}
+
+	image, manifest, err := repo.getTaggedImage(c, searchTag, tag)
+	if err != nil {
+		return "", nil, err
+	}
+	return image.Image.ID, manifest, err
 }
 
 // getCachedRepository returns a repository interface matching the provided name and
@@ -449,8 +479,8 @@ func (c *connection) getRepositoryV1(name string) (repository, error) {
 // repository is an interface for retrieving image info from a Docker V1 or V2 repository.
 type repository interface {
 	getTags(c *connection) (map[string]string, error)
-	getTaggedImage(c *connection, tag, userTag string) (*Image, error)
-	getImage(c *connection, image, userTag string) (*Image, error)
+	getTaggedImage(c *connection, tag, userTag string) (*Image, []byte, error)
+	getImage(c *connection, image, userTag string) (*Image, []byte, error)
 }
 
 // v2repository exposes methods for accessing a named Docker V2 repository on a server.
@@ -526,12 +556,12 @@ func (repo *v2repository) getTags(c *connection) (map[string]string, error) {
 	return legacyTags, nil
 }
 
-func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*Image, error) {
+func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*Image, []byte, error) {
 	endpoint := repo.endpoint
 	endpoint.Path = path.Join(endpoint.Path, fmt.Sprintf("/v2/%s/manifests/%s", repo.name, tag))
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, nil, fmt.Errorf("error creating request: %v", err)
 	}
 	addAcceptHeader(req)
 
@@ -540,7 +570,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err))
+		return nil, nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err))
 	}
 	defer resp.Body.Close()
 
@@ -559,11 +589,11 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 			// repo
 			body, _ := ioutil.ReadAll(resp.Body)
 			glog.V(4).Infof("passed valid auth token, but unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
-			return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
+			return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 		}
 		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
 		if err != nil {
-			return nil, fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err)
+			return nil, nil, fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err)
 		}
 		repo.retries = 2
 		repo.token = token
@@ -571,23 +601,23 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 	case code == http.StatusNotFound:
 		body, _ := ioutil.ReadAll(resp.Body)
 		glog.V(4).Infof("unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
-		return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
+		return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
 
-		return nil, fmt.Errorf("error retrieving tagged image: server returned %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("error retrieving tagged image: server returned %d", resp.StatusCode)
 	}
 
 	digest := resp.Header.Get("Docker-Content-Digest")
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
+		return nil, nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
 	}
 	dockerImage, err := repo.unmarshalImageManifest(c, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	image := &Image{
 		Image: *dockerImage,
@@ -596,10 +626,10 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		image.Image.ID = digest
 		image.PullByID = true
 	}
-	return image, nil
+	return image, body, nil
 }
 
-func (repo *v2repository) getImage(c *connection, image, userTag string) (*Image, error) {
+func (repo *v2repository) getImage(c *connection, image, userTag string) (*Image, []byte, error) {
 	return repo.getTaggedImage(c, image, userTag)
 }
 
@@ -721,17 +751,17 @@ func (repo *v1repository) getTags(c *connection) (map[string]string, error) {
 	return tags, nil
 }
 
-func (repo *v1repository) getTaggedImage(c *connection, tag, userTag string) (*Image, error) {
+func (repo *v1repository) getTaggedImage(c *connection, tag, userTag string) (*Image, []byte, error) {
 	endpoint := repo.endpoint
 	endpoint.Path = path.Join(endpoint.Path, fmt.Sprintf("/v1/repositories/%s/tags/%s", repo.name, tag))
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, nil, fmt.Errorf("error creating request: %v", err)
 	}
 	req.Header.Add("Authorization", "Token "+repo.token)
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image id for %s:%s: %v", repo.name, tag, err))
+		return nil, nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image id for %s:%s: %v", repo.name, tag, err))
 	}
 	defer resp.Body.Close()
 
@@ -741,33 +771,33 @@ func (repo *v1repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		// of tags to ids (Pulp/Crane)
 		allTags, err := repo.getTags(c)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if image, ok := allTags[tag]; ok {
 			return repo.getImage(c, image, "")
 		}
 		body, _ := ioutil.ReadAll(resp.Body)
 		glog.V(4).Infof("unable to find v1 tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
-		return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
+		return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
 
-		return nil, fmt.Errorf("error retrieving tag: server returned %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("error retrieving tag: server returned %d", resp.StatusCode)
 	}
 	var imageID string
 	if err := json.NewDecoder(resp.Body).Decode(&imageID); err != nil {
-		return nil, fmt.Errorf("error decoding image id: %v", err)
+		return nil, nil, fmt.Errorf("error decoding image id: %v", err)
 	}
 	return repo.getImage(c, imageID, "")
 }
 
-func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image, error) {
+func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image, []byte, error) {
 	endpoint := repo.endpoint
 	endpoint.Path = path.Join(endpoint.Path, fmt.Sprintf("/v1/images/%s/json", image))
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	if len(repo.token) > 0 {
@@ -775,29 +805,29 @@ func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting json for image %q: %v", image, err))
+		return nil, nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting json for image %q: %v", image, err))
 	}
 	defer resp.Body.Close()
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
-		return nil, NewImageNotFoundError(repo.name, image, userTag)
+		return nil, nil, NewImageNotFoundError(repo.name, image, userTag)
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
 		if body, err := ioutil.ReadAll(resp.Body); err == nil {
 			glog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
 		}
-		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
+		return nil, nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
+		return nil, nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
 	}
 	dockerImage, err := unmarshalDockerImage(body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &Image{Image: *dockerImage}, nil
+	return &Image{Image: *dockerImage}, body, nil
 }
 
 // errBlobNotFound is an error indicating the requested blob does not exist in the repository.

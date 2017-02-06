@@ -136,7 +136,7 @@ func newResourceStore() *resourceStore {
 func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelector *kapi.SecretKeySelector) (string, error) {
 	secret, ok := store.secretStore[secretSelector.Name]
 	if !ok {
-		kubeClient, err := f.Client()
+		kubeClient, err := f.ClientSet()
 		if err != nil {
 			return "", err
 		}
@@ -159,7 +159,7 @@ func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelecto
 func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapSelector *kapi.ConfigMapKeySelector) (string, error) {
 	configMap, ok := store.configMapStore[configMapSelector.Name]
 	if !ok {
-		kubeClient, err := f.Client()
+		kubeClient, err := f.ClientSet()
 		if err != nil {
 			return "", err
 		}
@@ -267,17 +267,17 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 	}
 
 	if len(from) != 0 {
-		mapper, typer := f.Object(false)
+		mapper, typer := f.Object()
 		b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
-			FilenameParam(explicit, false, filenames...).
+			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 			SelectorParam(selector).
 			ResourceTypeOrNameArgs(all, from).
 			Flatten()
 
 		one := false
-		infos, err := b.Do().IntoSingular(&one).Infos()
+		infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 		if err != nil {
 			return err
 		}
@@ -326,17 +326,17 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, false, filenames...).
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(all, resources...).
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
 	if err != nil {
 		return err
 	}

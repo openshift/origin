@@ -13,8 +13,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 
+	"github.com/openshift/origin/pkg/cmd/cli/config"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -123,7 +124,7 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	} else {
 		for _, caFile := range o.APIServerCAFiles {
-			if _, err := kcrypto.CertPoolFromFile(caFile); err != nil {
+			if _, err := cert.NewPool(caFile); err != nil {
 				return fmt.Errorf("certificate-authority must be a valid certificate file: %v", err)
 			}
 		}
@@ -174,6 +175,12 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	credentials[userNick] = &clientcmdapi.AuthInfo{
 		ClientCertificateData: certData,
 		ClientKeyData:         keyData,
+	}
+
+	// normalize the provided server to a format expected by config
+	o.APIServerURL, err = config.NormalizeServerURL(o.APIServerURL)
+	if err != nil {
+		return nil, err
 	}
 
 	clusters := make(map[string]*clientcmdapi.Cluster)

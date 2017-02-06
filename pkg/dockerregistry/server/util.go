@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/manifest/schema2"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -82,6 +80,17 @@ func getBoolOption(envVar string, optionName string, defval bool, options map[st
 	return value.(bool), err
 }
 
+func getStringOption(envVar string, optionName string, defval string, options map[string]interface{}) (string, error) {
+	value, err := getOptionValue(envVar, optionName, defval, options, func(value interface{}) (b interface{}, err error) {
+		s, ok := value.(string)
+		if !ok {
+			return defval, fmt.Errorf("expected string, not %T", value)
+		}
+		return s, err
+	})
+	return value.(string), err
+}
+
 func getDurationOption(envVar string, optionName string, defval time.Duration, options map[string]interface{}) (time.Duration, error) {
 	value, err := getOptionValue(envVar, optionName, defval, options, func(value interface{}) (d interface{}, err error) {
 		s, ok := value.(string)
@@ -97,15 +106,6 @@ func getDurationOption(envVar string, optionName string, defval time.Duration, o
 	})
 
 	return value.(time.Duration), err
-}
-
-// deserializedManifestFromImage converts an Image to a DeserializedManifest.
-func deserializedManifestFromImage(image *imageapi.Image) (*schema2.DeserializedManifest, error) {
-	var manifest schema2.DeserializedManifest
-	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-		return nil, err
-	}
-	return &manifest, nil
 }
 
 func getNamespaceName(resourceName string) (string, string, error) {
@@ -134,4 +134,9 @@ func effectiveCreateOptions(options []distribution.BlobCreateOption) (*distribut
 		}
 	}
 	return opts, nil
+}
+
+func isImageManaged(image *imageapi.Image) bool {
+	managed, ok := image.ObjectMeta.Annotations[imageapi.ManagedByOpenShiftAnnotation]
+	return ok && managed == "true"
 }

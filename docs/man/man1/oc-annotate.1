@@ -28,12 +28,24 @@ Run 'oc types' for a list of valid resources.
     select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to update the annotation
+    Filename, directory, or URL to files identifying the resource to update the annotation
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
     If true, include definitions of new APIs via calls to the API server. [default true]
+
+.PP
+\fB\-\-local\fP=false
+    If true, annotation will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -96,6 +108,10 @@ Run 'oc types' for a list of valid resources.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

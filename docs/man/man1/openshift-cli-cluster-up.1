@@ -31,7 +31,7 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .SH OPTIONS
 .PP
 \fB\-\-create\-machine\fP=false
-    If true, create a Docker machine if one doesn't exist
+    Create a Docker machine if one doesn't exist
 
 .PP
 \fB\-\-docker\-machine\fP=""
@@ -43,7 +43,7 @@ A public hostname can also be specified for the server with the \-\-public\-host
 
 .PP
 \fB\-\-forward\-ports\fP=false
-    If true, use Docker port\-forwarding to communicate with origin container. Requires 'socat' locally.
+    Use Docker port\-forwarding to communicate with origin container. Requires 'socat' locally.
 
 .PP
 \fB\-\-host\-config\-dir\fP="/var/lib/origin/openshift.local.config"
@@ -54,20 +54,40 @@ A public hostname can also be specified for the server with the \-\-public\-host
     Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.
 
 .PP
+\fB\-\-host\-pv\-dir\fP="/var/lib/origin/openshift.local.pv"
+    Directory on host for OpenShift persistent volumes
+
+.PP
 \fB\-\-host\-volumes\-dir\fP="/var/lib/origin/openshift.local.volumes"
     Directory on Docker host for OpenShift volumes
+
+.PP
+\fB\-\-http\-proxy\fP=""
+    HTTP proxy to use for master and builds
+
+.PP
+\fB\-\-https\-proxy\fP=""
+    HTTPS proxy to use for master and builds
 
 .PP
 \fB\-\-image\fP="openshift/origin"
     Specify the images to use for OpenShift
 
 .PP
+\fB\-\-image\-streams\fP="centos7"
+    Specify which image streams to use, centos7|rhel7
+
+.PP
 \fB\-\-logging\fP=false
-    If true, install logging (experimental)
+    Install logging (experimental)
 
 .PP
 \fB\-\-metrics\fP=false
-    If true, install metrics (experimental)
+    Install metrics (experimental)
+
+.PP
+\fB\-\-no\-proxy\fP=[]
+    List of hosts or subnets for which a proxy should not be used
 
 .PP
 \fB\-\-public\-hostname\fP=""
@@ -83,11 +103,11 @@ A public hostname can also be specified for the server with the \-\-public\-host
 
 .PP
 \fB\-\-skip\-registry\-check\fP=false
-    If true, skip Docker daemon registry check
+    Skip Docker daemon registry check
 
 .PP
 \fB\-\-use\-existing\-config\fP=false
-    If true, use existing configuration if present
+    Use existing configuration if present
 
 .PP
 \fB\-\-version\fP=""
@@ -102,6 +122,10 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
@@ -180,6 +204,9 @@ A public hostname can also be specified for the server with the \-\-public\-host
   
   # Use a different set of images
   openshift cli cluster up \-\-image="registry.example.com/origin" \-\-version="v1.1"
+  
+  # Specify which set of image streams to use
+  openshift cli cluster up \-\-image\-streams=centos7
 
 .fi
 .RE

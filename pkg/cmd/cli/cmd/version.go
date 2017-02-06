@@ -11,7 +11,6 @@ import (
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
@@ -34,7 +33,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, *kclient.Client, *kclientset.Clientset, error)
+	Clients      func() (*client.Client, kclientset.Interface, error)
 
 	Timeout time.Duration
 
@@ -73,7 +72,7 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out 
 	}
 
 	o.Clients = f.Clients
-	o.ClientConfig = f.OpenShiftClientConfig
+	o.ClientConfig = f.OpenShiftClientConfig()
 
 	if !o.IsServer {
 		// retrieve config timeout and set cmd option
@@ -137,13 +136,14 @@ func (o VersionOptions) RunVersion() error {
 		}
 		versionHost = clientConfig.Host
 
-		oClient, kClient, _, err := o.Clients()
+		oClient, kClient, err := o.Clients()
 		if err != nil {
 			done <- err
 			return
 		}
 
-		kubeVersionBody, err := kClient.Get().AbsPath("/version").Do().Raw()
+		kRESTClient := kClient.Core().RESTClient()
+		kubeVersionBody, err := kRESTClient.Get().AbsPath("/version").Do().Raw()
 		switch {
 		case err == nil:
 			var kubeServerInfo kubeversion.Info

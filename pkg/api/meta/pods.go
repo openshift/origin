@@ -18,17 +18,19 @@ import (
 // resourcesToCheck is a map of resources and corresponding kinds of things that
 // we want handled in this plugin
 var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
-	kapi.Resource("pods"):                                       kapi.Kind("Pod"),
-	kapi.Resource("podtemplates"):                               kapi.Kind("PodTemplate"),
-	kapi.Resource("replicationcontrollers"):                     kapi.Kind("ReplicationController"),
-	batch.Resource("jobs"):                                      batch.Kind("Job"),
-	batch.Resource("jobtemplates"):                              batch.Kind("JobTemplate"),
+	kapi.Resource("pods"):                   kapi.Kind("Pod"),
+	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
+	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
+	batch.Resource("jobs"):                  batch.Kind("Job"),
+	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
+	// TODO do we still need this or is cronjob sufficient?
 	batch.Resource("scheduledjobs"):                             batch.Kind("ScheduledJob"),
+	batch.Resource("cronjobs"):                                  batch.Kind("CronJob"),
 	extensions.Resource("deployments"):                          extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"):                          extensions.Kind("ReplicaSet"),
 	extensions.Resource("jobs"):                                 extensions.Kind("Job"),
 	extensions.Resource("jobtemplates"):                         extensions.Kind("JobTemplate"),
-	apps.Resource("petsets"):                                    apps.Kind("PetSet"),
+	apps.Resource("statefulsets"):                               apps.Kind("StatefulSet"),
 	deployapi.Resource("deploymentconfigs"):                     deployapi.Kind("DeploymentConfig"),
 	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
 	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
@@ -61,13 +63,13 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *batch.Job:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *batch.ScheduledJob:
+	case *batch.CronJob:
 		return &r.Spec.JobTemplate.Spec.Template.Spec, field.NewPath("spec", "jobTemplate", "spec", "template", "spec"), nil
 	case *batch.JobTemplate:
 		return &r.Template.Spec.Template.Spec, field.NewPath("template", "spec", "template", "spec"), nil
 	case *deployapi.DeploymentConfig:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *apps.PetSet:
+	case *apps.StatefulSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *securityapi.PodSecurityPolicySubjectReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil

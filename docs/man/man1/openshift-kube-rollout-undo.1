@@ -18,8 +18,12 @@ Rollback to a previous rollout.
 
 .SH OPTIONS
 .PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -50,6 +54,10 @@ Rollback to a previous rollout.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -137,7 +145,7 @@ Rollback to a previous rollout.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -145,7 +153,7 @@ Rollback to a previous rollout.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -261,12 +269,14 @@ Rollback to a previous rollout.
 .RS
 
 .nf
-
-# Rollback to the previous deployment
-kubectl rollout undo deployment/abc
-
-# Rollback to deployment revision 3
-kubectl rollout undo deployment/abc \-\-to\-revision=3
+  # Rollback to the previous deployment
+  kubectl rollout undo deployment/abc
+  
+  # Rollback to deployment revision 3
+  kubectl rollout undo deployment/abc \-\-to\-revision=3
+  
+  # Rollback to the previous deployment with dry\-run
+  kubectl rollout undo \-\-dry\-run=true deployment/abc
 
 .fi
 .RE

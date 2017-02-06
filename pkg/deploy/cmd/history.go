@@ -8,7 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -36,10 +36,15 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 	if err != nil {
 		return "", err
 	}
-	history := deploymentList.Items
 
 	if len(deploymentList.Items) == 0 {
 		return "No rollout history found.", nil
+	}
+
+	items := deploymentList.Items
+	history := make([]*kapi.ReplicationController, 0, len(items))
+	for i := range items {
+		history = append(history, &items[i])
 	}
 
 	// Print details of a specific revision
@@ -49,7 +54,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		for i := range history {
 			rc := history[i]
 
-			if deployutil.DeploymentVersionFor(&rc) == revision {
+			if deployutil.DeploymentVersionFor(rc) == revision {
 				desired = rc.Spec.Template
 				break
 			}
@@ -71,8 +76,8 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		for i := range history {
 			rc := history[i]
 
-			rev := deployutil.DeploymentVersionFor(&rc)
-			status := deployutil.DeploymentStatusFor(&rc)
+			rev := deployutil.DeploymentVersionFor(rc)
+			status := deployutil.DeploymentStatusFor(rc)
 			cause := rc.Annotations[deployapi.DeploymentStatusReasonAnnotation]
 			if len(cause) == 0 {
 				cause = "<unknown>"

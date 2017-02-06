@@ -16,15 +16,13 @@ openshift kube rollout pause \- Mark the provided resource as paused
 Mark the provided resource as paused
 
 .PP
-Paused resources will not be reconciled by a controller.
-Use \\"kubectl rollout resume\\" to resume a paused resource.
-Currently only deployments support being paused.
+Paused resources will not be reconciled by a controller. Use \\"kubectl rollout resume \\" to resume a paused resource. Currently only deployments support being paused.
 
 
 .SH OPTIONS
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -51,6 +49,10 @@ Currently only deployments support being paused.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -138,7 +140,7 @@ Currently only deployments support being paused.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -146,7 +148,7 @@ Currently only deployments support being paused.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -262,11 +264,10 @@ Currently only deployments support being paused.
 .RS
 
 .nf
-
-# Mark the nginx deployment as paused. Any current state of
-# the deployment will continue its function, new updates to the deployment will not
-# have an effect as long as the deployment is paused.
-kubectl rollout pause deployment/nginx
+  # Mark the nginx deployment as paused. Any current state of
+  # the deployment will continue its function, new updates to the deployment will not
+  # have an effect as long as the deployment is paused.
+  kubectl rollout pause deployment/nginx
 
 .fi
 .RE

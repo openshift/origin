@@ -21,12 +21,20 @@ JSON and YAML formats are accepted.
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
 .PP
+\fB\-\-edit\fP=false
+    Edit the API resource before creating
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file to use to create the resource
+    Filename, directory, or URL to files to use to create the resource
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -84,6 +92,10 @@ JSON and YAML formats are accepted.
 \fB\-\-validate\fP=false
     If true, use a schema to validate the input before sending it
 
+.PP
+\fB\-\-windows\-line\-endings\fP=false
+    Only relevant if \-\-edit=true. Use Windows line\-endings (default Unix line\-endings)
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -93,6 +105,10 @@ JSON and YAML formats are accepted.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

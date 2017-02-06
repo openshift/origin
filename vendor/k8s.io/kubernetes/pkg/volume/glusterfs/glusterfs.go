@@ -21,6 +21,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	dstrings "strings"
 	"sync"
@@ -63,20 +64,21 @@ var _ volume.Provisioner = &glusterfsVolumeProvisioner{}
 var _ volume.Deleter = &glusterfsVolumeDeleter{}
 
 const (
-	glusterfsPluginName       = "kubernetes.io/glusterfs"
-	volPrefix                 = "vol_"
-	dynamicEpSvcPrefix        = "gluster-dynamic-"
-	replicaCount              = 3
-	durabilityType            = "replicate"
-	secretKeyName             = "key" // key name used in secret
-	annGlusterURL             = "glusterfs.kubernetes.io/url"
-	annGlusterSecretName      = "glusterfs.kubernetes.io/secretname"
-	annGlusterSecretNamespace = "glusterfs.kubernetes.io/secretnamespace"
-	annGlusterUserKey         = "glusterfs.kubernetes.io/userkey"
-	annGlusterUser            = "glusterfs.kubernetes.io/userid"
-	defaultGidMin             = 2000
-	defaultGidMax             = math.MaxInt32
-	absoluteGidMax            = math.MaxInt32
+	glusterfsPluginName         = "kubernetes.io/glusterfs"
+	volPrefix                   = "vol_"
+	dynamicEpSvcPrefix          = "glusterfs-dynamic-"
+	replicaCount                = 3
+	durabilityType              = "replicate"
+	secretKeyName               = "key" // key name used in secret
+	gciGlusterMountBinariesPath = "/sbin/mount.glusterfs"
+	defaultGidMin               = 2000
+	defaultGidMax               = math.MaxInt32
+	// absoluteGidMin/Max are currently the same as the
+	// default values, but they play a different role and
+	// could take a different value. Only thing we need is:
+	// absGidMin <= defGidMin <= defGidMax <= absGidMax
+	absoluteGidMin = 2000
+	absoluteGidMax = math.MaxInt32
 )
 
 func (plugin *glusterfsPlugin) Init(host volume.VolumeHost) error {
@@ -218,6 +220,20 @@ func (b *glusterfsMounter) GetAttributes() volume.Attributes {
 	}
 }
 
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *glusterfsMounter) CanMount() error {
+	exe := exec.New()
+	switch runtime.GOOS {
+	case "linux":
+		if _, err := exe.Command("/bin/ls", gciGlusterMountBinariesPath).CombinedOutput(); err != nil {
+			return fmt.Errorf("Required binary %s is missing", gciGlusterMountBinariesPath)
+		}
+	}
+	return nil
+}
+
 // SetUp attaches the disk and bind mounts to the volume path.
 func (b *glusterfsMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
@@ -240,8 +256,7 @@ func (b *glusterfsMounter) SetUpAt(dir string, fsGroup *int64) error {
 	}
 
 	// Cleanup upon failure.
-	c := &glusterfsUnmounter{b.glusterfs}
-	c.cleanup(dir)
+	volutil.UnmountPath(dir, b.mounter)
 	return err
 }
 
@@ -261,32 +276,7 @@ func (c *glusterfsUnmounter) TearDown() error {
 }
 
 func (c *glusterfsUnmounter) TearDownAt(dir string) error {
-	return c.cleanup(dir)
-}
-
-func (c *glusterfsUnmounter) cleanup(dir string) error {
-	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
-	if err != nil {
-		return fmt.Errorf("glusterfs: Error checking IsLikelyNotMountPoint: %v", err)
-	}
-	if notMnt {
-		return os.RemoveAll(dir)
-	}
-
-	if err := c.mounter.Unmount(dir); err != nil {
-		return fmt.Errorf("glusterfs: Unmounting failed: %v", err)
-	}
-	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
-	if mntErr != nil {
-		return fmt.Errorf("glusterfs: IsLikelyNotMountPoint check failed: %v", mntErr)
-	}
-	if notMnt {
-		if err := os.RemoveAll(dir); err != nil {
-			return fmt.Errorf("glusterfs: RemoveAll failed: %v", err)
-		}
-	}
-
-	return nil
+	return volutil.UnmountPath(dir, c.mounter)
 }
 
 func (b *glusterfsMounter) setUpAtInternal(dir string) error {
@@ -336,7 +326,7 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 	}
 
 	// Failed mount scenario.
-	// Since gluster does not return error text
+	// Since glusterfs does not return error text
 	// it all goes in a log file, we will read the log file
 	logerror := readGlusterLog(log, b.pod.Name)
 	if logerror != nil {
@@ -355,7 +345,7 @@ func getVolumeSource(
 		return spec.PersistentVolume.Spec.Glusterfs, spec.ReadOnly, nil
 	}
 
-	return nil, false, fmt.Errorf("Spec does not reference a Gluster volume type")
+	return nil, false, fmt.Errorf("Spec does not reference a GlusterFS volume type")
 }
 
 func (plugin *glusterfsPlugin) NewProvisioner(options volume.VolumeOptions) (volume.Provisioner, error) {
@@ -380,8 +370,10 @@ type provisioningConfig struct {
 	secretNamespace string
 	secretName      string
 	secretValue     string
+	clusterId       string
 	gidMin          int
 	gidMax          int
+	volumeType      gapi.VolumeDurabilityInfo
 }
 
 type glusterfsVolumeProvisioner struct {
@@ -404,6 +396,19 @@ func convertGid(gidString string) (int, error) {
 	// for 32 bit, we can cast to int without loss:
 	gid := int(gid64)
 	return gid, nil
+}
+
+func convertVolumeParam(volumeString string) (int, error) {
+
+	count, err := strconv.Atoi(volumeString)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse %q", volumeString)
+	}
+
+	if count < 0 {
+		return 0, fmt.Errorf("negative values are not allowed")
+	}
+	return count, nil
 }
 
 func (plugin *glusterfsPlugin) NewDeleter(spec *volume.Spec) (volume.Deleter, error) {
@@ -586,8 +591,8 @@ func (d *glusterfsVolumeDeleter) Delete() error {
 
 	cli := gcli.NewClient(d.url, d.user, d.secretValue)
 	if cli == nil {
-		glog.Errorf("glusterfs: failed to create gluster rest client")
-		return fmt.Errorf("glusterfs: failed to create gluster rest client, REST server authentication failed")
+		glog.Errorf("glusterfs: failed to create glusterfs rest client")
+		return fmt.Errorf("glusterfs: failed to create glusterfs rest client, REST server authentication failed")
 	}
 	err = cli.VolumeDelete(volumeId)
 	if err != nil {
@@ -677,21 +682,26 @@ func (r *glusterfsVolumeProvisioner) Provision() (*api.PersistentVolume, error) 
 }
 
 func (p *glusterfsVolumeProvisioner) CreateVolume(gid int) (r *api.GlusterfsVolumeSource, size int, err error) {
+	var clusterIds []string
 	capacity := p.options.PVC.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)]
 	volSizeBytes := capacity.Value()
 	sz := int(volume.RoundUpSize(volSizeBytes, 1024*1024*1024))
 	glog.V(2).Infof("glusterfs: create volume of size: %d bytes and configuration %+v", volSizeBytes, p.provisioningConfig)
 	if p.url == "" {
 		glog.Errorf("glusterfs : rest server endpoint is empty")
-		return nil, 0, fmt.Errorf("failed to create gluster REST client, REST URL is empty")
+		return nil, 0, fmt.Errorf("failed to create glusterfs REST client, REST URL is empty")
 	}
 	cli := gcli.NewClient(p.url, p.user, p.secretValue)
 	if cli == nil {
-		glog.Errorf("glusterfs: failed to create gluster rest client")
-		return nil, 0, fmt.Errorf("failed to create gluster REST client, REST server authentication failed")
+		glog.Errorf("glusterfs: failed to create glusterfs rest client")
+		return nil, 0, fmt.Errorf("failed to create glusterfs REST client, REST server authentication failed")
+	}
+	if p.provisioningConfig.clusterId != "" {
+		clusterIds = dstrings.Split(p.clusterId, ",")
+		glog.V(4).Infof("glusterfs: provided clusterids: %v", clusterIds)
 	}
 	gid64 := int64(gid)
-	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Gid: gid64, Durability: gapi.VolumeDurabilityInfo{Type: durabilityType, Replicate: gapi.ReplicaDurability{Replica: replicaCount}}}
+	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Clusters: clusterIds, Gid: gid64, Durability: p.volumeType}
 	volume, err := cli.VolumeCreate(volumeReq)
 	if err != nil {
 		glog.Errorf("glusterfs: error creating volume %v ", err)
@@ -832,7 +842,11 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 	var cfg provisioningConfig
 	var err error
 
+	cfg.gidMin = defaultGidMin
+	cfg.gidMax = defaultGidMax
+
 	authEnabled := true
+	parseVolumeType := ""
 	for k, v := range params {
 		switch dstrings.ToLower(k) {
 		case "resturl":
@@ -845,6 +859,10 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 			cfg.secretName = v
 		case "secretnamespace":
 			cfg.secretNamespace = v
+		case "clusterid":
+			if len(v) != 0 {
+				cfg.clusterId = v
+			}
 		case "restauthenabled":
 			authEnabled = dstrings.ToLower(v) == "true"
 		case "gidmin":
@@ -852,13 +870,28 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 			if err != nil {
 				return nil, fmt.Errorf("glusterfs: invalid value %q for volume plugin %s", k, glusterfsPluginName)
 			}
+			if parseGidMin < absoluteGidMin {
+				return nil, fmt.Errorf("glusterfs: gidMin must be >= %v", absoluteGidMin)
+			}
+			if parseGidMin > absoluteGidMax {
+				return nil, fmt.Errorf("glusterfs: gidMin must be <= %v", absoluteGidMax)
+			}
 			cfg.gidMin = parseGidMin
 		case "gidmax":
 			parseGidMax, err := convertGid(v)
 			if err != nil {
 				return nil, fmt.Errorf("glusterfs: invalid value %q for volume plugin %s", k, glusterfsPluginName)
 			}
+			if parseGidMax < absoluteGidMin {
+				return nil, fmt.Errorf("glusterfs: gidMax must be >= %v", absoluteGidMin)
+			}
+			if parseGidMax > absoluteGidMax {
+				return nil, fmt.Errorf("glusterfs: gidMax must be <= %v", absoluteGidMax)
+			}
 			cfg.gidMax = parseGidMax
+		case "volumetype":
+			parseVolumeType = v
+
 		default:
 			return nil, fmt.Errorf("glusterfs: invalid option %q for volume plugin %s", k, glusterfsPluginName)
 		}
@@ -868,6 +901,42 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 		return nil, fmt.Errorf("StorageClass for provisioner %s must contain 'resturl' parameter", glusterfsPluginName)
 	}
 
+	if len(parseVolumeType) == 0 {
+		cfg.volumeType = gapi.VolumeDurabilityInfo{Type: gapi.DurabilityReplicate, Replicate: gapi.ReplicaDurability{Replica: replicaCount}}
+	} else {
+		parseVolumeTypeInfo := dstrings.Split(parseVolumeType, ":")
+
+		switch parseVolumeTypeInfo[0] {
+		case "replicate":
+			if len(parseVolumeTypeInfo) >= 2 {
+				newReplicaCount, err := convertVolumeParam(parseVolumeTypeInfo[1])
+				if err != nil {
+					return nil, fmt.Errorf("error [%v] when parsing value %q of option '%s' for volume plugin %s.", err, parseVolumeTypeInfo[1], "volumetype", glusterfsPluginName)
+				}
+				cfg.volumeType = gapi.VolumeDurabilityInfo{Type: gapi.DurabilityReplicate, Replicate: gapi.ReplicaDurability{Replica: newReplicaCount}}
+			} else {
+				cfg.volumeType = gapi.VolumeDurabilityInfo{Type: gapi.DurabilityReplicate, Replicate: gapi.ReplicaDurability{Replica: replicaCount}}
+			}
+		case "disperse":
+			if len(parseVolumeTypeInfo) >= 3 {
+				newDisperseData, err := convertVolumeParam(parseVolumeTypeInfo[1])
+				if err != nil {
+					return nil, fmt.Errorf("error [%v] when parsing value %q of option '%s' for volume plugin %s.", parseVolumeTypeInfo[1], err, "volumetype", glusterfsPluginName)
+				}
+				newDisperseRedundancy, err := convertVolumeParam(parseVolumeTypeInfo[2])
+				if err != nil {
+					return nil, fmt.Errorf("error [%v] when parsing value %q of option '%s' for volume plugin %s.", err, parseVolumeTypeInfo[2], "volumetype", glusterfsPluginName)
+				}
+				cfg.volumeType = gapi.VolumeDurabilityInfo{Type: gapi.DurabilityEC, Disperse: gapi.DisperseDurability{Data: newDisperseData, Redundancy: newDisperseRedundancy}}
+			} else {
+				return nil, fmt.Errorf("StorageClass for provisioner %q must have data:redundancy count set for disperse volumes in storage class option '%s'", glusterfsPluginName, "volumetype")
+			}
+		case "none":
+			cfg.volumeType = gapi.VolumeDurabilityInfo{Type: gapi.DurabilityDistributeOnly}
+		default:
+			return nil, fmt.Errorf("error parsing value for option 'volumetype' for volume plugin %s", glusterfsPluginName)
+		}
+	}
 	if !authEnabled {
 		cfg.user = ""
 		cfg.secretName = ""
@@ -888,14 +957,6 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 		}
 	} else {
 		cfg.secretValue = cfg.userKey
-	}
-
-	if cfg.gidMin == 0 {
-		cfg.gidMin = defaultGidMin
-	}
-
-	if cfg.gidMax == 0 {
-		cfg.gidMax = defaultGidMax
 	}
 
 	if cfg.gidMin > cfg.gidMax {

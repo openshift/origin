@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/oauth/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -48,8 +48,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(in *ClusterRoleScopeRestriction, out *api.ClusterRoleScopeRestriction, s conversion.Scope) error {
-	out.RoleNames = in.RoleNames
-	out.Namespaces = in.Namespaces
+	out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
+	out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
 	out.AllowEscalation = in.AllowEscalation
 	return nil
 }
@@ -59,8 +59,8 @@ func Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(i
 }
 
 func autoConvert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *api.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
-	out.RoleNames = in.RoleNames
-	out.Namespaces = in.Namespaces
+	out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
+	out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
 	out.AllowEscalation = in.AllowEscalation
 	return nil
 }
@@ -70,15 +70,12 @@ func Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(i
 }
 
 func autoConvert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToken, out *api.OAuthAccessToken, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.ExpiresIn = in.ExpiresIn
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	out.RedirectURI = in.RedirectURI
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
@@ -92,15 +89,12 @@ func Convert_v1_OAuthAccessToken_To_api_OAuthAccessToken(in *OAuthAccessToken, o
 }
 
 func autoConvert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *api.OAuthAccessToken, out *OAuthAccessToken, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.ExpiresIn = in.ExpiresIn
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	out.RedirectURI = in.RedirectURI
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
@@ -114,12 +108,7 @@ func Convert_api_OAuthAccessToken_To_v1_OAuthAccessToken(in *api.OAuthAccessToke
 }
 
 func autoConvert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList(in *OAuthAccessTokenList, out *api.OAuthAccessTokenList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.OAuthAccessToken, len(*in))
@@ -139,12 +128,7 @@ func Convert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList(in *OAuthAccess
 }
 
 func autoConvert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *api.OAuthAccessTokenList, out *OAuthAccessTokenList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthAccessToken, len(*in))
@@ -164,16 +148,12 @@ func Convert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *api.OAuthAc
 }
 
 func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthorizeToken, out *api.OAuthAuthorizeToken, s conversion.Scope) error {
-	SetDefaults_OAuthAuthorizeToken(in)
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.ExpiresIn = in.ExpiresIn
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	out.RedirectURI = in.RedirectURI
 	out.State = in.State
 	out.UserName = in.UserName
@@ -188,15 +168,12 @@ func Convert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthoriz
 }
 
 func autoConvert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *api.OAuthAuthorizeToken, out *OAuthAuthorizeToken, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.ExpiresIn = in.ExpiresIn
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	out.RedirectURI = in.RedirectURI
 	out.State = in.State
 	out.UserName = in.UserName
@@ -211,12 +188,7 @@ func Convert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *api.OAuthAuth
 }
 
 func autoConvert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *OAuthAuthorizeTokenList, out *api.OAuthAuthorizeTokenList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.OAuthAuthorizeToken, len(*in))
@@ -236,12 +208,7 @@ func Convert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *OAuth
 }
 
 func autoConvert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *api.OAuthAuthorizeTokenList, out *OAuthAuthorizeTokenList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthAuthorizeToken, len(*in))
@@ -261,28 +228,15 @@ func Convert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *api.O
 }
 
 func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *api.OAuthClient, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.Secret = in.Secret
-	out.AdditionalSecrets = in.AdditionalSecrets
+	out.AdditionalSecrets = *(*[]string)(unsafe.Pointer(&in.AdditionalSecrets))
 	out.RespondWithChallenges = in.RespondWithChallenges
-	out.RedirectURIs = in.RedirectURIs
+	out.RedirectURIs = *(*[]string)(unsafe.Pointer(&in.RedirectURIs))
 	out.GrantMethod = api.GrantHandlerType(in.GrantMethod)
-	if in.ScopeRestrictions != nil {
-		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
-		*out = make([]api.ScopeRestriction, len(*in))
-		for i := range *in {
-			if err := Convert_v1_ScopeRestriction_To_api_ScopeRestriction(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.ScopeRestrictions = nil
-	}
+	out.ScopeRestrictions = *(*[]api.ScopeRestriction)(unsafe.Pointer(&in.ScopeRestrictions))
 	return nil
 }
 
@@ -291,28 +245,15 @@ func Convert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *api.OAuthCl
 }
 
 func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *api.OAuthClient, out *OAuthClient, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.Secret = in.Secret
-	out.AdditionalSecrets = in.AdditionalSecrets
+	out.AdditionalSecrets = *(*[]string)(unsafe.Pointer(&in.AdditionalSecrets))
 	out.RespondWithChallenges = in.RespondWithChallenges
-	out.RedirectURIs = in.RedirectURIs
+	out.RedirectURIs = *(*[]string)(unsafe.Pointer(&in.RedirectURIs))
 	out.GrantMethod = GrantHandlerType(in.GrantMethod)
-	if in.ScopeRestrictions != nil {
-		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
-		*out = make([]ScopeRestriction, len(*in))
-		for i := range *in {
-			if err := Convert_api_ScopeRestriction_To_v1_ScopeRestriction(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.ScopeRestrictions = nil
-	}
+	out.ScopeRestrictions = *(*[]ScopeRestriction)(unsafe.Pointer(&in.ScopeRestrictions))
 	return nil
 }
 
@@ -321,16 +262,13 @@ func Convert_api_OAuthClient_To_v1_OAuthClient(in *api.OAuthClient, out *OAuthCl
 }
 
 func autoConvert_v1_OAuthClientAuthorization_To_api_OAuthClientAuthorization(in *OAuthClientAuthorization, out *api.OAuthClientAuthorization, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	return nil
 }
 
@@ -339,16 +277,13 @@ func Convert_v1_OAuthClientAuthorization_To_api_OAuthClientAuthorization(in *OAu
 }
 
 func autoConvert_api_OAuthClientAuthorization_To_v1_OAuthClientAuthorization(in *api.OAuthClientAuthorization, out *OAuthClientAuthorization, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.ClientName = in.ClientName
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
-	out.Scopes = in.Scopes
+	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
 	return nil
 }
 
@@ -357,12 +292,7 @@ func Convert_api_OAuthClientAuthorization_To_v1_OAuthClientAuthorization(in *api
 }
 
 func autoConvert_v1_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList(in *OAuthClientAuthorizationList, out *api.OAuthClientAuthorizationList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.OAuthClientAuthorization, len(*in))
@@ -382,12 +312,7 @@ func Convert_v1_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList
 }
 
 func autoConvert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList(in *api.OAuthClientAuthorizationList, out *OAuthClientAuthorizationList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthClientAuthorization, len(*in))
@@ -407,12 +332,7 @@ func Convert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList
 }
 
 func autoConvert_v1_OAuthClientList_To_api_OAuthClientList(in *OAuthClientList, out *api.OAuthClientList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]api.OAuthClient, len(*in))
@@ -432,12 +352,7 @@ func Convert_v1_OAuthClientList_To_api_OAuthClientList(in *OAuthClientList, out 
 }
 
 func autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in *api.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := pkg_api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthClient, len(*in))
@@ -457,9 +372,6 @@ func Convert_api_OAuthClientList_To_v1_OAuthClientList(in *api.OAuthClientList, 
 }
 
 func autoConvert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference(in *OAuthRedirectReference, out *api.OAuthRedirectReference, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -474,9 +386,6 @@ func Convert_v1_OAuthRedirectReference_To_api_OAuthRedirectReference(in *OAuthRe
 }
 
 func autoConvert_api_OAuthRedirectReference_To_v1_OAuthRedirectReference(in *api.OAuthRedirectReference, out *OAuthRedirectReference, s conversion.Scope) error {
-	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
@@ -513,16 +422,8 @@ func Convert_api_RedirectReference_To_v1_RedirectReference(in *api.RedirectRefer
 }
 
 func autoConvert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, out *api.ScopeRestriction, s conversion.Scope) error {
-	out.ExactValues = in.ExactValues
-	if in.ClusterRole != nil {
-		in, out := &in.ClusterRole, &out.ClusterRole
-		*out = new(api.ClusterRoleScopeRestriction)
-		if err := Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ClusterRole = nil
-	}
+	out.ExactValues = *(*[]string)(unsafe.Pointer(&in.ExactValues))
+	out.ClusterRole = (*api.ClusterRoleScopeRestriction)(unsafe.Pointer(in.ClusterRole))
 	return nil
 }
 
@@ -531,16 +432,8 @@ func Convert_v1_ScopeRestriction_To_api_ScopeRestriction(in *ScopeRestriction, o
 }
 
 func autoConvert_api_ScopeRestriction_To_v1_ScopeRestriction(in *api.ScopeRestriction, out *ScopeRestriction, s conversion.Scope) error {
-	out.ExactValues = in.ExactValues
-	if in.ClusterRole != nil {
-		in, out := &in.ClusterRole, &out.ClusterRole
-		*out = new(ClusterRoleScopeRestriction)
-		if err := Convert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ClusterRole = nil
-	}
+	out.ExactValues = *(*[]string)(unsafe.Pointer(&in.ExactValues))
+	out.ClusterRole = (*ClusterRoleScopeRestriction)(unsafe.Pointer(in.ClusterRole))
 	return nil
 }
 

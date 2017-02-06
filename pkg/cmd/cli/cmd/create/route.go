@@ -85,13 +85,14 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	cmd.MarkFlagFilename("key")
 	cmd.Flags().String("ca-cert", "", "Path to a CA certificate file.")
 	cmd.MarkFlagFilename("ca-cert")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
 
 // CreateEdgeRoute implements the behavior to run the create edge route command.
 func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -110,6 +111,11 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
 	if err != nil {
 		return err
+	}
+
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
+	if len(wildcardpolicy) > 0 {
+		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
 	}
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
@@ -148,7 +154,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -198,15 +204,17 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
+	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
 
 // CreatePassthroughRoute implements the behavior to run the create passthrough route command.
 func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -227,10 +235,20 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		return err
 	}
 
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
+	if len(wildcardpolicy) > 0 {
+		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
+	}
+
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 
 	route.Spec.TLS = new(api.TLSConfig)
 	route.Spec.TLS.Termination = api.TLSTerminationPassthrough
+
+	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
+	if len(insecurePolicy) > 0 {
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
 	actualRoute := route
@@ -242,7 +260,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		}
 	}
 
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -293,6 +311,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
+	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
@@ -305,13 +324,14 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	cmd.Flags().String("dest-ca-cert", "", "Path to a CA certificate file, used for securing the connection from the router to the destination.")
 	cmd.MarkFlagRequired("dest-ca-cert")
 	cmd.MarkFlagFilename("dest-ca-cert")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	return cmd
 }
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
 func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, _, err := f.Clients()
+	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -330,6 +350,11 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
 	if err != nil {
 		return err
+	}
+
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
+	if len(wildcardpolicy) > 0 {
+		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
 	}
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
@@ -359,6 +384,11 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	}
 	route.Spec.TLS.DestinationCACertificate = string(destCACert)
 
+	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
+	if len(insecurePolicy) > 0 {
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+	}
+
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
 	actualRoute := route
 
@@ -368,7 +398,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 			return err
 		}
 	}
-	mapper, typer := f.Object(false)
+	mapper, typer := f.Object()
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
@@ -388,7 +418,7 @@ func resolveServiceName(f *clientcmd.Factory, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
 	}
-	mapper, _ := f.Object(false)
+	mapper, _ := f.Object()
 	rType, name, err := cmdutil.ResolveResource(kapi.Resource("services"), resource, mapper)
 	if err != nil {
 		return "", err

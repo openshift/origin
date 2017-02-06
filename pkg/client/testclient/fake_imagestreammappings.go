@@ -1,7 +1,8 @@
 package testclient
 
 import (
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -17,7 +18,9 @@ type FakeImageStreamMappings struct {
 
 var _ client.ImageStreamMappingInterface = &FakeImageStreamMappings{}
 
+var imageStreamMappingsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagestreammappings"}
+
 func (c *FakeImageStreamMappings) Create(inObj *imageapi.ImageStreamMapping) error {
-	_, err := c.Fake.Invokes(ktestclient.NewCreateAction("imagestreammappings", c.Namespace, inObj), inObj)
+	_, err := c.Fake.Invokes(core.NewCreateAction(imageStreamMappingsResource, c.Namespace, inObj), inObj)
 	return err
 }

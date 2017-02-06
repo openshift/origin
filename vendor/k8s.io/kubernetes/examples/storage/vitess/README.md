@@ -1,8 +1,3 @@
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
-
 ## Vitess Example
 
 This example shows how to run a [Vitess](http://vitess.io) cluster in Kubernetes.
@@ -111,13 +106,6 @@ in Vitess. Each page number is assigned to one of the shards using a
 ```
 
 You may also want to remove any firewall rules you created.
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

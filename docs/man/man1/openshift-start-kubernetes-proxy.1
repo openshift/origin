@@ -38,11 +38,19 @@ This command launches an instance of the Kubernetes proxy (kube\-proxy).
 
 .PP
 \fB\-\-conntrack\-max\fP=0
-    Maximum number of NAT connections to track (0 to leave as\-is).
+    Maximum number of NAT connections to track (0 to leave as\-is). This overrides conntrack\-max\-per\-core and conntrack\-min.
 
 .PP
 \fB\-\-conntrack\-max\-per\-core\fP=32768
-    Maximum number of NAT connections to track per CPU core (0 to leave as\-is). This is only considered if conntrack\-max is 0.
+    Maximum number of NAT connections to track per CPU core (0 to leave the limit as\-is and ignore conntrack\-min).
+
+.PP
+\fB\-\-conntrack\-min\fP=131072
+    Minimum number of conntrack entries to allocate, regardless of conntrack\-max\-per\-core (set conntrack\-max\-per\-core=0 to leave the limit as\-is).
+
+.PP
+\fB\-\-conntrack\-tcp\-timeout\-close\-wait\fP=0
+    NAT timeout for TCP connections in the CLOSE\_WAIT state
 
 .PP
 \fB\-\-conntrack\-tcp\-timeout\-established\fP=0
@@ -52,10 +60,12 @@ This command launches an instance of the Kubernetes proxy (kube\-proxy).
 \fB\-\-feature\-gates\fP=
     A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
 AllAlpha=true|false (ALPHA \- default=false)
-AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (BETA \- default=true)
 AppArmor=true|false (BETA \- default=true)
 DynamicKubeletConfig=true|false (ALPHA \- default=false)
 DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
+ExperimentalHostUserNamespaceDefaulting=true|false (ALPHA \- default=false)
+StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 .PP
 \fB\-\-healthz\-bind\-address\fP=127.0.0.1
@@ -74,8 +84,12 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     If using the pure iptables proxy, the bit of the fwmark space to mark packets requiring SNAT with.  Must be within the range [0, 31].
 
 .PP
+\fB\-\-iptables\-min\-sync\-period\fP=0
+    The minimum interval of how often the iptables rules can be refreshed as endpoints and services change (e.g. '5s', '1m', '2h22m').
+
+.PP
 \fB\-\-iptables\-sync\-period\fP=0
-    How often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.
+    The maximum interval of how often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.
 
 .PP
 \fB\-\-kube\-api\-burst\fP=10
@@ -123,6 +137,10 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

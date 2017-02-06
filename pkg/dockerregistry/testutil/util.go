@@ -25,7 +25,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -223,13 +223,13 @@ const SampleImageManifestSchema1 = `{
    ]
 }`
 
-// GetFakeImageGetHandler returns a reaction function for use with wake os client returning one of given image
+// GetFakeImageGetHandler returns a reaction function for use with fake os client returning one of given image
 // objects if found.
-func GetFakeImageGetHandler(t *testing.T, iss ...imageapi.Image) ktestclient.ReactionFunc {
-	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) core.ReactionFunc {
+	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case ktestclient.GetAction:
-			for _, is := range iss {
+		case core.GetAction:
+			for _, is := range imgs {
 				if a.GetName() == is.Name {
 					t.Logf("images get handler: returning image %s", is.Name)
 					return true, &is, nil
@@ -263,6 +263,45 @@ func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageRefere
 				},
 			},
 		},
+	}
+}
+
+// GetFakeImageStreamImageGetHandler returns a reaction function for use
+// with fake os client returning one of given imagestream image objects if found.
+func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, imgs ...imageapi.Image) core.ReactionFunc {
+	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case core.GetAction:
+			for _, is := range imgs {
+				name, imageID, err := imageapi.ParseImageStreamImageName(a.GetName())
+				if err != nil {
+					return true, nil, err
+				}
+
+				if imageID != is.Name {
+					continue
+				}
+
+				t.Logf("imagestreamimage get handler: returning image %s", is.Name)
+
+				isi := imageapi.ImageStreamImage{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace:         is.Namespace,
+						Name:              imageapi.MakeImageStreamImageName(name, imageID),
+						CreationTimestamp: is.ObjectMeta.CreationTimestamp,
+						Annotations:       iss.Annotations,
+					},
+					Image: is,
+				}
+
+				return true, &isi, nil
+			}
+
+			err := kerrors.NewNotFound(kapi.Resource("imagestreamimages"), a.GetName())
+			t.Logf("imagestreamimage get handler: %v", err)
+			return true, nil, err
+		}
+		return false, nil, nil
 	}
 }
 

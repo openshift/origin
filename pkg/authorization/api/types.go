@@ -49,6 +49,7 @@ var DiscoveryRule = PolicyRule{
 		"/api", "/api/*",
 		"/apis", "/apis/*",
 		"/oapi", "/oapi/*",
+		"/swaggerapi", "/swaggerapi/*",
 		"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
 		"/.well-known", "/.well-known/*",
 	),

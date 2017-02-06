@@ -12,11 +12,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
-	"k8s.io/kubernetes/pkg/registry/pod"
+	"k8s.io/kubernetes/pkg/registry/core/pod"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -25,6 +25,11 @@ import (
 	"github.com/openshift/origin/pkg/build/generator"
 	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+)
+
+var (
+	cancelPollInterval = 500 * time.Millisecond
+	cancelPollDuration = 30 * time.Second
 )
 
 // NewStorage creates a new storage object for build generation
@@ -178,24 +183,39 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	}
 	remaining := h.r.Timeout - time.Now().Sub(start)
 
-	latest, ok, err := registry.WaitForRunningBuild(h.r.Watcher, h.ctx, build, remaining)
-	if err != nil {
-		switch {
-		case latest.Status.Phase == buildapi.BuildPhaseError:
-			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
-		case latest.Status.Phase == buildapi.BuildPhaseCancelled:
-			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
-		case err == registry.ErrBuildDeleted:
-			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
-		default:
-			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
+	// Attempt to cancel the build if it did not start running
+	// before we gave up.
+	cancel := true
+	defer func() {
+		if !cancel {
+			return
 		}
-	}
-	if !ok {
-		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
-	}
-	if latest.Status.Phase != buildapi.BuildPhaseRunning {
+		h.cancelBuild(build)
+	}()
+
+	latest, ok, err := registry.WaitForRunningBuild(h.r.Watcher, h.ctx, build, remaining)
+
+	switch {
+	case latest.Status.Phase == buildapi.BuildPhaseError:
+		// don't cancel the build if it reached a terminal state on its own
+		cancel = false
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
+	case latest.Status.Phase == buildapi.BuildPhaseFailed:
+		// don't cancel the build if it reached a terminal state on its own
+		cancel = false
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s failed: %s: %s", build.Name, build.Status.Reason, build.Status.Message))
+	case latest.Status.Phase == buildapi.BuildPhaseCancelled:
+		// don't cancel the build if it reached a terminal state on its own
+		cancel = false
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
+	case latest.Status.Phase != buildapi.BuildPhaseRunning:
 		return nil, errors.NewBadRequest(fmt.Sprintf("cannot upload file to build %s with status %s", build.Name, latest.Status.Phase))
+	case err == registry.ErrBuildDeleted:
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
+	case err != nil:
+		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
+	case !ok:
+		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
 	}
 
 	// The container should be the default build container, so setting it to blank
@@ -226,7 +246,26 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	if err := exec.Stream(streamOptions); err != nil {
 		return nil, errors.NewInternalError(err)
 	}
+	cancel = false
 	return latest, nil
+}
+
+// cancelBuild will mark a build for cancellation unless
+// cancel is false in which case it is a no-op.
+func (h *binaryInstantiateHandler) cancelBuild(build *buildapi.Build) {
+	build.Status.Cancelled = true
+	h.r.Generator.Client.UpdateBuild(h.ctx, build)
+	wait.Poll(cancelPollInterval, cancelPollDuration, func() (bool, error) {
+		build.Status.Cancelled = true
+		err := h.r.Generator.Client.UpdateBuild(h.ctx, build)
+		switch {
+		case err != nil && errors.IsConflict(err):
+			build, err = h.r.Generator.Client.GetBuild(h.ctx, build.Name)
+			return false, err
+		default:
+			return true, err
+		}
+	})
 }
 
 type podGetter struct {

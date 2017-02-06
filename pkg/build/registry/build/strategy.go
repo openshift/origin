@@ -5,12 +5,10 @@ import (
 	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -21,25 +19,6 @@ import (
 type strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
-}
-
-// Decorator is used to compute duration of a build since its not stored in etcd yet
-var Decorator = func(obj runtime.Object) error {
-	build, ok := obj.(*api.Build)
-	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("not a build: %v", build))
-	}
-	if build.Status.StartTimestamp == nil {
-		build.Status.Duration = 0
-	} else {
-		completionTimestamp := build.Status.CompletionTimestamp
-		if completionTimestamp == nil {
-			dummy := unversioned.Now()
-			completionTimestamp = &dummy
-		}
-		build.Status.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
-	}
-	return nil
 }
 
 // Strategy is the default logic that applies when creating and updating Build objects.
@@ -91,8 +70,8 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOpti
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
-	return &generic.SelectionPredicate{
+func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
+	return kstorage.SelectionPredicate{
 		Label: label,
 		Field: field,
 		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
@@ -118,10 +97,12 @@ func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 	revision := newBuild.Spec.Revision
 	message := newBuild.Status.Message
 	reason := newBuild.Status.Reason
+	outputTo := newBuild.Status.Output.To
 	*newBuild = *oldBuild
 	newBuild.Spec.Revision = revision
 	newBuild.Status.Reason = reason
 	newBuild.Status.Message = message
+	newBuild.Status.Output.To = outputTo
 }
 
 // Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank

@@ -51,17 +51,6 @@ os::cmd::expect_success_and_text 'oadm create-key-pair -h' 'Create an RSA key pa
 os::cmd::expect_success_and_text 'oadm create-server-cert -h' 'Create a key and server certificate'
 os::cmd::expect_success_and_text 'oadm create-signer-cert -h' 'Create a self-signed CA'
 
-# check whether product is recognized
-os::cmd::expect_success_and_text 'origin' 'Origin Application Platform'
-os::cmd::expect_success_and_text 'origin' 'Origin distribution of Kubernetes'
-os::cmd::expect_success_and_not_text 'origin' '(Atomic|OpenShift)'
-os::cmd::expect_success_and_text 'openshift' 'OpenShift Application Platform'
-os::cmd::expect_success_and_text 'openshift' 'OpenShift distribution of Kubernetes'
-os::cmd::expect_success_and_not_text 'openshift' 'Atomic'
-os::cmd::expect_success_and_text 'atomic-enterprise' 'Atomic Enterprise Platform'
-os::cmd::expect_success_and_text 'atomic-enterprise' 'Atomic distribution of Kubernetes'
-os::cmd::expect_success_and_not_text 'atomic-enterprise' 'OpenShift'
-
 # help for root commands with --help flag must be consistent
 os::cmd::expect_success_and_text 'openshift --help' 'OpenShift Application Platform'
 os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'

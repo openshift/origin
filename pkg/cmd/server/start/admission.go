@@ -17,6 +17,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy"
+	_ "github.com/openshift/origin/pkg/ingress/admission"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
@@ -33,6 +34,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -58,18 +60,19 @@ var (
 		imageadmission.PluginName,
 		lifecycle.PluginName,
 		"OriginPodNodeEnvironment",
+		"PodNodeSelector",
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
 		"OwnerReferencesPermissionEnforcement",
 		quotaadmission.PluginName,
 		"openshift.io/ClusterResourceQuota",
+		"openshift.io/IngressAdmission",
 	)
 
 	// defaultOffPlugins includes plugins which require explicit configuration to run
@@ -83,6 +86,7 @@ var (
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",
+		"LimitPodHardAntiAffinityTopology",
 	)
 )
 

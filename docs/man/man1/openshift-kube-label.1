@@ -14,12 +14,16 @@ openshift kube label \- Update the labels on a resource
 .SH DESCRIPTION
 .PP
 Update the labels on a resource.
+.IP 
 
-.PP
-A label must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to 63 characters.
-If \-\-overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
-If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
-
+.IP
+\(bu A label must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to  63 characters.
+.br
+.IP
+\(bu If \-\-overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
+.br
+.IP
+\(bu If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
 
 .SH OPTIONS
 .PP
@@ -27,16 +31,24 @@ If \-\-resource\-version is specified, then updates will use this resource versi
     select all resources in the namespace of the specified resource types
 
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to update the labels
+    Filename, directory, or URL to files identifying the resource to update the labels
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
     If true, include definitions of new APIs via calls to the API server. [default true]
+
+.PP
+\fB\-\-local\fP=false
+    If true, label will NOT contact api\-server but run locally.
 
 .PP
 \fB\-\-no\-headers\fP=false
@@ -111,6 +123,10 @@ If \-\-resource\-version is specified, then updates will use this resource versi
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -198,7 +214,7 @@ If \-\-resource\-version is specified, then updates will use this resource versi
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -206,7 +222,7 @@ If \-\-resource\-version is specified, then updates will use this resource versi
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -322,25 +338,24 @@ If \-\-resource\-version is specified, then updates will use this resource versi
 .RS
 
 .nf
-
-# Update pod 'foo' with the label 'unhealthy' and the value 'true'.
-kubectl label pods foo unhealthy=true
-
-# Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
-kubectl label \-\-overwrite pods foo status=unhealthy
-
-# Update all pods in the namespace
-kubectl label pods \-\-all status=unhealthy
-
-# Update a pod identified by the type and name in "pod.json"
-kubectl label \-f pod.json status=unhealthy
-
-# Update pod 'foo' only if the resource is unchanged from version 1.
-kubectl label pods foo status=unhealthy \-\-resource\-version=1
-
-# Update pod 'foo' by removing a label named 'bar' if it exists.
-# Does not require the \-\-overwrite flag.
-kubectl label pods foo bar\-
+  # Update pod 'foo' with the label 'unhealthy' and the value 'true'.
+  kubectl label pods foo unhealthy=true
+  
+  # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
+  kubectl label \-\-overwrite pods foo status=unhealthy
+  
+  # Update all pods in the namespace
+  kubectl label pods \-\-all status=unhealthy
+  
+  # Update a pod identified by the type and name in "pod.json"
+  kubectl label \-f pod.json status=unhealthy
+  
+  # Update pod 'foo' only if the resource is unchanged from version 1.
+  kubectl label pods foo status=unhealthy \-\-resource\-version=1
+  
+  # Update pod 'foo' by removing a label named 'bar' if it exists.
+  # Does not require the \-\-overwrite flag.
+  kubectl label pods foo bar\-
 
 .fi
 .RE

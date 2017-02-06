@@ -17,7 +17,11 @@ import (
 	_ "github.com/openshift/origin/pkg/user/api"
 )
 
-const GroupName = ""
+const (
+	LegacyPrefix = "/osapi" // TODO: make configurable
+	Prefix       = "/oapi"  // TODO: make configurable
+	GroupName    = ""
+)
 
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}

@@ -16,15 +16,13 @@ openshift kube rollout resume \- Resume a paused resource
 Resume a paused resource
 
 .PP
-Paused resources will not be reconciled by a controller. By resuming a
-resource, we allow it to be reconciled again.
-Currently only deployments support being resumed.
+Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again. Currently only deployments support being resumed.
 
 
 .SH OPTIONS
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to get from a server.
+    Filename, directory, or URL to files identifying the resource to get from a server.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
@@ -51,6 +49,10 @@ Currently only deployments support being resumed.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -138,7 +140,7 @@ Currently only deployments support being resumed.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -146,7 +148,7 @@ Currently only deployments support being resumed.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -262,9 +264,8 @@ Currently only deployments support being resumed.
 .RS
 
 .nf
-
-# Resume an already paused deployment
-kubectl rollout resume deployment/nginx
+  # Resume an already paused deployment
+  kubectl rollout resume deployment/nginx
 
 .fi
 .RE

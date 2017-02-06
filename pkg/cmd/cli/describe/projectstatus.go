@@ -14,10 +14,9 @@ import (
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
+	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -32,7 +31,6 @@ import (
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	loginerrors "github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
-	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deployanalysis "github.com/openshift/origin/pkg/deploy/graph/analysis"
@@ -42,6 +40,7 @@ import (
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routeanalysis "github.com/openshift/origin/pkg/route/graph/analysis"
@@ -54,17 +53,17 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	// TODO internalclientset: get rid of oldClient after next rebase
-	OldK    kclient.Interface
 	K       kclientset.Interface
 	C       client.Interface
 	Server  string
 	Suggest bool
 
 	// root command used when calling this command
-	CommandBaseName string
+	CommandBaseName    string
+	RequestedNamespace string
+	CurrentNamespace   string
 
-	Config *restclient.Config
+	CanRequestProjects bool
 
 	LogsCommandName             string
 	SecurityPolicyCommandFormat string
@@ -81,7 +80,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&pvcLoader{namespace: namespace, lister: d.K.Core()},
 		&rcLoader{namespace: namespace, lister: d.K.Core()},
 		&podLoader{namespace: namespace, lister: d.K.Core()},
-		&petsetLoader{namespace: namespace, lister: d.OldK.Apps()},
+		&statefulSetLoader{namespace: namespace, lister: d.K.Apps()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
@@ -159,12 +158,11 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	if !allNamespaces {
 		p, err := d.C.Projects().Get(namespace)
 		if err != nil {
-			// a forbidden error here means that the user has not created
-			// any projects, and is therefore using a default namespace
-			// that they cannot list projects from.
-			if kapierrors.IsForbidden(err) {
-				canRequestProjects, _ := loginutil.CanRequestProjects(d.Config, namespace)
-				return loginerrors.NoProjectsExistMessage(canRequestProjects, d.CommandBaseName), nil
+			// a forbidden error here (without a --namespace value) means that
+			// the user has not created any projects, and is therefore using a
+			// default namespace that they cannot list projects from.
+			if kapierrors.IsForbidden(err) && len(d.RequestedNamespace) == 0 && len(d.CurrentNamespace) == 0 {
+				return loginerrors.NoProjectsExistMessage(d.CanRequestProjects, d.CommandBaseName), nil
 			}
 			if !kapierrors.IsNotFound(err) {
 				return "", err
@@ -221,8 +219,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				})...)
 			}
 
-			for _, node := range service.FulfillingPetSets {
-				printLines(out, indent, 1, describePetSetInServiceGroup(local, node)...)
+			for _, node := range service.FulfillingStatefulSets {
+				printLines(out, indent, 1, describeStatefulSetInServiceGroup(local, node)...)
 			}
 
 		rcNode:
@@ -244,7 +242,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 					}
 				}
 				// TODO: collapse into FulfillingControllers
-				for _, covered := range service.FulfillingPetSets {
+				for _, covered := range service.FulfillingStatefulSets {
 					if g.Edge(node, covered) != nil {
 						continue pod
 					}
@@ -494,8 +492,8 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 		return namespaceNameWithType("rc", t.ReplicationController.Name, t.ReplicationController.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.HorizontalPodAutoscalerNode:
 		return namespaceNameWithType("hpa", t.HorizontalPodAutoscaler.Name, t.HorizontalPodAutoscaler.Namespace, f.currentNamespace, f.hideNamespace)
-	case *kubegraph.PetSetNode:
-		return namespaceNameWithType("petset", t.PetSet.Name, t.PetSet.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.StatefulSetNode:
+		return namespaceNameWithType("statefulset", t.StatefulSet.Name, t.StatefulSet.Namespace, f.currentNamespace, f.hideNamespace)
 
 	case *imagegraph.ImageStreamNode:
 		return namespaceNameWithType("is", t.ImageStream.Name, t.ImageStream.Namespace, f.currentNamespace, f.hideNamespace)
@@ -523,9 +521,9 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 
 func describeProjectAndServer(f formatter, project *projectapi.Project, server string) string {
 	if len(server) == 0 {
-		return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+		return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
 	}
-	return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+	return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
 
 }
 
@@ -569,13 +567,13 @@ func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentCo
 	return lines
 }
 
-func describePetSetInServiceGroup(f formatter, node *kubegraph.PetSetNode) []string {
+func describeStatefulSetInServiceGroup(f formatter, node *kubegraph.StatefulSetNode) []string {
 	images := []string{}
-	for _, container := range node.PetSet.Spec.Template.Spec.Containers {
+	for _, container := range node.StatefulSet.Spec.Template.Spec.Containers {
 		images = append(images, container.Image)
 	}
 
-	return []string{fmt.Sprintf("%s manages %s, %s", f.ResourceName(node), strings.Join(images, ", "), describePetSetStatus(node.PetSet))}
+	return []string{fmt.Sprintf("%s manages %s, %s", f.ResourceName(node), strings.Join(images, ", "), describeStatefulSetStatus(node.StatefulSet))}
 }
 
 func describeRCInServiceGroup(f formatter, rcNode *kubegraph.ReplicationControllerNode) []string {
@@ -1084,7 +1082,7 @@ func describeDeploymentStatus(rc *kapi.ReplicationController, first, test bool, 
 	}
 }
 
-func describePetSetStatus(p *kapps.PetSet) string {
+func describeStatefulSetStatus(p *kapps.StatefulSet) string {
 	timeAt := strings.ToLower(formatRelativeTime(p.CreationTimestamp.Time))
 	// TODO: Replace first argument in describePodSummaryInline with ReadyReplicas once that's a thing for pet sets.
 	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Status.Replicas), int32(p.Spec.Replicas), false, 0))
@@ -1318,14 +1316,14 @@ func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 	return nil
 }
 
-type petsetLoader struct {
+type statefulSetLoader struct {
 	namespace string
-	lister    kclient.PetSetNamespacer
-	items     []kapps.PetSet
+	lister    kappsclient.StatefulSetsGetter
+	items     []kapps.StatefulSet
 }
 
-func (l *petsetLoader) Load() error {
-	list, err := l.lister.PetSets(l.namespace).List(kapi.ListOptions{})
+func (l *statefulSetLoader) Load() error {
+	list, err := l.lister.StatefulSets(l.namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1334,9 +1332,9 @@ func (l *petsetLoader) Load() error {
 	return nil
 }
 
-func (l *petsetLoader) AddToGraph(g osgraph.Graph) error {
+func (l *statefulSetLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
-		kubegraph.EnsurePetSetNode(g, &l.items[i])
+		kubegraph.EnsureStatefulSetNode(g, &l.items[i])
 	}
 
 	return nil

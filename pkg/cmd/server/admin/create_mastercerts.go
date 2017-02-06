@@ -14,7 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/cert"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -37,7 +37,6 @@ var masterCertLong = templates.LongDesc(`
 	    openshift.local.config/master/
 		    ca.{crt,key,serial.txt}
 		    master.server.{crt,key}
-			openshift-router.{crt,key,kubeconfig}
 			admin.{crt,key,kubeconfig}
 			...
 
@@ -170,7 +169,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 	}
 
 	for _, caFile := range o.APIServerCAFiles {
-		if _, err := kcrypto.CertPoolFromFile(caFile); err != nil {
+		if _, err := cert.NewPool(caFile); err != nil {
 			return fmt.Errorf("certificate authority must be a valid certificate file: %v", err)
 		}
 	}

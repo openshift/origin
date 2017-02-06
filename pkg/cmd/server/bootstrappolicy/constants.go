@@ -12,13 +12,9 @@ const (
 	BuilderServiceAccountName  = "builder"
 	DeployerServiceAccountName = "deployer"
 
-	MasterUnqualifiedUsername   = "openshift-master"
-	RouterUnqualifiedUsername   = "openshift-router"
-	RegistryUnqualifiedUsername = "openshift-registry"
+	MasterUnqualifiedUsername = "openshift-master"
 
 	MasterUsername      = "system:" + MasterUnqualifiedUsername
-	RouterUsername      = "system:" + RouterUnqualifiedUsername
-	RegistryUsername    = "system:" + RegistryUnqualifiedUsername
 	SystemAdminUsername = "system:admin"
 
 	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
@@ -45,8 +41,6 @@ const (
 	NodesGroup              = "system:nodes"
 	NodeAdminsGroup         = "system:node-admins"
 	NodeReadersGroup        = "system:node-readers"
-	RouterGroup             = "system:routers"
-	RegistryGroup           = "system:registries"
 )
 
 // Roles

@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -131,7 +131,7 @@ func getNodeIP(node *kapi.Node) (string, error) {
 func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi.Node) {
 	knode := node
 	cleared := false
-	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 
 		if knode != node {
@@ -164,7 +164,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	RunEventQueue(master.kClient.CoreClient, Nodes, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient.CoreClient.RESTClient(), Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
@@ -231,13 +231,13 @@ func (master *OsdnMaster) watchSubnets() {
 					return nil
 				}
 				var hsAnnotations map[string]string
-				if vnid, ok := hs.Annotations[osapi.FixedVnidHost]; ok {
+				if vnid, ok := hs.Annotations[osapi.FixedVNIDHostAnnotation]; ok {
 					vnidInt, err := strconv.Atoi(vnid)
 					if err == nil && vnidInt >= 0 && uint32(vnidInt) <= osapi.MaxVNID {
 						hsAnnotations = make(map[string]string)
-						hsAnnotations[osapi.FixedVnidHost] = strconv.Itoa(vnidInt)
+						hsAnnotations[osapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
 					} else {
-						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVnidHost)
+						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVNIDHostAnnotation)
 					}
 				}
 				err = master.addNode(name, hostIP, hsAnnotations)
@@ -260,9 +260,28 @@ func (master *OsdnMaster) watchSubnets() {
 	})
 }
 
+type hostSubnetMap map[string]*osapi.HostSubnet
+
+func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
+	otx := plugin.ovs.NewTransaction()
+
+	// Build the list of all nodes for multicast forwarding
+	tun_dsts := ""
+	for _, subnet := range subnets {
+		if subnet.HostIP != plugin.localIP {
+			tun_dsts += fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP)
+		}
+	}
+	otx.AddFlow("table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
+
+	if err := otx.EndTransaction(); err != nil {
+		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
+	}
+}
+
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
-	subnets := make(map[string]*osapi.HostSubnet)
+	subnets := make(hostSubnetMap)
 	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
@@ -292,6 +311,8 @@ func (node *OsdnNode) watchSubnets() {
 			delete(subnets, string(hs.UID))
 			node.DeleteHostSubnetRules(hs)
 		}
+		// Update multicast rules after all other changes have been processed
+		node.updateVXLANMulticastRules(subnets)
 		return nil
 	})
 }

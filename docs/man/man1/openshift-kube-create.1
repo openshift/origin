@@ -21,12 +21,20 @@ JSON and YAML formats are accepted.
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-dry\-run\fP=false
     If true, only print the object that would be sent, without sending it.
 
 .PP
+\fB\-\-edit\fP=false
+    Edit the API resource before creating
+
+.PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file to use to create the resource
+    Filename, directory, or URL to files to use to create the resource
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -84,6 +92,10 @@ JSON and YAML formats are accepted.
 \fB\-\-validate\fP=true
     If true, use a schema to validate the input before sending it
 
+.PP
+\fB\-\-windows\-line\-endings\fP=false
+    Only relevant if \-\-edit=true. Use Windows line\-endings (default Unix line\-endings)
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -105,6 +117,10 @@ JSON and YAML formats are accepted.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -192,7 +208,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -200,7 +216,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -316,12 +332,14 @@ JSON and YAML formats are accepted.
 .RS
 
 .nf
-
-# Create a pod using the data in pod.json.
-kubectl create \-f ./pod.json
-
-# Create a pod based on the JSON passed into stdin.
-cat pod.json | kubectl create \-f \-
+  # Create a pod using the data in pod.json.
+  kubectl create \-f ./pod.json
+  
+  # Create a pod based on the JSON passed into stdin.
+  cat pod.json | kubectl create \-f \-
+  
+  # Edit the data in docker\-registry.yaml in JSON using the v1 API format then create the resource using the edited data.
+  kubectl create \-f docker\-registry.yaml \-\-edit \-\-output\-version=v1 \-o json
 
 .fi
 .RE

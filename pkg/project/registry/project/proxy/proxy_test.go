@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -72,7 +73,7 @@ func TestCreateInvalidProject(t *testing.T) {
 	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
 	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{
-			Annotations: map[string]string{"openshift.io/display-name": "h\t\ni"},
+			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
 		},
 	})
 	if !errors.IsInvalid(err) {

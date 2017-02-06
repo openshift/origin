@@ -67,7 +67,9 @@ func (gverbose) V(level int) Logger {
 }
 
 func (g gverbose) Infof(format string, args ...interface{}) {
-	g.Verbose.InfoDepth(2, fmt.Sprintf(format, args...))
+	if g.Verbose {
+		glog.InfoDepth(2, fmt.Sprintf(format, args...))
+	}
 }
 
 // file logs the provided messages at level or below to the writer, or delegates

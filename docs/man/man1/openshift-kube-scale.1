@@ -17,9 +17,9 @@ Set a new size for a Deployment, ReplicaSet, Replication Controller, or Job.
 
 .PP
 Scale also allows users to specify one or more preconditions for the scale action.
-If \-\-current\-replicas or \-\-resource\-version is specified, it is validated before the
-scale is attempted, and it is guaranteed that the precondition holds true when the
-scale is sent to the server.
+
+.PP
+If \-\-current\-replicas or \-\-resource\-version is specified, it is validated before the scale is attempted, and it is guaranteed that the precondition holds true when the scale is sent to the server.
 
 
 .SH OPTIONS
@@ -29,7 +29,7 @@ scale is sent to the server.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to a file identifying the resource to set a new size
+    Filename, directory, or URL to files identifying the resource to set a new size
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -80,6 +80,10 @@ scale is sent to the server.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -167,7 +171,7 @@ scale is sent to the server.
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -175,7 +179,7 @@ scale is sent to the server.
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -291,21 +295,20 @@ scale is sent to the server.
 .RS
 
 .nf
-
-# Scale a replicaset named 'foo' to 3.
-kubectl scale \-\-replicas=3 rs/foo
-
-# Scale a resource identified by type and name specified in "foo.yaml" to 3.
-kubectl scale \-\-replicas=3 \-f foo.yaml
-
-# If the deployment named mysql's current size is 2, scale mysql to 3.
-kubectl scale \-\-current\-replicas=2 \-\-replicas=3 deployment/mysql
-
-# Scale multiple replication controllers.
-kubectl scale \-\-replicas=5 rc/foo rc/bar rc/baz
-
-# Scale job named 'cron' to 3.
-kubectl scale \-\-replicas=3 job/cron
+  # Scale a replicaset named 'foo' to 3.
+  kubectl scale \-\-replicas=3 rs/foo
+  
+  # Scale a resource identified by type and name specified in "foo.yaml" to 3.
+  kubectl scale \-\-replicas=3 \-f foo.yaml
+  
+  # If the deployment named mysql's current size is 2, scale mysql to 3.
+  kubectl scale \-\-current\-replicas=2 \-\-replicas=3 deployment/mysql
+  
+  # Scale multiple replication controllers.
+  kubectl scale \-\-replicas=5 rc/foo rc/bar rc/baz
+  
+  # Scale job named 'cron' to 3.
+  kubectl scale \-\-replicas=3 job/cron
 
 .fi
 .RE

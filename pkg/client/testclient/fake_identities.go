@@ -2,7 +2,8 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -13,8 +14,10 @@ type FakeIdentities struct {
 	Fake *Fake
 }
 
+var identitiesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "identities"}
+
 func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("identities", name), &userapi.Identity{})
+	obj, err := c.Fake.Invokes(core.NewRootGetAction(identitiesResource, name), &userapi.Identity{})
 	if obj == nil {
 		return nil, err
 	}
@@ -23,7 +26,7 @@ func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
 }
 
 func (c *FakeIdentities) List(opts kapi.ListOptions) (*userapi.IdentityList, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("identities", opts), &userapi.IdentityList{})
+	obj, err := c.Fake.Invokes(core.NewRootListAction(identitiesResource, opts), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -32,7 +35,7 @@ func (c *FakeIdentities) List(opts kapi.ListOptions) (*userapi.IdentityList, err
 }
 
 func (c *FakeIdentities) Create(inObj *userapi.Identity) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("identities", inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewRootCreateAction(identitiesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -41,7 +44,7 @@ func (c *FakeIdentities) Create(inObj *userapi.Identity) (*userapi.Identity, err
 }
 
 func (c *FakeIdentities) Update(inObj *userapi.Identity) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("identities", inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(identitiesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -50,6 +53,6 @@ func (c *FakeIdentities) Update(inObj *userapi.Identity) (*userapi.Identity, err
 }
 
 func (c *FakeIdentities) Delete(name string) error {
-	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("identities", name), nil)
+	_, err := c.Fake.Invokes(core.NewRootDeleteAction(identitiesResource, name), nil)
 	return err
 }

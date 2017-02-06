@@ -8,7 +8,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -47,7 +47,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 }
 
 func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	policyList, err := m.PolicyStorage.ListPolicies(ctx, options)
+	policyList, err := m.PolicyStorage.ListPolicies(ctx, &kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 
 // Delete(ctx api.Context, name string) (runtime.Object, error)
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 		if kapierrors.IsNotFound(err) {
 			return kapierrors.NewNotFound(m.Resource, name)
@@ -137,7 +137,7 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 		}
 	}
 
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		policy, err := m.EnsurePolicy(ctx)
 		if err != nil {
 			return err
@@ -170,7 +170,7 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, name string, objInfo rest.
 	var roleConflicted = false
 
 	// Retry if the policy update hits a conflict
-	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 		if kapierrors.IsNotFound(err) {
 			return kapierrors.NewNotFound(m.Resource, name)

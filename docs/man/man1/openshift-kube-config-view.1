@@ -21,6 +21,10 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
 \fB\-\-flatten\fP=false
     flatten the resulting kubeconfig file into self\-contained output (useful for creating portable kubeconfig files)
 
@@ -89,6 +93,10 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -176,7 +184,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
+    InfluxDB database name which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-hawkular\fP=""
@@ -184,7 +192,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
+    Address of InfluxDB which contains metrics required by InitialResources
 
 .PP
 \fB\-\-ir\-namespace\-only\fP=false
@@ -300,12 +308,11 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 .RS
 
 .nf
-
-# Show Merged kubeconfig settings.
-kubectl config view
-
-# Get the password for the e2e user
-kubectl config view \-o jsonpath='{.users[?(@.name == "e2e")].user.password}'
+  # Show Merged kubeconfig settings.
+  kubectl config view
+  
+  # Get the password for the e2e user
+  kubectl config view \-o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 
 .fi
 .RE

@@ -3,6 +3,8 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/route/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 
@@ -17,25 +19,25 @@ type RouteInterface interface {
 	Create(*v1.Route) (*v1.Route, error)
 	Update(*v1.Route) (*v1.Route, error)
 	UpdateStatus(*v1.Route) (*v1.Route, error)
-	Delete(name string, options *api.DeleteOptions) error
-	DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error
+	Delete(name string, options *api_v1.DeleteOptions) error
+	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
 	Get(name string) (*v1.Route, error)
-	List(opts api.ListOptions) (*v1.RouteList, error)
-	Watch(opts api.ListOptions) (watch.Interface, error)
+	List(opts api_v1.ListOptions) (*v1.RouteList, error)
+	Watch(opts api_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Route, err error)
 	RouteExpansion
 }
 
 // routes implements RouteInterface
 type routes struct {
-	client *CoreClient
+	client restclient.Interface
 	ns     string
 }
 
 // newRoutes returns a Routes
-func newRoutes(c *CoreClient, namespace string) *routes {
+func newRoutes(c *CoreV1Client, namespace string) *routes {
 	return &routes{
-		client: c,
+		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
@@ -79,7 +81,7 @@ func (c *routes) UpdateStatus(route *v1.Route) (result *v1.Route, err error) {
 }
 
 // Delete takes name of the route and deletes it. Returns an error if one occurs.
-func (c *routes) Delete(name string, options *api.DeleteOptions) error {
+func (c *routes) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
@@ -90,7 +92,7 @@ func (c *routes) Delete(name string, options *api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *routes) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *routes) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
@@ -113,7 +115,7 @@ func (c *routes) Get(name string) (result *v1.Route, err error) {
 }
 
 // List takes label and field selectors, and returns the list of Routes that match those selectors.
-func (c *routes) List(opts api.ListOptions) (result *v1.RouteList, err error) {
+func (c *routes) List(opts api_v1.ListOptions) (result *v1.RouteList, err error) {
 	result = &v1.RouteList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -125,7 +127,7 @@ func (c *routes) List(opts api.ListOptions) (result *v1.RouteList, err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *routes) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
 		Namespace(c.ns).

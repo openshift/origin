@@ -20,7 +20,7 @@ This command launches an instance of the Kubernetes apiserver (kube-apiserver).`
 
 // NewAPIServerCommand provides a CLI handler for the 'apiserver' command
 func NewAPIServerCommand(name, fullName string, out io.Writer) *cobra.Command {
-	apiServerOptions := apiserveroptions.NewAPIServer()
+	apiServerOptions := apiserveroptions.NewServerRunOptions()
 
 	cmd := &cobra.Command{
 		Use:   name,

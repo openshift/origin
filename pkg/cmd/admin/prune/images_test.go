@@ -29,7 +29,7 @@ func TestImagePruneNamespaced(t *testing.T) {
 	}
 	for _, a := range osFake.Actions() {
 		// images are non-namespaced
-		if a.GetResource() == "images" {
+		if a.GetResource().Resource == "images" {
 			continue
 		}
 		if a.GetNamespace() != "foo" {

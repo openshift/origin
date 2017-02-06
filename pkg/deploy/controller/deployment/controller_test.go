@@ -14,7 +14,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -30,8 +29,8 @@ var (
 )
 
 func okDeploymentController(client kclientset.Interface, deployment *kapi.ReplicationController, hookPodNames []string, related bool, deployerStatus kapi.PodPhase) *DeploymentController {
-	rcInformer := framework.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.ReplicationController{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	podInformer := framework.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.Pod{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	rcInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.ReplicationController{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	podInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.Pod{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 
 	c := NewDeploymentController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env, codec)
 
@@ -39,13 +38,13 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	if deployment != nil {
 		pod := deployerPod(deployment, "", related)
 		pod.Status.Phase = deployerStatus
-		c.podStore.Add(pod)
+		c.podStore.Indexer.Add(pod)
 	}
 
 	// hook pods
 	for _, name := range hookPodNames {
 		pod := deployerPod(deployment, name, related)
-		c.podStore.Add(pod)
+		c.podStore.Indexer.Add(pod)
 	}
 
 	return c
@@ -580,7 +579,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
 	pod := deployerPod(deployment, "", true)
 	pod.Labels[deployapi.DeployerPodForDeploymentLabel] = "unrelated"
-	controller.podStore.Update(pod)
+	controller.podStore.Indexer.Update(pod)
 
 	if err := controller.Handle(deployment); err != nil {
 		t.Fatalf("unexpected error: %v", err)

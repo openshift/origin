@@ -182,29 +182,29 @@ func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autosc
 	).(*HorizontalPodAutoscalerNode)
 }
 
-func EnsurePetSetNode(g osgraph.MutableUniqueGraph, petset *kapps.PetSet) *PetSetNode {
-	nodeName := PetSetNodeName(petset)
+func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kapps.StatefulSet) *StatefulSetNode {
+	nodeName := StatefulSetNodeName(statefulSet)
 	node := osgraph.EnsureUnique(g,
 		nodeName,
 		func(node osgraph.Node) graph.Node {
-			return &PetSetNode{node, petset}
+			return &StatefulSetNode{node, statefulSet}
 		},
-	).(*PetSetNode)
+	).(*StatefulSetNode)
 
-	specNode := EnsurePetSetSpecNode(g, &petset.Spec, petset.Namespace, nodeName)
+	specNode := EnsureStatefulSetSpecNode(g, &statefulSet.Spec, statefulSet.Namespace, nodeName)
 	g.AddEdge(node, specNode, osgraph.ContainsEdgeKind)
 
 	return node
 }
 
-func EnsurePetSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.PetSetSpec, namespace string, ownerName osgraph.UniqueName) *PetSetSpecNode {
-	specName := PetSetSpecNodeName(spec, ownerName)
+func EnsureStatefulSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.StatefulSetSpec, namespace string, ownerName osgraph.UniqueName) *StatefulSetSpecNode {
+	specName := StatefulSetSpecNodeName(spec, ownerName)
 	specNode := osgraph.EnsureUnique(g,
 		specName,
 		func(node osgraph.Node) graph.Node {
-			return &PetSetSpecNode{node, spec, namespace, ownerName}
+			return &StatefulSetSpecNode{node, spec, namespace, ownerName}
 		},
-	).(*PetSetSpecNode)
+	).(*StatefulSetSpecNode)
 
 	ptSpecNode := EnsurePodTemplateSpecNode(g, &spec.Template, namespace, specName)
 	g.AddEdge(specNode, ptSpecNode, osgraph.ContainsEdgeKind)
