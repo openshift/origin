@@ -27,7 +27,7 @@ type Image struct {
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
 	// DockerImageMetadata contains metadata about this image
-	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" protobuf:"bytes,3,opt,name=dockerImageMetadata"`
+	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" patchStrategy:"replace" protobuf:"bytes,3,opt,name=dockerImageMetadata"`
 	// DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" protobuf:"bytes,4,opt,name=dockerImageMetadataVersion"`
 	// DockerImageManifest is the raw JSON of the manifest
