@@ -7,7 +7,6 @@
 FROM centos:centos7
 
 RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar centos-release-openshift-origin \
-      socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof ceph-common" && \
       socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof device-mapper-persistent-data ceph-comon" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
