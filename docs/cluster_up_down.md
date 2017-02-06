@@ -59,9 +59,9 @@ a URL to access the management console for your cluster.
    In RHEL and Fedora, you can create a new firewalld zone to enable this access:
    - Determine the Docker bridge network container subnet:
      ```
-     docker network inspect bridge -f "{{range .IPAM.Config }}{{ .Subnet }}{{end}}"
+     docker network inspect -f "{{range .IPAM.Config }}{{ .Subnet }}{{end}}" bridge
      ```
-     You will should get a subnet like: ```172.17.0.0/16```
+     You should get a subnet like: ```172.17.0.0/16```
 
    - Create a new firewalld zone for the subnet and grant it access to the API and DNS ports:
      ```
