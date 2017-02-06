@@ -182,3 +182,10 @@ func (a *jenkinsBootstrapper) SetRESTClientConfig(restClientConfig restclient.Co
 func (a *jenkinsBootstrapper) SetOpenshiftClient(oclient client.Interface) {
 	a.openshiftClient = oclient
 }
+
+func (a *jenkinsBootstrapper) Validate() error {
+	if a.openshiftClient == nil {
+		return fmt.Errorf("missing openshiftClient")
+	}
+	return nil
+}

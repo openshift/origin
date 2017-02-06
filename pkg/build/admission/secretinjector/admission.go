@@ -7,15 +7,17 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	authclient "github.com/openshift/origin/pkg/auth/client"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/util/urlpattern"
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
+
+	authclient "github.com/openshift/origin/pkg/auth/client"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 
 func init() {
@@ -30,6 +32,8 @@ type secretInjector struct {
 	*admission.Handler
 	restClientConfig restclient.Config
 }
+
+var _ = oadmission.WantsRESTClientConfig(&secretInjector{})
 
 func (si *secretInjector) Admit(attr admission.Attributes) (err error) {
 	bc, ok := attr.GetObject().(*buildapi.BuildConfig)
@@ -103,4 +107,8 @@ func (si *secretInjector) Admit(attr admission.Attributes) (err error) {
 
 func (si *secretInjector) SetRESTClientConfig(restClientConfig restclient.Config) {
 	si.restClientConfig = restClientConfig
+}
+
+func (si *secretInjector) Validate() error {
+	return nil
 }

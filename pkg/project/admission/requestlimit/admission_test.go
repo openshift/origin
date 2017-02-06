@@ -277,7 +277,7 @@ func TestAdmit(t *testing.T) {
 		}
 		reqLimit.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
 		reqLimit.(oadmission.WantsProjectCache).SetProjectCache(pCache)
-		if err = reqLimit.(oadmission.Validator).Validate(); err != nil {
+		if err = reqLimit.(admission.Validator).Validate(); err != nil {
 			t.Fatalf("validation error: %v", err)
 		}
 		err = reqLimit.Admit(admission.NewAttributesRecord(

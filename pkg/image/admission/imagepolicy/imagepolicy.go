@@ -64,7 +64,6 @@ type imagePolicyPlugin struct {
 }
 
 var _ = oadmission.WantsOpenshiftClient(&imagePolicyPlugin{})
-var _ = oadmission.Validator(&imagePolicyPlugin{})
 var _ = oadmission.WantsDefaultRegistryFunc(&imagePolicyPlugin{})
 
 type integratedRegistryMatcher struct {

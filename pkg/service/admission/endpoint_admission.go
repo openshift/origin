@@ -58,6 +58,13 @@ func (r *restrictedEndpointsAdmission) SetAuthorizer(a authorizer.Authorizer) {
 	r.authorizer = a
 }
 
+func (r *restrictedEndpointsAdmission) Validate() error {
+	if r.authorizer == nil {
+		return fmt.Errorf("missing authorizer")
+	}
+	return nil
+}
+
 func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) string {
 	for _, subset := range ep.Subsets {
 		for _, addr := range subset.Addresses {

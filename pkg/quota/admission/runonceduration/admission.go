@@ -68,7 +68,6 @@ type runOnceDuration struct {
 }
 
 var _ = oadmission.WantsProjectCache(&runOnceDuration{})
-var _ = oadmission.Validator(&runOnceDuration{})
 
 func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
 	switch {
