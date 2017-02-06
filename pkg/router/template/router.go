@@ -598,14 +598,24 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 	// The router config trumps what the route asks for/wants.
 	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
 
+	// Get the service units and count the active ones (with a non-zero weight)
+	serviceUnits := getServiceUnits(route)
+	activeServiceUnits := 0
+	for _, weight := range serviceUnits {
+		if weight > 0 {
+			activeServiceUnits++
+		}
+	}
+
 	config := ServiceAliasConfig{
-		Name:             route.Name,
-		Namespace:        route.Namespace,
-		Host:             route.Spec.Host,
-		Path:             route.Spec.Path,
-		IsWildcard:       wildcard,
-		Annotations:      route.Annotations,
-		ServiceUnitNames: getServiceUnits(route),
+		Name:               route.Name,
+		Namespace:          route.Namespace,
+		Host:               route.Spec.Host,
+		Path:               route.Spec.Path,
+		IsWildcard:         wildcard,
+		Annotations:        route.Annotations,
+		ServiceUnitNames:   serviceUnits,
+		ActiveServiceUnits: activeServiceUnits,
 	}
 
 	if route.Spec.Port != nil {

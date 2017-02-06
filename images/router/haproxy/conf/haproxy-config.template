@@ -255,7 +255,7 @@ backend be_edge_http_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
@@ -340,7 +340,7 @@ backend be_tcp_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_TCP_BALANCE_SCHEME" "")) }}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}source{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
@@ -407,7 +407,7 @@ backend be_secure_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
