@@ -187,7 +187,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
 	cmd.Flags().StringVarP(&addOpts.DefaultMode, "default-mode", "", "", "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
-	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source and/or volume mount for the given resource")
+	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source with the provided name and/or volume mount for the given resource")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
 	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
 	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
@@ -728,8 +728,10 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 		Name: v.Name,
 	}
 	setSource := true
+	vNameFound := false
 	for i, vol := range spec.Volumes {
 		if v.Name == vol.Name {
+			vNameFound = true
 			if !opts.Overwrite {
 				return fmt.Errorf("volume '%s' already exists. Use --overwrite to replace", v.Name)
 			}
@@ -740,6 +742,12 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 			spec.Volumes = append(spec.Volumes[:i], spec.Volumes[i+1:]...)
 			break
 		}
+	}
+
+	// if --overwrite was passed, but volume did not previously
+	// exist, log a warning that no volumes were overwritten
+	if !vNameFound && opts.Overwrite && len(v.Output) == 0 {
+		fmt.Fprintf(v.Err, "warning: volume %q did not previously exist and was not overriden. A new volume with this name has been created instead.", v.Name)
 	}
 
 	if setSource {
