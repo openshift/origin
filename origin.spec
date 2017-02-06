@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9c523f9064ddcac9525998674c8904261071ee73
+%global commit f63b5b307442e61af044c8d8bc06ebb1ee2c7886
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.15+9c523f9-6 OS_GIT_COMMIT=9c523f9 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.16+f63b5b3-36 OS_GIT_COMMIT=f63b5b3 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.16
+Version:        3.5.0.17
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,44 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Feb 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.17
+- Add standalone heapster as an example (ccoleman@redhat.com)
+- Provide an all in one prometheus template example (ccoleman@redhat.com)
+- use oc logs to get log (li.guangxu@zte.com.cn)
+- bump(github.com/openshift/origin-web-console):
+  aac7d52b246630d467ea19881b724a34d1ed08e2 (dmcphers+openshiftbot@redhat.com)
+- updated man page (jtanenba@redhat.com)
+- Used `os::log` functions better in protobuf script (skuznets@redhat.com)
+- UPSTREAM: 40859: PV binding: send an event when there are no PVs to bind
+  (jsafrane@redhat.com)
+- Fix matchPattern log level to be like debug messages - otherwise all the
+  other messages logged at loglevel 4 get overwhelmed. (smitram@gmail.com)
+- Disable the admission plugin LimitPodHardAntiAffinityTopology by default.
+  (avagarwa@redhat.com)
+- Attempt at resolving
+  github.com/openshift/origin/pkg/cmd/server/origin.TestAdmissionPluginNames
+  github.com/openshift/origin/pkg/cmd/server/start.TestAdmissionOnOffCoverage
+  (jtanenba@redhat.com)
+- Changed using a map to k8s.io/apimachinery/pkg/utils/sets and added a test
+  for adding a hostname (jtanenba@redhat.com)
+- addresses Ben's initial comments (jtanenba@redhat.com)
+- took out the decription in api/v1/types.go because govet.sh complained
+  (jtanenba@redhat.com)
+- added swagger docs and verified the gofmt (jtanenba@redhat.com)
+- updated generated docs (jtanenba@redhat.com)
+- add admission controller to restrict updates to ingresss objects hostname
+  field. (jtanenba@redhat.com)
+- changes to the cli for creating routes (jtanenba@redhat.com)
+- router: provide better indication of failure in ingress test
+  (marun@redhat.com)
+- update docs/tests (sjenning@redhat.com)
+- adding option '--insecure-policy' for passthrough and reencrypt route for CLI
+  (jtanenba@redhat.com)
+- Changed the router to default to roundrobin with multiple services
+  (bbennett@redhat.com)
+- UPSTREAM: <carry>: kubelet: change image-gc-high-threshold below docker
+  dm.min_free_space (sjenning@redhat.com)
+
 * Fri Feb 03 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.16
 - Revert "Merge pull request #12751 from stevekuznetsov/skuznets/path-updates"
   (tdawson@redhat.com)
