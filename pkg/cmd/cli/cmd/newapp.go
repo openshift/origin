@@ -216,6 +216,10 @@ func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Fact
 
 	o.Config.DryRun = o.Action.DryRun
 
+	if o.Action.Output == "wide" {
+		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
+	}
+
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.TemplateParameters, "--param")
@@ -517,7 +521,6 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	if config.BinaryBuild && config.Strategy == generate.StrategyPipeline {
 		return kcmdutil.UsageError(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
 	}
-
 	return nil
 }
 
