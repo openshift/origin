@@ -656,6 +656,13 @@ EOF
 }
 readonly -f os::build::save_version_vars
 
+# os::build::get_product_vars exports variables that we expect to change
+# depending on the distribution of Origin
+function os::build::get_product_vars() {
+  export OS_BUILD_LDFLAGS_IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+  export OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS="${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS:-"centos7"}"
+}
+
 # golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
 function os::build::ldflag() {
   local key=${1}
@@ -680,11 +687,14 @@ function os::build::ldflags() {
   cd "${OS_ROOT}"
 
   os::build::get_version_vars
+  os::build::get_product_vars
 
   local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
   declare -a ldflags=()
 
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
