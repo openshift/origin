@@ -9,7 +9,8 @@ metadata:
     iconClass: icon-cogs
     tags: "monitoring,prometheus,time-series"
 parameters:
-- name: NAMESPACE
+- description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
+  name: NAMESPACE
   value: kube-system
 objects:
 - apiVersion: v1
@@ -39,7 +40,7 @@ objects:
   spec:
     ports:
     - name: prometheus
-      port: 9090
+      port: 80
       protocol: TCP
       targetPort: 9090
     selector:
@@ -72,7 +73,7 @@ objects:
           imagePullPolicy: IfNotPresent
           name: prometheus
           ports:
-          - containerPort: 9090
+          - containerPort: 8080
             name: web
           volumeMounts:
           - mountPath: /etc/prometheus
