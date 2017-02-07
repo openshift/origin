@@ -79,7 +79,6 @@ func shouldCheckResource(resource unversioned.GroupResource, kind unversioned.Gr
 	return true, nil
 }
 
-var _ = oadmission.Validator(&podNodeConstraints{})
 var _ = oadmission.WantsAuthorizer(&podNodeConstraints{})
 
 func readConfig(reader io.Reader) (*api.PodNodeConstraintsConfig, error) {

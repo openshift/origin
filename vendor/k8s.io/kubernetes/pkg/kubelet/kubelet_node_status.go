@@ -295,9 +295,7 @@ func (kl *Kubelet) initialNode() (*api.Node, error) {
 			}
 		}
 	}
-	if err := kl.setNodeStatus(node); err != nil {
-		return nil, err
-	}
+	kl.setNodeStatus(node)
 
 	return node, nil
 }
@@ -321,7 +319,7 @@ func (kl *Kubelet) syncNodeStatus() {
 // updateNodeStatus updates node status to master with retries.
 func (kl *Kubelet) updateNodeStatus() error {
 	for i := 0; i < nodeStatusUpdateRetry; i++ {
-		if err := kl.tryUpdateNodeStatus(); err != nil {
+		if err := kl.tryUpdateNodeStatus(i); err != nil {
 			glog.Errorf("Error updating node status, will retry: %v", err)
 		} else {
 			return nil
@@ -332,20 +330,23 @@ func (kl *Kubelet) updateNodeStatus() error {
 
 // tryUpdateNodeStatus tries to update node status to master. If ReconcileCBR0
 // is set, this function will also confirm that cbr0 is configured correctly.
-func (kl *Kubelet) tryUpdateNodeStatus() error {
+func (kl *Kubelet) tryUpdateNodeStatus(tryNumber int) error {
 	// In large clusters, GET and PUT operations on Node objects coming
 	// from here are the majority of load on apiserver and etcd.
 	// To reduce the load on etcd, we are serving GET operations from
 	// apiserver cache (the data might be slightly delayed but it doesn't
 	// seem to cause more confilict - the delays are pretty small).
+	// If it result in a conflict, all retries are served directly from etcd.
 	// TODO: Currently apiserver doesn't support serving GET operations
 	// from its cache. Thus we are hacking it by issuing LIST with
 	// field selector for the name of the node (field selectors with
 	// specified name are handled efficiently by apiserver). Once
 	// apiserver supports GET from cache, change it here.
 	opts := api.ListOptions{
-		FieldSelector:   fields.Set{"metadata.name": string(kl.nodeName)}.AsSelector(),
-		ResourceVersion: "0",
+		FieldSelector: fields.Set{"metadata.name": string(kl.nodeName)}.AsSelector(),
+	}
+	if tryNumber == 0 {
+		opts.ResourceVersion = "0"
 	}
 	nodes, err := kl.kubeClient.Core().Nodes().List(opts)
 	if err != nil {
@@ -358,9 +359,7 @@ func (kl *Kubelet) tryUpdateNodeStatus() error {
 
 	kl.updatePodCIDR(node.Spec.PodCIDR)
 
-	if err := kl.setNodeStatus(node); err != nil {
-		return err
-	}
+	kl.setNodeStatus(node)
 	// Update the current status on the API server
 	updatedNode, err := kl.kubeClient.Core().Nodes().UpdateStatus(node)
 	// If update finishes sucessfully, mark the volumeInUse as reportedInUse to indicate
@@ -884,13 +883,12 @@ func (kl *Kubelet) setNodeVolumesInUseStatus(node *api.Node) {
 // any fields that are currently set.
 // TODO(madhusudancs): Simplify the logic for setting node conditions and
 // refactor the node status condition code out to a different file.
-func (kl *Kubelet) setNodeStatus(node *api.Node) error {
+func (kl *Kubelet) setNodeStatus(node *api.Node) {
 	for _, f := range kl.setNodeStatusFuncs {
 		if err := f(node); err != nil {
-			return err
+			glog.Warningf("Failed to set some node status fields: %s", err)
 		}
 	}
-	return nil
 }
 
 // defaultNodeStatusFuncs is a factory that generates the default set of

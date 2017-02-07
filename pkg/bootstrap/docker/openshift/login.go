@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -31,6 +32,32 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 	}
 	for k := range adminConfig.AuthInfos {
 		adminConfig.AuthInfos[k].LocationOfOrigin = ""
+	}
+	serverFound := false
+	for k := range adminConfig.Clusters {
+		adminConfig.Clusters[k].LocationOfOrigin = ""
+		if adminConfig.Clusters[k].Server == server {
+			serverFound = true
+		}
+	}
+	if !serverFound {
+		// Create a server entry and admin context for
+		// local cluster
+		for k := range adminConfig.Clusters {
+			localCluster := *adminConfig.Clusters[k]
+			localCluster.Server = server
+			adminConfig.Clusters["local-cluster"] = &localCluster
+			for u := range adminConfig.AuthInfos {
+				if strings.HasPrefix(u, "system:admin") {
+					context := kclientcmdapi.NewContext()
+					context.Cluster = "local-cluster"
+					context.AuthInfo = u
+					context.Namespace = "default"
+					adminConfig.Contexts["default/local-cluster/system:admin"] = context
+				}
+			}
+			break
+		}
 	}
 	newConfig, err := config.MergeConfig(existingConfig, *adminConfig)
 	if err != nil {

@@ -234,7 +234,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 		deleted := false
 		timeout := false
 		var lastPod *api.Pod
-		timer := time.After(30 * time.Second)
+		timer := time.After(2 * time.Minute)
 		for !deleted && !timeout {
 			select {
 			case event, _ := <-w.ResultChan():

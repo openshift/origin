@@ -22,8 +22,9 @@
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "keybase" : "${SECRET_KEY_BASE}"
       }
     },
     {
@@ -97,7 +98,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "perl:5.20"
+              "name": "perl:5.24"
             },
             "env":  [
               {
@@ -207,7 +208,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -216,7 +217,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -226,7 +227,12 @@
                   },
                   {
                     "name": "SECRET_KEY_BASE",
-                    "value": "${SECRET_KEY_BASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "keybase"
+                      }
+                    }
                   },
                   {
                     "name": "PERL_APACHE2_RELOAD",
@@ -290,7 +296,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mysql:5.6"
+                "name": "mysql:5.7"
               }
             }
           },
@@ -351,7 +357,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -360,7 +366,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },

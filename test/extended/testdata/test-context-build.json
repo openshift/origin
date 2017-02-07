@@ -1,0 +1,155 @@
+{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dockercontext"
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri":"https://github.com/sclorg/s2i-ruby-container"
+          },
+          "contextDir": "2.3"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "s2icontext"
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri":"https://github.com/sclorg/s2i-ruby-container"
+          },
+          "contextDir": "2.3/test/puma-test-app"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-23-centos7"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "test:latest"
+          }
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "test"
+      }
+    },    
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "frontend"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "test:latest"
+              }
+            }
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name":"frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "frontend",
+                "image": "",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

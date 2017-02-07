@@ -22,6 +22,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
 )
 
@@ -207,16 +208,18 @@ func matchValues(s string, allowedValues ...string) bool {
 }
 
 func matchPattern(pattern, s string) bool {
-	glog.V(4).Infof("matchPattern called with %s and %s", pattern, s)
+	glog.V(5).Infof("matchPattern called with %s and %s", pattern, s)
 	status, err := regexp.MatchString("^("+pattern+")$", s)
 	if err == nil {
-		glog.V(4).Infof("matchPattern returning status: %v", status)
+		glog.V(5).Infof("matchPattern returning status: %v", status)
 		return status
 	}
 	glog.Errorf("Error with regex pattern in call to matchPattern: %v", err)
 	return false
 }
 
+// genSubdomainWildcardRegexp is now legacy and around for backward
+// compatibility and allows old templates to continue running.
 // Generate a regular expression to match wildcard hosts (and paths if any)
 // for a [sub]domain.
 func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
@@ -232,6 +235,22 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 	}
 
 	return fmt.Sprintf("^[^\\.]*%s(|/.*)$", expr)
+}
+
+// Generate a regular expression to match route hosts (and paths if any).
+func generateRouteRegexp(hostname, path string, wildcard bool) string {
+	hostRE := regexp.QuoteMeta(hostname)
+	if wildcard {
+		subdomain := routeapi.GetDomainForHost(hostname)
+		if len(subdomain) == 0 {
+			glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
+		} else {
+			subdomainRE := regexp.QuoteMeta(fmt.Sprintf(".%s", subdomain))
+			hostRE = fmt.Sprintf("[^\\.]*%s", subdomainRE)
+		}
+	}
+
+	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, regexp.QuoteMeta(path))
 }
 
 // Generates the host name to use for serving/certificate matching.
@@ -558,6 +577,8 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 // it is not safe to use / in names of router config files.  This allows templates to use this key without having
 // to create (or provide) a separate method
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
+	name := controller.GetSafeRouteName(route.Name)
+
 	// Namespace can contain dashes, so ${namespace}-${name} is not
 	// unique, use an underscore instead - ${namespace}_${name} akin
 	// to the way domain keys/service records use it ala
@@ -566,7 +587,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	// is just used for the key name and not for the record/route name.
 	// This also helps the use case for the key used as a router config
 	// file name.
-	return fmt.Sprintf("%s_%s", route.Namespace, route.Name)
+	return fmt.Sprintf("%s_%s", route.Namespace, name)
 }
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.

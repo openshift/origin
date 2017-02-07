@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 )
 
 // ServiceServingCertUpdateController is responsible for synchronizing Service objects stored
@@ -219,7 +220,8 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 		return nil
 	}
 
-	if !sc.requiresRegeneration(obj.(*kapi.Secret)) {
+	regenerate, service := sc.requiresRegeneration(obj.(*kapi.Secret))
+	if !regenerate {
 		return nil
 	}
 
@@ -230,10 +232,14 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	}
 	secret := t.(*kapi.Secret)
 
-	dnsName := secret.Annotations[ServiceNameAnnotation] + "." + secret.Namespace + ".svc"
+	dnsName := service.Name + "." + secret.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix
 	certificateLifetime := 365 * 2 // 2 years
-	servingCert, err := sc.ca.MakeServerCert(sets.NewString(dnsName, fqDNSName), certificateLifetime)
+	servingCert, err := sc.ca.MakeServerCert(
+		sets.NewString(dnsName, fqDNSName),
+		certificateLifetime,
+		extensions.ServiceServerCertificateExtension(service),
+	)
 	if err != nil {
 		return err
 	}
@@ -247,39 +253,42 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	return err
 }
 
-func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *kapi.Secret) bool {
+func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *kapi.Secret) (bool, *kapi.Service) {
 	serviceName := secret.Annotations[ServiceNameAnnotation]
 	if len(serviceName) == 0 {
-		return false
+		return false, nil
 	}
 
 	serviceObj, exists, err := sc.serviceCache.GetByKey(secret.Namespace + "/" + serviceName)
 	if err != nil {
-		return false
+		return false, nil
 	}
 	if !exists {
-		return false
+		return false, nil
 	}
 
 	service := serviceObj.(*kapi.Service)
+	if service.Annotations[ServingCertSecretAnnotation] != secret.Name {
+		return false, nil
+	}
 	if secret.Annotations[ServiceUIDAnnotation] != string(service.UID) {
-		return false
+		return false, nil
 	}
 
 	// if we don't have the annotation for expiry, just go ahead and regenerate.  It's easier than writing a
 	// secondary logic flow that creates the expiry dates
 	expiryString, ok := secret.Annotations[ServingCertExpiryAnnotation]
 	if !ok {
-		return true
+		return true, service
 	}
 	expiry, err := time.Parse(time.RFC3339, expiryString)
 	if err != nil {
-		return true
+		return true, service
 	}
 
 	if time.Now().Add(sc.minTimeLeftForCert).After(expiry) {
-		return true
+		return true, service
 	}
 
-	return false
+	return false, nil
 }

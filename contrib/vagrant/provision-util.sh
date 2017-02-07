@@ -187,10 +187,12 @@ os::provision::get-network-plugin() {
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
   local default_plugin="${subnet_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
+          "${plugin}" != "${networkpolicy_plugin}" &&
           "${plugin}" != "cni" ]]; then
     # Disable output when being called from the dind management script
     # since it may be doing something other than launching a cluster.

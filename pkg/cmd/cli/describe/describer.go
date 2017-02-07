@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -139,6 +140,10 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
+		if build.Status.Output.To != nil && len(build.Status.Output.To.ImageDigest) > 0 {
+			formatString(out, "Image Digest", build.Status.Output.To.ImageDigest)
+		}
+
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
@@ -164,9 +169,11 @@ func describeBuildDuration(build *buildapi.Build) string {
 		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp != nil && build.Status.CompletionTimestamp == nil {
 		// time a still running build has been running in a pod
-		return fmt.Sprintf("running for %v", build.Status.Duration)
+		duration := unversioned.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+		return fmt.Sprintf("running for %v", duration)
 	}
-	return fmt.Sprintf("%v", build.Status.Duration)
+	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	return fmt.Sprintf("%v", duration)
 }
 
 // BuildConfigDescriber generates information about a buildConfig
@@ -695,6 +702,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
+		var hostName string
 		formatMeta(out, route.ObjectMeta)
 		if len(route.Spec.Host) > 0 {
 			formatString(out, "Requested Host", route.Spec.Host)
@@ -702,11 +710,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 				if route.Spec.Host != ingress.Host {
 					continue
 				}
+				hostName = ""
+				if len(ingress.RouterCanonicalHostname) > 0 {
+					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+				}
 				switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 				case kapi.ConditionTrue:
-					fmt.Fprintf(out, "\t  exposed on router %s %s ago\n", ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case kapi.ConditionFalse:
-					fmt.Fprintf(out, "\t  rejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+					fmt.Fprintf(out, "\t  rejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 					if len(condition.Message) > 0 {
 						fmt.Fprintf(out, "\t    %s\n", condition.Message)
 					}
@@ -720,11 +732,15 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 			if route.Spec.Host == ingress.Host {
 				continue
 			}
+			hostName = ""
+			if len(ingress.RouterCanonicalHostname) > 0 {
+				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
+			}
 			switch status, condition := routeapi.IngressConditionStatus(&ingress, routeapi.RouteAdmitted); status {
 			case kapi.ConditionTrue:
-				fmt.Fprintf(out, "\t%s exposed on router %s %s ago\n", ingress.Host, ingress.RouterName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case kapi.ConditionFalse:
-				fmt.Fprintf(out, "\trejected by router %s: %s (%s ago)\n", ingress.RouterName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
+				fmt.Fprintf(out, "\trejected by router %s: %s%s (%s ago)\n", ingress.RouterName, hostName, condition.Reason, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				if len(condition.Message) > 0 {
 					fmt.Fprintf(out, "\t  %s\n", condition.Message)
 				}
@@ -827,8 +843,8 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.Descri
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
-		formatString(out, "Display Name", project.Annotations[projectapi.ProjectDisplayName])
-		formatString(out, "Description", project.Annotations[projectapi.ProjectDescription])
+		formatString(out, "Display Name", project.Annotations[oapi.OpenShiftDisplayName])
+		formatString(out, "Description", project.Annotations[oapi.OpenShiftDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
 		if len(resourceQuotaList.Items) == 0 {

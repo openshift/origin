@@ -137,7 +137,7 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 		certPool := x509.NewCertPool()
 		if certs, err := cmdutil.CertificatesFromPEM([]byte(tlsConfig.CACertificate)); err != nil {
 			errmsg := fmt.Sprintf("failed to parse CA certificate: %v", err)
-			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "<ca certificate data>", errmsg))
+			result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "redacted ca certificate data", errmsg))
 		} else {
 			for _, cert := range certs {
 				certPool.AddCert(cert)
@@ -153,7 +153,7 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 
 	if len(tlsConfig.Certificate) > 0 {
 		if _, err := validateCertificatePEM(tlsConfig.Certificate, verifyOptions); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "<certificate data>", err.Error()))
+			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted certificate data", err.Error()))
 		}
 
 		certKeyBytes := []byte{}
@@ -164,14 +164,14 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 		}
 
 		if _, err := tls.X509KeyPair(certKeyBytes, certKeyBytes); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "<key data>", err.Error()))
+			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
 		}
 	}
 
 	if len(tlsConfig.DestinationCACertificate) > 0 {
 		if _, err := cmdutil.CertificatesFromPEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
 			errmsg := fmt.Sprintf("failed to parse destination CA certificate: %v", err)
-			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "<destination ca certificate data>", errmsg))
+			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", errmsg))
 		}
 	}
 
@@ -224,25 +224,25 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 	//passthrough term should not specify any cert
 	case routeapi.TLSTerminationPassthrough:
 		if len(tls.Certificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("certificate"), "<certificate data>", "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("certificate"), "redacted certificate data", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.Key) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("key"), "<key data>", "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("key"), "redacted key data", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.CACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("caCertificate"), "<ca certificate data>", "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("caCertificate"), "redacted ca certificate data", "passthrough termination does not support certificates"))
 		}
 
 		if len(tls.DestinationCACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "<destination ca certificate data>", "passthrough termination does not support certificates"))
+			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", "passthrough termination does not support certificates"))
 		}
 	// edge cert should only specify cert, key, and cacert but those certs
 	// may not be specified if the route is a wildcard route
 	case routeapi.TLSTerminationEdge:
 		if len(tls.DestinationCACertificate) > 0 {
-			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "<destination ca certificate data>", "edge termination does not support destination certificates"))
+			result = append(result, field.Invalid(fldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", "edge termination does not support destination certificates"))
 		}
 	default:
 		validValues := []string{string(routeapi.TLSTerminationEdge), string(routeapi.TLSTerminationPassthrough), string(routeapi.TLSTerminationReencrypt)}

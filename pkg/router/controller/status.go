@@ -19,11 +19,17 @@ import (
 	"github.com/openshift/origin/pkg/router"
 )
 
+// RejectionRecorder is an object capable of recording why a route was rejected
+type RejectionRecorder interface {
+	RecordRouteRejection(route *routeapi.Route, reason, message string)
+}
+
 // StatusAdmitter ensures routes added to the plugin have status set.
 type StatusAdmitter struct {
-	plugin     router.Plugin
-	client     client.RoutesNamespacer
-	routerName string
+	plugin                  router.Plugin
+	client                  client.RoutesNamespacer
+	routerName              string
+	routerCanonicalHostname string
 
 	contentionInterval time.Duration
 	expected           *lru.Cache
@@ -33,12 +39,13 @@ type StatusAdmitter struct {
 // route has a status field set that matches this router. The admitter manages
 // an LRU of recently seen conflicting updates to handle when two router processes
 // with differing configurations are writing updates at the same time.
-func NewStatusAdmitter(plugin router.Plugin, client client.RoutesNamespacer, name string) *StatusAdmitter {
+func NewStatusAdmitter(plugin router.Plugin, client client.RoutesNamespacer, name, hostName string) *StatusAdmitter {
 	expected, _ := lru.New(1024)
 	return &StatusAdmitter{
-		plugin:     plugin,
-		client:     client,
-		routerName: name,
+		plugin:                  plugin,
+		client:                  client,
+		routerName:              name,
+		routerCanonicalHostname: hostName,
 
 		contentionInterval: 1 * time.Minute,
 		expected:           expected,
@@ -59,7 +66,7 @@ var nowFn = getRfc3339Timestamp
 // to the array. If there are multiple entries with that name, the first one is
 // returned and later ones are removed. Changed is returned as true if any part of the
 // array is altered.
-func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteIngress, changed bool) {
+func findOrCreateIngress(route *routeapi.Route, name, hostName string) (_ *routeapi.RouteIngress, changed bool) {
 	position := -1
 	updated := make([]routeapi.RouteIngress, 0, len(route.Status.Ingress))
 	for i := range route.Status.Ingress {
@@ -73,15 +80,16 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 			continue
 		}
 		updated = append(updated, *existing)
-		position = i
+		position = len(updated) - 1
 	}
 	switch {
 	case position == -1:
 		position = len(route.Status.Ingress)
 		route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{
-			RouterName:     name,
-			Host:           route.Spec.Host,
-			WildcardPolicy: route.Spec.WildcardPolicy,
+			RouterName:              name,
+			Host:                    route.Spec.Host,
+			WildcardPolicy:          route.Spec.WildcardPolicy,
+			RouterCanonicalHostname: hostName,
 		})
 		changed = true
 	case changed:
@@ -94,6 +102,10 @@ func findOrCreateIngress(route *routeapi.Route, name string) (_ *routeapi.RouteI
 	}
 	if ingress.WildcardPolicy != route.Spec.WildcardPolicy {
 		ingress.WildcardPolicy = route.Spec.WildcardPolicy
+		changed = true
+	}
+	if ingress.RouterCanonicalHostname != hostName {
+		ingress.RouterCanonicalHostname = hostName
 		changed = true
 	}
 	return ingress, changed
@@ -136,7 +148,7 @@ func ingressConditionTouched(ingress *routeapi.RouteIngress) *unversioned.Time {
 
 // recordIngressConditionFailure updates the matching ingress on the route (or adds a new one) with the specified
 // condition, returning true if the object was modified.
-func recordIngressConditionFailure(route *routeapi.Route, name string, condition routeapi.RouteIngressCondition) (*routeapi.RouteIngress, bool, *unversioned.Time) {
+func recordIngressConditionFailure(route *routeapi.Route, name, hostName string, condition routeapi.RouteIngressCondition) (*routeapi.RouteIngress, bool, *unversioned.Time) {
 	for i := range route.Status.Ingress {
 		existing := &route.Status.Ingress[i]
 		if existing.RouterName != name {
@@ -156,7 +168,7 @@ func recordIngressConditionFailure(route *routeapi.Route, name string, condition
 		lastTouch := ingressConditionTouched(existing)
 		return existing, changed, lastTouch
 	}
-	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name, Host: route.Spec.Host})
+	route.Status.Ingress = append(route.Status.Ingress, routeapi.RouteIngress{RouterName: name, RouterCanonicalHostname: hostName, Host: route.Spec.Host})
 	ingress := &route.Status.Ingress[len(route.Status.Ingress)-1]
 	setIngressCondition(ingress, condition)
 	return ingress, true, nil
@@ -215,8 +227,8 @@ func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *unvers
 // admitRoute returns true if the route has already been accepted to this router, or
 // updates the route to contain an accepted condition. Returns an error if the route could
 // not be admitted due to a failure, or false if the route can't be admitted at this time.
-func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name string) (bool, error) {
-	ingress, updated := findOrCreateIngress(route, name)
+func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name, hostName string) (bool, error) {
+	ingress, updated := findOrCreateIngress(route, name, hostName)
 
 	// keep lastTouch around
 	lastTouch := ingressConditionTouched(ingress)
@@ -261,7 +273,12 @@ func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
 func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	ingress, changed, lastTouch := recordIngressConditionFailure(route, a.routerName, routeapi.RouteIngressCondition{
+	if IsGeneratedRouteName(route.Name) {
+		// Can't record status for ingress resources
+		return
+	}
+
+	ingress, changed, lastTouch := recordIngressConditionFailure(route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
 		Type:    routeapi.RouteAdmitted,
 		Status:  kapi.ConditionFalse,
 		Reason:  reason,
@@ -286,15 +303,19 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 
 // HandleRoute attempts to admit the provided route on watch add / modifications.
 func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	switch eventType {
-	case watch.Added, watch.Modified:
-		ok, err := a.admitRoute(a.client, route, a.routerName)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			glog.V(4).Infof("skipping route: %s", route.Name)
-			return nil
+	if IsGeneratedRouteName(route.Name) {
+		// Can't record status for ingress resources
+	} else {
+		switch eventType {
+		case watch.Added, watch.Modified:
+			ok, err := a.admitRoute(a.client, route, a.routerName, a.routerCanonicalHostname)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				glog.V(4).Infof("skipping route: %s", route.Name)
+				return nil
+			}
 		}
 	}
 	return a.plugin.HandleRoute(eventType, route)

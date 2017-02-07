@@ -25,7 +25,6 @@ All files are expected or created in standard locations under the cert\-dir.
 openshift.local.config/master/
       ca.{crt,key,serial.txt}
       master.server.{crt,key}
-      openshift\-router.{crt,key,kubeconfig}
       admin.{crt,key,kubeconfig}
       ...
 
@@ -98,6 +97,10 @@ Regardless of \-\-overwrite, the master server key/cert will be updated if \-\-h
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-client\-certificate\fP=""

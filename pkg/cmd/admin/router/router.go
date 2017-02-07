@@ -17,12 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -95,6 +94,9 @@ type RouterConfig struct {
 	// Name is the router name, set as an argument
 	Name string
 
+	// RouterCanonicalHostname is the (optional) external host name of the router
+	RouterCanonicalHostname string
+
 	// Type is the router type, which determines which plugin to use (f5
 	// or template).
 	Type string
@@ -126,10 +128,6 @@ type RouterConfig struct {
 
 	// SecretsAsEnv sets the credentials as env vars, instead of secrets.
 	SecretsAsEnv bool
-
-	// Credentials specifies the path to a .kubeconfig file with the credentials
-	// with which the router may contact the master.
-	Credentials string
 
 	// DefaultCertificate holds the certificate that will be used if no more
 	// specific certificate is found.  This is typically a wildcard certificate.
@@ -201,6 +199,22 @@ type RouterConfig struct {
 	// boundaries for users and applications.
 	ExternalHostPartitionPath string
 
+	// DisableNamespaceOwnershipCheck overrides the same namespace check
+	// for different paths to a route host or for overlapping host names
+	// in case of wildcard routes.
+	// E.g. Setting this flag to false allows www.example.org/path1 and
+	//      www.example.org/path2 to be claimed by namespaces nsone and
+	//      nstwo respectively. And for wildcard routes, this allows
+	//      overlapping host names (*.example.test vs foo.example.test)
+	//      to be claimed by different namespaces.
+	//
+	// Warning: Please be aware that if namespace ownership checks are
+	//          disabled, routes in a different namespace can use this
+	//          mechanism to "steal" sub-paths for existing domains.
+	//          This is only safe if route creation privileges are
+	//          restricted, or if all the users can be trusted.
+	DisableNamespaceOwnershipCheck bool
+
 	// ExposeMetrics is a hint on whether to expose metrics.
 	ExposeMetrics bool
 
@@ -259,11 +273,11 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
 	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
+	cmd.Flags().StringVar(&cfg.RouterCanonicalHostname, "router-canonical-hostname", cfg.RouterCanonicalHostname, "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
 	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.SecretsAsEnv, "secrets-as-env", cfg.SecretsAsEnv, "If true, use environment variables for master secrets.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
-	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
@@ -284,12 +298,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ExternalHostVxLANGateway, "external-host-vxlan-gw", cfg.ExternalHostVxLANGateway, "If the underlying router implementation requires VxLAN access to the pod network, this is the gateway address that should be used in cidr format.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
-
-	cmd.MarkFlagFilename("credentials", "kubeconfig")
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
-
-	// Deprecate credentials
-	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the router will use to make API calls")
+	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -597,35 +606,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	// create new router
 	secretEnv := app.Environment{}
-	switch {
-	case len(cfg.Credentials) == 0 && len(cfg.ServiceAccount) == 0:
-		return fmt.Errorf("router could not be created; you must specify a service account with --service-account, or a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
-	case len(cfg.Credentials) > 0:
-		clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials, Precedence: []string{}}
-		credentials, err := clientConfigLoadingRules.Load()
-		if err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not be loaded: %v", cfg.Credentials, err)
-		}
-		config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not be used: %v", cfg.Credentials, err)
-		}
-		if err := restclient.LoadTLSFiles(config); err != nil {
-			return fmt.Errorf("router could not be created; the provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
-		}
-		insecure := "false"
-		if config.Insecure {
-			insecure = "true"
-		}
-		secretEnv.Add(app.Environment{
-			"OPENSHIFT_MASTER":    config.Host,
-			"OPENSHIFT_CA_DATA":   string(config.CAData),
-			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-			"OPENSHIFT_CERT_DATA": string(config.CertData),
-			"OPENSHIFT_INSECURE":  insecure,
-		})
+	if len(cfg.ServiceAccount) == 0 {
+		return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
 	}
-	createServiceAccount := len(cfg.ServiceAccount) > 0 && len(cfg.Credentials) == 0
 
 	defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
 	if err != nil {
@@ -662,6 +645,18 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	if len(cfg.ForceSubdomain) > 0 {
 		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
 		env["ROUTER_OVERRIDE_HOSTNAME"] = "true"
+	}
+	if cfg.DisableNamespaceOwnershipCheck {
+		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
+	}
+	if len(cfg.RouterCanonicalHostname) > 0 {
+		if errs := validation.IsDNS1123Subdomain(cfg.RouterCanonicalHostname); len(errs) != 0 {
+			return fmt.Errorf("invalid canonical hostname (RFC 1123): %s", cfg.RouterCanonicalHostname)
+		}
+		if errs := validation.IsValidIP(cfg.RouterCanonicalHostname); len(errs) == 0 {
+			return fmt.Errorf("canonical hostname must not be an IP address: %s", cfg.RouterCanonicalHostname)
+		}
+		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
@@ -718,25 +713,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	for _, s := range secrets {
 		objects = append(objects, s)
 	}
-	if createServiceAccount {
-		objects = append(objects,
-			&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
-			&authapi.ClusterRoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
-				Subjects: []kapi.ObjectReference{
-					{
-						Kind:      "ServiceAccount",
-						Name:      cfg.ServiceAccount,
-						Namespace: namespace,
-					},
-				},
-				RoleRef: kapi.ObjectReference{
-					Kind: "ClusterRole",
-					Name: "system:router",
+
+	objects = append(objects,
+		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
+		&authapi.ClusterRoleBinding{
+			ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind:      "ServiceAccount",
+					Name:      cfg.ServiceAccount,
+					Namespace: namespace,
 				},
 			},
-		)
-	}
+			RoleRef: kapi.ObjectReference{
+				Kind: "ClusterRole",
+				Name: "system:router",
+			},
+		},
+	)
+
 	objects = append(objects, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -801,8 +796,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	levelPrefixFilter := func(e error) string {
-		// only ignore SA/RB errors if we were creating the service account
-		if createServiceAccount && ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
+		// ignore SA/RB errors if we were creating the service account
+		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
 			return "warning"
 		}
 		return "error"

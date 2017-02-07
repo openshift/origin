@@ -27,7 +27,6 @@ type buildByStrategy struct {
 }
 
 var _ = oadmission.WantsOpenshiftClient(&buildByStrategy{})
-var _ = oadmission.Validator(&buildByStrategy{})
 
 // NewBuildByStrategy returns an admission control for builds that checks
 // on policy based on the build strategy type

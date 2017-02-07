@@ -16,8 +16,7 @@ function os::util::ensure::system_binary_exists() {
 	local binary="$1"
 
 	if ! os::util::find::system_binary "${binary}" >/dev/null 2>&1; then
-		os::log::error "Required \`${binary}\` binary was not found in \$PATH."
-		return 1
+		os::log::fatal "Required \`${binary}\` binary was not found in \$PATH."
 	fi
 }
 readonly -f os::util::ensure::system_binary_exists
@@ -56,13 +55,12 @@ function os::util::ensure::built_binary_exists() {
 		fi
 
 		if [[ -n "${target}" ]]; then
-			os::log::warn "No compiled \`${binary}\` binary was found. Attempting to build one using:"
-			os::log::warn "  $ hack/build-go.sh ${target}"
+			os::log::warn "No compiled \`${binary}\` binary was found. Attempting to build one using:
+  $ hack/build-go.sh ${target}"
 			"${OS_ROOT}/hack/build-go.sh" "${target}"
 		else
-			os::log::error "No compiled \`${binary}\` binary was found and no build target could be determined."
-			os::log::error "Provide the binary and try running $0 again."
-			return 1
+			os::log::fatal "No compiled \`${binary}\` binary was found and no build target could be determined.
+Provide the binary and try running $0 again."
 		fi
 	fi
 }
@@ -81,8 +79,7 @@ function os::util::ensure::gopath_binary_exists() {
 	local binary="$1"
 
 	if ! os::util::find::gopath_binary "${binary}" >/dev/null 2>&1; then
-		os::log::error "Required \`${binary}\` binary was not found in \$GOPATH."
-		return 1
+		os::log::fatal "Required \`${binary}\` binary was not found in \$GOPATH."
 	fi
 }
 readonly -f os::util::ensure::gopath_binary_exists
@@ -102,9 +99,8 @@ function os::util::ensure::iptables_privileges_exist() {
 	os::util::ensure::system_binary_exists 'iptables'
 
 	if ! iptables --list >/dev/null 2>&1 && ! sudo iptables --list >/dev/null 2>&1; then
-		os::log::error "You do not have \`iptables\` or \`sudo\` privileges. Kubernetes services will not work"
-		os::log::error "without \`iptables\` access. See https://github.com/kubernetes/kubernetes/issues/1859."
-		return 1
+		os::log::fatal "You do not have \`iptables\` or \`sudo\` privileges. Kubernetes services will not work
+without \`iptables\` access. See https://github.com/kubernetes/kubernetes/issues/1859."
 	fi
 }
 readonly -f os::util::ensure::iptables_privileges_exist

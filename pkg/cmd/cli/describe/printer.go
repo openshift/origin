@@ -14,6 +14,7 @@ import (
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -35,7 +36,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
@@ -471,7 +472,7 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts k
 
 func printProject(project *projectapi.Project, w io.Writer, opts kctl.PrintOptions) error {
 	name := formatResourceName(opts.Kind, project.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[oapi.OpenShiftDisplayName], project.Status.Phase)
 	if err := appendItemLabels(project.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
 		return err
 	}
@@ -590,7 +591,7 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 		port = "<all>"
 	}
 
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy, route.Spec.WildcardPolicy); err != nil {
 		return err
 	}
 

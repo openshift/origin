@@ -6,6 +6,9 @@ oc-adm-ca-create-signer-cert.1
 oc-adm-ca-decrypt.1
 oc-adm-ca-encrypt.1
 oc-adm-ca.1
+oc-adm-certificate-approve.1
+oc-adm-certificate-deny.1
+oc-adm-certificate.1
 oc-adm-completion.1
 oc-adm-config-current-context.1
 oc-adm-config-delete-cluster.1
@@ -94,6 +97,7 @@ oc-autoscale.1
 oc-build-logs.1
 oc-cancel-build.1
 oc-cluster-down.1
+oc-cluster-join.1
 oc-cluster-status.1
 oc-cluster-up.1
 oc-cluster.1

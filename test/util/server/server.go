@@ -218,7 +218,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	if err := createNodeConfig.Validate(nil); err != nil {
 		return err
 	}
-	if err := createNodeConfig.CreateNodeFolder(); err != nil {
+	if _, err := createNodeConfig.CreateNodeFolder(); err != nil {
 		return err
 	}
 

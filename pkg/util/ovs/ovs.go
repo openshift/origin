@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/util/exec"
+	utilversion "k8s.io/kubernetes/pkg/util/version"
 )
 
 const (
@@ -22,7 +23,7 @@ type Interface struct {
 }
 
 // New returns a new ovs.Interface
-func New(execer exec.Interface, bridge string) (*Interface, error) {
+func New(execer exec.Interface, bridge string, minVersion string) (*Interface, error) {
 	if _, err := execer.LookPath(OVS_OFCTL); err != nil {
 		return nil, fmt.Errorf("OVS is not installed")
 	}
@@ -30,7 +31,28 @@ func New(execer exec.Interface, bridge string) (*Interface, error) {
 		return nil, fmt.Errorf("OVS is not installed")
 	}
 
-	return &Interface{execer: execer, bridge: bridge}, nil
+	ovsif := &Interface{execer: execer, bridge: bridge}
+
+	if minVersion != "" {
+		minVer := utilversion.MustParseGeneric(minVersion)
+
+		out, err := ovsif.exec(OVS_VSCTL, "--version")
+		if err != nil {
+			return nil, fmt.Errorf("could not check OVS version is %s or higher", minVersion)
+		}
+		// First output line should end with version
+		lines := strings.Split(out, "\n")
+		spc := strings.LastIndex(lines[0], " ")
+		instVer, err := utilversion.ParseGeneric(lines[0][spc+1:])
+		if err != nil {
+			return nil, fmt.Errorf("could not find OVS version in %q", lines[0])
+		}
+		if !instVer.AtLeast(minVer) {
+			return nil, fmt.Errorf("found OVS %v, need %s or later", instVer, minVersion)
+		}
+	}
+
+	return ovsif, nil
 }
 
 func (ovsif *Interface) exec(cmd string, args ...string) (string, error) {
@@ -76,6 +98,20 @@ func (ovsif *Interface) DeleteBridge() error {
 	return err
 }
 
+// GetOFPort returns the OpenFlow port number of a given network interface
+// attached to a bridge.
+func (ovsif *Interface) GetOFPort(port string) (int, error) {
+	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
+	if err != nil {
+		return -1, err
+	}
+	ofport, err := strconv.Atoi(ofportStr)
+	if err != nil {
+		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
+	}
+	return ofport, nil
+}
+
 // AddPort adds an interface to the bridge, requesting the indicated port
 // number, and optionally setting properties on it (as with "ovs-vsctl set
 // Interface ..."). Returns the allocated port number (or an error).
@@ -94,14 +130,7 @@ func (ovsif *Interface) AddPort(port string, ofportRequest int, properties ...st
 	if err != nil {
 		return -1, err
 	}
-	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
-	if err != nil {
-		return -1, err
-	}
-	ofport, err := strconv.Atoi(ofportStr)
-	if err != nil {
-		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
-	}
+	ofport, err := ovsif.GetOFPort(port)
 	if ofportRequest > 0 && ofportRequest != ofport {
 		return -1, fmt.Errorf("Allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
 	}

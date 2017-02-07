@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -120,28 +118,25 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		s.build.Status.Message = api.StatusMessageFetchSourceFailed
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
+	contextDir := ""
 	if len(s.build.Spec.Source.ContextDir) > 0 {
-		contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
 		if contextDir == "." || contextDir == "/" {
 			contextDir = ""
 		}
 		if sourceInfo != nil {
 			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
 		}
-		srcDir = filepath.Join(srcDir, s.build.Spec.Source.ContextDir)
 	}
-	download := &downloader{}
+
+	var s2iSourceInfo *s2iapi.SourceInfo
 	if sourceInfo != nil {
-		download.sourceInfo = &sourceInfo.SourceInfo
+		s2iSourceInfo = &sourceInfo.SourceInfo
 		revision := updateBuildRevision(s.build, sourceInfo)
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, revision); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, revision)
 	}
 
 	injections := s2iapi.VolumeList{}
@@ -188,6 +183,8 @@ func (s *S2IBuilder) Build() error {
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:     srcDir,
+		ContextDir: contextDir,
+		SourceInfo: s2iSourceInfo,
 		ForceCopy:  true,
 		Injections: injections,
 
@@ -247,15 +244,13 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
-	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
+	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			buildInfo.FailureReason.Reason,
 			buildInfo.FailureReason.Message,
 		)
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
@@ -267,9 +262,7 @@ func (s *S2IBuilder) Build() error {
 			result.BuildInfo.FailureReason.Message,
 		)
 
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
@@ -277,9 +270,7 @@ func (s *S2IBuilder) Build() error {
 	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
-		if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-		}
+		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
 
@@ -305,13 +296,18 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		if err = pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
+		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		if err != nil {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
-			if updateErr := retryBuildStatusUpdate(s.build, s.client, nil); updateErr != nil {
-				utilruntime.HandleError(fmt.Errorf("error occured while updating the build status: %v", updateErr))
-			}
+			handleBuildStatusUpdate(s.build, s.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
+		}
+		if len(digest) > 0 {
+			s.build.Status.Output.To = &api.BuildStatusOutputTo{
+				ImageDigest: digest,
+			}
+			handleBuildStatusUpdate(s.build, s.client, nil)
 		}
 		glog.V(0).Infof("Push successful")
 	}

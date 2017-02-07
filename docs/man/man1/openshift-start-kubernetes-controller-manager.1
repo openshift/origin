@@ -29,6 +29,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Should CIDRs for Pods be allocated and set on the cloud provider.
 
 .PP
+\fB\-\-attach\-detach\-reconcile\-sync\-period\fP=0
+    The reconciler sync wait time between volume attach detach. This duration must be larger than one second, and increasing this value from the default may allow for volumes to be mismatched with pods.
+
+.PP
 \fB\-\-cloud\-config\fP=""
     The path to the cloud provider configuration file.  Empty string for no configuration file.
 
@@ -111,6 +115,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-deployment\-controller\-sync\-period\fP=0
     Period for syncing the deployments.
+
+.PP
+\fB\-\-disable\-attach\-detach\-reconcile\-sync\fP=false
+    Disable volume attach detach reconciler sync. Disabling this may cause volumes to be mismatched with pods. Use wisely.
 
 .PP
 \fB\-\-enable\-dynamic\-provisioning\fP=true
@@ -313,6 +321,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

@@ -19,4 +19,4 @@ limitations under the License.
 // +k8s:openapi-gen=true
 // +k8s:defaulter-gen=TypeMeta
 
-package v1alpha1 // import "k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
+package v1alpha1

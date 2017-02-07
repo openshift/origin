@@ -8,7 +8,7 @@ set -o pipefail
 
 
 # Values that can be overridden
-RPM_TEST_PRODUCT=${RPM_TEST_PRODUCT:-"origin"}           # origin or atomic-enterprise
+RPM_TEST_PRODUCT=${RPM_TEST_PRODUCT:-"origin"}           # origin or atomic-openshift
 RPM_TEST_OUTPUT_DIR=${RPM_TEST_OUTPUT_DIR:-"/tmp/tito/"} # Output for all build artifacts
 RPM_TEST_SKIP_LINT=${RPM_TEST_SKIP_LINT:-""}             # Set to anything to disable rpmlint test
 
@@ -16,7 +16,7 @@ RPM_TEST_SKIP_LINT=${RPM_TEST_SKIP_LINT:-""}             # Set to anything to di
 REQUIRED_PACKAGES="rpmlint rpm-build tito"               # Required packages to build and test
 RPM_DIR=$RPM_TEST_OUTPUT_DIR/`arch`                      # Convenience. Path to the RPM output directory
 SERVICE_PREFIX="origin"                                  # Used as both RPM name and service script prefix
-if [ $RPM_TEST_PRODUCT == "atomic-enterprise" ]; then
+if [ $RPM_TEST_PRODUCT == "atomic-openshift" ]; then
     SERVICE_PREFIX="atomic-openshift"
 fi
 
@@ -99,7 +99,7 @@ function build_rpm()
     clean_output_dir_of_rpms
     info "Starting tito build."
     dist=""
-    if [ $RPM_TEST_PRODUCT == "atomic-enterprise" ]; then
+    if [ $RPM_TEST_PRODUCT == "atomic-openshift" ]; then
         dist="--dist=.el7aos"
     fi
     tito build --rpm --test --offline $dist -o "$RPM_TEST_OUTPUT_DIR"

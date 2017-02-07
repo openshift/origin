@@ -26,7 +26,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-admission\-control\fP="AlwaysAdmit"
-    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, ClusterResourceOverride, DefaultStorageClass, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImagePolicyWebhook, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OwnerReferencesPermissionEnforcement, PersistentVolumeLabel, PodNodeConstraints, PodNodeSelector, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/BuildConfigSecretInjector, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/RestrictSubjectBindings, openshift.io/RestrictedEndpointsAdmission.
+    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, ClusterResourceOverride, DefaultStorageClass, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImagePolicyWebhook, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OwnerReferencesPermissionEnforcement, PersistentVolumeLabel, PodNodeConstraints, PodNodeSelector, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/BuildConfigSecretInjector, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/IngressAdmission, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/RestrictSubjectBindings, openshift.io/RestrictedEndpointsAdmission.
 
 .PP
 \fB\-\-admission\-control\-config\-file\fP=""
@@ -41,7 +41,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     If true, allow privileged containers.
 
 .PP
-\fB\-\-anonymous\-auth\fP=true
+\fB\-\-anonymous\-auth\fP=false
     Enables anonymous requests to the secure port of the API server. Requests that are not rejected by another authentication method are treated as anonymous requests. Anonymous requests have a username of system:anonymous, and a group name of system:unauthenticated.
 
 .PP
@@ -402,6 +402,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

@@ -16,11 +16,14 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 	# identical to build-cross.sh
 	os::build::os_version_vars
 	OS_RELEASE_COMMIT="${OS_GIT_VERSION//+/-}"
-	OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
+	platform="$(os::build::host_platform)"
+	OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]:-${platform}}")
+	OS_IMAGE_COMPILE_TARGETS=("${OS_IMAGE_COMPILE_TARGETS[@]:-${OS_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
+	OS_SCRATCH_IMAGE_COMPILE_TARGETS=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]:-${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
 
 	echo "Building images from source ${OS_RELEASE_COMMIT}:"
 	echo
-	OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+	os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 	os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
 	echo
 else

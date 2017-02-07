@@ -14,8 +14,8 @@ This document describes the following ways to promote images:
 * **Based on human intervention**
   * using the `oc` and `docker` commands manually
 * **Automated by the OpenShift platform**
-  * using enhanced *DeploymentConfig* [lifecycle hooks](https://docs.openshift.org/latest/dev_guide/deployments.html#lifecycle-hooks)
-  * using [ImageChangeTrigger](https://docs.openshift.org/latest/dev_guide/deployments.html#image-change-trigger)
+  * using enhanced *DeploymentConfig* [lifecycle hooks](https://docs.openshift.org/latest/dev_guide/deployments/deployment_strategies.html#lifecycle-hooks)
+  * using [ImageChangeTrigger](https://docs.openshift.org/latest/dev_guide/deployments/basic_deployment_operations.html#image-change-trigger)
   * using [Projects](https://docs.openshift.org/latest/dev_guide/projects.html) for different "stages"
 * **Based on external Continuous Delivery tool**
   * [Jenkins](https://jenkins-ci.org)
@@ -29,8 +29,8 @@ Docker images can be promoted (and the use-cases are valid for):
 * **Between multiple Clusters**
 
 The Docker image promotion can be done using the Docker [image
-tags](https://docs.docker.com/userguide/dockerimages/#setting-tags-on-an-image)
-or Docker image [labels](https://docs.docker.com/userguide/labels-custom-metadata/).
+tags](https://docs.docker.com/engine/reference/commandline/tag/)
+or Docker image [labels](https://docs.docker.com/engine/userguide/labels-custom-metadata/).
 OpenShift also provides more features to add metadata, such as annotations or labels.
 Using them might allow users to develop complex conditional promotion scenarios, but
 this document does not describe them.

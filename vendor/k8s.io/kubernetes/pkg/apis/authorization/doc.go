@@ -18,4 +18,4 @@ limitations under the License.
 // +k8s:openapi-gen=true
 
 // +groupName=authorization.k8s.io
-package authorization // import "k8s.io/kubernetes/pkg/apis/authorization"
+package authorization

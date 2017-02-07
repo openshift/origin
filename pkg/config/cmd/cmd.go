@@ -52,7 +52,7 @@ type Bulk struct {
 	IgnoreError IgnoreErrorFunc
 }
 
-// Create attempts to create each item generically, gathering all errors in the
+// Run attempts to create each item generically, gathering all errors in the
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
 func (b *Bulk) Run(list *kapi.List, namespace string) []error {

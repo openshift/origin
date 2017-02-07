@@ -63,7 +63,7 @@ func wildcardRejecter(route *routeapi.Route) error {
 
 func TestHostAdmit(t *testing.T) {
 	p := &fakePlugin{}
-	admitter := NewHostAdmitter(p, wildcardAdmitter, true, LogRejections)
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, LogRejections)
 	tests := []struct {
 		name   string
 		host   string
@@ -137,7 +137,7 @@ func TestHostAdmit(t *testing.T) {
 
 func TestWildcardHostDeny(t *testing.T) {
 	p := &fakePlugin{}
-	admitter := NewHostAdmitter(p, wildcardRejecter, false, LogRejections)
+	admitter := NewHostAdmitter(p, wildcardRejecter, false, false, LogRejections)
 	tests := []struct {
 		name   string
 		host   string
@@ -244,7 +244,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	p := &fakePlugin{}
 
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	admitter := NewHostAdmitter(p, wildcardAdmitter, true, recorder)
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 
 	oldest := unversioned.Time{Time: time.Now()}
 
@@ -497,7 +497,7 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 
 	admitAll := func(route *routeapi.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, recorder)
+	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
 	oldest := unversioned.Time{Time: time.Now()}
 
@@ -589,7 +589,7 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 
 	admitAll := func(route *routeapi.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, recorder)
+	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
 	oldest := unversioned.Time{Time: time.Now()}
 
@@ -774,7 +774,7 @@ func TestStatusWildcardPolicyNoOp(t *testing.T) {
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	admitter := NewHostAdmitter(p, wildcardAdmitter, true, recorder)
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
@@ -812,7 +812,7 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	admitter := NewHostAdmitter(p, wildcardAdmitter, false, recorder)
+	admitter := NewHostAdmitter(p, wildcardAdmitter, false, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
@@ -841,5 +841,166 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	}
 	if len(c.Actions()) > 0 {
 		t.Fatalf("unexpected actions: %#v", c.Actions())
+	}
+}
+
+func TestDisableOwnershipChecksFuzzing(t *testing.T) {
+	p := &fakePlugin{}
+
+	admitAll := func(route *routeapi.Route) error { return nil }
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	uniqueHostPlugin := NewUniqueHost(p, HostForRoute, true, recorder)
+	admitter := NewHostAdmitter(uniqueHostPlugin, RouteAdmissionFunc(admitAll), true, true, recorder)
+
+	oldest := unversioned.Time{Time: time.Now()}
+
+	makeTime := func(d time.Duration) unversioned.Time {
+		return unversioned.Time{Time: oldest.Add(d)}
+	}
+
+	routes := []struct {
+		Route    *routeapi.Route
+		ErrIfInt sets.Int
+		ErrIf    sets.String
+	}{
+		// Wildcard and explicit allowed in different namespaces.
+		{Route: makeRoute("ns1", "r1", "org", "", true, makeTime(0*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r2", "org", "/p1", false, makeTime(1*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r3", "www.w3.org", "", false, makeTime(2*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r4", "www.w3.org", "/p1", true, makeTime(3*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns1", "r5", "info", "", false, makeTime(4*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r1", "info", "/p1", false, makeTime(10*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r2", "www.server.info", "", false, makeTime(11*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r3", "www.server.info", "/p1", false, makeTime(12*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r4", "wild.server.info", "", true, makeTime(13*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r5", "wilder.server.info", "/p1", true, makeTime(14*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns2", "r6", "org", "/other", false, makeTime(15*time.Second)), ErrIf: sets.NewString()},
+
+		// Fails because of another wildcard/regular route
+		{Route: makeRoute("ns3", "r1", "org", "", true, makeTime(20*time.Second)), ErrIf: sets.NewString(`ns1/r1`)},
+		{Route: makeRoute("ns3", "r2", "org", "/p1", false, makeTime(21*time.Second)), ErrIf: sets.NewString(`ns1/r2`)},
+		{Route: makeRoute("ns3", "r3", "org", "", true, makeTime(22*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns3/r1`)},
+		{Route: makeRoute("ns3", "r4", "info", "", true, makeTime(23*time.Second)), ErrIf: sets.NewString(`ns1/r1`, `ns1/r5`, `ns3/r1`, `ns3/r3`)},
+		{Route: makeRoute("ns4", "r1", "www.server.info", "", false, makeTime(24*time.Second)), ErrIf: sets.NewString(`ns2/r2`)},
+		{Route: makeRoute("ns4", "r2", "www.server.info", "/p1", false, makeTime(25*time.Second)), ErrIf: sets.NewString(`ns2/r3`)},
+		{Route: makeRoute("ns4", "r3", "wild.server.info", "", true, makeTime(26*time.Second)), ErrIf: sets.NewString(`ns2/r4`)},
+		{Route: makeRoute("ns4", "r4", "wild.server.info", "", true, makeTime(27*time.Second)), ErrIf: sets.NewString(`ns2/r4`, `ns4/r3`)},
+		{Route: makeRoute("ns4", "r5", "wilder.server.info", "/p1", true, makeTime(28*time.Second)), ErrIf: sets.NewString(`ns2/r5`)},
+
+		// Works because of uniqueness.
+		{Route: makeRoute("ns5", "r1", "org", "/abc", true, makeTime(30*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns5", "r2", "www.server.info", "/xyz", false, makeTime(31*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("p5", "r3", "www.server.info", "/abc/xyz", true, makeTime(32*time.Second)), ErrIf: sets.NewString()},
+
+		// Interleaved ages between namespaces
+		{Route: makeRoute("ns6", "r1", "somedomain.org", "", false, makeTime(40*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns7", "r1", "somedomain.org", "", false, makeTime(41*time.Second)), ErrIf: sets.NewString(`ns6/r1`)},
+		{Route: makeRoute("ns6", "r2", "somedomain.org", "", false, makeTime(42*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`)},
+		{Route: makeRoute("ns7", "r2", "somedomain.org", "", false, makeTime(43*time.Second)), ErrIf: sets.NewString(`ns6/r1`, `ns7/r1`, `ns6/r2`)},
+
+		// namespace with older wildcard wins over specific but allows non-overlapping routes in other namespaces
+		{Route: makeRoute("ns8", "r1", "foo.somedomain.org", "", true, makeTime(50*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns8", "r2", "foo.somedomain.org", "/path1", true, makeTime(51*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns9", "r1", "foo.somedomain.org", "", true, makeTime(52*time.Second)), ErrIf: sets.NewString(`ns8/r1`)},
+		{Route: makeRoute("ns9", "r2", "foo.somedomain.org", "/path1", true, makeTime(53*time.Second)), ErrIf: sets.NewString(`ns8/r2`)},
+		{Route: makeRoute("ns9", "r3", "bar.somedomain.org", "", false, makeTime(54*time.Second)), ErrIf: sets.NewString()},
+		{Route: makeRoute("ns10", "r1", "baz.somedomain.org", "", true, makeTime(55*time.Second)), ErrIf: sets.NewString(`ns8/r1`, `ns9/r1`)},
+		{Route: makeRoute("ns10", "r2", "foo.somedomain.org", "", true, makeTime(56*time.Second)), ErrIf: sets.NewString(`ns8/r1`, `ns9/r1`, `ns10/r1`)},
+		{Route: makeRoute("ns10", "r3", "bar.somedomain.org", "", false, makeTime(57*time.Second)), ErrIf: sets.NewString(`ns9/r3`)},
+		{Route: makeRoute("ns10", "r4", "bar.somedomain.org", "/path2", false, makeTime(58*time.Second)), ErrIf: sets.NewString()},
+	}
+
+	nameToIndex := map[string]int{}
+	for i, tc := range routes {
+		name := tc.Route.Namespace + "/" + tc.Route.Name
+		if _, exists := nameToIndex[name]; exists {
+			t.Fatalf("%d has a duplicate route name %s", i, name)
+		}
+		nameToIndex[name] = i
+	}
+	for i, tc := range routes {
+		errIfInt := sets.NewInt()
+		for name := range tc.ErrIf {
+			if index, ok := nameToIndex[name]; ok {
+				errIfInt.Insert(index)
+			} else {
+				t.Fatalf("%d references an unknown route name: %s", i, name)
+			}
+		}
+		tc.ErrIfInt = errIfInt
+		routes[i] = tc
+	}
+
+	rand.Seed(1)
+	existing := sets.NewInt()
+	errors := sets.NewString()
+	for i := 0; i < 10000; i++ {
+		add := false
+		switch {
+		case len(existing) == len(routes):
+			add = false
+		case len(existing) == 0:
+			add = true
+		default:
+			add = (rand.Intn(4) > 0)
+		}
+
+		index := 0
+		eventType := watch.Deleted
+		if add {
+			index = rand.Intn(len(routes))
+			if existing.Has(index) {
+				eventType = watch.Modified
+			} else {
+				eventType = watch.Added
+			}
+		} else {
+			index = existing.List()[rand.Intn(len(existing))]
+			eventType = watch.Deleted
+		}
+
+		route := routes[index].Route
+		err := admitter.HandleRoute(eventType, route)
+		if eventType != watch.Deleted && existing.HasAny(routes[index].ErrIfInt.List()...) {
+			if err == nil {
+				errors.Insert(fmt.Sprintf("no error %s route %s/%s (existing=%v, errif=%v)", eventType, route.Namespace, route.Name, existing.List(), routes[index].ErrIfInt.List()))
+			}
+		} else {
+			//
+			if eventType != watch.Deleted && err != nil {
+				errors.Insert(fmt.Sprintf("error %s route %s/%s: %v (existing=%v, errif=%v)", eventType, route.Namespace, route.Name, err.Error(), existing.List(), routes[index].ErrIfInt.List()))
+			}
+		}
+
+		existingNames := sets.NewString()
+		for _, routes := range admitter.claimedHosts {
+			for _, route := range routes {
+				existingNames.Insert(route.Namespace + "/" + route.Name)
+			}
+		}
+		for _, routes := range admitter.claimedWildcards {
+			for _, route := range routes {
+				existingNames.Insert(route.Namespace + "/" + route.Name)
+			}
+		}
+		for _, routes := range admitter.blockedWildcards {
+			for _, route := range routes {
+				if !existingNames.Has(route.Namespace + "/" + route.Name) {
+					t.Fatalf("blockedWildcards has %s/%s, not in claimedHosts or claimedWildcards", route.Namespace, route.Name)
+				}
+			}
+		}
+		existing = sets.NewInt()
+		for name := range existingNames {
+			index, ok := nameToIndex[name]
+			if !ok {
+				t.Fatalf("unknown route %s", name)
+			}
+			existing.Insert(index)
+		}
+	}
+
+	if len(errors) > 0 {
+		t.Errorf("Unexpected errors:\n%s", strings.Join(errors.List(), "\n"))
 	}
 }

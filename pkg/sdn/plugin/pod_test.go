@@ -99,7 +99,32 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 	}
 }
 
-func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostport.ActivePod, error) {
+func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
+	activePod := &khostport.ActivePod{
+		Pod: &kapi.Pod{
+			TypeMeta: kunversioned.TypeMeta{
+				Kind: "Pod",
+			},
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{
+					{
+						Name:  "foobareasadfa",
+						Image: "awesome-image",
+					},
+				},
+			},
+		},
+		IP: ip,
+	}
+
+	return &runningPod{activePod: activePod, vnid: 0}
+}
+
+func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
 	if err != nil {
 		return nil, nil, err
@@ -117,36 +142,17 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *khostp
 			},
 		},
 	}
-	runningPod := &khostport.ActivePod{
-		Pod: &kapi.Pod{
-			TypeMeta: kunversioned.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: kapi.ObjectMeta{
-				Name:      req.PodName,
-				Namespace: req.PodNamespace,
-			},
-			Spec: kapi.PodSpec{
-				Containers: []kapi.Container{
-					{
-						Name:  "foobareasadfa",
-						Image: "awesome-image",
-					},
-				},
-			},
-		},
-		IP: ip,
-	}
 
-	return result, runningPod, nil
+	return result, fakeRunningPod(req.PodNamespace, req.PodName, ip), nil
 }
 
-func (pt *podTester) update(req *cniserver.PodRequest) error {
+func (pt *podTester) update(req *cniserver.PodRequest) (uint32, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
-	if err == nil {
-		pod.updated += 1
+	if err != nil {
+		return 0, err
 	}
-	return err
+	pod.updated += 1
+	return 0, nil
 }
 
 func (pt *podTester) teardown(req *cniserver.PodRequest) error {
@@ -479,5 +485,51 @@ func TestDirectPodUpdate(t *testing.T) {
 	// Send request and wait for the result
 	if _, err = podManager.handleCNIRequest(req); err != nil {
 		t.Fatalf("failed to update pod: %v", err)
+	}
+}
+
+func TestUpdateMulticastFlows(t *testing.T) {
+	pods := map[string]*runningPod{
+		"blah": {
+			vnid:   5,
+			ofport: 2,
+		},
+		"baz": {
+			vnid:   5,
+			ofport: 8,
+		},
+		"foobar": {
+			vnid:   5,
+			ofport: 7,
+		},
+		"blah2": {
+			vnid:   6,
+			ofport: 3,
+		},
+		"baz2": {
+			vnid:   6,
+			ofport: 9,
+		},
+		"bork": {
+			vnid:   8,
+			ofport: 10,
+		},
+	}
+
+	outputs := localMulticastOutputs(pods, 0)
+	if outputs != "" {
+		t.Fatalf("Unexpected outputs for vnid 0: %s", outputs)
+	}
+	outputs = localMulticastOutputs(pods, 5)
+	if outputs != "output:2,output:7,output:8" {
+		t.Fatalf("Unexpected outputs for vnid 5: %s", outputs)
+	}
+	outputs = localMulticastOutputs(pods, 6)
+	if outputs != "output:3,output:9" {
+		t.Fatalf("Unexpected outputs for vnid 6: %s", outputs)
+	}
+	outputs = localMulticastOutputs(pods, 8)
+	if outputs != "output:10" {
+		t.Fatalf("Unexpected outputs for vnid 0: %s", outputs)
 	}
 }

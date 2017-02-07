@@ -177,8 +177,7 @@ type EtcdServer struct {
 
 	snapCount uint64
 
-	w  wait.Wait
-	td *contention.TimeoutDetector
+	w wait.Wait
 
 	readMu sync.RWMutex
 	// read routine notifies etcd server that it waits for reading by sending an empty struct to
@@ -233,8 +232,6 @@ type EtcdServer struct {
 	// to detect the cluster version immediately.
 	forceVersionC chan struct{}
 
-	msgSnapC chan raftpb.Message
-
 	// wgMu blocks concurrent waitgroup mutation while server stopping
 	wgMu sync.RWMutex
 	// wg is used to wait for the go routines that depends on the server state
@@ -268,7 +265,22 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 
 	bepath := path.Join(cfg.SnapDir(), databaseFilename)
 	beExist := fileutil.Exist(bepath)
-	be := backend.NewDefaultBackend(bepath)
+
+	var be backend.Backend
+	beOpened := make(chan struct{})
+	go func() {
+		be = backend.NewDefaultBackend(bepath)
+		beOpened <- struct{}{}
+	}()
+
+	select {
+	case <-beOpened:
+	case <-time.After(time.Second):
+		plog.Warningf("another etcd process is running with the same data dir and holding the file lock.")
+		plog.Warningf("waiting for it to exit before starting...")
+		<-beOpened
+	}
+
 	defer func() {
 		if err != nil {
 			be.Close()
@@ -399,16 +411,19 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 		readych:   make(chan struct{}),
 		Cfg:       cfg,
 		snapCount: cfg.SnapCount,
-		// set up contention detectors for raft heartbeat message.
-		// expect to send a heartbeat within 2 heartbeat intervals.
-		td:     contention.NewTimeoutDetector(2 * heartbeat),
-		errorc: make(chan error, 1),
-		store:  st,
+		errorc:    make(chan error, 1),
+		store:     st,
 		r: raftNode{
+			isIDRemoved: func(id uint64) bool { return cl.IsIDRemoved(types.ID(id)) },
 			Node:        n,
 			ticker:      time.Tick(heartbeat),
+			// set up contention detectors for raft heartbeat message.
+			// expect to send a heartbeat within 2 heartbeat intervals.
+			td:          contention.NewTimeoutDetector(2 * heartbeat),
+			heartbeat:   heartbeat,
 			raftStorage: s,
 			storage:     NewStorage(w, ss),
+			msgSnapC:    make(chan raftpb.Message, maxInFlightMsgSnap),
 			readStateC:  make(chan raft.ReadState, 1),
 		},
 		id:            id,
@@ -420,7 +435,6 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 		peerRt:        prt,
 		reqIDGen:      idutil.NewGenerator(uint16(id), time.Now()),
 		forceVersionC: make(chan struct{}),
-		msgSnapC:      make(chan raftpb.Message, maxInFlightMsgSnap),
 	}
 
 	srv.applyV2 = &applierV2store{store: srv.store, cluster: srv.cluster}
@@ -551,6 +565,8 @@ func (s *EtcdServer) RaftHandler() http.Handler { return s.r.transport.Handler()
 
 func (s *EtcdServer) Lessor() lease.Lessor { return s.lessor }
 
+func (s *EtcdServer) ApplyWait() <-chan struct{} { return s.applyWait.Wait(s.getCommittedIndex()) }
+
 func (s *EtcdServer) Process(ctx context.Context, m raftpb.Message) error {
 	if s.cluster.IsIDRemoved(types.ID(m.From)) {
 		plog.Warningf("reject message from removed member %s", types.ID(m.From).String())
@@ -582,8 +598,8 @@ type etcdProgress struct {
 // and helps decouple state machine logic from Raft algorithms.
 // TODO: add a state machine interface to apply the commit entries and do snapshot/recover
 type raftReadyHandler struct {
-	leadershipUpdate func()
-	sendMessage      func(msgs []raftpb.Message)
+	updateLeadership     func()
+	updateCommittedIndex func(uint64)
 }
 
 func (s *EtcdServer) run() {
@@ -608,7 +624,7 @@ func (s *EtcdServer) run() {
 		return
 	}
 	rh := &raftReadyHandler{
-		leadershipUpdate: func() {
+		updateLeadership: func() {
 			if !s.isLeader() {
 				if s.lessor != nil {
 					s.lessor.Demote()
@@ -619,6 +635,9 @@ func (s *EtcdServer) run() {
 				setSyncC(nil)
 			} else {
 				setSyncC(s.SyncTicker)
+				if s.compactor != nil {
+					s.compactor.Resume()
+				}
 			}
 
 			// TODO: remove the nil checking
@@ -626,14 +645,16 @@ func (s *EtcdServer) run() {
 			if s.stats != nil {
 				s.stats.BecomeLeader()
 			}
-			if s.compactor != nil {
-				s.compactor.Resume()
-			}
-			if s.td != nil {
-				s.td.Reset()
+			if s.r.td != nil {
+				s.r.td.Reset()
 			}
 		},
-		sendMessage: func(msgs []raftpb.Message) { s.send(msgs) },
+		updateCommittedIndex: func(ci uint64) {
+			cci := s.getCommittedIndex()
+			if ci > cci {
+				s.setCommittedIndex(ci)
+			}
+		},
 	}
 	s.r.start(rh)
 
@@ -667,6 +688,9 @@ func (s *EtcdServer) run() {
 		if s.kv != nil {
 			s.kv.Close()
 		}
+		if s.authStore != nil {
+			s.authStore.Close()
+		}
 		if s.be != nil {
 			s.be.Close()
 		}
@@ -684,16 +708,6 @@ func (s *EtcdServer) run() {
 	for {
 		select {
 		case ap := <-s.r.apply():
-			var ci uint64
-			if len(ap.entries) != 0 {
-				ci = ap.entries[len(ap.entries)-1].Index
-			}
-			if ap.snapshot.Metadata.Index > ci {
-				ci = ap.snapshot.Metadata.Index
-			}
-			if ci != 0 {
-				s.setCommittedIndex(ci)
-			}
 			f := func(context.Context) { s.applyAll(&ep, &ap) }
 			sched.Schedule(f)
 		case leases := <-expiredLeaseC:
@@ -718,7 +732,9 @@ func (s *EtcdServer) run() {
 			plog.Infof("the data-dir used by this member must be removed.")
 			return
 		case <-getSyncC():
-			s.sync(s.Cfg.ReqTimeout())
+			if s.store.HasTTLKeys() {
+				s.sync(s.Cfg.ReqTimeout())
+			}
 		case <-s.stop:
 			return
 		}
@@ -745,7 +761,7 @@ func (s *EtcdServer) applyAll(ep *etcdProgress, apply *apply) {
 	s.triggerSnapshot(ep)
 	select {
 	// snapshot requested via send()
-	case m := <-s.msgSnapC:
+	case m := <-s.r.msgSnapC:
 		merged := s.createMergedSnapshotMessage(m, ep.appliedi, ep.confState)
 		s.sendMergedSnap(merged)
 	default:
@@ -990,7 +1006,32 @@ func (s *EtcdServer) LeaderStats() []byte {
 
 func (s *EtcdServer) StoreStats() []byte { return s.store.JsonStats() }
 
+func (s *EtcdServer) checkMembershipOperationPermission(ctx context.Context) error {
+	if s.authStore == nil {
+		// In the context of ordinal etcd process, s.authStore will never be nil.
+		// This branch is for handling cases in server_test.go
+		return nil
+	}
+
+	// Note that this permission check is done in the API layer,
+	// so TOCTOU problem can be caused potentially in a schedule like this:
+	// update membership with user A -> revoke root role of A -> apply membership change
+	// in the state machine layer
+	// However, both of membership change and role management requires the root privilege.
+	// So careful operation by admins can prevent the problem.
+	authInfo, err := s.authInfoFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.AuthStore().IsAdminPermitted(authInfo)
+}
+
 func (s *EtcdServer) AddMember(ctx context.Context, memb membership.Member) error {
+	if err := s.checkMembershipOperationPermission(ctx); err != nil {
+		return err
+	}
+
 	if s.Cfg.StrictReconfigCheck {
 		// by default StrictReconfigCheck is enabled; reject new members if unhealthy
 		if !s.cluster.IsReadyToAddNewMember() {
@@ -1017,6 +1058,10 @@ func (s *EtcdServer) AddMember(ctx context.Context, memb membership.Member) erro
 }
 
 func (s *EtcdServer) RemoveMember(ctx context.Context, id uint64) error {
+	if err := s.checkMembershipOperationPermission(ctx); err != nil {
+		return err
+	}
+
 	// by default StrictReconfigCheck is enabled; reject removal if leads to quorum loss
 	if err := s.mayRemoveMember(types.ID(id)); err != nil {
 		return err
@@ -1056,8 +1101,12 @@ func (s *EtcdServer) mayRemoveMember(id types.ID) error {
 }
 
 func (s *EtcdServer) UpdateMember(ctx context.Context, memb membership.Member) error {
-	b, err := json.Marshal(memb)
-	if err != nil {
+	b, merr := json.Marshal(memb)
+	if merr != nil {
+		return merr
+	}
+
+	if err := s.checkMembershipOperationPermission(ctx); err != nil {
 		return err
 	}
 	cc := raftpb.ConfChange{
@@ -1080,8 +1129,6 @@ func (s *EtcdServer) Term() uint64 { return atomic.LoadUint64(&s.r.term) }
 func (s *EtcdServer) Lead() uint64 { return atomic.LoadUint64(&s.r.lead) }
 
 func (s *EtcdServer) Leader() types.ID { return types.ID(s.Lead()) }
-
-func (s *EtcdServer) IsPprofEnabled() bool { return s.Cfg.EnablePprof }
 
 // configure sends a configuration change through consensus and
 // then waits for it to be applied to the server. It
@@ -1163,47 +1210,6 @@ func (s *EtcdServer) publish(timeout time.Duration) {
 			plog.Errorf("publish error: %v", err)
 		}
 	}
-}
-
-// TODO: move this function into raft.go
-func (s *EtcdServer) send(ms []raftpb.Message) {
-	sentAppResp := false
-	for i := len(ms) - 1; i >= 0; i-- {
-		if s.cluster.IsIDRemoved(types.ID(ms[i].To)) {
-			ms[i].To = 0
-		}
-
-		if ms[i].Type == raftpb.MsgAppResp {
-			if sentAppResp {
-				ms[i].To = 0
-			} else {
-				sentAppResp = true
-			}
-		}
-
-		if ms[i].Type == raftpb.MsgSnap {
-			// There are two separate data store: the store for v2, and the KV for v3.
-			// The msgSnap only contains the most recent snapshot of store without KV.
-			// So we need to redirect the msgSnap to etcd server main loop for merging in the
-			// current store snapshot and KV snapshot.
-			select {
-			case s.msgSnapC <- ms[i]:
-			default:
-				// drop msgSnap if the inflight chan if full.
-			}
-			ms[i].To = 0
-		}
-		if ms[i].Type == raftpb.MsgHeartbeat {
-			ok, exceed := s.td.Observe(ms[i].To)
-			if !ok {
-				// TODO: limit request rate.
-				plog.Warningf("failed to send out heartbeat on time (exceeded the %dms timeout for %v)", s.Cfg.TickMs, exceed)
-				plog.Warningf("server is likely overloaded")
-			}
-		}
-	}
-
-	s.r.transport.Send(ms)
 }
 
 func (s *EtcdServer) sendMergedSnap(merged snap.Message) {

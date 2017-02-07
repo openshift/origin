@@ -100,7 +100,7 @@ func observeCreation(w watch.Interface) {
 func observeObjectDeletion(w watch.Interface) (obj runtime.Object) {
 	deleted := false
 	timeout := false
-	timer := time.After(60 * time.Second)
+	timer := time.After(2 * time.Minute)
 	for !deleted && !timeout {
 		select {
 		case event, _ := <-w.ResultChan():

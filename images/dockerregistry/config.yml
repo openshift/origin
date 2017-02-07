@@ -13,6 +13,8 @@ storage:
 auth:
   openshift:
     realm: openshift
+    audit:
+      enabled: false
 
     # tokenrealm is a base URL to use for the token-granting registry endpoint.
     # If unspecified, the scheme and host for the token redirect are determined from the incoming request.

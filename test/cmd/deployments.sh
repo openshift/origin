@@ -107,6 +107,12 @@ os::cmd::expect_failure 'oc rollback dc/database --to-version=1 --dry-run'
 os::cmd::expect_failure 'oc rollback database-1 -o=yaml'
 os::cmd::expect_failure 'oc rollback rc/database-1 -o=yaml'
 os::cmd::expect_failure 'oc rollback database -o yaml'
+# trigger a new deployment with 'foo' image
+os::cmd::expect_success 'oc set image dc/database ruby-helloworld-database=foo --source=docker'
+# wait for the new deployment
+os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
+# undo --dry-run should report the original image
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-57-centos7'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 

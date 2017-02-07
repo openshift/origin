@@ -265,7 +265,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
 	// if we're running on kube (or likely kube), just set it to "default"
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
-		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with '%s project <projectname>':\n\n", o.CommandName)
+		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with:\n\n '%s project <projectname>'", o.CommandName)
 		o.Project = "default"
 		return nil
 	}
