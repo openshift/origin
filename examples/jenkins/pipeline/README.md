@@ -157,3 +157,33 @@ To run this example:
 14. Start the pipeline again. Go back to step 11 and repeat.
 
 On the first pipeline run, there will be a delay as Jenkins is instantiated for the project. 
+
+## OpenShift Client Plugin Example
+
+The `openshift-client-plugin-pipeline.yaml` build config references a pipeline that showcases the fluent Jenkins pipeline syntax provided by the
+OpenShift Client Plugin.  The DSL provided by this plugin allows for rich interactions with an OpenShift API Server from Jenkins pipelines.  At this
+time, it is only available with the OpenShift Jenkins Images for Centos (docker.io/openshift/jenkins-1-centos7:latest and docker.io/openshift/jenkins-2-centos7:latest).
+
+See [the plugin's README](https://github.com/openshift/jenkins-client-plugin) for details on the syntax and features.
+
+This example leverages a [a sample Jenkins pipeline](https://github.com/openshift/jenkins-client-plugin/blob/master/examples/jenkins-image-sample.groovy) defined
+in the plugin's source repository.
+
+To run this example:
+
+1. Ensure that you have a running OpenShift environment as described in the basic example
+
+2. Run this command to create a pipeline buildconfig in your project:
+
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
+
+    At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. This pod was created as a result of the new pipeline buildconfig being defined.
+
+On the first pipeline run, there will be a delay as Jenkins is instantiated for the project. 
+
+3. Launch a new build
+
+        $ oc start-build sample-pipeline-openshift-client-plugin
+
+    Jenkins will: create an instance of the sample-pipeline-openshift-client-plugin job, and trigger various builds and deployments in openshift.
+

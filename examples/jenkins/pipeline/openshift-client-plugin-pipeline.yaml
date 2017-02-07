@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  labels:
+    name: sample-pipeline-openshift-client-plugin
+  name: sample-pipeline-openshift-client-plugin
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/openshift/jenkins-client-plugin.git
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfilePath: examples/jenkins-image-sample.groovy
