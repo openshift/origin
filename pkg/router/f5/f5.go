@@ -1013,7 +1013,7 @@ func (f5 *f5LTM) CreatePool(poolname string) error {
 	// to specify a different monitor to use.
 	payload := f5Pool{
 		Mode:    "round-robin",
-		Monitor: "/Common/http",
+		Monitor: "min 1 of /Common/http /Common/https",
 		Name:    poolname,
 	}
 
