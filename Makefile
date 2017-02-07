@@ -20,6 +20,10 @@ export OS_OUTPUT_GOPATH
 # mounting secrets specific to a build environment.
 export OS_BUILD_IMAGE_ARGS
 
+# Tests run using `make` are most often run by the CI system, so we are OK to
+# assume the user wants jUnit output and will turn it off if they don't.
+JUNIT_REPORT ?= true
+
 # Build code.
 #
 # Args:
@@ -41,10 +45,16 @@ all build:
 #
 # Example:
 #   make build-tests
-build-tests:
-	hack/build-go.sh test/extended/extended.test
-	hack/build-go.sh test/integration/integration.test -tags='integration docker'
+build-tests: build-extended-test build-integration-test
 .PHONY: build-tests
+
+build-extended-test:
+	hack/build-go.sh test/extended/extended.test
+.PHONY: build-extended-test
+
+build-integration-test:
+	hack/build-go.sh test/integration/integration.test
+.PHONY: build-integration-test
 
 # Run core verification and all self contained tests.
 #
@@ -57,23 +67,30 @@ check: | build verify
 
 # Verify code conventions are properly setup.
 #
+# TODO add verifying listers - we can't do it yet because there's an issue with the generated
+# expansion file being incorrect.
+#
 # Example:
 #   make verify
 verify: build
-	# build-tests is disabled until we can determine why memory usage is so high
-	hack/verify-gofmt.sh
-	hack/verify-govet.sh
-	hack/verify-generated-bootstrap-bindata.sh
-	hack/verify-generated-deep-copies.sh
-	hack/verify-generated-conversions.sh
-	hack/verify-generated-clientsets.sh
-	hack/verify-generated-completions.sh
-	hack/verify-generated-docs.sh
-	hack/verify-cli-conventions.sh
-	PROTO_OPTIONAL=1 hack/verify-generated-protobuf.sh
-	hack/verify-generated-swagger-descriptions.sh
-	hack/verify-generated-swagger-spec.sh
+	# build-tests task has been disabled until we can determine why memory usage is so high
+	{ \
+	hack/verify-gofmt.sh ||r=1;\
+	hack/verify-govet.sh ||r=1;\
+	hack/verify-generated-bootstrap-bindata.sh ||r=1;\
+	hack/verify-generated-deep-copies.sh ||r=1;\
+	hack/verify-generated-conversions.sh ||r=1;\
+	hack/verify-generated-clientsets.sh ||r=1;\
+	hack/verify-generated-completions.sh ||r=1;\
+	hack/verify-generated-docs.sh ||r=1;\
+	hack/verify-cli-conventions.sh ||r=1;\
+	hack/verify-generated-protobuf.sh ||r=1;\
+	hack/verify-generated-swagger-descriptions.sh ||r=1;\
+	hack/verify-generated-swagger-spec.sh ||r=1;\
+	exit $$r ;\
+	}
 .PHONY: verify
+
 
 # Verify commit comments.
 #
@@ -92,12 +109,22 @@ update: build
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-clientsets.sh
+	hack/update-generated-defaulters.sh
+	hack/update-generated-listers.sh
+	hack/update-generated-openapi.sh
+	hack/update-generated-protobuf.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
-	PROTO_OPTIONAL=1 hack/update-generated-protobuf.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
+
+# Build and run the complete test-suite.
+#
+# Example:
+#   make test
+test: test-tools test-integration test-end-to-end
+.PHONY: test
 
 # Run unit tests.
 #
@@ -129,6 +156,7 @@ test-integration:
 # Example:
 #   make test-cmd
 test-cmd: build
+	hack/test-util.sh
 	hack/test-cmd.sh
 .PHONY: test-cmd
 
@@ -137,7 +165,6 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
-	hack/env hack/verify-generated-protobuf.sh # Test the protobuf serializations when we know Docker is available
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
@@ -149,24 +176,25 @@ test-tools:
 	hack/test-tools.sh
 .PHONY: test-tools
 
-# Run assets tests.
+# Run extended tests.
+#
+# Args:
+#   SUITE: Which Bash entrypoint under test/extended/ to use. Don't include the
+#          ending `.sh`. Ex: `core`.
+#   FOCUS: Literal string to pass to `--ginkgo.focus=`
 #
 # Example:
-#   make test-assets
-test-assets:
-ifeq ($(TEST_ASSETS),true)
-	hack/test-assets.sh
+#   make test-extended SUITE=core
+#   make test-extended SUITE=conformance FOCUS=pods
+SUITE ?= conformance
+ifneq ($(strip $(FOCUS)),)
+	FOCUS_ARG=--ginkgo.focus="$(FOCUS)"
+else
+	FOCUS_ARG=
 endif
-.PHONY: test-assets
-
-# Build and run the complete test-suite.
-#
-# Example:
-#   make test
-test: check
-	$(MAKE) test-tools test-integration test-assets -o build
-	$(MAKE) test-end-to-end -o build
-.PHONY: test
+test-extended:
+	test/extended/$(SUITE).sh $(FOCUS_ARG)
+.PHONY: test-extended
 
 # Run All-in-one OpenShift server.
 #
@@ -205,27 +233,6 @@ release-binaries: clean
 	hack/extract-release.sh
 .PHONY: release-binaries
 
-# Release the integrated components for OpenShift, origin, logging, and metrics.
-# The current tag in the Origin release (the tag that points to HEAD) is used to
-# clone and build each component. Components must have a hack/release.sh script
-# which must accept env var OS_TAG as the tag to build. Each component should push
-# its own images. See hack/release.sh and hack/push-release.sh for an example of
-# the appropriate behavior.
-#
-# Prerequisites:
-# * you must be logged into the remote registry with the appropriate
-#   credentials to push.
-# * all repositories must have a Git tag equal to the current repositories tag of
-#   HEAD
-#
-# TODO: consider making hack/release.sh be a make target (make official-release).
-#
-# Example:
-#   make release-components
-release-components: clean
-	hack/release-components.sh
-.PHONY: release-components
-
 # Build the cross compiled release binaries
 #
 # Example:
@@ -245,32 +252,29 @@ install-travis:
 # Build RPMs only for the Linux AMD64 target
 #
 # Args:
-#   BUILD_TESTS: whether or not to build a test RPM, off by default
 #
 # Example:
 #   make build-rpms
 build-rpms:
-	BUILD_TESTS=$(BUILD_TESTS) OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+	OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
 .PHONY: build-rpms
 
 # Build RPMs for all architectures
 #
 # Args:
-#   BUILD_TESTS: whether or not to build a test RPM, off by default
 #
 # Example:
 #   make build-rpms-redistributable
 build-rpms-redistributable:
-	BUILD_TESTS=$(BUILD_TESTS) hack/build-rpm-release.sh
+	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
 
 # Build a release of OpenShift using tito for linux/amd64 and the images that depend on it.
 #
 # Args:
-#   BUILD_TESTS: whether or not to build a test RPM, off by default
 #
 # Example:
-#   make release-rpms BUILD_TESTS=1
+#   make release-rpms
 release-rpms: clean build-rpms
 	hack/build-images.sh
 	hack/extract-release.sh
