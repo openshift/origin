@@ -65,6 +65,7 @@ type TemplateRouter struct {
 	ExtendedValidation      bool
 	RouterService           *ktypes.NamespacedName
 	BindPortsAfterSync      bool
+	MaxConnections          string
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -91,6 +92,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
+	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
 }
 
 type RouterStats struct {
@@ -206,6 +208,7 @@ func (o *TemplateRouterOptions) Run() error {
 		BindPortsAfterSync:     o.BindPortsAfterSync,
 		IncludeUDP:             o.RouterSelection.IncludeUDP,
 		AllowWildcardRoutes:    o.RouterSelection.AllowWildcardRoutes,
+		MaxConnections:         o.MaxConnections,
 	}
 
 	oc, kc, err := o.Config.Clients()
