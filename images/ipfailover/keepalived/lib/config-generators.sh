@@ -229,14 +229,6 @@ function generate_failover_config() {
   local ipaddr ; ipaddr=$(get_device_ip_address "${interface}")
   local port="${HA_MONITOR_PORT//[^0-9]/}"
 
-  # scripts may not have execute set
-  if [[ -n "${HA_CHECK_SCRIPT}" ]]; then
-    chmod +x "${HA_CHECK_SCRIPT}"
-  fi
-  if [[ -n "${HA_NOTIFY_SCRIPT}" ]]; then
-    chmod +x "${HA_NOTIFY_SCRIPT}"
-  fi
-
   echo "! Configuration File for keepalived
 
 $(generate_global_config "${HA_CONFIG_NAME}")
