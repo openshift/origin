@@ -66,6 +66,7 @@ type TemplateRouter struct {
 	RouterService           *ktypes.NamespacedName
 	BindPortsAfterSync      bool
 	MaxConnections          string
+	ProbeSocket             string
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -93,6 +94,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
+	flag.StringVar(&o.ProbeSocket, "probe-socket", util.Env("ROUTER_PROBE_SOCKET", "/var/lib/haproxy/run/haproxy.sock"), "The unix socket for accessing underlying router implementation's CLI.")
 }
 
 type RouterStats struct {
@@ -209,6 +211,7 @@ func (o *TemplateRouterOptions) Run() error {
 		IncludeUDP:             o.RouterSelection.IncludeUDP,
 		AllowWildcardRoutes:    o.RouterSelection.AllowWildcardRoutes,
 		MaxConnections:         o.MaxConnections,
+		ProbeSocket:            o.ProbeSocket,
 	}
 
 	oc, kc, err := o.Config.Clients()
@@ -231,7 +234,7 @@ func (o *TemplateRouterOptions) Run() error {
 	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
-	controller := factory.Create(plugin, false, o.EnableIngress)
+	controller := factory.Create(plugin, false, o.EnableIngress, o.ProbeEndpoint, o.ProbeTimeout)
 	controller.Run()
 
 	proc.StartReaper()

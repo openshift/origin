@@ -225,6 +225,9 @@ type RouterConfig struct {
 	// MetricsImage is the image to run a sidecar container with in the router
 	// pod.
 	MetricsImage string
+
+	// ProbePort is used for incoming probes
+	ProbePort int
 }
 
 const (
@@ -234,8 +237,8 @@ const (
 	defaultPorts = "80:80,443:443"
 
 	// Default stats and healthz port.
-	defaultStatsPort   = 1936
-	defaultHealthzPort = defaultStatsPort
+	defaultStatsPort = 1936
+	defaultProbePort = 1935
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
@@ -254,6 +257,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 		StatsPort:     defaultStatsPort,
 		HostNetwork:   true,
 		HostPorts:     true,
+
+		ProbePort: defaultProbePort,
 	}
 
 	cmd := &cobra.Command{
@@ -304,6 +309,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 	cmd.Flags().StringVar(&cfg.MaxConnections, "max-connections", cfg.MaxConnections, "Specifies the maximum number of concurrent connections.")
+	cmd.Flags().IntVar(&cfg.ProbePort, "probe-port", cfg.ProbePort, "On which port you want the router to listen on to accept incoming probes. This is also a hint for exposing the port. Specify 0 if you want to turn off exposing the probe port.")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -402,49 +408,37 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	var probe *kapi.Probe
+func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort, probePath string, initialDelay int32) *kapi.Probe {
+	probe := &kapi.Probe{InitialDelaySeconds: initialDelay}
+	probePort := defaultProbePort
+	if cfg.ProbePort > 0 {
+		probePort = cfg.ProbePort
+	}
 
-	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{}
-		healthzPort := defaultHealthzPort
-		if cfg.StatsPort > 0 {
-			healthzPort = cfg.StatsPort
-		}
+	probe.Handler.HTTPGet = &kapi.HTTPGetAction{
+		Path: probePath,
+		Port: intstr.IntOrString{
+			Type:   intstr.Int,
+			IntVal: int32(probePort),
+		},
+	}
 
-		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
-			Path: "/healthz",
-			Port: intstr.IntOrString{
-				Type:   intstr.Int,
-				IntVal: int32(healthzPort),
-			},
-		}
-
-		// Workaround for misconfigured environments where the Node's InternalIP is
-		// physically present on the Node.  In those environments the probes will
-		// fail unless a host firewall port is opened
-		if cfg.HostNetwork {
-			probe.Handler.HTTPGet.Host = "localhost"
-		}
+	// Workaround for misconfigured environments where the Node's InternalIP is
+	// physically present on the Node.  In those environments the probes will
+	// fail unless a host firewall port is opened
+	if cfg.HostNetwork {
+		probe.Handler.HTTPGet.Host = "localhost"
 	}
 
 	return probe
 }
 
 func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
-	if probe != nil {
-		probe.InitialDelaySeconds = 10
-	}
-	return probe
+	return generateProbeConfigForRouter(cfg, ports, "/alive", 10)
 }
 
 func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
-	if probe != nil {
-		probe.InitialDelaySeconds = 10
-	}
-	return probe
+	return generateProbeConfigForRouter(cfg, ports, "/ready", 10)
 }
 
 func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *kapi.Container {
@@ -529,6 +523,18 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		}
 		if cfg.HostPorts {
 			port.HostPort = int32(cfg.StatsPort)
+		}
+		ports = append(ports, port)
+	}
+
+	if cfg.ProbePort > 0 {
+		port := kapi.ContainerPort{
+			Name:          "probe",
+			ContainerPort: int32(cfg.ProbePort),
+			Protocol:      kapi.ProtocolTCP,
+		}
+		if cfg.HostPorts {
+			port.HostPort = int32(cfg.ProbePort)
 		}
 		ports = append(ports, port)
 	}

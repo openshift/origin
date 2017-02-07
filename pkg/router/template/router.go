@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +24,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
 )
@@ -91,6 +94,10 @@ type templateRouter struct {
 	synced bool
 	// whether a state change has occurred
 	stateChanged bool
+	// a temporary buffer that holds the stats output from underlying router implementation
+	probeBuffer []byte
+	// socket to the CLI provided by underlying router implementation
+	probeSocket string
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -109,6 +116,7 @@ type templateRouterCfg struct {
 	peerEndpointsKey       string
 	includeUDP             bool
 	bindPortsAfterSync     bool
+	probeSocket            string
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -174,6 +182,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
+
+		probeBuffer: make([]byte, 4096),
+		probeSocket: cfg.probeSocket,
 	}
 
 	numSeconds := int(cfg.reloadInterval.Seconds())
@@ -820,6 +831,45 @@ func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
 	key := r.routeKey(route)
 	_, ok := r.state[key]
 	return ok
+}
+
+// Probe queries the underlying implementation for actual liveness/readiness status
+func (r *templateRouter) Probe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	switch probe {
+	case router.LivenessProbe:
+		deadline := time.Now().Add(timeout)
+		conn, err := net.DialTimeout("unix", r.probeSocket, timeout)
+		if err != nil {
+			glog.Errorf("Dial to stats socket %s fails with: %v", r.probeSocket, err)
+			return http.StatusServiceUnavailable, ([]byte)(err.Error())
+		}
+		defer conn.Close()
+		conn.SetDeadline(deadline)
+		nbytes := 0
+		if nbytes, err = conn.Write(([]byte)("show info\n")); err != nil {
+			glog.Errorf("Sending stats command fails with: %v", err)
+			return http.StatusServiceUnavailable, ([]byte)(err.Error())
+		}
+		if nbytes, err = conn.Read(r.probeBuffer); err != nil || nbytes == 0 {
+			glog.Errorf("Receiving replies of stats command fails with: %v", err)
+			return http.StatusServiceUnavailable, ([]byte)(err.Error())
+		}
+		glog.V(5).Infof("Underlying implementation returns %d bytes for 'show info'", nbytes)
+		return http.StatusOK, r.probeBuffer[0:nbytes]
+	case router.ReadinessProbe:
+		client := &http.Client{Timeout: timeout}
+		resp, err := client.Get(fmt.Sprintf("http://localhost:%d/healthz", r.statsPort))
+		if err != nil {
+			glog.Errorf("Fails to get report on /healthz: %v", err)
+			return http.StatusServiceUnavailable, ([]byte)(err.Error())
+		}
+		defer resp.Body.Close()
+		value, err := ioutil.ReadAll(resp.Body)
+		glog.V(5).Infof("Underlying implementation reports %d on /healthz with:\n%s", resp.StatusCode, string(value))
+		return resp.StatusCode, value
+	}
+	glog.Errorf("Invalid probe type: %s", probe)
+	return http.StatusServiceUnavailable, ([]byte)("Invalid probe")
 }
 
 // hasRequiredEdgeCerts ensures that at least a host certificate and key are provided.

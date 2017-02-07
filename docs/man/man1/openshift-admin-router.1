@@ -128,6 +128,10 @@ If a router does not exist with the given name, this command will create a deplo
     A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).
 
 .PP
+\fB\-\-probe\-port\fP=1935
+    On which port you want the router to listen on to accept incoming probes. This is also a hint for exposing the port. Specify 0 if you want to turn off exposing the probe port.
+
+.PP
 \fB\-\-replicas\fP=1
     The replication factor of the router; commonly 2 when high availability is desired.
 

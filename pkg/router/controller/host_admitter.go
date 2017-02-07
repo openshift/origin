@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -151,6 +152,10 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 // the provided namespace list.
 func (p *HostAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
+}
+
+func (p *HostAdmitter) HandleProbe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	return p.plugin.HandleProbe(probe, timeout)
 }
 
 func (p *HostAdmitter) Commit() error {

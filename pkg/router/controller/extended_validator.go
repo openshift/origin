@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -77,6 +78,10 @@ func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routea
 // the provided namespace list.
 func (p *ExtendedValidator) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
+}
+
+func (p *ExtendedValidator) HandleProbe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	return p.plugin.HandleProbe(probe, timeout)
 }
 
 func (p *ExtendedValidator) Commit() error {
