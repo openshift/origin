@@ -3,20 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-"${OS_ROOT}/hack/build-go.sh" vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen
-
-# Find binary
-clientgen="$(os::build::find-binary client-gen)"
-
-if [[ ! "$clientgen" ]]; then
-  {
-    echo "It looks as if you don't have a compiled client-gen binary"
-    echo
-    echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'."
-  } >&2
-  exit 1
-fi
+os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'
 
 # list of package to generate client set for
 packages=(
@@ -36,7 +23,7 @@ function generate_clientset_for() {
   local package="$1";shift
   local name="$1";shift
   echo "-- Generating ${name} client set for ${package} ..."
-  $clientgen --clientset-path="${package}/client/clientset_generated" \
+  client-gen --clientset-path="${package}/client/clientset_generated" \
              --clientset-api-path="/oapi"                             \
              --input-base="${package}/api"                            \
              --output-base="../../.."                                 \

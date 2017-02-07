@@ -26,13 +26,13 @@ name="$(basename ${package})"
 dlv_debug="${DLV_DEBUG:-}"
 verbose="${VERBOSE:-}"
 
-# build the test executable (cgo must be disabled to have the symbol table available)
+# build the test executable
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
   os::log::warn "Skipping build due to OPENSHIFT_SKIP_BUILD"
 else
-	CGO_ENABLED=0 "${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test" -installsuffix=cgo
+	"${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test"
 fi
-testexec="$(pwd)/$(os::build::find-binary "${name}.test")"
+testexec="$(os::util::find::built_binary "${name}.test")"
 
 os::log::system::start
 

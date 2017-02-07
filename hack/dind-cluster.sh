@@ -170,10 +170,12 @@ function get-network-plugin() {
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
   local default_plugin="${multitenant_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
+          "${plugin}" != "${networkpolicy_plugin}" &&
           "${plugin}" != "cni" ]]; then
     if [[ -n "${plugin}" ]]; then
       >&2 echo "Invalid network plugin: ${plugin}"
@@ -199,10 +201,10 @@ function copy-runtime() {
   local origin_root=$1
   local target=$2
 
-  cp "$(os::build::find-binary openshift)" "${target}"
-  cp "$(os::build::find-binary host-local)" "${target}"
-  cp "$(os::build::find-binary loopback)" "${target}"
-  cp "$(os::build::find-binary sdn-cni-plugin)" "${target}/openshift-sdn"
+  cp "$(os::util::find::built_binary openshift)" "${target}"
+  cp "$(os::util::find::built_binary host-local)" "${target}"
+  cp "$(os::util::find::built_binary loopback)" "${target}"
+  cp "$(os::util::find::built_binary sdn-cni-plugin)" "${target}/openshift-sdn"
   local osdn_plugin_path="${origin_root}/pkg/sdn/plugin"
   cp "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target}"
   cp "${osdn_plugin_path}/sdn-cni-plugin/80-openshift-sdn.conf" "${target}"
@@ -218,7 +220,10 @@ function wait-for-cluster() {
   local kubeconfig
   kubeconfig="$(get-admin-config "${config_root}")"
   local oc
-  oc="$(os::build::find-binary oc)"
+  oc="$(os::util::find::built_binary oc)"
+
+  # wait for healthz to report ok before trying to get nodes
+  os::util::wait-for-condition "ok" "${oc} get --config=${kubeconfig} --raw=/healthz" "120"
 
   local msg="${expected_node_count} nodes to report readiness"
   local condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
@@ -331,7 +336,7 @@ case "${1:-""}" in
     fi
 
     # Build origin if requested or required
-    if [[ -n "${BUILD}" || -z "$(os::build::find-binary oc)" ]]; then
+    if [[ -n "${BUILD}" ]] || ! os::util::find::built_binary 'oc' >/dev/null 2>&1; then
       "${OS_ROOT}/hack/build-go.sh"
     fi
 
@@ -356,9 +361,9 @@ case "${1:-""}" in
     build-images "${OS_ROOT}"
     ;;
   *)
-    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images}
+    >&2 echo "Usage: $0 {start|stop|wait-for-cluster|build-images} [options]
 
-start accepts the following arguments:
+start accepts the following options:
 
  -n [net plugin]   the name of the network plugin to deploy
 

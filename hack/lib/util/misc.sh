@@ -75,17 +75,18 @@ fi
 #  None
 function os::util::repository_relative_path() {
 	local filename=$1
+	local directory; directory="$( dirname "${filename}" )"
+	filename="$( basename "${filename}" )"
 
-	if which realpath >/dev/null 2>&1; then
+	if [[ "${directory}" != "${OS_ROOT}"* ]]; then
 		pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
-		local trim_path
-		trim_path="$( realpath "${OS_ROOT}" )/"
-		filename="$( realpath "${filename}" )"
-		filename="${filename##*${trim_path}}"
+		directory="$( os::util::absolute_path "${directory}" )"
 		popd >/dev/null 2>&1
 	fi
 
-	echo "${filename}"
+	directory="${directory##*${OS_ROOT}/}"
+
+	echo "${directory}/${filename}"
 }
 readonly -f os::util::repository_relative_path
 
@@ -108,27 +109,6 @@ function os::util::format_seconds() {
 	printf '%02dh %02dm %02ds' "${hours}" "${minutes}" "${seconds}"
 }
 readonly -f os::util::format_seconds
-
-# os::util::find-go-binary locates a go install binary in GOPATH directories
-# Globals:
-#  - 1: GOPATH
-# Arguments:
-#  - 1: the go-binary to find
-# Return:
-#  None
-function os::util::find-go-binary() {
-  local binary_name="$1"
-
-  IFS=":"
-  for part in $GOPATH; do
-  	local binary="${part}/bin/${binary_name}"
-    if [[ -f "${binary}" && -x "${binary}" ]]; then
-      echo "${binary}"
-      break
-    fi
-  done
-}
-readonly -f os::util::find-go-binary
 
 # os::util::sed attempts to make our Bash scripts agnostic to the platform
 # on which they run `sed` by glossing over a discrepancy in flag use in GNU.
@@ -204,11 +184,10 @@ function os::util::curl_etcd() {
 
 		curl --fail --silent --cacert "${ca_bundle}" \
 		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
+	else
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 	fi
-
-
-	curl --fail --silent --cacert "${ca_bundle}" \
-	     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 }
 
 # os::util::host_platform determines what the host OS and architecture
