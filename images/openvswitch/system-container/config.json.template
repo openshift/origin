@@ -1,0 +1,186 @@
+{
+    "ociVersion": "1.0.0",
+    "platform": {
+	"os": "linux",
+	"arch": "amd64"
+    },
+    "process": {
+	"terminal": false,
+	"user": {},
+	"args": [
+	    "/usr/local/bin/system-container-wrapper.sh"
+	],
+	"env": [
+            "container=docker",
+            "PKGM=yum",
+            "NAME=$NAME",
+            "PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin",
+	    "TERM=xterm"
+	],
+	"cwd": "/",
+	"capabilities": [
+            "CAP_FOWNER",
+            "CAP_FSETID",
+            "CAP_KILL",
+            "CAP_SETGID",
+            "CAP_SETUID",
+            "CAP_SETPCAP",
+            "CAP_LINUX_IMMUTABLE",
+            "CAP_NET_BIND_SERVICE",
+            "CAP_NET_BROADCAST",
+            "CAP_NET_ADMIN",
+            "CAP_NET_RAW",
+            "CAP_IPC_LOCK",
+            "CAP_IPC_OWNER",
+            "CAP_SYS_MODULE",
+            "CAP_SYS_RAWIO",
+            "CAP_SYS_CHROOT",
+            "CAP_SYS_PTRACE",
+            "CAP_SYS_PACCT",
+            "CAP_SYS_ADMIN",
+            "CAP_SYS_BOOT",
+            "CAP_SYS_NICE",
+            "CAP_SYS_RESOURCE",
+            "CAP_SYS_TIME",
+            "CAP_SYS_TTY_CONFIG",
+            "CAP_MKNOD",
+            "CAP_LEASE",
+            "CAP_AUDIT_WRITE",
+            "CAP_AUDIT_CONTROL",
+            "CAP_SETFCAP",
+            "CAP_MAC_OVERRIDE",
+            "CAP_MAC_ADMIN",
+            "CAP_SYSLOG",
+            "CAP_WAKE_ALARM",
+            "CAP_BLOCK_SUSPEND"
+	],
+	"rlimits": [
+	    {
+		"type": "RLIMIT_NOFILE",
+		"hard": 1024,
+		"soft": 1024
+	    }
+	],
+	"noNewPrivileges": true
+    },
+    "root": {
+	"path": "rootfs",
+	"readonly": true
+    },
+    "mounts": [
+        {
+            "destination": "/tmp",
+            "type": "tmpfs",
+            "source": "tmpfs",
+            "options": [
+                "nosuid",
+                "strictatime",
+                "mode=755",
+                "size=65536k"
+            ]
+        },
+        {
+            "destination": "/proc",
+            "type": "proc",
+            "source": "proc"
+        },
+        {
+            "destination": "/dev",
+            "type": "tmpfs",
+            "source": "tmpfs",
+            "options": [
+                "nosuid",
+                "strictatime",
+                "mode=755",
+                "size=65536k"
+            ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/run",
+	    "destination": "/run",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/lib/modules",
+	    "destination": "/lib/modules",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/etc/origin/openvswitch",
+	    "destination": "/etc/openvswitch",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/etc/resolv.conf",
+	    "destination": "/etc/resolv.conf",
+	    "options": [
+		"bind",
+		"ro"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/dev",
+	    "destination": "/dev",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "/sys",
+	    "destination": "/sys",
+	    "options": [
+		"rbind",
+		"ro"
+	    ]
+        }
+    ],
+    "hooks": {},
+    "linux": {
+	"resources": {
+	    "devices": [
+		{
+		    "allow": false,
+		    "access": "rwm"
+		}
+	    ]
+	},
+	"namespaces": [
+	    {
+		"type": "mount"
+	    }
+	],
+	"maskedPaths": [
+	    "/proc/kcore",
+	    "/proc/latency_stats",
+	    "/proc/timer_stats",
+	    "/proc/sched_debug"
+	],
+	"readonlyPaths": [
+	    "/proc/asound",
+	    "/proc/bus",
+	    "/proc/fs",
+	    "/proc/irq",
+	    "/proc/sysrq-trigger"
+	]
+    }
+}

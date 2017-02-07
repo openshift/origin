@@ -30,4 +30,7 @@ ENV HOME=/root \
     KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
+
+COPY system-container/config.json.template system-container/service.template /exports/
+
 ENTRYPOINT ["/usr/bin/openshift"]
