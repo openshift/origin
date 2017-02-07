@@ -240,7 +240,7 @@ func (c *DeploymentController) nextStatus(pod *kapi.Pod, deployment *kapi.Replic
 		return deployapi.DeploymentStatusRunning
 
 	case kapi.PodSucceeded:
-		// If the deployment was cancelled just prior to the deployer pod succeeding
+		// If the deployment was cancelled just prior to the deployer pod succeeding,
 		// then we need to remove the cancel annotations from the complete deployment
 		// and emit an event letting users know their cancellation failed.
 		if deployutil.IsDeploymentCancelled(deployment) {
