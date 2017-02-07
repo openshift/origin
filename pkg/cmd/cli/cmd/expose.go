@@ -34,7 +34,7 @@ var (
 	  %[1]s expose service nginx --hostname=www.example.com
 
 	  # Create a route with wildcard
-	  %[1]s expose service nginx --hostname=x.example.com --wildcard=Subdomain
+	  %[1]s expose service nginx --hostname=x.example.com --wildcard-policy=Subdomain
 	  This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
 
 	  # Expose a deployment configuration as a service and use the specified port
@@ -69,7 +69,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("path", "", "Set a path for the new route")
-	cmd.Flags().String("wildcardpolicy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
+	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
 	return cmd
 }
 
@@ -99,7 +99,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return kcmdutil.UsageError(cmd, err.Error())
 	}
 
-	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcardpolicy")
+	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 && (wildcardpolicy != "Subdomain" && wildcardpolicy != "None") {
 		return fmt.Errorf("only \"Subdomain\" or \"None\" are supported for wildcardpolicy")
 	}

@@ -145,7 +145,7 @@ There is also the ability to expose a deployment configuration, replication cont
     Type for this service: ClusterIP, NodePort, or LoadBalancer. Default is 'ClusterIP'.
 
 .PP
-\fB\-\-wildcardpolicy\fP=""
+\fB\-\-wildcard\-policy\fP=""
     Sets the WildcardPolicy for the hostname, the default is "None". Valid values are "None" and "Subdomain"
 
 
@@ -238,7 +238,7 @@ There is also the ability to expose a deployment configuration, replication cont
   oc expose service nginx \-\-hostname=www.example.com
   
   # Create a route with wildcard
-  oc expose service nginx \-\-hostname=x.example.com \-\-wildcard=Subdomain
+  oc expose service nginx \-\-hostname=x.example.com \-\-wildcard\-policy=Subdomain
   This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
   
   # Expose a deployment configuration as a service and use the specified port
