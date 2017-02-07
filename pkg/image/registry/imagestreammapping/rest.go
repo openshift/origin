@@ -1,6 +1,8 @@
 package imagestreammapping
 
 import (
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -64,13 +66,27 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		tag = api.DefaultImageTag
 	}
 
-	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
-		return nil, err
+	imageCreateErr := s.imageRegistry.CreateImage(ctx, &image)
+	if imageCreateErr != nil && !errors.IsAlreadyExists(imageCreateErr) {
+		return nil, imageCreateErr
+	}
+
+	// prefer dockerImageReference set on image for the tagEvent if the image is new
+	ref := image.DockerImageReference
+	if errors.IsAlreadyExists(imageCreateErr) && image.Annotations[api.ManagedByOpenShiftAnnotation] == "true" {
+		// the image is managed by us and, most probably, tagged in some other image stream
+		// let's make the reference local to this stream
+		if streamRef, err := api.DockerImageReferenceForStream(stream); err == nil {
+			streamRef.ID = image.Name
+			ref = streamRef.Exact()
+		} else {
+			glog.V(4).Infof("Failed to get dockerImageReference for stream %s/%s: %v", stream.Namespace, stream.Name, err)
+		}
 	}
 
 	next := api.TagEvent{
 		Created:              unversioned.Now(),
-		DockerImageReference: image.DockerImageReference,
+		DockerImageReference: ref,
 		Image:                image.Name,
 	}
 

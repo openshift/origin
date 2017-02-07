@@ -94,10 +94,10 @@ func UnmountPath(mountPath string, mounter mount.Interface) error {
 		return err
 	}
 	if notMnt {
-		glog.V(4).Info("%q is unmounted, deleting the directory", mountPath)
+		glog.V(4).Infof("%q is unmounted, deleting the directory", mountPath)
 		return os.Remove(mountPath)
 	}
-	return nil
+	return fmt.Errorf("Failed to unmount path %v", mountPath)
 }
 
 // PathExists returns true if the specified path exists.

@@ -113,6 +113,7 @@ func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCach
 			sa, err := saCache.ServiceAccounts(namespace).Get(saName)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("unable to retrieve ServiceAccount %s: %v", saName, err))
+				continue
 			}
 			serviceAccounts = append(serviceAccounts, sa)
 		}

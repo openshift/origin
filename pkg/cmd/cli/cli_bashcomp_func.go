@@ -2,13 +2,52 @@ package cli
 
 const (
 	bashCompletionFunc = `# call oc get $1,
+__oc_override_flag_list=(config cluster user context namespace server)
+__oc_override_flags()
+{
+    local ${__oc_override_flag_list[*]} two_word_of of
+    for w in "${words[@]}"; do
+        if [ -n "${two_word_of}" ]; then
+            eval "${two_word_of}=\"--${two_word_of}=\${w}\""
+            two_word_of=
+            continue
+        fi
+        for of in "${__oc_override_flag_list[@]}"; do
+            case "${w}" in
+                --${of}=*)
+                    eval "${of}=\"${w}\""
+                    ;;
+                --${of})
+                    two_word_of="${of}"
+                    ;;
+            esac
+        done
+        if [ "${w}" == "--all-namespaces" ]; then
+            namespace="--all-namespaces"
+        fi
+    done
+    for of in "${__oc_override_flag_list[@]}"; do
+        if eval "test -n \"\$${of}\""; then
+            eval "echo \${${of}}"
+        fi
+    done
+}
 __oc_parse_get()
 {
 
     local template
     template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
     local oc_out
-    if oc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
+    if oc_out=$(oc get $(__oc_override_flags) -o template --template="${template}" "$1" 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
+    fi
+}
+
+__oc_get_namespaces()
+{
+    local template oc_out
+    template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
+    if oc_out=$(oc get -o template --template="${template}" namespace 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
     fi
 }

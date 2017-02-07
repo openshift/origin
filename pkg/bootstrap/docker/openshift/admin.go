@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -28,10 +29,11 @@ const (
 	SvcDockerRegistry = "docker-registry"
 	SvcRouter         = "router"
 	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
+	RegistryServiceIP = "172.30.1.1"
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images string, out, errout io.Writer) error {
+func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -40,6 +42,12 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
+
+	err = AddSCCToServiceAccount(kubeClient, "privileged", "registry", "default")
+	if err != nil {
+		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
+	}
+
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = images
 	opts := &registry.RegistryOptions{
@@ -52,6 +60,8 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 			Labels:         "docker-registry=default",
 			Volume:         "/registry",
 			ServiceAccount: "registry",
+			HostMount:      path.Join(pvDir, "registry"),
+			ClusterIP:      RegistryServiceIP,
 		},
 	}
 	cmd := registry.NewCmdRegistry(f, "", "registry", out, errout)
@@ -141,7 +151,6 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		Ports:              "80:80,443:443",
 		Replicas:           1,
 		Labels:             "router=<name>",
-		Credentials:        filepath.Join(masterDir, "admin.kubeconfig"),
 		DefaultCertificate: filepath.Join(masterDir, "router.pem"),
 		StatsPort:          1936,
 		StatsUsername:      "admin",

@@ -263,7 +263,8 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 		obj.ImageMinimumGCAge = unversioned.Duration{Duration: 2 * time.Minute}
 	}
 	if obj.ImageGCHighThresholdPercent == nil {
-		temp := int32(90)
+		// default is below docker's default dm.min_free_space of 90%
+		temp := int32(85)
 		obj.ImageGCHighThresholdPercent = &temp
 	}
 	if obj.ImageGCLowThresholdPercent == nil {
@@ -373,6 +374,9 @@ func SetDefaults_KubeletConfiguration(obj *KubeletConfiguration) {
 	}
 	if obj.EvictionPressureTransitionPeriod == zeroDuration {
 		obj.EvictionPressureTransitionPeriod = unversioned.Duration{Duration: 5 * time.Minute}
+	}
+	if obj.ExperimentalKernelMemcgNotification == nil {
+		obj.ExperimentalKernelMemcgNotification = boolVar(false)
 	}
 	if obj.SystemReserved == nil {
 		obj.SystemReserved = make(map[string]string)

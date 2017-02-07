@@ -462,6 +462,8 @@ type KubeletConfiguration struct {
 	EvictionMaxPodGracePeriod int32 `json:"evictionMaxPodGracePeriod"`
 	// Comma-delimited list of minimum reclaims (e.g. imagefs.available=2Gi) that describes the minimum amount of resource the kubelet will reclaim when performing a pod eviction if that resource is under pressure.
 	EvictionMinimumReclaim string `json:"evictionMinimumReclaim"`
+	// If enabled, the kubelet will integrate with the kernel memcg notification to determine if memory eviction thresholds are crossed rather than polling.
+	ExperimentalKernelMemcgNotification *bool `json:"experimentalKernelMemcgNotification"`
 	// Maximum number of pods per core. Cannot exceed MaxPods
 	PodsPerCore int32 `json:"podsPerCore"`
 	// enableControllerAttachDetach enables the Attach/Detach controller to
@@ -509,6 +511,9 @@ type KubeletConfiguration struct {
 	// (binaries, etc.) to mount the volume are available on the underlying node. If the check is enabled
 	// and fails the mount operation fails.
 	ExperimentalCheckNodeCapabilitiesBeforeMount bool `json:"ExperimentalCheckNodeCapabilitiesBeforeMount,omitempty"`
+	// This flag, if set, instructs the kubelet to keep volumes from terminated pods mounted to the node.
+	// This can be useful for debugging volume related issues.
+	KeepTerminatedPodVolumes bool `json:"keepTerminatedPodVolumes,omitempty"`
 }
 
 type KubeletAuthorizationMode string

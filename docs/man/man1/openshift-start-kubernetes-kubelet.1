@@ -218,6 +218,10 @@ starting from a configuration file.
     Makes the Kubelet fail to start if swap is enabled on the node. This is a temporary opton to maintain legacy behavior, failing due to swap enabled will happen by default in v1.6.
 
 .PP
+\fB\-\-experimental\-kernel\-memcg\-notification\fP=false
+    If enabled, the kubelet will integrate with the kernel memcg notification to determine if memory eviction thresholds are crossed rather than polling.
+
+.PP
 \fB\-\-experimental\-mounter\-path\fP=""
     [Experimental] Path of mounter binary. Leave empty to use the default mount.
 
@@ -273,8 +277,8 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
     Duration between checking http for new data
 
 .PP
-\fB\-\-image\-gc\-high\-threshold\fP=90
-    The percent of disk usage after which image garbage collection is always run. Default: 90%
+\fB\-\-image\-gc\-high\-threshold\fP=85
+    The percent of disk usage after which image garbage collection is always run. Default: 85%
 
 .PP
 \fB\-\-image\-gc\-low\-threshold\fP=80
@@ -291,6 +295,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 .PP
 \fB\-\-iptables\-masquerade\-bit\fP=14
     The bit of the fwmark space to mark packets for SNAT. Must be within the range [0, 31]. Please match this parameter with corresponding parameter in kube\-proxy.
+
+.PP
+\fB\-\-keep\-terminated\-pod\-volumes\fP=false
+    Keep terminated pod volumes mounted to the node after the pod terminates.  Can be useful for debugging volume related issues.
 
 .PP
 \fB\-\-kube\-api\-burst\fP=10
@@ -540,6 +548,10 @@ StreamingProxyRedirects=true|false (ALPHA \- default=false)
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
 .PP
 \fB\-\-google\-json\-key\fP=""
     The Google Cloud Platform Service Account JSON Key to use for authentication.

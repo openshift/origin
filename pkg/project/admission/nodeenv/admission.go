@@ -28,7 +28,6 @@ type podNodeEnvironment struct {
 }
 
 var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
-var _ = oadmission.Validator(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {

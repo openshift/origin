@@ -100,6 +100,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
 \fB\-\-validate\fP=false
     If true, use a schema to validate the input before sending it
 
+.PP
+\fB\-\-wildcard\-policy\fP=""
+    Sets the WilcardPolicy for the hostname, the default is "None". valid values are "None" and "Subdomain"
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -109,6 +113,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

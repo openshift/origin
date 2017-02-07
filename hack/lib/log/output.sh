@@ -8,7 +8,7 @@
 # Arguments:
 #  - all: message to write
 function os::log::info() {
-	echo "[INFO] $*"
+	os::log::internal::prefix_lines "[INFO]" "$*"
 }
 readonly -f os::log::info
 
@@ -19,7 +19,7 @@ readonly -f os::log::info
 # Arguments:
 #  - all: message to write
 function os::log::warn() {
-	os::text::print_yellow "[WARNING] $*" 1>&2
+	os::text::print_yellow "$( os::log::internal::prefix_lines "[WARNING]" "$*" )" 1>&2
 }
 readonly -f os::log::warn
 
@@ -30,7 +30,7 @@ readonly -f os::log::warn
 # Arguments:
 #  - all: message to write
 function os::log::error() {
-	os::text::print_red "[ERROR] $*" 1>&2
+	os::text::print_red "$( os::log::internal::prefix_lines "[ERROR]" "$*" )" 1>&2
 }
 readonly -f os::log::error
 
@@ -42,7 +42,38 @@ readonly -f os::log::error
 # Arguments:
 #  - all: message to write
 function os::log::fatal() {
-	os::text::print_red "[FATAL] $*" 1>&2
-	return 1
+	os::text::print_red "$( os::log::internal::prefix_lines "[FATAL]" "$*" )" 1>&2
+	exit 1
 }
 readonly -f os::log::fatal
+
+# os::log::debug writes the message to stderr if
+# the ${OS_DEBUG} variable is set.
+#
+# Arguments:
+#  - all: message to write
+function os::log::debug() {
+	if [[ -n "${OS_DEBUG:-}" ]]; then
+		os::text::print_blue "$( os::log::internal::prefix_lines "[DEBUG]" "$*" )" 1>&2
+	fi
+}
+readonly -f os::log::debug
+
+# os::log::internal::prefix_lines prints out the
+# original content with the given prefix at the
+# start of every line.
+#
+# Arguments:
+#  - 1: prefix for lines
+#  - 2: content to prefix
+function os::log::internal::prefix_lines() {
+	local prefix="$1"
+	local content="$2"
+
+	local old_ifs="${IFS}"
+	IFS=$'\n'
+	for line in ${content}; do
+		echo "${prefix} ${line}"
+	done
+	IFS="${old_ifs}"
+}

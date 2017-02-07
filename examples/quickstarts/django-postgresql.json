@@ -22,8 +22,9 @@
         "name": "${NAME}"
       },
       "stringData" : {
-        "databaseUser" : "${DATABASE_USER}",
-        "databasePassword" : "${DATABASE_PASSWORD}"
+        "database-user" : "${DATABASE_USER}",
+        "database-password" : "${DATABASE_PASSWORD}",
+        "django-secret-key" : "${DJANGO_SECRET_KEY}"
       }
     },
     {
@@ -218,7 +219,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -227,7 +228,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },
@@ -237,7 +238,12 @@
                   },
                   {
                     "name": "DJANGO_SECRET_KEY",
-                    "value": "${DJANGO_SECRET_KEY}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${NAME}",
+                        "key" : "django-secret-key"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -338,7 +344,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databaseUser"
+                        "key" : "database-user"
                       }
                     }
                   },
@@ -347,7 +353,7 @@
                     "valueFrom": {
                       "secretKeyRef" : {
                         "name" : "${NAME}",
-                        "key" : "databasePassword"
+                        "key" : "database-password"
                       }
                     }
                   },

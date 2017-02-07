@@ -77,7 +77,7 @@ func TestRouteWhenZeroRoutesAvailable(t *testing.T) {
 	d.dumpMessages()
 }
 
-//test error route != accepted
+// Test error route != accepted
 func TestRouteWhenRouteNotAccepted(t *testing.T) {
 	d := newFakeRoutesDiagnostic(t)
 	d.addRouteWith(routesapi.RouteExtendedValidationFailed, kapi.ConditionTrue, "", "")

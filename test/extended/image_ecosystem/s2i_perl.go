@@ -33,7 +33,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "dancer-mysql-example-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "dancer-mysql-example-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("dancer-mysql-example", oc)
 			}

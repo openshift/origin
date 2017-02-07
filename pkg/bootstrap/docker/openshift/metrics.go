@@ -124,7 +124,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 		},
 		{
 			Name:  "USE_PERSISTENT_STORAGE",
-			Value: "false",
+			Value: "true",
 		},
 		{
 			Name:  "CASSANDRA_NODES",

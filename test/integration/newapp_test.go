@@ -1660,9 +1660,8 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 					DockerImages:       []string{"centos/ruby-22-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					AddEnvironmentToBuild: true,
-					OutputDocker:          true,
-					Environment:           []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
+					OutputDocker:     true,
+					BuildEnvironment: []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 				},
 
 				Resolvers: cmd.Resolvers{

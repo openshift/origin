@@ -31,7 +31,7 @@ func TestAPIServerDefaults(t *testing.T) {
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &apiserveroptions.ServerRunOptions{
 		GenericServerRunOptions: &genericapiserveroptions.ServerRunOptions{
-			AnonymousAuth:           true,
+			AnonymousAuth:           false,
 			BindAddress:             net.ParseIP("0.0.0.0"),
 			CertDirectory:           "/var/run/kubernetes",
 			InsecureBindAddress:     net.ParseIP("127.0.0.1"),
@@ -144,9 +144,11 @@ func TestCMServerDefaults(t *testing.T) {
 				RenewDeadline: unversioned.Duration{Duration: 10 * time.Second},
 				RetryPeriod:   unversioned.Duration{Duration: 2 * time.Second},
 			},
-			ClusterSigningCertFile: "/etc/kubernetes/ca/ca.pem",
-			ClusterSigningKeyFile:  "/etc/kubernetes/ca/ca.key",
-			EnableGarbageCollector: true,
+			ClusterSigningCertFile:            "/etc/kubernetes/ca/ca.pem",
+			ClusterSigningKeyFile:             "/etc/kubernetes/ca/ca.key",
+			EnableGarbageCollector:            true,
+			DisableAttachDetachReconcilerSync: false,
+			ReconcilerSyncLoopPeriod:          unversioned.Duration{Duration: 5 * time.Second},
 		},
 	}
 

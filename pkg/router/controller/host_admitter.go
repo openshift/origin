@@ -80,9 +80,12 @@ type HostAdmitter struct {
 	// recorder is an interface for indicating route rejections.
 	recorder RejectionRecorder
 
-	// restrictOwnership adds admission checks to restrict ownership
-	// (of subdomains) to a single owner/namespace.
-	restrictOwnership bool
+	// allowWildcardRoutes enables wildcard route support.
+	allowWildcardRoutes bool
+
+	// disableNamespaceCheck disables admission checks to restrict
+	// ownership (of subdomains) to a single owner/namespace.
+	disableNamespaceCheck bool
 
 	claimedHosts     RouteMap
 	claimedWildcards RouteMap
@@ -92,16 +95,18 @@ type HostAdmitter struct {
 // NewHostAdmitter creates a plugin wrapper that checks whether or not to
 // admit routes and relay them to the next plugin in the chain.
 // Recorder is an interface for indicating why a route was rejected.
-func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, restrict bool, recorder RejectionRecorder) *HostAdmitter {
+func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, allowWildcards, disableNamespaceCheck bool, recorder RejectionRecorder) *HostAdmitter {
 	return &HostAdmitter{
 		plugin:   plugin,
 		admitter: fn,
 		recorder: recorder,
 
-		restrictOwnership: restrict,
-		claimedHosts:      RouteMap{},
-		claimedWildcards:  RouteMap{},
-		blockedWildcards:  RouteMap{},
+		allowWildcardRoutes:   allowWildcards,
+		disableNamespaceCheck: disableNamespaceCheck,
+
+		claimedHosts:     RouteMap{},
+		claimedWildcards: RouteMap{},
+		blockedWildcards: RouteMap{},
 	}
 }
 
@@ -123,7 +128,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 		return err
 	}
 
-	if p.restrictOwnership && len(route.Spec.Host) > 0 {
+	if p.allowWildcardRoutes && len(route.Spec.Host) > 0 {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			if err := p.addRoute(route); err != nil {
@@ -227,8 +232,8 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 
 	// See if any existing routes block our host, or if we displace their host
 	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
-		if route.Namespace == newRoute.Namespace {
-			if route.Name == newRoute.Name {
+		if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
+			if !p.disableNamespaceCheck && route.Name == newRoute.Name {
 				continue
 			}
 
@@ -266,8 +271,8 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 
 	// See if any existing wildcard routes block our domain, or if we displace them
 	for i, route := range p.claimedWildcards[wildcardKey] {
-		if route.Namespace == newRoute.Namespace {
-			if route.Name == newRoute.Name {
+		if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
+			if !p.disableNamespaceCheck && route.Name == newRoute.Name {
 				continue
 			}
 
@@ -304,7 +309,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	// If this is a wildcard route, see if any specific hosts block our wildcardSpec, or if we displace them
 	if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
 		for i, route := range p.blockedWildcards[wildcardKey] {
-			if route.Namespace == newRoute.Namespace {
+			if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
 				// Never displace a route in our namespace
 				continue
 			}

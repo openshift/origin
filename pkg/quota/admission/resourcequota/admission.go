@@ -37,7 +37,6 @@ type originQuotaAdmission struct {
 }
 
 var _ = oadmission.WantsOriginQuotaRegistry(&originQuotaAdmission{})
-var _ = oadmission.Validator(&originQuotaAdmission{})
 
 // NewOriginResourceQuota creates a new OriginResourceQuota admission plugin that takes care of admission of
 // origin resources abusing resource quota.

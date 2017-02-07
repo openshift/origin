@@ -42,7 +42,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 
 		p := &kapps.StatefulSet{}
 		p.Namespace = namespace
-		p.Name = "the-petset"
+		p.Name = "the-statefulset"
 		p.Spec.Selector = &unversioned.LabelSelector{
 			MatchLabels: map[string]string{"a": "1"},
 		}

@@ -149,8 +149,8 @@ var (
 )
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
-func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdDelete(f, out)
+func NewCmdDelete(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdDelete(f, out, errOut)
 	cmd.Long = deleteLong
 	cmd.Short = "Delete one or more resources"
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
@@ -230,7 +230,7 @@ func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(f, out)
+	cmd := kcmd.NewCmdCompletion(f, out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	return cmd

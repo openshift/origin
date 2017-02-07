@@ -66,6 +66,10 @@ func TestNewAppDefaultFlags(t *testing.T) {
 			flagName:   "env",
 			defaultVal: "[" + strings.Join(config.Environment, ",") + "]",
 		},
+		"build-env": {
+			flagName:   "build-env",
+			defaultVal: "[" + strings.Join(config.BuildEnvironment, ",") + "]",
+		},
 		"name": {
 			flagName:   "name",
 			defaultVal: config.Name,
@@ -175,6 +179,18 @@ func TestNewAppRunFailure(t *testing.T) {
 				},
 			},
 			expectedErr: "--search can't be used with --env",
+		},
+		"search_with_build_env": {
+			config: &newcmd.AppConfig{
+				AsSearch: true,
+				ComponentInputs: newcmd.ComponentInputs{
+					Components: []string{"mysql"},
+				},
+				GenerationInputs: newcmd.GenerationInputs{
+					BuildEnvironment: []string{"FOO=BAR"},
+				},
+			},
+			expectedErr: "--search can't be used with --build-env",
 		},
 		"search_with_param": {
 			config: &newcmd.AppConfig{

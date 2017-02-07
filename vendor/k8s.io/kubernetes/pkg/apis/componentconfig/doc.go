@@ -17,4 +17,4 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:openapi-gen=true
 
-package componentconfig // import "k8s.io/kubernetes/pkg/apis/componentconfig"
+package componentconfig

@@ -243,8 +243,6 @@ This section covers how to perform all the steps of building, deploying, and upd
              This example shows how to create a simple ruby application in openshift origin v3
 
              * With parameters:
-                * ADMIN_USERNAME=adminDWD # generated
-                * ADMIN_PASSWORD=1jL5uGrT # generated
                 * MYSQL_USER=userPJJ # generated
                 * MYSQL_PASSWORD=cJHNK3se # generated
                 * MYSQL_DATABASE=root

@@ -107,7 +107,7 @@ func TestWebConsoleExtensions(t *testing.T) {
 		"extension scripts": {
 			URL:     "scripts/extensions.js",
 			Status:  http.StatusOK,
-			Type:    "text/javascript",
+			Type:    "application/javascript",
 			Content: []byte(script1 + ";\n" + script2 + ";\n"),
 		},
 		"extension css": {

@@ -40,6 +40,7 @@ type osdnPolicy interface {
 
 	GetVNID(namespace string) (uint32, error)
 	GetNamespaces(vnid uint32) []string
+	GetMulticastEnabled(vnid uint32) bool
 
 	RefVNID(vnid uint32)
 	UnrefVNID(vnid uint32)
@@ -70,11 +71,15 @@ type OsdnNode struct {
 // Called by higher layers to create the plugin SDN node instance
 func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	var policy osdnPolicy
+	var minOvsVersion string
 	switch strings.ToLower(pluginName) {
 	case osapi.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
 	case osapi.MultiTenantPluginName:
 		policy = NewMultiTenantPlugin()
+	case osapi.NetworkPolicyPluginName:
+		policy = NewNetworkPolicyPlugin()
+		minOvsVersion = "2.5.0"
 	default:
 		// Not an OpenShift plugin
 		return nil, nil
@@ -104,7 +109,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		}
 	}
 
-	ovsif, err := ovs.New(kexec.New(), BR)
+	ovsif, err := ovs.New(kexec.New(), BR, minOvsVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +239,7 @@ func (node *OsdnNode) Start() error {
 		})
 
 	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
-	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu)
+	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu, node.ovs)
 	if err != nil {
 		return err
 	}

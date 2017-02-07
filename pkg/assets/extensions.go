@@ -16,12 +16,12 @@ import (
 
 // ExtensionScriptsHandler concatenates and serves extension JavaScript files as one HTTP response.
 func ExtensionScriptsHandler(files []string, developmentMode bool) (http.Handler, error) {
-	return concatHandler(files, developmentMode, "text/javascript", ";\n")
+	return concatHandler(files, developmentMode, "application/javascript; charset=utf-8", ";\n")
 }
 
 // ExtensionStylesheetsHandler concatenates and serves extension stylesheets as one HTTP response.
 func ExtensionStylesheetsHandler(files []string, developmentMode bool) (http.Handler, error) {
-	return concatHandler(files, developmentMode, "text/css", "\n")
+	return concatHandler(files, developmentMode, "text/css; charset=utf-8", "\n")
 }
 
 func concatHandler(files []string, developmentMode bool, mediaType, separator string) (http.Handler, error) {
@@ -96,11 +96,6 @@ func generateETag(w http.ResponseWriter, r *http.Request, hash string) string {
 }
 
 func serve(w http.ResponseWriter, r *http.Request, bytes []byte, mediaType, hash string) {
-	if len(bytes) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	if len(hash) > 0 {
 		etag := generateETag(w, r, hash)
 		if r.Header.Get("If-None-Match") == etag {

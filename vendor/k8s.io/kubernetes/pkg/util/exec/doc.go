@@ -15,4 +15,4 @@ limitations under the License.
 */
 
 // Package exec provides an injectable interface and implementations for running commands.
-package exec // import "k8s.io/kubernetes/pkg/util/exec"
+package exec

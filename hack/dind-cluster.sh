@@ -170,10 +170,12 @@ function get-network-plugin() {
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
   local default_plugin="${multitenant_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
+          "${plugin}" != "${networkpolicy_plugin}" &&
           "${plugin}" != "cni" ]]; then
     if [[ -n "${plugin}" ]]; then
       >&2 echo "Invalid network plugin: ${plugin}"

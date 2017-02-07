@@ -7,6 +7,9 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+export OS_BUILD_ENV_FROM_ARCHIVE=y
+export OS_BUILD_ENV_PRESERVE=_output/local
+
 context="${OS_ROOT}/_output/buildenv-context"
 
 # Clean existing output.
@@ -24,7 +27,7 @@ trap "os::build::environment::cleanup ${container}" EXIT
   os::build::get_version_vars
   echo "++ Building release ${OS_GIT_VERSION}"
 )
-OS_BUILD_ENV_PRESERVE=_output/local/releases os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
+os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

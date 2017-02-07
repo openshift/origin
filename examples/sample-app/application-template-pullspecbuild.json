@@ -12,6 +12,17 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -104,7 +115,8 @@
           {
             "type": "Generic",
             "generic": {
-              "secret": "secret101"
+              "secret": "secret101",
+              "allowEnv": true
             }
           },
           {
@@ -174,7 +186,7 @@
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
@@ -230,20 +242,22 @@
                 ],
                 "env": [
                   {
-                    "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
-                  },
-                  {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -320,11 +334,27 @@
                 "volumes": ["ruby-helloworld-data"]
               }
             },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
             "post": {
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
@@ -359,7 +389,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "openshift/mysql-55-centos7:latest",
+                "image": "centos/mysql-57-centos7:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -369,11 +399,21 @@
                 "env": [
                   {
                     "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
                   },
                   {
                     "name": "MYSQL_DATABASE",
@@ -413,33 +453,24 @@
   ],
   "parameters": [
     {
-      "name": "ADMIN_USERNAME",
-      "description": "administrator username",
-      "generate": "expression",
-      "from": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "description": "administrator password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
-    },
-    {
       "name": "MYSQL_USER",
       "description": "database username",
       "generate": "expression",
-      "from": "user[A-Z0-9]{3}"
+      "from": "user[A-Z0-9]{3}",
+      "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
       "description": "database password",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
     },
     {
       "name": "MYSQL_DATABASE",
       "description": "database name",
-      "value": "root"
+      "value": "root",
+      "required": true
     }
   ],
   "labels": {

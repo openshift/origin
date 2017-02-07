@@ -16,7 +16,7 @@ func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.Build
 	}
 
 	newTriggers := []newer.BuildTriggerPolicy{}
-	// strip off any default imagechange triggers where the buildconfig's
+	// Strip off any default imagechange triggers where the buildconfig's
 	// "from" is not an ImageStreamTag, because those triggers
 	// will never be invoked.
 	imageRef := buildutil.GetInputReference(out.Spec.Strategy)
@@ -113,11 +113,11 @@ func Convert_api_BuildSource_To_v1_BuildSource(in *newer.BuildSource, out *Build
 		return err
 	}
 	switch {
-	// it is legal for a buildsource to have both a git+dockerfile source, but in v1 that was represented
+	// It is legal for a buildsource to have both a git+dockerfile source, but in v1 that was represented
 	// as type git.
 	case in.Git != nil:
 		out.Type = BuildSourceGit
-	// it is legal for a buildsource to have both a binary+dockerfile source, but in v1 that was represented
+	// It is legal for a buildsource to have both a binary+dockerfile source, but in v1 that was represented
 	// as type binary.
 	case in.Binary != nil:
 		out.Type = BuildSourceBinary

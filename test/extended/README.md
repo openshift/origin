@@ -12,15 +12,18 @@ From the top-level origin directory, run
 
 Where \<some_script\>.sh is one of the bucket scripts such as "core.sh".
 
-You can further narrow the set of tests being run by passing `--ginkgo.focus="some string"` where "some string" corresponds to
-the description of the test you want to run.  For example one of the s2i tests (sti_incremental.go) defines:
+You can further narrow the set of tests being run by passing
+`--ginkgo.focus='regex'` where 'regex' is a regular expression matching the
+description of the test you want to run.  For example one of the s2i tests
+(s2i_incremental.go) defines:
 
-	var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
+	var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 
-So you can write a focus filter that includes this test by passing `--ginkgo.focus="s2i incremental"`.
+So you can write a focus regex that includes this test by passing
+`--ginkgo.focus='\[builds\]'` or `--ginkgo.focus='incremental s2i'`.
 
 Prerequisites
------------
+-------------
 
 In order to execute the extended tests, you have to install
 [Ginkgo](https://github.com/onsi/ginkgo) framework which is used in extended
@@ -32,6 +35,68 @@ $ go get github.com/onsi/ginkgo/ginkgo
 
 You also need to have the `openshift` binary in the `PATH` if you want to use
 the shell script helpers to execute the extended tests.
+
+Rapid local testing
+--------------------
+
+If you already have a running OpenShift cluster, e.g. one created using `oc
+cluster up`, you can skip having the extended test infrastructure spin up an
+OpenShift cluster each time the tests are run by setting the `TEST_ONLY`
+environment variable as follows:
+
+```console
+$ oc cluster up
+$ oc login -u system:admin
+$ export KUBECONFIG=${KUBECONFIG-$HOME/.kube/config}
+```
+
+Then, for example:
+```console
+$ make build-extended-test
+$ TEST_ONLY=1 test/extended/core.sh --ginkgo.focus='\[builds\]'
+```
+
+By default the Kubernetes test framework will remove the project associated with
+your test spec when it completes, regardless of whether it fails or not.
+Origin's wrapper scripts may also do clean-up.  This can be inconvenient when
+debugging.  To stop this behaviour, set the `SKIP_TEARDOWN` environment variable
+and add the argument `--delete-namespace=false`:
+
+```console
+$ make build-extended-test
+$ SKIP_TEARDOWN=1 TEST_ONLY=1 test/extended/core.sh --delete-namespace=false --ginkgo.focus='\[builds\]'
+```
+
+Test labels
+-----------
+
+See [kinds of tests](https://github.com/kubernetes/community/blob/master/contributors/devel/e2e-tests.md#kinds-of-tests)
+for a full explanation of the labels used for each test spec.  In brief:
+
+- If a test has no labels, it is expected to run fast (under five minutes), be
+  able to be run in parallel, and be consistent.
+
+- \[Serial\]: If a test cannot be run in parallel with other tests (e.g. it
+  takes too many resources or restarts nodes), it is labeled \[Serial\], and
+  should be run in serial as part of a separate suite.
+
+- \[Slow\]: If a test takes more than five minutes to run (by itself or in
+  parallel with many other tests), it is labeled \[Slow\]. This partition allows
+  us to run almost all of our tests quickly in parallel, without waiting for the
+  stragglers to finish.
+
+  OpenShift extended tests that run builds should be marked \[Slow\].
+
+- Tests should be marked \[Conformance\] when they provide test coverage for
+  functionality considered core and critical to a functional cluster (i.e. not
+  exotic features/configurations) and which is not overlapping with coverage
+  provided in other conformance tests.  Example of a valid conformance test: "Do
+  builds work." Example of an invalid conformance test: "Do builds work when the
+  forcePull flag is set."
+
+- In general, accessing the local host (e.g. using the docker socket) in
+  extended tests should be avoided.  If this is unavoidable, the test should be
+  marked \[local\].
 
 Extended tests structure
 ------------------------

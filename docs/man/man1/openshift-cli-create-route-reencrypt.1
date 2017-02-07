@@ -45,6 +45,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
     Set a hostname for the new route
 
 .PP
+\fB\-\-insecure\-policy\fP=""
+    Set an insecure policy for the new route
+
+.PP
 \fB\-\-key\fP=""
     Path to a key file.
 
@@ -100,6 +104,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
 \fB\-\-validate\fP=false
     If true, use a schema to validate the input before sending it
 
+.PP
+\fB\-\-wildcard\-policy\fP=""
+    Sets the WildcardPolicy for the hostname, the default is "None". valid values are "None" and "Subdomain"
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -109,6 +117,10 @@ Specify the service (either just its name or using type/name syntax) that the ge
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""

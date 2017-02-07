@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -123,10 +124,10 @@ func DownloadDirFromContainer(client *docker.Client, container, src, dst string)
 
 // UploadFileToContainer uploads a file to a remote container.
 func UploadFileToContainer(client *docker.Client, container, src, dest string) error {
-	uploader, errch := newContainerUploader(client, container, filepath.Dir(dest))
+	uploader, errch := newContainerUploader(client, container, path.Dir(dest))
 
 	t := s2itar.New(s2iutil.NewFileSystem())
-	tarWriter := s2itar.RenameAdapter{Writer: tar.NewWriter(uploader), Old: filepath.Base(src), New: filepath.Base(dest)}
+	tarWriter := s2itar.RenameAdapter{Writer: tar.NewWriter(uploader), Old: filepath.Base(src), New: path.Base(dest)}
 
 	err := t.CreateTarStreamToTarWriter(src, true, tarWriter, nil)
 	if err == nil {

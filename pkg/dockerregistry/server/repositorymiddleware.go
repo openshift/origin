@@ -20,6 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
 
 const (
@@ -227,6 +229,12 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 		repo:      r,
 	}
 
+	if audit.LoggerExists(ctx) {
+		ms = &auditManifestService{
+			manifests: ms,
+		}
+	}
+
 	return ms, nil
 }
 
@@ -260,6 +268,12 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		repo:  &repo,
 	}
 
+	if audit.LoggerExists(ctx) {
+		bs = &auditBlobStore{
+			store: bs,
+		}
+	}
+
 	return bs
 }
 
@@ -275,6 +289,12 @@ func (r *repository) Tags(ctx context.Context) distribution.TagService {
 	ts = &errorTagService{
 		tags: ts,
 		repo: r,
+	}
+
+	if audit.LoggerExists(ctx) {
+		ts = &auditTagService{
+			tags: ts,
+		}
 	}
 
 	return ts

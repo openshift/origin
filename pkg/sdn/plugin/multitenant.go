@@ -64,35 +64,41 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 		services = &kapi.ServiceList{}
 	}
 
-	movedVNIDRefs := 0
+	if oldNetID != netID {
+		movedVNIDRefs := 0
 
-	// Update OF rules for the existing/old pods in the namespace
-	for _, pod := range pods {
-		err = mp.node.UpdatePod(pod)
-		if err == nil {
+		// Update OF rules for the existing/old pods in the namespace
+		for _, pod := range pods {
+			err = mp.node.UpdatePod(pod)
+			if err == nil {
+				movedVNIDRefs++
+			} else {
+				glog.Errorf("Could not update pod %q in namespace %q: %v", pod.Name, namespace, err)
+			}
+		}
+
+		// Update OF rules for the old services in the namespace
+		for _, svc := range services.Items {
+			if !kapi.IsServiceIPSet(&svc) {
+				continue
+			}
+
+			mp.node.DeleteServiceRules(&svc)
+			mp.node.AddServiceRules(&svc, netID)
 			movedVNIDRefs++
-		} else {
-			glog.Errorf("Could not update pod %q in namespace %q: %v", pod.Name, namespace, err)
-		}
-	}
-
-	// Update OF rules for the old services in the namespace
-	for _, svc := range services.Items {
-		if !kapi.IsServiceIPSet(&svc) {
-			continue
 		}
 
-		mp.node.DeleteServiceRules(&svc)
-		mp.node.AddServiceRules(&svc, netID)
-		movedVNIDRefs++
+		if movedVNIDRefs > 0 {
+			mp.moveVNIDRefs(movedVNIDRefs, oldNetID, netID)
+		}
+
+		// Update namespace references in egress firewall rules
+		mp.node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID)
 	}
 
-	if movedVNIDRefs > 0 {
-		mp.moveVNIDRefs(movedVNIDRefs, oldNetID, netID)
-	}
-
-	// Update namespace references in egress firewall rules
-	mp.node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID)
+	// Update local multicast rules
+	mp.node.podManager.UpdateLocalMulticastRules(oldNetID)
+	mp.node.podManager.UpdateLocalMulticastRules(netID)
 }
 
 func (mp *multiTenantPlugin) AddNetNamespace(netns *osapi.NetNamespace) {
@@ -113,6 +119,13 @@ func (mp *multiTenantPlugin) GetVNID(namespace string) (uint32, error) {
 
 func (mp *multiTenantPlugin) GetNamespaces(vnid uint32) []string {
 	return mp.vnids.GetNamespaces(vnid)
+}
+
+func (mp *multiTenantPlugin) GetMulticastEnabled(vnid uint32) bool {
+	if vnid == osapi.GlobalVNID {
+		return false
+	}
+	return mp.vnids.GetMulticastEnabled(vnid)
 }
 
 func (mp *multiTenantPlugin) RefVNID(vnid uint32) {

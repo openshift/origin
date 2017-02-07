@@ -424,6 +424,9 @@ type KubeletConfiguration struct {
 	// Comma-delimited list of minimum reclaims (e.g. imagefs.available=2Gi) that describes the minimum amount of resource the kubelet will reclaim when performing a pod eviction if that resource is under pressure.
 	// +optional
 	EvictionMinimumReclaim string `json:"evictionMinimumReclaim,omitempty"`
+	// If enabled, the kubelet will integrate with the kernel memcg notification to determine if memory eviction thresholds are crossed rather than polling.
+	// +optional
+	ExperimentalKernelMemcgNotification bool `json:"experimentalKernelMemcgNotification"`
 	// Maximum number of pods per core. Cannot exceed MaxPods
 	PodsPerCore int32 `json:"podsPerCore"`
 	// enableControllerAttachDetach enables the Attach/Detach controller to
@@ -470,6 +473,9 @@ type KubeletConfiguration struct {
 	// (binaries, etc.) to mount the volume are available on the underlying node. If the check is enabled
 	// and fails the mount operation fails.
 	ExperimentalCheckNodeCapabilitiesBeforeMount bool `json:"ExperimentalCheckNodeCapabilitiesBeforeMount,omitempty"`
+	// This flag, if set, instructs the kubelet to keep volumes from terminated pods mounted to the node.
+	// This can be useful for debugging volume related issues.
+	KeepTerminatedPodVolumes bool `json:"keepTerminatedPodVolumes,omitempty"`
 }
 
 type KubeletAuthorizationMode string
@@ -760,6 +766,13 @@ type KubeControllerManagerConfiguration struct {
 	// Zone is treated as unhealthy in nodeEvictionRate and secondaryNodeEvictionRate when at least
 	// unhealthyZoneThreshold (no less than 3) of Nodes in the zone are NotReady
 	UnhealthyZoneThreshold float32 `json:"unhealthyZoneThreshold"`
+	// Reconciler runs a periodic loop to reconcile the desired state of the with
+	// the actual state of the world by triggering attach detach operations.
+	// This flag enables or disables reconcile.  Is false by default, and thus enabled.
+	DisableAttachDetachReconcilerSync bool `json:"disableAttachDetachReconcilerSync"`
+	// ReconcilerSyncLoopPeriod is the amount of time the reconciler sync states loop
+	// wait between successive executions. Is set to 5 min by default.
+	ReconcilerSyncLoopPeriod unversioned.Duration `json:"reconcilerSyncLoopPeriod"`
 }
 
 // VolumeConfiguration contains *all* enumerated flags meant to configure all volume

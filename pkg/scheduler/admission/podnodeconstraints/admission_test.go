@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	admission "k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -105,7 +105,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		errPrefix := fmt.Sprintf("%d", i)
 		prc := NewPodNodeConstraints(tc.config)
 		prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-		err := prc.(oadmission.Validator).Validate()
+		err := prc.(admission.Validator).Validate()
 		if err != nil {
 			checkAdmitError(t, err, expectedError, errPrefix)
 			continue
@@ -125,7 +125,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 	errPrefix := "PodUpdate"
 	prc := NewPodNodeConstraints(testConfig())
 	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-	err := prc.(oadmission.Validator).Validate()
+	err := prc.(admission.Validator).Validate()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
@@ -141,7 +141,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 	var expectedError error
 	prc := NewPodNodeConstraints(testConfig())
 	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-	err := prc.(oadmission.Validator).Validate()
+	err := prc.(admission.Validator).Validate()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
@@ -265,7 +265,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 					errPrefix := fmt.Sprintf("%s; %s; %s", tr.prefix, tp.prefix, top.operation)
 					prc := NewPodNodeConstraints(tc.config)
 					prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-					err := prc.(oadmission.Validator).Validate()
+					err := prc.(admission.Validator).Validate()
 					if err != nil {
 						checkAdmitError(t, err, expectedError, errPrefix)
 						continue

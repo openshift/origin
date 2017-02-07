@@ -69,7 +69,8 @@ func NewDesiredStateOfWorldPopulator(
 	getPodStatusRetryDuration time.Duration,
 	podManager pod.Manager,
 	desiredStateOfWorld cache.DesiredStateOfWorld,
-	kubeContainerRuntime kubecontainer.Runtime) DesiredStateOfWorldPopulator {
+	kubeContainerRuntime kubecontainer.Runtime,
+	keepTerminatedPodVolumes bool) DesiredStateOfWorldPopulator {
 	return &desiredStateOfWorldPopulator{
 		kubeClient:                kubeClient,
 		loopSleepDuration:         loopSleepDuration,
@@ -78,7 +79,8 @@ func NewDesiredStateOfWorldPopulator(
 		desiredStateOfWorld:       desiredStateOfWorld,
 		pods: processedPods{
 			processedPods: make(map[volumetypes.UniquePodName]bool)},
-		kubeContainerRuntime: kubeContainerRuntime,
+		kubeContainerRuntime:     kubeContainerRuntime,
+		keepTerminatedPodVolumes: keepTerminatedPodVolumes,
 	}
 }
 
@@ -91,6 +93,7 @@ type desiredStateOfWorldPopulator struct {
 	pods                      processedPods
 	kubeContainerRuntime      kubecontainer.Runtime
 	timeOfLastGetPodStatus    time.Time
+	keepTerminatedPodVolumes  bool
 }
 
 type processedPods struct {
@@ -158,13 +161,7 @@ func (dswp *desiredStateOfWorldPopulator) findAndRemoveDeletedPods() {
 			if !isPodTerminated(pod) {
 				continue
 			}
-			// Skip non-memory backed volumes belonging to terminated pods
-			volume := volumeToMount.VolumeSpec.Volume
-			if volume == nil {
-				continue
-			}
-			if (volume.EmptyDir == nil || volume.EmptyDir.Medium != api.StorageMediumMemory) &&
-				volume.ConfigMap == nil && volume.Secret == nil {
+			if dswp.keepTerminatedPodVolumes {
 				continue
 			}
 		}

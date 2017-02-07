@@ -30,7 +30,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-cascade\fP=true
-    Only relevant during a prune. If true, cascade the deletion of the resources managed by pruned resources (e.g. Pods created by a ReplicationController).
+    Only relevant during a prune or a force apply. If true, cascade the deletion of the resources managed by pruned or deleted resources (e.g. Pods created by a ReplicationController).
 
 .PP
 \fB\-\-dry\-run\fP=false
@@ -42,11 +42,11 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-force\fP=false
-    Delete and re\-create the specified resource
+    Delete and re\-create the specified resource, when PATCH encounters conflict and has retried for 5 times.
 
 .PP
 \fB\-\-grace\-period\fP=\-1
-    Period of time in seconds given to pruned resources to terminate gracefully. Ignored if negative.
+    Only relevant during a prune or a force apply. Period of time in seconds given to pruned or deleted resources to terminate gracefully. Ignored if negative.
 
 .PP
 \fB\-\-include\-extended\-apis\fP=true
@@ -73,10 +73,10 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-prune\fP=false
-    Automatically delete resource objects that do not appear in the configs
+    Automatically delete resource objects that do not appear in the configs and are created by either apply or create \-\-save\-config. Should be used with either \-l or \-\-all.
 
 .PP
-\fB\-w\fP, \fB\-\-prune\-whitelist\fP=[]
+\fB\-\-prune\-whitelist\fP=[]
     Overwrite the default whitelist with <group/version/kind> for \-\-prune
 
 .PP
@@ -129,6 +129,10 @@ JSON and YAML formats are accepted.
 .PP
 \fB\-\-as\fP=""
     Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
