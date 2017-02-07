@@ -541,6 +541,30 @@ func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *
 	}
 }
 
+// LatestImageTagEvent returns the most recent TagEvent and the tag for the specified
+// image.
+func LatestImageTagEvent(stream *ImageStream, imageID string) (string, *TagEvent) {
+	var (
+		latestTagEvent *TagEvent
+		latestTag      string
+	)
+	for tag, events := range stream.Status.Tags {
+		if len(events.Items) == 0 {
+			continue
+		}
+		for i, event := range events.Items {
+			if event.Image != imageID {
+				continue
+			}
+			if latestTagEvent == nil || (latestTagEvent != nil && event.Created.After(latestTagEvent.Created.Time)) {
+				latestTagEvent = &events.Items[i]
+				latestTag = tag
+			}
+		}
+	}
+	return latestTag, latestTagEvent
+}
+
 // LatestTaggedImage returns the most recent TagEvent for the specified image
 // repository and tag. Will resolve lookups for the empty tag. Returns nil
 // if tag isn't present in stream.status.tags.
@@ -607,6 +631,34 @@ func ResolveLatestTaggedImage(stream *ImageStream, tag string) (string, bool) {
 	// the default policy is to use the originating image
 	default:
 		return latest.DockerImageReference, true
+	}
+}
+
+// DockerImageReferenceForImage returns the docker reference for specified image. Assuming
+// the image stream contains the image and the image has corresponding tag, this function
+// will try to find this tag and take the reference policy into the account.
+// If the image stream does not reference the image or the image does not have
+// corresponding tag event, this function will return false.
+func DockerImageReferenceForImage(stream *ImageStream, imageID string) (string, bool) {
+	tag, event := LatestImageTagEvent(stream, imageID)
+	if len(tag) == 0 {
+		return "", false
+	}
+	ref, ok := stream.Spec.Tags[tag]
+	if !ok {
+		return event.DockerImageReference, true
+	}
+	switch ref.ReferencePolicy.Type {
+	case LocalTagReferencePolicy:
+		ref, err := ParseDockerImageReference(stream.Status.DockerImageRepository)
+		if err != nil {
+			return event.DockerImageReference, true
+		}
+		ref.Tag = ""
+		ref.ID = event.Image
+		return ref.Exact(), true
+	default:
+		return event.DockerImageReference, true
 	}
 }
 
