@@ -4,13 +4,86 @@ items:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: busybox
+    name: nodejs-ex
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: nodejs-ex
   spec:
-    tags:
-    - name: latest
-      from:
-        name: busybox
-        kind: DockerImage
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/nodejs-ex.git
+    output:
+      to:
+        kind: ImageStreamTag
+        name: nodejs-ex:latest
+    triggers:
+    - type: ConfigChange
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: nodejs-ex1
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: nodejs-ex1
+    template:
+      metadata:
+        labels:
+          deploymentconfig: nodejs-ex1
+      spec:
+        containers:
+        - name: nodejs-ex
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - nodejs-ex
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: nodejs-ex2
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: nodejs-ex2
+    template:
+      metadata:
+        labels:
+          deploymentconfig: nodejs-ex2
+      spec:
+        containers:
+        - name: nodejs-ex
+          command:
+          - foo
+          - bar
+          args:
+          - baz
+          - qux
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - nodejs-ex
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -27,15 +100,7 @@ items:
       spec:
         containers:
         - name: busybox
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - busybox
-        from:
-          name: busybox:latest
-          kind: ImageStreamTag
+          image: busybox
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -52,18 +117,10 @@ items:
       spec:
         containers:
         - name: busybox
+          image: busybox
           command:
           - foo
           - bar
           args:
           - baz
           - qux
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - busybox
-        from:
-          name: busybox:latest
-          kind: ImageStreamTag
