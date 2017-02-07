@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -320,7 +321,8 @@ func (p *F5Plugin) HandleEndpoints(eventType watch.EventType,
 // routeName returns a string that can be used as a rule name in F5 BIG-IP and
 // is distinct for the given route.
 func routeName(route routeapi.Route) string {
-	return fmt.Sprintf("openshift_route_%s_%s", route.Namespace, route.Name)
+	name := controller.GetSafeRouteName(route.Name)
+	return fmt.Sprintf("openshift_route_%s_%s", route.Namespace, name)
 }
 
 // In order to map OpenShift routes to F5 objects, we must divide routes into
