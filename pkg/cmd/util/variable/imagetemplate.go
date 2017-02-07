@@ -20,7 +20,14 @@ type ImageTemplate struct {
 	EnvFormat string
 }
 
-const defaultImageFormat = "openshift/origin-${component}:${version}"
+var (
+	// defaultImagePrefix is the default prefix for any container image names.
+	// This value should be set duing build via -ldflags.
+	defaultImagePrefix string
+
+	defaultImageFormat = defaultImagePrefix + "-${component}:${version}"
+)
+
 const defaultImageEnvFormat = "OPENSHIFT_%s_IMAGE"
 
 // NewDefaultImageTemplate returns the default image template

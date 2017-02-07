@@ -51,6 +51,13 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
+	if !strings.EndsWith(imagePrefix, "/") {
+		// image prefixes like "openshift/origin" require a "-"
+		// separator between the prefix and the component name
+		// whereas prefixes like "openshift3/" do not
+		imagePrefix = imagePrefix + "-"
+	}
+
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -119,7 +126,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	// Instantiate logging deployer
 	deployerParams := map[string]string{
 		"IMAGE_VERSION": imageVersion,
-		"IMAGE_PREFIX":  fmt.Sprintf("%s-", imagePrefix),
+		"IMAGE_PREFIX":  imagePrefix,
 		"MODE":          "install",
 	}
 	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), "openshift", loggingDeployerTemplate, loggingNamespace, deployerParams)

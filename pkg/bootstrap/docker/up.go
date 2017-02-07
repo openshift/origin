@@ -97,6 +97,10 @@ var (
 		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
 	}
 
+	// defaultImageStreams is the default key for the above imageStreams
+	// mapping. It should be set during build via -ldflags.
+	defaultImageStreams string
+
 	templateLocations = map[string]string{
 		"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
 		"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
@@ -114,6 +118,14 @@ var (
 	}
 	dockerVersion19  = semver.MustParse("1.9.0")
 	dockerVersion110 = semver.MustParse("1.10.0")
+
+	// defaultMetricsImagePrefix is the default prefix for any metrics container
+	// image names. This value should be set duing build via -ldflags.
+	defaultMetricsImagePrefix string
+
+	// defaultLoggingImagePrefix is the default prefix for any logging container
+	// image names. This value should be set duing build via -ldflags.
+	defaultLoggingImagePrefix string
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -225,8 +237,8 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
 	flags.StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	flags.StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
-	flags.StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
-	flags.StringVar(&config.ImageStreams, "image-streams", "centos7", "Specify which image streams to use, centos7|rhel7")
+	flags.StringVar(&config.Image, "image", variable.defaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&config.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
 	flags.BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -863,7 +875,7 @@ func (c *ClientStartConfig) InstallLogging(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallLogging(f, publicMaster, openshift.LoggingHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
+	return c.OpenShiftHelper().InstallLogging(f, publicMaster, openshift.LoggingHost(c.RoutingSuffix, c.ServerIP), defaultLoggingImagePrefix, c.ImageVersion)
 }
 
 // InstallMetrics will start the installation of Metrics components
@@ -872,7 +884,7 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
+	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), defaultMetricsImagePrefix, c.ImageVersion)
 }
 
 // Login logs into the new server and sets up a default user and project
