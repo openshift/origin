@@ -371,8 +371,9 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 
-		handleBuildCompletion(build, bc.RunPolicies)
-
+		if buildutil.IsBuildComplete(build) {
+			handleBuildCompletion(build, bc.RunPolicies)
+		}
 	}
 	return nil
 }
