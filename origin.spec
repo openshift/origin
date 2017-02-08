@@ -204,7 +204,11 @@ of docker.  Exclude those versions of docker.
 
 %build
 # Create Binaries
+%if 0%{?make_redistributable}
 %{os_git_vars} hack/build-cross.sh
+%else
+%{os_git_vars} hack/build-go.sh
+%endif
 
 %install
 
