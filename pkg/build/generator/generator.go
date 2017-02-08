@@ -32,13 +32,13 @@ type GeneratorFatalError struct {
 }
 
 // Error returns the error string for this fatal error
-func (e GeneratorFatalError) Error() string {
+func (e *GeneratorFatalError) Error() string {
 	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
 }
 
 // IsFatal returns true if err is a fatal error
 func IsFatal(err error) bool {
-	_, isFatal := err.(GeneratorFatalError)
+	_, isFatal := err.(*GeneratorFatalError)
 	return isFatal
 }
 
@@ -575,25 +575,48 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
-		imageStreamImage, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
+		name, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
 			return "", err
 		}
-		image := imageStreamImage.Image
-		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
-		return image.DockerImageReference, nil
+		stream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
+		if err != nil {
+			err = resolveError(from.Kind, namespace, from.Name, err)
+			glog.V(2).Info(err)
+			return "", err
+		}
+		reference, ok := imageapi.DockerImageReferenceForImage(stream, id)
+		if !ok {
+			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find corresponding tag for image %q", id))
+			glog.V(2).Info(err)
+			return "", err
+		}
+		glog.V(4).Infof("Resolved ImageStreamImage %s to image %q", from.Name, reference)
+		return reference, nil
+
 	case "ImageStreamTag":
-		imageStreamTag, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
+		name, tag, err := imageapi.ParseImageStreamTagName(from.Name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
 			return "", err
 		}
-		image := imageStreamTag.Image
-		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
-		return image.DockerImageReference, nil
+		stream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
+		if err != nil {
+			err = resolveError(from.Kind, namespace, from.Name, err)
+			glog.V(2).Info(err)
+			return "", err
+		}
+		reference, ok := imageapi.ResolveLatestTaggedImage(stream, tag)
+		if !ok {
+			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find latest tagged image"))
+			glog.V(2).Info(err)
+			return "", err
+		}
+		glog.V(4).Infof("Resolved ImageStreamTag %s to image %q", from.Name, reference)
+		return reference, nil
 	case "DockerImage":
 		return from.Name, nil
 	default:
@@ -672,7 +695,7 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 
 func resolveError(kind string, namespace string, name string, err error) error {
 	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
-	return &errors.StatusError{unversioned.Status{
+	return &errors.StatusError{ErrStatus: unversioned.Status{
 		Status:  unversioned.StatusFailure,
 		Code:    errors.StatusUnprocessableEntity,
 		Reason:  unversioned.StatusReasonInvalid,

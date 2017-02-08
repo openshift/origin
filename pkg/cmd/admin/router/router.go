@@ -215,6 +215,10 @@ type RouterConfig struct {
 	//          restricted, or if all the users can be trusted.
 	DisableNamespaceOwnershipCheck bool
 
+	// MaxConnections specifies the maximum number of concurrent
+	// connections.
+	MaxConnections string
+
 	// ExposeMetrics is a hint on whether to expose metrics.
 	ExposeMetrics bool
 
@@ -299,6 +303,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
+	cmd.Flags().StringVar(&cfg.MaxConnections, "max-connections", cfg.MaxConnections, "Specifies the maximum number of concurrent connections.")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -641,6 +646,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
 		"STATS_USERNAME":                        cfg.StatsUsername,
 		"STATS_PASSWORD":                        cfg.StatsPassword,
+	}
+	if len(cfg.MaxConnections) > 0 {
+		env["ROUTER_MAX_CONNECTIONS"] = cfg.MaxConnections
 	}
 	if len(cfg.ForceSubdomain) > 0 {
 		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain

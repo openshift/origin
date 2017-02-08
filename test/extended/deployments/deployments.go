@@ -270,10 +270,26 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("deploying a few more times")
 			for i := 0; i < 3; i++ {
-				out, err = oc.Run("deploy").Args("--latest", "--follow", "deployment-test").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
+				rolloutCompleteWithLogs := make(chan struct{})
+				out := ""
+				go func(rolloutNumber int) {
+					var err error
+					defer func() {
+						close(rolloutCompleteWithLogs)
+						g.GinkgoRecover()
+					}()
+					out, err = waitForDeployerToComplete(oc, fmt.Sprintf("deployment-test-%d", rolloutNumber), deploymentRunTimeout)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}(i + 2) // we already did 2 rollouts previously.
 
-				g.By("verifying the deployment is marked complete and scaled to zero")
+				// When the rollout latest is called, we already waiting for the replication
+				// controller to be created and scrubbing the deployer logs as soon as the
+				// deployer container runs.
+				_, err := oc.Run("rollout").Args("latest", "deployment-test").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By(fmt.Sprintf("waiting for the rollout #%d to finish", i+2))
+				<-rolloutCompleteWithLogs
+				o.Expect(out).NotTo(o.BeEmpty())
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))

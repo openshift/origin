@@ -1,0 +1,4 @@
+d   /var/lib/origin - - - - -
+d   /var/lib/cni - - - - -
+d   /var/run/secrets - - - - -
+d   /etc/origin/sdn - - - - -

@@ -188,7 +188,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPodSpec
 		build.Status.Message = buildapi.StatusMessageCannotCreateBuildPodSpec
 		if strategy.IsFatal(err) {
-			return strategy.FatalError(fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err))
+			return &strategy.FatalError{fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)}
 		}
 		return fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
@@ -371,8 +371,9 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 
-		handleBuildCompletion(build, bc.RunPolicies)
-
+		if buildutil.IsBuildComplete(build) {
+			handleBuildCompletion(build, bc.RunPolicies)
+		}
 	}
 	return nil
 }

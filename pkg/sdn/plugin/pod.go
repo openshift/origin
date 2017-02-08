@@ -101,7 +101,7 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 		IPAM *hostLocalIPAM `json:"ipam"`
 	}
 
-	_, mcnet, _ := net.ParseCIDR("224.0.0.0/3")
+	_, mcnet, _ := net.ParseCIDR("224.0.0.0/4")
 	return json.Marshal(&cniNetworkConfig{
 		Name: "openshift-sdn",
 		Type: "openshift-sdn",

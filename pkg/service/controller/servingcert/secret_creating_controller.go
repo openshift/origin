@@ -58,6 +58,11 @@ type ServiceServingCertController struct {
 
 	serviceCache      cache.Store
 	serviceController *cache.Controller
+	serviceHasSynced  informerSynced
+
+	secretCache      cache.Store
+	secretController *cache.Controller
+	secretHasSynced  informerSynced
 
 	ca         *crypto.CA
 	publicCert string
@@ -106,6 +111,24 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 			},
 		},
 	)
+	sc.serviceHasSynced = sc.serviceController.HasSynced
+
+	sc.secretCache, sc.secretController = cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return sc.secretClient.Secrets(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return sc.secretClient.Secrets(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&kapi.Secret{},
+		resyncInterval,
+		cache.ResourceEventHandlerFuncs{
+			DeleteFunc: sc.deleteSecret,
+		},
+	)
+	sc.secretHasSynced = sc.secretController.HasSynced
 
 	sc.syncHandler = sc.syncService
 
@@ -116,6 +139,11 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 func (sc *ServiceServingCertController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	go sc.serviceController.Run(stopCh)
+	go sc.secretController.Run(stopCh)
+	if !waitForCacheSync(stopCh, sc.serviceHasSynced, sc.secretHasSynced) {
+		return
+	}
+
 	for i := 0; i < workers; i++ {
 		go wait.Until(sc.worker, time.Second, stopCh)
 	}
@@ -125,7 +153,34 @@ func (sc *ServiceServingCertController) Run(workers int, stopCh <-chan struct{})
 	sc.queue.ShutDown()
 }
 
+// deleteSecret handles the case when the service certificate secret is manually removed.
+// In that case the secret will be automatically recreated.
+func (sc *ServiceServingCertController) deleteSecret(obj interface{}) {
+	secret, ok := obj.(*kapi.Secret)
+	if !ok {
+		return
+	}
+	if _, exists := secret.Annotations[ServiceNameAnnotation]; !exists {
+		return
+	}
+	serviceObj, exists, err := sc.serviceCache.GetByKey(secret.Namespace + "/" + secret.Annotations[ServiceNameAnnotation])
+	if !exists {
+		return
+	}
+	if err != nil {
+		return
+	}
+	service := serviceObj.(*kapi.Service)
+	glog.V(4).Infof("Recreating secret for service %q", service.Namespace+"/"+service.Name)
+
+	sc.enqueueService(serviceObj)
+}
+
 func (sc *ServiceServingCertController) enqueueService(obj interface{}) {
+	_, ok := obj.(*kapi.Service)
+	if !ok {
+		return
+	}
 	key, err := controller.KeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
@@ -292,7 +347,8 @@ func getNumFailures(service *kapi.Service) int {
 }
 
 func (sc *ServiceServingCertController) requiresCertGeneration(service *kapi.Service) bool {
-	if secretName := service.Annotations[ServingCertSecretAnnotation]; len(secretName) == 0 {
+	secretName := service.Annotations[ServingCertSecretAnnotation]
+	if len(secretName) == 0 {
 		return false
 	}
 	if getNumFailures(service) >= sc.maxRetries {
@@ -301,6 +357,9 @@ func (sc *ServiceServingCertController) requiresCertGeneration(service *kapi.Ser
 	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
 		return false
 	}
-
+	// TODO: use the lister here
+	if _, exists, _ := sc.secretCache.GetByKey(service.Namespace + "/" + secretName); !exists {
+		return true
+	}
 	return true
 }

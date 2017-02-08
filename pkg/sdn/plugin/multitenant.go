@@ -122,9 +122,6 @@ func (mp *multiTenantPlugin) GetNamespaces(vnid uint32) []string {
 }
 
 func (mp *multiTenantPlugin) GetMulticastEnabled(vnid uint32) bool {
-	if vnid == osapi.GlobalVNID {
-		return false
-	}
 	return mp.vnids.GetMulticastEnabled(vnid)
 }
 

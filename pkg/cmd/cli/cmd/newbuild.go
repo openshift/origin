@@ -183,6 +183,10 @@ func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Fa
 	o.CommandPath = c.CommandPath()
 	o.CommandName = commandName
 
+	if o.Output == "wide" {
+		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
+	}
+
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
 

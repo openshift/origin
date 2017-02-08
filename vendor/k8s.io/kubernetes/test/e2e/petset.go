@@ -749,7 +749,7 @@ func (p *statefulSetTester) createStatefulSet(manifestPath, ns string) *apps.Sta
 func (p *statefulSetTester) checkMount(ps *apps.StatefulSet, mountPath string) error {
 	for _, cmd := range []string{
 		// Print inode, size etc
-		fmt.Sprintf("ls -idlh %v", mountPath),
+		fmt.Sprintf("ls -idlhZ %v", mountPath),
 		// Print subdirs
 		fmt.Sprintf("find %v", mountPath),
 		// Try writing
@@ -1139,6 +1139,8 @@ func newStatefulSet(name, ns, governingSvcName string, replicas int32, petMounts
 		})
 	}
 
+	privileged := true
+
 	return &apps.StatefulSet{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "StatefulSet",
@@ -1164,6 +1166,9 @@ func newStatefulSet(name, ns, governingSvcName string, replicas int32, petMounts
 							Name:         "nginx",
 							Image:        nginxImage,
 							VolumeMounts: mounts,
+							SecurityContext: &api.SecurityContext{
+								Privileged: &privileged,
+							},
 						},
 					},
 					Volumes: vols,

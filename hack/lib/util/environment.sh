@@ -106,7 +106,13 @@ readonly -f os::util::environment::setup_all_server_vars
 # Returns:
 #  - export PATH
 function os::util::environment::update_path_var() {
-    PATH="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):${PATH}"
+    local prefix
+    prefix="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):"
+    if [[ -n "${GOPATH:-}" ]]; then
+        prefix+="${GOPATH}/bin:"
+    fi
+
+    PATH="${prefix}:${PATH}"
     export PATH
 }
 readonly -f os::util::environment::update_path_var

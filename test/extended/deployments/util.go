@@ -7,8 +7,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -338,6 +340,41 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 		}
 		return deployutil.HasSynced(config, generation), nil
 	})
+}
+
+// waitForDeployerToComplete waits till the replication controller is created for a given
+// rollout and then wait till the deployer pod finish. Then scrubs the deployer logs and
+// return it.
+func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
+	watcher, err := oc.KubeClient().ReplicationControllers(oc.Namespace()).Watch(kapi.ListOptions{FieldSelector: fields.Everything()})
+	if err != nil {
+		return "", err
+	}
+	defer watcher.Stop()
+	var rc *kapi.ReplicationController
+	if _, err := watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+		if e.Type == watch.Error {
+			return false, fmt.Errorf("error while waiting for replication controller: %v", e.Object)
+		}
+		if e.Type == watch.Added || e.Type == watch.Modified {
+			if newRC, ok := e.Object.(*kapi.ReplicationController); ok && newRC.Name == name {
+				rc = newRC
+				return true, nil
+			}
+		}
+		return false, nil
+	}); err != nil {
+		return "", err
+	}
+	podName := deployutil.DeployerPodNameForDeployment(rc.Name)
+	if err := deployutil.WaitForRunningDeployerPod(oc.KubeClient(), rc, timeout); err != nil {
+		return "", err
+	}
+	output, err := oc.Run("logs").Args("-f", "pods/"+podName).Output()
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
 // createFixture will create the provided fixture and return the resource and the

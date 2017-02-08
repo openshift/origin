@@ -119,24 +119,27 @@ os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
 mkdir -p images/node/conf/
 cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
-# images that depend on scratch / centos
-image openshift/origin-pod                   images/pod
-image openshift/openvswitch                  images/openvswitch
-# images that depend on openshift/origin-base
-image openshift/origin                       images/origin
-image openshift/origin-haproxy-router        images/router/haproxy
-image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
-image openshift/origin-docker-registry       images/dockerregistry
-image openshift/origin-egress-router         images/router/egress
+# determine the correct tag prefix
+tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-# images that depend on openshift/origin
-image openshift/origin-gitserver             examples/gitserver
-image openshift/origin-deployer              images/deployer
-image openshift/origin-recycler              images/recycler
-image openshift/origin-docker-builder        images/builder/docker/docker-builder
-image openshift/origin-sti-builder           images/builder/docker/sti-builder
-image openshift/origin-f5-router             images/router/f5
-image openshift/node                         images/node
+# images that depend on scratch / centos
+image "${tag_prefix}-pod"                   images/pod
+image openshift/openvswitch                 images/openvswitch
+# images that depend on "${tag_prefix}-base"
+image "${tag_prefix}"                       images/origin
+image "${tag_prefix}-haproxy-router"        images/router/haproxy
+image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived
+image "${tag_prefix}-docker-registry"       images/dockerregistry
+image "${tag_prefix}-egress-router"         images/router/egress
+
+# images that depend on "${tag_prefix}
+image "${tag_prefix}-gitserver"             examples/gitserver
+image "${tag_prefix}-deployer"              images/deployer
+image "${tag_prefix}-recycler"              images/recycler
+image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder
+image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder
+image "${tag_prefix}-f5-router"             images/router/f5
+image openshift/node                        images/node
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift       examples/hello-openshift

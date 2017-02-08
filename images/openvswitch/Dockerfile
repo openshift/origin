@@ -18,4 +18,7 @@ LABEL io.k8s.display-name="OpenShift Origin OpenVSwitch Daemon" \
       io.k8s.description="This is a component of OpenShift Origin and runs an OpenVSwitch daemon process."
 VOLUME /etc/openswitch
 ENV HOME /root
+
+COPY system-container/config.json.template system-container/service.template /exports/
+
 ENTRYPOINT ["/usr/local/bin/ovs-run.sh"]

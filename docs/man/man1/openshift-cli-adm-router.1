@@ -108,6 +108,10 @@ If a router does not exist with the given name, this command will create a deplo
     If true, attempt to use the latest images for the router instead of the latest release.
 
 .PP
+\fB\-\-max\-connections\fP=""
+    Specifies the maximum number of concurrent connections.
+
+.PP
 \fB\-\-metrics\-image\fP=""
     If \-\-expose\-metrics is specified this is the image to use to run a sidecar container in the pod exposing metrics. If not set and \-\-expose\-metrics is true the image will depend on router implementation.
 
