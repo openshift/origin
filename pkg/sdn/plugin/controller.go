@@ -241,10 +241,10 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// vxlan0
 	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
 	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=224.0.0.0/3, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR)
+	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=224.0.0.0/4, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR)
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
-	otx.AddFlow("table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/3, actions=drop")
+	otx.AddFlow("table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/4, actions=drop")
 	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:30", localSubnetGateway, clusterNetworkCIDR)
 	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:30")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
@@ -276,9 +276,9 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterNetworkCIDR)
 
 	// Multicast coming from the VXLAN
-	otx.AddFlow("table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/3, actions=goto_table:120")
+	otx.AddFlow("table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/4, actions=goto_table:120")
 	// Multicast coming from local pods
-	otx.AddFlow("table=30, priority=25, ip, nw_dst=224.0.0.0/3, actions=goto_table:110")
+	otx.AddFlow("table=30, priority=25, ip, nw_dst=224.0.0.0/4, actions=goto_table:110")
 
 	otx.AddFlow("table=30, priority=0, ip, actions=goto_table:100")
 	otx.AddFlow("table=30, priority=0, arp, actions=drop")
