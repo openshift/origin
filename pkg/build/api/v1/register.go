@@ -3,6 +3,8 @@ package v1
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 const GroupName = ""
@@ -26,15 +28,11 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&BuildRequest{},
 		&BuildLogOptions{},
 		&BinaryBuildRequestOptions{},
+
+		&kapi.ListOptions{},
+		&kapi.DeleteOptions{},
+		&kapi.ExportOptions{},
 	)
+	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
-
-func (obj *Build) GetObjectKind() unversioned.ObjectKind                     { return &obj.TypeMeta }
-func (obj *BuildList) GetObjectKind() unversioned.ObjectKind                 { return &obj.TypeMeta }
-func (obj *BuildConfig) GetObjectKind() unversioned.ObjectKind               { return &obj.TypeMeta }
-func (obj *BuildConfigList) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
-func (obj *BuildLog) GetObjectKind() unversioned.ObjectKind                  { return &obj.TypeMeta }
-func (obj *BuildRequest) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
-func (obj *BuildLogOptions) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
-func (obj *BinaryBuildRequestOptions) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
