@@ -41,6 +41,7 @@ os::cmd::expect_success_and_text "oc policy can-i --list -n '${project}' --as=sc
 
 whoamitoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
 os::cmd::expect_success_and_text "oc get user/~ --token='${whoamitoken}'" "${username}"
+os::cmd::expect_success_and_text "oc whoami --token='${whoamitoken}'" "${username}"
 os::cmd::expect_failure_and_text "oc get pods --token='${whoamitoken}' -n '${project}'" "prevent this action; User \"scoped-user\" cannot list pods in project \"${project}\""
 
 listprojecttoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=listproject SCOPE=user:list-scoped-projects USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
