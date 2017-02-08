@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f63b5b307442e61af044c8d8bc06ebb1ee2c7886
+%global commit 1a173a1a2a992b2a8a5aa060a7ea282c3748c971
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.16+f63b5b3-36 OS_GIT_COMMIT=f63b5b3 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.17+1a173a1-69 OS_GIT_COMMIT=1a173a1 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -48,7 +48,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.17
+Version:        3.5.0.18
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -544,6 +544,62 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Feb 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.18
+- bump(github.com/openshift/origin-web-console):
+  be73cc17031099e9eb4947a6d1ce9024d774910f (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3d2855d6c1920345a14b3bad4e91839d5080fd2d (dmcphers+openshiftbot@redhat.com)
+- recreate generated service cert secret when deleted (mfojtik@redhat.com)
+- UPSTREAM: 41089: Use privileged containers for statefulset e2e tests
+  (skuznets@redhat.com)
+- only run handleBuildCompletion on completed builds (bparees@redhat.com)
+- Fixed the multicast CIDR (was 224.0.0.0/3 not /4) (bbennett@redhat.com)
+- treat fatal errors as actually fatal (bparees@redhat.com)
+- Allow users to parameterize the image prefix (skuznets@redhat.com)
+- add newline to login output (deads@redhat.com)
+- Add multicast test to extended networking test (danw@redhat.com)
+- change argument --wildcardpolicy to --wildcard-policy in 'oc expose'
+  (jtanenba@redhat.com)
+- added clear-route-status.sh script to images/router/ (root@wsfd-
+  netdev29.ntdv.lab.eng.bos.redhat.com)
+- Refactor release packaging to be DRYer (skuznets@redhat.com)
+- deploy: rework extended test to use rollout latest and increase timeout for
+  getting logs (mfojtik@redhat.com)
+- build: take referencePolicy into account when resolving istag
+  (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  fbc282d0f3f136c9d7eb6b72d89afa3db7b16feb (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  68c65908b68c559777cc46a1e8a501f992859469 (dmcphers+openshiftbot@redhat.com)
+- Allow multicast for VNID 0 (danw@redhat.com)
+- report a useful error when wide mode is used with new-app/new-build
+  (bparees@redhat.com)
+- Fix OVS connection tracking in networkpolicy plugin (danw@redhat.com)
+- UPSTREAM :41034: use instance's Name to attach gce disk (hchen@redhat.com)
+- 1408172 - ipfailover - `Permission denied for check and notify scripts
+  (pcameron@redhat.com)
+- cluster up: add brew install instructions (cewong@redhat.com)
+- cluster up: add registry instructions (cewong@redhat.com)
+- Make haproxy maxconn configurable (pcameron@redhat.com)
+- Fix cluster up documentation of Linux firewalld instructions
+  (cewong@redhat.com)
+- Expose product-specific string literals as ldflags (skuznets@redhat.com)
+- UPSTREAM: google/cadvisor: 1588: disable thin_ls due to excessive iops
+  (decarr@redhat.com)
+- Add `$GOPATH/bin` to `$PATH` only when `$GOPATH` is set (skuznets@redhat.com)
+- Replace our Validator interface with upstream one (maszulik@redhat.com)
+- node: add files for running as a system container (gscrivan@redhat.com)
+- Correct the way that haproxy uses the secure cookie attribute
+  (jtanenba@redhat.com)
+- Fix type %%s to %%d for int type (song.ruixia@zte.com.cn)
+- perform both http and https checks for monitoring f5 pools
+  (rchopra@redhat.com)
+- UPSTREAM: 39842: Remove duplicate calls to DescribeInstance during volume
+  operations (hekumar@redhat.com)
+- origin: add files for running as a system container (gscrivan@redhat.com)
+- openvswitch: add files for running as a system container
+  (gscrivan@redhat.com)
+
 * Mon Feb 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.17
 - Add standalone heapster as an example (ccoleman@redhat.com)
 - Provide an all in one prometheus template example (ccoleman@redhat.com)
