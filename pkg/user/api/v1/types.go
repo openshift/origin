@@ -25,7 +25,9 @@ type User struct {
 	// Identities are the identities associated with this user
 	Identities []string `json:"identities" protobuf:"bytes,3,rep,name=identities"`
 
-	// Groups are the groups that this user is a member of
+	// Groups specifies group names this user is a member of.
+	// This field is deprecated and will be removed in a future release.
+	// Instead, create a Group object containing the name of this User.
 	Groups []string `json:"groups" protobuf:"bytes,4,rep,name=groups"`
 }
 
