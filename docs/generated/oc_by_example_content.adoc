@@ -1744,7 +1744,7 @@ Expose a replicated application as a service or route
   oc expose service nginx --hostname=www.example.com
   
   # Create a route with wildcard
-  oc expose service nginx --hostname=x.example.com --wildcard=Subdomain
+  oc expose service nginx --hostname=x.example.com --wildcard-policy=Subdomain
   This would be equivalent to *.example.com. NOTE: only hosts are matched by the wildcard, subdomains would not be included.
   
   # Expose a deployment configuration as a service and use the specified port
