@@ -13,7 +13,8 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 verify="${VERIFY:-}"
 dryrun="${DRY_RUN:-}"
 
-mkdir -p /tmp/openshift/generate/swaggerdoc
+tmpdir="$( mktemp -d )"
+mkdir -p "${tmpdir}"
 
 os::util::ensure::built_binary_exists 'genswaggerdoc'
 
@@ -30,12 +31,12 @@ fi
 failed='false'
 for file in ${source_files}; do
 	swagger_file="$( dirname "${file}" )/swagger_doc.go"
-	if ! genswaggerdoc --input="${file}" --verify >/tmp/openshift/generate/swaggerdoc/verify.txt 2>&1; then
+	if ! genswaggerdoc --input="${file}" --verify > "${tmpdir}/verify.txt" 2>&1; then
 		echo "[ERROR] Errors in \"${file}\" must be addressed before Swagger documentation can be generated:"
-		cat /tmp/openshift/generate/swaggerdoc/verify.txt
+		cat "${tmpdir}/verify.txt"
 		failed='true'
 	else
-		tmp_output_file="/tmp/openshift/generate/swaggerdoc/${swagger_file}"
+		tmp_output_file="${tmpdir}/${swagger_file}"
 		mkdir -p "$( dirname "${tmp_output_file}" )"
 		package="$( dirname "${file}" )";
 		echo "package ${package##*/}" > "${tmp_output_file}"
