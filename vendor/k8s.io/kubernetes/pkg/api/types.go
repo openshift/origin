@@ -1256,6 +1256,9 @@ const (
 // Capability represent POSIX capabilities type
 type Capability string
 
+// CapabilityAll represent all POSIX capabilities types.
+var CapabilityAll Capability = "*"
+
 // Capabilities represent POSIX capabilities that can be added or removed to a running container.
 type Capabilities struct {
 	// Added capabilities
@@ -3597,6 +3600,7 @@ type SecurityContextConstraints struct {
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
+	// To allow all capabilities you may use '*'.
 	AllowedCapabilities []Capability
 	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
 	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.

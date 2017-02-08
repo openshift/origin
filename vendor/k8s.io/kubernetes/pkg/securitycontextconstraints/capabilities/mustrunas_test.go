@@ -258,6 +258,13 @@ func TestValidateAdds(t *testing.T) {
 			},
 			shouldPass: true,
 		},
+		"no required, all allowed, container requests valid": {
+			allowedCaps: []api.Capability{api.CapabilityAll},
+			containerCaps: &api.Capabilities{
+				Add: []api.Capability{"foo"},
+			},
+			shouldPass: true,
+		},
 		"no required, allowed, container requests invalid": {
 			allowedCaps: []api.Capability{"foo"},
 			containerCaps: &api.Capabilities{
