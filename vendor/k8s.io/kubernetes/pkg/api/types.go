@@ -1580,6 +1580,9 @@ const (
 // Capability represent POSIX capabilities type
 type Capability string
 
+// CapabilityAll represent all POSIX capabilities types.
+var CapabilityAll Capability = "*"
+
 // Capabilities represent POSIX capabilities that can be added or removed to a running container.
 type Capabilities struct {
 	// Added capabilities
