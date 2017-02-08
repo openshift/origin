@@ -22,13 +22,13 @@ type ConfigControllerFatalError struct {
 }
 
 // Error returns the error string for this fatal error
-func (e ConfigControllerFatalError) Error() string {
+func (e *ConfigControllerFatalError) Error() string {
 	return fmt.Sprintf("fatal error processing BuildConfig: %s", e.Reason)
 }
 
 // IsFatal returns true if err is a fatal error
 func IsFatal(err error) bool {
-	_, isFatal := err.(ConfigControllerFatalError)
+	_, isFatal := err.(*ConfigControllerFatalError)
 	return isFatal
 }
 
@@ -73,7 +73,10 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", bc.Namespace, bc.Name, err)
 			utilruntime.HandleError(instantiateErr)
-		} else if buildgenerator.IsFatal(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) {
+		} else if buildgenerator.IsFatal(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
+			instantiateErr = fmt.Errorf("gave up on Build for BuildConfig %s/%s due to fatal error: %v", bc.Namespace, bc.Name, err)
+			utilruntime.HandleError(instantiateErr)
+			c.Recorder.Event(bc, kapi.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
 			return &ConfigControllerFatalError{err.Error()}
 		} else {
 			instantiateErr = fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", bc.Namespace, bc.Name, err)

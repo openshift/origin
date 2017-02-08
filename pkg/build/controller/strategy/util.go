@@ -28,16 +28,19 @@ const (
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
 
 // FatalError is an error which can't be retried.
-type FatalError string
+type FatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
 
 // Error implements the error interface.
-func (e FatalError) Error() string {
-	return string(e)
+func (e *FatalError) Error() string {
+	return fmt.Sprintf("fatal error: %s", e.Reason)
 }
 
 // IsFatal returns true if the error is fatal
 func IsFatal(err error) bool {
-	_, isFatal := err.(FatalError)
+	_, isFatal := err.(*FatalError)
 	return isFatal
 }
 

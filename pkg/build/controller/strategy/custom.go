@@ -31,7 +31,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	if len(strategy.BuildAPIVersion) != 0 {
 		gv, err := unversioned.ParseGroupVersion(strategy.BuildAPIVersion)
 		if err != nil {
-			return nil, FatalError(fmt.Sprintf("failed to parse buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err))
+			return nil, &FatalError{fmt.Sprintf("failed to parse buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err)}
 		}
 		codec = kapi.Codecs.LegacyCodec(gv)
 	}
