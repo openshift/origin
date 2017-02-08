@@ -27,6 +27,6 @@ LABEL io.k8s.display-name="OpenShift Origin Node" \
 VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
 
-COPY system-container/config.json.template system-container/service.template system-containers/tmpfiles.template /exports/
+COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
 ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]
