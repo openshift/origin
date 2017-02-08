@@ -5,7 +5,7 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates --all
+#  oc delete all,templates --all
   exit 0
 ) &>/dev/null
 
@@ -288,7 +288,21 @@ os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex htt
 os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
 # check that binary build with a specific strategy uses that strategy regardless of the image type
 os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=docker -o yaml' 'type: Docker'
-os::cmd::expect_success 'oc delete imageStreams --all'
+
+# When only a single imagestreamtag exists, and it does not match the implicit default
+# latest tag, new-app should fail.
+# when latest exists, we default to it and match it.
+os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run'
+# when latest does not exist, there are multiple partial matches (2.2, 2.3)
+os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
+# when only 2.3 exists, there is a single partial match (2.3)
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\": \"default/ruby:2.3\"'
+# when the tag is specified explicitly, the operation is successful
+os::cmd::expect_success 'oc new-app --image-stream ruby:2.3 https://github.com/openshift/rails-ex --dry-run'
+
+os::cmd::expect_success 'oc delete imagestreams --all'
 
 # check that we can create from the template without errors
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'service "frontend" created'
