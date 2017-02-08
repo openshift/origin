@@ -2938,6 +2938,10 @@ Tag existing images into image streams
   # Tag an external Docker image.
   oc tag --source=docker openshift/origin:latest yourproject/ruby:tip
   
+  # Tag an external Docker image and request pull-trough for it.
+  oc tag --source=docker openshift/origin:latest yourproject/ruby:tip --reference-policy=local
+  
+  
   # Remove the specified spec tag from an image stream.
   oc tag openshift/origin:latest -d
 ----
