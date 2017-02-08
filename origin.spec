@@ -33,7 +33,12 @@
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
+# Due to library availability, redistributable builds only work on x86_64
+%ifarch x86_64
 %global make_redistributable 1
+%else
+%global make_redistributable 0
+%endif
 %endif
 }
 
@@ -58,7 +63,7 @@ URL:            https://%{import_path}
 %if 0%{?go_arches:1}
 ExclusiveArch:  %{go_arches}
 %else
-ExclusiveArch:  x86_64 aarch64 ppc64le
+ExclusiveArch:  x86_64 aarch64 ppc64le s390x
 %endif
 
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
@@ -203,8 +208,28 @@ of docker.  Exclude those versions of docker.
 %setup -q
 
 %build
-# Create Binaries
+%if 0%{make_redistributable}
+# Create Binaries for all supported arches
 %{os_git_vars} hack/build-cross.sh
+%else
+# Create Binaries only for building arch
+%ifarch x86_64
+  BUILD_PLATFORM="linux/amd64"
+%endif
+%ifarch %{ix86}
+  BUILD_PLATFORM="linux/386"
+%endif
+%ifarch ppc64le
+  BUILD_PLATFORM="linux/ppc64le"
+%endif
+%ifarch %{arm} aarch64
+  BUILD_PLATFORM="linux/arm64"
+%endif
+%ifarch s390x
+  BUILD_PLATFORM="linux/s390x"
+%endif
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
+%endif
 
 %install
 
