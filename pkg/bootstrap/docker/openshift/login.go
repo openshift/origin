@@ -75,5 +75,5 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 		StartingKubeConfig: newConfig,
 		PathOptions:        config.NewPathOptions(c),
 	}
-	return login.RunLogin(nil, opts)
+	return login.RunLogin(c, opts)
 }
