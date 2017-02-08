@@ -22,7 +22,7 @@ const importPrefix = "github.com/openshift/origin/pkg/build/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.LegacySchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
@@ -77,7 +77,7 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 			continue
 		}
 		switch v {
-		case v1.SchemeGroupVersion:
+		case v1.LegacySchemeGroupVersion:
 			v1.AddToScheme(kapi.Scheme)
 
 		default:
@@ -95,7 +95,7 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 
 func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case v1.SchemeGroupVersion:
+	case v1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,

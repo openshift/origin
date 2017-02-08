@@ -82,7 +82,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 }
 
 func diffBuildSpec(newer buildapi.BuildSpec, older buildapi.BuildSpec) (string, error) {
-	codec := kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion)
+	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
 	newerObj := &buildapi.Build{Spec: newer}
 	olderObj := &buildapi.Build{Spec: older}
 
