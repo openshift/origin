@@ -33,7 +33,7 @@ func init() {
 		}
 	}
 	if len(externalVersions) == 0 {
-		glog.Infof("No version is registered for group %v", api.GroupName)
+		glog.Infof("No version is registered for group %v", api.LegacyGroupName)
 		return
 	}
 
@@ -102,7 +102,7 @@ func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, e
 		}, nil
 
 	default:
-		g, _ := registered.Group(api.GroupName)
+		g, _ := registered.Group(api.LegacyGroupName)
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 	}
 }

@@ -5,10 +5,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-const GroupName = ""
-const FutureGroupName = "build.openshift.io"
+const LegacyGroupName = ""
+const GroupName = "build.openshift.io"
 
-// SchemeGroupVersion is group version used to register these objects
+// LegacySchemeGroupVersion is group version used to register these objects
+var LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind

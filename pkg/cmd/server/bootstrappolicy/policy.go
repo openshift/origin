@@ -50,7 +50,7 @@ var (
 	securityGroup     = securityapi.GroupName
 	storageGroup      = storage.GroupName
 	authzGroup        = authorizationapi.GroupName
-	buildGroup        = buildapi.GroupName
+	buildGroup        = buildapi.LegacyGroupName
 	deployGroup       = deployapi.GroupName
 	imageGroup        = imageapi.GroupName
 	projectGroup      = projectapi.GroupName
@@ -293,7 +293,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
-				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.FutureGroupName).Resources("jenkins").RuleOrDie(),
+				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(deployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
@@ -351,7 +351,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
-				authorizationapi.NewRule("edit", "view").Groups(buildapi.FutureGroupName).Resources("jenkins").RuleOrDie(),
+				authorizationapi.NewRule("edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(deployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
@@ -404,7 +404,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
 				// access to jenkins
-				authorizationapi.NewRule("view").Groups(buildapi.FutureGroupName).Resources("jenkins").RuleOrDie(),
+				authorizationapi.NewRule("view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),

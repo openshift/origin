@@ -7,7 +7,7 @@ import (
 
 const GroupName = ""
 
-// SchemeGroupVersion is group version used to register these objects
+// LegacySchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
 
 var (
