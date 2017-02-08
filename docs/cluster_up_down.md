@@ -106,7 +106,11 @@ $ oc cluster down
      ```
      $ brew install socat
      ```
-2. Download the Mac OS `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
+2. Install the oc binary using homebrew with: `brew install openshift-cli`
+   
+   OR
+
+   Download the Mac OS `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
 
    > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
 
@@ -123,7 +127,11 @@ $ oc cluster down
 ### Mac OS X with Docker Toolbox
 
 1. Install [Docker Toolbox](https://www.docker.com/products/docker-toolbox) and ensure that it is functional.
-2. Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
+2. Install the oc binary using homebrew with: `brew install openshift-cli`
+   
+   OR
+
+   Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
 
    > Please be aware that the 'oc cluster' set of commands are only available in the 1.3+ or newer releases.
 
