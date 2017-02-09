@@ -21,6 +21,7 @@ pushd "${OS_ROOT}" > /dev/null
     -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" \
     -ignore "README.md" \
     -ignore ".*\.go$" \
+    -ignore "\.DS_Store" \
     -ignore application-template.json \
     ${EXAMPLES}/image-streams/... \
     ${EXAMPLES}/db-templates/... \
@@ -28,6 +29,8 @@ pushd "${OS_ROOT}" > /dev/null
     ${EXAMPLES}/jenkins/pipeline \
     ${EXAMPLES}/quickstarts/... \
 	${EXAMPLES}/logging/... \
+	${EXAMPLES}/heapster/... \
+	${EXAMPLES}/prometheus/... \
     pkg/image/admission/imagepolicy/api/v1/...
 popd > /dev/null
 

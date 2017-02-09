@@ -116,6 +116,10 @@ var (
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 		"logging":                     "examples/logging/logging-deployer.yaml",
 	}
+	adminTemplateLocations = map[string]string{
+		"prometheus":          "examples/prometheus/prometheus.yaml",
+		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
+	}
 	dockerVersion19  = semver.MustParse("1.9.0")
 	dockerVersion110 = semver.MustParse("1.10.0")
 )
@@ -848,13 +852,16 @@ func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
 	imageStreamLocations := map[string]string{
 		c.ImageStreams: imageStreams[c.ImageStreams],
 	}
-	return c.importObjects(out, imageStreamLocations)
+	return c.importObjects(out, openshiftNamespace, imageStreamLocations)
 }
 
 // ImportTemplates imports default templates into the server
 // TODO: Use templates compiled into oc
 func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
-	return c.importObjects(out, templateLocations)
+	if err := c.importObjects(out, openshiftNamespace, templateLocations); err != nil {
+		return err
+	}
+	return c.importObjects(out, "kube-system", adminTemplateLocations)
 }
 
 // InstallLogging will start the installation of logging components
@@ -1033,14 +1040,14 @@ func (c *CommonStartConfig) DockerHelper() *dockerhelper.Helper {
 	return c.dockerHelper
 }
 
-func (c *ClientStartConfig) importObjects(out io.Writer, locations map[string]string) error {
+func (c *ClientStartConfig) importObjects(out io.Writer, namespace string, locations map[string]string) error {
 	f, err := c.Factory()
 	if err != nil {
 		return err
 	}
 	for name, location := range locations {
 		glog.V(2).Infof("Importing %s from %s", name, location)
-		err = openshift.ImportObjects(f, openshiftNamespace, location)
+		err = openshift.ImportObjects(f, namespace, location)
 		if err != nil {
 			return errors.NewError("cannot import %s", name).WithCause(err).WithDetails(c.OpenShiftHelper().OriginLog())
 		}

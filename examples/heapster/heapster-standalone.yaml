@@ -28,19 +28,34 @@ parameters:
 - description: How long in seconds we should wait until Heapster starts up before attempting a restart
   name: STARTUP_TIMEOUT
   value: "500"
+- description: The namespace to instantiate heapster under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
 objects:
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
     name: heapster
+    namespace: "${NAMESPACE}"
     labels:
       metrics-infra: support
   secrets:
   - name: heapster-secrets
 - apiVersion: v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: heapster-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: heapster
+    namespace: "${NAMESPACE}"
+- apiVersion: v1
   kind: Service
   metadata:
     name: heapster
+    namespace: "${NAMESPACE}"
     labels:
       metrics-infra: heapster
       name: heapster
@@ -50,12 +65,13 @@ objects:
     selector:
       name: heapster
     ports:
-    - port: 80
-      targetPort: http-endpoint
+    - port: 443
+      targetPort: https
 - apiVersion: v1
   kind: ReplicationController
   metadata:
     name: heapster
+    namespace: "${NAMESPACE}"
     labels:
       metrics-infra: heapster
       name: heapster
@@ -74,7 +90,7 @@ objects:
         - image: "${IMAGE_PREFIX}metrics-heapster:${IMAGE_VERSION}"
           name: heapster
           ports:
-          - name: http-endpoint
+          - name: https
             containerPort: 8082
           command:
           - "heapster-wrapper.sh"
