@@ -18,15 +18,22 @@ var (
 
 func GetMasterConfig(r types.DiagnosticResult, masterConfigFile string) (*configapi.MasterConfig, error) {
 	if masterConfigLoaded { // no need to do this more than once
+		if masterConfigLoadError != nil {
+			printMasterConfigLoadError(r, masterConfigFile)
+		}
 		return masterConfig, masterConfigLoadError
 	}
 	r.Debug("DH0001", fmt.Sprintf("Looking for master config file at '%s'", masterConfigFile))
 	masterConfigLoaded = true
 	masterConfig, masterConfigLoadError = configapilatest.ReadAndResolveMasterConfig(masterConfigFile)
 	if masterConfigLoadError != nil {
-		r.Error("DH0002", masterConfigLoadError, fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", masterConfigFile, masterConfigLoadError))
+		printMasterConfigLoadError(r, masterConfigFile)
 	} else {
 		r.Debug("DH0003", fmt.Sprintf("Found a master config file: %[1]s", masterConfigFile))
 	}
 	return masterConfig, masterConfigLoadError
+}
+
+func printMasterConfigLoadError(r types.DiagnosticResult, masterConfigFile string) {
+	r.Error("DH0002", masterConfigLoadError, fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", masterConfigFile, masterConfigLoadError))
 }
