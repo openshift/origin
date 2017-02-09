@@ -50,7 +50,8 @@ var (
 	securityGroup     = securityapi.GroupName
 	storageGroup      = storage.GroupName
 	authzGroup        = authorizationapi.GroupName
-	buildGroup        = buildapi.LegacyGroupName
+	buildGroup        = buildapi.GroupName
+	legacyBuildGroup  = buildapi.LegacyGroupName
 	deployGroup       = deployapi.GroupName
 	imageGroup        = imageapi.GroupName
 	projectGroup      = projectapi.GroupName
@@ -158,7 +159,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
 					"policies", "policybindings", "roles", "rolebindings", "rolebindingrestrictions").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "builds/details", "buildconfigs", "buildconfigs/webhooks", "builds/log").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "builds/details", "buildconfigs", "buildconfigs/webhooks", "builds/log").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale", "deploymentconfigs/log",
 					"deploymentconfigs/status").RuleOrDie(),
@@ -200,7 +201,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 
 				// backwards compatibility
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 			},
 		},
@@ -212,7 +213,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources(authorizationapi.DockerBuildResource).RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.DockerBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -223,7 +224,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources(authorizationapi.CustomBuildResource).RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.CustomBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -234,7 +235,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources(authorizationapi.SourceBuildResource).RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.SourceBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -245,7 +246,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources(authorizationapi.JenkinsPipelineBuildResource).RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.JenkinsPipelineBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -289,9 +290,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("policies", "policybindings", "rolebindingrestrictions").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
@@ -317,7 +318,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(templateGroup).Resources("templates", "templateconfigs", "processedtemplates").RuleOrDie(),
 
 				// backwards compatibility
-				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("resourceaccessreviews", "subjectaccessreviews").RuleOrDie(),
 			},
@@ -347,9 +348,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
-				authorizationapi.NewRule("create").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
@@ -373,7 +374,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(templateGroup).Resources("templates", "templateconfigs", "processedtemplates").RuleOrDie(),
 
 				// backwards compatibility
-				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 			},
 		},
@@ -401,8 +402,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				// access to jenkins
 				authorizationapi.NewRule("view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
@@ -425,7 +426,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(templateGroup).Resources("templates", "templateconfigs", "processedtemplates").RuleOrDie(),
 
 				// backwards compatibility
-				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("buildlogs").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 			},
 		},
@@ -540,8 +541,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 				// allow auto-provisioning when pushing an image that doesn't have an imagestream yet
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreams").RuleOrDie(),
-				authorizationapi.NewRule("update").Groups(buildGroup).Resources("builds/details").RuleOrDie(),
-				authorizationapi.NewRule("get").Groups(buildGroup).Resources("builds").RuleOrDie(),
+				authorizationapi.NewRule("update").Groups(buildGroup, legacyBuildGroup).Resources("builds/details").RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
 			},
 		},
 		{
@@ -554,7 +555,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("get", "list").Groups(kapiGroup).Resources("pods", "replicationcontrollers").RuleOrDie(),
 				authorizationapi.NewRule("list").Groups(kapiGroup).Resources("limitranges").RuleOrDie(),
-				authorizationapi.NewRule("get", "list").Groups(buildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
+				authorizationapi.NewRule("get", "list").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(deployGroup).Resources("deploymentconfigs").RuleOrDie(),
 
 				authorizationapi.NewRule("delete").Groups(imageGroup).Resources("images").RuleOrDie(),
@@ -777,7 +778,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("get", "create").Groups(buildGroup).Resources("buildconfigs/webhooks").RuleOrDie(),
+				authorizationapi.NewRule("get", "create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/webhooks").RuleOrDie(),
 			},
 		},
 
