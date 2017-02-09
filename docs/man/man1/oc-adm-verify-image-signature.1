@@ -1,25 +1,46 @@
-.TH "OADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OC ADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oadm \- Tools for managing a cluster
+oc adm verify\-image\-signature \- Verify that the given IMAGE signature is trusted
 
 
 .SH SYNOPSIS
 .PP
-\fBoadm\fP [OPTIONS]
+\fBoc adm verify\-image\-signature\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Administrative Commands
+Verifies the imported image signature using the local public key.
 
 .PP
-Commands for managing a cluster are exposed here. Many administrative actions involve interaction with the command\-line client as well.
+This command verifies if the signature attached to an image is trusted by using the provided public GPG key. Trusted image means that the image signature was signed by a valid GPG key and the image identity provided by the signature content matches with the image. By default, this command will not record a signature condition back to the Image object but only print the verification status to the console.
+
+.PP
+To record a new condition, you have to pass the "\-\-confirm" flag.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-confirm\fP=false
+    If true, the result of the verification will be recorded to an image object.
+
+.PP
+\fB\-\-expected\-identity\fP=""
+    An expected image docker reference to verify.
+
+.PP
+\fB\-\-public\-key\fP=""
+    A path to a public GPG key to be used for verification.
+
+.PP
+\fB\-\-remove\fP=false
+    If set, all signature verifications will be removed from the given image.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
 \fB\-\-api\-version\fP=""
     DEPRECATED: The API version to use when talking to the server
@@ -93,9 +114,21 @@ Commands for managing a cluster are exposed here. Many administrative actions in
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Verify the image signature using the local GNUPG keychan and record the status as a condition to image
+  verify\-image\-signature sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \-\-expected\-identity=registry.local:5000/foo/bar:v1
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBoadm\-build\-chain(1)\fP, \fBoadm\-ca(1)\fP, \fBoadm\-certificate(1)\fP, \fBoadm\-completion(1)\fP, \fBoadm\-config(1)\fP, \fBoadm\-cordon(1)\fP, \fBoadm\-create\-api\-client\-config(1)\fP, \fBoadm\-create\-bootstrap\-policy\-file(1)\fP, \fBoadm\-create\-bootstrap\-project\-template(1)\fP, \fBoadm\-create\-error\-template(1)\fP, \fBoadm\-create\-key\-pair(1)\fP, \fBoadm\-create\-kubeconfig(1)\fP, \fBoadm\-create\-login\-template(1)\fP, \fBoadm\-create\-master\-certs(1)\fP, \fBoadm\-create\-node\-config(1)\fP, \fBoadm\-create\-provider\-selection\-template(1)\fP, \fBoadm\-create\-server\-cert(1)\fP, \fBoadm\-create\-signer\-cert(1)\fP, \fBoadm\-diagnostics(1)\fP, \fBoadm\-drain(1)\fP, \fBoadm\-groups(1)\fP, \fBoadm\-ipfailover(1)\fP, \fBoadm\-manage\-node(1)\fP, \fBoadm\-migrate(1)\fP, \fBoadm\-new\-project(1)\fP, \fBoadm\-options(1)\fP, \fBoadm\-overwrite\-policy(1)\fP, \fBoadm\-pod\-network(1)\fP, \fBoadm\-policy(1)\fP, \fBoadm\-prune(1)\fP, \fBoadm\-registry(1)\fP, \fBoadm\-router(1)\fP, \fBoadm\-taint(1)\fP, \fBoadm\-top(1)\fP, \fBoadm\-uncordon(1)\fP, \fBoadm\-verify\-image\-signature(1)\fP, \fBoadm\-version(1)\fP,
+\fBoc\-adm(1)\fP,
 
 
 .SH HISTORY
