@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -160,7 +161,7 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
 
-	c.InstallProtectedAPI(kmaster.GenericAPIServer.HandlerContainer)
+	c.InstallProtectedAPI(kmaster.GenericAPIServer)
 	messages = append(messages, c.kubernetesAPIMessages(kc)...)
 
 	for _, s := range messages {
@@ -200,7 +201,8 @@ func (c *MasterConfig) RunInProxyMode(proxy *kubernetes.ProxyConfig, assetConfig
 	messages = append(messages, fmt.Sprintf("Started OpenAPI Schema at %%s%s", openAPIServePath))
 
 	// install origin handlers
-	c.InstallProtectedAPI(container)
+	// REBASE: delete proxy mode or make the following work
+	// c.InstallProtectedAPI(container)
 
 	// TODO(sttts): split cmd/server/kubernetes config generation into generic and master-specific
 	// until then: create ad-hoc config
@@ -390,16 +392,41 @@ func (c *MasterConfig) InitializeObjects() {
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
 
-func (c *MasterConfig) InstallProtectedAPI(apiContainer *genericmux.APIContainer) ([]string, error) {
-	// initialize OpenShift API
+func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAPIServer) ([]string, error) {
+	apiContainer := apiserver.HandlerContainer
+	messages := []string{}
 	storage := c.GetRestStorage()
 
-	messages := []string{}
+	// install API groups
+	for gv, gvStorage := range storage {
+		// skip pure-legacy groups as API groups
+		if gv == v1.SchemeGroupVersion {
+			continue
+		}
+		if !registered.IsEnabledVersion(gv) {
+			continue
+		}
+
+		apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(gv.Group)
+		apiGroupInfo.VersionedResourcesStorageMap[buildapiv1.SchemeGroupVersion.Version] = gvStorage
+		apiGroupInfo.GroupMeta.GroupVersion = gv
+		if err := apiserver.InstallAPIGroup(&apiGroupInfo); err != nil {
+			glog.Fatalf("Unable to initialize %s API group: %v", gv, err)
+		}
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s/%s", api.GroupPrefix, gv.Group, gv.Version))
+	}
+
+	// install legacy APIs
+	legacyStorage := map[string]rest.Storage{}
+	for _, gvStorage := range storage {
+		for resource, s := range gvStorage {
+			legacyStorage[resource] = s
+		}
+	}
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
-
 	if configapi.HasOpenShiftAPILevel(c.Options, v1.SchemeGroupVersion.Version) {
-		if err := c.apiLegacyV1(storage).InstallREST(apiContainer.Container); err != nil {
+		if err := c.apiLegacyV1(legacyStorage).InstallREST(apiContainer.Container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
 		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s", api.Prefix, v1.SchemeGroupVersion.Version))
@@ -494,7 +521,7 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 	secretContainer.Add(ws)
 }
 
-func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
+func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]rest.Storage {
 	//TODO/REBASE use something other than c.KubeClientset
 	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientset().Core().Nodes(), *c.KubeletClientConfig)
 	if err != nil {
@@ -686,91 +713,95 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	templateStorage, err := templateetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	storage := map[string]rest.Storage{
-		"images":               imageStorage,
-		"imagesignatures":      imageSignatureStorage,
-		"imageStreams/secrets": imageStreamSecretsStorage,
-		"imageStreams":         imageStreamStorage,
-		"imageStreams/status":  imageStreamStatusStorage,
-		"imageStreamImports":   imageStreamImportStorage,
-		"imageStreamImages":    imageStreamImageStorage,
-		"imageStreamMappings":  imageStreamMappingStorage,
-		"imageStreamTags":      imageStreamTagStorage,
+	storage := map[unversioned.GroupVersion]map[string]rest.Storage{
+		v1.SchemeGroupVersion: {
+			"images":               imageStorage,
+			"imagesignatures":      imageSignatureStorage,
+			"imageStreams/secrets": imageStreamSecretsStorage,
+			"imageStreams":         imageStreamStorage,
+			"imageStreams/status":  imageStreamStatusStorage,
+			"imageStreamImports":   imageStreamImportStorage,
+			"imageStreamImages":    imageStreamImageStorage,
+			"imageStreamMappings":  imageStreamMappingStorage,
+			"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":             deployConfigStorage,
-		"deploymentConfigs/scale":       deployConfigScaleStorage,
-		"deploymentConfigs/status":      deployConfigStatusStorage,
-		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter),
-		"deploymentConfigs/instantiate": dcInstantiateStorage,
+			"deploymentConfigs":             deployConfigStorage,
+			"deploymentConfigs/scale":       deployConfigScaleStorage,
+			"deploymentConfigs/status":      deployConfigStatusStorage,
+			"deploymentConfigs/rollback":    deployConfigRollbackStorage,
+			"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter),
+			"deploymentConfigs/instantiate": dcInstantiateStorage,
 
-		// TODO: Deprecate these
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
-		"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.ExternalVersionCodec),
+			// TODO: Deprecate these
+			"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
+			"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.ExternalVersionCodec),
 
-		"processedTemplates": templateregistry.NewREST(),
-		"templates":          templateStorage,
+			"processedTemplates": templateregistry.NewREST(),
+			"templates":          templateStorage,
 
-		"routes":        routeStorage,
-		"routes/status": routeStatusStorage,
+			"routes":        routeStorage,
+			"routes/status": routeStatusStorage,
 
-		"projects":        projectStorage,
-		"projectRequests": projectRequestStorage,
+			"projects":        projectStorage,
+			"projectRequests": projectRequestStorage,
 
-		"hostSubnets":           hostSubnetStorage,
-		"netNamespaces":         netNamespaceStorage,
-		"clusterNetworks":       clusterNetworkStorage,
-		"egressNetworkPolicies": egressNetworkPolicyStorage,
+			"hostSubnets":           hostSubnetStorage,
+			"netNamespaces":         netNamespaceStorage,
+			"clusterNetworks":       clusterNetworkStorage,
+			"egressNetworkPolicies": egressNetworkPolicyStorage,
 
-		"users":                userStorage,
-		"groups":               groupStorage,
-		"identities":           identityStorage,
-		"userIdentityMappings": userIdentityMappingStorage,
+			"users":                userStorage,
+			"groups":               groupStorage,
+			"identities":           identityStorage,
+			"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizeTokenStorage,
-		"oAuthAccessTokens":         accessTokenStorage,
-		"oAuthClients":              clientStorage,
-		"oAuthClientAuthorizations": clientAuthorizationStorage,
+			"oAuthAuthorizeTokens":      authorizeTokenStorage,
+			"oAuthAccessTokens":         accessTokenStorage,
+			"oAuthClients":              clientStorage,
+			"oAuthClientAuthorizations": clientAuthorizationStorage,
 
-		"resourceAccessReviews":      resourceAccessReviewStorage,
-		"subjectAccessReviews":       subjectAccessReviewStorage,
-		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
-		"localResourceAccessReviews": localResourceAccessReviewStorage,
-		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
-		"subjectRulesReviews":        subjectRulesReviewStorage,
+			"resourceAccessReviews":      resourceAccessReviewStorage,
+			"subjectAccessReviews":       subjectAccessReviewStorage,
+			"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
+			"localResourceAccessReviews": localResourceAccessReviewStorage,
+			"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
+			"subjectRulesReviews":        subjectRulesReviewStorage,
 
-		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
-		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
-		"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,
+			"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
+			"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
+			"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,
 
-		"policies":       policyStorage,
-		"policyBindings": policyBindingStorage,
-		"roles":          roleStorage,
-		"roleBindings":   roleBindingStorage,
+			"policies":       policyStorage,
+			"policyBindings": policyBindingStorage,
+			"roles":          roleStorage,
+			"roleBindings":   roleBindingStorage,
 
-		"clusterPolicies":       clusterPolicyStorage,
-		"clusterPolicyBindings": clusterPolicyBindingStorage,
-		"clusterRoleBindings":   clusterRoleBindingStorage,
-		"clusterRoles":          clusterRoleStorage,
+			"clusterPolicies":       clusterPolicyStorage,
+			"clusterPolicyBindings": clusterPolicyBindingStorage,
+			"clusterRoleBindings":   clusterRoleBindingStorage,
+			"clusterRoles":          clusterRoleStorage,
 
-		"clusterResourceQuotas":        restInPeace(clusterresourcequotaregistry.NewStorage(c.RESTOptionsGetter)),
-		"clusterResourceQuotas/status": updateInPeace(clusterresourcequotaregistry.NewStatusStorage(c.RESTOptionsGetter)),
-		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
-			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
+			"clusterResourceQuotas":        restInPeace(clusterresourcequotaregistry.NewStorage(c.RESTOptionsGetter)),
+			"clusterResourceQuotas/status": updateInPeace(clusterresourcequotaregistry.NewStatusStorage(c.RESTOptionsGetter)),
+			"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
+				c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
 
-		"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewStorage(c.RESTOptionsGetter)),
+			"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewStorage(c.RESTOptionsGetter)),
+		},
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
-		storage["builds"] = buildStorage
-		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter)
-		storage["builds/details"] = buildDetailsStorage
+		storage[buildapiv1.SchemeGroupVersion] = map[string]rest.Storage{
+			"builds":         buildStorage,
+			"builds/clone":   buildclone.NewStorage(buildGenerator),
+			"builds/log":     buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter),
+			"builds/details": buildDetailsStorage,
 
-		storage["buildConfigs"] = buildConfigStorage
-		storage["buildConfigs/webhooks"] = buildConfigWebHooks
-		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter)
+			"buildConfigs":                   buildConfigStorage,
+			"buildConfigs/webhooks":          buildConfigWebHooks,
+			"buildConfigs/instantiate":       buildconfiginstantiate.NewStorage(buildGenerator),
+			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter),
+		}
 	}
 
 	return storage
