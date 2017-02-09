@@ -36,6 +36,10 @@ function os::build::host_platform_friendly() {
     echo "linux-64bit"
   elif [[ $platform == "linux/ppc64le" ]]; then
     echo "linux-powerpc64"
+  elif [[ $platform == "linux/arm64" ]]; then
+    echo "linux-arm64"
+  elif [[ $platform == "linux/s390x" ]]; then
+    echo "linux-s390"
   else
     echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
   fi
@@ -358,11 +362,17 @@ function os::build::place_bins() {
         elif [[ $platform == "linux-powerpc64" ]]; then
           OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        elif [[ $platform == "linux-aarch64" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        elif [[ $platform == "linux-s390" ]]; then
+          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
       else
-        if [[ $platform == "linux-64bit" || $platform == "linux-powerpc64" ]]; then
+        if [[ $platform == "linux-64bit" || $platform == "linux-powerpc64" || $platform == "linux-aarch64" || $platform == "linux-s390" ]]; then
           os::build::archive_tar "./*"
         else
           echo "++ ERROR: No release type defined for $platform"
