@@ -269,7 +269,7 @@ func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
 		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
 	if err := runtime.DecodeInto(configapilatest.Codec, jsonConfig, &config); err != nil {
-		return nil, fmt.Errorf("couldg not decode file into config: %v", err)
+		return nil, fmt.Errorf("could not decode file into config: %v", err)
 	}
 	return &config, nil
 }
