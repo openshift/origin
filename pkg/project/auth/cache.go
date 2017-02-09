@@ -447,7 +447,7 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 	}
 
 	namespaceList := &kapi.NamespaceList{}
-	for key := range keys {
+	for _, key := range keys.List() {
 		namespaceObj, exists, err := ac.namespaceStore.GetByKey(key)
 		if err != nil {
 			return nil, err
