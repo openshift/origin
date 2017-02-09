@@ -6,6 +6,8 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
 #  oc delete all,templates --all
+  oc delete-project template-substitute
+  oc delete-project prefix-template-substitute
   exit 0
 ) &>/dev/null
 
@@ -49,6 +51,23 @@ os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+
+# check object namespace handling
+# hardcoded values should be stripped
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"stripped\")].metadata.namespace}"' 'STRIPPED'
+# normal parameterized values should be substituted and retained
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-substituted\")].metadata.namespace}"' 'substituted'
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-substituted\")].metadata.namespace}"' 'prefix-substituted'
+# non-string parameterized values should be stripped
+os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-refstripped\")].metadata.namespace}"' 'namespace is not found'
+os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-refstripped\")].metadata.namespace}"' 'namespace is not found'
+# ensure the objects can actually get created with a namespace specified
+project=$(oc project -q)
+os::cmd::expect_success 'oc new-project template-substitute'
+os::cmd::expect_success 'oc new-project prefix-template-substitute'
+os::cmd::expect_success 'oc project ${project}'
+os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.json -p SUBSTITUTED=template-substitute'
+os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
 os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
