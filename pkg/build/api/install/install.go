@@ -17,8 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/build/api/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/build/api"
-
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
