@@ -4,13 +4,80 @@ items:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: busybox
+    name: local-busybox
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox
   spec:
-    tags:
-    - name: latest
-      from:
-        name: busybox
-        kind: DockerImage
+    strategy:
+      type: Docker
+    source:
+      type: Git
+      dockerfile: "FROM busybox:latest\n"
+    output:
+      to:
+        kind: ImageStreamTag
+        name: local-busybox:latest
+    triggers:
+    - type: ConfigChange
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox1
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: local-busybox1
+    template:
+      metadata:
+        labels:
+          deploymentconfig: local-busybox1
+      spec:
+        containers:
+        - name: local-busybox
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - local-busybox
+        from:
+          kind: ImageStreamTag
+          name: local-busybox:latest
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox2
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: local-busybox2
+    template:
+      metadata:
+        labels:
+          deploymentconfig: local-busybox2
+      spec:
+        containers:
+        - name: local-busybox
+          command:
+          - foo
+          - bar
+          args:
+          - baz
+          - qux
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - local-busybox
+        from:
+          kind: ImageStreamTag
+          name: local-busybox:latest
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -27,15 +94,7 @@ items:
       spec:
         containers:
         - name: busybox
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - busybox
-        from:
-          name: busybox:latest
-          kind: ImageStreamTag
+          image: busybox
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -52,18 +111,10 @@ items:
       spec:
         containers:
         - name: busybox
+          image: busybox
           command:
           - foo
           - bar
           args:
           - baz
           - qux
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - busybox
-        from:
-          name: busybox:latest
-          kind: ImageStreamTag
