@@ -29566,7 +29566,7 @@
       "items": {
        "type": "string"
       },
-      "description": "Groups are the groups that this user is a member of"
+      "description": "Groups specifies group names this user is a member of. This field is deprecated and will be removed in a future release. Instead, create a Group object containing the name of this User."
      }
     }
    },
