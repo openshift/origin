@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -12,8 +13,11 @@ import (
 	"strings"
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
+	build "github.com/openshift/origin/pkg/build/api"
+	buildv1 "github.com/openshift/origin/pkg/build/api/v1"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -171,6 +175,124 @@ func TestWellKnownOAuthOff(t *testing.T) {
 	}
 }
 
+func TestApiGroups(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	masterConfig, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	masterConfig.OAuthConfig = nil
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	client, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	t.Logf("Looking for build api group in server group discovery")
+	groups, err := kclientset.Discovery().ServerGroups()
+	if err != nil {
+		t.Fatalf("unexpected group discovery error: %v", err)
+	}
+	found := false
+	for _, g := range groups.Groups {
+		if g.Name == buildv1.GroupName {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Expected to find api group %q in discovery, got: %+v", buildv1.GroupName, groups)
+	}
+
+	t.Logf("Looking for builds resource in resource discovery")
+	resources, err := kclientset.Discovery().ServerResourcesForGroupVersion(buildv1.SchemeGroupVersion.String())
+	if err != nil {
+		t.Fatalf("unexpected resource discovery error: %v", err)
+	}
+	found = false
+	got := []string{}
+	for _, r := range resources.APIResources {
+		got = append(got, r.Name)
+	}
+	sort.Strings(got)
+	expected := []string{
+		"buildconfigs",
+		"buildconfigs/instantiate",
+		"buildconfigs/instantiatebinary",
+		"buildconfigs/webhooks",
+		"builds",
+		"builds/clone",
+		"builds/details",
+		"builds/log",
+	}
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("Expected different build resources: got=%v, expect=%v", got, expected)
+	}
+
+	ns := testutil.RandomNamespace("testapigroup")
+	t.Logf("Creating test namespace %q", ns)
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, ns)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer kclientset.Namespaces().Delete(ns, &kapi.DeleteOptions{})
+
+	t.Logf("GETting builds")
+	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
+	req.Header.Set("Accept", "*/*")
+	resp, err := client.Client.Transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected GET error: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	t.Logf("Creating a Build")
+	originalBuild := testBuild()
+	_, err = client.Builds(ns).Create(originalBuild)
+	if err != nil {
+		t.Fatalf("Unexpected BuildConfig create error: %v", err)
+	}
+
+	t.Logf("GETting builds again")
+	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s/namespaces/%s/builds/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version, ns, originalBuild.Name), nil)
+	req.Header.Set("Accept", "*/*")
+	resp, err = client.Client.Transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected GET error: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	codec := kapi.Codecs.LegacyCodec(buildv1.SchemeGroupVersion)
+	respBuild := &buildv1.Build{}
+	gvk := buildv1.SchemeGroupVersion.WithKind("Build")
+	respObj, _, err := codec.Decode(body, &gvk, respBuild)
+	if err != nil {
+		t.Fatalf("Unexpected conversion error, body=%q: %v", string(body), err)
+	}
+	respBuild, ok := respObj.(*buildv1.Build)
+	if !ok {
+		t.Fatalf("Unexpected type %t, expected buildv1.Build", respObj)
+	}
+	if got, expected := respBuild.APIVersion, buildv1.SchemeGroupVersion.String(); got != expected {
+		t.Fatalf("Unexpected APIVersion: got=%q, expected=%q", got, expected)
+	}
+	if got, expected := respBuild.Name, originalBuild.Name; got != expected {
+		t.Fatalf("Unexpected name: got=%q, expected=%q", got, expected)
+	}
+}
+
 func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, error) {
 	restConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -186,4 +308,31 @@ func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, err
 			RootCAs: pool,
 		},
 	}), nil
+}
+
+func testBuild() *build.Build {
+	return &build.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+		},
+		Spec: build.BuildSpec{
+			CommonSpec: build.CommonSpec{
+				Source: build.BuildSource{
+					Git: &build.GitBuildSource{
+						URI: "git://github.com/openshift/ruby-hello-world.git",
+					},
+					ContextDir: "contextimage",
+				},
+				Strategy: build.BuildStrategy{
+					DockerStrategy: &build.DockerBuildStrategy{},
+				},
+				Output: build.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "test-image-trigger-repo:outputtag",
+					},
+				},
+			},
+		},
+	}
 }
