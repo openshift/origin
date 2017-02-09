@@ -16,6 +16,7 @@
             "PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin",
             "HOME=/root",
             "NAME=$NAME",
+            "COMMAND=$COMMAND",
             "OPENSHIFT_CONTAINERIZED=true",
             "KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig",
 	    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
