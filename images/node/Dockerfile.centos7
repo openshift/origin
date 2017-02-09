@@ -12,7 +12,7 @@ FROM openshift/origin
 
 COPY scripts/* /usr/local/bin/
 
-RUN INSTALL_PKGS="origin-sdn-ovs libmnl libnetfilter_conntrack openvswitch \
+RUN INSTALL_PKGS="origin-sdn-ovs libmnl libnetfilter_conntrack conntrack-tools openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
       ceph-common iscsi-initiator-utils" && \
