@@ -392,6 +392,23 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
+    name: cluster-debugger
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - /debug/pprof
+    - /debug/pprof/*
+    - /metrics
+    resources: []
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
     name: system:build-strategy-docker
   rules:
   - apiGroups:

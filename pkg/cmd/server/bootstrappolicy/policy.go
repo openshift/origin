@@ -206,6 +206,20 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: ClusterDebuggerRoleName,
+				Annotations: map[string]string{
+					roleSystemOnly: roleIsSystemOnly,
+				},
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:           sets.NewString("get"),
+					NonResourceURLs: sets.NewString("/metrics", "/debug/pprof", "/debug/pprof/*"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: BuildStrategyDockerRoleName,
 				Annotations: map[string]string{
 					roleSystemOnly: roleIsSystemOnly,
