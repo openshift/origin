@@ -23,6 +23,11 @@ type Template struct {
 	Message string `json:"message,omitempty" protobuf:"bytes,2,opt,name=message"`
 
 	// objects is an array of resources to include in this template.
+	// If a namespace value is hardcoded in the object, it will be removed
+	// during template instantiation, however if the namespace value
+	// is, or contains, a ${PARAMETER_REFERENCE}, the resolved
+	// value after parameter substitution will be respected and the object
+	// will be created in that namespace.
 	Objects []runtime.RawExtension `json:"objects" protobuf:"bytes,3,rep,name=objects"`
 
 	// parameters is an optional array of Parameters used during the
