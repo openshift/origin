@@ -18,7 +18,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-const maxUpdateRetries = 5
+const maxUpdateRetries = 10
 
 func TestTriggers_manual(t *testing.T) {
 	const namespace = "test-triggers-manual"
