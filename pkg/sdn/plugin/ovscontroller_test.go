@@ -539,6 +539,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp1},
 		42,
 		[]string{"ns1"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -562,6 +563,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp2},
 		43,
 		[]string{"ns2"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -589,6 +591,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp2},
 		42,
 		[]string{"ns1"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -616,6 +619,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{},
 		43,
 		[]string{"ns2"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -639,6 +643,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{},
 		0,
 		[]string{"default", "my-global-project"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -662,6 +667,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{},
 		44,
 		[]string{"ns3", "ns4"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -687,6 +693,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp1},
 		0,
 		[]string{"default"},
+		nil,
 	)
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
@@ -710,6 +717,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp1},
 		45,
 		[]string{"ns3", "ns4"},
+		nil,
 	)
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
@@ -737,6 +745,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{enp1, enp2},
 		46,
 		[]string{"ns5"},
+		nil,
 	)
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
@@ -769,6 +778,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{},
 		45,
 		[]string{"ns3", "ns4"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
@@ -795,6 +805,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		[]osapi.EgressNetworkPolicy{},
 		46,
 		[]string{"ns5"},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)

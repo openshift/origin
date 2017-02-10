@@ -200,7 +200,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	policies := plugin.egressPolicies[vnid]
 	namespaces := plugin.policy.GetNamespaces(vnid)
-	if err := plugin.oc.UpdateEgressNetworkPolicyRules(policies, vnid, namespaces); err != nil {
+	if err := plugin.oc.UpdateEgressNetworkPolicyRules(policies, vnid, namespaces, plugin.egressDNS); err != nil {
 		glog.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
 	}
 }
