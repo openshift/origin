@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"time"
 
@@ -59,7 +60,14 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
 func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *controller.RouterController {
-	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	// EventQueue dies on certain event transitions - add a temporary
+	// hack/wrapper to catch those and kill the router otherwise the
+	// router will never get any updates after the goroutine crashes.
+	unsafeRouteEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	routeEventQueue := NewEventQueueTrapper(unsafeRouteEventQueue, func() {
+		os.Exit(70)
+	})
+
 	cache.NewReflector(&routeLW{
 		client:    factory.OSClient,
 		namespace: factory.Namespace,
