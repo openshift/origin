@@ -3,6 +3,7 @@ package policybased
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -71,6 +72,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runt
 		}
 	}
 
+	sort.Sort(byName(roleBindingList.Items))
 	return roleBindingList, nil
 }
 
@@ -338,3 +340,9 @@ func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bin
 
 	return nil, kapierrors.NewNotFound(m.Resource, bindingName)
 }
+
+type byName []authorizationapi.RoleBinding
+
+func (r byName) Len() int           { return len(r) }
+func (r byName) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r byName) Less(i, j int) bool { return r[i].Name < r[j].Name }
