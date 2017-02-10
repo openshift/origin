@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	generateapp "github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -394,18 +395,107 @@ func (o *DebugOptions) Debug() error {
 	})
 }
 
-func (o *DebugOptions) getContainerImageCommand(container *kapi.Container) ([]string, error) {
-	image := container.Image[strings.LastIndex(container.Image, "/")+1:]
-	name, id, ok := imageapi.SplitImageStreamImage(image)
-	if !ok {
-		return nil, errors.New("container image did not contain an id")
-	}
-	isimage, err := o.Client.ImageStreamImages(o.Attach.Pod.Namespace).Get(name, id)
+// getContainerImageViaDeploymentConfig attempts to return an Image for a given
+// Container.  It tries to walk from the Container's Pod to its DeploymentConfig
+// (via the "openshift.io/deployment-config.name" annotation), then tries to
+// find the ImageStream from which the DeploymentConfig is deploying, then tries
+// to find a match for the Container's image in the ImageStream's Images.
+func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, container *kapi.Container) (*imageapi.Image, error) {
+	ref, err := imageapi.ParseDockerImageReference(container.Image)
 	if err != nil {
 		return nil, err
 	}
 
-	config := isimage.Image.DockerImageMetadata.Config
+	if ref.ID == "" {
+		return nil, nil // ID is needed for later lookup
+	}
+
+	dcname := pod.Annotations[deployapi.DeploymentConfigAnnotation]
+	if dcname == "" {
+		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
+	}
+
+	dc, err := o.Client.DeploymentConfigs(o.Attach.Pod.Namespace).Get(dcname)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, trigger := range dc.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange &&
+			trigger.ImageChangeParams != nil &&
+			trigger.ImageChangeParams.From.Kind == "ImageStreamTag" {
+
+			isname, _, err := imageapi.ParseImageStreamTagName(trigger.ImageChangeParams.From.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			namespace := trigger.ImageChangeParams.From.Namespace
+			if len(namespace) == 0 {
+				namespace = o.Attach.Pod.Namespace
+			}
+
+			isi, err := o.Client.ImageStreamImages(namespace).Get(isname, ref.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			return &isi.Image, nil
+		}
+	}
+
+	return nil, nil // DeploymentConfig doesn't have an ImageChange Trigger
+}
+
+// getContainerImageViaImageStreamImport attempts to return an Image for a given
+// Container.  It does this by submiting a ImageStreamImport request with Import
+// set to false.  The request will not succeed if the backing repository
+// requires Insecure to be set to true, which cannot be hard-coded for security
+// reasons.
+func (o *DebugOptions) getContainerImageViaImageStreamImport(container *kapi.Container) (*imageapi.Image, error) {
+	isi := &imageapi.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "oc-debug",
+		},
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
+				{
+					From: kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: container.Image,
+					},
+				},
+			},
+		},
+	}
+
+	isi, err := o.Client.ImageStreams(o.Attach.Pod.Namespace).Import(isi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(isi.Status.Images) > 0 {
+		return isi.Status.Images[0].Image, nil
+	}
+
+	return nil, nil
+}
+
+func (o *DebugOptions) getContainerImageCommand(pod *kapi.Pod, container *kapi.Container) ([]string, error) {
+	if len(container.Command) > 0 {
+		return container.Command, nil
+	}
+
+	image, _ := o.getContainerImageViaDeploymentConfig(pod, container)
+	if image == nil {
+		image, _ = o.getContainerImageViaImageStreamImport(container)
+	}
+
+	if image == nil || image.DockerImageMetadata.Config == nil {
+		return nil, errors.New("error: no usable image found")
+	}
+
+	config := image.DockerImageMetadata.Config
 	return append(config.Entrypoint, config.Cmd...), nil
 }
 
@@ -421,13 +511,13 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	container := containerForName(pod, o.Attach.ContainerName)
 
 	// identify the command to be run
-	originalCommand := append(container.Command, container.Args...)
-	container.Command = o.Command
-	if len(originalCommand) == 0 {
-		originalCommand, _ = o.getContainerImageCommand(container)
+	originalCommand, _ := o.getContainerImageCommand(pod, container)
+	if len(originalCommand) > 0 {
+		originalCommand = append(originalCommand, container.Args...)
 	}
-	container.Args = nil
 
+	container.Command = o.Command
+	container.Args = nil
 	container.TTY = o.Attach.Stdin && o.Attach.TTY
 	container.Stdin = o.Attach.Stdin
 	container.StdinOnce = o.Attach.Stdin

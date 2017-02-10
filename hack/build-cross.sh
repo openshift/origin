@@ -28,6 +28,16 @@ if [[ "${host_platform}" == "linux/ppc64le" ]]; then
   platforms+=( "linux/ppc64le" )
 fi
 
+# Special case aarch64
+if [[ "${host_platform}" == "linux/arm64" ]]; then
+  platforms+=( "linux/arm64" )
+fi
+
+# Special case s390x
+if [[ "${host_platform}" == "linux/s390x" ]]; then
+  platforms+=( "linux/s390x" )
+fi
+
 # On linux platforms, build images
 if [[ "${host_platform}" == linux/* ]]; then
   image_platforms+=( "${host_platform}" )

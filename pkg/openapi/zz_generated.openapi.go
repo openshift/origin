@@ -23889,7 +23889,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"groups": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Groups are the groups that this user is a member of",
+							Description: "Groups specifies group names this user is a member of. This field is deprecated and will be removed in a future release. Instead, create a Group object containing the name of this User.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

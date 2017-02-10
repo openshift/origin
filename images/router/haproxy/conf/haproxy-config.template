@@ -10,7 +10,7 @@ global
 
   daemon
 {{ with (env "ROUTER_SYSLOG_ADDRESS" "") }}
-  log {{.}} local1 {{env "ROUTER_LOG_LEVEL" "warning"}}
+  log {{.}} {{env "ROUTER_LOG_FACILITY" "local1"}} {{env "ROUTER_LOG_LEVEL" "warning"}}
 {{ end}}
   ca-base /etc/ssl
   crt-base /etc/ssl
@@ -41,6 +41,12 @@ defaults
   option httplog
   log global
 {{ end }}
+
+  # To configure custom default errors, you can either uncomment the
+  # line below (server ... 127.0.0.1:8080) and point it to your custom
+  # backend service or alternatively, you can send a custom 503 error.
+  #server openshift_backend 127.0.0.1:8080
+  errorfile 503 /var/lib/haproxy/conf/error-page-503.http
 
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "")) }}
   timeout connect {{env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s"}}
@@ -215,11 +221,6 @@ backend openshift_default
   option forwardfor
   #option http-keep-alive
   option http-pretend-keepalive
-  # To configure custom default errors, you can either uncomment the
-  # line below (server ... 127.0.0.1:8080) and point it to your custom
-  # backend service or alternatively, you can send a custom 503 error.
-  #server openshift_backend 127.0.0.1:8080
-  errorfile 503 /var/lib/haproxy/conf/error-page-503.http
 
 ##-------------- app level backends ----------------
 {{/*
@@ -257,7 +258,7 @@ backend be_edge_http_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
@@ -342,7 +343,7 @@ backend be_tcp_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_TCP_BALANCE_SCHEME" "")) }}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}source{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
@@ -409,7 +410,7 @@ backend be_secure_{{$cfgIdx}}
       {{ if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{ else }}
-  balance {{ if gt (len $cfg.ServiceUnitNames) 1 }}roundrobin{{ else }}leastconn{{ end }}
+  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{ end }}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}

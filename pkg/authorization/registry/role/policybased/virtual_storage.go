@@ -3,6 +3,7 @@ package policybased
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -64,6 +65,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runt
 		}
 	}
 
+	sort.Sort(byName(roleList.Items))
 	return roleList, nil
 }
 
@@ -282,3 +284,9 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 
 	return policy
 }
+
+type byName []authorizationapi.Role
+
+func (r byName) Len() int           { return len(r) }
+func (r byName) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r byName) Less(i, j int) bool { return r[i].Name < r[j].Name }

@@ -29,6 +29,8 @@
 // examples/quickstarts/rails-postgresql-persistent.json
 // examples/quickstarts/rails-postgresql.json
 // examples/logging/logging-deployer.yaml
+// examples/heapster/heapster-standalone.yaml
+// examples/prometheus/prometheus.yaml
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
@@ -11981,6 +11983,371 @@ func examplesLoggingLoggingDeployerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesHeapsterHeapsterStandaloneYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: heapster-standalone
+  annotations:
+    "openshift.io/display-name": Heapster Metrics (Standalone)
+    description: |
+      A simple metrics solution for an OpenShift cluster. Expects to be installed in the 'kube-system' namespace.
+    iconClass: icon-cogs
+    tags: "metrics,monitoring,heapster"
+  labels:
+    metrics-infra: heapster
+parameters:
+- description: Internal URL for the master, for authentication retrieval
+  name: MASTER_URL
+  value: https://kubernetes.default.svc
+- description: Specify prefix for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1",
+    set prefix "openshift/origin-"
+  name: IMAGE_PREFIX
+  value: openshift/origin-
+- description: Specify version for metrics components; e.g. for "openshift/origin-metrics-deployer:v1.1",
+    set version "v1.1"
+  name: IMAGE_VERSION
+  value: "latest"
+- description: "How often metrics should be gathered. Defaults value of '15s' for 15 seconds"
+  name: METRIC_RESOLUTION
+  value: "15s"
+- description: How long in seconds we should wait until Heapster starts up before attempting a restart
+  name: STARTUP_TIMEOUT
+  value: "500"
+- description: The namespace to instantiate heapster under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: heapster
+    namespace: "${NAMESPACE}"
+    labels:
+      metrics-infra: support
+  secrets:
+  - name: heapster-secrets
+- apiVersion: v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: heapster-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: heapster
+    namespace: "${NAMESPACE}"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: heapster
+    namespace: "${NAMESPACE}"
+    labels:
+      metrics-infra: heapster
+      name: heapster
+    annotations:
+      "service.alpha.openshift.io/serving-cert-secret-name": heapster-secrets
+  spec:
+    selector:
+      name: heapster
+    ports:
+    - port: 443
+      targetPort: https
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: heapster
+    namespace: "${NAMESPACE}"
+    labels:
+      metrics-infra: heapster
+      name: heapster
+  spec:
+    selector:
+      name: heapster
+    replicas: 1
+    template:
+      version: v1
+      metadata:
+        labels:
+          metrics-infra: heapster
+          name: heapster
+      spec:
+        containers:
+        - image: "${IMAGE_PREFIX}metrics-heapster:${IMAGE_VERSION}"
+          name: heapster
+          ports:
+          - name: https
+            containerPort: 8082
+          command:
+          - "heapster-wrapper.sh"
+          - "--source=kubernetes:${MASTER_URL}?useServiceAccount=true&kubeletHttps=true&kubeletPort=10250"
+          - "--tls_cert=/secrets/tls.crt"
+          - "--tls_key=/secrets/tls.key"
+          - "--tls_client_ca=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+          - "--allowed_users=system:master-proxy"
+          - "--metric_resolution=${METRIC_RESOLUTION}"
+          env:
+          - name: STARTUP_TIMEOUT
+            value: ${STARTUP_TIMEOUT}
+          volumeMounts:
+          - name: heapster-secrets
+            mountPath: "/secrets"
+        volumes:
+        - name: heapster-secrets
+          secret:
+            secretName: heapster-secrets
+        serviceAccount: heapster
+
+`)
+
+func examplesHeapsterHeapsterStandaloneYamlBytes() ([]byte, error) {
+	return _examplesHeapsterHeapsterStandaloneYaml, nil
+}
+
+func examplesHeapsterHeapsterStandaloneYaml() (*asset, error) {
+	bytes, err := examplesHeapsterHeapsterStandaloneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/heapster/heapster-standalone.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesPrometheusPrometheusYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: prometheus
+  annotations:
+    "openshift.io/display-name": Prometheus
+    description: |
+      A monitoring solution for an OpenShift cluster - collect and gather metrics from nodes, services, and the infrastructure.
+    iconClass: icon-cogs
+    tags: "monitoring,prometheus,time-series"
+parameters:
+- description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus
+    namespace: "${NAMESPACE}"
+- apiVersion: v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: "${NAMESPACE}"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+    labels:
+      name: prometheus
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: prometheus
+      port: 80
+      protocol: TCP
+      targetPort: 9090
+    selector:
+      app: prometheus
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: prometheus
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: prometheus
+    template:
+      metadata:
+        labels:
+          app: prometheus
+        name: prometheus
+      spec:
+        serviceAccountName: prometheus
+        containers:
+        - args:
+          - -storage.local.retention=6h
+          - -storage.local.memory-chunks=500000
+          - -config.file=/etc/prometheus/prometheus.yml
+          image: prom/prometheus
+          imagePullPolicy: IfNotPresent
+          name: prometheus
+          ports:
+          - containerPort: 8080
+            name: web
+          volumeMounts:
+          - mountPath: /etc/prometheus
+            name: config-volume
+          - mountPath: /prometheus
+            name: data-volume
+        restartPolicy: Always
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: prometheus
+          name: config-volume
+        - emptyDir: {}
+          name: data-volume
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  data:
+    prometheus.yml: |
+      # A scrape configuration for running Prometheus on a Kubernetes cluster.
+      # This uses separate scrape configs for cluster components (i.e. API server, node)
+      # and services to allow each to use different authentication configs.
+      #
+      # Kubernetes labels will be added as Prometheus labels on metrics via the
+      # `+"`"+`labelmap`+"`"+` relabeling action.
+
+      # Scrape config for API servers.
+      #
+      # Kubernetes exposes API servers as endpoints to the default/kubernetes
+      # service so this uses `+"`"+`endpoints`+"`"+` role and uses relabelling to only keep
+      # the endpoints associated with the default/kubernetes service using the
+      # default named port `+"`"+`https`+"`"+`. This works for single API server deployments as
+      # well as HA API server deployments.
+      scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        # Default to scraping over https. If required, just disable this or change to
+        # `+"`"+`http`+"`"+`.
+        scheme: https
+
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          # If your node certificates are self-signed or use a different CA to the
+          # master CA, then disable certificate verification below. Note that
+          # certificate verification is an integral part of a secure infrastructure
+          # so this should only be disabled in a controlled environment. You can
+          # disable certificate verification by uncommenting the line below.
+          #
+          # insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        # Keep only the default/kubernetes service endpoints for the https port. This
+        # will add targets for each API server which Kubernetes adds an endpoint to
+        # the default/kubernetes service.
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+
+      - job_name: 'kubernetes-nodes'
+
+        # Default to scraping over https. If required, just disable this or change to
+        # `+"`"+`http`+"`"+`.
+        scheme: https
+
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          # If your node certificates are self-signed or use a different CA to the
+          # master CA, then disable certificate verification below. Note that
+          # certificate verification is an integral part of a secure infrastructure
+          # so this should only be disabled in a controlled environment. You can
+          # disable certificate verification by uncommenting the line below.
+          #
+          # insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+      # Scrape config for service endpoints.
+      #
+      # The relabeling allows the actual service scrape endpoint to be configured
+      # via the following annotations:
+      #
+      # * `+"`"+`prometheus.io/scrape`+"`"+`: Only scrape services that have a value of `+"`"+`true`+"`"+`
+      # * `+"`"+`prometheus.io/scheme`+"`"+`: If the metrics endpoint is secured then you will need
+      # to set this to `+"`"+`https`+"`"+` & most likely set the `+"`"+`tls_config`+"`"+` of the scrape config.
+      # * `+"`"+`prometheus.io/path`+"`"+`: If the metrics path is not `+"`"+`/metrics`+"`"+` override this.
+      # * `+"`"+`prometheus.io/port`+"`"+`: If the metrics are exposed on a different port to the
+      # service then set this appropriately.
+      - job_name: 'kubernetes-service-endpoints'
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+);(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+`)
+
+func examplesPrometheusPrometheusYamlBytes() ([]byte, error) {
+	return _examplesPrometheusPrometheusYaml, nil
+}
+
+func examplesPrometheusPrometheusYaml() (*asset, error) {
+	bytes, err := examplesPrometheusPrometheusYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/prometheus/prometheus.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
 # To require that all images running on the platform be imported first, you may uncomment the
@@ -12099,6 +12466,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql-persistent.json": examplesQuickstartsRailsPostgresqlPersistentJson,
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
+	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
+	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
@@ -12155,6 +12524,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"redis-ephemeral-template.json": &bintree{examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{}},
 			"redis-persistent-template.json": &bintree{examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{}},
 		}},
+		"heapster": &bintree{nil, map[string]*bintree{
+			"heapster-standalone.yaml": &bintree{examplesHeapsterHeapsterStandaloneYaml, map[string]*bintree{}},
+		}},
 		"image-streams": &bintree{nil, map[string]*bintree{
 			"image-streams-centos7.json": &bintree{examplesImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
 			"image-streams-rhel7.json": &bintree{examplesImageStreamsImageStreamsRhel7Json, map[string]*bintree{}},
@@ -12171,6 +12543,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"logging": &bintree{nil, map[string]*bintree{
 			"logging-deployer.yaml": &bintree{examplesLoggingLoggingDeployerYaml, map[string]*bintree{}},
+		}},
+		"prometheus": &bintree{nil, map[string]*bintree{
+			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
 		"quickstarts": &bintree{nil, map[string]*bintree{
 			"cakephp-mysql-persistent.json": &bintree{examplesQuickstartsCakephpMysqlPersistentJson, map[string]*bintree{}},

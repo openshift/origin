@@ -1748,3 +1748,75 @@ func TestIndexOfImageSignature(t *testing.T) {
 		}
 	}
 }
+
+func mockImageStream(policy TagReferencePolicyType) *ImageStream {
+	now := unversioned.Now()
+	stream := &ImageStream{}
+	stream.Status = ImageStreamStatus{}
+	stream.Spec = ImageStreamSpec{}
+	stream.Spec.Tags = map[string]TagReference{}
+	stream.Spec.Tags["latest"] = TagReference{
+		ReferencePolicy: TagReferencePolicy{
+			Type: policy,
+		},
+	}
+	stream.Status.DockerImageRepository = "registry:5000/test/foo"
+	stream.Status.Tags = map[string]TagEventList{}
+	stream.Status.Tags["latest"] = TagEventList{Items: []TagEvent{
+		{
+			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fa",
+			DockerImageReference: "test/bar@sha256:bar",
+			Created:              now,
+			Generation:           3,
+		},
+		{
+			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb",
+			DockerImageReference: "test/foo@sha256:bar",
+			Created:              now,
+			Generation:           2,
+		},
+		{
+			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb",
+			DockerImageReference: "test/foo@sha256:oldbar",
+			Created:              unversioned.Time{Time: now.Add(-5 * time.Second)},
+			Generation:           1,
+		},
+	}}
+	return stream
+}
+
+func TestLatestImageTagEvent(t *testing.T) {
+	tag, event := LatestImageTagEvent(mockImageStream(SourceTagReferencePolicy), "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb")
+	if tag != "latest" {
+		t.Errorf("expected tag 'latest', got %q", tag)
+	}
+	if event == nil {
+		t.Fatalf("expected event to not be nil")
+	}
+	if event.Generation != 2 {
+		t.Errorf("expected second generation, got %d", event.Generation)
+	}
+}
+
+func TestDockerImageReferenceForImage(t *testing.T) {
+	reference, ok := DockerImageReferenceForImage(mockImageStream(SourceTagReferencePolicy), "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb")
+	if !ok {
+		t.Fatalf("expected success for source tag policy")
+	}
+	if reference != "test/foo@sha256:bar" {
+		t.Errorf("expected source reference to be 'test/foo@sha256:bar', got %q", reference)
+	}
+
+	reference, ok = DockerImageReferenceForImage(mockImageStream(LocalTagReferencePolicy), "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb")
+	if !ok {
+		t.Fatalf("expected success for local reference policy")
+	}
+	if reference != "registry:5000/test/foo@sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb" {
+		t.Errorf("expected local reference to be 'registry:5000/test/foo@sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb', got %q", reference)
+	}
+
+	reference, ok = DockerImageReferenceForImage(mockImageStream(LocalTagReferencePolicy), "sha256:unknown")
+	if ok {
+		t.Errorf("expected failure for unknown image")
+	}
+}

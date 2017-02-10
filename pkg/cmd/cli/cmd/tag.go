@@ -34,6 +34,8 @@ type TagOptions struct {
 	referenceTag bool
 	namespace    string
 
+	referencePolicy string
+
 	ref            imageapi.DockerImageReference
 	sourceKind     string
 	destNamespace  []string
@@ -65,8 +67,17 @@ var (
 	  # Tag an external Docker image.
 	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
 
+	  # Tag an external Docker image and request pull-trough for it.
+	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip --reference-policy=local
+
+
 	  # Remove the specified spec tag from an image stream.
 	  %[1]s tag openshift/origin:latest -d`)
+)
+
+const (
+	sourceReferencePolicy = "source"
+	localReferencePolicy  = "local"
 )
 
 // NewCmdTag implements the OpenShift cli tag command.
@@ -85,12 +96,13 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
-	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags")
+	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'.")
+	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags.")
 	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.referenceTag, "reference", false, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate. Defaults to false.")
+	cmd.Flags().StringVar(&opts.referencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pull-trough for external image when set to 'local'. Defaults to 'source'.")
 
 	return cmd
 }
@@ -273,6 +285,10 @@ func (o TagOptions) Validate() error {
 		return errors.New("--alias and --delete may not be both specified")
 	}
 
+	if o.referencePolicy != sourceReferencePolicy && o.referencePolicy != localReferencePolicy {
+		return errors.New("reference policy must be set to 'source' or 'local'")
+	}
+
 	// Validate source tag based on --delete usage.
 	if o.deleteTag {
 		if len(o.sourceKind) > 0 {
@@ -312,6 +328,13 @@ func (o TagOptions) Validate() error {
 
 // RunTag contains all the necessary functionality for the OpenShift cli tag command.
 func (o TagOptions) RunTag() error {
+	var tagReferencePolicy imageapi.TagReferencePolicyType
+	switch o.referencePolicy {
+	case sourceReferencePolicy:
+		tagReferencePolicy = imageapi.SourceTagReferencePolicy
+	case localReferencePolicy:
+		tagReferencePolicy = imageapi.LocalTagReferencePolicy
+	}
 	for i, destNameAndTag := range o.destNameAndTag {
 		destName, destTag, ok := imageapi.SplitImageStreamTag(destNameAndTag)
 		if !ok {
@@ -374,6 +397,9 @@ func (o TagOptions) RunTag() error {
 					ImportPolicy: imageapi.TagImportPolicy{
 						Insecure:  o.insecureTag,
 						Scheduled: o.scheduleTag,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{
+						Type: tagReferencePolicy,
 					},
 					From: &kapi.ObjectReference{
 						Kind: o.sourceKind,

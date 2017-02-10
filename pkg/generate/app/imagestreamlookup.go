@@ -162,12 +162,11 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 							continue
 						}
 
-						// If the user specified a tag in their search string (followTag == false),
-						// then score this match lower.
-						tagScore := score
-						if !followTag {
-							tagScore += 0.5
-						}
+						// at best this is a partial match situation.  The user didn't
+						// specify a tag, so we tried "latest" but could not find an image associated
+						// with the latest tag (or one that is followed by the latest tag), or
+						// they specified a tag that we could not find.
+						tagScore := score + 0.5
 						addMatch(tag, tagScore, nil, false)
 					}
 					if !foundOtherTags {

@@ -14,6 +14,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/defaults/api/install"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides/api/install"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy/api/install"
+	_ "github.com/openshift/origin/pkg/ingress/admission/api/install"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit/api/install"
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration/api/install"

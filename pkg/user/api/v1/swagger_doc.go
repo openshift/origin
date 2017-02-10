@@ -53,7 +53,7 @@ var map_User = map[string]string{
 	"metadata":   "Standard object's metadata.",
 	"fullName":   "FullName is the full name of user",
 	"identities": "Identities are the identities associated with this user",
-	"groups":     "Groups are the groups that this user is a member of",
+	"groups":     "Groups specifies group names this user is a member of. This field is deprecated and will be removed in a future release. Instead, create a Group object containing the name of this User.",
 }
 
 func (User) SwaggerDoc() map[string]string {

@@ -87,7 +87,9 @@ message User {
   // Identities are the identities associated with this user
   repeated string identities = 3;
 
-  // Groups are the groups that this user is a member of
+  // Groups specifies group names this user is a member of.
+  // This field is deprecated and will be removed in a future release.
+  // Instead, create a Group object containing the name of this User.
   repeated string groups = 4;
 }
 
