@@ -20,6 +20,7 @@ import (
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -286,7 +287,7 @@ func TestImpersonationFilter(t *testing.T) {
 
 			delegate.ServeHTTP(w, req)
 		})
-	}(config.impersonationFilter(doNothingHandler))
+	}(serverhandlers.ImpersonationFilter(doNothingHandler, config.Authorizer, config.GroupCache, config.RequestContextMapper))
 	handler = kapi.WithRequestContext(handler, config.RequestContextMapper)
 
 	server := httptest.NewServer(handler)

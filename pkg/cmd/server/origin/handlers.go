@@ -1,10 +1,7 @@
 package origin
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"regexp"
 	"sort"
@@ -13,22 +10,12 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/httplog"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	userapi "github.com/openshift/origin/pkg/user/api"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
@@ -70,78 +57,6 @@ func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler
 			handler.ServeHTTP(w, req)
 		}
 	})
-}
-
-func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
-		if err != nil {
-			forbidden(err.Error(), attributes, w, req)
-			return
-		}
-		if attributes == nil {
-			forbidden("No attributes", attributes, w, req)
-			return
-		}
-
-		ctx, exists := c.RequestContextMapper.Get(req)
-		if !exists {
-			forbidden("context not found", attributes, w, req)
-			return
-		}
-
-		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
-		if err != nil {
-			forbidden(err.Error(), attributes, w, req)
-			return
-		}
-		if !allowed {
-			forbidden(reason, attributes, w, req)
-			return
-		}
-
-		handler.ServeHTTP(w, req)
-	})
-}
-
-// forbidden renders a simple forbidden error
-func forbidden(reason string, attributes authorizer.Action, w http.ResponseWriter, req *http.Request) {
-	kind := ""
-	resource := ""
-	group := ""
-	name := ""
-	// the attributes can be empty for two basic reasons:
-	// 1. malformed API request
-	// 2. not an API request at all
-	// In these cases, just assume default that will work better than nothing
-	if attributes != nil {
-		group = attributes.GetAPIGroup()
-		resource = attributes.GetResource()
-		kind = attributes.GetResource()
-		if len(attributes.GetAPIGroup()) > 0 {
-			kind = attributes.GetAPIGroup() + "." + kind
-		}
-		name = attributes.GetResourceName()
-	}
-
-	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
-	// We don't have direct access to kind or name (not that those apply either in the general case)
-	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
-	// that makes sense when a human reads it.
-	forbiddenError := kapierrors.NewForbidden(unversioned.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/)
-	forbiddenError.ErrStatus.Message = reason
-
-	formatted := &bytes.Buffer{}
-	output, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
-	if err != nil {
-		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
-	} else {
-		json.Indent(formatted, output, "", "  ")
-	}
-
-	w.Header().Set("Content-Type", restful.MIME_JSON)
-	w.WriteHeader(http.StatusForbidden)
-	w.Write(formatted.Bytes())
 }
 
 // cacheControlFilter sets the Cache-Control header to the specified value.
@@ -268,14 +183,14 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper kap
 			}
 
 			if !foundMatch {
-				forbidden(defaultMessage, nil, w, req)
+				serverhandlers.Forbidden(defaultMessage, nil, w, req)
 				return
 			}
 		}
 
 		for _, filter := range deniedFilters {
 			if filter.matches(req.Method, userAgent) {
-				forbidden(filter.message, nil, w, req)
+				serverhandlers.Forbidden(filter.message, nil, w, req)
 				return
 			}
 		}
@@ -294,125 +209,6 @@ func WithAssetServerRedirect(handler http.Handler, assetPublicURL string) http.H
 			}
 		}
 		// Dispatch to the next handler
-		handler.ServeHTTP(w, req)
-	})
-}
-
-func (c *MasterConfig) impersonationFilter(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		requestedUser := req.Header.Get(authenticationapi.ImpersonateUserHeader)
-		if len(requestedUser) == 0 {
-			handler.ServeHTTP(w, req)
-			return
-		}
-
-		subjects := authorizationapi.BuildSubjects([]string{requestedUser}, req.Header[authenticationapi.ImpersonateGroupHeader],
-			// validates whether the usernames are regular users or system users
-			uservalidation.ValidateUserName,
-			// validates group names are regular groups or system groups
-			uservalidation.ValidateGroupName)
-
-		ctx, exists := c.RequestContextMapper.Get(req)
-		if !exists {
-			forbidden("context not found", nil, w, req)
-			return
-		}
-
-		// if groups are not specified, then we need to look them up differently depending on the type of user
-		// if they are specified, then they are the authority
-		groupsSpecified := len(req.Header[authenticationapi.ImpersonateGroupHeader]) > 0
-
-		// make sure we're allowed to impersonate each subject.  While we're iterating through, start building username
-		// and group information
-		username := ""
-		groups := []string{}
-		for _, subject := range subjects {
-			actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
-				Verb: "impersonate",
-			}
-
-			switch subject.GetObjectKind().GroupVersionKind().GroupKind() {
-			case userapi.Kind(authorizationapi.GroupKind):
-				actingAsAttributes.APIGroup = userapi.GroupName
-				actingAsAttributes.Resource = authorizationapi.GroupResource
-				actingAsAttributes.ResourceName = subject.Name
-				groups = append(groups, subject.Name)
-
-			case userapi.Kind(authorizationapi.SystemGroupKind):
-				actingAsAttributes.APIGroup = userapi.GroupName
-				actingAsAttributes.Resource = authorizationapi.SystemGroupResource
-				actingAsAttributes.ResourceName = subject.Name
-				groups = append(groups, subject.Name)
-
-			case userapi.Kind(authorizationapi.UserKind):
-				actingAsAttributes.APIGroup = userapi.GroupName
-				actingAsAttributes.Resource = authorizationapi.UserResource
-				actingAsAttributes.ResourceName = subject.Name
-				username = subject.Name
-				if !groupsSpecified {
-					if actualGroups, err := c.GroupCache.GroupsFor(subject.Name); err == nil {
-						for _, group := range actualGroups {
-							groups = append(groups, group.Name)
-						}
-					}
-					groups = append(groups, bootstrappolicy.AuthenticatedGroup, bootstrappolicy.AuthenticatedOAuthGroup)
-				}
-
-			case userapi.Kind(authorizationapi.SystemUserKind):
-				actingAsAttributes.APIGroup = userapi.GroupName
-				actingAsAttributes.Resource = authorizationapi.SystemUserResource
-				actingAsAttributes.ResourceName = subject.Name
-				username = subject.Name
-				if !groupsSpecified {
-					if subject.Name == bootstrappolicy.UnauthenticatedUsername {
-						groups = append(groups, bootstrappolicy.UnauthenticatedGroup)
-					} else {
-						groups = append(groups, bootstrappolicy.AuthenticatedGroup)
-					}
-				}
-
-			case kapi.Kind(authorizationapi.ServiceAccountKind):
-				actingAsAttributes.APIGroup = kapi.GroupName
-				actingAsAttributes.Resource = authorizationapi.ServiceAccountResource
-				actingAsAttributes.ResourceName = subject.Name
-				username = serviceaccount.MakeUsername(subject.Namespace, subject.Name)
-				if !groupsSpecified {
-					groups = append(serviceaccount.MakeGroupNames(subject.Namespace, subject.Name), bootstrappolicy.AuthenticatedGroup)
-				}
-
-			default:
-				forbidden(fmt.Sprintf("unknown subject type: %v", subject), actingAsAttributes, w, req)
-				return
-			}
-
-			authCheckCtx := kapi.WithNamespace(ctx, subject.Namespace)
-
-			allowed, reason, err := c.Authorizer.Authorize(authCheckCtx, actingAsAttributes)
-			if err != nil {
-				forbidden(err.Error(), actingAsAttributes, w, req)
-				return
-			}
-			if !allowed {
-				forbidden(reason, actingAsAttributes, w, req)
-				return
-			}
-		}
-
-		var extra map[string][]string
-		if requestScopes, ok := req.Header[authenticationapi.ImpersonateUserScopeHeader]; ok {
-			extra = map[string][]string{authorizationapi.ScopesKey: requestScopes}
-		}
-
-		newUser := &user.DefaultInfo{
-			Name:   username,
-			Groups: groups,
-			Extra:  extra,
-		}
-		c.RequestContextMapper.Update(req, kapi.WithUser(ctx, newUser))
-
-		oldUser, _ := kapi.UserFrom(ctx)
-		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
-
 		handler.ServeHTTP(w, req)
 	})
 }

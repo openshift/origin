@@ -50,6 +50,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
@@ -263,11 +264,12 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 
 	// TODO(sttts): resync with upstream handler chain and re-use upstream filters as much as possible
 	return func(apiHandler http.Handler, kc *genericapiserver.Config) (secure, insecure http.Handler) {
-		attributeGetter := kapiserverfilters.NewRequestAttributeGetter(c.RequestContextMapper)
+		contextMapper := c.getRequestContextMapper()
+		attributeGetter := kapiserverfilters.NewRequestAttributeGetter(contextMapper)
 
-		handler := c.versionSkewFilter(apiHandler, c.getRequestContextMapper())
-		handler = c.authorizationFilter(handler)
-		handler = c.impersonationFilter(handler)
+		handler := c.versionSkewFilter(apiHandler, contextMapper)
+		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, contextMapper)
+		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, c.GroupCache, contextMapper)
 
 		// audit handler must comes before the impersonationFilter to read the original user
 		if c.Options.AuditConfig.Enabled {
@@ -285,8 +287,8 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 			}
 			handler = kapiserverfilters.WithAudit(handler, attributeGetter, writer)
 		}
-		handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
-		handler = namespacingFilter(handler, c.getRequestContextMapper())
+		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
+		handler = namespacingFilter(handler, contextMapper)
 		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 		if c.Options.OAuthConfig != nil {
@@ -313,14 +315,14 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		}
 
 		handler = kgenericfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = kgenericfilters.WithPanicRecovery(handler, c.RequestContextMapper)
+		handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
 		handler = kgenericfilters.WithTimeoutForNonLongRunningRequests(handler, kc.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 		// NOTE: read vs. write is implemented in Kube 1.6+
 		handler = kgenericfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.LongRunningFunc)
-		handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kc), kc.RequestContextMapper)
-		handler = kapi.WithRequestContext(handler, kc.RequestContextMapper)
+		handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kc), contextMapper)
+		handler = kapi.WithRequestContext(handler, contextMapper)
 
 		return handler, nil
 	}, messages, nil
