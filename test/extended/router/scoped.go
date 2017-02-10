@@ -33,6 +33,12 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 		err = oc.Run("create").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
+			e2e.Logf("Router logs:\n %s", log)
+		}
+	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
