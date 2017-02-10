@@ -450,8 +450,7 @@ func (m *Master) Start() error {
 }
 
 func startHealth(openshiftConfig *origin.MasterConfig) error {
-	openshiftConfig.RunHealth()
-	return nil
+	return openshiftConfig.RunHealth()
 }
 
 // StartAPI starts the components of the master that are considered part of the API - the Kubernetes

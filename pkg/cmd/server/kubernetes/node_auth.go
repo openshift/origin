@@ -1,79 +1,22 @@
 package kubernetes
 
 import (
-	"crypto/x509"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
-	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
 
-	oauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
-	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	authncache "github.com/openshift/origin/pkg/auth/authenticator/token/cache"
-	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotetokenreview"
-	"github.com/openshift/origin/pkg/auth/group"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	authzadapter "github.com/openshift/origin/pkg/authorization/authorizer/adapter"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
 	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
 	oclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
-
-func newAuthenticator(authenticationClient unversionedauthentication.TokenReviewsGetter, clientCAs *x509.CertPool, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
-	authenticators := []oauthenticator.Request{}
-
-	// API token auth
-	var (
-		tokenAuthenticator oauthenticator.Token
-		err                error
-	)
-	// Authenticate against the remote master
-	tokenAuthenticator, err = authnremote.NewAuthenticator(authenticationClient)
-	if err != nil {
-		return nil, err
-	}
-	// Cache results
-	if cacheTTL > 0 && cacheSize > 0 {
-		tokenAuthenticator, err = authncache.NewAuthenticator(tokenAuthenticator, cacheTTL, cacheSize)
-		if err != nil {
-			return nil, err
-		}
-	}
-	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
-
-	// Client-cert auth
-	if clientCAs != nil {
-		opts := x509request.DefaultVerifyOptions()
-		opts.Roots = clientCAs
-		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
-		authenticators = append(authenticators, certauth)
-	}
-
-	ret := &unionrequest.Authenticator{
-		// Anonymous requests will pass the token and cert checks without errors
-		// Bad tokens or bad certs will produce errors, in which case we should not continue to authenticate them as "system:anonymous"
-		FailOnError: true,
-		Handlers: []oauthenticator.Request{
-			// Add the "system:authenticated" group to users that pass token/cert authentication
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
-			// Fall back to the "system:anonymous" user
-			anonymous.NewAuthenticator(),
-		},
-	}
-
-	return ret, nil
-}
 
 func newAuthorizerAttributesGetter(nodeName string) (kauthorizer.RequestAttributesGetter, error) {
 	return NodeAuthorizerAttributesGetter{nodeName}, nil

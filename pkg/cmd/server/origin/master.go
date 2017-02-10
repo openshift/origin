@@ -39,6 +39,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
+	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
+	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -49,6 +51,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -328,14 +331,38 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 	}, messages, nil
 }
 
-func (c *MasterConfig) RunHealth() {
+func (c *MasterConfig) RunHealth() error {
 	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs)
 
 	healthz.InstallHandler(&apiContainer.NonSwaggerRoutes, healthz.PingHealthz)
 	initReadinessCheckRoute(apiContainer, "/healthz/ready", func() bool { return true })
-	initMetricsRoute(apiContainer, "/metrics")
+	genericroutes.Profiling{}.Install(apiContainer)
+	genericroutes.MetricsWithReset{}.Install(apiContainer)
 
-	c.serve(apiContainer.ServeMux, []string{"Started health checks at %s"})
+	// TODO: replace me with a service account for controller manager
+	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientset.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
+	if err != nil {
+		return err
+	}
+	authz, err := authzremote.NewAuthorizer(c.PrivilegedLoopbackOpenShiftClient)
+	if err != nil {
+		return err
+	}
+	authz, err = authzcache.NewAuthorizer(authz, 5*time.Minute, 10)
+	if err != nil {
+		return err
+	}
+	// we use direct bypass to allow readiness and health to work regardless of the master health
+	authz = serverhandlers.NewBypassAuthorizer(authz, "/healthz", "/healthz/ready")
+	contextMapper := c.getRequestContextMapper()
+	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
+	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
+	handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
+	handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(&genericapiserver.Config{}), contextMapper)
+	handler = kapi.WithRequestContext(handler, contextMapper)
+
+	c.serve(handler, []string{"Started health checks at %s"})
+	return nil
 }
 
 // serve starts serving the provided http.Handler using security settings derived from the MasterConfig

@@ -13,9 +13,31 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
+
+type bypassAuthorizer struct {
+	paths      sets.String
+	authorizer authorizer.Authorizer
+}
+
+// NewBypassAuthorizer creates an Authorizer that always allows the exact paths described, and delegates to the nested
+// authorizer for everything else.
+func NewBypassAuthorizer(auth authorizer.Authorizer, paths ...string) authorizer.Authorizer {
+	return bypassAuthorizer{paths: sets.NewString(paths...), authorizer: auth}
+}
+
+func (a bypassAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
+	if attributes.IsNonResourceURL() && a.paths.Has(attributes.GetURL()) {
+		return true, "always allowed", nil
+	}
+	return a.authorizer.Authorize(ctx, attributes)
+}
+func (a bypassAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+	return a.authorizer.GetAllowedSubjects(ctx, attributes)
+}
 
 // AuthorizationFilter imposes normal authorization rules
 func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
