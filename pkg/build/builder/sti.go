@@ -127,6 +127,14 @@ func (s *S2IBuilder) Build() error {
 		if contextDir == "." || contextDir == "/" {
 			contextDir = ""
 		}
+		if len(contextDir) > 0 {
+			// if we're building out of a context dir, we need to use a different working
+			// directory from where we put the source code because s2i is going to copy
+			// from the context dir to the workdir, and if the workdir is a parent of the
+			// context dir, we end up with a directory that contains 2 copies of the
+			// input source code.
+			buildDir, err = ioutil.TempDir("", "s2i-build-context")
+		}
 		if sourceInfo != nil {
 			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
 		}

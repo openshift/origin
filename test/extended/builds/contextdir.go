@@ -73,6 +73,12 @@ var _ = g.Describe("[builds][Slow] builds with a context directory", func() {
 			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabel})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
+
+			g.By("expecting the pod not to contain two copies of the source")
+			pod := pods.Items[0]
+			out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "/opt/app-root/src").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).NotTo(o.ContainSubstring("2.3"))
 		})
 	})
 
