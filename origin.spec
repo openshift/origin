@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1a173a1a2a992b2a8a5aa060a7ea282c3748c971
+%global commit 8837e52c831dfc723510770b416ee86fa463fe02
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.17+1a173a1-69 OS_GIT_COMMIT=1a173a1 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.18+8837e52-67 OS_GIT_COMMIT=8837e52 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -53,7 +53,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.18
+Version:        3.5.0.19
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -569,6 +569,57 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Fri Feb 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.19
+- Dump router pod logs on e2e failures (ccoleman@redhat.com)
+- Wait for the `kubernetes` service on server start (skuznets@redhat.com)
+- Revert "Revert "Revert "Refactored custom `tito` tagger and builder"""
+  (skuznets@redhat.com)
+- use src distinct directory for context-dir builds (bparees@redhat.com)
+- return partial matches when default latest tag is unavailable
+  (bparees@redhat.com)
+- Add a new cluster-debugger role and enable debugging on masters
+  (ccoleman@redhat.com)
+- Revert "install ceph-common pkg on origin to support rbd provisioning"
+  (ccoleman@redhat.com)
+- deploy: bump number of retries in trigger integration test
+  (mfojtik@redhat.com)
+- Fix wrong type for printf (song.ruixia@zte.com.cn)
+- Sort `List` for Project virtual storage (mkhan@redhat.com)
+- Sort `List` for RoleBinding virtual storage (mkhan@redhat.com)
+- Sort `List` for Role virtual storage (mkhan@redhat.com)
+- fix typo (noblea1117@gmail.com)
+- generated: bootstrap bindata (ccoleman@redhat.com)
+- Include prometheus and heapster in bootstrap bindata (ccoleman@redhat.com)
+- Update heapster and prometheus examples for consistent ports
+  (ccoleman@redhat.com)
+- Build rpms on aarch64, ppc64le and s390x (tdawson@redhat.com)
+- install the types for the ingress admission controller (jtanenba@redhat.com)
+- UPSTREAM: 41147: Add debug logging to eviction manager (decarr@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3f779bc6a5c8b1529c16a6c6bd16aad9ab85691a (dmcphers+openshiftbot@redhat.com)
+- Bug 1393716 - Fix network diagnostics on containerized openshift install
+  (rpenta@redhat.com)
+- minor doc correction (pweil@redhat.com)
+- Deprecate User.groups field (jliggitt@redhat.com)
+- update generated completetion and docs (mfojtik@redhat.com)
+- image: add --reference-policy to oc tag (mfojtik@redhat.com)
+- add test for resolving images with reference policy (mfojtik@redhat.com)
+- 503 page does not show guide detail as expected. (pcameron@redhat.com)
+- bug 1419472 print master config error if it exists (jvallejo@redhat.com)
+- router: fix ingress compatibility with f5 (marun@redhat.com)
+- Changed the router default to roundrobin if non-zero weights are used
+  (bbennett@redhat.com)
+- Revert "Install tito from source in `openshift/origin-release`"
+  (skuznets@redhat.com)
+- Revert "Revert "Refactored custom `tito` tagger and builder""
+  (skuznets@redhat.com)
+- add ceph-common (hchen@redhat.com)
+- image(router): Add logging facility to router tmpl (sjr@redhat.com)
+- use ImageStreamImport for container command lookup in oc debug
+  (jminter@redhat.com)
+- install ceph-common pkg on origin to support rbd provisioning
+  (hchen@redhat.com)
+
 * Wed Feb 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.18
 - bump(github.com/openshift/origin-web-console):
   be73cc17031099e9eb4947a6d1ce9024d774910f (dmcphers+openshiftbot@redhat.com)
