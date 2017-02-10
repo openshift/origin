@@ -225,14 +225,19 @@ func (c *AppConfig) AddArguments(args []string) []string {
 	for _, s := range args {
 		switch {
 		case cmdutil.IsEnvironmentArgument(s):
+			glog.V(2).Infof("treating %s as possible environment argument\n", s)
 			c.Environment = append(c.Environment, s)
 		case app.IsPossibleSourceRepository(s):
+			glog.V(2).Infof("treating %s as possible source repo\n", s)
 			c.SourceRepositories = append(c.SourceRepositories, s)
 		case app.IsComponentReference(s):
+			glog.V(2).Infof("treating %s as a component ref\n", s)
 			c.Components = append(c.Components, s)
 		case app.IsPossibleTemplateFile(s):
+			glog.V(2).Infof("treating %s as possible template file\n", s)
 			c.Components = append(c.Components, s)
 		default:
+			glog.V(2).Infof("treating %s as unknown\n", s)
 			if len(s) == 0 {
 				break
 			}
