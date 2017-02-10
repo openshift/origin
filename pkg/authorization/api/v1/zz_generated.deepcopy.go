@@ -74,6 +74,8 @@ func DeepCopy_v1_Action(in interface{}, out interface{}, c *conversion.Cloner) e
 		out.Version = in.Version
 		out.Resource = in.Resource
 		out.ResourceName = in.ResourceName
+		out.Path = in.Path
+		out.IsNonResourceURL = in.IsNonResourceURL
 		if err := runtime.DeepCopy_runtime_RawExtension(&in.Content, &out.Content, c); err != nil {
 			return err
 		}

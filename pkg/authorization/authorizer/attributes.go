@@ -25,11 +25,13 @@ type DefaultAuthorizationAttributes struct {
 // because the authorizer takes that information on the context
 func ToDefaultAuthorizationAttributes(in authorizationapi.Action) DefaultAuthorizationAttributes {
 	return DefaultAuthorizationAttributes{
-		Verb:         in.Verb,
-		APIGroup:     in.Group,
-		APIVersion:   in.Version,
-		Resource:     in.Resource,
-		ResourceName: in.ResourceName,
+		Verb:           in.Verb,
+		APIGroup:       in.Group,
+		APIVersion:     in.Version,
+		Resource:       in.Resource,
+		ResourceName:   in.ResourceName,
+		URL:            in.Path,
+		NonResourceURL: in.IsNonResourceURL,
 	}
 }
 

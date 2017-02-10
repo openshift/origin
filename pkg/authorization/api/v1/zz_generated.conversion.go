@@ -106,6 +106,8 @@ func autoConvert_v1_Action_To_api_Action(in *Action, out *api.Action, s conversi
 	out.Version = in.Version
 	out.Resource = in.Resource
 	out.ResourceName = in.ResourceName
+	out.Path = in.Path
+	out.IsNonResourceURL = in.IsNonResourceURL
 	if err := runtime.Convert_runtime_RawExtension_To_runtime_Object(&in.Content, &out.Content, s); err != nil {
 		return err
 	}
@@ -123,6 +125,8 @@ func autoConvert_api_Action_To_v1_Action(in *api.Action, out *Action, s conversi
 	out.Version = in.Version
 	out.Resource = in.Resource
 	out.ResourceName = in.ResourceName
+	out.Path = in.Path
+	out.IsNonResourceURL = in.IsNonResourceURL
 	if err := runtime.Convert_runtime_Object_To_runtime_RawExtension(&in.Content, &out.Content, s); err != nil {
 		return err
 	}
