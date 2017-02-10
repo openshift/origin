@@ -33,15 +33,15 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 		err = oc.Run("create").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
-			e2e.Logf("Router logs:\n %s", log)
-		}
-	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
+			defer func() {
+				if g.CurrentGinkgoTestDescription().Failed {
+					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
+					e2e.Logf("Router logs:\n %s", log)
+				}
+			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
@@ -83,6 +83,12 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 		})
 
 		g.It("should override the route host with a custom value", func() {
+			defer func() {
+				if g.CurrentGinkgoTestDescription().Failed {
+					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
+					e2e.Logf("Router logs:\n %s", log)
+				}
+			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")

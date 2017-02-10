@@ -32,15 +32,15 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 		err = oc.Run("create").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
-			e2e.Logf("Router logs:\n %s", log)
-		}
-	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should appropriately serve a route that points to two services", func() {
+			defer func() {
+				if g.CurrentGinkgoTestDescription().Failed {
+					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
+					e2e.Logf("Router logs:\n %s", log)
+				}
+			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
