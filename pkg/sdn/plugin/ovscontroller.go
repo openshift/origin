@@ -283,7 +283,7 @@ func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressNetworkPolicy, vnid uint32, namespaces []string) error {
+func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressNetworkPolicy, vnid uint32, namespaces []string, egressDNS *EgressDNS) error {
 	otx := oc.ovs.NewTransaction()
 	var inputErr error
 
@@ -319,14 +319,26 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressN
 				action = "drop"
 			}
 
-			var dst string
-			if rule.To.CIDRSelector == "0.0.0.0/0" {
-				dst = ""
-			} else {
-				dst = fmt.Sprintf(", nw_dst=%s", rule.To.CIDRSelector)
+			var selectors []string
+			if len(rule.To.CIDRSelector) > 0 {
+				selectors = append(selectors, rule.To.CIDRSelector)
+			} else if len(rule.To.DNSName) > 0 {
+				ips := egressDNS.GetIPs(policies[0], rule.To.DNSName)
+				for _, ip := range ips {
+					selectors = append(selectors, ip.String())
+				}
 			}
 
-			otx.AddFlow("table=100, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+			for _, selector := range selectors {
+				var dst string
+				if selector == "0.0.0.0/0" {
+					dst = ""
+				} else {
+					dst = fmt.Sprintf(", nw_dst=%s", selector)
+				}
+
+				otx.AddFlow("table=100, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+			}
 		}
 		otx.DeleteFlows("table=100, reg0=%d, cookie=1/1", vnid)
 	}
