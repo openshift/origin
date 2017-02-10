@@ -298,7 +298,7 @@ os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
 # when only 2.3 exists, there is a single partial match (2.3)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
-os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\": \"default/ruby:2.3\"'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
 # when the tag is specified explicitly, the operation is successful
 os::cmd::expect_success 'oc new-app --image-stream ruby:2.3 https://github.com/openshift/rails-ex --dry-run'
 
