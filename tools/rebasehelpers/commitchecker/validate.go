@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strings"
 	"text/template"
@@ -51,7 +52,7 @@ var AllValidators = []func([]util.Commit) error{
 func ValidateUpstreamCommitsWithoutGodepsChanges(commits []util.Commit) error {
 	problemCommits := []util.Commit{}
 	for _, commit := range commits {
-		if commit.HasGodepsChanges() && !commit.DeclaresUpstreamChange() {
+		if commit.HasVendoredCodeChanges() && !commit.DeclaresUpstreamChange() {
 			problemCommits = append(problemCommits, commit)
 		}
 	}
@@ -114,7 +115,7 @@ func ValidateUpstreamCommitSummaries(commits []util.Commit) error {
 func ValidateUpstreamCommitModifiesOnlyGodeps(commits []util.Commit) error {
 	problemCommits := []util.Commit{}
 	for _, commit := range commits {
-		if commit.HasGodepsChanges() && commit.HasNonGodepsChanges() {
+		if commit.HasVendoredCodeChanges() && commit.HasNonVendoredCodeChanges() {
 			problemCommits = append(problemCommits, commit)
 		}
 	}
@@ -155,6 +156,30 @@ func ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(commits []util.Commit) 
 	return nil
 }
 
+// ValidateGodeps invokes hack/godep-restore.sh whenever it finds at least one commit
+// modifying Godeps/Godeps.json file or vendor/ directory.
+func ValidateGodeps(commits []util.Commit) error {
+	runGodepsRestore := false
+	for _, commit := range commits {
+		if commit.HasVendoredCodeChanges() || commit.HasGodepsChanges() {
+			runGodepsRestore = true
+			break
+		}
+	}
+	if runGodepsRestore {
+		fmt.Println("Running godep-restore")
+		cmd := exec.Command("hack/godep-restore.sh")
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Error running hack/godep-restore.sh: %v\n%s\n%s", err, stderr.String(), stdout.String())
+		}
+	}
+	return nil
+}
+
 type CommitFilesRenderOption int
 
 const (
@@ -175,8 +200,8 @@ func renderGodepFilesError(label string, commits []util.Commit, opt CommitFilesR
 		}
 		for _, file := range commit.Files {
 			if opt == RenderAllFiles ||
-				(opt == RenderOnlyGodepsFiles && file.HasGodepsChanges()) ||
-				(opt == RenderOnlyNonGodepsFiles && !file.HasGodepsChanges()) {
+				(opt == RenderOnlyGodepsFiles && file.HasVendoredCodeChanges()) ||
+				(opt == RenderOnlyNonGodepsFiles && !file.HasVendoredCodeChanges()) {
 				msg += fmt.Sprintf("  - %s\n", file)
 			}
 		}

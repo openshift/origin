@@ -4,31 +4,8 @@
 
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-"${OS_ROOT}/hack/build-go.sh" tools/gendocs tools/genman
-
-# Find binary
-gendocs="$(os::build::find-binary gendocs)"
-genman="$(os::build::find-binary genman)"
-
-if [[ -z "$gendocs" ]]; then
-  {
-    echo "It looks as if you don't have a compiled gendocs binary"
-    echo
-    echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh tools/gendocs'."
-  } >&2
-  exit 1
-fi
-
-if [[ -z "$genman" ]]; then
-  {
-    echo "It looks as if you don't have a compiled genman binary"
-    echo
-    echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh tools/genman'"
-  } >&2
-  exit 1
-fi
+os::util::ensure::built_binary_exists 'gendocs'
+os::util::ensure::built_binary_exists 'genman'
 
 OUTPUT_DIR_REL=${1:-""}
 OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/generated"
@@ -37,7 +14,83 @@ MAN_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/man1"
 mkdir -p "${OUTPUT_DIR}" || echo $? > /dev/null
 mkdir -p "${MAN_OUTPUT_DIR}" || echo $? > /dev/null
 
-os::build::gen-docs "${gendocs}" "${OUTPUT_DIR}"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oc"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "openshift"
-os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oadm"
+function generate_manual_pages() {
+  local dest="$1"
+  local cmdName="$2"
+  local filestore=".files_generated_${cmdName}"
+  local skipprefix="${3:-}"
+
+  # We do this in a tmpdir in case the dest has other non-autogenned files
+  # We don't want to include them in the list of gen'd files
+  local tmpdir="${OS_ROOT}/_tmp/gen_man"
+  mkdir -p "${tmpdir}"
+  # generate the new files
+  genman "${tmpdir}" "${cmdName}"
+  # create the list of generated files
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/${filestore}"
+
+  # remove all old generated file from the destination
+  while read file; do
+    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
+      local original generated
+      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
+      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
+      if [[ "${original}" == "${generated}" ]]; then
+        # overwrite generated with original.
+        mv "${dest}/${file}" "${tmpdir}/${file}"
+      fi
+    else
+      rm "${dest}/${file}" || true
+    fi
+  done <"${dest}/${filestore}"
+
+  # put the new generated file into the destination
+  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
+  #cleanup
+  rm -rf "${tmpdir}"
+
+  echo "Assets generated in ${dest}"
+}
+readonly -f generate_manual_pages
+
+function generate_documentation() {
+  local dest="$1"
+  local skipprefix="${1:-}"
+
+  # We do this in a tmpdir in case the dest has other non-autogenned files
+  # We don't want to include them in the list of gen'd files
+  local tmpdir="${OS_ROOT}/_tmp/gen_doc"
+  mkdir -p "${tmpdir}"
+  # generate the new files
+  gendocs "${tmpdir}"
+  # create the list of generated files
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
+
+  # remove all old generated file from the destination
+  while read file; do
+    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
+      local original generated
+      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
+      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
+      if [[ "${original}" == "${generated}" ]]; then
+        # overwrite generated with original.
+        mv "${dest}/${file}" "${tmpdir}/${file}"
+      fi
+    else
+      rm "${dest}/${file}" || true
+    fi
+  done <"${dest}/.files_generated"
+
+  # put the new generated file into the destination
+  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
+  #cleanup
+  rm -rf "${tmpdir}"
+
+  echo "Assets generated in ${dest}"
+}
+readonly -f generate_documentation
+
+generate_documentation "${OUTPUT_DIR}"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "oc"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "openshift"
+generate_manual_pages "${MAN_OUTPUT_DIR}" "oadm"

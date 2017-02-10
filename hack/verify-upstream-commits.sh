@@ -2,14 +2,12 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 if ! git status &> /dev/null; then
-  echo "SKIPPED: Not a Git repository"
-  exit 0
+  echo "FAILURE: Not a Git repository"
+  exit 1
 fi
 
-"${OS_ROOT}/hack/build-go.sh" tools/rebasehelpers/commitchecker
+os::util::ensure::built_binary_exists 'commitchecker'
 
-# Find binary
-commitchecker="$(os::build::find-binary commitchecker)"
 echo "===== Verifying UPSTREAM Commits ====="
-$commitchecker
+commitchecker
 echo "SUCCESS: All commits are valid."

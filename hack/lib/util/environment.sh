@@ -88,7 +88,6 @@ readonly -f os::util::environment::setup_time_vars
 function os::util::environment::setup_all_server_vars() {
     local subtempdir=$1
 
-    os::util::environment::update_path_var
     os::util::environment::setup_tmpdir_vars "${subtempdir}"
     os::util::environment::setup_kubelet_vars
     os::util::environment::setup_etcd_vars
@@ -107,7 +106,7 @@ readonly -f os::util::environment::setup_all_server_vars
 # Returns:
 #  - export PATH
 function os::util::environment::update_path_var() {
-    PATH="${OS_ROOT}/_output/local/bin/$(os::util::host_platform):${PATH}"
+    PATH="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):${PATH}"
     export PATH
 }
 readonly -f os::util::environment::update_path_var
@@ -147,14 +146,16 @@ function os::util::environment::setup_tmpdir_vars() {
     export HOME
 
     # ensure that the directories are clean
-    for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
-        if [[ "${target}" == "${BASETMPDIR}"* ]]; then
-            ${USE_SUDO:+sudo} umount "${target}"
-        fi
-    done
+    if os::util::find::system_binary "findmnt" &>/dev/null; then
+        for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
+            if [[ "${target}" == "${BASETMPDIR}"* ]]; then
+                ${USE_SUDO:+sudo} umount "${target}"
+            fi
+        done
+    fi
 
     for directory in "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"; do
-        rm -rf "${directory}"
+        ${USE_SUDO:+sudo} rm -rf "${directory}"
         mkdir -p "${directory}"
     done
 }

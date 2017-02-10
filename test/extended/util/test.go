@@ -19,6 +19,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
@@ -180,6 +181,13 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
+	// some test suites assume they can schedule to all nodes
+	switch {
+	case isPackage("/kubernetes/test/e2e/scheduler_predicates.go"), isPackage("/kubernetes/test/e2e/rescheduler.go"),
+		isPackage("/kubernetes/test/e2e/kubelet.go"), isPackage("/kubernetes/test/e2e/common/networking.go"):
+		allowAllNodeScheduling(c, ns.Name)
+	}
+
 	return ns, err
 }
 
@@ -197,8 +205,31 @@ func checkSuiteSkips() {
 	}
 }
 
+var longRetry = wait.Backoff{Steps: 100}
+
+// allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
+func allowAllNodeScheduling(c *kclient.Client, namespace string) {
+	err := kclient.RetryOnConflict(longRetry, func() error {
+		ns, err := c.Namespaces().Get(namespace)
+		if err != nil {
+			return err
+		}
+		if ns.Annotations == nil {
+			ns.Annotations = make(map[string]string)
+		}
+		ns.Annotations["openshift.io/node-selector"] = ""
+		_, err = c.Namespaces().Update(ns)
+		return err
+	})
+	if err != nil {
+		FatalErr(err)
+	}
+}
+
 func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, sccName string) {
-	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	// Because updates can race, we need to set the backoff retries to be > than the number of possible
+	// parallel jobs starting at once. Set very high to allow future high parallelism.
+	err := kclient.RetryOnConflict(longRetry, func() error {
 		scc, err := c.SecurityContextConstraints().Get(sccName)
 		if err != nil {
 			if apierrs.IsNotFound(err) {
@@ -223,7 +254,7 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, 
 }
 
 func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapi.Namespace, roleName string) {
-	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+	err := kclient.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)

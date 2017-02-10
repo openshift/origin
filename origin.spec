@@ -37,9 +37,6 @@
 %endif
 }
 
-# by default build the test binaries for Origin
-%{!?build_tests: %global build_tests 1 }
-
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
 %global product_name Atomic OpenShift
@@ -85,11 +82,13 @@ Obsoletes:      openshift < %{package_refector_version}
 ### AUTO-BUNDLED-GEN-ENTRY-POINT
 
 %description
-Origin is a distribution of Kubernetes optimized for enterprise application
-development and deployment, used by OpenShift 3 and Atomic Enterprise. Origin
-adds developer and operational centric tools on top of Kubernetes to enable
-rapid application development, easy deployment and scaling, and long-term
-lifecycle maintenance for small and large teams and applications.
+OpenShift is a distribution of Kubernetes optimized for enterprise application
+development and deployment. OpenShift adds developer and operational centric
+tools on top of Kubernetes to enable rapid application development, easy
+deployment and scaling, and long-term lifecycle maintenance for small and large
+teams and applications. It provides a secure and multi-tenant configuration for
+Kubernetes allowing you to safely host many different applications and workloads
+on a unified cluster.
 
 %package master
 Summary:        %{product_name} Master
@@ -102,14 +101,12 @@ Obsoletes:      openshift-master < %{package_refector_version}
 %description master
 %{summary}
 
-%if 0%{build_tests}
 %package tests
 Summary: %{product_name} Test Suite
 Requires:       %{name} = %{version}-%{release}
 
 %description tests
 %{summary}
-%endif
 
 %package node
 Summary:        %{product_name} Node
@@ -209,11 +206,6 @@ of docker.  Exclude those versions of docker.
 # Create Binaries
 %{os_git_vars} hack/build-cross.sh
 
-%if 0%{build_tests}
-# Create extended.test
-%{os_git_vars} hack/build-go.sh test/extended/extended.test
-%endif
-
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
@@ -226,9 +218,7 @@ do
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-%if 0%{build_tests}
 install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
-%endif
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -246,7 +236,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    atomic-enterprise \
     kube-apiserver \
     kube-controller-manager \
     kube-proxy \
@@ -305,16 +294,16 @@ pushd pkg/sdn/plugin/bin
    install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
 popd
 install -d -m 0755 %{buildroot}/opt/cni/bin
-install -p -m 0755 _output/local/bin/linux/amd64/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
-install -p -m 0755 _output/local/bin/linux/amd64/host-local %{buildroot}/opt/cni/bin
-install -p -m 0755 _output/local/bin/linux/amd64/loopback %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/${PLATFORM}/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
+install -p -m 0755 _output/local/bin/${PLATFORM}/host-local %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/${PLATFORM}/loopback %{buildroot}/opt/cni/bin
 
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oadm oc openshift atomic-enterprise
+for bin in oadm oc openshift
 do
   echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
   %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
@@ -348,7 +337,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/atomic-enterprise
 %{_bindir}/kube-apiserver
 %{_bindir}/kube-controller-manager
 %{_bindir}/kube-proxy
@@ -364,7 +352,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
 %{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -387,11 +374,9 @@ if [ -d "%{_sharedstatedir}/openshift" ]; then
   fi
 fi
 
-%if 0%{build_tests}
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
-%endif
 
 %files master
 %{_unitdir}/%{name}-master.service
@@ -549,12 +534,12 @@ fi
 /usr/sbin/%{name}-docker-excluder
 
 %post docker-excluder
-# we always want to run this, since the 
+# we always want to run this, since the
 #   package-list may be different with each version
 %{name}-docker-excluder exclude
 
 %preun docker-excluder
-# we always want to clear this out, since the 
+# we always want to clear this out, since the
 #   package-list may be different with each version
 /usr/sbin/%{name}-docker-excluder unexclude
 

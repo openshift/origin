@@ -45,6 +45,10 @@ DEFAULT_SKIP_LIST=(
   "should work after restarting kube-proxy"
   "should work after restarting apiserver"
   "should be able to change the type and ports of a service"
+
+  # Assumes kube-proxy (aka OpenShift node) is serving /healthz at port 10249, which we currently
+  # have disabled
+  "Networking.*should check kube-proxy urls"
 )
 
 MINIMAL_SKIP_LIST=(
@@ -212,10 +216,11 @@ function run-extended-tests() {
 
   if [[ -n "${dlv_debug}" ]]; then
     # run tests using delve debugger
-    local test_cmd="dlv exec ${TEST_BINARY} -- ${test_args}"
+    local extended_test; extended_test="$( os::util::find::built_binary extended.test )"
+    local test_cmd="dlv exec ${extended_test} -- ${test_args}"
   else
     # run tests normally
-    local test_cmd="${TEST_BINARY} ${test_args}"
+    local test_cmd="extended.test ${test_args}"
   fi
 
   if [[ -n "${log_path}" ]]; then
@@ -260,14 +265,12 @@ esac
 
 TEST_EXTRA_ARGS="$@"
 
-if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
-     [[ -n $(os::build::find-binary extended.test) ]]; then
-  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
+if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]] &&
+     os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
+  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
 else
-  # cgo must be disabled to have the symbol table available
-  CGO_ENABLED=0 hack/build-go.sh test/extended/extended.test
+  hack/build-go.sh test/extended/extended.test
 fi
-TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
 # enable-selinux/disable-selinux use the shared control variable
 # SELINUX_DISABLED to determine whether to re-enable selinux after it

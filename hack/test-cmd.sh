@@ -24,14 +24,7 @@ function cleanup()
     local sudo="${USE_SUDO:+sudo}"
     ${sudo} rm -rf "${ETCD_DATA_DIR}"
 
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Test Failed !!!!"
-        echo
-        tail -40 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    elif go tool -n pprof >/dev/null 2>&1; then
+    if go tool -n pprof >/dev/null 2>&1; then
         os::log::info "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
         go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
@@ -45,23 +38,14 @@ function cleanup()
       os::test::junit::check_test_counters
 
       # use the junitreport tool to generate us a report
-      "${OS_ROOT}/hack/build-go.sh" tools/junitreport
-      junitreport="$(os::build::find-binary junitreport)"
+      os::util::ensure::built_binary_exists 'junitreport'
 
-      if [[ -z "${junitreport}" ]]; then
-          echo "It looks as if you don't have a compiled junitreport binary"
-          echo
-          echo "If you are running from a clone of the git repo, please run"
-          echo "'./hack/build-go.sh tools/junitreport'."
-          exit 1
-      fi
-
-      cat "${JUNIT_REPORT_OUTPUT}"                             \
-        | "${junitreport}" --type oscmd                        \
-                           --suites nested                     \
-                           --roots github.com/openshift/origin \
-                           --output "${ARTIFACT_DIR}/report.xml"
-      cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
+      cat "${JUNIT_REPORT_OUTPUT}"                        \
+        | junitreport --type oscmd                        \
+                      --suites nested                     \
+                      --roots github.com/openshift/origin \
+                      --output "${ARTIFACT_DIR}/report.xml"
+      cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
@@ -118,9 +102,6 @@ os::log::system::start
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
-
-# test wrapper functions
-${OS_ROOT}/hack/test-util.sh > ${LOG_DIR}/wrappers_test.log 2>&1
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -225,109 +206,22 @@ ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CO
 # Begin tests
 #
 
-# create master config as atomic-enterprise just to test it works
-atomic-enterprise start \
-  --write-config="${BASETMPDIR}/atomic.local.config" \
-  --create-certs=true \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
 # check oc version with no config file
 os::test::junit::declare_suite_start "cmd/version"
 os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configuration info"
 echo "oc version (with no config file set): ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/config"
 # ensure that DisabledFeatures aren't written to config files
+os::test::junit::declare_suite_start "cmd/config"
 os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
-os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
-
-# test client not configured
-os::cmd::expect_failure_and_text "oc get services" 'Missing or incomplete configuration info.  Please login'
-unused_port="33333"
-# setting env bypasses the not configured message
-os::cmd::expect_failure_and_text "KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services" 'did you specify the right host or port'
-# setting --server bypasses the not configured message
-os::cmd::expect_failure_and_text "oc get services --server=http://${API_HOST}:${unused_port}" 'did you specify the right host or port'
-
-# Set KUBERNETES_MASTER for oc from now on
-export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
-
-# Set certificates for oc from now on
-if [[ "${API_SCHEME}" == "https" ]]; then
-    # test bad certificate
-    os::cmd::expect_failure_and_text "oc get services" 'certificate signed by unknown authority'
-fi
-
-# login and logout tests
-# bad token should error
-os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' --token=badvalue" 'The token provided is invalid or expired'
-# bad --api-version should error
-os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user -p test-password --api-version=foo/bar/baz" 'error.*foo/bar/baz'
-# --token and --username are mutually exclusive
-os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
-# must only accept one arg (server)
-os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
-# logs in with a valid certificate authority
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
-os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
-os::cmd::expect_success 'oc logout'
-# logs in skipping certificate check
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
-# logs in by an existing and valid token
-temp_token=$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
-os::cmd::expect_success_and_text "oc login --token=${temp_token}" 'using the token provided'
-os::cmd::expect_success 'oc logout'
-# properly parse server port
-os::cmd::expect_failure_and_text 'oc login https://server1:844333' 'Not a valid port'
-# properly handle trailing slash
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
-# create a new project
-os::cmd::expect_success "oc new-project project-foo --display-name='my project' --description='boring project description'"
-os::cmd::expect_success_and_text "oc project" 'Using project "project-foo"'
-# new user should get default context
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u new-and-unknown-user -p anything"
-os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}:${API_PORT}/new-and-unknown-user"
-# denies access after logging out
-os::cmd::expect_success 'oc logout'
-os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
-
-# make sure we report an error if the config file we pass is not writable
-# Does not work inside of a container, determine why and reenable
-# os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--config=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
-echo "login warnings: ok"
-
-# log in and set project to use from now on
-VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
-VERBOSE=true os::cmd::expect_success 'oc get projects'
-VERBOSE=true os::cmd::expect_success 'oc project project-foo'
-os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
-os::cmd::expect_success_and_text 'oc whoami' 'test-user'
-os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
-os::cmd::expect_success_and_text 'oc whoami -t' '.'
-os::cmd::expect_success_and_text 'oc whoami -c' '.'
-
-# test config files from the --config flag
-os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
-
-# test config files from env vars
-os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
-
-# test config files in the home directory
-mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
-os::cmd::expect_success 'oc get services'
-mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
-echo "config files: ok"
 os::test::junit::declare_suite_end
 
 # from this point every command will use config from the KUBECONFIG env var
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
+mkdir -p ${HOME}/.kube
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/non-default-config
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
@@ -343,18 +237,29 @@ for test in "${tests[@]}"; do
 
   os::test::junit::declare_suite_start "cmd/${namespace}-namespace-setup"
   # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
+  os::cmd::expect_success "oc login --server='${KUBERNETES_MASTER}' --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
   os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
   os::cmd::expect_success "oc new-project '${namespace}'"
   # wait for the project cache to catch up and correctly list us in the new project
   os::cmd::try_until_text "oc get projects -o name" "project/${namespace}"
   os::test::junit::declare_suite_end
 
-  ${test}
-  oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc delete project "${namespace}"
+  if ! ${test}; then
+    failed="true"
+    tail -40 "${LOG_DIR}/openshift.log"
+  fi
+
+  os::test::junit::declare_suite_start "cmd/${namespace}-namespace-teardown"
+  os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+  os::cmd::expect_success "oc delete project '${namespace}'"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
+  os::test::junit::declare_suite_end
 done
 
 os::log::info "Metrics information logged to ${LOG_DIR}/metrics.log"
-oc get --raw /metrics > "${LOG_DIR}/metrics.log"
+oc get --raw /metrics --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
+
+if [[ -n "${failed:-}" ]]; then
+    exit 1
+fi
 echo "test-cmd: ok"

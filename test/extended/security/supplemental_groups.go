@@ -23,7 +23,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 	)
 
 	g.Describe("Ensure supplemental groups propagate to docker", func() {
-		g.It("should propagate requested groups to the docker host config", func() {
+		g.It("should propagate requested groups to the docker host config [local]", func() {
 			// Before running any of this test we need to first check that
 			// the docker version being used supports the supplemental groups feature
 			g.By("ensuring the feature is supported")

@@ -2,7 +2,7 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::golang::verify_go_version
-os::golang::verify_golint_version
+os::util::ensure::system_binary_exists 'golint'
 
 arg="${1:-""}"
 bad_files=""

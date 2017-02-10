@@ -36,8 +36,13 @@ func main() {
 
 	errs := []string{}
 	for _, validate := range AllValidators {
-		err := validate(nonbumpCommits)
-		if err != nil {
+		if err := validate(nonbumpCommits); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	if len(os.Getenv("RESTORE_AND_VERIFY_GODEPS")) > 0 {
+		// Godeps verifies all commits, including bumps and UPSTREAM
+		if err := ValidateGodeps(commits); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
