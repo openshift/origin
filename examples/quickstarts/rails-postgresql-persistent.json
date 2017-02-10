@@ -165,7 +165,7 @@
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "rails-pgsql-persistent"
+                "${NAME}"
               ],
               "from": {
                 "kind": "ImageStreamTag",
@@ -191,7 +191,7 @@
           "spec": {
             "containers": [
               {
-                "name": "rails-pgsql-persistent",
+                "name": "${NAME}",
                 "image": " ",
                 "ports": [
                   {

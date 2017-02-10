@@ -10604,7 +10604,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "rails-pgsql-persistent"
+                "${NAME}"
               ],
               "from": {
                 "kind": "ImageStreamTag",
@@ -10630,7 +10630,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
           "spec": {
             "containers": [
               {
-                "name": "rails-pgsql-persistent",
+                "name": "${NAME}",
                 "image": " ",
                 "ports": [
                   {
