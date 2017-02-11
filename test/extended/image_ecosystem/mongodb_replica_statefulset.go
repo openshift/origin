@@ -9,6 +9,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	dbutil "github.com/openshift/origin/test/extended/util/db"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
@@ -62,11 +63,11 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 				).Execute(),
 			).Should(o.Succeed())
 
-			g.By("waiting for all pods to reach running status")
+			g.By("waiting for all pods to reach ready status")
 			podNames, err := exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsRunningFn,
+				exutil.CheckPodIsReadyFn,
 				3,
 				4*time.Minute,
 			)
@@ -94,11 +95,21 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 			err = oc.Run("delete").Args("pods", "--all", "-n", oc.Namespace()).Execute()
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
-			g.By("waiting for all pods to reach running status")
+			g.By("waiting for all pods to be gracefully deleted")
 			podNames, err = exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsRunningFn,
+				func(pod kapi.Pod) bool { return pod.DeletionTimestamp != nil },
+				0,
+				2*time.Minute,
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for all pods to reach ready status")
+			podNames, err = exutil.WaitForPods(
+				oc.KubeClient().Core().Pods(oc.Namespace()),
+				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
+				exutil.CheckPodIsReadyFn,
 				3,
 				2*time.Minute,
 			)
