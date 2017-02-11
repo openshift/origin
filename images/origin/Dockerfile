@@ -31,6 +31,6 @@ ENV HOME=/root \
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
 
-COPY system-container/config.json.template system-container/service.template /exports/
+COPY system-container/config.json.template system-container/manifest.json system-container/service.template /exports/
 
 ENTRYPOINT ["/usr/bin/openshift"]
