@@ -40,6 +40,7 @@ type CreateNodeConfigOptions struct {
 	VolumeDir           string
 	ImageTemplate       variable.ImageTemplate
 	AllowDisabledDocker bool
+	DNSBindAddress      string
 	DNSDomain           string
 	DNSIP               string
 	ListenAddr          flagtypes.Addr
@@ -86,6 +87,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "When fetching the network container image, use this format. The latest release will be used by default.")
 	flags.BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 	flags.BoolVar(&options.AllowDisabledDocker, "allow-disabled-docker", options.AllowDisabledDocker, "Allow the node to start without docker being available.")
+	flags.StringVar(&options.DNSBindAddress, "dns-bind-address", options.DNSBindAddress, "An address to bind DNS to.")
 	flags.StringVar(&options.DNSDomain, "dns-domain", options.DNSDomain, "DNS domain for the cluster.")
 	flags.StringVar(&options.DNSIP, "dns-ip", options.DNSIP, "DNS server IP for the cluster.")
 	flags.Var(&options.ListenAddr, "listen", "The address to listen for connections on (scheme://host:port).")
@@ -409,8 +411,9 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 			Latest: o.ImageTemplate.Latest,
 		},
 
-		DNSDomain: o.DNSDomain,
-		DNSIP:     o.DNSIP,
+		DNSBindAddress: o.DNSBindAddress,
+		DNSDomain:      o.DNSDomain,
+		DNSIP:          o.DNSIP,
 
 		MasterKubeConfig: kubeConfigFile,
 

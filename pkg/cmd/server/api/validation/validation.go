@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -283,6 +284,33 @@ func ValidateSpecifiedIP(ipString string, fldPath *field.Path) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(fldPath, ipString, "must be a valid IP"))
 	} else if ip.IsUnspecified() {
 		allErrs = append(allErrs, field.Invalid(fldPath, ipString, "cannot be an unspecified IP"))
+	}
+
+	return allErrs
+}
+
+func ValidateSpecifiedIPPort(ipPortString string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	ipString, portString, err := net.SplitHostPort(ipPortString)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, ipPortString, "must be a valid IP:PORT"))
+		return allErrs
+	}
+
+	ip := net.ParseIP(ipString)
+	if ip == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, ipString, "must be a valid IP"))
+	} else if ip.IsUnspecified() {
+		allErrs = append(allErrs, field.Invalid(fldPath, ipString, "cannot be an unspecified IP"))
+	}
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, portString, "must be a valid port"))
+	} else {
+		for _, msg := range utilvalidation.IsValidPortNum(port) {
+			allErrs = append(allErrs, field.Invalid(fldPath, port, msg))
+		}
 	}
 
 	return allErrs

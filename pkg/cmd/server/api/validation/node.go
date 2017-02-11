@@ -28,8 +28,14 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 	}
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterKubeConfig, fldPath.Child("masterKubeConfig"))...)
 
+	if len(config.DNSBindAddress) > 0 {
+		validationResults.AddErrors(ValidateHostPort(config.DNSBindAddress, fldPath.Child("dnsBindAddress"))...)
+	}
 	if len(config.DNSIP) > 0 {
 		validationResults.AddErrors(ValidateSpecifiedIP(config.DNSIP, fldPath.Child("dnsIP"))...)
+	}
+	for i, nameserver := range config.DNSNameservers {
+		validationResults.AddErrors(ValidateSpecifiedIPPort(nameserver, fldPath.Child("dnsNameservers").Index(i))...)
 	}
 
 	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig, fldPath.Child("imageConfig"))...)

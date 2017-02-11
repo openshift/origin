@@ -248,6 +248,7 @@ func (o *AllInOneOptions) Complete() error {
 		if dnsAddr.Provided {
 			if dnsAddr.Port == 53 {
 				// the user has set the DNS port to 53, which is the effective default (node on 53, master on 8053)
+				o.NodeArgs.DNSBindAddr = dnsAddr.URL.Host
 				dnsAddr.Port = 8053
 				dnsAddr.URL.Host = net.JoinHostPort(dnsAddr.Host, strconv.Itoa(dnsAddr.Port))
 			} else {
@@ -259,11 +260,16 @@ func (o *AllInOneOptions) Complete() error {
 		}
 
 		// if node DNS is still enabled, then default the node cluster DNS to a reachable master address
-		if o.NodeArgs.Components.Enabled(ComponentDNS) && o.NodeArgs.ClusterDNS == nil {
-			if dnsIP, err := findLocalIPForDNS(o.MasterOptions.MasterArgs); err == nil {
-				o.NodeArgs.ClusterDNS = dnsIP
-			} else {
-				glog.V(2).Infof("Unable to find a local address to report as the node DNS - not using node DNS: %v", err)
+		if o.NodeArgs.Components.Enabled(ComponentDNS) {
+			if o.NodeArgs.ClusterDNS == nil {
+				if dnsIP, err := findLocalIPForDNS(o.MasterOptions.MasterArgs); err == nil {
+					o.NodeArgs.ClusterDNS = dnsIP
+					if len(o.NodeArgs.DNSBindAddr) == 0 {
+						o.NodeArgs.DNSBindAddr = net.JoinHostPort(dnsIP.String(), "53")
+					}
+				} else {
+					glog.V(2).Infof("Unable to find a local address to report as the node DNS - not using node DNS: %v", err)
+				}
 			}
 		}
 	}
