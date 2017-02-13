@@ -133,5 +133,16 @@ cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${worki
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
 os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "cannot grant extra privileges"
 
+# This test validates cluster level policy for serviceaccounts
+# ensure service account cannot list pods at the namespace level
+os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::expect_success_and_text "oadm policy add-role-to-user view -z=testserviceaccount" "role \"view\" added: \"testserviceaccount\""
+# ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
+os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "yes"
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+# ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
+os::cmd::expect_success_and_text "oadm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" "cluster role \"cluster-reader\" added: \"testserviceaccount\""
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:cmd-policy:testserviceaccount" "yes"
+
 echo "policy: ok"
 os::test::junit::declare_suite_end
