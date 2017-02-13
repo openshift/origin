@@ -32,6 +32,7 @@ type OsdnProxy struct {
 	kClient              *kclientset.Clientset
 	osClient             *osclient.Client
 	networkInfo          *NetworkInfo
+	egressDNS            *EgressDNS
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
 	lock         sync.Mutex
@@ -49,10 +50,11 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 	}
 
 	return &OsdnProxy{
-		kClient:  kClient,
-		osClient: osClient,
-		ids:      make(map[string]uint32),
-		firewall: make(map[string]*proxyFirewallItem),
+		kClient:   kClient,
+		osClient:  osClient,
+		ids:       make(map[string]uint32),
+		egressDNS: NewEgressDNS(),
+		firewall:  make(map[string]*proxyFirewallItem),
 	}, nil
 }
 
@@ -70,10 +72,16 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
+
+	proxy.lock.Lock()
+	defer proxy.lock.Unlock()
+
 	for _, policy := range policies.Items {
+		proxy.egressDNS.Add(policy)
 		proxy.updateEgressNetworkPolicy(policy)
 	}
 
+	go utilwait.Forever(proxy.syncEgressDNSProxyFirewall, 0)
 	go utilwait.Forever(proxy.watchEgressNetworkPolicies, 0)
 	go utilwait.Forever(proxy.watchNetNamespaces, 0)
 	return nil
@@ -82,8 +90,12 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
+
+		proxy.egressDNS.Delete(*policy)
 		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil
+		} else {
+			proxy.egressDNS.Add(*policy)
 		}
 
 		func() {
@@ -135,15 +147,25 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 		return
 	}
 
-	firewall := make([]firewallItem, len(policy.Spec.Egress))
-	for i, rule := range policy.Spec.Egress {
-		_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
-		if err != nil {
-			// should have been caught by validation
-			glog.Errorf("Illegal CIDR value %q in EgressNetworkPolicy rule for policy: %v", rule.To.CIDRSelector, policy.UID)
-			return
+	firewall := []firewallItem{}
+	for _, rule := range policy.Spec.Egress {
+		if len(rule.To.CIDRSelector) > 0 {
+			_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
+			if err != nil {
+				// should have been caught by validation
+				glog.Errorf("illegal CIDR value %q in EgressNetworkPolicy rule for policy: %v", rule.To.CIDRSelector, policy.UID)
+				continue
+			}
+			firewall = append(firewall, firewallItem{rule.Type, cidr})
+		} else if len(rule.To.DNSName) > 0 {
+			cidrs := proxy.egressDNS.GetNetCIDRs(policy, rule.To.DNSName)
+			for _, cidr := range cidrs {
+				firewall = append(firewall, firewallItem{rule.Type, &cidr})
+			}
+		} else {
+			// Should have been caught by validation
+			glog.Errorf("invalid EgressNetworkPolicy rule: %v for policy: %v", rule, policy.UID)
 		}
-		firewall[i] = firewallItem{rule.Type, cidr}
 	}
 
 	// Add/Update/Delete firewall rules for the namespace
@@ -226,4 +248,51 @@ EndpointLoop:
 	}
 
 	proxy.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
+}
+
+func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
+	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		glog.Errorf("Could not get EgressNetworkPolicies: %v", err)
+		return
+	}
+
+	go utilwait.Forever(proxy.egressDNS.Sync, 0)
+
+	for {
+		policyUpdates := <-proxy.egressDNS.updates
+		glog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdates.UID)
+
+		policy, ok := getPolicy(policyUpdates.UID, policies)
+		if !ok {
+			policies, err = proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+			if err != nil {
+				glog.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdates.UID, err)
+				continue
+			}
+
+			policy, ok = getPolicy(policyUpdates.UID, policies)
+			if !ok {
+				glog.Warningf("Unable to update proxy firewall for policy: %v, policy not found", policyUpdates.UID)
+				continue
+			}
+		}
+
+		proxy.lock.Lock()
+		defer proxy.lock.Unlock()
+
+		proxy.updateEgressNetworkPolicy(policy)
+		if proxy.allEndpoints != nil {
+			proxy.updateEndpoints()
+		}
+	}
+}
+
+func getPolicy(policyUID ktypes.UID, policies *osapi.EgressNetworkPolicyList) (osapi.EgressNetworkPolicy, bool) {
+	for _, p := range policies.Items {
+		if p.UID == policyUID {
+			return p, true
+		}
+	}
+	return osapi.EgressNetworkPolicy{}, false
 }
