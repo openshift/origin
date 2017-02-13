@@ -24,6 +24,8 @@ function usage() {
   echo "  removes ${PACKAGE_LIST} from the exclude= line in ${CONF_FILE}"
   echo "  This re-enables updates for packages"
   echo
+  echo "status"
+  echo "  returns status either 'exclude' or 'unexclude' and 0 or 1 respectively"
   } 1>&2
   exit 1
 }
@@ -58,6 +60,19 @@ function unexclude_packages() {
   done
 }
 
+function status() {
+  for package in ${PACKAGE_LIST} ; do
+    # slashpackage escapes * from variable package
+    slashpackage=$(echo ${package} | sed 's|\*|\\\*|g')
+    if ! grep exclude= "${CONF_FILE}" | grep -q " ${slashpackage} " ; then
+      >&2 echo "unexclude -- At least one package not excluded" 
+      return 1
+    fi
+  done
+  >&2 echo "exclude -- All packages excluded"
+  return 0
+}
+
 ##############
 # MAIN PROGRAM
 ##############
@@ -67,6 +82,9 @@ case "$1" in
     ;;
   unexclude | enable )
     unexclude_packages
+    ;;
+  status )
+    exit $(status)
     ;;
   * )
     echo "Unknown Option: ${1}"

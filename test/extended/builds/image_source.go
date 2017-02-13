@@ -24,7 +24,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for imagestreams to be imported")
-		err = exutil.WaitForAnImageStream(oc.AdminClient().ImageStreams("openshift"), "jenkins", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
+		err = exutil.WaitForAnImageStream(oc.AdminClient().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -48,7 +48,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			g.By("expecting the pod to contain the file from the input image")
 			out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("jenkins.war"))
+			o.Expect(out).To(o.ContainSubstring("ruby"))
 		})
 	})
 	g.Describe("build with image docker", func() {
@@ -71,7 +71,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			g.By("expecting the pod to contain the file from the input image")
 			out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("jenkins.war"))
+			o.Expect(out).To(o.ContainSubstring("ruby"))
 		})
 
 	})

@@ -112,11 +112,29 @@ type NodeConfig struct {
 	// MasterClientConnectionOverrides provides overrides to the client connection used to connect to the master.
 	MasterClientConnectionOverrides *ClientConnectionOverrides
 
-	// DNSDomain holds the domain suffix
+	// DNSDomain holds the domain suffix that will be used for the DNS search path inside each container. Defaults to
+	// 'cluster.local'.
 	DNSDomain string
 
-	// DNSIP holds the IP
+	// DNSIP is the IP address that pods will use to access cluster DNS. Defaults to the service IP of the Kubernetes
+	// master. This IP must be listening on port 53 for compatibility with libc resolvers (which cannot be configured
+	// to resolve names from any other port). When running more complex local DNS configurations, this is often set
+	// to the local address of a DNS proxy like dnsmasq, which then will consult either the local DNS (see
+	// dnsBindAddress) or the master DNS.
 	DNSIP string
+
+	// DNSBindAddress is the ip:port to serve DNS on. If this is not set, the DNS server will not be started.
+	// Because most DNS resolvers will only listen on port 53, if you select an alternative port you will need
+	// a DNS proxy like dnsmasq to answer queries for containers. A common configuration is dnsmasq configured
+	// on a node IP listening on 53 and delegating queries for dnsDomain to this process, while sending other
+	// queries to the host environments nameservers.
+	DNSBindAddress string
+
+	// DNSNameservers is a list of ip:port values of recursive nameservers to forward queries to when running
+	// a local DNS server if dnsBindAddress is set. If this value is empty, the DNS server will default to
+	// the nameservers listed in /etc/resolv.conf. If you have configured dnsmasq or another DNS proxy on the
+	// system, this value should be set to the upstream nameservers dnsmasq resolves with.
+	DNSNameservers []string
 
 	// NetworkConfig provides network options for the node
 	NetworkConfig NodeNetworkConfig

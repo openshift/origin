@@ -52,9 +52,9 @@ make clean
 
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
-cp -r "${tito_output_directory}"/* "${OS_OUTPUT}"
+mv "${tito_output_directory}"/* "${OS_OUTPUT}"
 mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
-cp "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+mv "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
 
 if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"

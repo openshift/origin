@@ -241,7 +241,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "7.0"
             }
           },
           {

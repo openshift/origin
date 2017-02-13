@@ -101,12 +101,13 @@ func getAction(namespace string, attributes authorizer.Action) authzapi.Action {
 		Resource:     attributes.GetResource(),
 		ResourceName: attributes.GetResourceName(),
 
+		Path:             attributes.GetURL(),
+		IsNonResourceURL: attributes.IsNonResourceURL(),
+
 		// TODO: missing from authorizer.Action:
 		// Content
 
 		// TODO: missing from authzapi.Action
 		// RequestAttributes (unserializable?)
-		// IsNonResourceURL
-		// URL (doesn't make sense for remote authz?)
 	}
 }

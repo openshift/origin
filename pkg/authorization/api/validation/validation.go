@@ -29,15 +29,45 @@ func ValidateSubjectRulesReview(rules *authorizationapi.SubjectRulesReview) fiel
 	return allErrs
 }
 
+func validateCommonAccessReviewAction(fldPath *field.Path, action *authorizationapi.Action) field.ErrorList {
+	var allErrs field.ErrorList
+	if action.IsNonResourceURL {
+		if len(action.Path) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("path"), ""))
+		}
+		if len(action.Resource) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("resource"), action.Resource, "resource may not be specified with non resource URLs"))
+		}
+		if len(action.Group) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("group"), action.Group, "group may not be specified with non resource URLs"))
+		}
+		if len(action.Version) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), action.Version, "version may not be specified with non resource URLs"))
+		}
+		if len(action.ResourceName) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("resourceName"), action.ResourceName, "resourceName may not be specified with non resource URLs"))
+		}
+		if len(action.Namespace) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), action.Namespace, "namespace may not be specified with non resource URLs"))
+		}
+		if action.Content != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("content"), nil, "content may not be specified with non resource URLs"))
+		}
+	} else {
+		if len(action.Resource) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("resource"), ""))
+		}
+	}
+	return allErrs
+}
+
 func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
-	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
-	}
+	allErrs = append(allErrs, validateCommonAccessReviewAction(nil, &review.Action)...)
 
 	return allErrs
 }
@@ -48,9 +78,7 @@ func ValidateResourceAccessReview(review *authorizationapi.ResourceAccessReview)
 	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
-	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
-	}
+	allErrs = append(allErrs, validateCommonAccessReviewAction(nil, &review.Action)...)
 
 	return allErrs
 }
@@ -61,9 +89,7 @@ func ValidateLocalSubjectAccessReview(review *authorizationapi.LocalSubjectAcces
 	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
-	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
-	}
+	allErrs = append(allErrs, validateCommonAccessReviewAction(nil, &review.Action)...)
 
 	return allErrs
 }
@@ -74,9 +100,7 @@ func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAcc
 	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("verb"), ""))
 	}
-	if len(review.Action.Resource) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("resource"), ""))
-	}
+	allErrs = append(allErrs, validateCommonAccessReviewAction(nil, &review.Action)...)
 
 	return allErrs
 }

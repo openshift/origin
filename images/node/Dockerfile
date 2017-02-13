@@ -17,7 +17,7 @@ COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
 COPY scripts/* /usr/local/bin/
 
 RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo && \
-    INSTALL_PKGS="libmnl libnetfilter_conntrack openvswitch \
+    INSTALL_PKGS="libmnl libnetfilter_conntrack conntrack-tools openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
       ceph-common iscsi-initiator-utils" && \
@@ -32,6 +32,6 @@ LABEL io.k8s.display-name="OpenShift Origin Node" \
 VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
 
-COPY system-container/config.json.template system-container/service.template system-containers/tmpfiles.template /exports/
+COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
 ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]

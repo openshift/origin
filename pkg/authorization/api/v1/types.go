@@ -302,6 +302,10 @@ type Action struct {
 	Resource string `json:"resource" protobuf:"bytes,5,opt,name=resource"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string `json:"resourceName" protobuf:"bytes,6,opt,name=resourceName"`
+	// Path is the path of a non resource URL
+	Path string `json:"path" protobuf:"bytes,8,opt,name=path"`
+	// IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
+	IsNonResourceURL bool `json:"isNonResourceURL" protobuf:"varint,9,opt,name=isNonResourceURL"`
 	// Content is the actual content of the request for create and update
 	Content kruntime.RawExtension `json:"content,omitempty" protobuf:"bytes,7,opt,name=content"`
 }

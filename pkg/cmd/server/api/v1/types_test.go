@@ -31,8 +31,10 @@ authConfig:
   authenticationCacheTTL: ""
   authorizationCacheSize: 0
   authorizationCacheTTL: ""
+dnsBindAddress: ""
 dnsDomain: ""
 dnsIP: ""
+dnsNameservers: null
 dockerConfig:
   execHandlerName: ""
 enableUnidling: false

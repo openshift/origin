@@ -27586,7 +27586,9 @@
      "resourceAPIGroup",
      "resourceAPIVersion",
      "resource",
-     "resourceName"
+     "resourceName",
+     "path",
+     "isNonResourceURL"
     ],
     "properties": {
      "kind": {
@@ -27621,6 +27623,14 @@
       "type": "string",
       "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
      },
+     "path": {
+      "type": "string",
+      "description": "Path is the path of a non resource URL"
+     },
+     "isNonResourceURL": {
+      "type": "boolean",
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
+     },
      "content": {
       "type": "string",
       "description": "Content is the actual content of the request for create and update"
@@ -27637,6 +27647,8 @@
      "resourceAPIVersion",
      "resource",
      "resourceName",
+     "path",
+     "isNonResourceURL",
      "user",
      "groups",
      "scopes"
@@ -27673,6 +27685,14 @@
      "resourceName": {
       "type": "string",
       "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
+     },
+     "path": {
+      "type": "string",
+      "description": "Path is the path of a non resource URL"
+     },
+     "isNonResourceURL": {
+      "type": "boolean",
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
      },
      "content": {
       "type": "string",
@@ -28746,7 +28766,9 @@
      "resourceAPIGroup",
      "resourceAPIVersion",
      "resource",
-     "resourceName"
+     "resourceName",
+     "path",
+     "isNonResourceURL"
     ],
     "properties": {
      "kind": {
@@ -28780,6 +28802,14 @@
      "resourceName": {
       "type": "string",
       "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
+     },
+     "path": {
+      "type": "string",
+      "description": "Path is the path of a non resource URL"
+     },
+     "isNonResourceURL": {
+      "type": "boolean",
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
      },
      "content": {
       "type": "string",
@@ -29333,6 +29363,8 @@
      "resourceAPIVersion",
      "resource",
      "resourceName",
+     "path",
+     "isNonResourceURL",
      "user",
      "groups",
      "scopes"
@@ -29369,6 +29401,14 @@
      "resourceName": {
       "type": "string",
       "description": "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\""
+     },
+     "path": {
+      "type": "string",
+      "description": "Path is the path of a non resource URL"
+     },
+     "isNonResourceURL": {
+      "type": "boolean",
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
      },
      "content": {
       "type": "string",

@@ -51992,7 +51992,9 @@
      "resourceAPIGroup",
      "resourceAPIVersion",
      "resource",
-     "resourceName"
+     "resourceName",
+     "path",
+     "isNonResourceURL"
     ],
     "properties": {
      "apiVersion": {
@@ -52003,12 +52005,20 @@
       "description": "Content is the actual content of the request for create and update",
       "$ref": "#/definitions/runtime.RawExtension"
      },
+     "isNonResourceURL": {
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+      "type": "boolean"
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
       "type": "string"
      },
      "namespace": {
       "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces",
+      "type": "string"
+     },
+     "path": {
+      "description": "Path is the path of a non resource URL",
       "type": "string"
      },
      "resource": {
@@ -52042,6 +52052,8 @@
      "resourceAPIVersion",
      "resource",
      "resourceName",
+     "path",
+     "isNonResourceURL",
      "user",
      "groups",
      "scopes"
@@ -52062,12 +52074,20 @@
        "type": "string"
       }
      },
+     "isNonResourceURL": {
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+      "type": "boolean"
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
       "type": "string"
      },
      "namespace": {
       "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces",
+      "type": "string"
+     },
+     "path": {
+      "description": "Path is the path of a non resource URL",
       "type": "string"
      },
      "resource": {
@@ -54480,7 +54500,9 @@
      "resourceAPIGroup",
      "resourceAPIVersion",
      "resource",
-     "resourceName"
+     "resourceName",
+     "path",
+     "isNonResourceURL"
     ],
     "properties": {
      "apiVersion": {
@@ -54491,12 +54513,20 @@
       "description": "Content is the actual content of the request for create and update",
       "$ref": "#/definitions/runtime.RawExtension"
      },
+     "isNonResourceURL": {
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+      "type": "boolean"
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
       "type": "string"
      },
      "namespace": {
       "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces",
+      "type": "string"
+     },
+     "path": {
+      "description": "Path is the path of a non resource URL",
       "type": "string"
      },
      "resource": {
@@ -56019,6 +56049,8 @@
      "resourceAPIVersion",
      "resource",
      "resourceName",
+     "path",
+     "isNonResourceURL",
      "user",
      "groups",
      "scopes"
@@ -56039,12 +56071,20 @@
        "type": "string"
       }
      },
+     "isNonResourceURL": {
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+      "type": "boolean"
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
       "type": "string"
      },
      "namespace": {
       "description": "Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces",
+      "type": "string"
+     },
+     "path": {
+      "description": "Path is the path of a non resource URL",
       "type": "string"
      },
      "resource": {

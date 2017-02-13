@@ -291,6 +291,10 @@ type Action struct {
 	Resource string
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string
+	// Path is the path of a non resource URL
+	Path string
+	// IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
+	IsNonResourceURL bool
 	// Content is the actual content of the request for create and update
 	Content kruntime.Object
 }

@@ -19,15 +19,15 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: jenkins:latest
+          name: ruby:2.3
           namespace: openshift
         paths:
         - destinationDir: injected/dir
-          sourcePath: /usr/lib/jenkins/jenkins.war
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
     strategy:
-      sourceStrategy: 
+      sourceStrategy:
         forcePull: true
-        from: 
+        from:
           kind: ImageStreamTag
           name: ruby:latest
           namespace: openshift
@@ -48,11 +48,11 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: jenkins:latest
+          name: ruby:2.3
           namespace: openshift
         paths:
         - destinationDir: injected/dir
-          sourcePath: /usr/lib/jenkins/jenkins.war
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
     strategy:
       dockerStrategy: {}
 - apiVersion: v1
@@ -99,7 +99,6 @@ items:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}
-        terminationGracePeriodSeconds: 30
     triggers:
     - imageChangeParams:
         automatic: true
@@ -144,7 +143,6 @@ items:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}
-        terminationGracePeriodSeconds: 30
     triggers:
     - imageChangeParams:
         automatic: true
