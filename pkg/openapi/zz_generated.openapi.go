@@ -7259,6 +7259,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path of a non resource URL",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isNonResourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Content is the actual content of the request for create and update",
@@ -7266,7 +7280,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						},
 					},
 				},
-				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName"},
+				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "path", "isNonResourceURL"},
 			},
 		},
 		Dependencies: []string{
@@ -15236,6 +15250,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path of a non resource URL",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isNonResourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Content is the actual content of the request for create and update",
@@ -15243,7 +15271,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						},
 					},
 				},
-				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName"},
+				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "path", "isNonResourceURL"},
 			},
 		},
 		Dependencies: []string{
@@ -15310,6 +15338,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path of a non resource URL",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isNonResourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Content is the actual content of the request for create and update",
@@ -15352,7 +15394,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						},
 					},
 				},
-				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "user", "groups", "scopes"},
+				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "path", "isNonResourceURL", "user", "groups", "scopes"},
 			},
 		},
 		Dependencies: []string{
@@ -20285,6 +20327,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path of a non resource URL",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isNonResourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Content is the actual content of the request for create and update",
@@ -20292,7 +20348,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						},
 					},
 				},
-				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName"},
+				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "path", "isNonResourceURL"},
 			},
 		},
 		Dependencies: []string{
@@ -23017,6 +23073,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path of a non resource URL",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isNonResourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Content is the actual content of the request for create and update",
@@ -23059,7 +23129,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						},
 					},
 				},
-				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "user", "groups", "scopes"},
+				Required: []string{"namespace", "verb", "resourceAPIGroup", "resourceAPIVersion", "resource", "resourceName", "path", "isNonResourceURL", "user", "groups", "scopes"},
 			},
 		},
 		Dependencies: []string{

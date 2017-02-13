@@ -35,6 +35,12 @@ message Action {
   // ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
   optional string resourceName = 6;
 
+  // Path is the path of a non resource URL
+  optional string path = 8;
+
+  // IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
+  optional bool isNonResourceURL = 9;
+
   // Content is the actual content of the request for create and update
   optional k8s.io.kubernetes.pkg.runtime.RawExtension content = 7;
 }

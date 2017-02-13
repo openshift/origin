@@ -72,6 +72,8 @@ func DeepCopy_api_Action(in interface{}, out interface{}, c *conversion.Cloner) 
 		out.Version = in.Version
 		out.Resource = in.Resource
 		out.ResourceName = in.ResourceName
+		out.Path = in.Path
+		out.IsNonResourceURL = in.IsNonResourceURL
 		if in.Content == nil {
 			out.Content = nil
 		} else if newVal, err := c.DeepCopy(&in.Content); err != nil {

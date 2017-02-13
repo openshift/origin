@@ -12,6 +12,7 @@ fi
 (
   set +e
   oc delete oauthaccesstokens --all
+  oadm policy remove-cluster-role-from-user cluster-debugger user3
   exit 0
 ) &>/dev/null
 
@@ -78,7 +79,23 @@ os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesst
 os::cmd::expect_success_and_text "oc policy can-i --list --token='${accesstoken}' -n '${project}' --scopes='role:admin:*'" 'get.*pods'
 os::cmd::expect_success_and_not_text "oc policy can-i --list --token='${accesstoken}' -n '${project}'" 'get.*pods'
 
-
 os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/authentication/debugging"
+os::cmd::expect_success_and_text 'oc login -u user3 -p pw' 'Login successful'
+os::cmd::expect_success 'oc login -u system:admin'
+os::cmd::expect_failure_and_text 'oc get --raw /debug/pprof/ --as=user3' 'Forbidden'
+os::cmd::expect_failure_and_text 'oc get --raw /metrics --as=user3' 'Forbidden'
+os::cmd::expect_success_and_text 'oc get --raw /healthz --as=user3' 'ok'
+os::cmd::expect_success 'oadm policy add-cluster-role-to-user cluster-debugger user3'
+os::cmd::try_until_text 'oc get --raw /debug/pprof/ --as=user3' 'full goroutine stack dump'
+os::cmd::expect_success_and_text 'oc get --raw /debug/pprof/ --as=user3' 'full goroutine stack dump'
+os::cmd::expect_success_and_text 'oc get --raw /metrics --as=user3' 'apiserver_request_latencies'
+os::cmd::expect_success_and_text 'oc get --raw /healthz --as=user3' 'ok'
+# TODO validate controller
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
+
 
 os::test::junit::declare_suite_end
