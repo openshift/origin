@@ -1164,7 +1164,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.6"
+              "name": "7.0"
             }
           },
           {
