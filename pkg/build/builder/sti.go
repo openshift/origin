@@ -116,6 +116,7 @@ func (s *S2IBuilder) Build() error {
 	// fetch source
 	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
 	if err != nil {
+		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		s.build.Status.Message = api.StatusMessageFetchSourceFailed
 		handleBuildStatusUpdate(s.build, s.client, nil)
@@ -254,6 +255,7 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
+		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			buildInfo.FailureReason.Reason,
 			buildInfo.FailureReason.Message,
@@ -265,6 +267,7 @@ func (s *S2IBuilder) Build() error {
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 	result, err := builder.Build(config)
 	if err != nil {
+		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			result.BuildInfo.FailureReason.Reason,
 			result.BuildInfo.FailureReason.Message,
@@ -276,6 +279,7 @@ func (s *S2IBuilder) Build() error {
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
 	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
+		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		handleBuildStatusUpdate(s.build, s.client, nil)
@@ -306,6 +310,7 @@ func (s *S2IBuilder) Build() error {
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
 		if err != nil {
+			s.build.Status.Phase = api.BuildPhaseFailed
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
 			handleBuildStatusUpdate(s.build, s.client, nil)

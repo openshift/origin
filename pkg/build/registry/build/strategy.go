@@ -94,11 +94,13 @@ type detailsStrategy struct {
 func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
+	phase := newBuild.Status.Phase
 	revision := newBuild.Spec.Revision
 	message := newBuild.Status.Message
 	reason := newBuild.Status.Reason
 	outputTo := newBuild.Status.Output.To
 	*newBuild = *oldBuild
+	newBuild.Status.Phase = phase
 	newBuild.Spec.Revision = revision
 	newBuild.Status.Reason = reason
 	newBuild.Status.Message = message
