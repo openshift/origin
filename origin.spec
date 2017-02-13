@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8837e52c831dfc723510770b416ee86fa463fe02
+%global commit 8519abd40e1bbf040ddee11a5655a11ee8d53857
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.18+8837e52-67 OS_GIT_COMMIT=8837e52 OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.19+8519abd-36 OS_GIT_COMMIT=8519abd OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
 %{!?make_redistributable:
@@ -53,7 +53,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.19
+Version:        3.5.0.20
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -569,6 +569,38 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Mon Feb 13 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.20
+- set php latest to v7 (bparees@redhat.com)
+- Enforce authz(n) on controller (ccoleman@redhat.com)
+- Add Path and IsNonResourceURL to SAR (like upstream) (ccoleman@redhat.com)
+- Move quasi-generic handlers out so controller can reuse them
+  (ccoleman@redhat.com)
+- don't include the project name in the new-app validation check
+  (bparees@redhat.com)
+- Change how the router was logging (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  35f07305cdd184856a5a953215e2a350adbe8c26 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8d3d3c618780c9b4885dee91c362835140269b53 (dmcphers+openshiftbot@redhat.com)
+- Perform a mv instead of cp during RPM release (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  95fab83b258d25272bbbbb1fc9c5d81c666d7e30 (dmcphers+openshiftbot@redhat.com)
+- remove mongo clustered test: replaced by statefulset example and test
+  (jminter@redhat.com)
+- Remove special handling of --token and --context for whoami
+  (jliggitt@redhat.com)
+- Add a dnsBindAddress configuration to the node (ccoleman@redhat.com)
+- Swagger generation uses a hardcoded directory (ccoleman@redhat.com)
+- master: allow to specify command (gscrivan@redhat.com)
+- Take more care in handling statefulset pods in mongodb test
+  (jminter@redhat.com)
+- node: install conntrack-tools in the node image (gscrivan@redhat.com)
+- node: fix typo in the system container image (gscrivan@redhat.com)
+- build extended tests: don't use large Jenkins image unnecessarily
+  (jminter@redhat.com)
+- Remove legacy kube test runner (marun@redhat.com)
+- Add a status function to excluder (sdodson@redhat.com)
+
 * Fri Feb 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.19
 - Dump router pod logs on e2e failures (ccoleman@redhat.com)
 - Wait for the `kubernetes` service on server start (skuznets@redhat.com)
