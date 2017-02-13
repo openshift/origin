@@ -189,7 +189,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 
 	completions := int32(1)
 
-	deadline := int64(60 * 5)
+	deadline := int64(60 * 10)
 
 	meta := kapi.ObjectMeta{
 		Name: metricsDeployerJobName,
