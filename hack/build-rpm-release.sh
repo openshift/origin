@@ -53,9 +53,9 @@ else
 	output_directory="${output_directories[0]}"
 fi
 
-if ! tito_output_directory="$( find "${output_directory}" -type d -path '*/BUILD/origin-git-*/_output/local' )"; then
-	os::log::error 'No _output artifact directory found in tito rpmbuild artifacts!'
-	exit 1
+tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/origin-${rpm_version}/_output/local" )"
+if [[ -z "${tito_output_directory}" ]]; then
+        os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
 # clean up our local state so we can unpack the tito artifacts cleanly
