@@ -75,7 +75,7 @@ func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Bui
 }
 
 func (c *FakeBuilds) UpdateDetails(inObj *buildapi.Build) (*buildapi.Build, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(buildapi.SchemeGroupVersion.WithResource("builds/details"), c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(buildapi.LegacySchemeGroupVersion.WithResource("builds/details"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}

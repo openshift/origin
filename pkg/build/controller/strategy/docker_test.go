@@ -17,7 +17,7 @@ import (
 func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image: "docker-test-image",
-		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+		Codec: kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 	}
 
 	build := mockDockerBuild()
@@ -90,7 +90,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 
-	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), build)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -104,7 +104,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 func TestDockerBuildLongName(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image: "docker-test-image",
-		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
+		Codec: kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 	}
 	build := mockDockerBuild()
 	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)

@@ -20,6 +20,7 @@ import (
 const (
 	LegacyPrefix = "/osapi" // TODO: make configurable
 	Prefix       = "/oapi"  // TODO: make configurable
+	GroupPrefix  = "/apis"
 	GroupName    = ""
 )
 
