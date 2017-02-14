@@ -108,6 +108,11 @@ type RegistryConfig struct {
 	DaemonSet      bool
 	EnforceQuota   bool
 
+	// SupplementalGroups is list of int64, however cobra does not have appropriate func
+	// for that type list.
+	SupplementalGroups []string
+	FSGroup            string
+
 	ServingCertPath string
 	ServingKeyPath  string
 
@@ -181,6 +186,8 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServingCertPath, "tls-certificate", cfg.ServingCertPath, "An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS")
 	cmd.Flags().StringVar(&cfg.ServingKeyPath, "tls-key", cfg.ServingKeyPath, "An optional path to a PEM encoded private key for serving over TLS")
+	cmd.Flags().StringSliceVar(&cfg.SupplementalGroups, "supplemental-groups", cfg.SupplementalGroups, "Specify supplemental groups which is an array of ID's that grants group access to registry shared storage")
+	cmd.Flags().StringVar(&cfg.FSGroup, "fs-group", "", "Specify fsGroup which is an ID that grants group access to registry block storage")
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
 	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
 
@@ -222,6 +229,23 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return kcmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", opts.Config.Selector)
 		}
 		opts.nodeSelector = valid
+	}
+
+	if len(opts.Config.FSGroup) > 0 {
+		if _, err := strconv.ParseInt(opts.Config.FSGroup, 10, 64); err != nil {
+			return kcmdutil.UsageError(cmd, "invalid group ID %q specified for fsGroup (%v)", opts.Config.FSGroup, err)
+		}
+	}
+
+	if len(opts.Config.SupplementalGroups) > 0 {
+		for _, v := range opts.Config.SupplementalGroups {
+			if val, err := strconv.ParseInt(v, 10, 64); err != nil || val == 0 {
+				return kcmdutil.UsageError(cmd, "invalid group ID %q specified for supplemental group (%v)", v, err)
+			}
+		}
+	}
+	if len(opts.Config.SupplementalGroups) > 0 && len(opts.Config.FSGroup) > 0 {
+		return kcmdutil.UsageError(cmd, "fsGroup and supplemental groups cannot be specified both at the same time")
 	}
 
 	var portsErr error
@@ -356,6 +380,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 				VolumeSource: kapi.VolumeSource{},
 			}),
 			ServiceAccountName: opts.Config.ServiceAccount,
+			SecurityContext:    generateSecurityContext(opts.Config),
 		},
 	}
 	if mountHost {
@@ -543,4 +568,23 @@ func generateSecretsConfig(
 	extraEnv["REGISTRY_HTTP_SECRET"] = httpSecretString
 
 	return secrets, volumes, mounts, extraEnv, len(defaultCrt) > 0, nil
+}
+
+func generateSecurityContext(conf *RegistryConfig) *kapi.PodSecurityContext {
+	result := &kapi.PodSecurityContext{}
+	if len(conf.SupplementalGroups) > 0 {
+		result.SupplementalGroups = []int64{}
+		for _, val := range conf.SupplementalGroups {
+			// The errors are handled by Complete()
+			if groupID, err := strconv.ParseInt(val, 10, 64); err == nil {
+				result.SupplementalGroups = append(result.SupplementalGroups, groupID)
+			}
+		}
+	}
+	if len(conf.FSGroup) > 0 {
+		if groupID, err := strconv.ParseInt(conf.FSGroup, 10, 64); err == nil {
+			result.FSGroup = &groupID
+		}
+	}
+	return result
 }
