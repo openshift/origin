@@ -7,7 +7,11 @@
       "openshift.io/display-name": "MariaDB (Persistent)",
       "description": "MariaDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mariadb",
-      "tags": "database,mariadb"
+      "tags": "database,mariadb",
+      "template.openshift.io/long-description": "This template provides a standalone MariaDB server with a database created.  The database is stored on persistent storage.  The database name, username, and password are chosen via parameters when provisioning this service.",
+      "template.openshift.io/provider-display-name": "Red Hat, Inc.",
+      "template.openshift.io/documentation-url": "https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md",
+      "template.openshift.io/support-url": "https://access.redhat.com"
     }
   },
   "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.",
