@@ -22,10 +22,6 @@ Create a self\-signed CA key/cert for signing certificates used by server compon
     The certificate file.
 
 .PP
-\fB\-\-expire\-days\fP=1825
-    Validity of the certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.
-
-.PP
 \fB\-\-key\fP="openshift.local.config/master/ca.key"
     The key file.
 
@@ -40,6 +36,10 @@ Create a self\-signed CA key/cert for signing certificates used by server compon
 .PP
 \fB\-\-serial\fP="openshift.local.config/master/ca.serial.txt"
     The serial file that keeps track of how many certs have been signed.
+
+.PP
+\fB\-\-signer\-expire\-days\fP=1825
+    Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

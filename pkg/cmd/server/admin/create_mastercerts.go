@@ -184,10 +184,11 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
 		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
 		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
-		ExpireDays: o.SignerExpireDays,
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
 		Output:     o.Output,
+
+		SignerExpireDays: o.SignerExpireDays,
 	}
 	if err := signerCertOptions.Validate(nil); err != nil {
 		return err
@@ -357,11 +358,11 @@ func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *S
 		CertFile:   caInfo.CertFile,
 		KeyFile:    caInfo.KeyFile,
 		SerialFile: "", // we want the random cert serial for this one
-		ExpireDays: o.SignerExpireDays,
 		Name:       DefaultServiceServingCertSignerName(),
 		Output:     o.Output,
+		Overwrite:  o.Overwrite,
 
-		Overwrite: o.Overwrite,
+		SignerExpireDays: o.SignerExpireDays,
 	}
 	if err := caOptions.Validate(nil); err != nil {
 		return err

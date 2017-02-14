@@ -30,7 +30,7 @@ os::cmd::expect_success_and_text \
                                 --key='${CERT_DIR}/ca.key' \
                                 --serial='${CERT_DIR}/ca.serial.txt' \
                                 --overwrite=true \
-                                --expire-days=$((365*6))" \
+                                --signer-expire-days=$((365*6))" \
     'WARNING: .* is greater than 5 years'
 
 expected_year="$(TZ=GMT date -d "+$((365*6)) days" +'%Y')"
