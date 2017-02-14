@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -171,7 +169,7 @@ func (o *NewBuildOptions) RunNewBuild() error {
 
 	result, err := config.Run()
 	if err != nil {
-		return handleBuildError(err, o.BaseName, o.CommandName, o.CommandPath)
+		return handleError(err, o.BaseName, o.CommandName, o.CommandPath, config, transformBuildError)
 	}
 
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
@@ -211,29 +209,6 @@ func (o *NewBuildOptions) RunNewBuild() error {
 	return nil
 }
 
-func handleBuildError(err error, baseName, commandName, commandPath string) error {
-	if err == nil {
-		return nil
-	}
-	errs := []error{err}
-	if agg, ok := err.(errors.Aggregate); ok {
-		errs = agg.Errors()
-	}
-	groups := errorGroups{}
-	for _, err := range errs {
-		transformBuildError(err, baseName, commandName, commandPath, groups)
-	}
-	buf := &bytes.Buffer{}
-	for _, group := range groups {
-		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
-		if len(group.suggestion) > 0 {
-			fmt.Fprintln(buf)
-		}
-		fmt.Fprint(buf, group.suggestion)
-	}
-	return fmt.Errorf(buf.String())
-}
-
 func transformBuildError(err error, baseName, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
@@ -261,5 +236,5 @@ func transformBuildError(err error, baseName, commandName, commandPath string, g
 		groups.Add("", "", usageError(commandPath, newBuildNoInput, baseName, commandName))
 		return
 	}
-	transformError(err, baseName, commandName, commandPath, groups)
+	transformRunError(err, baseName, commandName, commandPath, groups)
 }

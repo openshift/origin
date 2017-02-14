@@ -47,6 +47,6 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 		g.By("calling oc new-app")
 		out, err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a59).Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.HavePrefix("error: invalid name: "))
+		o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
 	})
 })
