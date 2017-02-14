@@ -195,7 +195,7 @@ func TestBuildTemplates(t *testing.T) {
 			continue
 		}
 
-		resolved, err := Resolve(&appCfg.Resolvers, &appCfg.ComponentInputs, &appCfg.GenerationInputs)
+		resolved, err := Resolve(&appCfg)
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue

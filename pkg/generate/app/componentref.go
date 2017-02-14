@@ -10,16 +10,16 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 )
 
-// IsComponentReference returns true if the provided string appears to be a reference to a source repository
+// IsComponentReference returns an error if the provided string does not appear to be a reference to a source repository
 // on disk, at a URL, a docker image name (which might be on a Docker registry or an OpenShift image stream),
 // or a template.
-func IsComponentReference(s string) bool {
+func IsComponentReference(s string) error {
 	if len(s) == 0 {
-		return false
+		return fmt.Errorf("empty string provided to component reference check")
 	}
 	all := strings.Split(s, "+")
 	_, _, _, err := componentWithSource(all[0])
-	return err == nil
+	return err
 }
 
 // componentWithSource parses the provided string and returns an image component
