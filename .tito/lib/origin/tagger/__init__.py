@@ -92,7 +92,7 @@ class OriginTagger(VersionTagger):
         print("OS_GIT_MAJOR::{0}".format(os_git_major))
         print("OS_GIT_MINOR::{0}".format(os_git_minor))
         update_os_git_vars = \
-            "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_GIT_TREE_STATE='clean' OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
+            "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_TREE_STATE='clean' OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
                 os_git_version,
                 os_git_commit,
                 os_git_major,
