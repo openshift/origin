@@ -29,7 +29,6 @@
 %global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.19+8519abd-36 OS_GIT_COMMIT=8519abd OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
 }
 
-%{!?make_redistributable:
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
 %else
@@ -40,7 +39,6 @@
 %global make_redistributable 0
 %endif
 %endif
-}
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
