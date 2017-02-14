@@ -74,17 +74,21 @@ func IsPossibleSourceRepository(s string) bool {
 // IsRemoteRepository checks whether the provided string is a remote repository or not
 func IsRemoteRepository(s string) bool {
 	if !s2igit.New(s2iutil.NewFileSystem()).ValidCloneSpecRemoteOnly(s) {
+		glog.V(5).Infof("%s is not a valid remote git clone spec", s)
 		return false
 	}
 	url, err := url.Parse(s)
 	if err != nil {
+		glog.V(5).Infof("%s is not a valid url: %v", s, err)
 		return false
 	}
 	url.Fragment = ""
 	gitRepo := git.NewRepository()
 	if _, _, err := gitRepo.ListRemote(url.String()); err != nil {
+		glog.V(5).Infof("could not list git remotes for %s: %v", s, err)
 		return false
 	}
+	glog.V(5).Infof("%s is a valid remote git repository", s)
 	return true
 }
 
