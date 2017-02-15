@@ -10,45 +10,19 @@ STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
-if [[ "${OS_RELEASE:-}" == "n" ]]; then
-	# Use local binaries
-	imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
-	# identical to build-cross.sh
-	os::build::os_version_vars
-	if [[ -z "${OS_RELEASE_LOCAL:-}" ]]; then
-		OS_RELEASE_COMMIT="${OS_GIT_VERSION//+/-}"
-		platform="$(os::build::host_platform)"
-		OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]:-${platform}}")
-		OS_IMAGE_COMPILE_TARGETS=("${OS_IMAGE_COMPILE_TARGETS[@]:-${OS_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
-		OS_SCRATCH_IMAGE_COMPILE_TARGETS=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]:-${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
-		readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
-
-		echo "Building images from source ${OS_RELEASE_COMMIT}:"
-		echo
-		os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
-		os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
-		echo
-	fi
-else
-	# Get the latest Linux release
-	if [[ ! -d _output/local/releases ]]; then
-		echo "No release has been built. Run hack/build-release.sh"
-		exit 1
-	fi
-
-	# Extract the release archives to a staging area.
-	os::build::detect_local_release_tars "linux-64bit"
-
-	echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
-	echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
-	echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
-
-	imagedir="${OS_OUTPUT}/images"
-	rm -rf ${imagedir}
-	mkdir -p ${imagedir}
-	os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${imagedir}"
-	os::build::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${imagedir}"
+if [[ ! -d "${OS_LOCAL_RPMPATH}" ]]; then
+	relative_rpmpath="$( os::util::repository_relative_path "${OS_LOCAL_RPMPATH}" )"
+	relative_binpath="$( os::util::repository_relative_path "${OS_OUTPUT_BINPATH}" )"
+	os::log::fatal "No release RPMs have been built! RPMs are necessary to build container images.
+Build them with:
+  $ OS_BUILD_ENV_PRESERVE=${relative_binpath}:${relative_rpmpath} hack/env make build-rpms-redistributable"
 fi
+
+# Without this, the dockerregistry lacks gcs+oss storage drivers in non-cross builds.
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
+
+# we need to mount RPMs into the container builds for installation
+OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_LOCAL_RPMPATH}/:/srv/origin-local-release/"
 
 # Create link to file if the FS supports hardlinks, otherwise copy the file
 function ln_or_cp {
@@ -109,17 +83,12 @@ function image() {
 	return 0
 }
 
-# Link or copy primary binaries to the appropriate locations.
-ln_or_cp "${imagedir}/openshift" images/origin/bin
-
 # Link or copy image binaries to the appropriate locations.
-ln_or_cp "${imagedir}/pod"             images/pod/bin
-ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
-ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
-ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
 
 # Copy SDN scripts into images/node
-os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
+os::provision::install-sdn "${OS_ROOT}" "${OS_OUTPUT_BINPATH}/linux/amd64" "${OS_ROOT}/images/node"
 mkdir -p images/node/conf/
 cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 

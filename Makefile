@@ -296,7 +296,8 @@ build-rpms-redistributable:
 #
 # Example:
 #   make release-rpms
-release-rpms: clean build-rpms
+release-rpms: clean build-rpms-redistributable
+	hack/build-base-images.sh
 	hack/build-images.sh
 	hack/extract-release.sh
 .PHONY: release
