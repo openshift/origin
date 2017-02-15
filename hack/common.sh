@@ -68,17 +68,9 @@ readonly -f os::build::platform_arch
 #   export GOBIN - This is actively unset if already set as we want binaries
 #     placed in a predictable place.
 function os::build::setup_env() {
-  if [[ -z "$(which go)" ]]; then
-    cat <<EOF
+  os::util::ensure::system_binary_exists 'go'
 
-Can't find 'go' in PATH, please fix and retry.
-See http://golang.org/doc/install for installation instructions.
-
-EOF
-    exit 2
-  fi
-
-  if [[ -z "$(which sha256sum)" ]]; then
+  if os::util::find::system_binary 'sha256sum' >/dev/null 2>&1; then
     sha256sum() {
       return 0
     }
@@ -91,13 +83,8 @@ EOF
     local go_version
     go_version=($(go version))
     if [[ "${go_version[2]}" < "go1.5" ]]; then
-      cat <<EOF
-
-Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.6 or greater.
-
-EOF
-      exit 2
+      os::log::fatal "Detected Go version: ${go_version[*]}.
+Origin builds require Go version 1.6 or greater."
     fi
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
