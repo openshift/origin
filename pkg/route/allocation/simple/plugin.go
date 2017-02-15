@@ -2,6 +2,7 @@ package simple
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -50,5 +51,5 @@ func (p *SimpleAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *
 	if len(route.Name) == 0 || len(route.Namespace) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%s-%s.%s", route.Name, route.Namespace, shard.DNSSuffix)
+	return fmt.Sprintf("%s-%s.%s", strings.Replace(route.Name, ".", "-", -1), route.Namespace, shard.DNSSuffix)
 }
