@@ -101,7 +101,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 
 	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 && (wildcardpolicy != "Subdomain" && wildcardpolicy != "None") {
-		return fmt.Errorf("only \"Subdomain\" or \"None\" are supported for wildcardpolicy")
+		return fmt.Errorf("only \"Subdomain\" or \"None\" are supported for wildcard-policy")
 	}
 
 	if len(infos) > 1 {
