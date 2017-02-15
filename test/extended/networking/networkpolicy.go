@@ -32,6 +32,8 @@ import (
    1. Update "package" decl, wrap all tests in InNetworkPolicyContext().
    2. Ported to use unversioned API (since we haven't yet rebased to include
       kube #36673).
+   3. Ported to use IPs rather than DNS names in tests since our extended
+      networking tests don't run with DNS.
 */
 
 /*
@@ -498,7 +500,7 @@ var _ = Describe("NetworkPolicy", func() {
 
 func testCanConnect(f *framework.Framework, ns *api.Namespace, podName string, service *api.Service, targetPort int) {
 	By(fmt.Sprintf("Creating client pod %s that should successfully connect to %s.", podName, service.Name))
-	podClient := createNetworkClientPod(f, ns, podName, service, targetPort)
+	podClient := createNetworkClientPod(f, ns, podName, service.Spec.ClusterIP, targetPort)
 	defer func() {
 		By(fmt.Sprintf("Cleaning up the pod %s", podName))
 		if err := f.ClientSet.Core().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
@@ -517,7 +519,7 @@ func testCanConnect(f *framework.Framework, ns *api.Namespace, podName string, s
 
 func testCannotConnect(f *framework.Framework, ns *api.Namespace, podName string, service *api.Service, targetPort int) {
 	By(fmt.Sprintf("Creating client pod %s that should not be able to connect to %s.", podName, service.Name))
-	podClient := createNetworkClientPod(f, ns, podName, service, targetPort)
+	podClient := createNetworkClientPod(f, ns, podName, service.Spec.ClusterIP, targetPort)
 	defer func() {
 		By(fmt.Sprintf("Cleaning up the pod %s", podName))
 		if err := f.ClientSet.Core().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
@@ -597,7 +599,7 @@ func createServerPodAndService(f *framework.Framework, namespace *api.Namespace,
 // Create a client pod which will attempt a netcat to the provided service, on the specified port.
 // This client will attempt a oneshot connection, then die, without restarting the pod.
 // Test can then be asserted based on whether the pod quit with an error or not.
-func createNetworkClientPod(f *framework.Framework, namespace *api.Namespace, podName string, targetService *api.Service, targetPort int) *api.Pod {
+func createNetworkClientPod(f *framework.Framework, namespace *api.Namespace, podName string, targetIP string, targetPort int) *api.Pod {
 	pod, err := f.ClientSet.Core().Pods(namespace.Name).Create(&api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name: podName,
@@ -614,7 +616,7 @@ func createNetworkClientPod(f *framework.Framework, namespace *api.Namespace, po
 					Args: []string{
 						"/bin/sh",
 						"-c",
-						fmt.Sprintf("/usr/bin/printf dummy-data | /bin/nc -w 8 %s.%s %d", targetService.Name, targetService.Namespace, targetPort),
+						fmt.Sprintf("/usr/bin/printf dummy-data | /bin/nc -w 8 %s %d", targetIP, targetPort),
 					},
 				},
 			},
