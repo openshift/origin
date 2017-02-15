@@ -65,7 +65,12 @@ func formatEnv(env api.EnvVar) string {
 }
 
 func formatString(out *tabwriter.Writer, label string, v interface{}) {
-	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
+	labelVals := strings.Split(toString(v), "\n")
+
+	fmt.Fprintf(out, fmt.Sprintf("%s:", label))
+	for _, lval := range labelVals {
+		fmt.Fprintf(out, fmt.Sprintf("\t%s\n", lval))
+	}
 }
 
 func formatTime(out *tabwriter.Writer, label string, t time.Time) {

@@ -45,6 +45,14 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	return result, nil
 }
 
+func formatString(out io.Writer, tab, s string) {
+	labelVals := strings.Split(s, "\n")
+
+	for _, lval := range labelVals {
+		fmt.Fprintf(out, fmt.Sprintf("%s%s\n", tab, lval))
+	}
+}
+
 // DescribeGeneratedTemplate writes a description of the provided template to out.
 func DescribeGeneratedTemplate(out io.Writer, input string, result *templateapi.Template, baseNamespace string) {
 	qualifiedName := localOrRemoteName(result.ObjectMeta, baseNamespace)
@@ -64,13 +72,14 @@ func DescribeGeneratedTemplate(out io.Writer, input string, result *templateapi.
 		fmt.Fprintf(out, "     %s\n", name)
 		fmt.Fprintf(out, "     ---------\n")
 		if len(description) > 0 {
-			fmt.Fprintf(out, "     %s\n", description)
+			formatString(out, "     ", description)
 			fmt.Fprintln(out)
 		}
 		if len(message) > 0 {
-			fmt.Fprintf(out, "     %s\n", message)
+			formatString(out, "     ", message)
 			fmt.Fprintln(out)
 		}
+		fmt.Fprintln(out)
 	}
 
 	if warnings := result.Annotations[app.GenerationWarningAnnotation]; len(warnings) > 0 {
