@@ -431,6 +431,7 @@ func (o *ObserveOptions) Run() error {
 		go func() {
 			<-time.After(o.exitAfterPeriod)
 			lock.Lock()
+			defer lock.Unlock()
 			o.dumpMetrics()
 			fmt.Fprintf(o.errOut, "Shutting down after %s ...\n", o.exitAfterPeriod)
 			os.Exit(0)
@@ -467,39 +468,44 @@ func (o *ObserveOptions) Run() error {
 
 			deltas := obj.(cache.Deltas)
 			for _, delta := range deltas {
-				lock.Lock()
+				if err := func() error {
+					lock.Lock()
+					defer lock.Unlock()
 
-				// handle before and after observe notification
-				switch {
-				case !syncing && delta.Type == cache.Sync:
-					if err := o.startSync(); err != nil {
+					// handle before and after observe notification
+					switch {
+					case !syncing && delta.Type == cache.Sync:
+						if err := o.startSync(); err != nil {
+							return err
+						}
+						syncing = true
+					case syncing && delta.Type != cache.Sync:
+						if err := o.finishSync(); err != nil {
+							return err
+						}
+						syncing = false
+					}
+
+					// require the user to provide a name function in order to get events beyond added / updated
+					if !syncing && o.knownObjects == nil && !(delta.Type == cache.Added || delta.Type == cache.Updated) {
+						return nil
+					}
+
+					observeCounts.WithLabelValues(string(delta.Type)).Inc()
+
+					// calculate the arguments for the delta and then invoke any command
+					object, arguments, output, err := o.calculateArguments(delta)
+					if err != nil {
 						return err
 					}
-					syncing = true
-				case syncing && delta.Type != cache.Sync:
-					if err := o.finishSync(); err != nil {
+					if err := o.next(delta.Type, object, output, arguments); err != nil {
 						return err
 					}
-					syncing = false
-				}
 
-				// require the user to provide a name function in order to get events beyond added / updated
-				if !syncing && o.knownObjects == nil && !(delta.Type == cache.Added || delta.Type == cache.Updated) {
-					continue
-				}
-
-				observeCounts.WithLabelValues(string(delta.Type)).Inc()
-
-				// calculate the arguments for the delta and then invoke any command
-				object, arguments, output, err := o.calculateArguments(delta)
-				if err != nil {
+					return nil
+				}(); err != nil {
 					return err
 				}
-				if err := o.next(delta.Type, object, output, arguments); err != nil {
-					return err
-				}
-
-				lock.Unlock()
 			}
 			return nil
 		})
