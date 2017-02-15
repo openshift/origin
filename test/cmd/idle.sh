@@ -60,27 +60,27 @@ EOF
 os::test::junit::declare_suite_start "cmd/idle/by-name"
 setup_idling_resources
 os::cmd::expect_failure "oc idle dc/${dc_name}" # make sure manually passing non-endpoints resources fails
-os::cmd::expect_success_and_text 'oc idle idling-echo' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/${dc_name} \(unidle to 2 replicas\)"
+os::cmd::expect_success_and_text 'oc idle idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/idle/by-label"
 setup_idling_resources
-os::cmd::expect_success_and_text 'oc idle -l app=idling-echo' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/${dc_name} \(unidle to 2 replicas\)"
+os::cmd::expect_success_and_text 'oc idle -l app=idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/idle/all"
 setup_idling_resources
-os::cmd::expect_success_and_text 'oc idle --all' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/${dc_name} \(unidle to 2 replicas\)"
+os::cmd::expect_success_and_text 'oc idle --all' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/idle/check-previous-scale"
 setup_idling_resources  # scales up to 2 replicas
-os::cmd::expect_success_and_text 'oc idle idling-echo' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/${dc_name} \(unidle to 2 replicas\)"
+os::cmd::expect_success_and_text 'oc idle idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
 os::cmd::expect_success_and_text "oc get dc ${dc_name}  -o go-template='${prev_scale_template}'" '2'  # we see the result of the initial scale as the previous scale
 os::test::junit::declare_suite_end

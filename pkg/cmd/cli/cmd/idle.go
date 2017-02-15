@@ -515,6 +515,11 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	hadError := false
 	nowTime := time.Now().UTC()
 
+	dryRunText := ""
+	if o.dryRun {
+		dryRunText = "(dry run)"
+	}
+
 	// figure out which endpoints and resources we need to idle
 	byService, byScalable, err := o.calculateIdlableAnnotationsByService(f)
 
@@ -564,64 +569,67 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		}
 		refsWithScale, err := pairScalesWithScaleRefs(serviceName, info.obj.Annotations, info.scaleRefs, replicas)
 		if err != nil {
-			fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+			fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 			continue
 		}
 
 		if !o.dryRun {
 			if len(info.scaleRefs) == 0 {
-				fmt.Fprintf(o.errOut, "error: no scalable resources marked as idled for service %s, not marking as idled\n", serviceName.String())
+				fmt.Fprintf(o.errOut, "error: unable to mark the service %q as idled.\n", serviceName.String())
+				fmt.Fprintf(o.errOut, "Make sure that the service is not already marked as idled and that it is associated with resources that can be scaled.\n")
+				fmt.Fprintf(o.errOut, "See 'oc idle -h' for help and examples.\n")
 				hadError = true
 				continue
 			}
 
 			metadata, err := meta.Accessor(info.obj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 			gvks, _, err := typer.ObjectKinds(info.obj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 			oldData, err := json.Marshal(info.obj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
 			mapping, err := mapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
 			if err = setIdleAnnotations(serviceName, info.obj.Annotations, refsWithScale, nowTime); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 			if _, err := patchObj(info.obj, metadata, oldData, mapping, f); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %s as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 		}
 
+		fmt.Fprintf(o.out, "The service %q has been marked as idled %s\n", serviceName.String(), dryRunText)
+
 		for _, scaleRef := range refsWithScale {
-			fmt.Fprintf(o.out, "Marked service %s to unidle resource %s %s/%s (unidle to %v replicas)\n", serviceName.String(), scaleRef.Kind, serviceName.Namespace, scaleRef.Name, scaleRef.Replicas)
+			fmt.Fprintf(o.out, "The service will unidle %s \"%s/%s\" to %v replicas once it receives traffic %s\n", scaleRef.Kind, serviceName.Namespace, scaleRef.Name, scaleRef.Replicas, dryRunText)
 		}
 	}
 
 	// actually "idle" the scalable resources by scaling them down to zero
 	// (scale down to zero *after* we've applied the annotation so that we don't miss any traffic)
 	for scaleRef, info := range toScale {
-		idled := ""
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
 			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, dcGetter, kclient.Core())
@@ -630,11 +638,9 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 				hadError = true
 				continue
 			}
-		} else {
-			idled = "(dry run)"
 		}
 
-		fmt.Fprintf(o.out, "Idled %s %s/%s %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, idled)
+		fmt.Fprintf(o.out, "%s \"%s/%s\" has been idled %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, dryRunText)
 	}
 
 	if hadError {
