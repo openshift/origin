@@ -341,7 +341,10 @@ var (
 		scale is sent to the server.
 
 		Note that scaling a deployment configuration with no deployments will update the
-		desired replicas in the configuration template.`)
+		desired replicas in the configuration template.
+
+		Supported resources:
+		%q`)
 
 	scaleExample = templates.Examples(`
 		# Scale replication controller named 'foo' to 3.
@@ -358,10 +361,10 @@ var (
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
 func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdScale(f, out)
-	cmd.Short = "Change the number of pods in a deployment"
-	cmd.Long = scaleLong
-	cmd.Example = fmt.Sprintf(scaleExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
+	cmd.Short = "Change the number of pods in a deployment"
+	cmd.Long = fmt.Sprintf(scaleLong, cmd.ValidArgs)
+	cmd.Example = fmt.Sprintf(scaleExample, fullName)
 	return cmd
 }
 
