@@ -1315,6 +1315,9 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 		conditionPayload.HttpUri = true
 		conditionPayload.PathSegment = true
 		for i, segment := range segments[1:] {
+			if segment == "" {
+				continue
+			}
 			idx := fmt.Sprintf("%d", i+1)
 			conditionPayload.Name = idx
 			conditionPayload.Index = i + 1
