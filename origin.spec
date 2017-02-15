@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8519abd40e1bbf040ddee11a5655a11ee8d53857
+%global commit 61a3ddcc8a3a05f62b0bf25bc7dcdacdd1553f2a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.5.0.19+8519abd-36 OS_GIT_COMMIT=8519abd OS_GIT_MAJOR=3 OS_GIT_MINOR=5+
+%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.20+61a3ddc-32 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=61a3ddc
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.20
+Version:        3.5.0.21
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -567,6 +567,33 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Feb 15 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.21-1
+- Fix make_redistributionable logic (tdawson@redhat.com)
+- Add new cross.sh command line options (tdawson@redhat.com)
+- change the parameter names in the route generation function to match the oc
+  expose flag name (jtanenba@redhat.com)
+- in clear-route-status.sh alert users if 'jq' tool is not installed
+  (jtanenba@redhat.com)
+- a split on string can give empty elements - fix bz1421572
+  (rchopra@redhat.com)
+- UPSTREAM: 41329: stop senseless negotiation (deads@redhat.com)
+- Handle RPM output paths better in RPM build (skuznets@redhat.com)
+- Provide canonical version and release to `tito` (skuznets@redhat.com)
+- router: Fix ingress handling of nil rule value (marun@redhat.com)
+- Bumped minimum acceptable tito version (skuznets@redhat.com)
+- Refactored custom `tito` tagger and builder (skuznets@redhat.com)
+- openvswitch: add wrapper to read configuration from env files
+  (gscrivan@redhat.com)
+- origin: add wrapper to read configuration from env files
+  (gscrivan@redhat.com)
+- node: add wrapper to read configuration from env files (gscrivan@redhat.com)
+- add better logging for new-app argument processing (bparees@redhat.com)
+- add generated docs (jvallejo@redhat.com)
+- add add-cluster-role-to-user support for -z (jvallejo@redhat.com)
+- Fix test hosts to be unique (different). (smitram@gmail.com)
+- add sample using openshift-client-plugin syntax; add ext test
+  (gmontero@redhat.com)
+
 * Mon Feb 13 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.20
 - set php latest to v7 (bparees@redhat.com)
 - Enforce authz(n) on controller (ccoleman@redhat.com)
