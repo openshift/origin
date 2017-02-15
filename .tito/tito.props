@@ -7,4 +7,4 @@ changelog_format = %s (%ae)
 lib_dir = .tito/lib
 
 [requirements]
-tito = 0.6
+tito = 0.6.10

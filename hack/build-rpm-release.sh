@@ -7,7 +7,6 @@
 #  - BUILD_TESTS: whether or not to build a test RPM, off by default
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
-os::util::environment::setup_tmpdir_vars "build-rpm-release"
 
 if [[ "${OS_ONLY_BUILD_PLATFORMS:-}" == 'linux/amd64' ]]; then
 	# when the user is asking for only Linux binaries, we will
@@ -18,10 +17,22 @@ else
 fi
 
 os::log::info 'Building Origin release RPMs with tito...'
+os::build::get_version_vars
+if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
+	# we need to translate from the semantic version
+	# provided by the Origin build scripts to the
+	# version that RPM will expect.
+	rpm_version="${BASH_REMATCH[1]}"
+	rpm_release="0${BASH_REMATCH[3]//-/.}"
+fi
+tito tag --use-version="${rpm_version}" \
+         --use-release="${rpm_release}" \
+         --no-auto-changelog --offline
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
-tito build --output="${tito_tmp_dir}" --rpm --test --no-cleanup \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' --define 'build_tests ${BUILD_TESTS:-0}'"
+tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
+           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
 output_directories=( $( find "${tito_tmp_dir}" -type d -name 'rpmbuild-origin*' ) )
@@ -42,9 +53,9 @@ else
 	output_directory="${output_directories[0]}"
 fi
 
-if ! tito_output_directory="$( find "${output_directory}" -type d -path '*/BUILD/origin-git-*/_output/local' )"; then
-	os::log::error 'No _output artifact directory found in tito rpmbuild artifacts!'
-	exit 1
+tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/origin-${rpm_version}/_output/local" )"
+if [[ -z "${tito_output_directory}" ]]; then
+        os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
 # clean up our local state so we can unpack the tito artifacts cleanly
