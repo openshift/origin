@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 61a3ddcc8a3a05f62b0bf25bc7dcdacdd1553f2a
+%global commit ab9170524b73b68c51a09ba684b664c651bf4821
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.20+61a3ddc-32 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=61a3ddc
+%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.21-1+ab91705-4 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=ab91705
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.21
+Version:        3.5.0.22
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -567,6 +567,11 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.22-1
+- Merge remote-tracking branch enterprise-3.5, bump origin-web-console 04d7652
+  (tdawson@redhat.com)
+- dind: upgrade to fedora 25 (marun@redhat.com)
+
 * Wed Feb 15 2017 Troy Dawson <tdawson@redhat.com> 3.5.0.21-1
 - Fix make_redistributionable logic (tdawson@redhat.com)
 - Add new cross.sh command line options (tdawson@redhat.com)
