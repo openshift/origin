@@ -27,7 +27,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 		{Name: "name", Required: false},
 		{Name: "hostname", Required: false},
 		{Name: "path", Required: false},
-		{Name: "wildcardpolicy", Required: false},
+		{Name: "wildcard-policy", Required: false},
 	}
 }
 
@@ -70,7 +70,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		},
 		Spec: api.RouteSpec{
 			Host:           params["hostname"],
-			WildcardPolicy: api.WildcardPolicyType(params["wildcardpolicy"]),
+			WildcardPolicy: api.WildcardPolicyType(params["wildcard-policy"]),
 			Path:           params["path"],
 			To: api.RouteTargetReference{
 				Name: params["default-name"],

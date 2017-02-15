@@ -31,6 +31,8 @@ ENV HOME=/root \
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
 
+# files required to run as a system container
+COPY system-container/system-container-wrapper.sh /usr/local/bin
 COPY system-container/config.json.template system-container/manifest.json system-container/service.template /exports/
 
 ENTRYPOINT ["/usr/bin/openshift"]

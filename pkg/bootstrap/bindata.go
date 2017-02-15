@@ -17,6 +17,7 @@
 // examples/jenkins/pipeline/bluegreen-pipeline.yaml
 // examples/jenkins/pipeline/mapsapp-pipeline.yaml
 // examples/jenkins/pipeline/maven-pipeline.yaml
+// examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql-persistent.json
 // examples/quickstarts/cakephp-mysql.json
@@ -5721,6 +5722,38 @@ func examplesJenkinsPipelineMavenPipelineYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/jenkins/pipeline/maven-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  labels:
+    name: sample-pipeline-openshift-client-plugin
+  name: sample-pipeline-openshift-client-plugin
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/openshift/jenkins-client-plugin.git
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfilePath: examples/jenkins-image-sample.groovy
+`)
+
+func examplesJenkinsPipelineOpenshiftClientPluginPipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, nil
+}
+
+func examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineOpenshiftClientPluginPipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -12454,6 +12487,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
 	"examples/jenkins/pipeline/mapsapp-pipeline.yaml": examplesJenkinsPipelineMapsappPipelineYaml,
 	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql-persistent.json": examplesQuickstartsCakephpMysqlPersistentJson,
 	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
@@ -12538,6 +12572,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"bluegreen-pipeline.yaml": &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
 				"mapsapp-pipeline.yaml": &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
 				"maven-pipeline.yaml": &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
+				"openshift-client-plugin-pipeline.yaml": &bintree{examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, map[string]*bintree{}},
 				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
 			}},
 		}},

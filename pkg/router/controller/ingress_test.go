@@ -572,21 +572,32 @@ func TestTLSFromSecret(t *testing.T) {
 }
 
 func TestIngressToRoutes(t *testing.T) {
-	ingress := getTestIngress()
-	routes, routeNames := ingressToRoutes(ingress)
+	noRuleValueIngress := getTestIngress()
+	noRuleValueIngress.Spec.Rules[0].HTTP = nil
 
-	expectedCount := 1
-
-	routeCount := len(routes)
-	if routeCount != expectedCount {
-		t.Fatalf("Expected 1 route to be generated from single path ingress, got %v", routeCount)
+	testCases := map[string]struct {
+		ingress       *extensions.Ingress
+		expectedCount int
+	}{
+		"Ingress without rule value generates no routes": {
+			ingress: noRuleValueIngress,
+		},
+		"Ingress with one path generates one route": {
+			ingress:       getTestIngress(),
+			expectedCount: 1,
+		},
 	}
-
-	nameCount := len(routeNames)
-	if nameCount != expectedCount {
-		t.Fatalf("Expected 1 route to be generated from single path ingress, got %v", nameCount)
+	for testName, tc := range testCases {
+		routes, routeNames := ingressToRoutes(tc.ingress)
+		routeCount := len(routes)
+		if routeCount != tc.expectedCount {
+			t.Fatalf("%v: Expected %v route(s) to be generated from ingress, got %v", testName, tc.expectedCount, routeCount)
+		}
+		nameCount := len(routeNames)
+		if nameCount != tc.expectedCount {
+			t.Fatalf("%v: Expected %v route(s) to be generated from ingress, got %v", testName, tc.expectedCount, nameCount)
+		}
 	}
-
 }
 
 func TestMatchesHost(t *testing.T) {

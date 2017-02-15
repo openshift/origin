@@ -440,6 +440,9 @@ func ingressToRoutes(ingress *extensions.Ingress) (routes []*routeapi.Route, rou
 	}
 
 	for _, rule := range ingress.Spec.Rules {
+		if rule.HTTP == nil {
+			continue
+		}
 		for _, path := range rule.HTTP.Paths {
 			name := generateRouteName(ingress.Name, rule.Host, path.Path)
 			if routeNames.Has(name) {

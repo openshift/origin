@@ -40,7 +40,8 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		jenkinsTemplatePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
 		mavenSlavePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
-		blueGreenPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
+		blueGreenPipelinePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
+		clientPluginPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -114,6 +115,25 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			// wait for the service to be running
 			g.By("expecting the openshift-jee-sample service to be deployed and running")
 			_, err = exutil.GetEndpointAddress(oc, "openshift-jee-sample")
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Context("Pipeline using jenkins-client-plugin", func() {
+		g.It("should build and complete successfully", func() {
+			// instantiate the bc
+			g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
+			err := oc.Run("create").Args("-f", clientPluginPipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// start the build
+			g.By("starting the pipeline build and waiting for it to complete")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
+			br.AssertSuccess()
+
+			g.By("get build console logs and see if succeeded")
+			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-openshift-client-plugin/lastBuild/consoleText", oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

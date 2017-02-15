@@ -84,6 +84,11 @@ if [[ ${#} -ne 2 || "${@}" == *" help "* ]]; then
     exit
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+    printf "%s\n%s\n" "Command line JSON processor 'jq' not found." "please install 'jq' to use this script."
+    exit 1
+fi
+
 oc proxy > /dev/null &
 PROXY_PID="${!}"
 
