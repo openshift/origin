@@ -3,6 +3,8 @@ package policy
 import (
 	"fmt"
 	"io"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -17,7 +19,6 @@ import (
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
@@ -52,7 +53,7 @@ type sccReviewOptions struct {
 	mapper              meta.RESTMapper
 	typer               runtime.ObjectTyper
 	RESTClientFactory   func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	printer             kubectl.ResourcePrinter
+	printer             sccReviewPrinter
 	FilenameOptions     resource.FilenameOptions
 	ServiceAccountNames []string
 }
@@ -70,7 +71,7 @@ func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer)
 		},
 	}
 
-	cmd.Flags().StringSliceVarP(&o.ServiceAccountNames, "serviceaccounts", "s", o.ServiceAccountNames, "List of ServiceAccount names, comma separated")
+	cmd.Flags().StringSliceVarP(&o.ServiceAccountNames, "serviceaccount", "z", o.ServiceAccountNames, "service account in the current namespace to use as a user")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
 
 	kcmdutil.AddPrinterFlags(cmd)
@@ -107,11 +108,10 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 		if err != nil {
 			return err
 		}
-		o.printer = kubectl.NewVersionedPrinter(p, kapi.Scheme, version)
+		o.printer = &sccReviewOutputPrinter{kubectl.NewVersionedPrinter(p, kapi.Scheme, version)}
 	} else {
-		o.printer = describe.NewHumanReadablePrinter(kubectl.PrintOptions{NoHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")})
+		o.printer = &sccReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
-
 	o.out = out
 
 	return nil
@@ -132,7 +132,6 @@ func (o *sccReviewOptions) Run(args []string) error {
 	}
 
 	allErrs := []error{}
-	reviews := []*securityapi.PodSecurityPolicyReview{}
 	err = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
@@ -156,15 +155,12 @@ func (o *sccReviewOptions) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
 		}
-		reviews = append(reviews, response)
+		if err = o.printer.print(info, response, o.out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 		return nil
 	})
 	allErrs = append(allErrs, err)
-	for i := range reviews {
-		if err := o.printer.PrintObj(reviews[i], o.out); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
 	return utilerrors.NewAggregate(allErrs)
 }
 
@@ -192,4 +188,62 @@ func GetPodTemplateForObject(obj runtime.Object) (*kapi.PodTemplateSpec, error) 
 		return nil, err
 	}
 	return &kapi.PodTemplateSpec{Spec: *podSpec}, nil
+}
+
+type sccReviewPrinter interface {
+	print(*resource.Info, runtime.Object, io.Writer) error
+}
+
+type sccReviewOutputPrinter struct {
+	kubectl.ResourcePrinter
+}
+
+var _ sccReviewPrinter = &sccReviewOutputPrinter{}
+
+func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
+	return s.ResourcePrinter.PrintObj(obj, out)
+}
+
+type sccReviewHumanReadablePrinter struct {
+	noHeaders bool
+}
+
+var _ sccReviewPrinter = &sccReviewHumanReadablePrinter{}
+
+const (
+	sccReviewTabWriterMinWidth = 0
+	sccReviewTabWriterWidth    = 7
+	sccReviewTabWriterPadding  = 3
+	sccReviewTabWriterPadChar  = ' '
+	sccReviewTabWriterFlags    = 0
+)
+
+func (s *sccReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.Object, out io.Writer) error {
+	w := tabwriter.NewWriter(out, sccReviewTabWriterMinWidth, sccReviewTabWriterWidth, sccReviewTabWriterPadding, sccReviewTabWriterPadChar, sccReviewTabWriterFlags)
+	defer w.Flush()
+	if s.noHeaders == false {
+		columns := []string{"RESOURCE", "SERVICE ACCOUNT", "ALLOWED BY"}
+		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
+		s.noHeaders = true // printed only the first time if requested
+	}
+	pspreview, ok := obj.(*securityapi.PodSecurityPolicyReview)
+	if !ok {
+		return fmt.Errorf("unexpected object %T", obj)
+	}
+	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	if err != nil {
+		return err
+	}
+	kind := gvk.Kind
+	for _, allowedSA := range pspreview.Status.AllowedServiceAccounts {
+		allowedBy := "<none>"
+		if allowedSA.AllowedBy != nil {
+			allowedBy = allowedSA.AllowedBy.Name
+		}
+		_, err := fmt.Fprintf(w, "%s/%s\t%s\t%s\t\n", kind, info.Name, allowedSA.Name, allowedBy)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

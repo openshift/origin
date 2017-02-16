@@ -3,6 +3,8 @@ package policy
 import (
 	"fmt"
 	"io"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +17,6 @@ import (
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
@@ -48,7 +49,7 @@ type sccSubjectReviewOptions struct {
 	mapper                     meta.RESTMapper
 	typer                      runtime.ObjectTyper
 	RESTClientFactory          func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	printer                    kubectl.ResourcePrinter
+	printer                    sccSubjectReviewPrinter
 	FilenameOptions            resource.FilenameOptions
 	User                       string
 	Groups                     []string
@@ -112,11 +113,10 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 		if err != nil {
 			return err
 		}
-		o.printer = kubectl.NewVersionedPrinter(p, kapi.Scheme, version)
+		o.printer = &sccSubjectReviewOutputPrinter{kubectl.NewVersionedPrinter(p, kapi.Scheme, version)}
 	} else {
-		o.printer = describe.NewHumanReadablePrinter(kubectl.PrintOptions{NoHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")})
+		o.printer = &sccSubjectReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
-
 	o.out = out
 	return nil
 }
@@ -139,7 +139,6 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 	}
 
 	allErrs := []error{}
-	var reviews []runtime.Object
 	err = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
@@ -162,15 +161,12 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 		}
-		reviews = append(reviews, response)
+		if err := o.printer.print(info, response, o.out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 		return nil
 	})
 	allErrs = append(allErrs, err)
-	for i := range reviews {
-		if err := o.printer.PrintObj(reviews[i], o.out); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
 	return utilerrors.NewAggregate(allErrs)
 }
 
@@ -192,4 +188,73 @@ func (o *sccSubjectReviewOptions) pspSelfSubjectReview(podTemplateSpec *kapi.Pod
 		},
 	}
 	return o.sccSelfSubjectReviewClient.PodSecurityPolicySelfSubjectReviews(o.namespace).Create(podSecurityPolicySelfSubjectReview)
+}
+
+type sccSubjectReviewPrinter interface {
+	print(*resource.Info, runtime.Object, io.Writer) error
+}
+
+type sccSubjectReviewOutputPrinter struct {
+	kubectl.ResourcePrinter
+}
+
+var _ sccSubjectReviewPrinter = &sccSubjectReviewOutputPrinter{}
+
+func (s *sccSubjectReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
+	return s.ResourcePrinter.PrintObj(obj, out)
+}
+
+type sccSubjectReviewHumanReadablePrinter struct {
+	noHeaders bool
+}
+
+var _ sccSubjectReviewPrinter = &sccSubjectReviewHumanReadablePrinter{}
+
+const (
+	sccSubjectReviewTabWriterMinWidth = 0
+	sccSubjectReviewTabWriterWidth    = 7
+	sccSubjectReviewTabWriterPadding  = 3
+	sccSubjectReviewTabWriterPadChar  = ' '
+	sccSubjectReviewTabWriterFlags    = 0
+)
+
+func (s *sccSubjectReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.Object, out io.Writer) error {
+	w := tabwriter.NewWriter(out, sccSubjectReviewTabWriterMinWidth, sccSubjectReviewTabWriterWidth, sccSubjectReviewTabWriterPadding, sccSubjectReviewTabWriterPadChar, sccSubjectReviewTabWriterFlags)
+	defer w.Flush()
+	if s.noHeaders == false {
+		columns := []string{"RESOURCE", "ALLOWED BY"}
+		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
+		s.noHeaders = true // printed only the first time if requested
+	}
+	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	if err != nil {
+		return err
+	}
+	kind := gvk.Kind
+	allowedBy, err := getAllowedBy(obj)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "%s/%s\t%s\t\n", kind, info.Name, allowedBy)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getAllowedBy(obj runtime.Object) (string, error) {
+	value := "<none>"
+	switch review := obj.(type) {
+	case *securityapi.PodSecurityPolicySelfSubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	case *securityapi.PodSecurityPolicySubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	default:
+		return value, fmt.Errorf("unexpected object %T", obj)
+	}
+	return value, nil
 }
