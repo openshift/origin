@@ -24,7 +24,6 @@ import (
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -66,10 +65,6 @@ var (
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 
 	roleBindingRestrictionColumns = []string{"NAME", "SUBJECT TYPE", "SUBJECTS"}
-
-	pspReviewColumns            = []string{"SERVICE ACCOUNT", "ALLOWED BY"}
-	pspSubjectReviewColumns     = []string{"ALLOWED BY"}
-	pspSelfSubjectReviewColumns = []string{"ALLOWED BY"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -150,9 +145,6 @@ func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadable
 	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestriction)
 	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestrictionList)
 
-	p.Handler(pspReviewColumns, printPSPReview)
-	p.Handler(pspSubjectReviewColumns, printPSPSubjectReview)
-	p.Handler(pspSelfSubjectReviewColumns, printPSPSelfSubjectReview)
 	return p
 }
 
@@ -1135,45 +1127,6 @@ func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w
 func printRoleBindingRestrictionList(list *authorizationapi.RoleBindingRestrictionList, w io.Writer, options kctl.PrintOptions) error {
 	for i := range list.Items {
 		if err := printRoleBindingRestriction(&list.Items[i], w, options); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printPSPReview(pspreview *securityapi.PodSecurityPolicyReview, w io.Writer, options kctl.PrintOptions) error {
-	for _, allowedSA := range pspreview.Status.AllowedServiceAccounts {
-		allowedByName := "<none>"
-		if allowedSA.AllowedBy != nil {
-			allowedByName = allowedSA.AllowedBy.Name
-		}
-		if _, err := fmt.Fprintf(w, "%s\t%s\n", allowedSA.Name, allowedByName); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printPSPSubjectReview(pspSubjectReview *securityapi.PodSecurityPolicySubjectReview, w io.Writer, options kctl.PrintOptions) error {
-	if pspSubjectReview.Status.AllowedBy != nil {
-		if _, err := fmt.Fprintln(w, pspSubjectReview.Status.AllowedBy.Name); err != nil {
-			return err
-		}
-	} else {
-		if _, err := fmt.Fprintln(w, "<none>"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printPSPSelfSubjectReview(pspSelfSubjectReview *securityapi.PodSecurityPolicySelfSubjectReview, w io.Writer, options kctl.PrintOptions) error {
-	if pspSelfSubjectReview.Status.AllowedBy != nil {
-		if _, err := fmt.Fprintln(w, pspSelfSubjectReview.Status.AllowedBy.Name); err != nil {
-			return err
-		}
-	} else {
-		if _, err := fmt.Fprintln(w, "<none>"); err != nil {
 			return err
 		}
 	}
