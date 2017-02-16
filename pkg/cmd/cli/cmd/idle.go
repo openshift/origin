@@ -202,7 +202,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
-		pod, err := client.Pods(ref.Namespace).Get(ref.Name)
+		pod, err := client.Core().Pods(ref.Namespace).Get(ref.Name)
 		if err != nil {
 			return nil, err
 		}

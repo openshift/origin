@@ -102,8 +102,8 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, 
 		o.ContextNamespace = namespace
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 

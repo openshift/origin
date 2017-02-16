@@ -144,7 +144,7 @@ func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelecto
 		if err != nil {
 			return "", err
 		}
-		secret, err = kubeClient.Secrets(namespace).Get(secretSelector.Name)
+		secret, err = kubeClient.Core().Secrets(namespace).Get(secretSelector.Name)
 		if err != nil {
 			return "", err
 		}
@@ -167,7 +167,7 @@ func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapS
 		if err != nil {
 			return "", err
 		}
-		configMap, err = kubeClient.ConfigMaps(namespace).Get(configMapSelector.Name)
+		configMap, err = kubeClient.Core().ConfigMaps(namespace).Get(configMapSelector.Name)
 		if err != nil {
 			return "", err
 		}

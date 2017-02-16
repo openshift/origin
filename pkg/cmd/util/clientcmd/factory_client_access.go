@@ -145,11 +145,11 @@ func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, er
 	return f.kubeClientAccessFactory.DiscoveryClient()
 }
 
-func (f *ring0Factory) ClientSet() (*kclientset.Clientset, error) {
+func (f *ring0Factory) ClientSet() (kclientset.Interface, error) {
 	return f.kubeClientAccessFactory.ClientSet()
 }
 
-func (f *ring0Factory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*kclientset.Clientset, error) {
+func (f *ring0Factory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (kclientset.Interface, error) {
 	return f.kubeClientAccessFactory.ClientSetForVersion(requiredVersion)
 }
 
