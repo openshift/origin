@@ -29,7 +29,7 @@ var LogRejections = logRecorder{}
 
 type logRecorder struct{}
 
-func (_ logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
 	glog.V(4).Infof("Rejected route %s: %s: %s", route.Name, reason, message)
 }
 
@@ -234,7 +234,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	return nil
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	p.allowedNamespaces = namespaces
