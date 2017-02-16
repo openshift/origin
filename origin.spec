@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c73b34c0985ec3ebaae09292fa7f8186b7b2ea82
+%global commit aae2476d71dc10739b06e9663e678aef725d330f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.25-1+c73b34c-3 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=c73b34c
+%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.26-1+aae2476-13 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=aae2476
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -51,7 +51,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.5.0.26
+Version:        3.5.0.27
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -567,6 +567,19 @@ fi
 /usr/sbin/%{name}-docker-excluder unexclude
 
 %changelog
+* Thu Feb 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.27-1
+- deployment: add unit test to exercise the watch restart (mfojtik@redhat.com)
+- deployment: retry failed watch when observed controller has old resource
+  version (mfojtik@redhat.com)
+- Add TestEtcdStoragePath (mkhan@redhat.com)
+- UPSTREAM: <carry>: Change docker security opt separator to be compatible with
+  1.11+ (pmorie@redhat.com)
+- Revert "e2e test: remove PodCheckDns flake" (maszulik@redhat.com)
+- Add replace patch strategy for DockerImageMetadata and cmd tests for oc edit
+  istag (maszulik@redhat.com)
+- UPSTREAM: 41043: allow setting replace patchStrategy for structs
+  (maszulik@redhat.com)
+
 * Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.26-1
 - improve output of `oc idle` (jvallejo@redhat.com)
 
