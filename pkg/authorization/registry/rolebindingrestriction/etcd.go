@@ -43,7 +43,7 @@ func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 		ReturnDeletedObject: false,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 
