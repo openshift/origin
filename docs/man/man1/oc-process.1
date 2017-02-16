@@ -21,6 +21,9 @@ Templates allow parameterization of resources prior to being sent to the server 
 .PP
 The output of the process command is always a list of one or more resources. You may pipe the output to the create command over STDIN (using the '\-f \-' option) or redirect it to a file.
 
+.PP
+Process resolves the template on the server, but you may pass \-\-local to parameterize the template locally. When running locally be aware that the version of your client tools will determine what template transformations are supported, rather than the server.
+
 
 .SH OPTIONS
 .PP
@@ -30,6 +33,10 @@ The output of the process command is always a list of one or more resources. You
 .PP
 \fB\-l\fP, \fB\-\-labels\fP=""
     Label to set in all resources for this template
+
+.PP
+\fB\-\-local\fP=false
+    If true process the template locally instead of contacting the server.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP="json"
@@ -142,6 +149,9 @@ The output of the process command is always a list of one or more resources. You
 .nf
   # Convert template.json file into resource list and pass to create
   oc process \-f template.json | oc create \-f \-
+  
+  # Process a file locally instead of contacting the server
+  oc process \-f template.json \-\-local \-o yaml
   
   # Process template while passing a user\-defined label
   oc process \-f template.json \-l name=mytemplate
