@@ -364,7 +364,6 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *unversioned.L
 
 func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *extensions.NetworkPolicy) (*npPolicy, error) {
 	npp := &npPolicy{policy: *policy}
-	allowAll := false
 
 	var destFlows []string
 	if len(policy.Spec.PodSelector.MatchLabels) > 0 || len(policy.Spec.PodSelector.MatchExpressions) > 0 {
@@ -377,11 +376,6 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 	}
 
 	for _, rule := range policy.Spec.Ingress {
-		if len(rule.Ports) == 0 && len(rule.From) == 0 {
-			allowAll = true
-			break
-		}
-
 		var portFlows, peerFlows []string
 		if len(rule.Ports) == 0 {
 			portFlows = []string{""}
@@ -446,11 +440,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 		}
 	}
 
-	if allowAll {
-		npp.flows = []string{""}
-	} else {
-		sort.Strings(npp.flows)
-	}
+	sort.Strings(npp.flows)
 	glog.V(5).Infof("Parsed NetworkPolicy: %#v", npp)
 	return npp, nil
 }
