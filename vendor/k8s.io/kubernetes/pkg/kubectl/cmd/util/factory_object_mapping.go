@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -286,28 +287,33 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*api.Pod, 
 	if err != nil {
 		return nil, err
 	}
+	var selector labels.Selector
+	var namespace string
 	switch t := object.(type) {
+	case *extensions.ReplicaSet:
+		namespace = t.Namespace
+		selector = labels.SelectorFromSet(t.Spec.Selector.MatchLabels)
 	case *api.ReplicationController:
-		selector := labels.SelectorFromSet(t.Spec.Selector)
-		sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-		pod, _, err := GetFirstPod(clientset.Core(), t.Namespace, selector, 1*time.Minute, sortBy)
-		return pod, err
+		namespace = t.Namespace
+		selector = labels.SelectorFromSet(t.Spec.Selector)
+	case *apps.StatefulSet:
+		namespace = t.Namespace
+		selector, err = unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("invalid label selector: %v", err)
+		}
 	case *extensions.Deployment:
-		selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+		namespace = t.Namespace
+		selector, err = unversioned.LabelSelectorAsSelector(t.Spec.Selector)
 		if err != nil {
 			return nil, fmt.Errorf("invalid label selector: %v", err)
 		}
-		sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-		pod, _, err := GetFirstPod(clientset.Core(), t.Namespace, selector, 1*time.Minute, sortBy)
-		return pod, err
 	case *batch.Job:
-		selector, err := unversioned.LabelSelectorAsSelector(t.Spec.Selector)
+		namespace = t.Namespace
+		selector, err = unversioned.LabelSelectorAsSelector(t.Spec.Selector)
 		if err != nil {
 			return nil, fmt.Errorf("invalid label selector: %v", err)
 		}
-		sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-		pod, _, err := GetFirstPod(clientset.Core(), t.Namespace, selector, 1*time.Minute, sortBy)
-		return pod, err
 	case *api.Pod:
 		return t, nil
 	default:
@@ -317,6 +323,9 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*api.Pod, 
 		}
 		return nil, fmt.Errorf("cannot attach to %v: not implemented", gvks[0])
 	}
+	sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+	pod, _, err := GetFirstPod(clientset.Core(), namespace, selector, 1*time.Minute, sortBy)
+	return pod, err
 }
 
 func (f *ring1Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (kubectl.ResourcePrinter, error) {
