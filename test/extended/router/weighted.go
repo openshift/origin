@@ -36,10 +36,10 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should appropriately serve a route that points to two services", func() {
 			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
-					e2e.Logf("Router logs:\n %s", log)
-				}
+				// This should be done if the test fails but
+				// for now always dump the logs.
+				// if g.CurrentGinkgoTestDescription().Failed
+				dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
@@ -125,4 +125,9 @@ func parseStats(stats string, backendSubstr string, statsField int) ([]string, e
 		}
 	}
 	return fieldValues, nil
+}
+
+func dumpWeightedRouterLogs(oc *exutil.CLI, name string) {
+	log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
+	e2e.Logf("Weighted Router test %s logs:\n %s", name, log)
 }
