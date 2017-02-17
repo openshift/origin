@@ -30,15 +30,16 @@
 }
 
 %if 0%{?fedora} || 0%{?epel}
-%global make_redistributable 0
+%global need_redistributable_set 0
 %else
 # Due to library availability, redistributable builds only work on x86_64
 %ifarch x86_64
-%global make_redistributable 1
+%global need_redistributable_set 1
 %else
-%global make_redistributable 0
+%global need_redistributable_set 0
 %endif
 %endif
+%{!?make_redistributable: %global	make_redistributable	%{need_redistributable_set}}
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
