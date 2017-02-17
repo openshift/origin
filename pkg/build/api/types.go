@@ -226,9 +226,48 @@ type BuildStatus struct {
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference
 
+	// StepInfo holds the information related to build execution steps in the
+	// build flow.
+	StepInfo []BuildStepInfo
 	// Output describes the Docker image the build has produced.
 	Output BuildStatusOutput
 }
+
+// BuildStepInfo has information about a step in the build process.
+type BuildStepInfo struct {
+	// Name is the name of the build step.
+	Name StepName
+
+	// StartTime is the time when the build step process has started under the
+	// format that time.Now() returns.
+	StartTime time.Time
+
+	// StopTime is the time when the build step process has finished regardless
+	// whether if finished successfully or not.
+	StopTime time.Time
+}
+
+// StepName is the name of a build step in the build process such as pull
+// builder image, fetch source, etc.
+type StepName string
+
+const (
+	// SchedulePodStep is the build that when a pod is being scheduled.
+	SchedulePodStep StepName = "SchedulePodStep"
+
+	// PostCommitHookStep is the step in build that runs the post commit hook.
+	PostCommitHookStep StepName = "PostCommitHookStep"
+
+	// PushImageToRegistryStep is the build step that occurs when the built image
+	// is getting pushed to the registry.
+	PushImageToRegistryStep StepName = "PushImageToRegistry"
+
+	// FetchSourceStep is the build step that fetches the source for the build.
+	FetchSourceStep StepName = "FetchSourceStep"
+
+	// PullBuilderImageStep is the build step that fetches the builder image.
+	PullBuilderImageStep StepName = "PullBuilderImageStep"
+)
 
 // BuildPhase represents the status of a build at a point in time.
 type BuildPhase string

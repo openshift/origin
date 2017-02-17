@@ -210,3 +210,13 @@ func handleBuildStatusUpdate(build *api.Build, client client.BuildInterface, sou
 		utilruntime.HandleError(fmt.Errorf("error occurred while updating the build status: %v", updateErr))
 	}
 }
+
+// AddBuildStepInfo adds information about a build step, such as execution
+// start, stop time and name of the said build step.
+func AddBuildStepInfo(stepInfo []api.BuildStepInfo, stepName api.StepName, timeStart time.Time) []api.BuildStepInfo {
+	return append(stepInfo, api.BuildStepInfo{
+		Name:      stepName,
+		StartTime: timeStart,
+		StopTime:  time.Now(),
+	})
+}

@@ -23,6 +23,11 @@ import (
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
+var (
+	// timeStart holds the start timestamp for a build step.
+	timeStart time.Time
+)
+
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
 type builderFactory interface {
 	// Create S2I Builder based on S2I configuration
@@ -263,19 +268,24 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
+	// NOTE: result will contain the build step timing returned from s2i build
+	// steps
 	result, err := builder.Build(config)
 	if err != nil {
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			result.BuildInfo.FailureReason.Reason,
 			result.BuildInfo.FailureReason.Message,
 		)
-
 		handleBuildStatusUpdate(s.build, s.client, nil)
+
 		return err
 	}
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
+	timeStart = time.Now()
+	err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
+	s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PostCommitHookStep, timeStart)
+	if err != nil {
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		handleBuildStatusUpdate(s.build, s.client, nil)
@@ -304,7 +314,12 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
+
+		timeStart = time.Now()
 		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+
+		s.build.Status.StepInfo = AddBuildStepInfo(s.build.Status.StepInfo, api.PushImageToRegistryStep, timeStart)
+
 		if err != nil {
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			s.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
