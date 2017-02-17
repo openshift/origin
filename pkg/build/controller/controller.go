@@ -302,55 +302,56 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	nextStatus := build.Status.Phase
 	currentReason := build.Status.Reason
 
-	switch pod.Status.Phase {
-	case kapi.PodRunning:
-		// The pod's still running
-		build.Status.Reason = ""
-		build.Status.Message = ""
-		nextStatus = buildapi.BuildPhaseRunning
+	if build.Status.Phase != buildapi.BuildPhaseFailed {
+		switch pod.Status.Phase {
+		case kapi.PodRunning:
+			// The pod's still running
+			build.Status.Reason = ""
+			build.Status.Message = ""
+			nextStatus = buildapi.BuildPhaseRunning
 
-	case kapi.PodPending:
-		build.Status.Reason = ""
-		build.Status.Message = ""
-		nextStatus = buildapi.BuildPhasePending
-		if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
-			if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
-				build.Status.Reason = buildapi.StatusReasonMissingPushSecret
-				build.Status.Message = buildapi.StatusMessageMissingPushSecret
-				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
-			}
-		}
-
-	case kapi.PodSucceeded:
-		build.Status.Reason = ""
-		build.Status.Message = ""
-		// Check the exit codes of all the containers in the pod
-		nextStatus = buildapi.BuildPhaseComplete
-		if len(pod.Status.ContainerStatuses) == 0 {
-			// no containers in the pod means something went badly wrong, so the build
-			// should be failed.
-			glog.V(2).Infof("Failing build %s/%s because the pod has no containers", build.Namespace, build.Name)
-			nextStatus = buildapi.BuildPhaseFailed
-		} else {
-			for _, info := range pod.Status.ContainerStatuses {
-				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
-					nextStatus = buildapi.BuildPhaseFailed
-					break
+		case kapi.PodPending:
+			build.Status.Reason = ""
+			build.Status.Message = ""
+			nextStatus = buildapi.BuildPhasePending
+			if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
+				if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+					build.Status.Reason = buildapi.StatusReasonMissingPushSecret
+					build.Status.Message = buildapi.StatusMessageMissingPushSecret
+					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 				}
 			}
+
+		case kapi.PodSucceeded:
+			build.Status.Reason = ""
+			build.Status.Message = ""
+			// Check the exit codes of all the containers in the pod
+			nextStatus = buildapi.BuildPhaseComplete
+			if len(pod.Status.ContainerStatuses) == 0 {
+				// no containers in the pod means something went badly wrong, so the build
+				// should be failed.
+				glog.V(2).Infof("Failing build %s/%s because the pod has no containers", build.Namespace, build.Name)
+				nextStatus = buildapi.BuildPhaseFailed
+			} else {
+				for _, info := range pod.Status.ContainerStatuses {
+					if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
+						nextStatus = buildapi.BuildPhaseFailed
+						break
+					}
+				}
+			}
+
+		case kapi.PodFailed:
+			nextStatus = buildapi.BuildPhaseFailed
+
+		default:
+			build.Status.Reason = ""
+			build.Status.Message = ""
 		}
-
-	case kapi.PodFailed:
-		nextStatus = buildapi.BuildPhaseFailed
-
-	default:
-		build.Status.Reason = ""
-		build.Status.Message = ""
 	}
-
 	// Update the build object when it progress to a next state or the reason for
 	// the current state changed.
-	if (!hasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus) && !buildutil.IsBuildComplete(build) {
+	if (!hasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus || build.Status.Phase == buildapi.BuildPhaseFailed) && !buildutil.IsBuildComplete(build) {
 		setBuildPodNameAnnotation(build, pod.Name)
 		reason := ""
 		if len(build.Status.Reason) > 0 {

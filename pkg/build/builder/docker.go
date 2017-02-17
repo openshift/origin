@@ -68,6 +68,7 @@ func (d *DockerBuilder) Build() error {
 	}
 	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	if err != nil {
+		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
 		d.build.Status.Message = api.StatusMessageFetchSourceFailed
 		handleBuildStatusUpdate(d.build, d.client, nil)
@@ -119,6 +120,7 @@ func (d *DockerBuilder) Build() error {
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
 			if err = pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
+				d.build.Status.Phase = api.BuildPhaseFailed
 				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
 				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
 				handleBuildStatusUpdate(d.build, d.client, nil)
@@ -128,6 +130,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	if err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
+		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
 		d.build.Status.Message = api.StatusMessageDockerBuildFailed
 		handleBuildStatusUpdate(d.build, d.client, nil)
@@ -136,6 +139,7 @@ func (d *DockerBuilder) Build() error {
 
 	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
 	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
+		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
 		handleBuildStatusUpdate(d.build, d.client, nil)
@@ -164,6 +168,7 @@ func (d *DockerBuilder) Build() error {
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
 		if err != nil {
+			d.build.Status.Phase = api.BuildPhaseFailed
 			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
 			d.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
 			handleBuildStatusUpdate(d.build, d.client, nil)
