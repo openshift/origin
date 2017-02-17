@@ -37,10 +37,10 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
-					e2e.Logf("Router logs:\n %s", log)
-				}
+				// This should be done if the test fails but
+				// for now always dump the logs.
+				// if g.CurrentGinkgoTestDescription().Failed
+				dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
@@ -69,6 +69,9 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
 			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
+			if err != nil {
+				dumpScopedRouterLogs(oc, fmt.Sprintf("%s - %s", g.CurrentGinkgoTestDescription().TestText, "waiting for the healthz endpoint to respond"))
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
@@ -84,10 +87,10 @@ var _ = g.Describe("[networking][router] openshift routers", func() {
 
 		g.It("should override the route host with a custom value", func() {
 			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
-					e2e.Logf("Router logs:\n %s", log)
-				}
+				// This should be done if the test fails but
+				// for now always dump the logs.
+				// if g.CurrentGinkgoTestDescription().Failed
+				dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
@@ -210,4 +213,9 @@ func getAuthenticatedRouteURLViaPod(ns, execPodName, url, host, user, pass strin
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
+}
+
+func dumpScopedRouterLogs(oc *exutil.CLI, name string) {
+	log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
+	e2e.Logf("Scoped Router test %s logs:\n %s", name, log)
 }
