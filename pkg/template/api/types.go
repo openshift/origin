@@ -26,6 +26,11 @@ type Template struct {
 	Parameters []Parameter
 
 	// objects is an array of resources to include in this template.
+	// If a namespace value is hardcoded in the object, it will be removed
+	// during template instantiation, however if the namespace value
+	// is, or contains, a ${PARAMETER_REFERENCE}, the resolved
+	// value after parameter substitution will be respected and the object
+	// will be created in that namespace.
 	Objects []runtime.Object
 
 	// objectLabels is an optional set of labels that are applied to every

@@ -56428,7 +56428,7 @@
       "$ref": "#/definitions/v1.ObjectMeta"
      },
      "objects": {
-      "description": "objects is an array of resources to include in this template.",
+      "description": "objects is an array of resources to include in this template. If a namespace value is hardcoded in the object, it will be removed during template instantiation, however if the namespace value is, or contains, a ${PARAMETER_REFERENCE}, the resolved value after parameter substitution will be respected and the object will be created in that namespace.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/runtime.RawExtension"

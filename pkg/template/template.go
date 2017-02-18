@@ -65,15 +65,16 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 			item = decodedObj
 		}
 
+		// If an object definition's metadata includes a hardcoded namespace field, the field will be stripped out of
+		// the definition during template instantiation.  Namespace fields that contain a ${PARAMETER_REFERENCE}
+		// will be left in place, resolved during parameter substition, and the object will be created in the
+		// referenced namespace.
+		stripNamespace(item)
+
 		newItem, err := p.SubstituteParameters(paramMap, item)
 		if err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
 		}
-		// If an object definition's metadata includes a namespace field, the field will be stripped out of
-		// the definition during template instantiation.  This is necessary because all objects created during
-		// instantiation are placed into the target namespace, so it would be invalid for the object to declare
-		//a different namespace.
-		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
@@ -85,8 +86,8 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 }
 
 func stripNamespace(obj runtime.Object) {
-	// Remove namespace from the item
-	if itemMeta, err := meta.Accessor(obj); err == nil && len(itemMeta.GetNamespace()) > 0 {
+	// Remove namespace from the item unless it contains a ${PARAMETER_REFERENCE}
+	if itemMeta, err := meta.Accessor(obj); err == nil && len(itemMeta.GetNamespace()) > 0 && !stringParameterExp.MatchString(itemMeta.GetNamespace()) {
 		itemMeta.SetNamespace("")
 		return
 	}
@@ -94,13 +95,13 @@ func stripNamespace(obj runtime.Object) {
 	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
 		if obj, ok := unstruct.Object["metadata"]; ok {
 			if m, ok := obj.(map[string]interface{}); ok {
-				if _, ok := m["namespace"]; ok {
+				if _, ok := m["namespace"]; ok && !stringParameterExp.MatchString(m["namespace"].(string)) {
 					m["namespace"] = ""
 				}
 			}
 			return
 		}
-		if _, ok := unstruct.Object["namespace"]; ok {
+		if _, ok := unstruct.Object["namespace"]; ok && stringParameterExp.MatchString(unstruct.Object["namespace"].(string)) {
 			unstruct.Object["namespace"] = ""
 			return
 		}
