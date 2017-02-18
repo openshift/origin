@@ -62,7 +62,6 @@ func NewRef(oc *exutil.CLI) *JenkinsRef {
 	g.By("get token via whoami")
 	token, err := oc.Run("whoami").Args("-t").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	ginkgolog("user token: %s", token)
 
 	j := &JenkinsRef{
 		oc:        oc,

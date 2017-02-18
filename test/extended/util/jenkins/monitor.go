@@ -23,7 +23,7 @@ type JobMon struct {
 
 const (
 	DisableJenkinsMemoryStats = "DISABLE_JENKINS_MEMORY_MONITORING"
-	DisableJenkinsGCSTats     = "DISABLE_JENKINS_GC_MONITORING"
+	DisableJenkinsGCStats     = "DISABLE_JENKINS_GC_MONITORING"
 )
 
 // Designed to match if RSS memory is greater than 500000000  (i.e. > 476MB)
