@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	diagnosticsImage           = "openshift/origin"
 	networkDiagTestPodSelector = "network-diag-pod-name"
 
 	testPodImage   = "docker.io/openshift/hello-openshift"
@@ -21,7 +20,7 @@ const (
 	testTargetPort = 8080
 )
 
-func GetNetworkDiagnosticsPod(command, podName, nodeName string) *kapi.Pod {
+func GetNetworkDiagnosticsPod(diagnosticsImage, command, podName, nodeName string) *kapi.Pod {
 	privileged := true
 	hostRootVolName := "host-root-dir"
 	secretVolName := "kconfig-secret"
