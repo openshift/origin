@@ -31,6 +31,8 @@ const (
 	NetworkDiagNodeLogDirPrefix      = "/nodes"
 	NetworkDiagMasterLogDirPrefix    = "/master"
 	NetworkDiagPodLogDirPrefix       = "/pods"
+
+	NetworkDiagDefaultPodImage = "openshift/origin"
 )
 
 func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
