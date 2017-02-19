@@ -2122,6 +2122,9 @@ Process a template into list of resources
   # Convert template.json file into resource list and pass to create
   oc process -f template.json | oc create -f -
   
+  # Process a file locally instead of contacting the server
+  oc process -f template.json --local -o yaml
+  
   # Process template while passing a user-defined label
   oc process -f template.json -l name=mytemplate
   

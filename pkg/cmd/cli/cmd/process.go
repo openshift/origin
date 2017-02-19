@@ -3,14 +3,17 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -18,6 +21,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -25,6 +29,8 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	templatevalidation "github.com/openshift/origin/pkg/template/api/validation"
+	"github.com/openshift/origin/pkg/template/generator"
 )
 
 var (
@@ -36,11 +42,18 @@ var (
 		as well as metadata describing the template.
 
 		The output of the process command is always a list of one or more resources. You may pipe the
-		output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`)
+		output to the create command over STDIN (using the '-f -' option) or redirect it to a file.
+
+		Process resolves the template on the server, but you may pass --local to parameterize the template
+		locally. When running locally be aware that the version of your client tools will determine what
+		template transformations are supported, rather than the server.`)
 
 	processExample = templates.Examples(`
 		# Convert template.json file into resource list and pass to create
 	  %[1]s process -f template.json | %[1]s create -f -
+
+	  # Process a file locally instead of contacting the server
+	  %[1]s process -f template.json --local -o yaml
 
 	  # Process template while passing a user-defined label
 	  %[1]s process -f template.json -l name=mytemplate
@@ -78,6 +91,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	cmd.Flags().StringArrayVarP(params, "param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().StringArray("param-file", []string{}, "File containing template parameter values to set/override in the template.")
 	cmd.MarkFlagFilename("param-file")
+	cmd.Flags().BoolP("local", "", false, "If true process the template locally instead of contacting the server.")
 	cmd.Flags().BoolP("parameters", "", false, "If true, do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
@@ -112,6 +126,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		}
 	}
 
+	local := kcmdutil.GetFlagBool(cmd, "local")
 	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
 		flagValues := getFlagStringArray(cmd, "param")
 		cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--param")
@@ -149,18 +164,32 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		return err
 	}
 
-	mapper, typer := f.Object()
-
-	client, _, err := f.Clients()
-	if err != nil {
-		return err
-	}
-
 	var (
 		objects []runtime.Object
 		infos   []*resource.Info
+
+		mapper meta.RESTMapper
+		typer  runtime.ObjectTyper
+
+		client          *client.Client
+		clientMappingFn resource.ClientMapperFunc
 	)
 
+	if local {
+		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
+		mapper = registered.RESTMapper()
+		typer = kapi.Scheme
+		clientMappingFn = func(*meta.RESTMapping) (resource.RESTClient, error) { return nil, nil }
+		// client is deliberately left nil
+	} else {
+		client, _, err = f.Clients()
+		if err != nil {
+			return err
+		}
+
+		mapper, typer = f.Object()
+		clientMappingFn = f.ClientForMapping
+	}
 	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
 	if err != nil {
 		return err
@@ -184,6 +213,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		if len(storedTemplate) == 0 {
 			return fmt.Errorf("invalid value syntax %q", templateName)
 		}
+
 		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate)
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -194,7 +224,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		templateObj.CreationTimestamp = unversioned.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+		infos, err = resource.NewBuilder(mapper, typer, clientMappingFn, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(namespace).RequireNamespace().
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
@@ -249,9 +279,16 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		return kerrors.NewAggregate(errs)
 	}
 
-	resultObj, err := client.TemplateConfigs(namespace).Create(obj)
-	if err != nil {
-		return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
+	resultObj := obj
+	if local {
+		if err := processTemplateLocally(obj); err != nil {
+			return err
+		}
+	} else {
+		resultObj, err = client.TemplateConfigs(namespace).Create(obj)
+		if err != nil {
+			return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
+		}
 	}
 
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
@@ -306,4 +343,19 @@ func injectUserVars(values app.Environment, t *templateapi.Template) []error {
 		}
 	}
 	return errors
+}
+
+// processTemplateLocally applies the same logic that a remote call would make but makes no
+// connection to the server.
+func processTemplateLocally(tpl *templateapi.Template) error {
+	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
+		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+	}
+	processor := template.NewProcessor(map[string]generator.Generator{
+		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
+	})
+	if errs := processor.Process(tpl); len(errs) > 0 {
+		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
+	}
+	return nil
 }
