@@ -349,7 +349,7 @@ func (o TagOptions) RunTag() error {
 				err := o.osClient.ImageStreamTags(o.destNamespace[i]).Delete(destName, destTag)
 				switch {
 				case err == nil:
-					fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+					fmt.Fprintf(o.out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
 					return nil
 
 				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
@@ -382,7 +382,7 @@ func (o TagOptions) RunTag() error {
 					return err
 				}
 
-				fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+				fmt.Fprintf(o.out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
 				return nil
 			}
 
