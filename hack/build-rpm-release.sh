@@ -18,6 +18,9 @@ fi
 
 os::log::info 'Building Origin release RPMs with tito...'
 os::build::get_version_vars
+if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
+	os::log::fatal "Cannot build RPMs with a dirty git tree. Commit your changes and try again."
+fi
 if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 	# we need to translate from the semantic version
 	# provided by the Origin build scripts to the
