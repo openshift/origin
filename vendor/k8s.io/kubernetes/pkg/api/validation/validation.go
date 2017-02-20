@@ -2354,12 +2354,39 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) field.ErrorList {
 		activeDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
 		mungedPod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
 	}
+	fmt.Printf("DEBUG: mungedPod.spec: %+v\n", mungedPod.Spec)
+	fmt.Printf("DEBUG: oldPod.spec: %+v\n", oldPod.Spec)
+
+	//fmt.Printf("DEBUG: compare volumes %+v and %+v => %v\n", oldPod.Spec.Volumes, mungedPod.Spec.Volumes, api.Semantic.DeepEqual(oldPod.Spec.Volumes, mungedPod.Spec.Volumes))
+	//fmt.Printf("DEBUG: compare TerminationGracePeriodSeconds %+v and %+v => %v\n", oldPod.Spec.TerminationGracePeriodSeconds, mungedPod.Spec.TerminationGracePeriodSeconds, api.Semantic.DeepEqual(oldPod.Spec.TerminationGracePeriodSeconds, mungedPod.Spec.TerminationGracePeriodSeconds))
+	//fmt.Printf("DEBUG: compare pod SC %+v and %+v => %v\n", oldPod.Spec.SecurityContext, mungedPod.Spec.SecurityContext, api.Semantic.DeepEqual(oldPod.Spec.SecurityContext, mungedPod.Spec.SecurityContext))
+
+	fmt.Printf("DEBUG: compare pod SC fsgroup %+v and %+v => %v\n", intOrNull(oldPod.Spec.SecurityContext.FSGroup), intOrNull(mungedPod.Spec.SecurityContext.FSGroup), api.Semantic.DeepEqual(oldPod.Spec.SecurityContext.FSGroup, mungedPod.Spec.SecurityContext.FSGroup))
+	//fmt.Printf("DEBUG: compare pod SC seOptions %+v and %+v => %v\n", oldPod.Spec.SecurityContext.SELinuxOptions, mungedPod.Spec.SecurityContext.SELinuxOptions, api.Semantic.DeepEqual(oldPod.Spec.SecurityContext.SELinuxOptions, mungedPod.Spec.SecurityContext.SELinuxOptions))
+
+	//fmt.Printf("DEBUG: compare containter SC %+v and %+v => %v\n", oldPod.Spec.Containers[0].SecurityContext, mungedPod.Spec.Containers[0].SecurityContext, api.Semantic.DeepEqual(oldPod.Spec.Containers[0].SecurityContext, mungedPod.Spec.Containers[0].SecurityContext))
+	fmt.Printf("DEBUG: compare containter SC caps %+v and %+v => %v\n", oldPod.Spec.Containers[0].SecurityContext.Capabilities, mungedPod.Spec.Containers[0].SecurityContext.Capabilities, api.Semantic.DeepEqual(oldPod.Spec.Containers[0].SecurityContext.Capabilities, mungedPod.Spec.Containers[0].SecurityContext.Capabilities))
+	//fmt.Printf("DEBUG: compare containter SC priv %+v and %+v => %v\n", oldPod.Spec.Containers[0].SecurityContext.Privileged, mungedPod.Spec.Containers[0].SecurityContext.Privileged, api.Semantic.DeepEqual(oldPod.Spec.Containers[0].SecurityContext.Privileged, mungedPod.Spec.Containers[0].SecurityContext.Privileged))
+	//fmt.Printf("DEBUG: compare containter SC seOptions %+v and %+v => %v\n", oldPod.Spec.Containers[0].SecurityContext.SELinuxOptions, mungedPod.Spec.Containers[0].SecurityContext.SELinuxOptions, api.Semantic.DeepEqual(oldPod.Spec.Containers[0].SecurityContext.SELinuxOptions, mungedPod.Spec.Containers[0].SecurityContext.SELinuxOptions))
+	fmt.Printf("DEBUG: compare containter SC runAsUser %+v and %+v => %v\n", intOrNull(oldPod.Spec.Containers[0].SecurityContext.RunAsUser), intOrNull(mungedPod.Spec.Containers[0].SecurityContext.RunAsUser), api.Semantic.DeepEqual(oldPod.Spec.Containers[0].SecurityContext.RunAsUser, mungedPod.Spec.Containers[0].SecurityContext.RunAsUser))
+
+	//mungedPod.Spec.SecurityContext.FSGroup = oldPod.Spec.SecurityContext.FSGroup
+	//mungedPod.Spec.Containers[0].SecurityContext.RunAsUser = oldPod.Spec.Containers[0].SecurityContext.RunAsUser
+	//mungedPod.Spec.Containers[0].SecurityContext.Capabilities = oldPod.Spec.Containers[0].SecurityContext.Capabilities
+
 	if !api.Semantic.DeepEqual(mungedPod.Spec, oldPod.Spec) {
 		//TODO: Pinpoint the specific field that causes the invalid error after we have strategic merge diff
 		allErrs = append(allErrs, field.Forbidden(specPath, "pod updates may not change fields other than `containers[*].image` or `spec.activeDeadlineSeconds`"))
 	}
 
 	return allErrs
+}
+
+func intOrNull(arg *int64) string {
+	if arg == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%d", *arg)
 }
 
 // ValidatePodStatusUpdate tests to see if the update is legal for an end user to make. newPod is updated with fields
