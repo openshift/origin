@@ -607,7 +607,7 @@ function os::start::router() {
 	# Create a TLS certificate for the router
 	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
 		os::log::debug "Generating router TLS certificate"
-		oadm ca create-server-cert --hostnames="*.${API_HOST}.xip.io"          \
+		oadm ca create-server-cert --hostnames="*.${API_HOST}.nip.io"          \
 		                           --key="${MASTER_CONFIG_DIR}/router.key"     \
 		                           --cert="${MASTER_CONFIG_DIR}/router.crt"    \
 		                           --signer-key="${MASTER_CONFIG_DIR}/ca.key"  \

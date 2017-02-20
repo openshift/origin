@@ -13,7 +13,7 @@ spec:
   resources: {}
   source:
     git:
-      uri: http://gitserver-tokenauth.linux.xip.io/ruby-hello-world
+      uri: http://gitserver-tokenauth.linux.nip.io/ruby-hello-world
     sourceSecret:
       name: builder-token-nbme5
     type: Git

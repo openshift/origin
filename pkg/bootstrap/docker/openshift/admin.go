@@ -120,10 +120,10 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		},
 		Overwrite: true,
 		Hostnames: []string{
-			fmt.Sprintf("%s.xip.io", hostIP),
+			fmt.Sprintf("%s.nip.io", hostIP),
 			// This will ensure that routes using edge termination and the default
 			// certs will use certs valid for their arbitrary subdomain names.
-			fmt.Sprintf("*.%s.xip.io", hostIP),
+			fmt.Sprintf("*.%s.nip.io", hostIP),
 		},
 		CertFile: filepath.Join(masterDir, "router.crt"),
 		KeyFile:  filepath.Join(masterDir, "router.key"),
