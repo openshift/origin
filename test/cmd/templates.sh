@@ -46,6 +46,18 @@ guestbook_template="${OS_ROOT}/test/templates/testdata/guestbook.json"
 os::cmd::expect_success "oc process -f '${guestbook_template}' -l app=guestbook | oc create -f -"
 os::cmd::expect_success_and_text 'oc status' 'frontend-service'
 echo "template+config: ok"
+
+os::test::junit::declare_suite_start "cmd/templates/local-config"
+# Processes the template locally
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml" "app: guestbook"
+# Processes the template locally and get the same output in YAML
+new="$(mktemp -d)"
+os::cmd::expect_success 'oc process -f "${guestbook_template}" --local -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/localtemplate"'
+os::cmd::expect_success 'oc process -f "${guestbook_template}" -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/remotetemplate"'
+os::cmd::expect_success 'diff "${new}/localtemplate" "${new}/remotetemplate"'
+# Does not even try to hit the server
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml --server 0.0.0.0:1" "app: guestbook"
+echo "template+config+local: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/parameters"

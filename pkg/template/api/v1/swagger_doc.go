@@ -24,7 +24,7 @@ var map_Template = map[string]string{
 	"":           "Template contains the inputs needed to produce a Config.",
 	"metadata":   "Standard object's metadata.",
 	"message":    "message is an optional instructional message that will be displayed when this template is instantiated. This field should inform the user how to utilize the newly created resources. Parameter substitution will be performed on the message before being displayed so that generated credentials and other parameters can be included in the output.",
-	"objects":    "objects is an array of resources to include in this template.",
+	"objects":    "objects is an array of resources to include in this template. If a namespace value is hardcoded in the object, it will be removed during template instantiation, however if the namespace value is, or contains, a ${PARAMETER_REFERENCE}, the resolved value after parameter substitution will be respected and the object will be created in that namespace.",
 	"parameters": "parameters is an optional array of Parameters used during the Template to Config transformation.",
 	"labels":     "labels is a optional set of labels that are applied to every object during the Template to Config transformation.",
 }

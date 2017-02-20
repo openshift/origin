@@ -28,7 +28,7 @@ if [[ "${host_platform}" == "linux/ppc64le" ]]; then
   platforms+=( "linux/ppc64le" )
 fi
 
-# Special case aarch64
+# Special case arm64
 if [[ "${host_platform}" == "linux/arm64" ]]; then
   platforms+=( "linux/arm64" )
 fi
