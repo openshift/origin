@@ -15,22 +15,9 @@ elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
 fi
 commit="$( git rev-parse ${tag} )"
 
-function removeimage() {
-  for i in $@; do
-    if docker inspect $i &>/dev/null; then
-      docker rmi $i
-    fi
-    if docker inspect docker.io/$i &>/dev/null; then
-      docker rmi docker.io/$i
-    fi
-  done
-}
-
 # Ensure that the build is using the latest public base images
-removeimage openshift/origin-base openshift/origin-release openshift/origin-haproxy-router-base
-docker pull openshift/origin-base
-docker pull openshift/origin-release
-docker pull openshift/origin-haproxy-router-base
+docker pull "openshift/origin-base:latest"
+docker pull "${OS_BUILD_ENV_IMAGE}"
 
 OS_GIT_COMMIT="${commit}" hack/build-release.sh
 hack/build-images.sh
@@ -41,3 +28,4 @@ echo "Pushed ${tag} to DockerHub"
 echo "1. Push tag to GitHub with: git push origin --tags # (ensure you have no extra tags in your environment)"
 echo "2. Create a new release on the releases page and upload the built binaries in _output/local/releases"
 echo "3. Send an email"
+echo
