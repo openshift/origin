@@ -10,6 +10,8 @@
 #
 FROM openshift/origin-base
 
+COPY system-container/system-container-wrapper.sh /usr/local/bin/
+COPY system-container/config.json.template system-container/manifest.json system-container/service.template /exports/
 COPY bin/openshift /usr/bin/openshift
 RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/oadm && \
@@ -30,9 +32,5 @@ ENV HOME=/root \
     KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
-
-# files required to run as a system container
-COPY system-container/system-container-wrapper.sh /usr/local/bin
-COPY system-container/config.json.template system-container/manifest.json system-container/service.template /exports/
 
 ENTRYPOINT ["/usr/bin/openshift"]
