@@ -68,6 +68,11 @@ defaults
 {{ else }}
   timeout http-request 10s
 {{ end }}
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE" "")) }}
+  timeout http-keep-alive {{env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE" "" }}
+{{ else }}
+  timeout http-keep-alive 300s
+{{ end }}
 
   # Long timeout for WebSocket connections.
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "")) }}
