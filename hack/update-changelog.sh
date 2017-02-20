@@ -28,9 +28,9 @@ function component() {
     if [[ "${new}" != "${old}" ]]; then
       version=$(go run tools/godepversion/godepversion.go /tmp/godeps.new $3 comment)
       echo "- Updated to $1 [$version + patches](https://github.com/$2/commits/$new)"
-      git log --grep=UPSTREAM --no-merges --pretty='tformat:%H' $from..$to -- vendor/$4 | \
-        xargs -L 1 /bin/sh -c 'echo "  - $( git show -s --pretty=tformat:%s $1 | cut -f 2- -d " " ) [\\$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " )](https://github.com/$repo/pull/$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " | cut -c 2- ))"' '' | sort -n
     fi
+    git log --grep=UPSTREAM --no-merges --pretty='tformat:%H' $from..$to -- vendor/$4 | \
+      xargs -L 1 /bin/sh -c 'echo "  - $( git show -s --pretty=tformat:%s $1 | cut -f 2- -d " " ) [\\$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " )](https://github.com/$repo/pull/$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " | cut -c 2- ))"' '' | sort -n
   fi
 }
 
