@@ -47,7 +47,7 @@ Here's how to get set up:
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
 ** https://docs.docker.com/installation/[Installing Docker]
 +
-NOTE: As of now, OpenShift requires Docker 1.9 or higher.
+NOTE: As of now, OpenShift requires Docker 1.12 or higher.
 The exact version requirement is documented https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
 2. Next, create a Go workspace directory: +
