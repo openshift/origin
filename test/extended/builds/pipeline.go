@@ -19,6 +19,10 @@ import (
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
 
+const (
+	localPluginSnapshotImage = "openshift/jenkins-client-plugin-snapshot-test:latest"
+)
+
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
 	if !br.BuildSuccess {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
@@ -53,7 +57,9 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		setupJenkins             = func() {
 			// Deploy Jenkins
 			g.By(fmt.Sprintf("calling oc new-app -f %q", jenkinsTemplatePath))
-			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath).Execute()
+			newAppArgs := []string{"-f", jenkinsTemplatePath}
+			newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(localPluginSnapshotImage, "jenkins-client-plugin-snapshot-test", newAppArgs, oc)
+			err := oc.Run("new-app").Args(newAppArgs...).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
@@ -70,6 +76,13 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			}
 
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if useSnapshotImage {
+				g.By("verifying the test image is being used")
+				// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
+				_, err = j.WaitForContent(`About OpenShift Client Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-client/thirdPartyLicenses")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			// Start capturing logs from this deployment config.
 			// This command will terminate if the Jenkins instance crashes. This

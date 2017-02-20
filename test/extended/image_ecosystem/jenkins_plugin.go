@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	useLocalPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_IMAGE"
-	localPluginSnapshotImage         = "openshift/jenkins-plugin-snapshot-test:latest"
+	localPluginSnapshotImage = "openshift/jenkins-plugin-snapshot-test:latest"
 )
 
 // ginkgolog creates simple entry in the GinkgoWriter.
@@ -150,56 +149,11 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		time.Sleep(10 * time.Second) // Give project time to initialize
 
 		g.By("kick off the build for the jenkins ephermeral and application templates")
-		tag := []string{localPluginSnapshotImage}
-		hexIDs, err := exutil.DumpAndReturnTagging(tag)
-
-		// If the user has expressed an interest in local plugin testing by setting the
-		// SNAPSHOT_JENKINS_IMAGE environment variable, try to use the local image. Inform them
-		// either about which image is being used in case their test fails.
-		snapshotImagePresent := len(hexIDs) > 0 && err == nil
-		useSnapshotImage := os.Getenv(useLocalPluginSnapshotEnvVarName) != ""
 
 		newAppArgs := []string{exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")}
+		newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(localPluginSnapshotImage, "jenkins-plugin-snapshot-test", newAppArgs, oc)
 
-		if useSnapshotImage {
-			g.By("Creating a snapshot Jenkins imagestream and overridding the default Jenkins imagestream")
-			o.Expect(snapshotImagePresent).To(o.BeTrue())
-
-			ginkgolog("")
-			ginkgolog("")
-			ginkgolog("IMPORTANT: You are testing a local jenkins snapshot image.")
-			ginkgolog("In order to target the official image stream, you must unset %s before running extended tests.", useLocalPluginSnapshotEnvVarName)
-			ginkgolog("")
-			ginkgolog("")
-
-			// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
-			snapshotImageStream := "jenkins-plugin-snapshot-test"
-			err = oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localPluginSnapshotImage), "--to", snapshotImageStream).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "jenkins-plugin-snapshot-test-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, exutil.CheckBuildCancelledFn)
-			if err != nil {
-				exutil.DumpBuildLogs("jenkins-plugin-snapshot-test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Supplant the normal imagestream with the local imagestream using template parameters
-			newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
-			newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("JENKINS_IMAGE_STREAM_TAG=%s:latest", snapshotImageStream))
-
-		} else {
-			if snapshotImagePresent {
-				ginkgolog("")
-				ginkgolog("")
-				ginkgolog("IMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
-				ginkgolog("In order to target your local image, you must set %s to some value before running extended tests.", useLocalPluginSnapshotEnvVarName)
-				ginkgolog("")
-				ginkgolog("")
-			}
-		}
-
-		err = oc.Run("new-app").Args(newAppArgs...).Execute()
+		err := oc.Run("new-app").Args(newAppArgs...).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
