@@ -193,11 +193,11 @@ func (m *podManager) ipamDel(id string) error {
 	return nil
 }
 
-func ensureOvsPort(ovsif *ovs.Interface, hostVeth string) (int, error) {
+func ensureOvsPort(ovsif ovs.Interface, hostVeth string) (int, error) {
 	return ovsif.AddPort(hostVeth, -1)
 }
 
-func setupPodFlows(ovsif *ovs.Interface, ofport int, podIP, podMac string, vnid uint32) error {
+func setupPodFlows(ovsif ovs.Interface, ofport int, podIP, podMac string, vnid uint32) error {
 	otx := ovsif.NewTransaction()
 
 	// ARP/IP traffic from container
@@ -213,7 +213,7 @@ func setupPodFlows(ovsif *ovs.Interface, ofport int, podIP, podMac string, vnid 
 	return otx.EndTransaction()
 }
 
-func setupPodBandwidth(ovsif *ovs.Interface, pod *kapi.Pod, hostVeth string) error {
+func setupPodBandwidth(ovsif ovs.Interface, pod *kapi.Pod, hostVeth string) error {
 	podIngress, podEgress, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod bandwidth: %v", err)
@@ -259,7 +259,7 @@ func setupPodBandwidth(ovsif *ovs.Interface, pod *kapi.Pod, hostVeth string) err
 	return nil
 }
 
-func cleanupPodFlows(ovsif *ovs.Interface, podIP string) error {
+func cleanupPodFlows(ovsif ovs.Interface, podIP string) error {
 	otx := ovsif.NewTransaction()
 	otx.DeleteFlows("ip, nw_dst=%s", podIP)
 	otx.DeleteFlows("ip, nw_src=%s", podIP)
@@ -268,7 +268,7 @@ func cleanupPodFlows(ovsif *ovs.Interface, podIP string) error {
 	return otx.EndTransaction()
 }
 
-func cleanupPodBandwidth(ovsif *ovs.Interface, hostVeth string) error {
+func cleanupPodBandwidth(ovsif ovs.Interface, hostVeth string) error {
 	qos, err := ovsif.Get("port", hostVeth, "qos")
 	if err != nil || qos == "[]" {
 		return err

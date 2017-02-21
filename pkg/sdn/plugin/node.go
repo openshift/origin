@@ -50,7 +50,7 @@ type OsdnNode struct {
 	policy             osdnPolicy
 	kClient            *kclientset.Clientset
 	osClient           *osclient.Client
-	ovs                *ovs.Interface
+	ovs                ovs.Interface
 	networkInfo        *NetworkInfo
 	podManager         *podManager
 	localSubnetCIDR    string

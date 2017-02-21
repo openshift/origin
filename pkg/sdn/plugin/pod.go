@@ -49,11 +49,11 @@ type podManager struct {
 	mtu             uint32
 	hostportHandler kubehostport.HostportHandler
 	host            knetwork.Host
-	ovs             *ovs.Interface
+	ovs             ovs.Interface
 }
 
 // Creates a new live podManager; used by node code
-func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, ovs *ovs.Interface) (*podManager, error) {
+func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, ovs ovs.Interface) (*podManager, error) {
 	pm := newDefaultPodManager(host)
 	pm.kClient = kClient
 	pm.policy = policy
