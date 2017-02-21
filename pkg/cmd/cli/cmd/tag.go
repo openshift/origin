@@ -67,7 +67,7 @@ var (
 	  # Tag an external Docker image.
 	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
 
-	  # Tag an external Docker image and request pull-trough for it.
+	  # Tag an external Docker image and request pullthrough for it.
 	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip --reference-policy=local
 
 
@@ -102,7 +102,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	cmd.Flags().BoolVar(&opts.referenceTag, "reference", false, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate. Defaults to false.")
-	cmd.Flags().StringVar(&opts.referencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pull-trough for external image when set to 'local'. Defaults to 'source'.")
+	cmd.Flags().StringVar(&opts.referencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
 
 	return cmd
 }
