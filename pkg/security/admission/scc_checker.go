@@ -254,8 +254,17 @@ func hasNonReadOnlyInitContainer(pod *kapi.Pod) bool {
 
 func conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, podSelinuxOptions *kapi.SELinuxOptions) func(*kapi.Container) bool {
 	return func(container *kapi.Container) bool {
+		if requiredSelinuxOptions == nil {
+			return true
+		}
+
+		sc := container.SecurityContext
+		if sc == nil {
+			return false
+		}
+
 		// FIXME: is it possible that User specified on the container level and Role on the pod level?
-		effectiveSelinuxOptions := container.SecurityContext.SELinuxOptions
+		effectiveSelinuxOptions := sc.SELinuxOptions
 		if effectiveSelinuxOptions == nil {
 			effectiveSelinuxOptions = podSelinuxOptions
 		}
