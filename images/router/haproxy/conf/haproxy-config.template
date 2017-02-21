@@ -38,7 +38,11 @@ defaults
 
   # Add x-forwarded-for header.
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS" "") "" }}
+  {{- if ne (env "ROUTER_SYSLOG_FORMAT" "") "" }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT" ""}}
+  {{- else }}
   option httplog
+  {{- end }}
   log global
 {{- end }}
 
