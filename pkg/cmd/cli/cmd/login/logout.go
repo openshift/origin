@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -124,24 +125,29 @@ func (o LogoutOptions) RunLogout() error {
 	}
 
 	if err := client.OAuthAccessTokens().Delete(token); err != nil {
-		return err
+		glog.V(1).Infof("%v", err)
 	}
 
-	newConfig := *o.StartingKubeConfig
+	configErr := deleteTokenFromConfig(*o.StartingKubeConfig, o.PathOptions, token)
+	if configErr == nil {
+		glog.V(1).Infof("Removed token from your local configuration.")
 
-	for key, value := range newConfig.AuthInfos {
-		if value.Token == token {
+		// only return error instead of successful message if removing token from client
+		// config fails. Any error that occurs deleting token using api is logged above.
+		fmt.Fprintf(o.Out, "Logged %q out on %q\n", userInfo.Name, o.Config.Host)
+	}
+
+	return configErr
+}
+
+func deleteTokenFromConfig(config kclientcmdapi.Config, pathOptions *kclientcmd.PathOptions, bearerToken string) error {
+	for key, value := range config.AuthInfos {
+		if value.Token == bearerToken {
 			value.Token = ""
-			newConfig.AuthInfos[key] = value
+			config.AuthInfos[key] = value
 			// don't break, its possible that more than one user stanza has the same token.
 		}
 	}
 
-	if err := kclientcmd.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
-		return err
-	}
-
-	fmt.Fprintf(o.Out, "Logged %q out on %q\n", userInfo.Name, o.Config.Host)
-
-	return nil
+	return kclientcmd.ModifyConfig(pathOptions, config, true)
 }

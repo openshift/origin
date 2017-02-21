@@ -87,6 +87,15 @@ os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list p
 # os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--config=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
 echo "login warnings: ok"
 
+# login and create serviceaccount and test login and logout with a service account token
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
+os::cmd::expect_success_and_text "oc create sa testserviceaccount" "serviceaccount \"testserviceaccount\" created"
+os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testserviceaccount)" "system:serviceaccount:project-foo:testserviceaccount"
+# attempt to logout successfully
+os::cmd::expect_success_and_text "oc logout" "Logged \"system:serviceaccount:project-foo:testserviceaccount\" out"
+# verify that the token is no longer present in our local config
+os::cmd::expect_failure_and_text "oc whoami" "User \"system:anonymous\" cannot get users"
+
 # log in and set project to use from now on
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 os::cmd::expect_success 'oc get projects'
