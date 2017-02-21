@@ -186,7 +186,11 @@ func violatesSeccompProfiles(scc *kapi.SecurityContextConstraints, pod *kapi.Pod
 //
 
 func isPrivileged(container *kapi.Container) bool {
-	privileged := container.SecurityContext.Privileged
+	sc := container.SecurityContext
+	if sc == nil {
+		return false
+	}
+	privileged := sc.Privileged
 	return privileged != nil && *privileged
 }
 
