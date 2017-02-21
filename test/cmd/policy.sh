@@ -120,9 +120,13 @@ os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_RO
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -f ${OS_ROOT}/test/testdata/job.yaml' ''
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'error: --user and --serviceaccount are mutually exclusive'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z system:serviceaccount:alice:default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/scc_lax.yaml'
 os::cmd::expect_success "oc login -u bob -p bob"
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -z default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:bob:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'DeploymentConfig/deployment-simple   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
