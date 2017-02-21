@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/client"
@@ -53,7 +54,7 @@ type sccSubjectReviewOptions struct {
 	FilenameOptions            resource.FilenameOptions
 	User                       string
 	Groups                     []string
-	ServiceAccount             string
+	serviceAccount             string
 }
 
 func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -71,11 +72,9 @@ func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.
 
 	cmd.Flags().StringVarP(&o.User, "user", "u", o.User, "Review will be performed on behalf of this user")
 	cmd.Flags().StringSliceVarP(&o.Groups, "groups", "g", o.Groups, "Comma separated, list of groups. Review will be performed on behalf of these groups")
-	cmd.Flags().StringVarP(&o.ServiceAccount, "serviceaccount", "z", o.ServiceAccount, "service account in the current namespace to use as a user")
+	cmd.Flags().StringVarP(&o.serviceAccount, "serviceaccount", "z", o.serviceAccount, "service account in the current namespace to use as a user")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
-
 	kcmdutil.AddPrinterFlags(cmd)
-
 	return cmd
 }
 
@@ -83,8 +82,15 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}
-	if len(o.User) > 0 && len(o.ServiceAccount) > 0 {
+	if len(o.User) > 0 && len(o.serviceAccount) > 0 {
 		return fmt.Errorf("--user and --serviceaccount are mutually exclusive")
+	}
+	if strings.HasPrefix(o.serviceAccount, serviceaccount.ServiceAccountUsernamePrefix) {
+		_, user, err := serviceaccount.SplitUsername(o.serviceAccount)
+		if err != nil {
+			return err
+		}
+		o.serviceAccount = user
 	}
 	var err error
 	o.namespace, o.enforceNamespace, err = f.DefaultNamespace()
@@ -123,8 +129,8 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 
 func (o *sccSubjectReviewOptions) Run(args []string) error {
 	userOrSA := o.User
-	if len(o.ServiceAccount) > 0 {
-		userOrSA = o.ServiceAccount
+	if len(o.serviceAccount) > 0 {
+		userOrSA = o.serviceAccount
 	}
 	r := resource.NewBuilder(o.mapper, o.typer, resource.ClientMapperFunc(o.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.namespace).

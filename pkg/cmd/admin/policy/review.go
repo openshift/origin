@@ -15,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
@@ -33,8 +34,11 @@ var (
 	`)
 	reviewExamples = templates.Examples(`# Check whether Service Accounts sa1 and sa2 can admit a Pod with TemplatePodSpec specified in my_resource.yaml
 	# Service Account specified in myresource.yaml file is ignored
-	$ %[1]s -s sa1,sa2 -f my_resource.yaml
+	$ %[1]s -z sa1,sa2 -f my_resource.yaml
 	
+	# Check whether Service Accounts system:serviceaccount:bob:default can admit a Pod with TemplatePodSpec specified in my_resource.yaml
+	$  %[1]s -z system:serviceaccount:bob:default -f my_resource.yaml
+
 	# Check whether Service Account specified in my_resource_with_sa.yaml can admit the Pod
 	$ %[1]s -f my_resource_with_sa.yaml
 	
@@ -46,16 +50,17 @@ var (
 const ReviewRecommendedName = "scc-review"
 
 type sccReviewOptions struct {
-	client              client.PodSecurityPolicyReviewsNamespacer
-	namespace           string
-	enforceNamespace    bool
-	out                 io.Writer
-	mapper              meta.RESTMapper
-	typer               runtime.ObjectTyper
-	RESTClientFactory   func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	printer             sccReviewPrinter
-	FilenameOptions     resource.FilenameOptions
-	ServiceAccountNames []string
+	client                   client.PodSecurityPolicyReviewsNamespacer
+	namespace                string
+	enforceNamespace         bool
+	out                      io.Writer
+	mapper                   meta.RESTMapper
+	typer                    runtime.ObjectTyper
+	RESTClientFactory        func(mapping *meta.RESTMapping) (resource.RESTClient, error)
+	printer                  sccReviewPrinter
+	FilenameOptions          resource.FilenameOptions
+	serviceAccountNames      []string // it contains user inputs it could be long sa name like system:serviceaccount:bob:default or short one
+	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
 }
 
 func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -71,17 +76,26 @@ func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer)
 		},
 	}
 
-	cmd.Flags().StringSliceVarP(&o.ServiceAccountNames, "serviceaccount", "z", o.ServiceAccountNames, "service account in the current namespace to use as a user")
+	cmd.Flags().StringSliceVarP(&o.serviceAccountNames, "serviceaccount", "z", o.serviceAccountNames, "service account in the current namespace to use as a user")
 	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to a file identifying the resource to get from a server.")
-
 	kcmdutil.AddPrinterFlags(cmd)
-
 	return cmd
 }
 
 func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
+	}
+	for _, sa := range o.serviceAccountNames {
+		if strings.HasPrefix(sa, serviceaccount.ServiceAccountUsernamePrefix) {
+			_, user, err := serviceaccount.SplitUsername(sa)
+			if err != nil {
+				return err
+			}
+			o.shortServiceAccountNames = append(o.shortServiceAccountNames, user)
+		} else {
+			o.shortServiceAccountNames = append(o.shortServiceAccountNames, sa)
+		}
 	}
 	var err error
 	o.namespace, o.enforceNamespace, err = f.DefaultNamespace()
@@ -113,12 +127,10 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 		o.printer = &sccReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
 	o.out = out
-
 	return nil
 }
 
 func (o *sccReviewOptions) Run(args []string) error {
-
 	r := resource.NewBuilder(o.mapper, o.typer, resource.ClientMapperFunc(o.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
@@ -130,7 +142,6 @@ func (o *sccReviewOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-
 	allErrs := []error{}
 	err = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
@@ -148,7 +159,7 @@ func (o *sccReviewOptions) Run(args []string) error {
 		review := &securityapi.PodSecurityPolicyReview{
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				Template:            *podTemplateSpec,
-				ServiceAccountNames: o.ServiceAccountNames,
+				ServiceAccountNames: o.shortServiceAccountNames,
 			},
 		}
 		response, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
