@@ -175,7 +175,8 @@ func (d *ClusterRegistry) Check() types.DiagnosticResult {
 	if service := d.getRegistryService(r); service != nil {
 		// Check that it actually has pod(s) selected and running
 		if runningPods := d.getRegistryPods(service, r); len(runningPods) == 0 {
-			r.Error("DClu1001", nil, fmt.Sprintf(clRegNoRunningPods, registryName))
+			// not reporting an error here, if there are no running pods an error
+			// is reported by getRegistryPods
 			return r
 		} else if d.checkRegistryEndpoints(runningPods, r) { // Check that matching endpoint exists on the service
 			// attempt to create an imagestream and see if it gets the same registry service IP from the service cache
