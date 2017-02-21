@@ -113,7 +113,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		}
 
 		// otherwise, reject
-		return kadmission.NewForbidden(a, "TODO: request rejected because all SCCs forbid this pod")
+		return kadmission.NewForbidden(a, errors.New("TODO: request rejected because all SCCs forbid this pod"))
 	}
 
 	// 2. filter to ones that do not forbid the pod - TODO

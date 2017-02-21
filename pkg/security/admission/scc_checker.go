@@ -142,7 +142,7 @@ func violatesSupplementalGroups(scc *kapi.SecurityContextConstraints, pod *kapi.
 		return false
 	case kapi.SupplementalGroupsStrategyMustRunAs:
 		for _, supplementalGroup := range pod.Spec.SecurityContext.SupplementalGroups {
-			if fallsIntoRange(supplementalGroup, scc.SupplementalGroups.Ranges) {
+			if fallsIntoRange(&supplementalGroup, scc.SupplementalGroups.Ranges) {
 				return true
 			}
 		}
@@ -249,7 +249,7 @@ func hasNonReadOnlyInitContainer(pod *kapi.Pod) bool {
 //
 
 func conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, podSelinuxOptions *kapi.SELinuxOptions) func(*kapi.Container) bool {
-	return func(container *kapi.Container) {
+	return func(container *kapi.Container) bool {
 		// FIXME: is it possible that User specified on the container level and Role on the pod level?
 		effectiveSelinuxOptions := container.SecurityContext.SELinuxOptions
 		if effectiveSelinuxOptions == nil {
@@ -286,7 +286,7 @@ func fallsIntoRange(value *int64, allowedRanges []kapi.IDRange) bool {
 
 func existContainerThat(acceptable func(*kapi.Container) bool, containers []kapi.Container) bool {
 	for _, container := range  containers {
-		if acceptable(container) {
+		if acceptable(&container) {
 			return true
 		}
 	}
