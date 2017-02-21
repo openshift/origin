@@ -410,6 +410,14 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   buildName,
 			Labels: bcCopy.Labels,
+			OwnerReferences: []kapi.OwnerReference{
+				{
+					APIVersion: "v1",          // BuildConfig.APIVersion is not populated
+					Kind:       "BuildConfig", // BuildConfig.Kind is not populated
+					Name:       bcCopy.Name,
+					UID:        bcCopy.UID,
+				},
+			},
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,
@@ -748,9 +756,10 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 	newBuild := &buildapi.Build{
 		Spec: buildCopy.Spec,
 		ObjectMeta: kapi.ObjectMeta{
-			Name:        getNextBuildNameFromBuild(buildCopy, buildConfig),
-			Labels:      buildCopy.ObjectMeta.Labels,
-			Annotations: buildCopy.ObjectMeta.Annotations,
+			Name:            getNextBuildNameFromBuild(buildCopy, buildConfig),
+			Labels:          buildCopy.ObjectMeta.Labels,
+			Annotations:     buildCopy.ObjectMeta.Annotations,
+			OwnerReferences: buildCopy.ObjectMeta.OwnerReferences,
 		},
 		Status: buildapi.BuildStatus{
 			Phase:  buildapi.BuildPhaseNew,

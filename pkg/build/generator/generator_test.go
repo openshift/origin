@@ -772,6 +772,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	resources := mockResources()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			UID:       "test-uid",
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
 			Labels:    map[string]string{"testlabel": "testvalue"},
@@ -840,6 +841,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Annotations[buildapi.BuildNumberAnnotation] != "13" {
 		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildapi.BuildNumberAnnotation])
+	}
+	if len(build.OwnerReferences) == 0 || build.OwnerReferences[0].Kind != "BuildConfig" || build.OwnerReferences[0].Name != bc.Name {
+		t.Errorf("generated build does not have OwnerReference to parent BuildConfig")
 	}
 
 	// Test long name
@@ -1103,6 +1107,14 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
 				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
 			},
+			OwnerReferences: []kapi.OwnerReference{
+				{
+					Name:       "test-owner",
+					Kind:       "BuildConfig",
+					APIVersion: "v1",
+					UID:        "foo",
+				},
+			},
 		},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1137,6 +1149,10 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildPodNameAnnotation]; ok {
 		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildPodNameAnnotation)
 	}
+	if !reflect.DeepEqual(build.ObjectMeta.OwnerReferences, newBuild.ObjectMeta.OwnerReferences) {
+		t.Errorf("Build OwnerReferences does not match the original Build OwnerReferences")
+	}
+
 }
 
 func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
