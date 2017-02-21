@@ -1,0 +1,172 @@
+.TH "OPENSHIFT CLI ADM POLICY" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli adm policy scc\-review \- Checks which ServiceAccount can create a Pod
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli adm policy scc\-review\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Checks which Service Account can create a Pod. The Pod is inferred from the PodTemplateSpec in the provided resource. If no Service Account is provided the one specified in podTemplateSpec.spec.serviceAccountName is used, unless it is empty, in which case "default" is used. If Service Accounts are provided the podTemplateSpec.spec.serviceAccountName is ignored.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-allow\-missing\-template\-keys\fP=true
+    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to files Filename, directory, or URL to a file identifying the resource to get from a server.
+
+.PP
+\fB\-\-no\-headers\fP=false
+    When using the default or custom\-column output format, don't print headers.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
+
+.PP
+\fB\-\-output\-version\fP=""
+    Output the formatted object with the given group version (for ex: 'extensions/v1beta1').
+
+.PP
+\fB\-R\fP, \fB\-\-recursive\fP=false
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
+
+.PP
+\fB\-z\fP, \fB\-\-serviceaccount\fP=[]
+    service account in the current namespace to use as a user
+
+.PP
+\fB\-a\fP, \fB\-\-show\-all\fP=true
+    When printing, show all resources (false means hide terminated pods.)
+
+.PP
+\fB\-\-show\-labels\fP=false
+    When printing, show all labels as the last column (default hide labels column)
+
+.PP
+\fB\-\-sort\-by\fP=""
+    If non\-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. '{.metadata.name}'). The field in the API resource specified by this JSONPath expression must be an integer or a string.
+
+.PP
+\fB\-\-template\fP=""
+    Template string or path to template file to use when \-o=go\-template, \-o=go\-template\-file. The template format is golang templates [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]].
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation
+
+.PP
+\fB\-\-azure\-container\-registry\-config\fP=""
+    Path to the file container Azure container registry configuration information.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Check whether Service Accounts sa1 and sa2 can admit a Pod with TemplatePodSpec specified in my\_resource.yaml
+  # Service Account specified in myresource.yaml file is ignored
+  $ openshift cli adm policy scc\-review \-z sa1,sa2 \-f my\_resource.yaml
+  
+  # Check whether Service Accounts system:serviceaccount:bob:default can admit a Pod with TemplatePodSpec specified in my\_resource.yaml
+  $  openshift cli adm policy scc\-review \-z system:serviceaccount:bob:default \-f my\_resource.yaml
+  
+  # Check whether Service Account specified in my\_resource\_with\_sa.yaml can admit the Pod
+  $ openshift cli adm policy scc\-review \-f my\_resource\_with\_sa.yaml
+  
+  # Check whether default Service Account can admit the Pod, default is taken since no Service Account is defined in myresource\_with\_no\_sa.yaml
+  $  openshift cli adm policy scc\-review \-f myresource\_with\_no\_sa.yaml
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-adm\-policy(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator
