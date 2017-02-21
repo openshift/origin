@@ -73,6 +73,8 @@ oadm-policy-remove-role-from-user.1
 oadm-policy-remove-scc-from-group.1
 oadm-policy-remove-scc-from-user.1
 oadm-policy-remove-user.1
+oadm-policy-scc-review.1
+oadm-policy-scc-subject-review.1
 oadm-policy-who-can.1
 oadm-policy.1
 oadm-prune-builds.1
