@@ -388,10 +388,15 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	} else if vnid == 0 {
 		glog.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
 	} else if len(namespaces) > 1 {
+		// Rationale: In our current implementation, multiple namespaces share their network by using the same VNID.
+		// Even though Egress network policy is defined per namespace, its implementation is based on VNIDs.
+		// So in case of shared network namespaces, egress policy of one namespace will affect all other namespaces that are sharing the network which might not be desirable.
 		glog.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
 		otx.DeleteFlows("table=100, reg0=%d", vnid)
 		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
 	} else if len(policies) > 1 {
+		// Rationale: If we have allowed more than one policy, we could end up with different network restrictions depending
+		// on the order of policies that were processed and also it doesn't give more expressive power than a single policy.
 		glog.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
 		otx.DeleteFlows("table=100, reg0=%d", vnid)
 		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
