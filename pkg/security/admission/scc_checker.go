@@ -231,12 +231,12 @@ func hasInitContainerWithHostPort(pod *kapi.Pod) bool {
 
 func containersHaveSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, pod *kapi.Pod) bool {
 	podSelinuxOptions := pod.Spec.SecurityContext.SELinuxOptions
-	return !existContainerThat(conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions, podSelinuxOptions), pod.Spec.Containers)
+	return !existContainerThat(doesNotConformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions, podSelinuxOptions), pod.Spec.Containers)
 }
 
 func initContainersHaveSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, pod *kapi.Pod) bool {
 	podSelinuxOptions := pod.Spec.SecurityContext.SELinuxOptions
-	return !existContainerThat(conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions, podSelinuxOptions), pod.Spec.InitContainers)
+	return !existContainerThat(doesNotConformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions, podSelinuxOptions), pod.Spec.InitContainers)
 }
 
 func hasNonReadOnlyContainer(pod *kapi.Pod) bool {
@@ -252,15 +252,15 @@ func hasNonReadOnlyInitContainer(pod *kapi.Pod) bool {
 // Utilities
 //
 
-func conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, podSelinuxOptions *kapi.SELinuxOptions) func(*kapi.Container) bool {
+func doesNotConformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOptions, podSelinuxOptions *kapi.SELinuxOptions) func(*kapi.Container) bool {
 	return func(container *kapi.Container) bool {
 		if requiredSelinuxOptions == nil {
-			return true
+			return false
 		}
 
 		sc := container.SecurityContext
 		if sc == nil {
-			return false
+			return true
 		}
 
 		// FIXME: is it possible that User specified on the container level and Role on the pod level?
@@ -269,8 +269,11 @@ func conformsToItsOwnOrPodSelinuxOptions(requiredSelinuxOptions *kapi.SELinuxOpt
 			effectiveSelinuxOptions = podSelinuxOptions
 		}
 
-		// TODO: hanle null values
-		return selinuxOptionsAreEqual(requiredSelinuxOptions, effectiveSelinuxOptions)
+		if effectiveSelinuxOptions == nil {
+			return true
+		}
+
+		return !selinuxOptionsAreEqual(requiredSelinuxOptions, effectiveSelinuxOptions)
 	}
 }
 
