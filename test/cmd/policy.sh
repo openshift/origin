@@ -101,6 +101,8 @@ os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups 
 os::cmd::expect_failure 'oc policy scc-subject-review'
 os::cmd::expect_failure 'oc policy scc-review'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z foo,bar -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z system:serviceaccount:test:default,system:serviceaccount:test:builder -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
 os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
