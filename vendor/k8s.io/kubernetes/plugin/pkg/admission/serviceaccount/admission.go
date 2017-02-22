@@ -169,6 +169,20 @@ func (s *serviceAccount) Admit(a admission.Attributes) (err error) {
 		if len(pod.Spec.ServiceAccountName) != 0 {
 			return admission.NewForbidden(a, fmt.Errorf("a mirror pod may not reference service accounts"))
 		}
+		for _, c := range pod.Spec.Containers {
+			for _, e := range c.Env {
+				if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+					return admission.NewForbidden(a, fmt.Errorf("a mirror pod may not reference secrets"))
+				}
+			}
+		}
+		for _, c := range pod.Spec.InitContainers {
+			for _, e := range c.Env {
+				if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+					return admission.NewForbidden(a, fmt.Errorf("a mirror pod may not reference secrets"))
+				}
+			}
+		}
 		for _, volume := range pod.Spec.Volumes {
 			if volume.VolumeSource.Secret != nil {
 				return admission.NewForbidden(a, fmt.Errorf("a mirror pod may not reference secrets"))
