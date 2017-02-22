@@ -159,6 +159,10 @@ func violatesFsGroup(scc *kapi.SecurityContextConstraints, pod *kapi.Pod) bool {
 		return false
 
 	case kapi.FSGroupStrategyMustRunAs:
+		// FIXME: what empty range means: all are allowed or none?
+		if len(scc.FSGroup.Ranges) == 0 {
+			return false
+		}
 		fsGroup := pod.Spec.SecurityContext.FSGroup
 		return unspecified(fsGroup) || !fallsIntoRange(fsGroup, scc.FSGroup.Ranges)
 

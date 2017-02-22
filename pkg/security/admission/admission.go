@@ -119,7 +119,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	// 2. filter to ones that do not forbid the pod - TODO
 	var filteredConstraints []*kapi.SecurityContextConstraints
 	for _, constraint := range  matchedConstraints {
-		if NewSccChecker(constraint).forbidsPod(pod) {
+		if NewSccChecker(constraint).allowsPod(pod) {
 			filteredConstraints = append(filteredConstraints, constraint)
 		}
 	}
