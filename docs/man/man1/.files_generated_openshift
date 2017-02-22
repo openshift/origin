@@ -73,6 +73,8 @@ openshift-admin-policy-remove-role-from-user.1
 openshift-admin-policy-remove-scc-from-group.1
 openshift-admin-policy-remove-scc-from-user.1
 openshift-admin-policy-remove-user.1
+openshift-admin-policy-scc-review.1
+openshift-admin-policy-scc-subject-review.1
 openshift-admin-policy-who-can.1
 openshift-admin-policy.1
 openshift-admin-prune-builds.1
@@ -165,6 +167,8 @@ openshift-cli-adm-policy-remove-role-from-user.1
 openshift-cli-adm-policy-remove-scc-from-group.1
 openshift-cli-adm-policy-remove-scc-from-user.1
 openshift-cli-adm-policy-remove-user.1
+openshift-cli-adm-policy-scc-review.1
+openshift-cli-adm-policy-scc-subject-review.1
 openshift-cli-adm-policy-who-can.1
 openshift-cli-adm-policy.1
 openshift-cli-adm-prune-builds.1
@@ -270,6 +274,8 @@ openshift-cli-policy-remove-group.1
 openshift-cli-policy-remove-role-from-group.1
 openshift-cli-policy-remove-role-from-user.1
 openshift-cli-policy-remove-user.1
+openshift-cli-policy-scc-review.1
+openshift-cli-policy-scc-subject-review.1
 openshift-cli-policy-who-can.1
 openshift-cli-policy.1
 openshift-cli-port-forward.1
