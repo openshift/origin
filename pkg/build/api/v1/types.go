@@ -534,14 +534,16 @@ type SourceBuildStrategy struct {
 	// without unneeded dependencies installed. The building of the application
 	// is still done in the builder image but, post build, you can copy the
 	// needed artifacts in the runtime image for use.
-	// This field and the feature it enables are in tech preview.
+	// Deprecated: This feature will be removed in a future release. Use ImageSource
+	// to copy binary artifacts created from one build into a separate runtime image.
 	RuntimeImage *kapi.ObjectReference `json:"runtimeImage,omitempty" protobuf:"bytes,7,opt,name=runtimeImage"`
 
 	// runtimeArtifacts specifies a list of source/destination pairs that will be
 	// copied from the builder to the runtime image. sourcePath can be a file or
 	// directory. destinationDir must be a directory. destinationDir can also be
 	// empty or equal to ".", in this case it just refers to the root of WORKDIR.
-	// This field and the feature it enables are in tech preview.
+	// Deprecated: This feature will be removed in a future release. Use ImageSource
+	// to copy binary artifacts created from one build into a separate runtime image.
 	RuntimeArtifacts []ImageSourcePath `json:"runtimeArtifacts,omitempty" protobuf:"bytes,8,rep,name=runtimeArtifacts"`
 }
 
