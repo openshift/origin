@@ -345,6 +345,7 @@ var (
 	KubeAdmissionPlugins = []string{
 		lifecycle.PluginName,
 		"RunOnceDuration",
+		"openshift.io/RestrictNodes",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
 		"PodNodeSelector",
@@ -376,6 +377,7 @@ var (
 		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
+		"openshift.io/RestrictNodes",
 		"openshift.io/RestrictSubjectBindings",
 		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
