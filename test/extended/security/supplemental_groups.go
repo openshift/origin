@@ -22,7 +22,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 		f = e2e.NewDefaultFramework("security-supgroups")
 	)
 
-	g.Describe("Ensure supplemental groups propagate to docker", func() {
+	g.Describe("[Conformance]Ensure supplemental groups propagate to docker", func() {
 		g.It("should propagate requested groups to the docker host config [local]", func() {
 			// Before running any of this test we need to first check that
 			// the docker version being used supports the supplemental groups feature
