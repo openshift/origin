@@ -65,8 +65,11 @@ func NewEtcd(client etcdclient.Client, key, value string, ttl uint64) Leaser {
 
 // AcquireAndHold implements an acquire and release of a lease.
 func (e *Etcd) AcquireAndHold(notify chan error) {
+	useClusterLevelIndex := new(bool)
+	*useClusterLevelIndex = false
+
 	for {
-		ok, ttl, index, err := e.tryAcquire()
+		ok, ttl, index, err := e.tryAcquire(useClusterLevelIndex)
 		if err != nil {
 			utilruntime.HandleError(err)
 			time.Sleep(e.pauseInterval)
@@ -93,7 +96,7 @@ func (e *Etcd) AcquireAndHold(notify chan error) {
 // and belongs to another user, to wait until the lease expires or is deleted.
 // It returns true if the lease was acquired, the current TTL, the nextIndex
 // to watch from, or an error.
-func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
+func (e *Etcd) tryAcquire(useClusterLevelIndex *bool) (ok bool, ttl uint64, nextIndex uint64, err error) {
 	ttl = e.ttl
 
 	resp, err := e.client.Set(
@@ -121,7 +124,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 		return false, 0, 0, fmt.Errorf("unable to retrieve lease %s: %v", e.key, err)
 	}
 
-	nextIndex = eventIndexFor(latest)
+	nextIndex = eventIndexFor(latest, *useClusterLevelIndex)
 	if latest.Node.TTL > 0 {
 		ttl = uint64(latest.Node.TTL)
 	}
@@ -132,6 +135,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 		// TODO: it's possible we were given the lease during the watch, but we just expect to go
 		//   through this loop again and let this condition check
 		if _, err := e.waitForExpiration(false, nextIndex, nil); err != nil {
+			*useClusterLevelIndex = true
 			return false, 0, 0, fmt.Errorf("unable to wait for lease expiration %s: %v", e.key, err)
 		}
 		return false, 0, 0, nil
@@ -206,7 +210,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 				)
 				switch {
 				case err == nil:
-					index = eventIndexFor(resp)
+					index = eventIndexFor(resp, false)
 					return true, nil
 				case etcdutil.IsEtcdTestFailed(err):
 					return false, fmt.Errorf("another client has taken the lease %s: %v", e.key, err)
@@ -270,7 +274,7 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 			return false, etcdIndexFor(err, from), err
 		}
 
-		index := eventIndexFor(resp)
+		index := eventIndexFor(resp, false)
 
 		if resp.Action == "delete" || resp.Action == "compareAndDelete" || resp.Action == "expire" {
 			// the lease has expired
@@ -292,12 +296,14 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 }
 
 // eventIndexFor returns the next etcd index to watch based on a response
-func eventIndexFor(resp *etcdclient.Response) uint64 {
-	if resp.Node != nil {
-		return resp.Node.ModifiedIndex + 1
-	}
-	if resp.PrevNode != nil {
-		return resp.PrevNode.ModifiedIndex + 1
+func eventIndexFor(resp *etcdclient.Response, useClusterLevelIndex bool) uint64 {
+	if !useClusterLevelIndex {
+		if resp.Node != nil {
+			return resp.Node.ModifiedIndex + 1
+		}
+		if resp.PrevNode != nil {
+			return resp.PrevNode.ModifiedIndex + 1
+		}
 	}
 	return resp.Index
 }
