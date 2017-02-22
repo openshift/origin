@@ -67,5 +67,6 @@ const (
 	Create  Operation = "CREATE"
 	Update  Operation = "UPDATE"
 	Delete  Operation = "DELETE"
+	Get     Operation = "GET"
 	Connect Operation = "CONNECT"
 )
