@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // strategy implements behavior for Build objects
@@ -94,7 +95,13 @@ type detailsStrategy struct {
 func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
-	phase := newBuild.Status.Phase
+
+	// ignore phase updates unless the caller is updating the build to
+	// a completed phase.
+	phase := oldBuild.Status.Phase
+	if buildutil.IsBuildComplete(newBuild) {
+		phase = newBuild.Status.Phase
+	}
 	revision := newBuild.Spec.Revision
 	message := newBuild.Status.Message
 	reason := newBuild.Status.Reason
