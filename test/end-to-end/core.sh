@@ -420,8 +420,8 @@ os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].
 BUILD_ID="$( oc get builds --namespace test -o jsonpath='{.items[0].metadata.name}' )"
 # Ensure that the build pod doesn't allow exec
 os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
-os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test  > '${LOG_DIR}/test-build.log'"
+os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test -f > '${LOG_DIR}/test-build.log'"
+os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 1*TIME_MIN ))"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
