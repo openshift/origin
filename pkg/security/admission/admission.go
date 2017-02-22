@@ -136,7 +136,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
-		return kadmission.NewForbidden(a, errors.New("no providers available to validate pod request"))
+		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
