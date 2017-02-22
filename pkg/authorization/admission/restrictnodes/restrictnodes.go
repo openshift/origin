@@ -5,6 +5,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/golang/glog"
+
+	"k8s.io/client-go/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -105,6 +108,7 @@ func (q *restrictNodesAdmission) admitSecret(nodeName string, a admission.Attrib
 
 	// TODO: other secret references nodes need? PVs?
 
+	glog.Errorf("NODE-FORBIDDEN: Node %s tried to access secret %s/%s", nodeName, a.GetName(), a.GetNamespace())
 	return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("cannot access secret"))
 }
 
@@ -140,6 +144,7 @@ func (q *restrictNodesAdmission) admitNode(nodeName string, a admission.Attribut
 	if a.GetName() == nodeName {
 		return nil
 	}
+	glog.Errorf("NODE-FORBIDDEN: Node %s tried to access node %s", nodeName, a.GetName())
 	return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("cannot access other nodes"))
 }
 
@@ -162,17 +167,20 @@ func (q *restrictNodesAdmission) admitPod(nodeName string, a admission.Attribute
 			return nil
 		}
 		if pod.Spec.NodeName != nodeName {
+			glog.Errorf("NODE-FORBIDDEN: Node %s tried to create pod %s/%s with nodeName %s", nodeName, pod.Name, pod.Namespace, pod.Spec.NodeName)
 			return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("can only create pods bound to self"))
 		}
 		if _, isMirrorPod := pod.Annotations[types.ConfigMirrorAnnotationKey]; !isMirrorPod {
+			glog.Errorf("NODE-FORBIDDEN: Node %s tried to create non-mirror pod %s/%s", nodeName, pod.Name, pod.Namespace)
 			return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("can only create mirror pods"))
 		}
-		foundSecrets := false
+		secrets := sets.NewString()
 		visitSecretNames(pod, func(name string) bool {
-			foundSecrets = true
-			return false
+			secrets.Insert(name)
+			return true
 		})
-		if foundSecrets {
+		if len(secrets) > 0 {
+			glog.Errorf("NODE-FORBIDDEN: Node %s tried to create pod %s/%s referencing secrets %q", nodeName, pod.Name, pod.Namespace, secrets.List())
 			return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("can not reference secrets in mirror pods"))
 		}
 
@@ -189,6 +197,7 @@ func (q *restrictNodesAdmission) admitPod(nodeName string, a admission.Attribute
 			return nil
 		}
 		if oldPod.Spec.NodeName != nodeName {
+			glog.Errorf("NODE-FORBIDDEN: Node %s tried to update pod %s/%s with nodeName %s", nodeName, oldPod.Name, oldPod.Namespace, oldPod.Spec.NodeName)
 			return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("cannot update pod bound to other node"))
 		}
 
@@ -200,6 +209,7 @@ func (q *restrictNodesAdmission) admitPod(nodeName string, a admission.Attribute
 			return nil
 		}
 		if pod.Spec.NodeName != nodeName {
+			glog.Errorf("NODE-FORBIDDEN: Node %s tried to delete pod %s/%s with nodeName %s", nodeName, pod.Name, pod.Namespace, pod.Spec.NodeName)
 			return kapierrors.NewForbidden(a.GetResource().GroupResource(), a.GetName(), errors.New("cannot delete pod bound to other node"))
 		}
 	}
