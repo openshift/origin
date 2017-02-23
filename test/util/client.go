@@ -19,7 +19,6 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -98,7 +97,7 @@ func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.
 
 	token := &oauthapi.OAuthAccessToken{
 		ObjectMeta:  kapi.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
-		ClientName:  origin.OpenShiftCLIClientID,
+		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   86400,
 		Scopes:      scopes,
 		RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
