@@ -20,7 +20,7 @@ VOLUME /etc/openswitch
 ENV HOME /root
 
 # files required to run as a system container
-COPY system-container/system-container-wrapper.sh /usr/local/bin
+COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/service.template /exports/
 
 ENTRYPOINT ["/usr/local/bin/ovs-run.sh"]
