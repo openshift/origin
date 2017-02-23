@@ -1865,28 +1865,30 @@ func TestNewAppListAndSearch(t *testing.T) {
 		{
 			name: "search, no oldversion",
 			options: clicmd.NewAppOptions{
-				Config: &cmd.AppConfig{
-					ComponentInputs: cmd.ComponentInputs{
-						ImageStreams: []string{"ruby"},
-					},
-					AsSearch: true,
-				},
+				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+					Config: &cmd.AppConfig{
+						ComponentInputs: cmd.ComponentInputs{
+							ImageStreams: []string{"ruby"},
+						},
+						AsSearch: true,
+					}},
 			},
 			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
 		},
 		{
 			name: "list, no oldversion",
 			options: clicmd.NewAppOptions{
-				Config: &cmd.AppConfig{
-					AsList: true,
-				},
+				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+					Config: &cmd.AppConfig{
+						AsList: true,
+					}},
 			},
 			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
 		},
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.options.Config)
-		test.options.Out, test.options.ErrOut = stdout, stderr
+		test.options.Action.Out, test.options.ErrOut = stdout, stderr
 		test.options.BaseName = "oc"
 		test.options.CommandName = "new-app"
 

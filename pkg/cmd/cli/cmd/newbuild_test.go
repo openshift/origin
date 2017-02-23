@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/openshift/origin/pkg/client/testclient"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
-
-	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 // TestNewBuildRun ensures that Run command calls the right actions
@@ -52,10 +52,14 @@ func TestNewBuildRun(t *testing.T) {
 	}
 
 	o := &NewBuildOptions{
-		Out:         ioutil.Discard,
-		CommandPath: "oc new-build",
-		BaseName:    "oc",
-		CommandName: "new-build",
+		ObjectGeneratorOptions: &ObjectGeneratorOptions{
+			Action: configcmd.BulkAction{
+				Out: ioutil.Discard,
+			},
+			CommandPath: "oc new-build",
+			BaseName:    "oc",
+			CommandName: "new-build",
+		},
 	}
 
 	for _, test := range tests {
