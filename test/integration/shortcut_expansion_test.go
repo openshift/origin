@@ -9,7 +9,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
@@ -23,14 +22,14 @@ func TestCachingDiscoveryClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	originClient, err := testutil.GetClusterAdminClient(originKubeConfig)
+	originClient, err := testutil.GetClusterAdminClientRaw(originKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	resourceType := "buildconfigs"
 
-	originDiscoveryClient := client.NewDiscoveryClient(originClient.RESTClient)
+	originDiscoveryClient := originClient.Discovery()
 	originUncachedMapper := clientcmd.NewShortcutExpander(originDiscoveryClient, nil)
 	if !sets.NewString(originUncachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected %v, got: %v", resourceType, originUncachedMapper.All)
@@ -69,12 +68,12 @@ func TestCachingDiscoveryClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	atomicClient, err := testutil.GetClusterAdminClient(atomicKubeConfig)
+	atomicClient, err := testutil.GetClusterAdminClientRaw(atomicKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	atomicDiscoveryClient := client.NewDiscoveryClient(atomicClient.RESTClient)
+	atomicDiscoveryClient := atomicClient.Discovery()
 	atomicUncachedMapper := clientcmd.NewShortcutExpander(atomicDiscoveryClient, nil)
 	if sets.NewString(atomicUncachedMapper.All...).Has(resourceType) {
 		t.Errorf("expected no %v, got: %v", resourceType, atomicUncachedMapper.All)

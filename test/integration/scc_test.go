@@ -36,7 +36,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, haroldKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "harold")
+	_, haroldKubeClient, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -192,7 +192,7 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 }
 
-func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *client.Client, userClient *client.Client, image *imageapi.Image) {
+func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient client.Interface, userClient client.Interface, image *imageapi.Image) {
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -222,7 +222,7 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *cl
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userClient, _, _, err = testutil.GetClientForUser(*clusterAdminConfig, userName)
+	userClient, _, _, err = testutil.GetClientForUser(adminClient, *clusterAdminConfig, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -230,7 +230,7 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *cl
 	return adminClient, userClient, image
 }
 
-func makeUserAnImageSigner(clusterAdminClient *client.Client, userClient *client.Client, userName string) error {
+func makeUserAnImageSigner(clusterAdminClient client.Interface, userClient client.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
 		RoleNamespace:       "",

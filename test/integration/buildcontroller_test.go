@@ -65,11 +65,11 @@ func TestBuildCompletePodDeleteController(t *testing.T) {
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
-	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
+	osClient, _ := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	build.RunBuildConfigChangeControllerTest(t, osClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclientset.Clientset) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (client.Interface, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {

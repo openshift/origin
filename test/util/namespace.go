@@ -31,13 +31,13 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClient.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 	})
 	return err
 }
 
-func DeleteAndWaitForNamespaceTermination(c *kclientset.Clientset, name string) error {
+func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) error {
 	w, err := c.Core().Namespaces().Watch(kapi.ListOptions{})
 	if err != nil {
 		return err

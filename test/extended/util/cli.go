@@ -18,7 +18,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
-	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -100,7 +100,11 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	if err != nil {
 		FatalErr(err)
 	}
-	_, _, clientConfig, err := testutil.GetClientForUser(*adminClientConfig, name)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(c.adminConfigPath)
+	if err != nil {
+		FatalErr(err)
+	}
+	_, _, clientConfig, err := testutil.GetClientForUser(clusterAdminClient, *adminClientConfig, name)
 	if err != nil {
 		FatalErr(err)
 	}

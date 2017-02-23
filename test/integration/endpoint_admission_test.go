@@ -103,7 +103,7 @@ func TestEndpointAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	_, projectAdminClient, _, err := testutil.GetClientForUser(*clientConfig, "myadmin")
+	_, projectAdminClient, _, err := testutil.GetClientForUser(clusterAdminOSClient, *clientConfig, "myadmin")
 	if err != nil {
 		t.Fatalf("error getting project admin client: %v", err)
 	}
@@ -122,6 +122,6 @@ func TestEndpointAdmission(t *testing.T) {
 	ep.Subsets[0].Addresses[0].IP = exampleAddresses["service"]
 	ep, err = projectAdminClient.Core().Endpoints("myproject").Update(ep)
 	if err == nil {
-		t.Fatalf("unexpected success modifying endpoint")
+		t.Fatal("unexpected success modifying endpoint")
 	}
 }

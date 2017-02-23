@@ -11,10 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -33,22 +31,12 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
-
-	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,22 +123,12 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
-
-	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -196,16 +174,12 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(valerieClientConfig, "valerie")
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

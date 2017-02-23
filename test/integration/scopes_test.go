@@ -105,7 +105,7 @@ func TestScopedImpersonation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClientRaw(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client := &oauthapi.OAuthClient{
+	oauthClient := &oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
 		ScopeRestrictions: []oauthapi.ScopeRestriction{
 			{ExactValues: []string{"user:info"}},
@@ -249,7 +249,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.OAuthClients().Create(client); err != nil {
+	if _, err := clusterAdminClient.OAuthClients().Create(oauthClient); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -263,7 +263,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
 				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 			},
@@ -273,7 +273,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
 				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"user:info", "user:check-access"},
@@ -284,7 +284,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
 				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:*"},
@@ -294,7 +294,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "ok role",
 			obj: &oauthapi.OAuthClientAuthorization{
 				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:bravo"},
@@ -322,7 +322,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 			},
@@ -332,7 +332,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"user:info", "user:check-access"},
@@ -343,7 +343,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:*"},
@@ -353,7 +353,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "ok role",
 			obj: &oauthapi.OAuthAccessToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:bravo"},
@@ -381,7 +381,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 			},
@@ -391,7 +391,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"user:info", "user:check-access"},
@@ -402,7 +402,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:*"},
@@ -412,7 +412,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "ok role",
 			obj: &oauthapi.OAuthAuthorizeToken{
 				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
+				ClientName: oauthClient.Name,
 				UserName:   "name",
 				UserUID:    "uid",
 				Scopes:     []string{"role:one:bravo"},

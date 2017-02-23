@@ -46,7 +46,7 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 	})
 	g.Describe("RunBuildConfigChangeControllerTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminClient())
 		})
 	})
 })

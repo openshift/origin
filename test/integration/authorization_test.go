@@ -12,13 +12,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
-	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -94,12 +95,12 @@ func TestClusterReaderCoverage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClientRaw(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	discoveryClient := client.NewDiscoveryClient(clusterAdminClient.RESTClient)
+	discoveryClient := clusterAdminClient.Discovery()
 
 	// (map[string]*unversioned.APIResourceList, error)
 	allResourceList, err := discoveryClient.ServerResources()
@@ -320,7 +321,7 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	buildListerClient, _, _, err := testutil.GetClientForUser(*clusterAdminConfig, "build-lister")
+	buildListerClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminConfig, "build-lister")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -819,7 +820,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	dannyClient, _, dannyConfig, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
+	dannyClient, _, dannyConfig, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
@@ -1103,7 +1104,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	otherAdminClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "other-admin")
+	otherAdminClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "other-admin")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
@@ -1172,6 +1173,19 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 }
 
+// used for doing raw REST
+func createNewProjectRaw(clusterAdminClient client.Interface, clientConfig restclient.Config, projectName, adminUser string) (*client.Client, error) {
+	adminClient, err := testserver.CreateNewProject(clusterAdminClient, clientConfig, projectName, adminUser)
+	if err != nil {
+		return nil, err
+	}
+	rawClient, ok := adminClient.(*client.Client)
+	if !ok {
+		return nil, fmt.Errorf("not a *client.Client: %#v", adminClient)
+	}
+	return rawClient, nil
+}
+
 // TestOldLocalSubjectAccessReviewEndpoint checks to make sure that the old subject access review endpoint still functions properly
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
@@ -1193,7 +1207,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	haroldClient, err := createNewProjectRaw(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1322,7 +1336,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	haroldClient, err := createNewProjectRaw(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
