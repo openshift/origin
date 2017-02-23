@@ -1807,6 +1807,14 @@ func TestDockerImageReferenceForImage(t *testing.T) {
 		t.Errorf("expected source reference to be 'test/foo@sha256:bar', got %q", reference)
 	}
 
+	reference, ok = DockerImageReferenceForImage(mockImageStream(SourceTagReferencePolicy), "c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb")
+	if !ok {
+		t.Fatalf("expected success for source tag policy")
+	}
+	if reference != "test/foo@sha256:bar" {
+		t.Errorf("expected source reference to be 'test/foo@sha256:bar', got %q", reference)
+	}
+
 	reference, ok = DockerImageReferenceForImage(mockImageStream(LocalTagReferencePolicy), "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb")
 	if !ok {
 		t.Fatalf("expected success for local reference policy")

@@ -553,10 +553,8 @@ func LatestImageTagEvent(stream *ImageStream, imageID string) (string, *TagEvent
 			continue
 		}
 		for i, event := range events.Items {
-			if event.Image != imageID {
-				continue
-			}
-			if latestTagEvent == nil || (latestTagEvent != nil && event.Created.After(latestTagEvent.Created.Time)) {
+			if digestOrImageMatch(event.Image, imageID) &&
+				(latestTagEvent == nil || latestTagEvent != nil && event.Created.After(latestTagEvent.Created.Time)) {
 				latestTagEvent = &events.Items[i]
 				latestTag = tag
 			}
@@ -845,6 +843,13 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 	return updated
 }
 
+func digestOrImageMatch(image, imageID string) bool {
+	if d, err := digest.ParseDigest(image); err == nil {
+		return strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(image, imageID)
+	}
+	return strings.HasPrefix(image, imageID)
+}
+
 // ResolveImageID returns latest TagEvent for specified imageID and an error if
 // there's more than one image matching the ID or when one does not exist.
 func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
@@ -853,14 +858,7 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	for _, history := range stream.Status.Tags {
 		for i := range history.Items {
 			tagging := &history.Items[i]
-			if d, err := digest.ParseDigest(tagging.Image); err == nil {
-				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
-					event = tagging
-					set.Insert(tagging.Image)
-				}
-				continue
-			}
-			if strings.HasPrefix(tagging.Image, imageID) {
+			if digestOrImageMatch(tagging.Image, imageID) {
 				event = tagging
 				set.Insert(tagging.Image)
 			}
