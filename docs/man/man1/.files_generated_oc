@@ -73,6 +73,8 @@ oc-adm-policy-remove-role-from-user.1
 oc-adm-policy-remove-scc-from-group.1
 oc-adm-policy-remove-scc-from-user.1
 oc-adm-policy-remove-user.1
+oc-adm-policy-scc-review.1
+oc-adm-policy-scc-subject-review.1
 oc-adm-policy-who-can.1
 oc-adm-policy.1
 oc-adm-prune-builds.1
@@ -178,6 +180,8 @@ oc-policy-remove-group.1
 oc-policy-remove-role-from-group.1
 oc-policy-remove-role-from-user.1
 oc-policy-remove-user.1
+oc-policy-scc-review.1
+oc-policy-scc-subject-review.1
 oc-policy-who-can.1
 oc-policy.1
 oc-port-forward.1
