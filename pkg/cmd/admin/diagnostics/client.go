@@ -62,6 +62,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 				Factory:             o.Factory,
 				PreventModification: o.PreventModification,
 				LogDir:              o.NetworkDiagLogDir,
+				PodImage:            o.NetworkDiagPodImage,
 			})
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
