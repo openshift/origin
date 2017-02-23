@@ -139,9 +139,9 @@ func DumpNamedBuildLogs(buildName string, oc *CLI) {
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
-	buildOuput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
+	buildOutput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", buildOuput)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", buildOutput)
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on build logs %+v\n\n", err)
 	}
