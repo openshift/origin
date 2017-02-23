@@ -3,7 +3,9 @@ package plugin
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
+	"strings"
 
 	log "github.com/golang/glog"
 
@@ -266,13 +268,14 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 	otx := plugin.ovs.NewTransaction()
 
 	// Build the list of all nodes for multicast forwarding
-	tun_dsts := ""
+	tun_dsts := make([]string, 0, len(subnets))
 	for _, subnet := range subnets {
 		if subnet.HostIP != plugin.localIP {
-			tun_dsts += fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP)
+			tun_dsts = append(tun_dsts, fmt.Sprintf(",set_field:%s->tun_dst,output:1", subnet.HostIP))
 		}
 	}
-	otx.AddFlow("table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", tun_dsts)
+	sort.Strings(sort.StringSlice(tun_dsts))
+	otx.AddFlow("table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31]%s,goto_table:120", strings.Join(tun_dsts, ""))
 
 	if err := otx.EndTransaction(); err != nil {
 		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
