@@ -85,12 +85,17 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	if len(o.User) > 0 && len(o.serviceAccount) > 0 {
 		return fmt.Errorf("--user and --serviceaccount are mutually exclusive")
 	}
-	if strings.HasPrefix(o.serviceAccount, serviceaccount.ServiceAccountUsernamePrefix) {
-		_, user, err := serviceaccount.SplitUsername(o.serviceAccount)
-		if err != nil {
-			return err
+	if len(o.serviceAccount) > 0 { // check whether user supplied a list of SA
+		if len(strings.Split(o.serviceAccount, ",")) > 1 {
+			return fmt.Errorf("only one Service Account is supported")
 		}
-		o.serviceAccount = user
+		if strings.HasPrefix(o.serviceAccount, serviceaccount.ServiceAccountUsernamePrefix) {
+			_, user, err := serviceaccount.SplitUsername(o.serviceAccount)
+			if err != nil {
+				return err
+			}
+			o.serviceAccount = user
+		}
 	}
 	var err error
 	o.namespace, o.enforceNamespace, err = f.DefaultNamespace()
