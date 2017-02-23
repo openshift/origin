@@ -51,11 +51,9 @@ os::test::junit::declare_suite_start "end-to-end/core"
 os::log::info "openshift version: `openshift version`"
 os::log::info "oc version:        `oc version`"
 
-# service dns entry is visible via master service
-# find the IP of the master service by asking the API_HOST to verify DNS is running there
-# might need to wait a bit to ensure the dns cache is primed
-os::cmd::try_until_text "dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1" "([0-9]{1,3}\.){3}[0-9]{1,3}"
-MASTER_SERVICE_IP="$(dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
+# Ensure that the master service responds to DNS requests. At this point 'oc cluster up' has verified
+# that the service is up
+MASTER_SERVICE_IP="172.30.0.1"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
 os::cmd::expect_success_and_text "dig +tcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
 os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
@@ -99,14 +97,14 @@ os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
-os::cmd::expect_success_and_text "dig @${API_HOST} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
+os::cmd::expect_success_and_text "dig @${MASTER_SERVICE_IP} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
 os::log::info "Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_REGISTRY}/'" "$((2*TIME_MIN))"
 # ensure original healthz route works as well
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
-os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
+os::cmd::expect_success "dig @${MASTER_SERVICE_IP} docker-registry.default.local. A"
 
 os::log::info "Configure registry to disable mirroring"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"

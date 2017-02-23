@@ -190,6 +190,7 @@ type CommonStartConfig struct {
 	UsePorts                 []int
 	DNSPort                  int
 	ServerIP                 string
+	AdditionalIPs            []string
 	UseNsenterMount          bool
 	PublicHostname           string
 	RoutingSuffix            string
@@ -197,7 +198,6 @@ type CommonStartConfig struct {
 	HTTPProxy                string
 	HTTPSProxy               string
 	NoProxy                  []string
-	RouterIP                 string
 	CACert                   string
 
 	dockerClient    *docker.Client
@@ -332,10 +332,21 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// mount OpenShift volumes.
 	c.addTask("Creating host directories", c.EnsureHostDirectories)
 
-	// Determine an IP to use for OpenShift. Uses the following sources:
-	// - Docker host
-	// - openshift start --print-ip
-	// - hostname -I
+	// Determine an IP to use for OpenShift.
+	// The result is that c.ServerIP will be populated with
+	// the IP that will be used on the client configuration file.
+	// The c.ServerIP will be set to a specific IP when:
+	// 1 - DOCKER_HOST is populated with a particular tcp:// type of address
+	// 2 - a docker-machine has been specified
+	// 3 - 127.0.0.1 is not working and an alternate IP has been found
+	// Otherwise, the default c.ServerIP will be 127.0.0.1 which is what
+	// will get stored in the client's config file. The reason for this is that
+	// the client config will not depend on the machine's current IP address which
+	// could change over time.
+	//
+	// c.AdditionalIPs will be populated with additional IPs that should be
+	// included in the server's certificate. These include any IPs that are currently
+	// assigned to the Docker host (hostname -I)
 	// Each IP is tested to ensure that it can be accessed from the current client
 	c.addTask("Finding server IP", c.DetermineServerIP)
 
@@ -708,21 +719,20 @@ func (c *CommonStartConfig) DetermineServerIP(out io.Writer) error {
 	if err != nil {
 		return errors.NewError("cannot determine a server IP to use").WithCause(err)
 	}
-	if c.PortForwarding {
-		c.ServerIP = "127.0.0.1"
-		c.RouterIP = ip
-	} else {
-		c.ServerIP = ip
-		c.RouterIP = ip
-	}
+	c.ServerIP = ip
 	fmt.Fprintf(out, "Using %s as the server IP\n", c.ServerIP)
+	c.AdditionalIPs, err = c.determineAdditionalIPs(c.ServerIP)
+	if err != nil {
+		return errors.NewError("cannot determine additional IPs").WithCause(err)
+	}
+	glog.V(4).Infof("Additional server IPs: %v", c.AdditionalIPs)
 	return nil
 }
 
 // updateNoProxy will add some default values to the NO_PROXY setting
 // if they are not present
 func (c *ClientStartConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, c.RouterIP, "localhost", openshift.RegistryServiceIP, "172.30.0.0/8"}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, "172.30.0.0/8"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -751,7 +761,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 
 	opt := &openshift.StartOptions{
 		ServerIP:                 c.ServerIP,
-		RouterIP:                 c.RouterIP,
+		AdditionalIPs:            c.AdditionalIPs,
 		RoutingSuffix:            c.RoutingSuffix,
 		UseSharedVolume:          !c.UseNsenterMount,
 		Images:                   c.imageFormat(),
@@ -783,7 +793,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	// Start a container networking test
 	c.containerNetworkErr = make(chan error)
 	go func() {
-		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(c.ServerIP)
+		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking()
 	}()
 
 	// Setup persistent storage
@@ -791,6 +801,13 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	// Remove any duplicate nodes
+	err = c.OpenShiftHelper().CheckNodes(kClient)
+	if err != nil {
+		return err
+	}
+
 	err = c.OpenShiftHelper().SetupPersistentStorage(osClient, kClient, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
@@ -804,7 +821,7 @@ func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
 		return errors.NewError("containers cannot communicate with the OpenShift master").
 			WithDetails("The cluster was started. However, the container networking test failed.").
 			WithSolution(
-				fmt.Sprintf("Ensure that access to ports tcp/8443 and udp/53 is allowed on %s.\n"+
+				fmt.Sprintf("Ensure that access to ports tcp/8443, udp/53 and udp/8053 is allowed on %s.\n"+
 					"You may need to open these ports on your machine's firewall.", c.ServerIP)).
 			WithCause(networkErr)
 	}
@@ -838,7 +855,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
 // ImportImageStreams imports default image streams into the server
@@ -989,9 +1006,7 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 			return nil, err
 		}
 		overrides := &kclientcmd.ConfigOverrides{}
-		if c.PortForwarding {
-			overrides.ClusterInfo.Server = fmt.Sprintf("https://%s:8443", c.ServerIP)
-		}
+		overrides.ClusterInfo.Server = fmt.Sprintf("https://%s:8443", c.ServerIP)
 		defaultCfg := kclientcmd.NewDefaultClientConfig(*cfg, overrides)
 		c.factory = clientcmd.NewFactory(defaultCfg)
 	}
@@ -1066,8 +1081,49 @@ func getDockerMachineClient(machine string, out io.Writer, canStart bool) (*dock
 	return dockermachine.Client(machine)
 }
 
+func (c *CommonStartConfig) determineAdditionalIPs(ip string) ([]string, error) {
+	additionalIPs := sets.NewString()
+	serverIPs, err := c.OpenShiftHelper().OtherIPs(ip)
+	if err != nil {
+		return nil, errors.NewError("could not determine additional IPs").WithCause(err)
+	}
+	additionalIPs.Insert(serverIPs...)
+	if c.PortForwarding {
+		localIPs, err := c.localIPs()
+		if err != nil {
+			return nil, errors.NewError("could not determine additional local IPs").WithCause(err)
+		}
+		additionalIPs.Insert(localIPs...)
+	}
+	return additionalIPs.List(), nil
+}
+
+func (c *CommonStartConfig) localIPs() ([]string, error) {
+	ips := []string{}
+	devices, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, dev := range devices {
+		if (dev.Flags&net.FlagUp != 0) && (dev.Flags&net.FlagLoopback == 0) {
+			addrs, err := dev.Addrs()
+			if err != nil {
+				continue
+			}
+			for i := range addrs {
+				if ip, ok := addrs[i].(*net.IPNet); ok {
+					if ip.IP.To4() != nil {
+						ips = append(ips, ip.IP.String())
+					}
+				}
+			}
+		}
+	}
+	return ips, nil
+}
+
 func (c *CommonStartConfig) determineIP(out io.Writer) (string, error) {
-	if ip := net.ParseIP(c.HostName); ip != nil && !ip.IsUnspecified() {
+	if ip := net.ParseIP(c.PublicHostname); ip != nil && !ip.IsUnspecified() {
 		fmt.Fprintf(out, "Using public hostname IP %s as the host IP\n", ip)
 		return ip.String(), nil
 	}
@@ -1078,23 +1134,18 @@ func (c *CommonStartConfig) determineIP(out io.Writer) (string, error) {
 		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
 		ip, err := dockermachine.IP(c.DockerMachine)
 		if err != nil {
-			return "", errors.NewError("Could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
+			return "", errors.NewError("could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
 		}
 		fmt.Fprintf(out, "Using docker-machine IP %s as the host IP\n", ip)
 		return ip, nil
 	}
 
-	// If using port-forwarding, find a local IP that can be used to communicate with the
-	// Origin container
+	// If using port-forwarding, use the default loopback address
 	if c.PortForwarding {
-		ip4, err := cmdutil.DefaultLocalIP4()
-		if err != nil {
-			return "", errors.NewError("cannot determine local IP address").WithCause(err)
-		}
-		return ip4.String(), nil
+		return "127.0.0.1", nil
 	}
 
-	// First, try to get the host from the DOCKER_HOST if communicating via tcp
+	// Try to get the host from the DOCKER_HOST if communicating via tcp
 	var err error
 	ip := c.DockerHelper().HostIP()
 	if ip != "" {
@@ -1104,6 +1155,13 @@ func (c *CommonStartConfig) determineIP(out io.Writer) (string, error) {
 		}
 	}
 	glog.V(2).Infof("Cannot use the Docker host IP(%s): %v", ip, err)
+
+	// If IP is not specified, try to use the loopback IP
+	// This is to default to an ip-agnostic client setup
+	// where the real IP of the host will not affect client operations
+	if err = c.OpenShiftHelper().TestIP("127.0.0.1"); err == nil {
+		return "127.0.0.1", nil
+	}
 
 	// Next, use the the --print-ip output from openshift
 	ip, err = c.OpenShiftHelper().ServerIP()
