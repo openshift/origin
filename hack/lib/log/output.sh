@@ -8,7 +8,9 @@
 # Arguments:
 #  - all: message to write
 function os::log::info() {
-	os::log::internal::prefix_lines "[INFO]" "$*"
+	local message; message="$( os::log::internal::prefix_lines "[INFO]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	echo "${message}"
 }
 readonly -f os::log::info
 
@@ -19,7 +21,9 @@ readonly -f os::log::info
 # Arguments:
 #  - all: message to write
 function os::log::warn() {
-	os::text::print_yellow "$( os::log::internal::prefix_lines "[WARNING]" "$*" )" 1>&2
+	local message; message="$( os::log::internal::prefix_lines "[WARNING]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_yellow "${message}" 1>&2
 }
 readonly -f os::log::warn
 
@@ -30,7 +34,9 @@ readonly -f os::log::warn
 # Arguments:
 #  - all: message to write
 function os::log::error() {
-	os::text::print_red "$( os::log::internal::prefix_lines "[ERROR]" "$*" )" 1>&2
+	local message; message="$( os::log::internal::prefix_lines "[ERROR]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_red "${message}" 1>&2
 }
 readonly -f os::log::error
 
@@ -42,7 +48,9 @@ readonly -f os::log::error
 # Arguments:
 #  - all: message to write
 function os::log::fatal() {
-	os::text::print_red "$( os::log::internal::prefix_lines "[FATAL]" "$*" )" 1>&2
+	local message; message="$( os::log::internal::prefix_lines "[FATAL]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_red "${message}" 1>&2
 	exit 1
 }
 readonly -f os::log::fatal
@@ -50,14 +58,31 @@ readonly -f os::log::fatal
 # os::log::debug writes the message to stderr if
 # the ${OS_DEBUG} variable is set.
 #
+# Globals:
+#  - OS_DEBUG
 # Arguments:
 #  - all: message to write
 function os::log::debug() {
+	local message; message="$( os::log::internal::prefix_lines "[DEBUG]" "$*" )"
+	os::log::internal::to_logfile "${message}"
 	if [[ -n "${OS_DEBUG:-}" ]]; then
-		os::text::print_blue "$( os::log::internal::prefix_lines "[DEBUG]" "$*" )" 1>&2
+		os::text::print_blue "${message}" 1>&2
 	fi
 }
 readonly -f os::log::debug
+
+# os::log::internal::to_logfile makes a best-effort
+# attempt to write the message to the script logfile
+#
+# Globals:
+#  - LOG_DIR
+# Arguments:
+#  - all: message to write
+function os::log::internal::to_logfile() {
+	if [[ -n "${LOG_DIR:-}" ]]; then
+		echo "$*" >>"${LOG_DIR}/scripts.log"
+	fi
+}
 
 # os::log::internal::prefix_lines prints out the
 # original content with the given prefix at the
