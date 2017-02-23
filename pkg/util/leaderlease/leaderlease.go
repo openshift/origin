@@ -29,10 +29,11 @@ type Leaser interface {
 // Etcd takes and holds a leader lease until it can no longer confirm it owns
 // the lease, then returns.
 type Etcd struct {
-	client etcdclient.KeysAPI
-	key    string
-	value  string
-	ttl    uint64
+	client     etcdclient.Client
+	keysClient etcdclient.KeysAPI
+	key        string
+	value      string
+	ttl        uint64
 
 	// the fraction of the ttl to wait before trying to renew - for instance, 0.75 with TTL 20
 	// will wait 15 seconds before attempting to renew the lease, then retry over the next 5
@@ -51,10 +52,11 @@ type Etcd struct {
 // client takes it.
 func NewEtcd(client etcdclient.Client, key, value string, ttl uint64) Leaser {
 	return &Etcd{
-		client: etcdclient.NewKeysAPI(client),
-		key:    key,
-		value:  value,
-		ttl:    ttl,
+		client:     client,
+		keysClient: etcdclient.NewKeysAPI(client),
+		key:        key,
+		value:      value,
+		ttl:        ttl,
 
 		waitFraction:         0.66,
 		pauseInterval:        time.Second,
@@ -63,8 +65,30 @@ func NewEtcd(client etcdclient.Client, key, value string, ttl uint64) Leaser {
 	}
 }
 
+const autoSyncInterval = 10 * time.Second
+
 // AcquireAndHold implements an acquire and release of a lease.
 func (e *Etcd) AcquireAndHold(notify chan error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		// Because the call to e.keysClient.Set in tryAcquire is using PrevNoExist, etcd considers this
+		// to be a "one-shot" attempt, meaning that if the connection attempt to one of the etcd cluster
+		// members fails, it will not fail over to any of the other cluster members. Calling
+		// e.client.AutoSync is not a one-shot call, and it will try to contact each cluster member
+		// until it succeeds. Assuming it does, the client's list of endpoints is updated, and any
+		// unavailable members are removed from the list.
+		for {
+			err := e.client.AutoSync(ctx, autoSyncInterval)
+			if err == context.DeadlineExceeded || err == context.Canceled {
+				break
+			}
+			utilruntime.HandleError(err)
+			time.Sleep(e.pauseInterval)
+		}
+	}()
+
 	for {
 		ok, ttl, index, err := e.tryAcquire()
 		if err != nil {
@@ -96,7 +120,7 @@ func (e *Etcd) AcquireAndHold(notify chan error) {
 func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 	ttl = e.ttl
 
-	resp, err := e.client.Set(
+	resp, err := e.keysClient.Set(
 		context.Background(),
 		e.key,
 		e.value,
@@ -116,7 +140,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 		return false, 0, 0, fmt.Errorf("unable to check lease %s: %v", e.key, err)
 	}
 
-	latest, err := e.client.Get(context.Background(), e.key, nil)
+	latest, err := e.keysClient.Get(context.Background(), e.key, nil)
 	if err != nil {
 		return false, 0, 0, fmt.Errorf("unable to retrieve lease %s: %v", e.key, err)
 	}
@@ -144,7 +168,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 // Release tries to delete the leader lock.
 func (e *Etcd) Release() {
 	for i := 0; i < e.maxRetries; i++ {
-		_, err := e.client.Delete(context.Background(), e.key, &etcdclient.DeleteOptions{PrevValue: e.value})
+		_, err := e.keysClient.Delete(context.Background(), e.key, &etcdclient.DeleteOptions{PrevValue: e.value})
 		if err == nil {
 			break
 		}
@@ -197,7 +221,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 		case <-time.After(after):
 			err := wait.Poll(interval, last, func() (bool, error) {
 				glog.V(4).Infof("Renewing lease %s at %d", e.key, index-1)
-				resp, err := e.client.Set(context.Background(), e.key, e.value,
+				resp, err := e.keysClient.Set(context.Background(), e.key, e.value,
 					&etcdclient.SetOptions{
 						TTL:       time.Duration(e.ttl) * time.Second,
 						PrevValue: e.value,
@@ -264,7 +288,7 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 		default:
 		}
 		glog.V(5).Infof("watching for expiration of lease %s from %d", e.key, from)
-		w := e.client.Watcher(e.key, &etcdclient.WatcherOptions{AfterIndex: from - 1})
+		w := e.keysClient.Watcher(e.key, &etcdclient.WatcherOptions{AfterIndex: from - 1})
 		resp, err := w.Next(context.Background())
 		if err != nil {
 			return false, etcdIndexFor(err, from), err
