@@ -488,7 +488,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, kclients
 
 	// if the user specified a CA on the command line, add it to the
 	// client config's CA roots
-	if len(caBundle) > 0 {
+	if tlsConfig != nil && len(caBundle) > 0 {
 		data, err := ioutil.ReadFile(caBundle)
 		if err != nil {
 			return nil, nil, nil, err
