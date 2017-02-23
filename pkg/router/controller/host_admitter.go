@@ -147,7 +147,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 	return p.plugin.HandleRoute(eventType, route)
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *HostAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)

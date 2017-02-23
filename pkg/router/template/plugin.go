@@ -194,7 +194,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	return nil
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)
