@@ -13,7 +13,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -90,6 +89,9 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 
 	// make our authorize request again, but this time our transport has properly set the auth info for the front proxy
 	req, err := http.NewRequest("GET", rawAuthorizeRequest, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 	_, err = httpClient.Do(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -105,12 +107,6 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 		t.Errorf("Did not find code in any redirect: %v", redirectedUrls)
 	} else {
 		t.Logf("Found code %v\n", foundCode)
-	}
-}
-
-func createClient(t *testing.T, clientRegistry clientregistry.Registry, client *oauthapi.OAuthClient) {
-	if _, err := clientRegistry.CreateClient(kapi.NewContext(), client); err != nil {
-		t.Errorf("Error creating client: %v due to %v\n", client, err)
 	}
 }
 

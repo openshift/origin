@@ -676,7 +676,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			config.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
 		}
 		topLevelAuthenticators = append(topLevelAuthenticators, requestHeaderAuthenticator)
 	}

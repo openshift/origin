@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -112,6 +113,17 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 	server.GenericServerRunOptions.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.GenericServerRunOptions.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
 	server.GenericServerRunOptions.ClientCAFile = options.ServingInfo.ClientCA
+
+	// TODO this is a terrible hack that should be removed in 1.6
+	if options.AuthConfig.RequestHeader != nil {
+		clientCAFile, err := concatenateFiles("cafrontproxybundle", "\n", options.ServingInfo.ClientCA, options.AuthConfig.RequestHeader.ClientCA)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to create ca bundle temp file: %v", err)
+		}
+		glog.V(2).Infof("temp clientCA bundle file is %s", clientCAFile)
+		server.GenericServerRunOptions.ClientCAFile = clientCAFile
+	}
+
 	server.GenericServerRunOptions.MaxRequestsInFlight = options.ServingInfo.MaxRequestsInFlight
 	server.GenericServerRunOptions.MinRequestTimeout = options.ServingInfo.RequestTimeoutSeconds
 	for _, nc := range options.ServingInfo.NamedCertificates {
@@ -544,4 +556,28 @@ func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIRe
 	}
 
 	return resourceConfig
+}
+
+// TODO remove this func in 1.6 when we get rid of the hack above
+func concatenateFiles(prefix, separator string, files ...string) (string, error) {
+	data := []byte{}
+	for _, file := range files {
+		fileBytes, err := ioutil.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		data = append(data, fileBytes...)
+		data = append(data, []byte(separator)...)
+	}
+	tmpFile, err := ioutil.TempFile("", prefix)
+	if err != nil {
+		return "", err
+	}
+	if _, err := tmpFile.Write(data); err != nil {
+		return "", err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", err
+	}
+	return tmpFile.Name(), nil
 }
