@@ -24,11 +24,11 @@ function cleanup()
 	echo
 
 	set +e
-	dump_container_logs
+	os::cleanup::dump_container_logs
 
 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
-    grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/container-origin.log
+    grep -ra5 "CACHE.*ALTERED" ${LOG_DIR}/containers
 
 	os::cleanup::dump_etcd
 
@@ -37,10 +37,7 @@ function cleanup()
 		docker stop origin
 		docker rm origin
 
-		os::log::info "Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			os::log::info "Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
+		os::cleanup::containers
 		set -u
 	fi
 
