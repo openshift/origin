@@ -33,7 +33,7 @@ Steps
 
         $ oc new-app jenkins-ephemeral
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/install_config/persistent_storage/persistent_storage_nfs.html) setup.  
     
 1. Create the sample application configuration
 
