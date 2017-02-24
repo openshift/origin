@@ -21,7 +21,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 		f = e2e.NewDefaultFramework("security-supgroups")
 	)
 
-	g.Describe("Ensure supplemental groups propagate to docker", func() {
+	g.Describe("[Conformance]Ensure supplemental groups propagate to docker", func() {
 		g.It("should propagate requested groups to the docker host config [local]", func() {
 			g.By("getting the docker client")
 			dockerCli, err := testutil.NewDockerClient()

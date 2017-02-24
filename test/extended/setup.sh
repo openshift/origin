@@ -352,12 +352,8 @@ readonly SERIAL_TESTS=(
 
 readonly CONFORMANCE_TESTS=(
 	"\[Conformance\]"
-
 	"Services.*NodePort"
 	"ResourceQuota should"
-	"\[networking\] basic openshift networking"
-	"\[networking\]\[router\]"
-	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
 	"StatefulSet"
 	"Downward API"
@@ -368,18 +364,12 @@ readonly CONFORMANCE_TESTS=(
 	"Pods should support retrieving logs from the container"
 	"Kubectl client Simple pod should support"
 	"Job should run a job to completion when tasks succeed"
-	"\[images\]\[mongodb\] openshift mongodb replication"
-	"\[job\] openshift can execute jobs controller"
-	"\[volumes\] Test local storage quota FSGroup"
-	"test deployment should run a deployment to completion"
 	"Variable Expansion"
 	"init containers"
 	"Clean up pods on node kubelet"
 	"\[Feature\:SecurityContext\]"
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
-	"\[Feature\:PodDisruptionbudget\]"
 	"should create a pod that reads a secret"
 	"should create a pod that prints his name and namespace"
-	"manifest migration from etcd to registry storage"
 )

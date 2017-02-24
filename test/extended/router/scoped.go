@@ -19,7 +19,7 @@ import (
 
 const changeTimeoutSeconds = 3 * 60
 
-var _ = g.Describe("[networking][router] openshift routers", func() {
+var _ = g.Describe("[Conformance][networking][router] openshift routers", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
