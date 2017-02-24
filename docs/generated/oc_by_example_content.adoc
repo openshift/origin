@@ -847,6 +847,19 @@ Mark node as schedulable
 ====
 
 
+== oc adm verify-image-signature
+Verify that the given IMAGE signature is trusted
+
+====
+
+[options="nowrap"]
+----
+  # Verify the image signature using the local GNUPG keychan and record the status as a condition to image
+  verify-image-signature sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 --expected-identity=registry.local:5000/foo/bar:v1
+----
+====
+
+
 == oc annotate
 Update the annotations on a resource
 
