@@ -53,6 +53,7 @@ type GenerationInputs struct {
 	TemplateParameters []string
 	Environment        []string
 	BuildEnvironment   []string
+	BuildArgs          []string
 	Labels             map[string]string
 
 	TemplateParameterFiles []string
@@ -287,7 +288,20 @@ func validateOutputImageReference(ref string) error {
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
-	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), c.OutputDocker).To(c.To)
+
+	buildArgs, err := cmdutil.ParseBuildArg(c.BuildArgs, c.In)
+	if err != nil {
+		return nil, err
+	}
+
+	var DockerStrategyOptions *buildapi.DockerStrategyOptions
+	if len(c.BuildArgs) > 0 {
+		DockerStrategyOptions = &buildapi.DockerStrategyOptions{
+			BuildArgs: buildArgs,
+		}
+	}
+
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), DockerStrategyOptions, c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}

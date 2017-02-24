@@ -315,6 +315,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.SecretBuildSource) error {
 	var noCache bool
 	var forcePull bool
+	var buildArgs []docker.BuildArg
 	dockerfilePath := defaultDockerfilePath
 	if d.build.Spec.Strategy.DockerStrategy != nil {
 		if d.build.Spec.Source.ContextDir != "" {
@@ -322,6 +323,9 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		}
 		if d.build.Spec.Strategy.DockerStrategy.DockerfilePath != "" {
 			dockerfilePath = d.build.Spec.Strategy.DockerStrategy.DockerfilePath
+		}
+		for _, ba := range d.build.Spec.Strategy.DockerStrategy.BuildArgs {
+			buildArgs = append(buildArgs, docker.BuildArg{Name: ba.Name, Value: ba.Value})
 		}
 		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
 		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
@@ -341,7 +345,9 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		Dockerfile:     dockerfilePath,
 		NoCache:        noCache,
 		Pull:           forcePull,
+		BuildArgs:      buildArgs,
 	}
+
 	if d.cgLimits != nil {
 		opts.Memory = d.cgLimits.MemoryLimitBytes
 		opts.Memswap = d.cgLimits.MemorySwap

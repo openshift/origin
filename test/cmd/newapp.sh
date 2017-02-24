@@ -180,6 +180,9 @@ os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null --
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 
+# new-build - check that we can set build-args in DockerStrategy 
+os::cmd::expect_success_and_text "oc new-build ${OS_ROOT}/test/testdata/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
+
 #
 # verify we can create from a template when some objects in the template declare an app label
 # the app label will not be applied to any objects in the template.

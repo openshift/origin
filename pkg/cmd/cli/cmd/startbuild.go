@@ -97,6 +97,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, 
 	}
 	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
 	cmd.Flags().StringArrayVarP(&o.Env, "env", "e", o.Env, "Specify a key-value pair for an environment variable to set for the build container.")
+	cmd.Flags().StringArrayVar(&o.Args, "build-arg", o.Args, "Specify a key-value pair to pass to Docker during the build.")
 	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
 
 	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
@@ -133,7 +134,8 @@ type StartBuildOptions struct {
 	FromRepo    string
 	FromArchive string
 
-	Env []string
+	Env  []string
+	Args []string
 
 	Follow          bool
 	WaitForComplete bool
@@ -149,6 +151,7 @@ type StartBuildOptions struct {
 	AsBinary    bool
 	ShortOutput bool
 	EnvVar      []kapi.EnvVar
+	BuildArgs   []kapi.EnvVar
 	Name        string
 	Namespace   string
 }
@@ -245,6 +248,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 			return fmt.Errorf("invalid resource provided: %v", resource)
 		}
 	}
+
 	// when listing webhooks, allow --from-build to lookup a build config
 	if resource == buildapi.Resource("builds") && len(o.ListWebhooks) > 0 {
 		build, err := client.Builds(namespace).Get(name)
@@ -268,6 +272,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Namespace = namespace
 	o.Name = name
 
+	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
 	env, _, err := cmdutil.ParseEnv(o.Env, in)
 	if err != nil {
@@ -277,6 +282,14 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
 	}
 	o.EnvVar = env
+
+	// Handle Docker build arguments. In order to leverage existing logic, we
+	// first create an EnvVar array, then convert it to []docker.BuildArg
+	buildArgs, err := cmdutil.ParseBuildArg(o.Args, in)
+	if err != nil {
+		return err
+	}
+	o.BuildArgs = buildArgs
 
 	return nil
 }
@@ -299,9 +312,17 @@ func (o *StartBuildOptions) Run() error {
 		),
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
 	}
+
 	if len(o.EnvVar) > 0 {
 		request.Env = o.EnvVar
 	}
+
+	if len(o.BuildArgs) > 0 {
+		request.DockerStrategyOptions = &buildapi.DockerStrategyOptions{
+			BuildArgs: o.BuildArgs,
+		}
+	}
+
 	if len(o.Commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
 			Git: &buildapi.GitSourceRevision{
@@ -323,6 +344,9 @@ func (o *StartBuildOptions) Run() error {
 		}
 		if len(o.EnvVar) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying environment variables with binary builds is not supported.\n")
+		}
+		if len(o.BuildArgs) > 0 {
+			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.Client.BuildConfigs(o.Namespace), o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {

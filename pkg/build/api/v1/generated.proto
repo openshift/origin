@@ -309,6 +309,9 @@ message BuildRequest {
   // triggeredBy describes which triggers started the most recent update to the
   // build configuration and contains information about those triggers.
   repeated BuildTriggerCause triggeredBy = 8;
+
+  // DockerStrategyOptions contains additional docker-strategy specific options for the build
+  optional DockerStrategyOptions dockerStrategyOptions = 9;
 }
 
 // BuildSource is the SCM used for the build.
@@ -580,6 +583,17 @@ message DockerBuildStrategy {
   // dockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
   // relative to the root of the context (contextDir).
   optional string dockerfilePath = 6;
+
+  // Args contains any build arguments that are to be passed to Docker.  See
+  // https://docs.docker.com/engine/reference/builder/#/arg for more details
+  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 7;
+}
+
+// DockerStrategyOptions contains extra strategy options for Docker builds
+message DockerStrategyOptions {
+  // Args contains any build arguments that are to be passed to Docker.  See
+  // https://docs.docker.com/engine/reference/builder/#/arg for more details
+  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 1;
 }
 
 // GenericWebHookCause holds information about a generic WebHook that
@@ -605,6 +619,9 @@ message GenericWebHookEvent {
   // env contains additional environment variables you want to pass into a builder container.
   // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+
+  // DockerStrategyOptions contains additional docker-strategy specific options for the build
+  optional DockerStrategyOptions dockerStrategyOptions = 4;
 }
 
 // GitBuildSource defines the parameters of a Git SCM

@@ -48008,6 +48008,10 @@
       "description": "binary indicates a request to build from a binary provided to the builder",
       "$ref": "#/definitions/v1.BinaryBuildSource"
      },
+     "dockerStrategyOptions": {
+      "description": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
+      "$ref": "#/definitions/v1.DockerStrategyOptions"
+     },
      "env": {
       "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
       "type": "array",
@@ -49873,6 +49877,13 @@
    "v1.DockerBuildStrategy": {
     "description": "DockerBuildStrategy defines input parameters specific to Docker build.",
     "properties": {
+     "buildArgs": {
+      "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.EnvVar"
+      }
+     },
      "dockerfilePath": {
       "description": "dockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir).",
       "type": "string"
@@ -49899,6 +49910,18 @@
      "pullSecret": {
       "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
       "$ref": "#/definitions/v1.LocalObjectReference"
+     }
+    }
+   },
+   "v1.DockerStrategyOptions": {
+    "description": "DockerStrategyOptions contains extra strategy options for Docker builds",
+    "properties": {
+     "buildArgs": {
+      "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.EnvVar"
+      }
      }
     }
    },

@@ -32,7 +32,7 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, bool, error)
+	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error)
 }
 
 // GitRefMatches determines if the ref from a webhook event matches a build

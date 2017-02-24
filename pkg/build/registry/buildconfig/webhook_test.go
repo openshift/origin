@@ -33,15 +33,16 @@ func (i *buildConfigInstantiator) Instantiate(namespace string, request *api.Bui
 }
 
 type plugin struct {
-	Secret, Path string
-	Err          error
-	Env          []kapi.EnvVar
-	Proceed      bool
+	Secret, Path          string
+	Err                   error
+	Env                   []kapi.EnvVar
+	DockerStrategyOptions *api.DockerStrategyOptions
+	Proceed               bool
 }
 
-func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
+func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
 	p.Secret, p.Path = secret, path
-	return nil, p.Env, p.Proceed, p.Err
+	return nil, p.Env, p.DockerStrategyOptions, p.Proceed, p.Err
 }
 
 func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigRegistry) {
@@ -233,15 +234,15 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
 	p.Path = path
-	return nil, []kapi.EnvVar{}, true, nil
+	return nil, []kapi.EnvVar{}, nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
-	return nil, []kapi.EnvVar{}, false, errors.New("Plugin error!")
+func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
+	return nil, []kapi.EnvVar{}, nil, false, errors.New("Plugin error!")
 }
 
 var testBuildConfig = &api.BuildConfig{

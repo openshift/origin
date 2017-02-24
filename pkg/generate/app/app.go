@@ -199,7 +199,7 @@ type BuildStrategyRef struct {
 }
 
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
-func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
+func (s *BuildStrategyRef) BuildStrategy(env Environment, dockerStrategyOptions *buildapi.DockerStrategyOptions) (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
 	switch s.Strategy {
 	case generate.StrategyPipeline:
 		return &buildapi.BuildStrategy{
@@ -210,6 +210,9 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrate
 		var triggers []buildapi.BuildTriggerPolicy
 		strategy := &buildapi.DockerBuildStrategy{
 			Env: env.List(),
+		}
+		if dockerStrategyOptions != nil {
+			strategy.BuildArgs = dockerStrategyOptions.BuildArgs
 		}
 		if s.Base != nil {
 			ref := s.Base.ObjectReference()
@@ -235,11 +238,12 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrate
 
 // BuildRef is a reference to a build configuration
 type BuildRef struct {
-	Source   *SourceRef
-	Input    *ImageRef
-	Strategy *BuildStrategyRef
-	Output   *ImageRef
-	Env      Environment
+	Source                *SourceRef
+	Input                 *ImageRef
+	Strategy              *BuildStrategyRef
+	DockerStrategyOptions *buildapi.DockerStrategyOptions
+	Output                *ImageRef
+	Env                   Environment
 }
 
 // BuildConfig creates a buildConfig resource from the build configuration reference
@@ -259,7 +263,7 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	strategy := &buildapi.BuildStrategy{}
 	strategyTriggers := []buildapi.BuildTriggerPolicy{}
 	if r.Strategy != nil {
-		strategy, strategyTriggers = r.Strategy.BuildStrategy(r.Env)
+		strategy, strategyTriggers = r.Strategy.BuildStrategy(r.Env, r.DockerStrategyOptions)
 	}
 	output, err := r.Output.BuildOutput()
 	if err != nil {
