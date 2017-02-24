@@ -460,8 +460,8 @@ var map_SourceBuildStrategy = map[string]string{
 	"scripts":          "scripts is the location of Source scripts",
 	"incremental":      "incremental flag forces the Source build to do incremental builds if true.",
 	"forcePull":        "forcePull describes if the builder should pull the images from registry prior to building.",
-	"runtimeImage":     "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed. The building of the application is still done in the builder image but, post build, you can copy the needed artifacts in the runtime image for use. This field and the feature it enables are in tech preview.",
-	"runtimeArtifacts": "runtimeArtifacts specifies a list of source/destination pairs that will be copied from the builder to the runtime image. sourcePath can be a file or directory. destinationDir must be a directory. destinationDir can also be empty or equal to \".\", in this case it just refers to the root of WORKDIR. This field and the feature it enables are in tech preview.",
+	"runtimeImage":     "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed. The building of the application is still done in the builder image but, post build, you can copy the needed artifacts in the runtime image for use. Deprecated: This feature will be removed in a future release. Use ImageSource to copy binary artifacts created from one build into a separate runtime image.",
+	"runtimeArtifacts": "runtimeArtifacts specifies a list of source/destination pairs that will be copied from the builder to the runtime image. sourcePath can be a file or directory. destinationDir must be a directory. destinationDir can also be empty or equal to \".\", in this case it just refers to the root of WORKDIR. Deprecated: This feature will be removed in a future release. Use ImageSource to copy binary artifacts created from one build into a separate runtime image.",
 }
 
 func (SourceBuildStrategy) SwaggerDoc() map[string]string {
