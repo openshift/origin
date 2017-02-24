@@ -120,32 +120,32 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	// Ensure cluster and service network don't overlap with host networks
 	for _, ipNet := range hostIPNets {
 		if ipNet.Contains(ni.ClusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
+			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
 		}
 		if ni.ClusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
 		}
 		if ipNet.Contains(ni.ServiceNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
+			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
 		}
 		if ni.ServiceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
 		}
 	}
 
 	// Ensure each host subnet is within the cluster network
 	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
+		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
 	}
 	for _, sub := range subnets.Items {
 		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
 		if subnetIP == nil {
-			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
+			errList = append(errList, fmt.Errorf("failed to parse network address: %s", sub.Subnet))
 			continue
 		}
 		if !ni.ClusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
+			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
 		}
 	}
 
@@ -156,7 +156,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 	for _, svc := range services.Items {
 		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
-			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
+			errList = append(errList, fmt.Errorf("existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}
 	}
 

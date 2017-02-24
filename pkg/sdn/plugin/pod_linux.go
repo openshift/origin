@@ -287,7 +287,7 @@ func (m *podManager) getNonExitedPods() ([]*kcontainer.Pod, error) {
 	ret := []*kcontainer.Pod{}
 	pods, err := m.host.GetRuntime().GetPods(true)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve pods from runtime: %v", err)
+		return nil, fmt.Errorf("failed to retrieve pods from runtime: %v", err)
 	}
 	for _, p := range pods {
 		if podIsExited(p) {

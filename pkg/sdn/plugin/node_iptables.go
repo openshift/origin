@@ -82,7 +82,7 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	for _, rule := range rules {
 		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.Table(rule.table), iptables.Chain(rule.chain), rule.args...)
 		if err != nil {
-			return fmt.Errorf("Failed to ensure rule %v exists: %v", rule, err)
+			return fmt.Errorf("failed to ensure rule %v exists: %v", rule, err)
 		}
 	}
 	return nil

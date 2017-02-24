@@ -93,7 +93,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 	if hs.Subnet == "" {
 		// check if annotation exists, then let the Subnet field be empty
 		if _, ok := hs.Annotations[sdnapi.AssignHostSubnetAnnotation]; !ok {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "Field cannot be empty"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "field cannot be empty"))
 		}
 	} else {
 		_, _, err := net.ParseCIDR(hs.Subnet)

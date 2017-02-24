@@ -41,11 +41,11 @@ type NetworkInfo struct {
 func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(clusterNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
+		return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
 	}
 	_, sn, err := net.ParseCIDR(serviceNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+		return nil, fmt.Errorf("failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
 	}
 
 	return &NetworkInfo{
@@ -56,21 +56,21 @@ func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInf
 
 func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		return fmt.Errorf("Invalid node IP %q", nodeIP)
+		return fmt.Errorf("invalid node IP %q", nodeIP)
 	}
 
 	// Ensure each node's NodeIP is not contained by the cluster network,
 	// which could cause a routing loop. (rhbz#1295486)
 	ipaddr := net.ParseIP(nodeIP)
 	if ipaddr == nil {
-		return fmt.Errorf("Failed to parse node IP %s", nodeIP)
+		return fmt.Errorf("failed to parse node IP %s", nodeIP)
 	}
 
 	if ni.ClusterNetwork.Contains(ipaddr) {
-		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
+		return fmt.Errorf("node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
 	}
 	if ni.ServiceNetwork.Contains(ipaddr) {
-		return fmt.Errorf("Node IP %s conflicts with service network %s", nodeIP, ni.ServiceNetwork.String())
+		return fmt.Errorf("node IP %s conflicts with service network %s", nodeIP, ni.ServiceNetwork.String())
 	}
 
 	return nil
