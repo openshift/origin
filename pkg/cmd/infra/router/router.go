@@ -56,6 +56,10 @@ type RouterSelection struct {
 	DisableNamespaceOwnershipCheck bool
 
 	EnableIngress bool
+
+	ProbeEndpoint   string
+	ProbeTimeoutStr string
+	ProbeTimeout    time.Duration
 }
 
 // Bind sets the appropriate labels
@@ -73,6 +77,8 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
 	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "") == "true", "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 	flag.BoolVar(&o.EnableIngress, "enable-ingress", cmdutil.Env("ROUTER_ENABLE_INGRESS", "") == "true", "Enable configuration via ingress resources")
+	flag.StringVar(&o.ProbeEndpoint, "probe-endpoint", cmdutil.Env("ROUTER_PROBE_ENDPOINT", "0.0.0.0:1935"), "The http endpoint that router listens on for accepting incoming probes")
+	flag.StringVar(&o.ProbeTimeoutStr, "probe-timeout", cmdutil.Env("ROUTER_PROBE_TIMEOUT", "1s"), "The timeout that router waits for underlying implementation to reply to a probe")
 }
 
 // RouteSelectionFunc returns a func that identifies the host for a route.
@@ -212,6 +218,12 @@ func (o *RouterSelection) Complete() error {
 
 	o.BlacklistedDomains = sets.NewString(o.DeniedDomains...)
 	o.WhitelistedDomains = sets.NewString(o.AllowedDomains...)
+
+	if probeTimeout, err := time.ParseDuration(o.ProbeTimeoutStr); err != nil {
+		o.ProbeTimeout = time.Second
+	} else {
+		o.ProbeTimeout = probeTimeout
+	}
 
 	return nil
 }

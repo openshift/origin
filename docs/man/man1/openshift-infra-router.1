@@ -156,6 +156,18 @@ You may restrict the set of routes exposed to a single project (with \-\-namespa
     Override the spec.host value for a route with \-\-hostname\-template
 
 .PP
+\fB\-\-probe\-endpoint\fP="0.0.0.0:1935"
+    The http endpoint that router listens on for accepting incoming probes
+
+.PP
+\fB\-\-probe\-socket\fP="/var/lib/haproxy/run/haproxy.sock"
+    The unix socket for accessing underlying router implementation's CLI.
+
+.PP
+\fB\-\-probe\-timeout\fP="1s"
+    The timeout that router waits for underlying implementation to reply a probe
+
+.PP
 \fB\-\-project\-labels\fP=""
     A label selector to apply to projects to watch; if '*' watches all projects the client can access
 

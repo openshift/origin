@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
@@ -52,6 +53,7 @@ type TemplatePluginConfig struct {
 	PeerService            *ktypes.NamespacedName
 	BindPortsAfterSync     bool
 	MaxConnections         string
+	ProbeSocket            string
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
@@ -79,6 +81,8 @@ type routerInterface interface {
 	HasRoute(route *routeapi.Route) bool
 	// Reduce the list of routes to only these namespaces
 	FilterNamespaces(namespaces sets.String)
+	// Probe queries the underlying implementation for actual liveness/readiness status
+	Probe(probe router.ProbeType, timeout time.Duration) (int, []byte)
 	// Commit applies the changes in the background. It kicks off a rate-limited
 	// commit (persist router state + refresh the backend) that coalesces multiple changes.
 	Commit()
@@ -139,6 +143,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		allowWildcardRoutes:    cfg.AllowWildcardRoutes,
 		peerEndpointsKey:       peerKey,
 		bindPortsAfterSync:     cfg.BindPortsAfterSync,
+		probeSocket:            cfg.ProbeSocket,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, lookupSvc), err
@@ -199,6 +204,10 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)
 	return nil
+}
+
+func (p *TemplatePlugin) HandleProbe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	return p.Router.Probe(probe, timeout)
 }
 
 func (p *TemplatePlugin) Commit() error {

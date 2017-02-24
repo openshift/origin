@@ -2,6 +2,8 @@ package f5
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -10,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -629,6 +632,11 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 	glog.V(4).Infof("Done processing route %s.", routename)
 
 	return nil
+}
+
+func (p *F5Plugin) HandleProbe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	// TODO: fetch F5's actual running status in future
+	return http.StatusOK, ([]byte)("OK")
 }
 
 // No-op since f5 configuration can be updated piecemeal

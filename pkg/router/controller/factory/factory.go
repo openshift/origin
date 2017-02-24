@@ -58,7 +58,7 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
-func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *controller.RouterController {
+func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool, probeEndpoint string, probeTimeout time.Duration) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&routeLW{
 		client:    factory.OSClient,
@@ -188,6 +188,8 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		WatchNodes:            watchNodes,
 		EnableIngress:         enableIngress,
 		IngressTranslator:     ingressTranslator,
+		ProbeEndpoint:         probeEndpoint,
+		ProbeTimeout:          probeTimeout,
 	}
 }
 

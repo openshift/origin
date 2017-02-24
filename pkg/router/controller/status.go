@@ -333,6 +333,10 @@ func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {
 	return a.plugin.HandleNamespaces(namespaces)
 }
 
+func (a *StatusAdmitter) HandleProbe(probe router.ProbeType, timeout time.Duration) (int, []byte) {
+	return a.plugin.HandleProbe(probe, timeout)
+}
+
 func (a *StatusAdmitter) Commit() error {
 	return a.plugin.Commit()
 }

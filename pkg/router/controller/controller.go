@@ -2,6 +2,8 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,6 +65,9 @@ type RouterController struct {
 
 	EnableIngress     bool
 	IngressTranslator *IngressTranslator
+
+	ProbeEndpoint string
+	ProbeTimeout  time.Duration
 }
 
 // Run begins watching and syncing.
@@ -80,6 +85,9 @@ func (c *RouterController) Run() {
 	if c.EnableIngress {
 		go utilwait.Forever(c.HandleIngress, 0)
 		go utilwait.Forever(c.HandleSecret, 0)
+	}
+	if len(c.ProbeEndpoint) > 0 {
+		go http.ListenAndServe(c.ProbeEndpoint, c)
 	}
 	go c.watchForFirstSync()
 }
@@ -320,4 +328,20 @@ func (c *RouterController) processIngressEvents(events []ingressRouteEvents) {
 			c.processRoute(routeEvent.eventType, routeEvent.route)
 		}
 	}
+}
+
+func (c *RouterController) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	var code int
+	var text []byte
+
+	switch strings.ToLower(req.URL.Path) {
+	case "/alive", "/healthz":
+		code, text = c.Plugin.HandleProbe(router.LivenessProbe, c.ProbeTimeout)
+	case "/ready":
+		code, text = c.Plugin.HandleProbe(router.ReadinessProbe, c.ProbeTimeout)
+	default:
+		code, text = http.StatusNotFound, ([]byte)("Invalid probe")
+	}
+	resp.WriteHeader(code)
+	resp.Write(text)
 }
