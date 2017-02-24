@@ -1255,6 +1255,19 @@ Create cluster resource quota resource.
 ====
 
 
+== oc create clusterrole
+Create a new cluster role
+
+====
+
+[options="nowrap"]
+----
+  # TODO
+  oc create clusterrole dev --resources a,b,c --verbs x,y,z
+----
+====
+
+
 == oc create configmap
 Create a configmap from a local file, directory or literal value
 

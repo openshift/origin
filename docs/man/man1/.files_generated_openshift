@@ -214,6 +214,7 @@ openshift-cli-config.1
 openshift-cli-convert.1
 openshift-cli-cp.1
 openshift-cli-create-clusterresourcequota.1
+openshift-cli-create-clusterrole.1
 openshift-cli-create-configmap.1
 openshift-cli-create-deployment.1
 openshift-cli-create-deploymentconfig.1
