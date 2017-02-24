@@ -43,7 +43,6 @@ function cleanup()
 
 	journalctl --unit docker.service --since -15minutes > "${LOG_DIR}/docker.log"
 
-	delete_empty_logs
 	truncate_large_logs
 	set -e
 

@@ -15,13 +15,6 @@ function kill_all_processes() {
 }
 readonly -f kill_all_processes
 
-# delete_empty_logs deletes empty logs
-function delete_empty_logs() {
-	# Clean up zero byte log files
-	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
-}
-readonly -f delete_empty_logs
-
 # truncate_large_logs truncates large logs
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
@@ -73,7 +66,6 @@ function cleanup_openshift() {
 		journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
 	fi
 
-	delete_empty_logs
 	truncate_large_logs
 
 	os::log::info "Cleanup complete"
