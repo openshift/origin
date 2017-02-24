@@ -39,6 +39,7 @@ var (
 // DockerClient is an interface to the Docker client that contains
 // the methods used by the common builder
 type DockerClient interface {
+	AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error)
 	BuildImage(opts docker.BuildImageOptions) error
 	PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
 	RemoveImage(name string) error
@@ -169,7 +170,7 @@ func tagImage(dockerClient DockerClient, image, name string) error {
 // dockerRun mimics the 'docker run --rm' CLI command. It uses the Docker Remote
 // API to create and start a container and stream its logs. The container is
 // removed after it terminates.
-func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, logsOpts docker.LogsOptions) error {
+func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, attachOpts docker.AttachToContainerOptions) error {
 	// Create a new container.
 	glog.V(4).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, createOpts.Config, createOpts.HostConfig)
 	c, err := client.CreateContainer(createOpts)
@@ -188,17 +189,41 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 		}
 	}
 	startWaitContainer := func() error {
+		// Changed to use attach call instead of logs call to stream stdout/stderr
+		// during execution to avoid race condition
+		// https://github.com/docker/docker/issues/31323 .
+		// Using attach call is also racy in docker versions which don't carry
+		// https://github.com/docker/docker/pull/30446 .
+		// In RHEL, docker >= 1.12.6-10.el7.x86_64 should be OK.
+
+		// Attach to the container.
+		success := make(chan struct{})
+		attachOpts.Container = c.ID
+		attachOpts.Success = success
+		glog.V(4).Infof("Attaching to container %q with options %+v ...", containerName, attachOpts)
+		wc, err := client.AttachToContainerNonBlocking(attachOpts)
+		if err != nil {
+			return fmt.Errorf("attach container %q: %v", containerName, err)
+		}
+		defer wc.Close()
+
+		select {
+		case <-success:
+			close(success)
+		case <-time.After(120 * time.Second):
+			return fmt.Errorf("attach container %q: timeout waiting for success signal", containerName)
+		}
+
 		// Start the container.
 		glog.V(4).Infof("Starting container %q ...", containerName)
 		if err := client.StartContainer(c.ID, nil); err != nil {
 			return fmt.Errorf("start container %q: %v", containerName, err)
 		}
 
-		// Stream container logs.
-		logsOpts.Container = c.ID
-		glog.V(4).Infof("Streaming logs of container %q with options %+v ...", containerName, logsOpts)
-		if err := client.Logs(logsOpts); err != nil {
-			return fmt.Errorf("streaming logs of %q: %v", containerName, err)
+		// Wait for streaming to finish.
+		glog.V(4).Infof("Waiting for streaming to finish ...")
+		if err := wc.Wait(); err != nil {
+			return fmt.Errorf("container %q streaming: %v", containerName, err)
 		}
 
 		// Return an error if the exit code of the container is non-zero.

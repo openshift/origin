@@ -94,6 +94,9 @@ func (d *FakeDocker) WaitContainer(id string) (int, error) {
 func (d *FakeDocker) Logs(opts docker.LogsOptions) error {
 	return nil
 }
+func (d *FakeDocker) AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error) {
+	return nil, nil
+}
 func (d *FakeDocker) TagImage(name string, opts docker.TagImageOptions) error {
 	d.callLog = append(d.callLog, methodCall{"TagImage", []interface{}{name, opts}})
 	return nil
