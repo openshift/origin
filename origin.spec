@@ -230,6 +230,9 @@ of docker.  Exclude those versions of docker.
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
 %endif
 
+# Generate man pages
+%{os_git_vars} hack/generate-docs.sh
+
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
