@@ -23237,7 +23237,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container"
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
      },
      "forcePull": {
       "type": "boolean",
@@ -23384,7 +23384,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container"
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
      },
      "scripts": {
       "type": "string",
@@ -23431,7 +23431,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container"
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
      },
      "exposeDockerSocket": {
       "type": "boolean",
@@ -23483,6 +23483,13 @@
      "jenkinsfile": {
       "type": "string",
       "description": "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build."
+     },
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "env contains additional environment variables you want to pass into a build pipeline. ValueFrom is not supported."
      }
     }
    },
@@ -23769,7 +23776,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container"
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
      },
      "triggeredBy": {
       "type": "array",

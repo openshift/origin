@@ -57,6 +57,16 @@ func SetObjectDefaults_Build(in *Build) {
 			}
 		}
 	}
+	if in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy != nil {
+		for i := range in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env {
+			a := &in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env[i]
+			if a.ValueFrom != nil {
+				if a.ValueFrom.FieldRef != nil {
+					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				}
+			}
+		}
+	}
 	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Limits)
 	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
 }
@@ -95,6 +105,16 @@ func SetObjectDefaults_BuildConfig(in *BuildConfig) {
 		SetDefaults_CustomBuildStrategy(in.Spec.CommonSpec.Strategy.CustomStrategy)
 		for i := range in.Spec.CommonSpec.Strategy.CustomStrategy.Env {
 			a := &in.Spec.CommonSpec.Strategy.CustomStrategy.Env[i]
+			if a.ValueFrom != nil {
+				if a.ValueFrom.FieldRef != nil {
+					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				}
+			}
+		}
+	}
+	if in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy != nil {
+		for i := range in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env {
+			a := &in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
 					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)

@@ -48009,7 +48009,7 @@
       "$ref": "#/definitions/v1.BinaryBuildSource"
      },
      "env": {
-      "description": "env contains additional environment variables you want to pass into a builder container",
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.EnvVar"
@@ -49288,7 +49288,7 @@
       "type": "string"
      },
      "env": {
-      "description": "env contains additional environment variables you want to pass into a builder container",
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.EnvVar"
@@ -49878,7 +49878,7 @@
       "type": "string"
      },
      "env": {
-      "description": "env contains additional environment variables you want to pass into a builder container",
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.EnvVar"
@@ -51620,6 +51620,13 @@
    "v1.JenkinsPipelineBuildStrategy": {
     "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
     "properties": {
+     "env": {
+      "description": "env contains additional environment variables you want to pass into a build pipeline. ValueFrom is not supported.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.EnvVar"
+      }
+     },
      "jenkinsfile": {
       "description": "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
       "type": "string"
@@ -55972,7 +55979,7 @@
     ],
     "properties": {
      "env": {
-      "description": "env contains additional environment variables you want to pass into a builder container",
+      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.EnvVar"

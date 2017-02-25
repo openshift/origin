@@ -461,7 +461,8 @@ type CustomBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a builder container.
+	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
 	// exposeDockerSocket will allow running Docker commands (and build Docker images) from
@@ -496,7 +497,8 @@ type DockerBuildStrategy struct {
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty" protobuf:"varint,3,opt,name=noCache"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a builder container.
+	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,4,rep,name=env"`
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
@@ -518,7 +520,8 @@ type SourceBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a builder container.
+	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
 	// scripts is the location of Source scripts
@@ -557,6 +560,10 @@ type JenkinsPipelineBuildStrategy struct {
 
 	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
 	Jenkinsfile string `json:"jenkinsfile,omitempty" protobuf:"bytes,2,opt,name=jenkinsfile"`
+
+	// env contains additional environment variables you want to pass into a build pipeline.
+	// ValueFrom is not supported.
+	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -824,7 +831,8 @@ type GenericWebHookEvent struct {
 	// git is the git information if the Type is BuildSourceGit
 	Git *GitInfo `json:"git,omitempty" protobuf:"bytes,2,opt,name=git"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a builder container.
+	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 }
 
@@ -862,7 +870,8 @@ type BuildRequest struct {
 	// not be generated.
 	LastVersion *int64 `json:"lastVersion,omitempty" protobuf:"varint,6,opt,name=lastVersion"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a builder container.
+	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,7,rep,name=env"`
 
 	// triggeredBy describes which triggers started the most recent update to the

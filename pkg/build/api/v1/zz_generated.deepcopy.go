@@ -564,7 +564,9 @@ func DeepCopy_v1_BuildStrategy(in interface{}, out interface{}, c *conversion.Cl
 		if in.JenkinsPipelineStrategy != nil {
 			in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
 			*out = new(JenkinsPipelineBuildStrategy)
-			**out = **in
+			if err := DeepCopy_v1_JenkinsPipelineBuildStrategy(*in, *out, c); err != nil {
+				return err
+			}
 		} else {
 			out.JenkinsPipelineStrategy = nil
 		}
@@ -949,6 +951,17 @@ func DeepCopy_v1_JenkinsPipelineBuildStrategy(in interface{}, out interface{}, c
 		out := out.(*JenkinsPipelineBuildStrategy)
 		out.JenkinsfilePath = in.JenkinsfilePath
 		out.Jenkinsfile = in.Jenkinsfile
+		if in.Env != nil {
+			in, out := &in.Env, &out.Env
+			*out = make([]api_v1.EnvVar, len(*in))
+			for i := range *in {
+				if err := api_v1.DeepCopy_v1_EnvVar(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Env = nil
+		}
 		return nil
 	}
 }

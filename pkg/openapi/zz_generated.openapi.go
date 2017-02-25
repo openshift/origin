@@ -8214,7 +8214,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"env": {
 						SchemaProps: spec.SchemaProps{
-							Description: "env contains additional environment variables you want to pass into a builder container",
+							Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -10354,7 +10354,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"env": {
 						SchemaProps: spec.SchemaProps{
-							Description: "env contains additional environment variables you want to pass into a builder container",
+							Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -11408,7 +11408,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"env": {
 						SchemaProps: spec.SchemaProps{
-							Description: "env contains additional environment variables you want to pass into a builder container",
+							Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -12513,7 +12513,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"env": {
 						SchemaProps: spec.SchemaProps{
-							Description: "env contains additional environment variables you want to pass into a builder container",
+							Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -14483,10 +14483,24 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Format:      "",
 						},
 					},
+					"env": {
+						SchemaProps: spec.SchemaProps{
+							Description: "env contains additional environment variables you want to pass into a build pipeline. ValueFrom is not supported.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.EnvVar"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"v1.EnvVar"},
 	},
 	"v1.Job": {
 		Schema: spec.Schema{
@@ -22905,7 +22919,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"env": {
 						SchemaProps: spec.SchemaProps{
-							Description: "env contains additional environment variables you want to pass into a builder container",
+							Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
