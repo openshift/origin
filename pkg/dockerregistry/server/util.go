@@ -16,6 +16,8 @@ import (
 const (
 	// repositoryKey serves to store/retrieve repository object to/from context.
 	repositoryKey = "openshift.repository"
+
+	remoteGetterServiceKey = "openshift.remote.getter.service"
 )
 
 func WithRepository(parent context.Context, repo *repository) context.Context {
@@ -23,6 +25,14 @@ func WithRepository(parent context.Context, repo *repository) context.Context {
 }
 func RepositoryFrom(ctx context.Context) (repo *repository, found bool) {
 	repo, found = ctx.Value(repositoryKey).(*repository)
+	return
+}
+
+func WithRemoteBlobGetter(parent context.Context, svc BlobGetterService) context.Context {
+	return context.WithValue(parent, remoteGetterServiceKey, svc)
+}
+func RemoteBlobGetterFrom(ctx context.Context) (svc BlobGetterService, found bool) {
+	svc, found = ctx.Value(remoteGetterServiceKey).(BlobGetterService)
 	return
 }
 
