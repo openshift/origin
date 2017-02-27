@@ -205,6 +205,17 @@ func newRepositoryWithClient(
 
 // Manifests returns r, which implements distribution.ManifestService.
 func (r *repository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
+	if r.pullthrough {
+		// Add to the context the BlobGetterService that provide access to remote servers.
+		// It will be used to validate manifest blobs. It only makes sense
+		// if the pullthrough is enabled. It needs to be instantiated here in order
+		// to share the cache among different stat calls made on manifest's dependencies.
+		ctx = WithRemoteBlobGetter(ctx, &remoteBlobGetterService{
+			repo:          r,
+			digestToStore: make(map[string]distribution.BlobStore),
+		})
+	}
+
 	ms, err := r.Repository.Manifests(WithRepository(ctx, r))
 	if err != nil {
 		return nil, err
@@ -241,6 +252,17 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 // Blobs returns a blob store which can delegate to remote repositories.
 func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	repo := repository(*r)
+
+	if r.pullthrough {
+		// Add to the context the BlobGetterService that provide access to remote servers.
+		// It will be used in pullthroughBlobStore. It needs to be instantiated here in
+		// order to share the cache for multiple stat calls made in descendant blob stores.
+		ctx = WithRemoteBlobGetter(ctx, &remoteBlobGetterService{
+			repo:          &repo,
+			digestToStore: make(map[string]distribution.BlobStore),
+		})
+	}
+
 	repo.ctx = ctx
 
 	bs := r.Repository.Blobs(ctx)
@@ -257,9 +279,8 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		bs = &pullthroughBlobStore{
 			BlobStore: bs,
 
-			repo:          &repo,
-			digestToStore: make(map[string]distribution.BlobStore),
-			mirror:        r.mirrorPullthrough,
+			repo:   &repo,
+			mirror: r.mirrorPullthrough,
 		}
 	}
 

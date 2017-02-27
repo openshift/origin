@@ -107,6 +107,30 @@ os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_R
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
 os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
+
+os::log::info "Configure registry to disable mirroring"
+os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::log::info "Registry configured to disable mirroring"
+
+os::log::info "Verify that an image based on a remote image can be pushed to the same image stream while pull-through enabled."
+os::cmd::expect_success "oc login -u user0 -p pass"
+os::cmd::expect_success "oc new-project project0"
+# An image stream will be created that will track the source image and the resulting image
+# will be pushed to image stream "busybox:latest"
+os::cmd::expect_success "oc new-build -D \$'FROM busybox:glibc\nRUN echo abc >/tmp/foo'"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.metadata.name}'" "busybox-1" "$(( 10*TIME_MIN ))"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" '^(Complete|Failed|Error)$' "$(( 10*TIME_MIN ))"
+os::cmd::expect_success_and_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" 'Complete'
+os::cmd::expect_success "oc get istag/busybox:latest"
+
+os::log::info "Restore registry mirroring"
+os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::log::info "Restore configured to enable mirroring"
+
 registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
@@ -154,7 +178,7 @@ mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if
 # directly hit the image to trigger mirroring in case the layer already exists on disk
 os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http://${DOCKER_REGISTRY}/v2/cache/mysql/blobs/${mysqlblob}' 1>/dev/null"
 # verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
-os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
+os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default '${registry_pod}' -- du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
 
 os::log::info "Docker registry refuses manifest with missing dependencies"
 os::cmd::expect_success 'oc new-project verify-manifest'
