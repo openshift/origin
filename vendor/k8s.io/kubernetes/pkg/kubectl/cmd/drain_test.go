@@ -277,6 +277,34 @@ func TestDrain(t *testing.T) {
 		},
 	}
 
+	missing_ds := extensions.DaemonSet{
+		ObjectMeta: api.ObjectMeta{
+			Name:              "missing-ds",
+			Namespace:         "default",
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/daemonsets/missing-ds",
+		},
+		Spec: extensions.DaemonSetSpec{
+			Selector: &unversioned.LabelSelector{MatchLabels: labels},
+		},
+	}
+
+	missing_ds_anno := make(map[string]string)
+	missing_ds_anno[api.CreatedByAnnotation] = refJson(t, &missing_ds)
+
+	orphaned_ds_pod := api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:              "bar",
+			Namespace:         "default",
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			Labels:            labels,
+			Annotations:       missing_ds_anno,
+		},
+		Spec: api.PodSpec{
+			NodeName: "node",
+		},
+	}
+
 	job := batch.Job{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "job",
@@ -388,6 +416,26 @@ func TestDrain(t *testing.T) {
 			args:         []string{"node"},
 			expectFatal:  true,
 			expectDelete: false,
+		},
+		{
+			description:  "orphaned DS-managed pod",
+			node:         node,
+			expected:     cordoned_node,
+			pods:         []api.Pod{orphaned_ds_pod},
+			rcs:          []api.ReplicationController{},
+			args:         []string{"node"},
+			expectFatal:  true,
+			expectDelete: false,
+		},
+		{
+			description:  "orphaned DS-managed pod with --force",
+			node:         node,
+			expected:     cordoned_node,
+			pods:         []api.Pod{orphaned_ds_pod},
+			rcs:          []api.ReplicationController{},
+			args:         []string{"node", "--force"},
+			expectFatal:  false,
+			expectDelete: true,
 		},
 		{
 			description:  "DS-managed pod with --ignore-daemonsets",
@@ -524,6 +572,8 @@ func TestDrain(t *testing.T) {
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &test.rcs[0])}, nil
 					case m.isFor("GET", "/namespaces/default/daemonsets/ds"):
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &ds)}, nil
+					case m.isFor("GET", "/namespaces/default/daemonsets/missing-ds"):
+						return &http.Response{StatusCode: 404, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &extensions.DaemonSet{})}, nil
 					case m.isFor("GET", "/namespaces/default/jobs/job"):
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &job)}, nil
 					case m.isFor("GET", "/namespaces/default/replicasets/rs"):
