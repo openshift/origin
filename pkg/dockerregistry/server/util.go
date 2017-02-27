@@ -8,8 +8,17 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/registry/api/errcode"
+	disterrors "github.com/docker/distribution/registry/api/v2"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+
+	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/importer"
 )
 
 // Context keys
@@ -25,14 +34,6 @@ func WithRepository(parent context.Context, repo *repository) context.Context {
 }
 func RepositoryFrom(ctx context.Context) (repo *repository, found bool) {
 	repo, found = ctx.Value(repositoryKey).(*repository)
-	return
-}
-
-func WithRemoteBlobGetter(parent context.Context, svc BlobGetterService) context.Context {
-	return context.WithValue(parent, remoteGetterServiceKey, svc)
-}
-func RemoteBlobGetterFrom(ctx context.Context) (svc BlobGetterService, found bool) {
-	svc, found = ctx.Value(remoteGetterServiceKey).(BlobGetterService)
 	return
 }
 
@@ -149,4 +150,78 @@ func effectiveCreateOptions(options []distribution.BlobCreateOption) (*distribut
 func isImageManaged(image *imageapi.Image) bool {
 	managed, ok := image.ObjectMeta.Annotations[imageapi.ManagedByOpenShiftAnnotation]
 	return ok && managed == "true"
+}
+
+// wrapKStatusErrorOnGetImage transforms the given kubernetes status error into a distribution one. Upstream
+// handler do not allow us to propagate custom error messages except for ErrManifetUnknownRevision. All the
+// other errors will result in an internal server error with details made out of returned error.
+func wrapKStatusErrorOnGetImage(repoName string, dgst digest.Digest, err error) error {
+	switch {
+	case kerrors.IsNotFound(err):
+		// This is the only error type we can propagate unchanged to the client.
+		return distribution.ErrManifestUnknownRevision{
+			Name:     repoName,
+			Revision: dgst,
+		}
+	case err != nil:
+		// We don't turn this error to distribution error on purpose: Upstream manifest handler wraps any
+		// error but distribution.ErrManifestUnknownRevision with errcode.ErrorCodeUnknown. If we wrap the
+		// original error with distribution.ErrorCodeUnknown, the "unknown error" will appear twice in the
+		// resulting error message.
+		return err
+	}
+
+	return nil
+}
+
+// getImportContext loads secrets for given repository and returns a context for getting distribution clients
+// to remote repositories.
+func getImportContext(
+	ctx context.Context,
+	osClient osclient.ImageStreamSecretsNamespacer,
+	namespace, name string,
+) importer.RepositoryRetriever {
+	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, kapi.ListOptions{})
+	if err != nil {
+		context.GetLogger(ctx).Errorf("error getting secrets for repository %s/%s: %v", namespace, name, err)
+		secrets = &kapi.SecretList{}
+	}
+	credentials := importer.NewCredentialsForSecrets(secrets.Items)
+	return importer.NewContext(secureTransport, insecureTransport).WithCredentials(credentials)
+}
+
+// cachedImageStreamGetter wraps a master API client for getting image streams with a cache.
+type cachedImageStreamGetter struct {
+	ctx               context.Context
+	namespace         string
+	name              string
+	isNamespacer      osclient.ImageStreamsNamespacer
+	cachedImageStream *imageapi.ImageStream
+}
+
+func (g *cachedImageStreamGetter) get() (*imageapi.ImageStream, error) {
+	if g.cachedImageStream != nil {
+		context.GetLogger(g.ctx).Debugf("(*cachedImageStreamGetter).getImageStream: returning cached copy")
+		return g.cachedImageStream, nil
+	}
+	is, err := g.isNamespacer.ImageStreams(g.namespace).Get(g.name)
+	if err != nil {
+		context.GetLogger(g.ctx).Errorf("failed to get image stream: %v", err)
+		switch {
+		case kerrors.IsNotFound(err):
+			return nil, disterrors.ErrorCodeNameUnknown.WithDetail(err)
+		case kerrors.IsForbidden(err), kerrors.IsUnauthorized(err), quotautil.IsErrorQuotaExceeded(err):
+			return nil, errcode.ErrorCodeDenied.WithDetail(err)
+		default:
+			return nil, errcode.ErrorCodeUnknown.WithDetail(err)
+		}
+	}
+
+	context.GetLogger(g.ctx).Debugf("(*cachedImageStreamGetter).getImageStream: got image stream %s/%s", is.Namespace, is.Name)
+	g.cachedImageStream = is
+	return is, nil
+}
+
+func (g *cachedImageStreamGetter) cacheImageStream(is *imageapi.ImageStream) {
+	g.cachedImageStream = is
 }

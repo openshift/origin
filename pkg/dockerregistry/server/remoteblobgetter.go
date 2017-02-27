@@ -2,13 +2,15 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/registry/api/errcode"
+	disterrors "github.com/docker/distribution/registry/api/v2"
 
-	"k8s.io/kubernetes/pkg/api/errors"
-
+	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
 )
@@ -20,27 +22,53 @@ type BlobGetterService interface {
 	distribution.BlobServer
 }
 
+type ImageStreamGetter func() (*imageapi.ImageStream, error)
+
 // remoteBlobGetterService implements BlobGetterService and allows to serve blobs from remote
 // repositories.
 type remoteBlobGetterService struct {
-	repo                       *repository
+	namespace                  string
+	name                       string
+	cacheTTL                   time.Duration
+	getImageStream             ImageStreamGetter
+	isSecretsNamespacer        osclient.ImageStreamSecretsNamespacer
+	cachedLayers               digestToRepositoryCache
 	digestToStore              map[string]distribution.BlobStore
 	pullFromInsecureRegistries bool
 }
 
 var _ BlobGetterService = &remoteBlobGetterService{}
 
+// NewBlobGetterService returns a getter for remote blobs. Its cache will be shared among different middleware
+// wrappers, which is a must at least for stat calls made on manifest's dependencies during its verification.
+func NewBlobGetterService(
+	namespace, name string,
+	cacheTTL time.Duration,
+	imageStreamGetter ImageStreamGetter,
+	isSecretsNamespacer osclient.ImageStreamSecretsNamespacer,
+	cachedLayers digestToRepositoryCache,
+) BlobGetterService {
+	return &remoteBlobGetterService{
+		namespace:           namespace,
+		name:                name,
+		getImageStream:      imageStreamGetter,
+		isSecretsNamespacer: isSecretsNamespacer,
+		cacheTTL:            cacheTTL,
+		cachedLayers:        cachedLayers,
+		digestToStore:       make(map[string]distribution.BlobStore),
+	}
+}
+
 // Stat provides metadata about a blob identified by the digest. If the
 // blob is unknown to the describer, ErrBlobUnknown will be returned.
 func (rbs *remoteBlobGetterService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	// look up the potential remote repositories that this blob could be part of (at this time,
 	// we don't know which image in the image stream surfaced the content).
-	is, err := rbs.repo.getImageStream()
+	is, err := rbs.getImageStream()
 	if err != nil {
-		if errors.IsNotFound(err) || errors.IsForbidden(err) {
+		if t, ok := err.(errcode.Error); ok && t.ErrorCode() == disterrors.ErrorCodeNameUnknown {
 			return distribution.Descriptor{}, distribution.ErrBlobUnknown
 		}
-		context.GetLogger(ctx).Errorf("Error retrieving image stream for blob: %v", err)
 		return distribution.Descriptor{}, err
 	}
 
@@ -56,8 +84,8 @@ func (rbs *remoteBlobGetterService) Stat(ctx context.Context, dgst digest.Digest
 		localRegistry = local.Registry
 	}
 
-	retriever := rbs.repo.importContext()
-	cached := rbs.repo.cachedLayers.RepositoriesForDigest(dgst)
+	retriever := getImportContext(ctx, rbs.isSecretsNamespacer, rbs.namespace, rbs.name)
+	cached := rbs.cachedLayers.RepositoriesForDigest(dgst)
 
 	// look at the first level of tagged repositories first
 	search := rbs.identifyCandidateRepositories(is, localRegistry, true)
@@ -121,8 +149,6 @@ func (rbs *remoteBlobGetterService) ServeBlob(ctx context.Context, w http.Respon
 // rbs.digestToStore saves the store.
 func (rbs *remoteBlobGetterService) proxyStat(ctx context.Context, retriever importer.RepositoryRetriever, ref imageapi.DockerImageReference, dgst digest.Digest) (distribution.Descriptor, error) {
 	context.GetLogger(ctx).Infof("Trying to stat %q from %q", dgst, ref.Exact())
-
-	ctx = WithRemoteBlobGetter(ctx, rbs)
 
 	repo, err := retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), rbs.pullFromInsecureRegistries)
 	if err != nil {
@@ -195,7 +221,7 @@ func (rbs *remoteBlobGetterService) findCandidateRepository(ctx context.Context,
 		if err != nil {
 			continue
 		}
-		rbs.repo.cachedLayers.RememberDigest(dgst, rbs.repo.blobrepositorycachettl, repo)
+		rbs.cachedLayers.RememberDigest(dgst, rbs.cacheTTL, repo)
 		context.GetLogger(ctx).Infof("Found digest location by search %q in %q", dgst, repo)
 		return desc, nil
 	}

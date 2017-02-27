@@ -38,13 +38,7 @@ func (r *pullthroughBlobStore) Stat(ctx context.Context, dgst digest.Digest) (di
 		return desc, err
 	}
 
-	remoteGetter, found := RemoteBlobGetterFrom(r.repo.ctx)
-	if !found {
-		context.GetLogger(ctx).Errorf("pullthroughBlobStore.Stat: failed to retrieve remote getter from context")
-		return distribution.Descriptor{}, distribution.ErrBlobUnknown
-	}
-
-	return remoteGetter.Stat(ctx, dgst)
+	return r.repo.remoteBlobGetter.Stat(ctx, dgst)
 }
 
 // ServeBlob attempts to serve the requested digest onto w, using a remote proxy store if necessary.
@@ -66,11 +60,7 @@ func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseW
 		return err
 	}
 
-	remoteGetter, found := RemoteBlobGetterFrom(pbs.repo.ctx)
-	if !found {
-		context.GetLogger(ctx).Errorf("pullthroughBlobStore.ServeBlob: failed to retrieve remote getter from context")
-		return distribution.ErrBlobUnknown
-	}
+	remoteGetter := pbs.repo.remoteBlobGetter
 
 	// store the content locally if requested, but ensure only one instance at a time
 	// is storing to avoid excessive local writes
@@ -105,13 +95,7 @@ func (r *pullthroughBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]b
 		return data, nil
 	}
 
-	remoteGetter, found := RemoteBlobGetterFrom(r.repo.ctx)
-	if !found {
-		context.GetLogger(ctx).Errorf("pullthroughBlobStore.Get: failed to retrieve remote getter from context")
-		return nil, originalErr
-	}
-
-	return remoteGetter.Get(ctx, dgst)
+	return r.repo.remoteBlobGetter.Get(ctx, dgst)
 }
 
 // setResponseHeaders sets the appropriate content serving headers
