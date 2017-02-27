@@ -11,7 +11,6 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kubeerr "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -154,12 +153,12 @@ var etcdStorageData = map[unversioned.GroupVersionResource]struct {
 	// --
 
 	// github.com/openshift/origin/pkg/sdn/api/v1
-	gvr("", "v1", "netnamespaces"): { // This will fail to delete because meta.name != NetName but it is keyed off NetName
-		stub:             `{"metadata": {"name": "nn1"}, "netid": 100, "netname": "networkname"}`,
+	gvr("", "v1", "netnamespaces"): {
+		stub:             `{"metadata": {"name": "networkname"}, "netid": 100, "netname": "networkname"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetnamespaces/networkname",
 	},
-	gvr("", "v1", "hostsubnets"): { // This will fail to delete because meta.name != Host but it is keyed off Host
-		stub:             `{"host": "hostname", "hostIP": "192.168.1.1", "metadata": {"name": "hs1"}, "subnet": "192.168.1.1/24"}`,
+	gvr("", "v1", "hostsubnets"): {
+		stub:             `{"host": "hostname", "hostIP": "192.168.1.1", "metadata": {"name": "hostname"}, "subnet": "192.168.1.1/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostname",
 	},
 	gvr("", "v1", "clusternetworks"): {
@@ -836,12 +835,7 @@ func (c *allClient) cleanup(all *[]cleanupData) error {
 		mapping := (*all)[i].mapping
 
 		if err := c.destroy(obj, mapping); err != nil {
-			if kubeerr.IsNotFound(err) && isInInvalidNameWhiteList(mapping) {
-				continue
-			}
 			return err
-		} else if err == nil && isInInvalidNameWhiteList(mapping) {
-			return fmt.Errorf("Object %#v with mapping %#v should fail to delete if it is in the invalid name whitelist", obj, mapping)
 		}
 	}
 	return nil
@@ -937,15 +931,6 @@ func createSerializers(config restclient.ContentConfig) (*restclient.Serializers
 	}
 
 	return s, nil
-}
-
-// do NOT add anything to this - doing so means you wrote something that is broken
-func isInInvalidNameWhiteList(mapping *meta.RESTMapping) bool {
-	switch mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource) {
-	case gvr("", "v1", "netnamespaces"), gvr("", "v1", "hostsubnets"): // TODO figure out how to not whitelist these
-		return true
-	}
-	return false
 }
 
 func getFromEtcd(keys etcd.KeysAPI, path string) (*metaObject, error) {

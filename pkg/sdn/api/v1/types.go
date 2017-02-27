@@ -45,8 +45,7 @@ type HostSubnet struct {
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Host is the name of the node. (This is redundant with the object's name, and this
-	// field is not actually used any more.)
+	// Host is the name of the node. (This is the same as the object's name, but both fields must be set.)
 	Host string `json:"host" protobuf:"bytes,2,opt,name=host"`
 	// HostIP is the IP address to be used as a VTEP by other nodes in the overlay network
 	HostIP string `json:"hostIP" protobuf:"bytes,3,opt,name=hostIP"`
