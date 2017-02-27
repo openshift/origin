@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
@@ -30,11 +32,12 @@ import (
 )
 
 func TestPullthroughServeBlob(t *testing.T) {
-	ctx := context.Background()
-
+	namespace, name := "user", "app"
+	repoName := fmt.Sprintf("%s/%s", namespace, name)
+	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 
-	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, false)
+	testImage, err := registrytest.NewImageForManifest(repoName, registrytest.SampleImageManifestSchema1, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +53,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 	}()
 
 	// pullthrough middleware will attempt to pull from this registry instance
-	remoteRegistryApp := handlers.NewApp(ctx, &configuration.Configuration{
+	remoteRegistryApp := handlers.NewApp(context.Background(), &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -78,9 +81,9 @@ func TestPullthroughServeBlob(t *testing.T) {
 		t.Fatalf("error parsing server url: %v", err)
 	}
 	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
-	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, "user/app", testImage.Name)
+	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
-	testImageStream := registrytest.TestNewImageStreamObject("user", "app", "latest", testImage.Name, testImage.DockerImageReference)
+	testImageStream := registrytest.TestNewImageStreamObject(namespace, name, "latest", testImage.Name, testImage.DockerImageReference)
 	if testImageStream.Annotations == nil {
 		testImageStream.Annotations = make(map[string]string)
 	}
@@ -88,11 +91,11 @@ func TestPullthroughServeBlob(t *testing.T) {
 
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
 
-	blob1Desc, blob1Content, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
+	blob1Desc, blob1Content, err := registrytest.UploadTestBlob(serverURL, nil, repoName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	blob2Desc, blob2Content, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
+	blob2Desc, blob2Content, err := registrytest.UploadTestBlob(serverURL, nil, repoName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,26 +174,8 @@ func TestPullthroughServeBlob(t *testing.T) {
 	} {
 		localBlobStore := newTestBlobStore(tc.localBlobs)
 
-		cachedLayers, err := newDigestToRepositoryCache(10)
-		if err != nil {
-			t.Fatal(err)
-		}
-		repo := &repository{
-			ctx:              ctx,
-			namespace:        "user",
-			name:             "app",
-			pullthrough:      true,
-			cachedLayers:     cachedLayers,
-			registryOSClient: client,
-		}
-
-		rbs := &remoteBlobGetterService{
-			repo:          repo,
-			digestToStore: make(map[string]distribution.BlobStore),
-		}
-
-		ctx = WithRemoteBlobGetter(ctx, rbs)
-
+		ctx := context.Background()
+		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, name, client, true)
 		ptbs := &pullthroughBlobStore{
 			BlobStore: localBlobStore,
 			repo:      repo,
@@ -250,6 +235,51 @@ func TestPullthroughServeBlob(t *testing.T) {
 			t.Errorf("[%s] unexpected number of bytes served locally: %d != %d", tc.name, localBlobStore.bytesServed, tc.expectedBytesServed)
 		}
 	}
+}
+
+func newTestRepositoryForPullthrough(
+	t *testing.T,
+	ctx context.Context,
+	wrappedRepository distribution.Repository,
+	namespace, name string,
+	client *testclient.Fake,
+	enablePullThrough bool,
+) *repository {
+	cachedLayers, err := newDigestToRepositoryCache(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	isGetter := &cachedImageStreamGetter{
+		ctx:          ctx,
+		namespace:    namespace,
+		name:         name,
+		isNamespacer: client,
+	}
+
+	r := &repository{
+		Repository:        wrappedRepository,
+		ctx:               ctx,
+		namespace:         namespace,
+		name:              name,
+		pullthrough:       enablePullThrough,
+		cachedLayers:      cachedLayers,
+		registryOSClient:  client,
+		imageStreamGetter: isGetter,
+		cachedImages:      make(map[digest.Digest]*imageapi.Image),
+	}
+
+	if enablePullThrough {
+		r.remoteBlobGetter = NewBlobGetterService(
+			namespace,
+			name,
+			defaultBlobRepositoryCacheTTL,
+			isGetter.get,
+			client,
+			cachedLayers)
+	}
+
+	return r
 }
 
 const (

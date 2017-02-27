@@ -133,21 +133,12 @@ func TestPullthroughManifests(t *testing.T) {
 	} {
 		localManifestService := newTestManifestService(namespace+"/"+repo, tc.localData)
 
-		cachedLayers, err := newDigestToRepositoryCache(10)
-		if err != nil {
-			t.Fatal(err)
-		}
+		ctx := context.Background()
 
+		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,
-			repo: &repository{
-				ctx:              ctx,
-				namespace:        namespace,
-				name:             repo,
-				pullthrough:      true,
-				cachedLayers:     cachedLayers,
-				registryOSClient: client,
-			},
+			repo:            repo,
 		}
 
 		manifestResult, err := ptms.Get(ctx, tc.manifestDigest)

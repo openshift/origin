@@ -87,12 +87,9 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 		return desc, nil
 	}
 
-	if err == distribution.ErrBlobUnknown {
+	if err == distribution.ErrBlobUnknown && repo.pullthrough {
 		// Second attempt: looking for the blob on a remote server
-		remoteGetter, found := RemoteBlobGetterFrom(ctx)
-		if found {
-			desc, err = remoteGetter.Stat(ctx, dgst)
-		}
+		desc, err = repo.remoteBlobGetter.Stat(ctx, dgst)
 	}
 
 	return desc, err
@@ -136,7 +133,7 @@ func imageStreamHasBlob(r *repository, dgst digest.Digest) bool {
 	}
 
 	// verify directly with etcd
-	is, err := r.getImageStream()
+	is, err := r.imageStreamGetter.get()
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("failed to get image stream: %v", err)
 		return logFound(false)

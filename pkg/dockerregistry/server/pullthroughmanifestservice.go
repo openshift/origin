@@ -36,26 +36,26 @@ func (m *pullthroughManifestService) Get(ctx context.Context, dgst digest.Digest
 }
 
 func (m *pullthroughManifestService) remoteGet(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
-	isi, err := m.repo.getImageStreamImage(dgst)
+	context.GetLogger(ctx).Debugf("(*pullthroughManifestService).remoteGet: starting with dgst=%s", dgst.String())
+	image, is, err := m.repo.getImageOfImageStream(dgst)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", m.repo.namespace, m.repo.name, dgst.String(), err)
 		return nil, err
 	}
 
 	m.pullFromInsecureRegistries = false
 
-	if insecure, ok := isi.Annotations[imageapi.InsecureRepositoryAnnotation]; ok {
+	if insecure, ok := is.Annotations[imageapi.InsecureRepositoryAnnotation]; ok {
 		m.pullFromInsecureRegistries = insecure == "true"
 	}
 
-	ref, err := imageapi.ParseDockerImageReference(isi.Image.DockerImageReference)
+	ref, err := imageapi.ParseDockerImageReference(image.DockerImageReference)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("bad DockerImageReference in Image %s/%s@%s: %v", m.repo.namespace, m.repo.name, dgst.String(), err)
 		return nil, err
 	}
 	ref = ref.DockerClientDefaults()
 
-	retriever := m.repo.importContext()
+	retriever := getImportContext(ctx, m.repo.registryOSClient, is.Namespace, is.Name)
 
 	repo, err := retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), m.pullFromInsecureRegistries)
 	if err != nil {
