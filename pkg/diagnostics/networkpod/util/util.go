@@ -12,6 +12,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/sdn/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -31,6 +32,10 @@ const (
 	NetworkDiagNodeLogDirPrefix      = "/nodes"
 	NetworkDiagMasterLogDirPrefix    = "/master"
 	NetworkDiagPodLogDirPrefix       = "/pods"
+)
+
+var (
+	NetworkDiagDefaultPodImage = variable.DefaultImagePrefix
 )
 
 func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
