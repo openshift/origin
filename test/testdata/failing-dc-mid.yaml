@@ -9,7 +9,7 @@ spec:
   strategy:
     type: Recreate
     recreateParams:
-      timeoutSeconds: 5
+      timeoutSeconds: 20
       mid:
         failurePolicy: Abort
         execNewPod:
