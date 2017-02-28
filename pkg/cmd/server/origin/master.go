@@ -208,50 +208,6 @@ func (c *MasterConfig) ClientCARegistrationHook() (*master.ClientCARegistrationH
 	return ret, nil
 }
 
-func (c *MasterConfig) RunInProxyMode(proxy *kubernetes.ProxyConfig, assetConfig *AssetConfig) {
-	handlerChain, messages, err := c.buildHandlerChain(assetConfig)
-	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
-	}
-
-	// TODO(sttts): create a genericapiserver here
-	container := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs)
-
-	// install /api proxy forwarder
-	proxyMessages, err := proxy.InstallAPI(container.Container)
-	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
-	}
-	messages = append(messages, proxyMessages...)
-
-	// install GenericAPIServer handlers manually, usually done by GenericAPIServer.PrepareRun()
-	healthz.InstallHandler(&container.NonSwaggerRoutes, healthz.PingHealthz)
-
-	swaggerConfig := genericapiserver.DefaultSwaggerConfig()
-	swaggerConfig.WebServicesUrl = c.Options.MasterPublicURL
-	genericroutes.Swagger{Config: swaggerConfig}.Install(container)
-	messages = append(messages, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerConfig.ApiPath))
-
-	genericroutes.OpenAPI{Config: kubernetes.DefaultOpenAPIConfig()}.Install(container)
-	messages = append(messages, fmt.Sprintf("Started OpenAPI Schema at %%s%s", openAPIServePath))
-
-	// install origin handlers
-	c.InstallProtectedAPI(container)
-
-	// TODO(sttts): split cmd/server/kubernetes config generation into generic and master-specific
-	// until then: create ad-hoc config
-	genericConfig := genericapiserver.NewConfig()
-	genericConfig.RequestContextMapper = c.RequestContextMapper
-	genericConfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
-	genericConfig.MaxRequestsInFlight = c.Options.ServingInfo.MaxRequestsInFlight
-
-	secureHandler, _ := handlerChain(container.ServeMux, genericConfig)
-	c.serve(secureHandler, messages)
-
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
 func readCAorNil(file string) ([]byte, error) {
 	if len(file) == 0 {
 		return nil, nil
