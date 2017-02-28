@@ -533,7 +533,7 @@ fi
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
 
-%post docker-excluder
+%posttrans docker-excluder
 # we always want to run this, since the
 #   package-list may be different with each version
 %{name}-docker-excluder exclude
