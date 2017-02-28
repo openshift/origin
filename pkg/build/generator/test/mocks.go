@@ -114,6 +114,53 @@ func MockSourceStrategyForImageRepository() buildapi.BuildStrategy {
 	}
 }
 
+func MockSourceStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		SourceStrategy: &buildapi.SourceBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockDockerStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		DockerStrategy: &buildapi.DockerBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: &kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockCustomStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		CustomStrategy: &buildapi.CustomBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockJenkinsStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+		},
+	}
+}
+
 func MockOutput() buildapi.BuildOutput {
 	return buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
