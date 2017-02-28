@@ -17,7 +17,6 @@ limitations under the License.
 package genericapiserver
 
 import (
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
@@ -168,9 +167,6 @@ type SecureServingInfo struct {
 	SNICerts []NamedCertKey
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA string
-	// ExtraClientCACerts are additional ClientCA certs added to the pool.
-	// TODO(sttts): remove again with Kube 1.6
-	ExtraClientCACerts []*x509.Certificate
 }
 
 type CertKey struct {
