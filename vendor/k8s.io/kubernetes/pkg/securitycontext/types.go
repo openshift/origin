@@ -41,9 +41,9 @@ type SecurityContextProvider interface {
 }
 
 const (
-	DockerLabelUser    string = "label=user"
-	DockerLabelRole    string = "label=role"
-	DockerLabelType    string = "label=type"
-	DockerLabelLevel   string = "label=level"
-	DockerLabelDisable string = "label=disable"
+	DockerLabelUser    string = "label:user"
+	DockerLabelRole    string = "label:role"
+	DockerLabelType    string = "label:type"
+	DockerLabelLevel   string = "label:level"
+	DockerLabelDisable string = "label:disable"
 )
