@@ -39,11 +39,3 @@ type SecurityContextProvider interface {
 	// - supplementalGids: additional supplemental GIDs associated with the pod's volumes
 	ModifyHostConfig(pod *api.Pod, container *api.Container, hostConfig *dockercontainer.HostConfig, supplementalGids []int64)
 }
-
-const (
-	DockerLabelUser    string = "label:user"
-	DockerLabelRole    string = "label:role"
-	DockerLabelType    string = "label:type"
-	DockerLabelLevel   string = "label:level"
-	DockerLabelDisable string = "label:disable"
-)

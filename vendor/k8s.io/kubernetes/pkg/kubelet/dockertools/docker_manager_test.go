@@ -38,6 +38,7 @@ import (
 	"github.com/golang/mock/gomock"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -1634,26 +1635,28 @@ func verifySyncResults(t *testing.T, expectedResults []*kubecontainer.SyncResult
 	}
 }
 
-func TestSecurityOptsOperator(t *testing.T) {
+func TestGetDockerOptOperator(t *testing.T) {
 	dm110, _ := newTestDockerManagerWithVersion("1.10.1", "1.22")
 	dm111, _ := newTestDockerManagerWithVersion("1.11.0", "1.23")
 
-	secOpts := []dockerOpt{{"seccomp", "unconfined", ""}}
-	opts, err := dm110.fmtDockerOpts(secOpts)
-	if err != nil {
-		t.Fatalf("error getting security opts for Docker 1.10: %v", err)
-	}
-	if expected := []string{"seccomp:unconfined"}; len(opts) != 1 || opts[0] != expected[0] {
-		t.Fatalf("security opts for Docker 1.10: expected %v, got: %v", expected, opts)
-	}
+	sep, err := dm110.getDockerOptSeparator()
+	require.NoError(t, err, "error getting docker opt separator for 1.10.1")
+	assert.Equal(t, SecurityOptSeparatorOld, sep, "security opt separator for docker 1.10")
 
-	opts, err = dm111.fmtDockerOpts(secOpts)
-	if err != nil {
-		t.Fatalf("error getting security opts for Docker 1.11: %v", err)
-	}
-	if expected := []string{"seccomp=unconfined"}; len(opts) != 1 || opts[0] != expected[0] {
-		t.Fatalf("security opts for Docker 1.11: expected %v, got: %v", expected, opts)
-	}
+	sep, err = dm111.getDockerOptSeparator()
+	require.NoError(t, err, "error getting docker opt separator for 1.11.1")
+	assert.Equal(t, SecurityOptSeparatorNew, sep, "security opt separator for docker 1.11")
+}
+
+func TestFmtDockerOpts(t *testing.T) {
+	secOpts := []dockerOpt{{"seccomp", "unconfined", ""}}
+	opts := FmtDockerOpts(secOpts, ':')
+	assert.Len(t, opts, 1)
+	assert.Contains(t, opts, "seccomp:unconfined", "Docker 1.10")
+
+	opts = FmtDockerOpts(secOpts, '=')
+	assert.Len(t, opts, 1)
+	assert.Contains(t, opts, "seccomp=unconfined", "Docker 1.11")
 }
 
 func TestGetSecurityOpts(t *testing.T) {
@@ -1707,8 +1710,7 @@ func TestGetSecurityOpts(t *testing.T) {
 	for i, test := range tests {
 		securityOpts, err := dm.getSecurityOpts(test.pod, containerName)
 		assert.NoError(t, err, "TestCase[%d]: %s", i, test.msg)
-		opts, err := dm.fmtDockerOpts(securityOpts)
-		assert.NoError(t, err, "TestCase[%d]: %s", i, test.msg)
+		opts := FmtDockerOpts(securityOpts, '=')
 		assert.Len(t, opts, len(test.expectedOpts), "TestCase[%d]: %s", i, test.msg)
 		for _, opt := range test.expectedOpts {
 			assert.Contains(t, opts, opt, "TestCase[%d]: %s", i, test.msg)

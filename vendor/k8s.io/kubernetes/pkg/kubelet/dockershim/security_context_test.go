@@ -88,10 +88,10 @@ func TestModifyHostConfig(t *testing.T) {
 	setSELinuxHC := &dockercontainer.HostConfig{
 		NetworkMode: "none",
 		SecurityOpt: []string{
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser, "user"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole, "role"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType, "type"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel, "level"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser('='), "user"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole('='), "role"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType('='), "type"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel('='), "level"),
 		},
 	}
 
@@ -187,10 +187,10 @@ func TestModifyHostConfigWithSandboxID(t *testing.T) {
 	}
 	setSELinuxHC := &dockercontainer.HostConfig{
 		SecurityOpt: []string{
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser, "user"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole, "role"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType, "type"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel, "level"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser('='), "user"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole('='), "role"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType('='), "type"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel('='), "level"),
 		},
 		IpcMode:     dockercontainer.IpcMode(sandboxNSMode),
 		NetworkMode: dockercontainer.NetworkMode(sandboxNSMode),
@@ -266,10 +266,10 @@ func fullValidHostConfig() *dockercontainer.HostConfig {
 		CapAdd:      []string{"addCapA", "addCapB"},
 		CapDrop:     []string{"dropCapA", "dropCapB"},
 		SecurityOpt: []string{
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser, "user"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole, "role"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType, "type"),
-			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel, "level"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelUser('='), "user"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelRole('='), "role"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelType('='), "type"),
+			fmt.Sprintf("%s:%s", securitycontext.DockerLabelLevel('='), "level"),
 		},
 	}
 }
