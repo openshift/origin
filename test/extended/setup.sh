@@ -205,7 +205,7 @@ function os::test::extended::run () {
 		return
 	fi
 
-	ginkgo -v "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
+	ginkgo -v -noColor "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
 }
 
 # Create a list of extended tests to be run with the given arguments
