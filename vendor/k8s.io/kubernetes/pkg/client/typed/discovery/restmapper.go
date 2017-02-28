@@ -42,8 +42,9 @@ func NewRESTMapper(groupResources []*APIGroupResources, versionInterfaces meta.V
 	unionMapper := meta.MultiRESTMapper{}
 
 	var groupPriority []string
-	var resourcePriority []unversioned.GroupVersionResource
-	var kindPriority []unversioned.GroupVersionKind
+	// /v1 is special.  It should always come first
+	resourcePriority := []unversioned.GroupVersionResource{{Group: "", Version: "v1", Resource: meta.AnyResource}}
+	kindPriority := []unversioned.GroupVersionKind{{Group: "", Version: "v1", Kind: meta.AnyKind}}
 
 	for _, group := range groupResources {
 		groupPriority = append(groupPriority, group.Group.Name)
