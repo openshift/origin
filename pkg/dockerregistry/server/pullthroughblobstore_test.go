@@ -143,7 +143,10 @@ func TestPullthroughServeBlob(t *testing.T) {
 			blobDigest:            blob1Desc.Digest,
 			localBlobs:            blob2Storage,
 			expectedContentLength: int64(len(blob1Content)),
-			expectedLocalCalls:    map[string]int{"Stat": 1},
+			expectedLocalCalls: map[string]int{
+				"Stat":      1,
+				"ServeBlob": 1,
+			},
 		},
 
 		{
@@ -152,7 +155,10 @@ func TestPullthroughServeBlob(t *testing.T) {
 			blobDigest:            blob1Desc.Digest,
 			expectedContentLength: int64(len(blob1Content)),
 			expectedBytesServed:   int64(len(blob1Content)),
-			expectedLocalCalls:    map[string]int{"Stat": 1},
+			expectedLocalCalls: map[string]int{
+				"Stat":      1,
+				"ServeBlob": 1,
+			},
 		},
 
 		{
@@ -169,17 +175,25 @@ func TestPullthroughServeBlob(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		repo := &repository{
+			ctx:              ctx,
+			namespace:        "user",
+			name:             "app",
+			pullthrough:      true,
+			cachedLayers:     cachedLayers,
+			registryOSClient: client,
+		}
+
+		rbs := &remoteBlobGetterService{
+			repo:          repo,
+			digestToStore: make(map[string]distribution.BlobStore),
+		}
+
+		ctx = WithRemoteBlobGetter(ctx, rbs)
+
 		ptbs := &pullthroughBlobStore{
 			BlobStore: localBlobStore,
-			repo: &repository{
-				ctx:              ctx,
-				namespace:        "user",
-				name:             "app",
-				pullthrough:      true,
-				cachedLayers:     cachedLayers,
-				registryOSClient: client,
-			},
-			digestToStore: make(map[string]distribution.BlobStore),
+			repo:      repo,
 		}
 
 		req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
