@@ -107,7 +107,7 @@ items:
       generateName: logging-deployer-
     spec:
       containers:
-      - image: ${IMAGE_PREFIX}logging-deployment:${IMAGE_VERSION}
+      - image: ${IMAGE_PREFIX}logging-deployer:${IMAGE_VERSION}
         imagePullPolicy: Always
         name: deployer
         volumeMounts:
