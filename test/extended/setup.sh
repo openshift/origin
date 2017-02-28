@@ -250,6 +250,9 @@ readonly -f os::test::extended::test_list
 # This works around a gap in Jenkins JUnit reporter output that double counts skipped
 # files until https://github.com/jenkinsci/junit-plugin/pull/54 is merged.
 function os::test::extended::merge_junit () {
+	if [[ -z "${JUNIT_REPORT:-}" ]]; then
+		return
+	fi
 	local output
 	output="$( mktemp )"
 	"$( os::util::find::built_binary junitmerge )" "${TEST_REPORT_DIR}"/*.xml > "${output}"
