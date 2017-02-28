@@ -248,7 +248,7 @@ function os::start::server() {
 		os::start::api_server "${api_server_version}"
 		os::start::controllers "${controllers_version}"
 		if [[ -z "${skip_node}" ]]; then
-			os::start::node
+			os::start::internal::start_node
 		fi
 	fi
 }
