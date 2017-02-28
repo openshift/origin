@@ -66,7 +66,7 @@ function os::start::internal::create_master_certs() {
 	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
 
 	os::log::info "Creating certificates for the OpenShift server"
-	${openshift_executable} admin create-master-certs                                   \
+	${openshift_executable} admin ca create-master-certs                                \
 	                        --overwrite=false                                           \
 	                        --master="${MASTER_ADDR}"                                   \
 	                        --cert-dir="${MASTER_CONFIG_DIR}"                           \
