@@ -109,6 +109,9 @@ func (c *MasterConfig) RunPersistentVolumeController(client *kclientset.Clientse
 
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *kclientset.Clientset) {
 	s := c.ControllerManager
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink((&kcoreclient.EventSinkImpl{Interface: c.KubeClient.Core().Events("")}))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "controller-manager"})
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
 			client,
@@ -118,7 +121,7 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *kclient
 			c.Informers.KubernetesInformers().PersistentVolumes().Informer(),
 			c.CloudProvider,
 			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
-			nil,
+			recorder,
 			s.DisableAttachDetachReconcilerSync,
 			s.ReconcilerSyncLoopPeriod.Duration,
 		)
