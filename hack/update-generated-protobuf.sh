@@ -16,7 +16,7 @@ install the platform appropriate Protobuf package for your OS:
 To skip protobuf generation, set \$PROTO_OPTIONAL."
 fi
 
-os::util::ensure::system_binary_exists 'goimports'
+os::util::ensure::gopath_binary_exists 'goimports'
 os::build::setup_env
 
 os::util::ensure::built_binary_exists 'genprotobuf'
