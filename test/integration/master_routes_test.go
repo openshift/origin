@@ -27,6 +27,8 @@ var expectedIndex = []string{
 	"/apis/apps/v1beta1",
 	"/apis/authentication.k8s.io",
 	"/apis/authentication.k8s.io/v1beta1",
+	"/apis/authorization.k8s.io",
+	"/apis/authorization.k8s.io/v1beta1",
 	"/apis/autoscaling",
 	"/apis/autoscaling/v1",
 	"/apis/batch",

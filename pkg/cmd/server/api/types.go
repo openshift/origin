@@ -47,6 +47,7 @@ var (
 	APIGroupExtensions     = "extensions"
 	APIGroupApps           = "apps"
 	APIGroupAuthentication = "authentication.k8s.io"
+	APIGroupAuthorization  = "authorization.k8s.io"
 	APIGroupAutoscaling    = "autoscaling"
 	APIGroupBatch          = "batch"
 	APIGroupCertificates   = "certificates.k8s.io"
@@ -60,6 +61,7 @@ var (
 		APIGroupExtensions:     {"v1beta1"},
 		APIGroupApps:           {"v1beta1"},
 		APIGroupAuthentication: {"v1beta1"},
+		APIGroupAuthorization:  {"v1beta1"},
 		APIGroupAutoscaling:    {"v1"},
 		APIGroupBatch:          {"v1", "v2alpha1"},
 		APIGroupCertificates:   {"v1alpha1"},

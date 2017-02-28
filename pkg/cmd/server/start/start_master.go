@@ -30,6 +30,7 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
+	"github.com/openshift/origin/pkg/authorization/authorizer/adapter"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -357,8 +358,19 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClientset(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl, openshiftConfig.Authenticator)
-	return kubeConfig, err
+	kubeAuthorizer, err := adapter.NewAuthorizer(openshiftConfig.Authorizer)
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.BuildKubernetesMasterConfig(
+		openshiftConfig.Options,
+		openshiftConfig.RequestContextMapper,
+		openshiftConfig.KubeClientset(),
+		openshiftConfig.Informers,
+		openshiftConfig.KubeAdmissionControl,
+		openshiftConfig.Authenticator,
+		kubeAuthorizer,
+	)
 }
 
 // Master encapsulates starting the components of the master
