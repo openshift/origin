@@ -61,6 +61,13 @@ func (s *GenericAPIServer) serveSecurely(stopCh <-chan struct{}) error {
 		},
 	}
 
+	if s.SecureServingInfo.MinTLSVersion > 0 {
+		secureServer.TLSConfig.MinVersion = s.SecureServingInfo.MinTLSVersion
+	}
+	if len(s.SecureServingInfo.CipherSuites) > 0 {
+		secureServer.TLSConfig.CipherSuites = s.SecureServingInfo.CipherSuites
+	}
+
 	if len(s.SecureServingInfo.ServerCert.CertFile) != 0 || len(s.SecureServingInfo.ServerCert.KeyFile) != 0 {
 		secureServer.TLSConfig.Certificates = make([]tls.Certificate, 1)
 		secureServer.TLSConfig.Certificates[0], err = tls.LoadX509KeyPair(s.SecureServingInfo.ServerCert.CertFile, s.SecureServingInfo.ServerCert.KeyFile)
