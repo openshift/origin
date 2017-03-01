@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
@@ -129,6 +130,15 @@ func ValidateServingInfo(info api.ServingInfo, fldPath *field.Path) ValidationRe
 	} else {
 		if len(info.ClientCA) > 0 {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("clientCA"), info.ClientCA, "cannot specify a clientCA without a certFile"))
+		}
+	}
+
+	if _, err := crypto.TLSVersion(info.MinTLSVersion); err != nil {
+		validationResults.AddErrors(field.NotSupported(fldPath.Child("minTLSVersion"), info.MinTLSVersion, crypto.ValidTLSVersions()))
+	}
+	for i, cipher := range info.CipherSuites {
+		if _, err := crypto.CipherSuite(cipher); err != nil {
+			validationResults.AddErrors(field.NotSupported(fldPath.Child("cipherSuites").Index(i), cipher, crypto.ValidCipherSuites()))
 		}
 	}
 
