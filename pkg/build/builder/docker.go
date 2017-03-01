@@ -368,6 +368,17 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		opts.AuthConfigs = *auth
 	}
 
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case api.ImageOptimizationSkipLayers:
+				return buildDirectImage(dir, false, &opts)
+			case api.ImageOptimizationSkipLayersAndWarn:
+				return buildDirectImage(dir, true, &opts)
+			}
+		}
+	}
+
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
