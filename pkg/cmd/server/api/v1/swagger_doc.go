@@ -765,6 +765,8 @@ var map_ServingInfo = map[string]string{
 	"bindNetwork":       "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
 	"clientCA":          "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
 	"namedCertificates": "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+	"minTLSVersion":     "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+	"cipherSuites":      "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
 }
 
 func (ServingInfo) SwaggerDoc() map[string]string {
