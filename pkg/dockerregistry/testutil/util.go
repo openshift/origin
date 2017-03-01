@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,7 +16,6 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/reference"
 	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
@@ -31,46 +29,15 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func NewImageForManifest(repoName string, rawManifest string, managedByOpenShift bool) (*imageapi.Image, error) {
-	var versioned manifest.Versioned
-	if err := json.Unmarshal([]byte(rawManifest), &versioned); err != nil {
-		return nil, err
-	}
-
-	_, desc, err := distribution.UnmarshalManifest(versioned.MediaType, []byte(rawManifest))
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := make(map[string]string)
-	if managedByOpenShift {
-		annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-	}
-
-	img := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:        desc.Digest.String(),
-			Annotations: annotations,
-		},
-		DockerImageReference: fmt.Sprintf("localhost:5000/%s@%s", repoName, desc.Digest.String()),
-		DockerImageManifest:  string(rawManifest),
-	}
-
-	if err := imageapi.ImageWithMetadata(img); err != nil {
-		return nil, err
-	}
-
-	return img, nil
-}
-
-// UploadTestBlob generates a random tar file and uploads it to the given repository.
-func UploadTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName string) (distribution.Descriptor, []byte, error) {
-	rs, ds, err := CreateRandomTarFile()
-	if err != nil {
-		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
-	}
-	dgst := digest.Digest(ds)
-
+// UploadTestBlobFromReader uploads a testing blob read from the given reader to the registry located at the
+// given URL.
+func UploadTestBlobFromReader(
+	dgst digest.Digest,
+	reader io.ReadSeeker,
+	serverURL *url.URL,
+	creds auth.CredentialStore,
+	repoName string,
+) (distribution.Descriptor, []byte, error) {
 	ctx := context.Background()
 	ref, err := reference.ParseNamed(repoName)
 	if err != nil {
@@ -100,7 +67,7 @@ func UploadTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName str
 	if err != nil {
 		return distribution.Descriptor{}, nil, err
 	}
-	if _, err := io.Copy(wr, rs); err != nil {
+	if _, err := io.Copy(wr, reader); err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error copying to upload: %v", err)
 	}
 	desc, err := wr.Commit(ctx, distribution.Descriptor{Digest: dgst})
@@ -108,15 +75,42 @@ func UploadTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName str
 		return distribution.Descriptor{}, nil, err
 	}
 
-	if _, err := rs.Seek(0, 0); err != nil {
+	if _, err := reader.Seek(0, 0); err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("failed to seak blob reader: %v", err)
 	}
-	content, err := ioutil.ReadAll(rs)
+	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("failed to read blob content: %v", err)
 	}
 
 	return desc, content, nil
+}
+
+// UploadPayloadAsBlob uploads a given payload to the registry serving at the given URL.
+func UploadPayloadAsBlob(
+	payload []byte,
+	serverURL *url.URL,
+	creds auth.CredentialStore,
+	repoName string,
+) (distribution.Descriptor, error) {
+	reader := bytes.NewReader(payload)
+	dgst := digest.FromBytes(payload)
+	desc, _, err := UploadTestBlobFromReader(dgst, reader, serverURL, creds, repoName)
+	return desc, err
+}
+
+// UploadRandomTestBlob generates a random tar file and uploads it to the given repository.
+func UploadRandomTestBlob(
+	serverURL *url.URL,
+	creds auth.CredentialStore,
+	repoName string,
+) (distribution.Descriptor, []byte, error) {
+	rs, ds, err := CreateRandomTarFile()
+	if err != nil {
+		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
+	}
+	dgst := digest.Digest(ds)
+	return UploadTestBlobFromReader(dgst, rs, serverURL, creds, repoName)
 }
 
 // createRandomTarFile creates a random tarfile, returning it as an io.ReadSeeker along with its digest. An
@@ -238,6 +232,28 @@ func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) core.ReactionF
 
 			err := kerrors.NewNotFound(kapi.Resource("images"), a.GetName())
 			t.Logf("image get handler: %v", err)
+			return true, nil, err
+		}
+		return false, nil, nil
+	}
+}
+
+// GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with core.Fake client
+// that handles Get request on image stream resource. Matching is from given image stream list will be
+// returned if found. Additionally, a shared image stream may be requested.
+func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) core.ReactionFunc {
+	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case core.GetAction:
+			for _, is := range iss {
+				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
+					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
+					return true, &is, nil
+				}
+			}
+
+			err := kerrors.NewNotFound(kapi.Resource("imageStreams"), a.GetName())
+			t.Logf("imagestream get handler: %v", err)
 			return true, nil, err
 		}
 		return false, nil, nil

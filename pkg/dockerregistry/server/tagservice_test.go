@@ -33,6 +33,7 @@ func createTestImageReactor(t *testing.T, client *testclient.Fake, serverURL *ur
 	testImage, err := registrytest.NewImageForManifest(
 		fmt.Sprintf("%s/%s", namespace, repo),
 		string(testManifestSchema1),
+		"",
 		false)
 	if err != nil {
 		t.Fatal(err)
