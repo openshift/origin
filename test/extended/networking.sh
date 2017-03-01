@@ -23,8 +23,6 @@ NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
 
 DEFAULT_SKIP_LIST=(
-  # TODO(marun) This should work with docker >= 1.10
-  "openshift router"
   "\[Feature:Federation\]"
 
   # Skipped until https://github.com/openshift/origin/issues/11042 is resolved
