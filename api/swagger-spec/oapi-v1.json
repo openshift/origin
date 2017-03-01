@@ -26657,7 +26657,7 @@
      },
      "host": {
       "type": "string",
-      "description": "Host is the name of the node. (This is redundant with the object's name, and this field is not actually used any more.)"
+      "description": "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)"
      },
      "hostIP": {
       "type": "string",

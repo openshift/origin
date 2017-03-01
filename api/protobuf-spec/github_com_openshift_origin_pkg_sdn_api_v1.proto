@@ -91,8 +91,7 @@ message HostSubnet {
   // Standard object's metadata.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
-  // Host is the name of the node. (This is redundant with the object's name, and this
-  // field is not actually used any more.)
+  // Host is the name of the node. (This is the same as the object's name, but both fields must be set.)
   optional string host = 2;
 
   // HostIP is the IP address to be used as a VTEP by other nodes in the overlay network

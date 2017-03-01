@@ -13228,7 +13228,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 					},
 					"host": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Host is the name of the node. (This is redundant with the object's name, and this field is not actually used any more.)",
+							Description: "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
 							Type:        []string{"string"},
 							Format:      "",
 						},

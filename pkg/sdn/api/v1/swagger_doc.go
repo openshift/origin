@@ -79,7 +79,7 @@ func (EgressNetworkPolicySpec) SwaggerDoc() map[string]string {
 var map_HostSubnet = map[string]string{
 	"":         "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
 	"metadata": "Standard object's metadata.",
-	"host":     "Host is the name of the node. (This is redundant with the object's name, and this field is not actually used any more.)",
+	"host":     "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
 	"hostIP":   "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
 	"subnet":   "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
 }
