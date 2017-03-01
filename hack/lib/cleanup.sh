@@ -97,6 +97,6 @@ function os::cleanup::internal::list_k8s_containers() {
 		fi
 	done
 
-	echo "${ids[*]}"
+	echo "${ids[*]:+"${ids[*]}"}"
 }
 readonly -f os::cleanup::internal::list_k8s_containers
