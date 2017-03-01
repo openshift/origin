@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreateClone(t *testing.T) {
-	rest := CloneREST{&generator.BuildGenerator{Client: generator.Client{
+	rest := REST{&generator.BuildGenerator{Client: generator.Client{
 		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
 			return nil
 		},
@@ -27,7 +27,7 @@ func TestCreateClone(t *testing.T) {
 }
 
 func TestCreateCloneValidationError(t *testing.T) {
-	rest := CloneREST{&generator.BuildGenerator{}}
+	rest := REST{&generator.BuildGenerator{}}
 	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil {
 		t.Error("Expected object got none!")

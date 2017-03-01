@@ -210,7 +210,7 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 
 // ensureComponentAuthorizationRules initializes the cluster policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	clusterPolicyStorage, err := clusterpolicystorage.NewREST(c.RESTOptionsGetter)
 	if err != nil {
 		glog.Errorf("Error creating policy storage: %v", err)
 		return

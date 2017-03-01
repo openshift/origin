@@ -16,8 +16,8 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against ClusterPolicy.
-func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+// NewREST returns a RESTStorage object that will work against ClusterPolicy.
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },

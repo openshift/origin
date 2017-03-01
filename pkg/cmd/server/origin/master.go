@@ -543,6 +543,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	buildStorage, buildDetailsStorage, err := buildetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
+	buildLogStorage := buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter)
 
 	buildConfigStorage, err := buildconfigetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -586,17 +587,17 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	groupStorage, err := groupetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	policyStorage, err := policyetcd.NewStorage(c.RESTOptionsGetter)
+	policyStorage, err := policyetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage, err := policybindingetcd.NewStorage(c.RESTOptionsGetter)
+	policyBindingStorage, err := policybindingetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
-	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	clusterPolicyStorage, err := clusterpolicystorage.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage, err := clusterpolicybindingstorage.NewStorage(c.RESTOptionsGetter)
+	clusterPolicyBindingStorage, err := clusterpolicybindingstorage.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
@@ -607,6 +608,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver, nil, authorizationapi.Resource("rolebinding"))
 	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
 	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
+
+	clusterResourceQuotasStorage, clusterResourceQuotasStatusStorage, err := clusterresourcequotaregistry.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	appliedClusterResourceQuotaStorage := appliedclusterresourcequotaregistry.NewREST(c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
+		c.Informers.ClusterResourceQuotas().Lister(),
+		c.Informers.KubernetesInformers().Namespaces().Lister())
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -656,7 +663,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		ServiceAccounts: c.KubeClientset(),
 		Secrets:         c.KubeClientset(),
 	}
-
+	buildCloneStorage := buildclone.NewREST(buildGenerator)
+	buildConfigInstantiateStorage, buildConfigInstantiateBinaryStorage := buildconfiginstantiate.NewREST(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter)
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
@@ -672,6 +680,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
+
+	deployConfigLogStorage := deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter)
+	generateDeploymentConfigStorage := deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec)
+	deploymentConfigRollbackStorage := deployrollback.NewDeprecatedREST(deployRollbackClient, c.ExternalVersionCodec)
 
 	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
@@ -714,6 +726,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	templateStorage, err := templateetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
+	processedTemplateStorage := templateregistry.NewREST()
 
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
@@ -730,14 +743,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs/scale":       deployConfigScaleStorage,
 		"deploymentConfigs/status":      deployConfigStatusStorage,
 		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter),
+		"deploymentConfigs/log":         deployConfigLogStorage,
 		"deploymentConfigs/instantiate": dcInstantiateStorage,
 
 		// TODO: Deprecate these
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
-		"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.ExternalVersionCodec),
+		"generateDeploymentConfigs": generateDeploymentConfigStorage,
+		"deploymentConfigRollbacks": deploymentConfigRollbackStorage,
 
-		"processedTemplates": templateregistry.NewREST(),
+		"processedTemplates": processedTemplateStorage,
 		"templates":          templateStorage,
 
 		"routes":        routeStorage,
@@ -782,24 +795,23 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
 
-		"clusterResourceQuotas":        restInPeace(clusterresourcequotaregistry.NewStorage(c.RESTOptionsGetter)),
-		"clusterResourceQuotas/status": updateInPeace(clusterresourcequotaregistry.NewStatusStorage(c.RESTOptionsGetter)),
-		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
-			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
+		"clusterResourceQuotas":        clusterResourceQuotasStorage,
+		"clusterResourceQuotas/status": clusterResourceQuotasStatusStorage,
+		"appliedClusterResourceQuotas": appliedClusterResourceQuotaStorage,
 
-		"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewStorage(c.RESTOptionsGetter)),
+		"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewREST(c.RESTOptionsGetter)),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
 		storage["builds"] = buildStorage
-		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter)
+		storage["builds/clone"] = buildCloneStorage
+		storage["builds/log"] = buildLogStorage
 		storage["builds/details"] = buildDetailsStorage
 
 		storage["buildConfigs"] = buildConfigStorage
 		storage["buildConfigs/webhooks"] = buildConfigWebHooks
-		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter)
+		storage["buildConfigs/instantiate"] = buildConfigInstantiateStorage
+		storage["buildConfigs/instantiatebinary"] = buildConfigInstantiateBinaryStorage
 	}
 
 	return storage

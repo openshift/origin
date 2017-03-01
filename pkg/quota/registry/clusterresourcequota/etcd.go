@@ -17,26 +17,22 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against ClusterResourceQuota objects.
-func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+// NewREST returns a RESTStorage object that will work against nodes.
+func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store, err := makeStore(optsGetter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	REST := REST{Store: store}
 
-	return &REST{Store: store}, nil
-}
+	statusStore := *store
+	statusStore.CreateStrategy = nil
+	statusStore.DeleteStrategy = nil
+	statusStore.UpdateStrategy = StatusStrategy
 
-func NewStatusStorage(optsGetter restoptions.Getter) (*StatusREST, error) {
-	store, err := makeStore(optsGetter)
-	if err != nil {
-		return nil, err
-	}
-	store.CreateStrategy = nil
-	store.DeleteStrategy = nil
-	store.UpdateStrategy = StatusStrategy
+	StatusREST := StatusREST{store: &statusStore}
 
-	return &StatusREST{store: store}, nil
+	return &REST, &StatusREST, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of a resourcequota.

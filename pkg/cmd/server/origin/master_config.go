@@ -715,7 +715,7 @@ func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWat
 func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	storage, err := clusterpolicyetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -734,7 +734,7 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	storage, err := clusterpolicybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +753,7 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := policyetcd.NewStorage(optsGetter)
+	storage, err := policyetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -772,7 +772,7 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := policybindingetcd.NewStorage(optsGetter)
+	storage, err := policybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}

@@ -30,11 +30,22 @@ import (
 var (
 	cancelPollInterval = 500 * time.Millisecond
 	cancelPollDuration = 30 * time.Second
+
+	binaryInstantiateTimeOut = 5 * time.Minute
 )
 
-// NewStorage creates a new storage object for build generation
-func NewStorage(generator *generator.BuildGenerator) *InstantiateREST {
-	return &InstantiateREST{generator: generator}
+// NewREST creates a new storage object for build generation
+func NewREST(generator *generator.BuildGenerator, watcher rest.Watcher, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) (*InstantiateREST, *BinaryInstantiateREST) {
+	InstantiateREST := InstantiateREST{generator: generator}
+
+	BinaryInstantiateREST := BinaryInstantiateREST{
+		Generator:      generator,
+		Watcher:        watcher,
+		PodGetter:      &podGetter{podClient},
+		ConnectionInfo: info,
+		Timeout:        binaryInstantiateTimeOut,
+	}
+	return &InstantiateREST, &BinaryInstantiateREST
 }
 
 // InstantiateREST is a RESTStorage implementation for a BuildGenerator which supports only
@@ -64,16 +75,6 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 		)
 	}
 	return s.generator.Instantiate(ctx, request)
-}
-
-func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
-	return &BinaryInstantiateREST{
-		Generator:      generator,
-		Watcher:        watcher,
-		PodGetter:      &podGetter{podClient},
-		ConnectionInfo: info,
-		Timeout:        5 * time.Minute,
-	}
 }
 
 type BinaryInstantiateREST struct {

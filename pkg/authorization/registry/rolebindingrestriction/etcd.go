@@ -16,7 +16,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store, err := makeStore(optsGetter)
 	if err != nil {
 		return nil, err
