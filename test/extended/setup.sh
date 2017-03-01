@@ -33,18 +33,18 @@ function os::test::extended::setup () {
 	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
-	# allow setup to be skipped
-	if [[ -n "${TEST_ONLY+x}" ]]; then
-		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
-		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
-		return 0
-	fi
-
 	os::util::environment::setup_time_vars
 	os::util::environment::use_sudo
 	os::util::environment::setup_all_server_vars "test-extended/core"
 
 	os::util::ensure::iptables_privileges_exist
+
+	# Allow setting $JUNIT_REPORT to toggle output behavior
+	if [[ -n "${JUNIT_REPORT:-}" ]]; then
+		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+		# the Ginkgo tests also generate jUnit but expect different envars
+		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+	fi
 
 	function cleanup() {
 		out=$?
@@ -77,6 +77,15 @@ function os::test::extended::setup () {
 
 	trap "exit" INT TERM
 	trap "cleanup" EXIT
+
+	# allow setup to be skipped
+	if [[ -n "${TEST_ONLY+x}" ]]; then
+		export SKIP_TEARDOWN='true'
+		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
+		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
+		return 0
+	fi
+
 	os::log::info "Starting server"
 
 	os::util::environment::setup_images_vars
@@ -92,13 +101,6 @@ function os::test::extended::setup () {
 		export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
 	else
 		os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
-	fi
-
-	# Allow setting $JUNIT_REPORT to toggle output behavior
-	if [[ -n "${JUNIT_REPORT:-}" ]]; then
-		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-		# the Ginkgo tests also generate jUnit but expect different envars
-		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
 	fi
 
 	os::log::system::start
