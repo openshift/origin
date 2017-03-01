@@ -17,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/cluster"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/observe"
@@ -196,9 +195,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	experimental := &cobra.Command{
 		Use: "ex", // Because this command exposes no description, it will not be shown in help
 	}
-	experimental.AddCommand(
-		dockerbuild.NewCmdDockerbuild(fullName, f, out, errout),
-	)
+	experimental.AddCommand()
 	cmds.AddCommand(experimental)
 
 	if name == fullName {
