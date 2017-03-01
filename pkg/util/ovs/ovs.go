@@ -144,6 +144,11 @@ func (ovsif *Interface) DeletePort(port string) error {
 	return err
 }
 
+func (ovsif *Interface) SetFrags(mode string) error {
+	_, err := ovsif.exec(OVS_OFCTL, "set-frags", ovsif.bridge, mode)
+	return err
+}
+
 type Transaction struct {
 	ovsif *Interface
 	err   error
