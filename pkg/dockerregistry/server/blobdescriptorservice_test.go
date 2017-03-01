@@ -32,6 +32,17 @@ import (
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 )
 
+const testPassthroughToUpstream = "openshift.test.passthrough-to-upstream"
+
+func WithTestPassthroughToUpstream(ctx context.Context, passthrough bool) context.Context {
+	return context.WithValue(ctx, testPassthroughToUpstream, passthrough)
+}
+
+func GetTestPassThroughToUpstream(ctx context.Context) bool {
+	passthrough, found := ctx.Value(testPassthroughToUpstream).(bool)
+	return found && passthrough
+}
+
 // TestBlobDescriptorServiceIsApplied ensures that blobDescriptorService middleware gets applied.
 // It relies on the fact that blobDescriptorService requires higher levels to set repository object on given
 // context. If the object isn't given, its method will err out.
@@ -44,7 +55,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	// to make other unit tests working
 	defer m.changeUnsetRepository(false)
 
-	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, true)
+	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +101,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	}
 	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
 
-	desc, _, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
+	desc, _, err := registrytest.UploadRandomTestBlob(serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -509,4 +520,43 @@ func (f *fakeRegistryClient) Clients() (osclient.Interface, kclientset.Interface
 }
 func (f *fakeRegistryClient) SafeClientConfig() restclient.Config {
 	return (&registryClient{}).SafeClientConfig()
+}
+
+// passthroughBlobDescriptorService passes all Stat and Clear requests to
+// custom blobDescriptorService by default. If
+// "openshift.test.passthrough-to-upstream" is set on context with value
+// "true", all the requests will be passed straight to the upstream blob
+// descriptor service.
+type passthroughBlobDescriptorService struct {
+	distribution.BlobDescriptorService
+}
+
+func (pbds *passthroughBlobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	passthrough := GetTestPassThroughToUpstream(ctx)
+	if passthrough {
+		context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Stat: passing down to upstream blob descriptor service")
+		return pbds.BlobDescriptorService.Stat(ctx, dgst)
+	}
+	context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Stat: passing to openshift wrapper")
+	return (&blobDescriptorServiceFactory{}).BlobAccessController(pbds.BlobDescriptorService).Stat(ctx, dgst)
+}
+
+func (pbds *passthroughBlobDescriptorService) Clear(ctx context.Context, dgst digest.Digest) error {
+	passthrough := GetTestPassThroughToUpstream(ctx)
+	if passthrough {
+		context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Clear: passing down to upstream blob descriptor service")
+		return pbds.BlobDescriptorService.Clear(ctx, dgst)
+	}
+	context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Clear: passing to openshift wrapper")
+	return (&blobDescriptorServiceFactory{}).BlobAccessController(pbds.BlobDescriptorService).Clear(ctx, dgst)
+}
+
+type passthroughBlobDescriptorServiceFactory struct{}
+
+func (pbf *passthroughBlobDescriptorServiceFactory) BlobAccessController(svc distribution.BlobDescriptorService) distribution.BlobDescriptorService {
+	return &passthroughBlobDescriptorService{svc}
+}
+
+func setPassthroughBlobDescriptorServiceFactory() {
+	middleware.RegisterOptions(storage.BlobDescriptorServiceFactory(&passthroughBlobDescriptorServiceFactory{}))
 }
