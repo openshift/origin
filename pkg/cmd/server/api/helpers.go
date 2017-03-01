@@ -241,6 +241,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
 	}
 
+	if config.AuthConfig.RequestHeader != nil {
+		refs = append(refs, &config.AuthConfig.RequestHeader.ClientCA)
+	}
+
 	refs = append(refs, &config.ServiceAccountConfig.MasterCA)
 	refs = append(refs, &config.ServiceAccountConfig.PrivateKeyFile)
 	for i := range config.ServiceAccountConfig.PublicKeyFiles {
@@ -455,6 +459,21 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	}
 
 	return allCerts, nil
+}
+
+func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
+		return nil, nil
+	}
+	if options.AuthConfig.RequestHeader == nil {
+		return nil, nil
+	}
+
+	certs, err := cmdutil.CertificatesFromFile(options.AuthConfig.RequestHeader.ClientCA)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading %s: %s", options.AuthConfig.RequestHeader.ClientCA, err)
+	}
+	return certs, nil
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
