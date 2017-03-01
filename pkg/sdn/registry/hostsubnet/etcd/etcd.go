@@ -23,7 +23,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:     func() runtime.Object { return &api.HostSubnet{} },
 		NewListFunc: func() runtime.Object { return &api.HostSubnetList{} },
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.HostSubnet).Host, nil
+			return obj.(*api.HostSubnet).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 			return hostsubnet.Matcher(label, field)

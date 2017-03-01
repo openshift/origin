@@ -23,7 +23,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:     func() runtime.Object { return &api.NetNamespace{} },
 		NewListFunc: func() runtime.Object { return &api.NetNamespaceList{} },
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.NetNamespace).NetName, nil
+			return obj.(*api.NetNamespace).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 			return netnamespace.Matcher(label, field)
