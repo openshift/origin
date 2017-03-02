@@ -54,7 +54,7 @@ func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName ty
 	}, nil
 }
 
-// TestRegistryResourceLocation tests if proper resource location URL is returner
+// TestRegistryResourceLocation tests if proper resource location URL is returned
 // for different build states.
 // Note: For this test, the mocked pod is set to "Running" phase, so the test
 // is evaluating the outcome based only on build state.

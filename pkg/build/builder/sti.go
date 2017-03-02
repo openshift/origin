@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
+	"github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -87,20 +87,11 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 	}
 }
 
-// Build executes STI build based on configured builder, S2I builder factory
+// Build executes S2I build based on configured builder, S2I builder factory
 // and S2I config validator
 func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy == nil {
 		return errors.New("the source to image builder must be used with the source strategy")
-	}
-
-	buildDir, err := ioutil.TempDir("", "s2i-build")
-	if err != nil {
-		return err
-	}
-	srcDir := filepath.Join(buildDir, s2iapi.Source)
-	if err = os.MkdirAll(srcDir, os.ModePerm); err != nil {
-		return err
 	}
 
 	var push bool
@@ -112,41 +103,6 @@ func (s *S2IBuilder) Build() error {
 		push = true
 	}
 	pushTag := s.build.Status.OutputDockerImageReference
-
-	// fetch source
-	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
-	if err != nil {
-		s.build.Status.Phase = api.BuildPhaseFailed
-		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
-		s.build.Status.Message = api.StatusMessageFetchSourceFailed
-		handleBuildStatusUpdate(s.build, s.client, nil)
-		return err
-	}
-	contextDir := ""
-	if len(s.build.Spec.Source.ContextDir) > 0 {
-		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
-		if contextDir == "." || contextDir == "/" {
-			contextDir = ""
-		}
-		if len(contextDir) > 0 {
-			// if we're building out of a context dir, we need to use a different working
-			// directory from where we put the source code because s2i is going to copy
-			// from the context dir to the workdir, and if the workdir is a parent of the
-			// context dir, we end up with a directory that contains 2 copies of the
-			// input source code.
-			buildDir, err = ioutil.TempDir("", "s2i-build-context")
-		}
-		if sourceInfo != nil {
-			sourceInfo.ContextDir = s.build.Spec.Source.ContextDir
-		}
-	}
-
-	var s2iSourceInfo *s2iapi.SourceInfo
-	if sourceInfo != nil {
-		s2iSourceInfo = &sourceInfo.SourceInfo
-		revision := updateBuildRevision(s.build, sourceInfo)
-		handleBuildStatusUpdate(s.build, s.client, revision)
-	}
 
 	injections := s2iapi.VolumeList{}
 	for _, s := range s.build.Spec.Source.Secrets {
@@ -173,10 +129,20 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.Incremental != nil {
 		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
 	}
+
+	srcDir := "file:///tmp/gitSource"
+	contextDir := ""
+	if len(s.build.Spec.Source.ContextDir) != 0 {
+		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
+		if contextDir == "." || contextDir == "/" {
+			contextDir = ""
+		}
+	}
+
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
 		PreserveWorkingDir: true,
-		WorkingDir:         buildDir,
+		WorkingDir:         "/tmp",
 		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
 		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
 		LabelNamespace:     api.DefaultDockerLabelNamespace,
@@ -187,13 +153,13 @@ func (s *S2IBuilder) Build() error {
 		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
-		Environment:       buildEnvVars(s.build, sourceInfo),
-		Labels:            buildLabels(s.build),
+		Environment:       buildEnvVars(s.build, nil),
+		Labels:            s2iBuildLabels(s.build, nil),
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:     srcDir,
 		ContextDir: contextDir,
-		SourceInfo: s2iSourceInfo,
+		//SourceInfo: s2iSourceInfo,
 		ForceCopy:  true,
 		Injections: injections,
 
@@ -327,18 +293,6 @@ func (s *S2IBuilder) Build() error {
 	return nil
 }
 
-type downloader struct {
-	sourceInfo *s2iapi.SourceInfo
-}
-
-// Download no-ops (because we already downloaded the source to the right location)
-// and returns the previously computed sourceInfo for the source.
-func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
-	config.WorkingSourceDir = config.Source
-
-	return d.sourceInfo, nil
-}
-
 // buildEnvVars returns a map with build metadata to be inserted into Docker
 // images produced by build. It transforms the output from buildInfo into the
 // input format expected by s2iapi.Config.Environment.
@@ -356,6 +310,27 @@ func buildEnvVars(build *api.Build, sourceInfo *git.SourceInfo) s2iapi.Environme
 	return *envVars
 }
 
+// s2iBuildLabels returns a slice of KeyValue pairs in a format that appendLabel can
+// consume.
+func s2iBuildLabels(build *api.Build, sourceInfo *git.SourceInfo) map[string]string {
+	labels := map[string]string{}
+	if sourceInfo == nil {
+		sourceInfo = &git.SourceInfo{}
+	}
+	if len(build.Spec.Source.ContextDir) > 0 {
+		sourceInfo.ContextDir = build.Spec.Source.ContextDir
+	}
+
+	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, api.DefaultDockerLabelNamespace)
+
+	// override autogenerated labels
+	for _, lbl := range build.Spec.Output.ImageLabels {
+		labels[lbl.Name] = lbl.Value
+	}
+	return labels
+}
+
+/*
 func buildLabels(build *api.Build) map[string]string {
 	labels := make(map[string]string)
 	for _, lbl := range build.Spec.Output.ImageLabels {
@@ -363,6 +338,7 @@ func buildLabels(build *api.Build) map[string]string {
 	}
 	return labels
 }
+*/
 
 // scriptProxyConfig determines a proxy configuration for downloading
 // scripts from a URL. For now, it uses environment variables passed in

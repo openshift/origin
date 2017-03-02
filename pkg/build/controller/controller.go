@@ -321,6 +321,11 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 				}
 			}
+			for _, initContainer := range pod.Status.InitContainerStatuses {
+				if initContainer.Name == "git-clone" && initContainer.State.Running != nil {
+					nextStatus = buildapi.BuildPhaseRunning
+				}
+			}
 
 		case kapi.PodSucceeded:
 			build.Status.Reason = ""

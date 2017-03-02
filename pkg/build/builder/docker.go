@@ -62,11 +62,16 @@ func (d *DockerBuilder) Build() error {
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 
-	buildDir, err := ioutil.TempDir("", "docker-build")
-	if err != nil {
-		return err
-	}
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
+	/*
+		buildDir, err := ioutil.TempDir("", "docker-build")
+		if err != nil {
+			return err
+		}
+	*/
+	// this is where the git-fetch container put the code during the clone operation
+	buildDir := "/tmp/gitSource"
+
+	err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	if err != nil {
 		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonFetchSourceFailed
@@ -75,14 +80,17 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
-	if sourceInfo != nil {
-		glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
-		revision := updateBuildRevision(d.build, sourceInfo)
-		handleBuildStatusUpdate(d.build, d.client, revision)
-	}
-	if err = d.addBuildParameters(buildDir, sourceInfo); err != nil {
-		return err
-	}
+	/*
+		//this is done from inside the git-fetch container now
+		if sourceInfo != nil {
+			glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
+			revision := updateBuildRevision(d.build, sourceInfo)
+			handleBuildStatusUpdate(d.build, d.client, revision)
+		}
+		if err = d.addBuildParameters(buildDir, sourceInfo); err != nil {
+			return err
+		}
+	*/
 
 	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
 	// if there is no output target, set one up so the docker build logic
@@ -94,7 +102,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
-	dockerfilePath := d.getDockerfilePath(buildDir)
+	dockerfilePath := getDockerfilePath(buildDir, d.build)
 	imageNames := getDockerfileFrom(dockerfilePath)
 	if len(imageNames) == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
@@ -112,7 +120,7 @@ func (d *DockerBuilder) Build() error {
 			}
 			imageExists = false
 		}
-		// if forcePull or the image not exists on the node we should pull the image first
+		// if forcePull or the image does not exist on the node we should pull the image first
 		if d.build.Spec.Strategy.DockerStrategy.ForcePull || !imageExists {
 			pullAuthConfig, _ := dockercfg.NewHelper().GetDockerAuth(
 				imageName,
@@ -210,17 +218,17 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables and labels in the Dockerfile.
-func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInfo) error {
-	dockerfilePath := d.getDockerfilePath(dir)
+func addBuildParameters(dir string, build *api.Build) error {
+	dockerfilePath := getDockerfilePath(dir, build)
 	node, err := parseDockerfile(dockerfilePath)
 	if err != nil {
 		return err
 	}
 
 	// Update base image if build strategy specifies the From field.
-	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
+	if build.Spec.Strategy.DockerStrategy.From != nil && build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
 		// Reduce the name to a minimal canonical form for the daemon
-		name := d.build.Spec.Strategy.DockerStrategy.From.Name
+		name := build.Spec.Strategy.DockerStrategy.From.Name
 		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
 			name = ref.DaemonMinimal().Exact()
 		}
@@ -231,19 +239,19 @@ func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInf
 	}
 
 	// Append build info as environment variables.
-	err = appendEnv(node, d.buildEnv(sourceInfo))
+	err = appendEnv(node, buildEnv(build, nil))
 	if err != nil {
 		return err
 	}
 
 	// Append build labels.
-	err = appendLabel(node, d.buildLabels(sourceInfo))
+	err = appendLabel(node, buildLabels(build, nil))
 	if err != nil {
 		return err
 	}
 
 	// Insert environment variables defined in the build strategy.
-	err = insertEnvAfterFrom(node, d.build.Spec.Strategy.DockerStrategy.Env)
+	err = insertEnvAfterFrom(node, build.Spec.Strategy.DockerStrategy.Env)
 	if err != nil {
 		return err
 	}
@@ -260,8 +268,8 @@ func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInf
 
 // buildEnv converts the buildInfo output to a format that appendEnv can
 // consume.
-func (d *DockerBuilder) buildEnv(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
-	bi := buildInfo(d.build, sourceInfo)
+func buildEnv(build *api.Build, sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
+	bi := buildInfo(build, sourceInfo)
 	kv := make([]dockerfile.KeyValue, len(bi))
 	for i, item := range bi {
 		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
@@ -269,23 +277,23 @@ func (d *DockerBuilder) buildEnv(sourceInfo *git.SourceInfo) []dockerfile.KeyVal
 	return kv
 }
 
-// buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
+// buildLabels returns a slice of KeyValue pairs in a format that appendLabel can
 // consume.
-func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
+func buildLabels(build *api.Build, sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
 	labels := map[string]string{}
 	if sourceInfo == nil {
 		sourceInfo = &git.SourceInfo{}
 	}
-	if len(d.build.Spec.Source.ContextDir) > 0 {
-		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
+	if len(build.Spec.Source.ContextDir) > 0 {
+		sourceInfo.ContextDir = build.Spec.Source.ContextDir
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, api.DefaultDockerLabelNamespace)
-	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(d.build.Spec.Output.ImageLabels))
+	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(build.Spec.Output.ImageLabels))
 	for k, v := range labels {
 		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
 	}
 	// override autogenerated labels
-	for _, lbl := range d.build.Spec.Output.ImageLabels {
+	for _, lbl := range build.Spec.Output.ImageLabels {
 		kv = append(kv, dockerfile.KeyValue{Key: lbl.Name, Value: lbl.Value})
 	}
 	return kv
@@ -356,17 +364,17 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
-func (d *DockerBuilder) getDockerfilePath(dir string) string {
+func getDockerfilePath(dir string, build *api.Build) string {
 	var contextDirPath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
-		contextDirPath = filepath.Join(dir, d.build.Spec.Source.ContextDir)
+	if build.Spec.Strategy.DockerStrategy != nil && len(build.Spec.Source.ContextDir) > 0 {
+		contextDirPath = filepath.Join(dir, build.Spec.Source.ContextDir)
 	} else {
 		contextDirPath = dir
 	}
 
 	var dockerfilePath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
-		dockerfilePath = filepath.Join(contextDirPath, d.build.Spec.Strategy.DockerStrategy.DockerfilePath)
+	if build.Spec.Strategy.DockerStrategy != nil && len(build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
+		dockerfilePath = filepath.Join(contextDirPath, build.Spec.Strategy.DockerStrategy.DockerfilePath)
 	} else {
 		dockerfilePath = filepath.Join(contextDirPath, defaultDockerfilePath)
 	}

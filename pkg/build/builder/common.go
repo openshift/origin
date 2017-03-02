@@ -160,7 +160,7 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 	})
 }
 
-func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
+func UpdateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
 	if build.Spec.Revision != nil {
 		return build.Spec.Revision
 	}
