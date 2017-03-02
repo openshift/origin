@@ -378,7 +378,6 @@ readonly CONFORMANCE_TESTS=(
 	"\[Feature\:SecurityContext\]"
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
-	"\[Feature\:PodDisruptionbudget\]"
 	"should create a pod that reads a secret"
 	"should create a pod that prints his name and namespace"
 )
