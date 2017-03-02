@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 
@@ -53,18 +55,10 @@ func (e contextDirNotFoundError) Error() string {
 	return fmt.Sprintf("provided context directory does not exist: %s", string(e))
 }
 
-// fetchSource retrieves the inputs defined by the build source into the
-// provided directory, or returns an error if retrieval is not possible.
-func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, build *buildapi.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
-	hasGitSource := false
+// GitClone clones the source associated with a build(if any) into the specified directory
+func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string) (*git.SourceInfo, error) {
+	hasGitSource, err := extractGitSource(ctx, gitClient, gitSource, revision, dir, initialURLCheckTimeout)
 
-	// expect to receive input from STDIN
-	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
-		return nil, err
-	}
-
-	// may retrieve source from Git
-	hasGitSource, err := extractGitSource(ctx, gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +72,48 @@ func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, bui
 				glog.V(0).Infof("error: Unable to retrieve Git info: %v", e)
 			}
 		}
+		if sourceInfo != nil {
+			sourceInfoJson, err := json.Marshal(*sourceInfo)
+			if err != nil {
+				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
+				return sourceInfo, nil
+			}
+			err = ioutil.WriteFile(filepath.Join(buildutil.InputContentPath, "sourceinfo.json"), sourceInfoJson, 0644)
+			if err != nil {
+				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
+				return sourceInfo, nil
+			}
+		}
+	}
+	return sourceInfo, nil
+}
+
+func ManageDockerfile(dir string, build *buildapi.Build) error {
+	glog.Infof("Checking for presence of a Dockerfile")
+	// a Dockerfile has been specified, create or overwrite into the destination
+	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
+		baseDir := dir
+		if len(build.Spec.Source.ContextDir) != 0 {
+			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
+		}
+		if err := ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660); err != nil {
+			return err
+		}
 	}
 
+	// We only mutate the dockerfile if this is a docker strategy build, otherwise
+	// we leave it as it was provided.
+	if build.Spec.Strategy.DockerStrategy != nil {
+		sourceInfo, err := readSourceInfo()
+		if err != nil {
+			return fmt.Errorf("error reading git source info: %v", err)
+		}
+		return addBuildParameters(dir, build, sourceInfo)
+	}
+	return nil
+}
+
+func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir string, build *buildapi.Build) error {
 	forcePull := false
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
@@ -97,27 +131,22 @@ func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, bui
 		}
 		err := extractSourceFromImage(ctx, dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
+	return nil
+}
 
+// fetchSource retrieves the inputs defined by the build source into the
+// provided directory, or returns an error if retrieval is not possible.
+func fetchSource(dir string, build *buildapi.Build) error {
 	if len(build.Spec.Source.ContextDir) > 0 {
 		if _, err := os.Stat(filepath.Join(dir, build.Spec.Source.ContextDir)); os.IsNotExist(err) {
-			return sourceInfo, contextDirNotFoundError(build.Spec.Source.ContextDir)
+			// TODO - where to call this from?
+			return contextDirNotFoundError(build.Spec.Source.ContextDir)
 		}
 	}
-
-	// a Dockerfile has been specified, create or overwrite into the destination
-	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
-		baseDir := dir
-		// if a context dir has been defined and we cloned source, overwrite the destination
-		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
-			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
-		}
-		return sourceInfo, ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
-	}
-
-	return sourceInfo, nil
+	return nil
 }
 
 // checkRemoteGit validates the specified Git URL. It returns GitNotFoundError
@@ -174,9 +203,9 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 	return checkRemoteGit(gitClient, rawurl, timeout)
 }
 
-// extractInputBinary processes the provided input stream as directed by BinaryBuildSource
+// ExtractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
-func extractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir string) error {
+func ExtractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir string) error {
 	if source == nil {
 		return nil
 	}

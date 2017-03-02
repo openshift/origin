@@ -49,6 +49,9 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-recycle
   openshift-sti-build
   openshift-docker-build
+  openshift-git-clone
+  openshift-manage-dockerfile
+  openshift-extract-image-content
   origin
   osc
   oadm

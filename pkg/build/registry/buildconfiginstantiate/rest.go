@@ -225,14 +225,14 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
 	}
 
-	// The container should be the default build container, so setting it to blank
 	buildPodName := buildapi.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin: true,
 		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
 		// fixed
-		Stdout: true,
-		Stderr: true,
+		Stdout:    true,
+		Stderr:    true,
+		Container: "git-clone",
 	}
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {

@@ -818,8 +818,18 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 		}
 	}
 
+	podPhase := pod.Status.Phase
 	var update *buildUpdate
-	switch pod.Status.Phase {
+	// Pods don't report running until initcontainers are done, but from a build's perspective
+	// the pod is running as soon as the first init container has run.
+	if build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseNew {
+		for _, initContainer := range pod.Status.InitContainerStatuses {
+			if initContainer.Name == "git-clone" && initContainer.State.Running != nil {
+				podPhase = v1.PodRunning
+			}
+		}
+	}
+	switch podPhase {
 	case v1.PodPending:
 		if build.Status.Phase != buildapi.BuildPhasePending {
 			update = transitionToPhase(buildapi.BuildPhasePending, "", "")

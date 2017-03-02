@@ -25,6 +25,10 @@ import (
 const (
 	// NoBuildLogsMessage reports that no build logs are available
 	NoBuildLogsMessage = "No logs are available."
+
+	// InputContentPath is the path at which the build inputs will be available
+	// to all the build containers (mounted as a volume).
+	InputContentPath = "/tmp/gitSource"
 )
 
 // GetBuildName returns name of the build pod.

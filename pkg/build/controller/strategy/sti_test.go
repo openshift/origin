@@ -18,6 +18,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type FakeAdmissionControl struct {
@@ -95,16 +96,16 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		}
 		t.Fatalf("Expected 11 elements in Env table, got %d:\n%s", len(container.Env), strings.Join(keys, ", "))
 	}
-	if len(container.VolumeMounts) != 4 {
-		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 5 {
+		t.Fatalf("Expected 5 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{buildutil.InputContentPath, dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 4 {
-		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 5 {
+		t.Fatalf("Expected 5 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)

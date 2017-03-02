@@ -21,12 +21,13 @@ import (
 
 const (
 	// dockerSocketPath is the default path for the Docker socket inside the builder container
-	dockerSocketPath               = "/var/run/docker.sock"
+	dockerSocketPath      = "/var/run/docker.sock"
+	sourceSecretMountPath = "/var/run/secrets/openshift.io/source"
+
 	DockerPushSecretMountPath      = "/var/run/secrets/openshift.io/push"
 	DockerPullSecretMountPath      = "/var/run/secrets/openshift.io/pull"
 	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
-	sourceSecretMountPath          = "/var/run/secrets/openshift.io/source"
 )
 
 var (
@@ -53,7 +54,7 @@ func IsFatal(err error) bool {
 }
 
 // setupDockerSocket configures the pod to support the host's Docker socket
-func setupDockerSocket(podSpec *v1.Pod) {
+func setupDockerSocket(pod *v1.Pod) {
 	dockerSocketVolume := v1.Volume{
 		Name: "docker-socket",
 		VolumeSource: v1.VolumeSource{
@@ -68,11 +69,17 @@ func setupDockerSocket(podSpec *v1.Pod) {
 		MountPath: dockerSocketPath,
 	}
 
-	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		dockerSocketVolume)
-	podSpec.Spec.Containers[0].VolumeMounts =
-		append(podSpec.Spec.Containers[0].VolumeMounts,
+	pod.Spec.Containers[0].VolumeMounts =
+		append(pod.Spec.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
+	for i, initContainer := range pod.Spec.InitContainers {
+		if initContainer.Name == "extract-image-content" {
+			pod.Spec.InitContainers[i].VolumeMounts = append(pod.Spec.InitContainers[i].VolumeMounts, dockerSocketVolumeMount)
+			break
+		}
+	}
 }
 
 // mountSecretVolume is a helper method responsible for actual mounting secret

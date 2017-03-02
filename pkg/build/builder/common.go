@@ -163,7 +163,9 @@ func execPostCommitHook(client DockerClient, postCommitSpec buildapi.BuildPostCo
 	})
 }
 
-func updateBuildRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *buildapi.SourceRevision {
+// GetSourceRevision returns a SourceRevision object either from the build (if it already had one)
+// or by creating one from the sourceInfo object passed in.
+func GetSourceRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *buildapi.SourceRevision {
 	if build.Spec.Revision != nil {
 		return build.Spec.Revision
 	}
@@ -185,7 +187,7 @@ func updateBuildRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *bui
 
 // handleBuildStatusUpdate handles updating the build status
 // retries occur on update conflict and unreachable api server
-func handleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
+func HandleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
 	var latestBuild *buildapi.Build
 	var err error
 
@@ -213,7 +215,8 @@ func handleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface
 		latestBuild.Status.Reason = build.Status.Reason
 		latestBuild.Status.Message = build.Status.Message
 		latestBuild.Status.Output.To = build.Status.Output.To
-		latestBuild.Status.Stages = build.Status.Stages
+		latestBuild.Status.Stages = buildapi.AppendStageAndStepInfo(latestBuild.Status.Stages, build.Status.Stages)
+		//latestBuild.Status.Stages = append(latestBuild.Status.Stages, build.Status.Stages...)
 
 		_, err = client.UpdateDetails(latestBuild)
 

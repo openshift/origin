@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
@@ -39,7 +39,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
-		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
+		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
 	}
 
 	pod := &v1.Pod{
@@ -52,30 +52,105 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []v1.Container{
 				{
-					Name:  "docker-build",
-					Image: bs.Image,
-					Env:   containerEnv,
-					Args:  []string{},
+					Name:    "docker-build",
+					Image:   bs.Image,
+					Command: []string{"openshift-docker-build"},
+					Env:     containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
 					},
 					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "gitsource",
+							MountPath: buildutil.InputContentPath,
+						},
+					},
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "gitsource",
+					VolumeSource: v1.VolumeSource{
+						EmptyDir: &v1.EmptyDirVolumeSource{},
+					},
 				},
 			},
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-	pod.Spec.Containers[0].ImagePullPolicy = v1.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = util.CopyApiResourcesToV1Resources(&build.Spec.Resources)
+
+	// can't conditionalize the manage-dockerfile init container because we don't
+	// know until we've cloned, whether or not we've got a dockerfile to manage
+	// (also if it's a docker type build, we should always have a dockerfile to manage)
+	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
+		gitCloneContainer := v1.Container{
+			Name:    "git-clone",
+			Image:   bs.Image,
+			Command: []string{"openshift-git-clone"},
+			Env:     containerEnv,
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: buildutil.InputContentPath,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		}
+		if build.Spec.Source.Binary != nil {
+			gitCloneContainer.Stdin = true
+			gitCloneContainer.StdinOnce = true
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
+	}
+	if len(build.Spec.Source.Images) > 0 {
+		extractImageContentContainer := v1.Container{
+			Name:    "extract-image-content",
+			Image:   bs.Image,
+			Command: []string{"openshift-extract-image-content"},
+			Env:     containerEnv,
+			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+			SecurityContext: &v1.SecurityContext{
+				Privileged: &privileged,
+			},
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: buildutil.InputContentPath,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
+	}
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers,
+		v1.Container{
+			Name:    "manage-dockerfile",
+			Image:   bs.Image,
+			Command: []string{"openshift-manage-dockerfile"},
+			Env:     containerEnv,
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "gitsource",
+					MountPath: buildutil.InputContentPath,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		},
+	)
 
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
-	}
-	if build.Spec.Source.Binary != nil {
-		pod.Spec.Containers[0].Stdin = true
-		pod.Spec.Containers[0].StdinOnce = true
 	}
 
 	setOwnerReference(pod, build)
