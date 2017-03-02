@@ -330,6 +330,15 @@ items:
     verbs:
     - create
   - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - localsubjectaccessreviews
+    - selfsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
     - authentication.k8s.io
     attributeRestrictions: null
     resources:
@@ -677,6 +686,13 @@ items:
     - localresourceaccessreviews
     - localsubjectaccessreviews
     - subjectrulesreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - localsubjectaccessreviews
     verbs:
     - create
   - apiGroups:
@@ -1549,6 +1565,13 @@ items:
     - subjectaccessreviews
     verbs:
     - create
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - selfsubjectaccessreviews
+    verbs:
+    - create
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -1572,6 +1595,13 @@ items:
     resources:
     - localsubjectaccessreviews
     - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - selfsubjectaccessreviews
     verbs:
     - create
 - apiVersion: v1
@@ -2090,6 +2120,14 @@ items:
     verbs:
     - create
   - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - localsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -2384,6 +2422,13 @@ items:
     - localresourceaccessreviews
     - localsubjectaccessreviews
     - subjectrulesreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - localsubjectaccessreviews
     verbs:
     - create
   - apiGroups:

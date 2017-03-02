@@ -27,10 +27,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	apiserveropenapi "k8s.io/kubernetes/pkg/apiserver/openapi"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
-	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
 	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	openapicommon "k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
 	"k8s.io/kubernetes/pkg/master"
@@ -196,7 +196,16 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 	return server, storageFactory, nil
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient kclientset.Interface, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
+// TODO this function's parameters need to be refactored
+func BuildKubernetesMasterConfig(
+	options configapi.MasterConfig,
+	requestContextMapper kapi.RequestContextMapper,
+	kubeClient kclientset.Interface,
+	informers shared.InformerFactory,
+	admissionControl admission.Interface,
+	originAuthenticator authenticator.Request,
+	kubeAuthorizer authorizer.Authorizer,
+) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
@@ -283,7 +292,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-	genericConfig.Authorizer = authorizer.NewAlwaysAllowAuthorizer()
+	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
 	genericConfig.APIResourceConfigSource = getAPIResourceConfig(options)
