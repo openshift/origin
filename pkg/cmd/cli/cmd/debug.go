@@ -196,7 +196,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		o.Attach.Stdin = false
 	default:
 		o.Attach.TTY = term.IsTerminal(in)
-		glog.V(4).Infof("Defaulting TTY to %t", o.Attach.TTY)
+		glog.V(4).Infof("Defaulting TTY to %T", o.Attach.TTY)
 	}
 	if o.NoStdin {
 		o.Attach.TTY = false
