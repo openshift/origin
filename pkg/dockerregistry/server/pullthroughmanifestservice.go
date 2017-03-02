@@ -81,3 +81,10 @@ func (m *pullthroughManifestService) remoteGet(ctx context.Context, dgst digest.
 
 	return manifest, err
 }
+
+func (m *pullthroughManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	context.GetLogger(ctx).Debugf("(*pullthroughManifestService).Put: enabling remote blob access check")
+	// manifest dependencies (layers and config) may not be stored locally, we need to be able to stat them in remote repositories
+	ctx = WithRemoteBlobAccessCheckEnabled(ctx, true)
+	return m.ManifestService.Put(ctx, manifest, options...)
+}
