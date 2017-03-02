@@ -106,6 +106,17 @@ os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
 os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
 
+os::log::info "Verify that an image based on a remote image can be pushed to the same image stream while pull-through enabled."
+os::cmd::expect_success "oc login -u user0 -p pass"
+os::cmd::expect_success "oc new-project project0"
+# An image stream will be created that will track the source image and the resulting image
+# will be pushed to image stream "busybox:latest"
+os::cmd::expect_success "oc new-build -D \$'FROM busybox:glibc\nRUN echo abc >/tmp/foo'"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.metadata.name}'" "busybox-1" "$(( 10*TIME_MIN ))"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" '^(Complete|Failed|Error)$' "$(( 10*TIME_MIN ))"
+os::cmd::expect_success_and_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" 'Complete'
+os::cmd::expect_success "oc get istag/busybox:latest"
+
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."

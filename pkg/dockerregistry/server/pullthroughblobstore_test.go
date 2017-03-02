@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestPullthroughServeBlob(t *testing.T) {
@@ -80,6 +81,11 @@ func TestPullthroughServeBlob(t *testing.T) {
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, "user/app", testImage.Name)
 
 	testImageStream := registrytest.TestNewImageStreamObject("user", "app", "latest", testImage.Name, testImage.DockerImageReference)
+	if testImageStream.Annotations == nil {
+		testImageStream.Annotations = make(map[string]string)
+	}
+	testImageStream.Annotations[imageapi.InsecureRepositoryAnnotation] = "true"
+
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
 
 	blob1Desc, blob1Content, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
@@ -137,7 +143,10 @@ func TestPullthroughServeBlob(t *testing.T) {
 			blobDigest:            blob1Desc.Digest,
 			localBlobs:            blob2Storage,
 			expectedContentLength: int64(len(blob1Content)),
-			expectedLocalCalls:    map[string]int{"Stat": 1},
+			expectedLocalCalls: map[string]int{
+				"Stat":      1,
+				"ServeBlob": 1,
+			},
 		},
 
 		{
@@ -146,7 +155,10 @@ func TestPullthroughServeBlob(t *testing.T) {
 			blobDigest:            blob1Desc.Digest,
 			expectedContentLength: int64(len(blob1Content)),
 			expectedBytesServed:   int64(len(blob1Content)),
-			expectedLocalCalls:    map[string]int{"Stat": 1},
+			expectedLocalCalls: map[string]int{
+				"Stat":      1,
+				"ServeBlob": 1,
+			},
 		},
 
 		{
@@ -163,18 +175,25 @@ func TestPullthroughServeBlob(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		repo := &repository{
+			ctx:              ctx,
+			namespace:        "user",
+			name:             "app",
+			pullthrough:      true,
+			cachedLayers:     cachedLayers,
+			registryOSClient: client,
+		}
+
+		rbs := &remoteBlobGetterService{
+			repo:          repo,
+			digestToStore: make(map[string]distribution.BlobStore),
+		}
+
+		ctx = WithRemoteBlobGetter(ctx, rbs)
+
 		ptbs := &pullthroughBlobStore{
 			BlobStore: localBlobStore,
-			repo: &repository{
-				ctx:              ctx,
-				namespace:        "user",
-				name:             "app",
-				pullthrough:      true,
-				cachedLayers:     cachedLayers,
-				registryOSClient: client,
-			},
-			digestToStore:              make(map[string]distribution.BlobStore),
-			pullFromInsecureRegistries: true,
+			repo:      repo,
 		}
 
 		req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
