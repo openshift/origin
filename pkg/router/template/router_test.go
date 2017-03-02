@@ -56,6 +56,10 @@ func TestAddEndpoints(t *testing.T) {
 
 	router.AddEndpoints(suKey, []Endpoint{endpoint})
 
+	if !router.stateChanged {
+		t.Errorf("Expected router stateChanged to be true")
+	}
+
 	su, ok := router.FindServiceUnit(suKey)
 
 	if !ok {
@@ -78,7 +82,7 @@ func TestAddEndpointDuplicates(t *testing.T) {
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 	if _, ok := router.FindServiceUnit(suKey); !ok {
-		t.Fatalf("Unable to find serivce unit %s after creation", suKey)
+		t.Fatalf("Unable to find service unit %s after creation", suKey)
 	}
 
 	endpoint := Endpoint{
@@ -120,9 +124,10 @@ func TestAddEndpointDuplicates(t *testing.T) {
 	}
 
 	for _, v := range testCases {
-		added := router.AddEndpoints(suKey, v.endpoints)
-		if added != v.expected {
-			t.Errorf("%s expected to return %v but got %v", v.name, v.expected, added)
+		router.stateChanged = false
+		router.AddEndpoints(suKey, v.endpoints)
+		if router.stateChanged != v.expected {
+			t.Errorf("%s expected to set router stateChanged to %v but got %v", v.name, v.expected, router.stateChanged)
 		}
 		su, ok := router.FindServiceUnit(suKey)
 		if !ok {
@@ -168,7 +173,11 @@ func TestDeleteEndpoints(t *testing.T) {
 		if len(su.EndpointTable) != 1 {
 			t.Errorf("Expected endpoint table to contain 1 entry")
 		} else {
+			router.stateChanged = false
 			router.DeleteEndpoints(suKey)
+			if !router.stateChanged {
+				t.Errorf("Expected router stateChanged to be true")
+			}
 
 			su, ok := router.FindServiceUnit(suKey)
 
@@ -261,9 +270,9 @@ func TestRouteKey(t *testing.T) {
 		}
 
 		// add route always returns true
-		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("expected AddRoute to return true but got false")
+		router.AddRoute(suKey, 100, route, route.Spec.Host)
+		if !router.stateChanged {
+			t.Fatalf("expected AddRoute to have changed router state")
 		}
 
 		routeKey := router.routeKey(route)
@@ -304,10 +313,9 @@ func TestAddRoute(t *testing.T) {
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
-	// add route always returns true
-	added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-	if !added {
-		t.Fatalf("expected AddRoute to return true but got false")
+	router.AddRoute(suKey, 100, route, route.Spec.Host)
+	if !router.stateChanged {
+		t.Fatalf("expected AddRoute to have changed router state")
 	}
 
 	_, ok := router.FindServiceUnit(suKey)
@@ -564,10 +572,9 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 		suKey := fmt.Sprintf("%s-test", tc.Name)
 		router.CreateServiceUnit(suKey)
 
-		// add route always returns true
-		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
-		if !added {
-			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return true but got false", tc.Name)
+		router.AddRoute(suKey, 100, route, route.Spec.Host)
+		if !router.stateChanged {
+			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to have changed router state", tc.Name)
 		}
 
 		_, ok := router.FindServiceUnit(suKey)

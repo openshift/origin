@@ -34,7 +34,11 @@ func (p *fakePlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) error {
 func (p *fakePlugin) HandleNamespaces(namespaces sets.String) error {
 	return fmt.Errorf("not expected")
 }
-func (p *fakePlugin) SetLastSyncProcessed(processed bool) error {
+func (p *fakePlugin) Commit() error {
+	return fmt.Errorf("not expected")
+}
+
+func (p *fakePlugin) SetSyncedAtLeastOnce() error {
 	return fmt.Errorf("not expected")
 }
 
