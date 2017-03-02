@@ -298,9 +298,12 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
 	genericConfig.SecureServingInfo.BindAddress = options.ServingInfo.BindAddress
 	genericConfig.SecureServingInfo.BindNetwork = options.ServingInfo.BindNetwork
-	genericConfig.SecureServingInfo.ExtraClientCACerts, err = configapi.GetOAuthClientCertCAs(options)
+	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(options)
 	if err != nil {
 		glog.Fatalf("Error setting up OAuth2 client certificates: %v", err)
+	}
+	for _, cert := range oAuthClientCertCAs {
+		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
 	}
 	url, err := url.Parse(options.MasterPublicURL)
 	if err != nil {
