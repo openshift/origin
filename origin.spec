@@ -359,6 +359,9 @@ sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-templa
 sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.13* docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
+# Install migration scripts
+install -d %{buildroot}%{_datadir}/%{name}/migration
+install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 
 %files
 %doc README.md
@@ -408,6 +411,8 @@ fi
 %files master
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%dir %{_datadir}/%{name}/migration/
+%{_datadir}/%{name}/migration/*
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
