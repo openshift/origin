@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -45,6 +46,33 @@ func TestCreate(t *testing.T) {
 		valid,
 		// invalid
 		&api.DeploymentConfig{},
+	)
+}
+
+func TestUpdate(t *testing.T) {
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := registrytest.New(t, storage.Store)
+	test.TestUpdate(
+		validDeploymentConfig(),
+		// updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.DeploymentConfig)
+			object.Spec.Replicas = 2
+			return object
+		},
+		// invalid updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.DeploymentConfig)
+			object.Spec.Template = &kapi.PodTemplateSpec{}
+			return object
+		},
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.DeploymentConfig)
+			object.Spec.Replicas = -1
+			return object
+		},
 	)
 }
 

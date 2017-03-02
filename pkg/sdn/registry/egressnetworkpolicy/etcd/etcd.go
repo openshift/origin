@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -14,29 +12,27 @@ import (
 
 // rest implements a RESTStorage for egress network policy against etcd
 type REST struct {
-	registry.Store
+	*registry.Store
 }
 
 // NewREST returns a RESTStorage object that will work against egress network policy
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		NewFunc:     func() runtime.Object { return &api.EgressNetworkPolicy{} },
-		NewListFunc: func() runtime.Object { return &api.EgressNetworkPolicyList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.EgressNetworkPolicy).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return egressnetworkpolicy.Matcher(label, field)
-		},
+		NewFunc:           func() runtime.Object { return &api.EgressNetworkPolicy{} },
+		NewListFunc:       func() runtime.Object { return &api.EgressNetworkPolicyList{} },
+		PredicateFunc:     egressnetworkpolicy.Matcher,
 		QualifiedResource: api.Resource("egressnetworkpolicies"),
 
 		CreateStrategy: egressnetworkpolicy.Strategy,
 		UpdateStrategy: egressnetworkpolicy.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: egressnetworkpolicy.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 
-	return &REST{*store}, nil
+	return &REST{store}, nil
 }

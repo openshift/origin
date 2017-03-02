@@ -55,17 +55,20 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 	return validation.ValidateRoleBindingRestrictionUpdate(obj.(*authorizationapi.RoleBindingRestriction), old.(*authorizationapi.RoleBindingRestriction))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	rbr, ok := obj.(*authorizationapi.RoleBindingRestriction)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a RoleBindingRestriction")
+	}
+	return labels.Set(rbr.ObjectMeta.Labels), authorizationapi.RoleBindingRestrictionToSelectableFields(rbr), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			rbr, ok := obj.(*authorizationapi.RoleBindingRestriction)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a rolebindingrestriction")
-			}
-			return labels.Set(rbr.ObjectMeta.Labels), authorizationapi.RoleBindingRestrictionToSelectableFields(rbr), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }

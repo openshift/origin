@@ -8,8 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -31,26 +29,26 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
 		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
+		PredicateFunc:     deployconfig.Matcher,
 		QualifiedResource: api.Resource("deploymentconfigs"),
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.DeploymentConfig).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return deployconfig.Matcher(label, field)
-		},
-		CreateStrategy:      deployconfig.Strategy,
-		UpdateStrategy:      deployconfig.Strategy,
-		DeleteStrategy:      deployconfig.Strategy,
-		ReturnDeletedObject: false,
+
+		CreateStrategy: deployconfig.Strategy,
+		UpdateStrategy: deployconfig.Strategy,
+		DeleteStrategy: deployconfig.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployconfig.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, nil, err
 	}
 
 	deploymentConfigREST := &REST{store}
+
 	statusStore := *store
 	statusStore.UpdateStrategy = deployconfig.StatusStrategy
+
 	statusREST := &StatusREST{store: &statusStore}
 	scaleREST := &ScaleREST{registry: deployconfig.NewRegistry(deploymentConfigREST)}
 
@@ -115,11 +113,16 @@ type StatusREST struct {
 	store *registry.Store
 }
 
-// StatusREST implements the Updater interface.
-var _ = rest.Updater(&StatusREST{})
+// StatusREST implements Patcher
+var _ = rest.Patcher(&StatusREST{})
 
 func (r *StatusREST) New() runtime.Object {
 	return &api.DeploymentConfig{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
 }
 
 // Update alters the status subset of an deploymentConfig.

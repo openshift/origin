@@ -75,6 +75,8 @@ func TestCreate(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 
+	// TODO switch to upstream testing suite, when there will be possibility
+	// to inject context with user, needed for these tests
 	create(t, storage, validImageStream())
 }
 

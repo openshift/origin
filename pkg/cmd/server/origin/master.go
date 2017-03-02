@@ -104,15 +104,15 @@ import (
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
-	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
+	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
+	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
-	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
+	clusterpolicybindingetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
@@ -124,7 +124,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
-	rolebindingrestrictionregistry "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction"
+	rolebindingrestrictionetcd "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction/etcd"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
@@ -586,17 +586,17 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	groupStorage, err := groupetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	policyStorage, err := policyetcd.NewStorage(c.RESTOptionsGetter)
+	policyStorage, err := policyetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage, err := policybindingetcd.NewStorage(c.RESTOptionsGetter)
+	policyBindingStorage, err := policybindingetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
-	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
+	clusterPolicyStorage, err := clusterpolicyetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage, err := clusterpolicybindingstorage.NewStorage(c.RESTOptionsGetter)
+	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
@@ -715,6 +715,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	templateStorage, err := templateetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
+	clusterResourceQuotaStorage, clusterResourceQuotaStatusStorage, err := clusterresourcequotaetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
+
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
 		"imagesignatures":      imageSignatureStorage,
@@ -782,12 +787,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
 
-		"clusterResourceQuotas":        restInPeace(clusterresourcequotaregistry.NewStorage(c.RESTOptionsGetter)),
-		"clusterResourceQuotas/status": updateInPeace(clusterresourcequotaregistry.NewStatusStorage(c.RESTOptionsGetter)),
+		"clusterResourceQuotas":        clusterResourceQuotaStorage,
+		"clusterResourceQuotas/status": clusterResourceQuotaStatusStorage,
 		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
 			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
 
-		"roleBindingRestrictions": restInPeace(rolebindingrestrictionregistry.NewStorage(c.RESTOptionsGetter)),
+		"roleBindingRestrictions": roleBindingRestrictionStorage,
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {

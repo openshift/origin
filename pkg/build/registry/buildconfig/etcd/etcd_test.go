@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -66,6 +67,28 @@ func TestCreate(t *testing.T) {
 		valid,
 		// invalid
 		&api.BuildConfig{},
+	)
+}
+
+func TestUpdate(t *testing.T) {
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := registrytest.New(t, storage.Store)
+	test.TestUpdate(
+		validBuildConfig(),
+		// updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.BuildConfig)
+			object.Spec.CommonSpec.Source.Git.URI = "http://github.com/my/otherrepo"
+			return object
+		},
+		// invalid updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.BuildConfig)
+			object.Spec.CommonSpec.Source.Git.URI = ""
+			return object
+		},
 	)
 }
 

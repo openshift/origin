@@ -63,18 +63,21 @@ func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+	obj, ok := o.(*api.Identity)
+	if !ok {
+		return nil, nil, fmt.Errorf("not an Identity")
+	}
+	return labels.Set(obj.Labels), SelectableFields(obj), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
-			obj, ok := o.(*api.Identity)
-			if !ok {
-				return nil, nil, fmt.Errorf("not an Identity")
-			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 

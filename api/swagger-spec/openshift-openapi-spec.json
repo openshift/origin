@@ -34686,6 +34686,29 @@
     ]
    },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/status": {
+    "get": {
+     "description": "read status of the specified DeploymentConfig",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "readNamespacedDeploymentConfigStatus",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.DeploymentConfig"
+       }
+      }
+     }
+    },
     "put": {
      "description": "replace status of the specified DeploymentConfig",
      "consumes": [
@@ -34700,6 +34723,51 @@
       "oapi"
      ],
      "operationId": "replaceNamespacedDeploymentConfigStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.DeploymentConfig"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.DeploymentConfig"
+       }
+      }
+     }
+    },
+    "patch": {
+     "description": "partially update status of the specified DeploymentConfig",
+     "consumes": [
+      "application/json-patch+json",
+      "application/merge-patch+json",
+      "application/strategic-merge-patch+json"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "patchNamespacedDeploymentConfigStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/unversioned.Patch"
+       }
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -34710,14 +34778,6 @@
      }
     },
     "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/v1.DeploymentConfig"
-      }
-     },
      {
       "uniqueItems": true,
       "type": "string",
@@ -35736,6 +35796,29 @@
     ]
    },
    "/oapi/v1/namespaces/{namespace}/imagestreams/{name}/status": {
+    "get": {
+     "description": "read status of the specified ImageStream",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "readNamespacedImageStreamStatus",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.ImageStream"
+       }
+      }
+     }
+    },
     "put": {
      "description": "replace status of the specified ImageStream",
      "consumes": [
@@ -35750,6 +35833,51 @@
       "oapi"
      ],
      "operationId": "replaceNamespacedImageStreamStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.ImageStream"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.ImageStream"
+       }
+      }
+     }
+    },
+    "patch": {
+     "description": "partially update status of the specified ImageStream",
+     "consumes": [
+      "application/json-patch+json",
+      "application/merge-patch+json",
+      "application/strategic-merge-patch+json"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "patchNamespacedImageStreamStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/unversioned.Patch"
+       }
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -35760,14 +35888,6 @@
      }
     },
     "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/v1.ImageStream"
-      }
-     },
      {
       "uniqueItems": true,
       "type": "string",
@@ -38374,6 +38494,29 @@
     ]
    },
    "/oapi/v1/namespaces/{namespace}/routes/{name}/status": {
+    "get": {
+     "description": "read status of the specified Route",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "readNamespacedRouteStatus",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.Route"
+       }
+      }
+     }
+    },
     "put": {
      "description": "replace status of the specified Route",
      "consumes": [
@@ -38388,6 +38531,51 @@
       "oapi"
      ],
      "operationId": "replaceNamespacedRouteStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/v1.Route"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.Route"
+       }
+      }
+     }
+    },
+    "patch": {
+     "description": "partially update status of the specified Route",
+     "consumes": [
+      "application/json-patch+json",
+      "application/merge-patch+json",
+      "application/strategic-merge-patch+json"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "tags": [
+      "oapi"
+     ],
+     "operationId": "patchNamespacedRouteStatus",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/unversioned.Patch"
+       }
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -38398,14 +38586,6 @@
      }
     },
     "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/v1.Route"
-      }
-     },
      {
       "uniqueItems": true,
       "type": "string",

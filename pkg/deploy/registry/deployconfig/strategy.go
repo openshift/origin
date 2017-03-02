@@ -122,17 +122,20 @@ func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) 
 	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	deploymentConfig, ok := obj.(*api.DeploymentConfig)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a DeploymentConfig")
+	}
+	return labels.Set(deploymentConfig.ObjectMeta.Labels), api.DeploymentConfigToSelectableFields(deploymentConfig), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			deploymentConfig, ok := obj.(*api.DeploymentConfig)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a deployment config")
-			}
-			return labels.Set(deploymentConfig.ObjectMeta.Labels), api.DeploymentConfigToSelectableFields(deploymentConfig), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }

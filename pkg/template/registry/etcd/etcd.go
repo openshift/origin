@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -20,14 +18,9 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against templates.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		NewFunc:     func() runtime.Object { return &api.Template{} },
-		NewListFunc: func() runtime.Object { return &api.TemplateList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.Template).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return tregistry.Matcher(label, field)
-		},
+		NewFunc:           func() runtime.Object { return &api.Template{} },
+		NewListFunc:       func() runtime.Object { return &api.TemplateList{} },
+		PredicateFunc:     tregistry.Matcher,
 		QualifiedResource: api.Resource("templates"),
 
 		CreateStrategy: tregistry.Strategy,
@@ -36,7 +29,10 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		ReturnDeletedObject: true,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: tregistry.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 
