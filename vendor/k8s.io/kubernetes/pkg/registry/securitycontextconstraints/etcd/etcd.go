@@ -67,6 +67,7 @@ func NewStorage(opts generic.RESTOptions) *REST {
 
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,
+		DeleteStrategy:      securitycontextconstraints.Strategy,
 		ReturnDeletedObject: true,
 		Storage:             storageInterface,
 	}

@@ -32,6 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: hostsubnet.Strategy,
 		UpdateStrategy: hostsubnet.Strategy,
+		DeleteStrategy: hostsubnet.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {

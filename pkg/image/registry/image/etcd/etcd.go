@@ -40,6 +40,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		// Used to validate image updates
 		UpdateStrategy: image.Strategy,
 
+		DeleteStrategy: image.Strategy,
+
 		ReturnDeletedObject: false,
 	}
 

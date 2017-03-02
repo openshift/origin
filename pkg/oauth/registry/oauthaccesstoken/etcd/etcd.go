@@ -43,6 +43,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {

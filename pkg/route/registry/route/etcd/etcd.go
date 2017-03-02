@@ -36,6 +36,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*RE
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {

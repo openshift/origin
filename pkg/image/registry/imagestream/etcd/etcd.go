@@ -51,6 +51,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
+	store.DeleteStrategy = strategy
 	store.Decorator = strategy.Decorate
 
 	if err := restoptions.ApplyOptions(optsGetter, &store, true, storage.NoTriggerPublisher); err != nil {
@@ -62,6 +63,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	statusStore.Decorator = nil
 	statusStore.CreateStrategy = nil
 	statusStore.UpdateStrategy = statusStrategy
+	statusStore.DeleteStrategy = statusStrategy
 	statusREST := &StatusREST{store: &statusStore}
 
 	internalStore := store
@@ -69,6 +71,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	internalStore.Decorator = nil
 	internalStore.CreateStrategy = internalStrategy
 	internalStore.UpdateStrategy = internalStrategy
+	internalStore.DeleteStrategy = internalStrategy
 
 	internalREST := &InternalREST{store: &internalStore}
 	return rest, statusREST, internalREST, nil

@@ -34,6 +34,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 
 		CreateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
 		UpdateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
+		DeleteStrategy: oauthclientauthorization.NewStrategy(clientGetter),
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {

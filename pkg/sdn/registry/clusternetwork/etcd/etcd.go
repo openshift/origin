@@ -33,6 +33,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: clusternetwork.Strategy,
 		UpdateStrategy: clusternetwork.Strategy,
+		DeleteStrategy: clusternetwork.Strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
