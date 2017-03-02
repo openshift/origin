@@ -35,6 +35,7 @@ const (
 
 type gitAuthError string
 type gitNotFoundError string
+type contextDirNotFoundError string
 
 func (e gitAuthError) Error() string {
 	return fmt.Sprintf("failed to fetch requested repository %q with provided credentials", string(e))
@@ -42,6 +43,10 @@ func (e gitAuthError) Error() string {
 
 func (e gitNotFoundError) Error() string {
 	return fmt.Sprintf("requested repository %q not found", string(e))
+}
+
+func (e contextDirNotFoundError) Error() string {
+	return fmt.Sprintf("provided context directory does not exist: %s", string(e))
 }
 
 // fetchSource retrieves the inputs defined by the build source into the
@@ -89,6 +94,12 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	if len(build.Spec.Source.ContextDir) > 0 {
+		if _, err := os.Stat(filepath.Join(dir, build.Spec.Source.ContextDir)); os.IsNotExist(err) {
+			return sourceInfo, contextDirNotFoundError(build.Spec.Source.ContextDir)
 		}
 	}
 
