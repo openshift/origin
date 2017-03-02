@@ -87,7 +87,7 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 		return desc, nil
 	}
 
-	if err == distribution.ErrBlobUnknown && repo.pullthrough {
+	if err == distribution.ErrBlobUnknown && RemoteBlobAccessCheckEnabledFrom(ctx) {
 		// Second attempt: looking for the blob on a remote server
 		desc, err = repo.remoteBlobGetter.Stat(ctx, dgst)
 	}
