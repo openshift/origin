@@ -21,13 +21,10 @@ os::build::get_version_vars
 if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
 	os::log::fatal "Cannot build RPMs with a dirty git tree. Commit your changes and try again."
 fi
-if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
-	# we need to translate from the semantic version
-	# provided by the Origin build scripts to the
-	# version that RPM will expect.
-	rpm_version="${BASH_REMATCH[1]}"
-	rpm_release="0${BASH_REMATCH[3]//-/.}"
-fi
+os::util::ensure::built_binary_exists 'versionbump'
+rpm_release_version="$( versionbump "${OS_GIT_VERSION}" )"
+rpm_version="${rpm_release_version%%-*}"
+rpm_release="${rpm_release_version#*-}"
 tito tag --use-version="${rpm_version}" \
          --use-release="${rpm_release}" \
          --no-auto-changelog --offline
