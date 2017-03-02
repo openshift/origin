@@ -367,7 +367,7 @@ runcmd:
           },
           {
              "DeviceName" => "/dev/sdb",
-             "Ebs.VolumeSize" => vagrant_openshift_config['docker_volume_size'] || 25,
+             "Ebs.VolumeSize" => vagrant_openshift_config['docker_volume_size'] || 35,
              "Ebs.VolumeType" => "gp2"
           }
         ]
