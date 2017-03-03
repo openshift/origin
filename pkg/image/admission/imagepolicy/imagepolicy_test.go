@@ -16,6 +16,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -650,11 +651,89 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
+		// resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
+		{
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "DockerImage", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
+		{
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for i, test := range testCases {
 		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
 		p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 			ResolveImages: api.RequiredRewrite,
+			ResolutionRules: []api.ImageResolutionPolicyRule{
+				{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}},
+			},
 			ExecutionRules: []api.ImageExecutionPolicyRule{
 				{ImageCondition: api.ImageCondition{OnResources: onResources}},
 			},
@@ -685,6 +764,99 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 		if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
 			t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
+		}
+	}
+}
+
+func TestResolutionConfig(t *testing.T) {
+	testCases := []struct {
+		config   *api.ImagePolicyConfig
+		resource schema.GroupResource
+		attrs    rules.ImagePolicyAttributes
+
+		resolve bool
+		fail    bool
+		rewrite bool
+	}{
+		{
+			config:  &api.ImagePolicyConfig{ResolveImages: api.AttemptRewrite},
+			resolve: true,
+			rewrite: true,
+		},
+		// requires local rewrite for local names
+		{
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				},
+			},
+			resolve: true,
+			rewrite: false,
+		},
+		// wildcard resource matches
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				},
+			},
+			resolve: true,
+			rewrite: true,
+		},
+		// group mismatch fails
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "*"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "other"},
+			resolve:  false,
+			rewrite:  false,
+		},
+		// resource mismatch fails
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "test", Resource: "other"},
+			resolve:  false,
+			rewrite:  false,
+		},
+		// resource match succeeds
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "test", Resource: "self"},
+			resolve:  true,
+			rewrite:  true,
+		},
+	}
+
+	for i, test := range testCases {
+		c := resolutionConfig{test.config}
+		if c.RequestsResolution(test.resource) != test.resolve {
+			t.Errorf("%d: request resolution != %t", i, test.resolve)
+		}
+		if c.FailOnResolutionFailure(test.resource) != test.fail {
+			t.Errorf("%d: resolution failure != %t", i, test.fail)
+		}
+		if c.RewriteImagePullSpec(&test.attrs, test.resource) != test.rewrite {
+			t.Errorf("%d: rewrite != %t", i, test.rewrite)
 		}
 	}
 }

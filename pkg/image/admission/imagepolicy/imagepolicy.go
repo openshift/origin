@@ -76,6 +76,16 @@ type imageResolver interface {
 	ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error)
 }
 
+// imageResolutionPolicy determines whether an image should be resolved
+type imageResolutionPolicy interface {
+	// RequestsResolution returns true if you should attempt to resolve image pull specs
+	RequestsResolution(schema.GroupResource) bool
+	// FailOnResolutionFailure returns true if you should fail when resolution fails
+	FailOnResolutionFailure(schema.GroupResource) bool
+	// RewriteImagePullSpec returns true if you should rewrite image pull specs when resolution succeeds
+	RewriteImagePullSpec(*rules.ImagePolicyAttributes, schema.GroupResource) bool
+}
+
 // imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
 // cluster.
 func newImagePolicyPlugin(parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
@@ -167,23 +177,26 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		return nil
 	}
 
-	newAttr := mutateAttributesToLegacyResources(attr)
-
 	// This will convert any non-legacy Origin resource to a legacy resource, so specifying
 	// a 'builds.build.openshift.io' is converted to 'builds'.
-	gr := newAttr.GetResource().GroupResource()
-	if !a.accepter.Covers(gr) {
+	// TODO: denormalize this at config time, or write a migration for user's config
+	attr = mutateAttributesToLegacyResources(attr)
+
+	policy := resolutionConfig{a.config}
+
+	gr := attr.GetResource().GroupResource()
+	if !a.accepter.Covers(gr) && !policy.Covers(gr) {
 		return nil
 	}
 
-	m, err := meta.GetImageReferenceMutator(newAttr.GetObject())
+	m, err := meta.GetImageReferenceMutator(attr.GetObject())
 	if err != nil {
-		return apierrs.NewForbidden(gr, newAttr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", newAttr.GetObject(), err))
+		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
 
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
-	if ns := newAttr.GetNamespace(); len(ns) > 0 {
+	if ns := attr.GetNamespace(); len(ns) > 0 {
 		if ns, err := a.projectCache.GetNamespace(ns); err == nil {
 			if value := ns.Annotations[api.IgnorePolicyRulesAnnotation]; len(value) > 0 {
 				excluded = sets.NewString(strings.Split(value, ",")...)
@@ -191,7 +204,7 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		}
 	}
 
-	if err := accept(a.accepter, a.config.ResolveImages, a.resolver, m, newAttr, excluded); err != nil {
+	if err := accept(a.accepter, policy, a.resolver, m, attr, excluded); err != nil {
 		return err
 	}
 
@@ -244,7 +257,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if !ok {
 			return &rules.ImagePolicyAttributes{IntegratedRegistry: true}, fmt.Errorf("references of kind ImageStreamTag must be of the form NAME:TAG")
 		}
-		return c.resolveImageStreamTag(ns, name, tag)
+		return c.resolveImageStreamTag(ns, name, tag, false)
 
 	case "ImageStreamImage":
 		ns := ref.Namespace
@@ -262,7 +275,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if err != nil {
 			return nil, err
 		}
-		return c.resolveImageReference(ref)
+		return c.resolveImageReference(ref, defaultNamespace)
 
 	default:
 		return nil, fmt.Errorf("image policy does not allow image references of kind %q", ref.Kind)
@@ -271,7 +284,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 
 // Resolve converts an image reference into a resolved image or returns an error. Only images located in the internal
 // registry or those with a digest can be resolved - all other scenarios will return an error.
-func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageReference) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
 	// images by ID can be checked for policy
 	if len(ref.ID) > 0 {
 		now := now()
@@ -289,7 +302,9 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 		return &rules.ImagePolicyAttributes{Name: ref, Image: image}, nil
 	}
 
-	if !c.integrated.Matches(ref.Registry) {
+	fullReference := c.integrated.Matches(ref.Registry)
+	partialReference := len(ref.Registry) == 0 && len(ref.Namespace) == 0 && len(ref.Name) > 0
+	if !fullReference && !partialReference {
 		return nil, fmt.Errorf("only images imported into the registry are allowed (%s)", ref.Exact())
 	}
 
@@ -297,17 +312,30 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 	if len(tag) == 0 {
 		tag = imageapi.DefaultImageTag
 	}
+	if len(ref.Namespace) == 0 {
+		ref.Namespace = defaultNamespace
+	}
 
-	return c.resolveImageStreamTag(ref.Namespace, ref.Name, tag)
+	return c.resolveImageStreamTag(ref.Namespace, ref.Name, tag, partialReference)
 }
 
 // resolveImageStreamTag loads an image stream tag and creates a fully qualified image stream image reference,
 // or returns an error.
-func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial bool) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
 	resolved, err := c.tags.ImageStreamTags(namespace).Get(name, tag)
 	if err != nil {
+		if partial {
+			attrs.IntegratedRegistry = false
+		}
 		return attrs, err
+	}
+	if partial {
+		if !resolved.LookupPolicy.Local {
+			attrs.IntegratedRegistry = false
+			return attrs, fmt.Errorf("ImageStreamTag does not allow local references")
+		}
+		attrs.LocalRewrite = true
 	}
 	ref, err := imageapi.ParseDockerImageReference(resolved.Image.DockerImageReference)
 	if err != nil {
@@ -341,4 +369,60 @@ func (c *imageResolutionCache) resolveImageStreamImage(namespace, name, id strin
 	attrs.Name = ref
 	attrs.Image = &resolved.Image
 	return attrs, nil
+}
+
+// resolutionConfig translates an ImagePolicyConfig into imageResolutionPolicy
+type resolutionConfig struct {
+	config *api.ImagePolicyConfig
+}
+
+// Covers returns true if the resolver specifically should touch this resource.
+func (config resolutionConfig) Covers(gr schema.GroupResource) bool {
+	for _, rule := range config.config.ResolutionRules {
+		if resolutionRuleCoversResource(rule.TargetResource, gr) {
+			return true
+		}
+	}
+	return false
+}
+
+// RequestsResolution is true if the policy demands it or if any rule covers it.
+func (config resolutionConfig) RequestsResolution(gr schema.GroupResource) bool {
+	if api.RequestsResolution(config.config.ResolveImages) {
+		return true
+	}
+	for _, rule := range config.config.ResolutionRules {
+		if resolutionRuleCoversResource(rule.TargetResource, gr) {
+			return true
+		}
+	}
+	return false
+}
+
+// FailOnResolutionFailure does not depend on the nested rules.
+func (config resolutionConfig) FailOnResolutionFailure(gr schema.GroupResource) bool {
+	return api.FailOnResolutionFailure(config.config.ResolveImages)
+}
+
+// RewriteImagePullSpec applies to implicit rewrite attributes and local resources as well as if the policy requires it.
+func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, gr schema.GroupResource) bool {
+	if api.RequestsResolution(config.config.ResolveImages) {
+		return true
+	}
+	if attr.LocalRewrite {
+		for _, rule := range config.config.ResolutionRules {
+			if !rule.LocalNames {
+				continue
+			}
+			if resolutionRuleCoversResource(rule.TargetResource, gr) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// resolutionRuleCoversResource implements wildcard checking on Resource names
+func resolutionRuleCoversResource(rule metav1.GroupResource, gr schema.GroupResource) bool {
+	return rule.Group == gr.Group && (rule.Resource == gr.Resource || rule.Resource == "*")
 }
