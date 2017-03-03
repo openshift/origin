@@ -337,3 +337,15 @@ func newDigestWriter() *digestWriter {
 	})
 	return &dw
 }
+
+// GetDockerClient returns a valid Docker client, the address of the client, or an error
+// if the client couldn't be created.
+func GetDockerClient() (client *docker.Client, endpoint string, err error) {
+	client, err = docker.NewClientFromEnv()
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
+	}
+	return
+}
