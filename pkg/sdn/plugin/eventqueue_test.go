@@ -620,7 +620,7 @@ func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
 		called = true
 		if _, ok := delta.Object.(cache.DeletedFinalStateUnknown); !ok {
 			// Capture error that Pop() logs the error but doesn't return
-			processErr = fmt.Errorf("Unexpected item type %T", delta.Object)
+			processErr = fmt.Errorf("unexpected item type %T", delta.Object)
 			return processErr
 		}
 		return nil
@@ -649,7 +649,7 @@ func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
 		called = true
 		if _, ok := delta.Object.(*api.ObjectMeta); !ok {
 			// Capture error that Pop() logs the error but doesn't return
-			processErr = fmt.Errorf("Unexpected item type %T", delta.Object)
+			processErr = fmt.Errorf("unexpected item type %T", delta.Object)
 			return processErr
 		}
 		return nil

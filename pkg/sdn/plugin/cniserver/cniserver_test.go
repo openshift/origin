@@ -172,7 +172,7 @@ func TestCNIServer(t *testing.T) {
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
 			result:      nil,
-			errorPrefix: "Unexpected or missing CNI_COMMAND",
+			errorPrefix: "unexpected or missing CNI_COMMAND",
 		},
 	}
 

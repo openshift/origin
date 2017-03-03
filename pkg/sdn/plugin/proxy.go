@@ -58,7 +58,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 
 	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
+		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
 	for _, policy := range policies.Items {
 		proxy.updateNetworkPolicy(policy)

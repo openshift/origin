@@ -75,11 +75,11 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 		}
 	})
 	if err != nil {
-		return "", fmt.Errorf("Failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
+		return "", fmt.Errorf("failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
 	}
 
 	if err = plugin.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
-		return "", fmt.Errorf("Failed to validate own HostSubnet: %v", err)
+		return "", fmt.Errorf("failed to validate own HostSubnet: %v", err)
 	}
 
 	return subnet.Subnet, nil
@@ -347,11 +347,11 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// Enable IP forwarding for ipv4 packets
 	err = sysctl.SetSysctl("net/ipv4/ip_forward", 1)
 	if err != nil {
-		return false, fmt.Errorf("Could not enable IPv4 forwarding: %s", err)
+		return false, fmt.Errorf("could not enable IPv4 forwarding: %s", err)
 	}
 	err = sysctl.SetSysctl(fmt.Sprintf("net/ipv4/conf/%s/forwarding", TUN), 1)
 	if err != nil {
-		return false, fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
+		return false, fmt.Errorf("could not enable IPv4 forwarding on %s: %s", TUN, err)
 	}
 
 	// Table 253: rule version; note action is hex bytes separated by '.'

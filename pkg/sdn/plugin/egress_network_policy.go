@@ -41,7 +41,7 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 
 		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
-			return fmt.Errorf("Could not find netid for namespace %q: %v", policy.Namespace, err)
+			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
 		}
 
 		policies := plugin.egressPolicies[vnid]

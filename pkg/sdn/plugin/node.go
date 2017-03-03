@@ -198,12 +198,12 @@ func (node *OsdnNode) Start() error {
 	var err error
 	node.networkInfo, err = getNetworkInfo(node.osClient)
 	if err != nil {
-		return fmt.Errorf("Failed to get network information: %v", err)
+		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
 	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err = nodeIPTables.Setup(); err != nil {
-		return fmt.Errorf("Failed to set up iptables: %v", err)
+		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
 	node.localSubnetCIDR, err = node.getLocalSubnet()
