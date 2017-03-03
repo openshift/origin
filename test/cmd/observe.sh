@@ -36,5 +36,8 @@ os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ or (.unknown) \"\" }}key" --output=gotemplate' 'badkey'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' '\<no value\>'
 
+# --type-env-var
+os::cmd::expect_success_and_text 'MYENV=should_be_passed oc observe services --once --all-namespaces --type-env-var=EVENT -- /bin/sh -c "echo \$EVENT \$MYENV"' 'Sync should_be_passed'
+
 echo "observe: ok"
 os::test::junit::declare_suite_end
