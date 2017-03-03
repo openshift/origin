@@ -217,7 +217,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	image.ObjectName = name
 	image.Tag = "from"
 
-	pipeline, err := app.NewPipelineBuilder(name, nil, false).To(name).NewBuildPipeline(name, image, repo)
+	pipeline, err := app.NewPipelineBuilder(name, nil, nil, false).To(name).NewBuildPipeline(name, image, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 			c.Resources = resourcesForProfile(formation.Size)
 		}
 
-		pipeline, err := app.NewPipelineBuilder(componentName, nil, true).To(componentName).NewImagePipeline(componentName, inputImage)
+		pipeline, err := app.NewPipelineBuilder(componentName, nil, nil, true).To(componentName).NewImagePipeline(componentName, inputImage)
 		if err != nil {
 			errs = append(errs, err)
 			break

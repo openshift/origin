@@ -248,4 +248,33 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 	})
 
+	g.Describe("Setting build-args on Docker builds", func() {
+		g.It("Should copy build args from BuildConfig to Build", func() {
+			g.By("starting the build without --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build output contains the build args from the BuildConfig.")
+			o.Expect(buildLog).To(o.ContainSubstring("default"))
+		})
+		g.It("Should accept build args that are specified in the Dockerfile", func() {
+			g.By("starting the build with --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foo=bar")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build output contains the changes.")
+			o.Expect(buildLog).To(o.ContainSubstring("bar"))
+		})
+		g.It("Should fail on non-existent build-arg", func() {
+			g.By("starting the build with --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=bar=foo")
+			br.AssertFailure()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build failed due to Docker.")
+			o.Expect(buildLog).To(o.ContainSubstring("One or more build-args [bar] were not consumed, failing build"))
+		})
+	})
 })

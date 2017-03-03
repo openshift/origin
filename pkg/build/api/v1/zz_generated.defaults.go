@@ -34,6 +34,14 @@ func SetObjectDefaults_Build(in *Build) {
 				}
 			}
 		}
+		for i := range in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs {
+			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs[i]
+			if a.ValueFrom != nil {
+				if a.ValueFrom.FieldRef != nil {
+					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				}
+			}
+		}
 	}
 	if in.Spec.CommonSpec.Strategy.SourceStrategy != nil {
 		SetDefaults_SourceBuildStrategy(in.Spec.CommonSpec.Strategy.SourceStrategy)
@@ -83,6 +91,14 @@ func SetObjectDefaults_BuildConfig(in *BuildConfig) {
 		SetDefaults_DockerBuildStrategy(in.Spec.CommonSpec.Strategy.DockerStrategy)
 		for i := range in.Spec.CommonSpec.Strategy.DockerStrategy.Env {
 			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.Env[i]
+			if a.ValueFrom != nil {
+				if a.ValueFrom.FieldRef != nil {
+					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				}
+			}
+		}
+		for i := range in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs {
+			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
 					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
@@ -146,6 +162,16 @@ func SetObjectDefaults_BuildRequest(in *BuildRequest) {
 		if a.ValueFrom != nil {
 			if a.ValueFrom.FieldRef != nil {
 				api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+			}
+		}
+	}
+	if in.DockerStrategyOptions != nil {
+		for i := range in.DockerStrategyOptions.BuildArgs {
+			a := &in.DockerStrategyOptions.BuildArgs[i]
+			if a.ValueFrom != nil {
+				if a.ValueFrom.FieldRef != nil {
+					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				}
 			}
 		}
 	}

@@ -590,6 +590,10 @@ type DockerBuildStrategy struct {
 	// ValueFrom is not supported.
 	Env []kapi.EnvVar
 
+	// Args contains any build arguments that are to be passed to Docker.  See
+	// https://docs.docker.com/engine/reference/builder/#/arg for more details
+	BuildArgs []kapi.EnvVar
+
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
 
@@ -919,6 +923,9 @@ type GenericWebHookEvent struct {
 	// Env contains additional environment variables you want to pass into a builder container.
 	// ValueFrom is not supported.
 	Env []kapi.EnvVar
+
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
+	DockerStrategyOptions *DockerStrategyOptions
 }
 
 // GitInfo is the aggregated git information for a generic webhook post
@@ -942,6 +949,13 @@ type GitRefInfo struct {
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
 	unversioned.TypeMeta
+}
+
+// DockerStrategyOptions contains extra strategy options for Docker builds
+type DockerStrategyOptions struct {
+	// Args contains any build arguments that are to be passed to Docker.  See
+	// https://docs.docker.com/engine/reference/builder/#/arg for more details
+	BuildArgs []kapi.EnvVar
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
@@ -975,6 +989,9 @@ type BuildRequest struct {
 	// TriggeredBy describes which triggers started the most recent update to the
 	// buildconfig and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause
+
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
+	DockerStrategyOptions *DockerStrategyOptions
 }
 
 type BinaryBuildRequestOptions struct {

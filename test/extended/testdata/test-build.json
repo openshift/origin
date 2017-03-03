@@ -210,6 +210,79 @@
       "status": {
         "lastVersion": 0
       }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-docker-args",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Dockerfile",
+          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-docker-args-preset",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Dockerfile",
+          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            },
+            "buildArgs": [
+              { "name": "foo", "value": "default" }
+            ]
+          }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+      },
+      "status": {
+        "lastVersion": 0
+      }
     }
   ]
 }

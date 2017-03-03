@@ -218,6 +218,29 @@ func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
 	*buildEnv = newEnv
 }
 
+// Adds new Build Args to existing Build Args. Overwrites existing ones
+func updateBuildArgs(oldArgs *[]kapi.EnvVar, newArgs []kapi.EnvVar) []kapi.EnvVar {
+	combined := make(map[string]string)
+
+	// Change oldArgs into a map
+	for _, o := range *oldArgs {
+		combined[o.Name] = o.Value
+	}
+
+	// Add new args, this overwrites old
+	for _, n := range newArgs {
+		combined[n.Name] = n.Value
+	}
+
+	// Change back into an array
+	var result []kapi.EnvVar
+	for k, v := range combined {
+		result = append(result, kapi.EnvVar{Name: k, Value: v})
+	}
+
+	return result
+}
+
 // Instantiate returns a new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
@@ -253,12 +276,25 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	// annotations/labels (eg buildname) to get stomped on.
 	newBuild.Annotations = policy.MergeMaps(request.Annotations, newBuild.Annotations)
 	newBuild.Labels = policy.MergeMaps(request.Labels, newBuild.Labels)
-	// Copy build trigger information to the build object.
+
+	// Copy build trigger information and build arguments to the build object.
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
 		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
 	}
+
+	// Update the Docker build args
+	if request.DockerStrategyOptions != nil {
+		dockerOpts := request.DockerStrategyOptions
+		if dockerOpts.BuildArgs != nil && len(dockerOpts.BuildArgs) > 0 {
+			if newBuild.Spec.Strategy.DockerStrategy == nil {
+				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify build args on %s/%s, not a Docker build.", bc.Namespace, bc.ObjectMeta.Name))
+			}
+			newBuild.Spec.Strategy.DockerStrategy.BuildArgs = updateBuildArgs(&newBuild.Spec.Strategy.DockerStrategy.BuildArgs, dockerOpts.BuildArgs)
+		}
+	}
+
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 
 	// need to update the BuildConfig because LastVersion and possibly
@@ -355,6 +391,21 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 
 	// Copy build trigger information to the build object.
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
+
+	if len(request.Env) > 0 {
+		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
+	}
+
+	// Update the Docker build args
+	if request.DockerStrategyOptions != nil {
+		dockerOpts := request.DockerStrategyOptions
+		if dockerOpts.BuildArgs != nil && len(dockerOpts.BuildArgs) > 0 {
+			if newBuild.Spec.Strategy.DockerStrategy == nil {
+				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify build args on %s/%s, not a Docker build.", buildConfig.Namespace, buildConfig.ObjectMeta.Name))
+			}
+			newBuild.Spec.Strategy.DockerStrategy.BuildArgs = updateBuildArgs(&newBuild.Spec.Strategy.DockerStrategy.BuildArgs, dockerOpts.BuildArgs)
+		}
+	}
 
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {

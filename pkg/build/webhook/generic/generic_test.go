@@ -87,7 +87,7 @@ func TestVerifyRequestForMethod(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err == nil || !strings.Contains(err.Error(), "unsupported HTTP method") {
 		t.Errorf("Expected unsupported HTTP method, got %v!", err)
@@ -128,7 +128,7 @@ func TestWrongSecretMultipleGenericWebHooks(t *testing.T) {
 	}
 
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
 
 	if err != webhook.ErrSecretMismatch {
 		t.Errorf("Expected %s, got %s", webhook.ErrSecretMismatch, err)
@@ -179,7 +179,7 @@ func TestMatchSecretMultipleGenericWebHooks(t *testing.T) {
 	}
 
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret102", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret102", "", req)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
@@ -231,7 +231,7 @@ func TestEnvVarsMultipleGenericWebHooks(t *testing.T) {
 	}
 
 	plugin := New()
-	revision, envvars, proceed, err := plugin.Extract(buildConfig, "secret101", "", req)
+	revision, envvars, _, proceed, err := plugin.Extract(buildConfig, "secret101", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -266,7 +266,7 @@ func TestWrongSecret(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
 
 	if err != webhook.ErrSecretMismatch {
 		t.Errorf("Expected %v, got %v!", webhook.ErrSecretMismatch, err)
@@ -310,7 +310,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	build, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	build, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	matchWarning(t, err, `skipping build. Branch reference from "refs/heads/master" does not match configuration`)
 	if proceed {
@@ -379,7 +379,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -415,7 +415,7 @@ func TestExtractWithGitPayloadAndUTF8Charset(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -451,7 +451,7 @@ func TestExtractWithGitRefsPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -487,7 +487,7 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	matchWarning(t, err, `skipping build. None of the supplied refs matched "other"`)
 	if proceed {
@@ -522,7 +522,7 @@ func TestExtractWithKeyValuePairsJSON(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, envvars, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, envvars, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -563,7 +563,7 @@ func TestExtractWithKeyValuePairsYAML(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, envvars, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, envvars, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -603,7 +603,7 @@ func TestExtractWithKeyValuePairsDisabled(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, envvars, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, envvars, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -641,7 +641,7 @@ func TestGitlabPush(t *testing.T) {
 		},
 	}
 	plugin := New()
-	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	matchWarning(t, err, "no git information found in payload, ignoring and continuing with build")
 	if !proceed {
@@ -671,7 +671,7 @@ func TestNonJsonPush(t *testing.T) {
 		},
 	}
 	plugin := New()
-	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
@@ -712,7 +712,7 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	matchWarning(t, err, `error unmarshalling payload: invalid character '\x00' looking for beginning of value, ignoring payload and continuing with build`)
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
@@ -746,7 +746,7 @@ func TestExtractWithUnmarshalErrorYAML(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	matchWarning(t, err, "error converting payload to json: yaml: control characters are not allowed, ignoring payload and continuing with build")
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
@@ -780,7 +780,7 @@ func TestExtractWithBadContentType(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	matchWarning(t, err, "invalid Content-Type on payload, ignoring payload and continuing with build")
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
@@ -814,7 +814,7 @@ func TestExtractWithUnparseableContentType(t *testing.T) {
 		},
 	}
 	plugin := New()
-	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err == nil || err.Error() != "error parsing Content-Type: mime: expected token after slash" {
 		t.Errorf("Unexpected error %v", err)
 	}

@@ -140,15 +140,16 @@ func (BuildPostCommitSpec) SwaggerDoc() map[string]string {
 }
 
 var map_BuildRequest = map[string]string{
-	"":                 "BuildRequest is the resource used to pass parameters to build generator",
-	"metadata":         "metadata for BuildRequest.",
-	"revision":         "revision is the information from the source for a specific repo snapshot.",
-	"triggeredByImage": "triggeredByImage is the Image that triggered this build.",
-	"from":             "from is the reference to the ImageStreamTag that triggered the build.",
-	"binary":           "binary indicates a request to build from a binary provided to the builder",
-	"lastVersion":      "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated.",
-	"env":              "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
-	"triggeredBy":      "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
+	"":                      "BuildRequest is the resource used to pass parameters to build generator",
+	"metadata":              "metadata for BuildRequest.",
+	"revision":              "revision is the information from the source for a specific repo snapshot.",
+	"triggeredByImage":      "triggeredByImage is the Image that triggered this build.",
+	"from":                  "from is the reference to the ImageStreamTag that triggered the build.",
+	"binary":                "binary indicates a request to build from a binary provided to the builder",
+	"lastVersion":           "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated.",
+	"env":                   "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+	"triggeredBy":           "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
+	"dockerStrategyOptions": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
 }
 
 func (BuildRequest) SwaggerDoc() map[string]string {
@@ -293,10 +294,20 @@ var map_DockerBuildStrategy = map[string]string{
 	"env":            "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 	"forcePull":      "forcePull describes if the builder should pull the images from registry prior to building.",
 	"dockerfilePath": "dockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir).",
+	"buildArgs":      "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
 }
 
 func (DockerBuildStrategy) SwaggerDoc() map[string]string {
 	return map_DockerBuildStrategy
+}
+
+var map_DockerStrategyOptions = map[string]string{
+	"":          "DockerStrategyOptions contains extra strategy options for Docker builds",
+	"buildArgs": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+}
+
+func (DockerStrategyOptions) SwaggerDoc() map[string]string {
+	return map_DockerStrategyOptions
 }
 
 var map_GenericWebHookCause = map[string]string{
@@ -314,6 +325,7 @@ var map_GenericWebHookEvent = map[string]string{
 	"type": "type is the type of source repository",
 	"git":  "git is the git information if the Type is BuildSourceGit",
 	"env":  "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+	"dockerStrategyOptions": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
 }
 
 func (GenericWebHookEvent) SwaggerDoc() map[string]string {

@@ -507,6 +507,10 @@ type DockerBuildStrategy struct {
 	// dockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
 	// relative to the root of the context (contextDir).
 	DockerfilePath string `json:"dockerfilePath,omitempty" protobuf:"bytes,6,opt,name=dockerfilePath"`
+
+	// Args contains any build arguments that are to be passed to Docker.  See
+	// https://docs.docker.com/engine/reference/builder/#/arg for more details
+	BuildArgs []kapi.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,7,rep,name=buildArgs"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -834,6 +838,9 @@ type GenericWebHookEvent struct {
 	// env contains additional environment variables you want to pass into a builder container.
 	// ValueFrom is not supported.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
+
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
+	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,4,opt,name=dockerStrategyOptions"`
 }
 
 // GitInfo is the aggregated git information for a generic webhook post
@@ -845,6 +852,13 @@ type GitInfo struct {
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
 	unversioned.TypeMeta `json:",inline"`
+}
+
+// DockerStrategyOptions contains extra strategy options for Docker builds
+type DockerStrategyOptions struct {
+	// Args contains any build arguments that are to be passed to Docker.  See
+	// https://docs.docker.com/engine/reference/builder/#/arg for more details
+	BuildArgs []kapi.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,1,rep,name=buildArgs"`
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
@@ -877,6 +891,9 @@ type BuildRequest struct {
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause `json:"triggeredBy" protobuf:"bytes,8,rep,name=triggeredBy"`
+
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
+	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,9,opt,name=dockerStrategyOptions"`
 }
 
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request

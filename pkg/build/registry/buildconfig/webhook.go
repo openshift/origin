@@ -50,7 +50,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
-	revision, envvars, proceed, err := plugin.Extract(config, secret, "", req)
+	revision, envvars, dockerStrategyOptions, proceed, err := plugin.Extract(config, secret, "", req)
 	if !proceed {
 		switch err {
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
@@ -71,6 +71,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		ObjectMeta:  kapi.ObjectMeta{Name: name},
 		Revision:    revision,
 		Env:         envvars,
+		DockerStrategyOptions: dockerStrategyOptions,
 	}
 	if _, err := w.instantiator.Instantiate(config.Namespace, request); err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
