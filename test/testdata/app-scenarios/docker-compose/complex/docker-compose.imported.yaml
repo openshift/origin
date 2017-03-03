@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     creationTimestamp: null
@@ -19,7 +19,7 @@ items:
         type: ""
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: null
@@ -57,7 +57,7 @@ items:
       type: ImageChange
   status:
     lastVersion: 0
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     creationTimestamp: null
@@ -76,7 +76,7 @@ items:
         type: ""
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: null
@@ -114,7 +114,7 @@ items:
       type: ImageChange
   status:
     lastVersion: 0
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     creationTimestamp: null
@@ -133,7 +133,7 @@ items:
         type: ""
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null
@@ -177,7 +177,7 @@ items:
     replicas: 0
     unavailableReplicas: 0
     updatedReplicas: 0
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null
@@ -250,7 +250,7 @@ items:
     replicas: 0
     unavailableReplicas: 0
     updatedReplicas: 0
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     creationTimestamp: null
@@ -269,7 +269,7 @@ items:
         type: ""
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: null
