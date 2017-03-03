@@ -823,6 +823,15 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 		return &copy, nil
 	}
 
+	if ref.Kind == "ImageStreamImage" {
+		// even if the associated tag for this ImageStreamImage matches a output ImageStreamTag, when the image
+		// is built it will have a new sha ... you are essentially using a single/unique older version of a image as the base
+		// to build future images;  all this means we can leave the ref name as is and return with no error
+		// also do shallow copy like above
+		copy := *ref
+		return &copy, nil
+	}
+
 	if ref.Kind != "ImageStreamTag" {
 		return nil, fmt.Errorf("Unable to follow reference type: %q", ref.Kind)
 	}
