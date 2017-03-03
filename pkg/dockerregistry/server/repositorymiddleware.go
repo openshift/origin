@@ -13,6 +13,7 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/api/errcode"
 	repomw "github.com/docker/distribution/registry/middleware/repository"
+	registrystorage "github.com/docker/distribution/registry/storage"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -233,7 +234,10 @@ func newRepositoryWithClient(
 
 // Manifests returns r, which implements distribution.ManifestService.
 func (r *repository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
-	ms, err := r.Repository.Manifests(WithRepository(ctx, r))
+	// we do a verification of our own
+	// TODO: let upstream do the verification once they pass correct context object to their manifest handler
+	opts := append(options, registrystorage.SkipLayerVerification())
+	ms, err := r.Repository.Manifests(WithRepository(ctx, r), opts...)
 	if err != nil {
 		return nil, err
 	}

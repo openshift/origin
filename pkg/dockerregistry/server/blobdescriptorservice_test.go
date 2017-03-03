@@ -36,8 +36,6 @@ import (
 // It relies on the fact that blobDescriptorService requires higher levels to set repository object on given
 // context. If the object isn't given, its method will err out.
 func TestBlobDescriptorServiceIsApplied(t *testing.T) {
-	ctx := context.Background()
-
 	// don't do any authorization check
 	installFakeAccessController(t)
 	m := fakeBlobDescriptorService(t)
@@ -61,7 +59,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		DefaultRegistryClient = backupRegistryClient
 	}()
 
-	app := handlers.NewApp(ctx, &configuration.Configuration{
+	app := handlers.NewApp(context.Background(), &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -73,6 +71,11 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			},
 			"delete": configuration.Parameters{
 				"enabled": true,
+			},
+			"maintenance": configuration.Parameters{
+				"uploadpurging": map[interface{}]interface{}{
+					"enabled": false,
+				},
 			},
 		},
 		Middleware: map[string][]configuration.Middleware{
@@ -95,7 +98,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tc := range []struct {
+	type testCase struct {
 		name                      string
 		method                    string
 		endpoint                  string
@@ -103,7 +106,70 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		unsetRepository           bool
 		expectedStatus            int
 		expectedMethodInvocations map[string]int
-	}{
+	}
+
+	doTest := func(tc testCase) {
+		m.clearStats()
+		m.changeUnsetRepository(tc.unsetRepository)
+
+		route := router.GetRoute(tc.endpoint).Host(serverURL.Host)
+		u, err := route.URL(tc.vars...)
+		if err != nil {
+			t.Errorf("[%s] failed to build route: %v", tc.name, err)
+			return
+		}
+
+		req, err := http.NewRequest(tc.method, u.String(), nil)
+		if err != nil {
+			t.Errorf("[%s] failed to make request: %v", tc.name, err)
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Errorf("[%s] failed to do the request: %v", tc.name, err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != tc.expectedStatus {
+			t.Errorf("[%s] unexpected status code: %v != %v", tc.name, resp.StatusCode, tc.expectedStatus)
+		}
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+			content, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("[%s] failed to read body: %v", tc.name, err)
+			} else if len(content) > 0 {
+				errs := errcode.Errors{}
+				err := errs.UnmarshalJSON(content)
+				if err != nil {
+					t.Logf("[%s] failed to parse body as error: %v", tc.name, err)
+					t.Logf("[%s] received body: %v", tc.name, string(content))
+				} else {
+					t.Logf("[%s] received errors: %#+v", tc.name, errs)
+				}
+			}
+		}
+
+		stats, err := m.getStats(tc.expectedMethodInvocations, time.Second*5)
+		if err != nil {
+			t.Fatalf("[%s] failed to get stats: %v", tc.name, err)
+		}
+		for method, exp := range tc.expectedMethodInvocations {
+			invoked := stats[method]
+			if invoked != exp {
+				t.Errorf("[%s] unexpected number of invocations of method %q: %v != %v", tc.name, method, invoked, exp)
+			}
+		}
+		for method, invoked := range stats {
+			if _, ok := tc.expectedMethodInvocations[method]; !ok {
+				t.Errorf("[%s] unexpected method %q invoked %d times", tc.name, method, invoked)
+			}
+		}
+	}
+
+	for _, tc := range []testCase{
 		{
 			name:     "get blob with repository unset",
 			method:   http.MethodGet,
@@ -190,34 +256,6 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		},
 
 		{
-			name:     "get manifest with repository unset",
-			method:   http.MethodGet,
-			endpoint: v2.RouteNameManifest,
-			vars: []string{
-				"name", "user/app",
-				"reference", "latest",
-			},
-			unsetRepository: true,
-			// failed because we trying to get manifest from storage driver first.
-			expectedStatus: http.StatusNotFound,
-			// manifest can't be retrieved from etcd
-			expectedMethodInvocations: map[string]int{"Stat": 1},
-		},
-
-		{
-			name:     "get manifest",
-			method:   http.MethodGet,
-			endpoint: v2.RouteNameManifest,
-			vars: []string{
-				"name", "user/app",
-				"reference", "latest",
-			},
-			expectedStatus: http.StatusOK,
-			// manifest is retrieved from etcd
-			expectedMethodInvocations: map[string]int{"Stat": 3},
-		},
-
-		{
 			name:     "delete manifest with repository unset",
 			method:   http.MethodDelete,
 			endpoint: v2.RouteNameManifest,
@@ -243,67 +281,36 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
 			expectedMethodInvocations: map[string]int{"Stat": 1},
 		},
+
+		{
+			name:     "get manifest with repository unset",
+			method:   http.MethodGet,
+			endpoint: v2.RouteNameManifest,
+			vars: []string{
+				"name", "user/app",
+				"reference", "latest",
+			},
+			unsetRepository: true,
+			// failed because we trying to get manifest from storage driver first.
+			expectedStatus: http.StatusNotFound,
+			// manifest can't be retrieved from etcd
+			expectedMethodInvocations: map[string]int{"Stat": 1},
+		},
+
+		{
+			name:     "get manifest",
+			method:   http.MethodGet,
+			endpoint: v2.RouteNameManifest,
+			vars: []string{
+				"name", "user/app",
+				"reference", "latest",
+			},
+			expectedStatus: http.StatusOK,
+			// manifest is retrieved from etcd
+			expectedMethodInvocations: map[string]int{"Stat": 1},
+		},
 	} {
-		m.clearStats()
-		m.changeUnsetRepository(tc.unsetRepository)
-
-		route := router.GetRoute(tc.endpoint).Host(serverURL.Host)
-		u, err := route.URL(tc.vars...)
-		if err != nil {
-			t.Errorf("[%s] failed to build route: %v", tc.name, err)
-			continue
-		}
-
-		req, err := http.NewRequest(tc.method, u.String(), nil)
-		if err != nil {
-			t.Errorf("[%s] failed to make request: %v", tc.name, err)
-			continue
-		}
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			t.Errorf("[%s] failed to do the request: %v", tc.name, err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != tc.expectedStatus {
-			t.Errorf("[%s] unexpected status code: %v != %v", tc.name, resp.StatusCode, tc.expectedStatus)
-		}
-
-		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-			content, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Errorf("[%s] failed to read body: %v", tc.name, err)
-			} else if len(content) > 0 {
-				errs := errcode.Errors{}
-				err := errs.UnmarshalJSON(content)
-				if err != nil {
-					t.Logf("[%s] failed to parse body as error: %v", tc.name, err)
-					t.Logf("[%s] received body: %v", tc.name, string(content))
-				} else {
-					t.Logf("[%s] received errors: %#+v", tc.name, errs)
-				}
-			}
-		}
-
-		stats, err := m.getStats(tc.expectedMethodInvocations, time.Second*5)
-		if err != nil {
-			t.Errorf("[%s] failed to get stats: %v", tc.name, err)
-			continue
-		}
-		for method, exp := range tc.expectedMethodInvocations {
-			invoked := stats[method]
-			if invoked != exp {
-				t.Errorf("[%s] unexpected number of invocations of method %q: %v != %v", tc.name, method, invoked, exp)
-			}
-		}
-		for method, invoked := range stats {
-			if _, ok := tc.expectedMethodInvocations[method]; !ok {
-				t.Errorf("[%s] unexpected method %q invoked %d times", tc.name, method, invoked)
-			}
-		}
+		doTest(tc)
 	}
 }
 
@@ -366,30 +373,38 @@ func (m *testBlobDescriptorManager) changeUnsetRepository(unset bool) {
 // collected numbers of invocations per each method watched. An error will be returned if a given timeout is
 // reached without satisfying minimum limit.s
 func (m *testBlobDescriptorManager) getStats(minimumLimits map[string]int, timeout time.Duration) (map[string]int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var err error
 	end := time.Now().Add(timeout)
+	stats := make(map[string]int)
 
-	if len(minimumLimits) > 0 {
-	Loop:
-		for !statsGreaterThanOrEqual(m.stats, minimumLimits) {
-			c := make(chan struct{})
-			go func() { m.cond.Wait(); c <- struct{}{} }()
-
-			now := time.Now()
-			select {
-			case <-time.After(end.Sub(now)):
-				err = fmt.Errorf("timeout while waiting on expected stats")
-				break Loop
-			case <-c:
-				continue Loop
-			}
+	if len(minimumLimits) == 0 {
+		m.mu.Lock()
+		for k, v := range m.stats {
+			stats[k] = v
 		}
+		m.mu.Unlock()
+		return stats, nil
 	}
 
-	stats := make(map[string]int)
+	c := make(chan struct{})
+	go func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+
+		for !statsGreaterThanOrEqual(m.stats, minimumLimits) {
+			m.cond.Wait()
+		}
+		c <- struct{}{}
+	}()
+
+	var err error
+	select {
+	case <-time.After(end.Sub(time.Now())):
+		err = fmt.Errorf("timeout while waiting on expected stats")
+	case <-c:
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for k, v := range m.stats {
 		stats[k] = v
 	}

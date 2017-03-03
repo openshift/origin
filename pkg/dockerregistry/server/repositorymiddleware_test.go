@@ -40,6 +40,10 @@ const (
 	testImageLayerCount = 2
 )
 
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
+
 func TestRepositoryBlobStat(t *testing.T) {
 	quotaEnforcing = &quotaEnforcingConfig{}
 
@@ -326,7 +330,6 @@ func TestRepositoryBlobStat(t *testing.T) {
 }
 
 func TestRepositoryBlobStatCacheEviction(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	const blobRepoCacheTTL = time.Millisecond * 500
 
 	quotaEnforcing = &quotaEnforcingConfig{}

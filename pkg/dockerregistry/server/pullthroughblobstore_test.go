@@ -12,14 +12,11 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
-	//"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
@@ -34,7 +31,6 @@ import (
 func TestPullthroughServeBlob(t *testing.T) {
 	namespace, name := "user", "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, name)
-	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 
 	testImage, err := registrytest.NewImageForManifest(repoName, registrytest.SampleImageManifestSchema1, false)
@@ -65,6 +61,11 @@ func TestPullthroughServeBlob(t *testing.T) {
 			},
 			"delete": configuration.Parameters{
 				"enabled": true,
+			},
+			"maintenance": configuration.Parameters{
+				"uploadpurging": map[interface{}]interface{}{
+					"enabled": false,
+				},
 			},
 		},
 		Middleware: map[string][]configuration.Middleware{
