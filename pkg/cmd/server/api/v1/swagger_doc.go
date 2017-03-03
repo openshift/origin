@@ -431,6 +431,15 @@ func (LocalQuota) SwaggerDoc() map[string]string {
 	return map_LocalQuota
 }
 
+var map_MasterAuthConfig = map[string]string{
+	"":              "MasterAuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"requestHeader": "RequestHeader holds options for setting up a front proxy against the the API.  It is optional.",
+}
+
+func (MasterAuthConfig) SwaggerDoc() map[string]string {
+	return map_MasterAuthConfig
+}
+
 var map_MasterClients = map[string]string{
 	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
 	"openshiftLoopbackKubeConfig":                 "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
@@ -446,6 +455,7 @@ func (MasterClients) SwaggerDoc() map[string]string {
 var map_MasterConfig = map[string]string{
 	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master",
 	"servingInfo":            "ServingInfo describes how to start serving",
+	"authConfig":             "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
 	"corsAllowedOrigins":     "CORSAllowedOrigins",
 	"apiLevels":              "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"masterPublicURL":        "MasterPublicURL is how clients can access the OpenShift API server",
@@ -699,6 +709,19 @@ var map_RemoteConnectionInfo = map[string]string{
 
 func (RemoteConnectionInfo) SwaggerDoc() map[string]string {
 	return map_RemoteConnectionInfo
+}
+
+var map_RequestHeaderAuthenticationOptions = map[string]string{
+	"":                    "RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire API instead of against the /oauth endpoint.",
+	"clientCA":            "ClientCA is a file with the trusted signer certs.  It is required.",
+	"clientCommonNames":   "ClientCommonNames is a required list of common names to require a match from.",
+	"usernameHeaders":     "UsernameHeaders is the list of headers to check for user information.  First hit wins.",
+	"groupHeaders":        "GroupNameHeader is the set of headers to check for group information.  All are unioned.",
+	"extraHeaderPrefixes": "ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.",
+}
+
+func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
+	return map_RequestHeaderAuthenticationOptions
 }
 
 var map_RequestHeaderIdentityProvider = map[string]string{

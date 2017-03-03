@@ -18,6 +18,7 @@ package headerrequest
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -33,23 +34,51 @@ import (
 type requestHeaderAuthRequestHandler struct {
 	// nameHeaders are the headers to check (in order, case-insensitively) for an identity. The first header with a value wins.
 	nameHeaders []string
+
+	// groupHeaders are the headers to check (case-insensitively) for group membership.  All values of all headers will be added.
+	groupHeaders []string
+
+	// extraHeaderPrefixes are the head prefixes to check (case-insensitively) for filling in
+	// the user.Info.Extra.  All values of all matching headers will be added.
+	extraHeaderPrefixes []string
 }
 
-func New(nameHeaders []string) (authenticator.Request, error) {
-	headers := []string{}
-	for _, headerName := range nameHeaders {
+func New(nameHeaders []string, groupHeaders []string, extraHeaderPrefixes []string) (authenticator.Request, error) {
+	trimmedNameHeaders, err := trimHeaders(nameHeaders...)
+	if err != nil {
+		return nil, err
+	}
+	trimmedGroupHeaders, err := trimHeaders(groupHeaders...)
+	if err != nil {
+		return nil, err
+	}
+	trimmedExtraHeaderPrefixes, err := trimHeaders(extraHeaderPrefixes...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &requestHeaderAuthRequestHandler{
+		nameHeaders:         trimmedNameHeaders,
+		groupHeaders:        trimmedGroupHeaders,
+		extraHeaderPrefixes: trimmedExtraHeaderPrefixes,
+	}, nil
+}
+
+func trimHeaders(headerNames ...string) ([]string, error) {
+	ret := []string{}
+	for _, headerName := range headerNames {
 		trimmedHeader := strings.TrimSpace(headerName)
 		if len(trimmedHeader) == 0 {
 			return nil, fmt.Errorf("empty header %q", headerName)
 		}
-		headers = append(headers, trimmedHeader)
+		ret = append(ret, trimmedHeader)
 	}
 
-	return &requestHeaderAuthRequestHandler{nameHeaders: headers}, nil
+	return ret, nil
 }
 
-func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string) (authenticator.Request, error) {
-	headerAuthenticator, err := New(nameHeaders)
+func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string, groupHeaders []string, extraHeaderPrefixes []string) (authenticator.Request, error) {
+	headerAuthenticator, err := New(nameHeaders, groupHeaders, extraHeaderPrefixes)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +108,29 @@ func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string)
 func (a *requestHeaderAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	name := headerValue(req.Header, a.nameHeaders)
 	if len(name) == 0 {
-		return nil, false, nil
+		return nil, false, errors.New("proxy did not provide user information")
+	}
+	groups := allHeaderValues(req.Header, a.groupHeaders)
+	extra := newExtra(req.Header, a.extraHeaderPrefixes)
+
+	// clear headers used for authentication
+	for _, headerName := range a.nameHeaders {
+		req.Header.Del(headerName)
+	}
+	for _, headerName := range a.groupHeaders {
+		req.Header.Del(headerName)
+	}
+	for k := range extra {
+		for _, prefix := range a.extraHeaderPrefixes {
+			req.Header.Del(prefix + k)
+		}
 	}
 
-	return &user.DefaultInfo{Name: name}, true, nil
+	return &user.DefaultInfo{
+		Name:   name,
+		Groups: groups,
+		Extra:  extra,
+	}, true, nil
 }
 
 func headerValue(h http.Header, headerNames []string) string {
@@ -93,4 +141,39 @@ func headerValue(h http.Header, headerNames []string) string {
 		}
 	}
 	return ""
+}
+
+func allHeaderValues(h http.Header, headerNames []string) []string {
+	ret := []string{}
+	for _, headerName := range headerNames {
+		values, ok := h[headerName]
+		if !ok {
+			continue
+		}
+
+		for _, headerValue := range values {
+			if len(headerValue) > 0 {
+				ret = append(ret, headerValue)
+			}
+		}
+	}
+	return ret
+}
+
+func newExtra(h http.Header, headerPrefixes []string) map[string][]string {
+	ret := map[string][]string{}
+
+	// we have to iterate over prefixes first in order to have proper ordering inside the value slices
+	for _, prefix := range headerPrefixes {
+		for headerName, vv := range h {
+			if !strings.HasPrefix(strings.ToLower(headerName), strings.ToLower(prefix)) {
+				continue
+			}
+
+			extraKey := strings.ToLower(headerName[len(prefix):])
+			ret[extraKey] = append(ret[extraKey], vv...)
+		}
+	}
+
+	return ret
 }

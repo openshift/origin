@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -112,6 +113,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 	server.GenericServerRunOptions.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.GenericServerRunOptions.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
 	server.GenericServerRunOptions.ClientCAFile = options.ServingInfo.ClientCA
+
 	server.GenericServerRunOptions.MaxRequestsInFlight = options.ServingInfo.MaxRequestsInFlight
 	server.GenericServerRunOptions.MinRequestTimeout = options.ServingInfo.RequestTimeoutSeconds
 	for _, nc := range options.ServingInfo.NamedCertificates {
@@ -314,6 +316,14 @@ func BuildKubernetesMasterConfig(
 	for _, cert := range oAuthClientCertCAs {
 		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
 	}
+	requestHeaderCACerts, err := configapi.GetRequestHeaderClientCertCAs(options)
+	if err != nil {
+		glog.Fatalf("Error setting up request header client certificates: %v", err)
+	}
+	for _, cert := range requestHeaderCACerts {
+		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
+	}
+
 	url, err := url.Parse(options.MasterPublicURL)
 	if err != nil {
 		glog.Fatalf("Error parsing master public url %q: %v", options.MasterPublicURL, err)
@@ -553,4 +563,28 @@ func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIRe
 	}
 
 	return resourceConfig
+}
+
+// TODO remove this func in 1.6 when we get rid of the hack above
+func concatenateFiles(prefix, separator string, files ...string) (string, error) {
+	data := []byte{}
+	for _, file := range files {
+		fileBytes, err := ioutil.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		data = append(data, fileBytes...)
+		data = append(data, []byte(separator)...)
+	}
+	tmpFile, err := ioutil.TempFile("", prefix)
+	if err != nil {
+		return "", err
+	}
+	if _, err := tmpFile.Write(data); err != nil {
+		return "", err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", err
+	}
+	return tmpFile.Name(), nil
 }

@@ -112,6 +112,8 @@ auditConfig:
   maximumFileRetentionDays: 0
   maximumFileSizeMegabytes: 0
   maximumRetainedFiles: 0
+authConfig:
+  requestHeader: null
 controllerConfig:
   serviceServingCert:
     signer: null
