@@ -445,6 +445,124 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	}
 }
 
+func TestInstantiateWithBuildRequestEnvs(t *testing.T) {
+	buildRequestWithEnv := buildapi.BuildRequest{
+		Env: []kapi.EnvVar{{Name: "FOO", Value: "BAR"}},
+	}
+	buildRequestWithoutEnv := buildapi.BuildRequest{}
+
+	tests := []struct {
+		bcfunc           func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
+		req              buildapi.BuildRequest
+		expectedEnvValue string
+	}{
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockDockerStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockCustomStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockJenkinsStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockDockerStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockCustomStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockJenkinsStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+	}
+
+	for _, tc := range tests {
+		generator := mockBuildGenerator()
+		client := generator.Client.(Client)
+		client.GetBuildConfigFunc = tc.bcfunc
+		generator.Client = client
+		build, err := generator.Instantiate(kapi.NewDefaultContext(), &tc.req)
+		if err != nil {
+			t.Errorf("unexpected error %v", err)
+		} else {
+			switch {
+			case build.Spec.Strategy.SourceStrategy != nil:
+				if len(build.Spec.Strategy.SourceStrategy.Env) == 0 {
+					t.Errorf("no envs set for src bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.SourceStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for src bc and req %#v, expected %s", build.Spec.Strategy.SourceStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			case build.Spec.Strategy.DockerStrategy != nil:
+				if len(build.Spec.Strategy.DockerStrategy.Env) == 0 {
+					t.Errorf("no envs set for dock bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.DockerStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for dock bc and req %#v, expected %s", build.Spec.Strategy.DockerStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			case build.Spec.Strategy.CustomStrategy != nil:
+				if len(build.Spec.Strategy.CustomStrategy.Env) == 0 {
+					t.Errorf("no envs set for cust bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else {
+					// custom strategy will also have OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE injected, could be in either order
+					found := false
+					for _, env := range build.Spec.Strategy.CustomStrategy.Env {
+						if env.Value == tc.expectedEnvValue {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("unexpected values %#v for cust bc and req %#v, expected %s", build.Spec.Strategy.CustomStrategy.Env, tc.req, tc.expectedEnvValue)
+					}
+				}
+			case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+				if len(build.Spec.Strategy.JenkinsPipelineStrategy.Env) == 0 {
+					t.Errorf("no envs set for jenk bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.JenkinsPipelineStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for jenk bc and req %#v, expected %s", build.Spec.Strategy.JenkinsPipelineStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			}
+		}
+	}
+}
+
 func TestInstantiateWithLastVersion(t *testing.T) {
 	g := mockBuildGenerator()
 	c := g.Client.(Client)
