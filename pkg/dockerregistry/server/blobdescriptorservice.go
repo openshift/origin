@@ -53,6 +53,7 @@ type blobDescriptorService struct {
 // corresponding image stream. This method is invoked from inside of upstream's linkedBlobStore. It expects
 // a proper repository object to be set on given context by upper openshift middleware wrappers.
 func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: starting with digest=%s", dgst.String())
 	repo, found := RepositoryFrom(ctx)
 	if !found || repo == nil {
 		err := fmt.Errorf("failed to retrieve repository from context")
@@ -71,16 +72,18 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 		return desc, nil
 	}
 
-	context.GetLogger(ctx).Debugf("could not stat layer link %q in repository %q: %v", dgst.String(), repo.Named().Name(), err)
+	context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: could not stat layer link %s in repository %s: %v", dgst.String(), repo.Named().Name(), err)
 
 	// First attempt: looking for the blob locally
 	desc, err = dockerRegistry.BlobStatter().Stat(ctx, dgst)
 	if err == nil {
+		context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: blob %s exists in the global blob store", dgst.String())
 		// only non-empty layers is wise to check for existence in the image stream.
 		// schema v2 has no empty layers.
 		if !isEmptyDigest(dgst) {
 			// ensure it's referenced inside of corresponding image stream
 			if !imageStreamHasBlob(repo, dgst) {
+				context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: blob %s is neither empty nor referenced in image stream %s", dgst.String(), repo.Named().Name())
 				return distribution.Descriptor{}, distribution.ErrBlobUnknown
 			}
 		}
