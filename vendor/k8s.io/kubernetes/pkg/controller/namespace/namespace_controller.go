@@ -85,6 +85,12 @@ func NewNamespaceController(
 	}
 	ignoredGroupVersionResources := []unversioned.GroupVersionResource{
 		{Group: "", Version: "v1", Resource: "bindings"},
+
+		// FIXME: This should be removed after 1.6 rebase lands?
+		// The appliedclusterresourcequotas does not have the 'DELETE' verb implemented and
+		// without this the projects/namespaces are stuck in Terminating forever.
+		{Group: "", Version: "v1", Resource: "appliedclusterresourcequotas"},
+		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
 	}
 	for _, ignoredGroupVersionResource := range ignoredGroupVersionResources {
 		opCache.setNotSupported(operationKey{op: operationDeleteCollection, gvr: ignoredGroupVersionResource})
