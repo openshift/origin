@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
@@ -76,7 +78,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		name    string
 		managed bool
 	}{{"nm/is", true}, {"registry.org:5000/user/app", false}} {
-		img, err := registrytest.NewImageForManifest(d.name, registrytest.SampleImageManifestSchema1, d.managed)
+		img, err := registrytest.NewImageForManifest(d.name, registrytest.SampleImageManifestSchema1, "", d.managed)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -324,6 +326,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 }
 
 func TestRepositoryBlobStatCacheEviction(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	const blobRepoCacheTTL = time.Millisecond * 500
 
 	quotaEnforcing = &quotaEnforcingConfig{}
@@ -390,6 +393,10 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	}
 
 	// query etcd
+	repo, err = reg.Repository(ctx, ref) // the repository needs to be recreated since it caches image streams and images
+	if err != nil {
+		t.Fatalf("failed to get repository: %v", err)
+	}
 	desc, err = repo.Blobs(ctx).Stat(ctx, blob1Dgst)
 	if err != nil {
 		t.Fatalf("got unexpected stat error: %v", err)
@@ -418,6 +425,10 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	}
 
 	// cache hit - don't query etcd
+	repo, err = reg.Repository(ctx, ref) // the repository needs to be recreated since it caches image streams and images
+	if err != nil {
+		t.Fatalf("failed to get repository: %v", err)
+	}
 	desc, err = repo.Blobs(ctx).Stat(ctx, blob2Dgst)
 	if err != nil {
 		t.Fatalf("got unexpected stat error: %v", err)
@@ -431,6 +442,10 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	lastStatTimestamp := time.Now()
 
 	// hit the cache
+	repo, err = reg.Repository(ctx, ref)
+	if err != nil {
+		t.Fatalf("failed to get repository: %v", err)
+	}
 	desc, err = repo.Blobs(ctx).Stat(ctx, blob2Dgst)
 	if err != nil {
 		t.Fatalf("got unexpected stat error: %v", err)
@@ -445,6 +460,10 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	t.Logf("sleeping %s while waiting for eviction of blob %q from cache", blobRepoCacheTTL.String(), blob2Dgst.String())
 	time.Sleep(blobRepoCacheTTL - (time.Now().Sub(lastStatTimestamp)))
 
+	repo, err = reg.Repository(ctx, ref)
+	if err != nil {
+		t.Fatalf("failed to get repository: %v", err)
+	}
 	desc, err = repo.Blobs(ctx).Stat(ctx, blob2Dgst)
 	if err != nil {
 		t.Fatalf("got unexpected stat error: %v", err)
@@ -686,8 +705,8 @@ type testRegistry struct {
 
 var _ distribution.Namespace = &testRegistry{}
 
-func (r *testRegistry) Repository(ctx context.Context, ref reference.Named) (distribution.Repository, error) {
-	repo, err := r.Namespace.Repository(ctx, ref)
+func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (distribution.Repository, error) {
+	repo, err := reg.Namespace.Repository(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -699,20 +718,43 @@ func (r *testRegistry) Repository(ctx context.Context, ref reference.Named) (dis
 		return nil, fmt.Errorf("failed to parse repository name %q", ref.Name())
 	}
 
-	return &repository{
+	nm, name := parts[0], parts[1]
+
+	isGetter := &cachedImageStreamGetter{
+		ctx:          ctx,
+		namespace:    nm,
+		name:         name,
+		isNamespacer: reg.osClient,
+	}
+
+	r := &repository{
 		Repository: repo,
 
 		ctx:              ctx,
 		quotaClient:      kFakeClient.Core(),
 		limitClient:      kFakeClient.Core(),
-		registryOSClient: r.osClient,
+		registryOSClient: reg.osClient,
 		registryAddr:     "localhost:5000",
-		namespace:        parts[0],
-		name:             parts[1],
-		blobrepositorycachettl: r.blobrepositorycachettl,
+		namespace:        nm,
+		name:             name,
+		blobrepositorycachettl: reg.blobrepositorycachettl,
+		imageStreamGetter:      isGetter,
+		cachedImages:           make(map[digest.Digest]*imageapi.Image),
 		cachedLayers:           cachedLayers,
-		pullthrough:            r.pullthrough,
-	}, nil
+		pullthrough:            reg.pullthrough,
+	}
+
+	if reg.pullthrough {
+		r.remoteBlobGetter = NewBlobGetterService(
+			nm,
+			name,
+			defaultBlobRepositoryCacheTTL,
+			isGetter.get,
+			reg.osClient,
+			cachedLayers)
+	}
+
+	return r, nil
 }
 
 func testNewDescriptorForLayer(layer imageapi.ImageLayer) distribution.Descriptor {

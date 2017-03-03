@@ -1991,7 +1991,6 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - imagestreamimages
     - imagestreams/secrets
     verbs:
     - get

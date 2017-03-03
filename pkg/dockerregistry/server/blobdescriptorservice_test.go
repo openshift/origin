@@ -32,6 +32,17 @@ import (
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 )
 
+const testPassthroughToUpstream = "openshift.test.passthrough-to-upstream"
+
+func WithTestPassthroughToUpstream(ctx context.Context, passthrough bool) context.Context {
+	return context.WithValue(ctx, testPassthroughToUpstream, passthrough)
+}
+
+func GetTestPassThroughToUpstream(ctx context.Context) bool {
+	passthrough, found := ctx.Value(testPassthroughToUpstream).(bool)
+	return found && passthrough
+}
+
 // TestBlobDescriptorServiceIsApplied ensures that blobDescriptorService middleware gets applied.
 // It relies on the fact that blobDescriptorService requires higher levels to set repository object on given
 // context. If the object isn't given, its method will err out.
@@ -44,7 +55,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	// to make other unit tests working
 	defer m.changeUnsetRepository(false)
 
-	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, true)
+	testImage, err := registrytest.NewImageForManifest("user/app", registrytest.SampleImageManifestSchema1, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,12 +101,12 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	}
 	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
 
-	desc, _, err := registrytest.UploadTestBlob(serverURL, nil, "user/app")
+	desc, _, err := registrytest.UploadRandomTestBlob(serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, tc := range []struct {
+	type testCase struct {
 		name                      string
 		method                    string
 		endpoint                  string
@@ -103,7 +114,70 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		unsetRepository           bool
 		expectedStatus            int
 		expectedMethodInvocations map[string]int
-	}{
+	}
+
+	doTest := func(tc testCase) {
+		m.clearStats()
+		m.changeUnsetRepository(tc.unsetRepository)
+
+		route := router.GetRoute(tc.endpoint).Host(serverURL.Host)
+		u, err := route.URL(tc.vars...)
+		if err != nil {
+			t.Errorf("[%s] failed to build route: %v", tc.name, err)
+			return
+		}
+
+		req, err := http.NewRequest(tc.method, u.String(), nil)
+		if err != nil {
+			t.Errorf("[%s] failed to make request: %v", tc.name, err)
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Errorf("[%s] failed to do the request: %v", tc.name, err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != tc.expectedStatus {
+			t.Errorf("[%s] unexpected status code: %v != %v", tc.name, resp.StatusCode, tc.expectedStatus)
+		}
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+			content, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("[%s] failed to read body: %v", tc.name, err)
+			} else if len(content) > 0 {
+				errs := errcode.Errors{}
+				err := errs.UnmarshalJSON(content)
+				if err != nil {
+					t.Logf("[%s] failed to parse body as error: %v", tc.name, err)
+					t.Logf("[%s] received body: %v", tc.name, string(content))
+				} else {
+					t.Logf("[%s] received errors: %#+v", tc.name, errs)
+				}
+			}
+		}
+
+		stats, err := m.getStats(tc.expectedMethodInvocations, time.Second*5)
+		if err != nil {
+			t.Fatalf("[%s] failed to get stats: %v", tc.name, err)
+		}
+		for method, exp := range tc.expectedMethodInvocations {
+			invoked := stats[method]
+			if invoked != exp {
+				t.Errorf("[%s] unexpected number of invocations of method %q: %v != %v", tc.name, method, invoked, exp)
+			}
+		}
+		for method, invoked := range stats {
+			if _, ok := tc.expectedMethodInvocations[method]; !ok {
+				t.Errorf("[%s] unexpected method %q invoked %d times", tc.name, method, invoked)
+			}
+		}
+	}
+
+	for _, tc := range []testCase{
 		{
 			name:     "get blob with repository unset",
 			method:   http.MethodGet,
@@ -214,7 +288,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			// manifest is retrieved from etcd
-			expectedMethodInvocations: map[string]int{"Stat": 3},
+			expectedMethodInvocations: map[string]int{"Stat": 1},
 		},
 
 		{
@@ -239,71 +313,15 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 				"name", "user/app",
 				"reference", testImage.Name,
 			},
-			expectedStatus: http.StatusNotFound,
+			expectedStatus: http.StatusAccepted,
 			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
-			expectedMethodInvocations: map[string]int{"Stat": 1},
+			expectedMethodInvocations: map[string]int{
+				"Stat":  1,
+				"Clear": 1,
+			},
 		},
 	} {
-		m.clearStats()
-		m.changeUnsetRepository(tc.unsetRepository)
-
-		route := router.GetRoute(tc.endpoint).Host(serverURL.Host)
-		u, err := route.URL(tc.vars...)
-		if err != nil {
-			t.Errorf("[%s] failed to build route: %v", tc.name, err)
-			continue
-		}
-
-		req, err := http.NewRequest(tc.method, u.String(), nil)
-		if err != nil {
-			t.Errorf("[%s] failed to make request: %v", tc.name, err)
-			continue
-		}
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			t.Errorf("[%s] failed to do the request: %v", tc.name, err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != tc.expectedStatus {
-			t.Errorf("[%s] unexpected status code: %v != %v", tc.name, resp.StatusCode, tc.expectedStatus)
-		}
-
-		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-			content, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Errorf("[%s] failed to read body: %v", tc.name, err)
-			} else if len(content) > 0 {
-				errs := errcode.Errors{}
-				err := errs.UnmarshalJSON(content)
-				if err != nil {
-					t.Logf("[%s] failed to parse body as error: %v", tc.name, err)
-					t.Logf("[%s] received body: %v", tc.name, string(content))
-				} else {
-					t.Logf("[%s] received errors: %#+v", tc.name, errs)
-				}
-			}
-		}
-
-		stats, err := m.getStats(tc.expectedMethodInvocations, time.Second*5)
-		if err != nil {
-			t.Errorf("[%s] failed to get stats: %v", tc.name, err)
-			continue
-		}
-		for method, exp := range tc.expectedMethodInvocations {
-			invoked := stats[method]
-			if invoked != exp {
-				t.Errorf("[%s] unexpected number of invocations of method %q: %v != %v", tc.name, method, invoked, exp)
-			}
-		}
-		for method, invoked := range stats {
-			if _, ok := tc.expectedMethodInvocations[method]; !ok {
-				t.Errorf("[%s] unexpected method %q invoked %d times", tc.name, method, invoked)
-			}
-		}
+		doTest(tc)
 	}
 }
 
@@ -366,30 +384,38 @@ func (m *testBlobDescriptorManager) changeUnsetRepository(unset bool) {
 // collected numbers of invocations per each method watched. An error will be returned if a given timeout is
 // reached without satisfying minimum limit.s
 func (m *testBlobDescriptorManager) getStats(minimumLimits map[string]int, timeout time.Duration) (map[string]int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var err error
 	end := time.Now().Add(timeout)
+	stats := make(map[string]int)
 
-	if len(minimumLimits) > 0 {
-	Loop:
-		for !statsGreaterThanOrEqual(m.stats, minimumLimits) {
-			c := make(chan struct{})
-			go func() { m.cond.Wait(); c <- struct{}{} }()
-
-			now := time.Now()
-			select {
-			case <-time.After(end.Sub(now)):
-				err = fmt.Errorf("timeout while waiting on expected stats")
-				break Loop
-			case <-c:
-				continue Loop
-			}
+	if len(minimumLimits) == 0 {
+		m.mu.Lock()
+		for k, v := range m.stats {
+			stats[k] = v
 		}
+		m.mu.Unlock()
+		return stats, nil
 	}
 
-	stats := make(map[string]int)
+	c := make(chan struct{})
+	go func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+
+		for !statsGreaterThanOrEqual(m.stats, minimumLimits) {
+			m.cond.Wait()
+		}
+		c <- struct{}{}
+	}()
+
+	var err error
+	select {
+	case <-time.After(end.Sub(time.Now())):
+		err = fmt.Errorf("timeout while waiting on expected stats")
+	case <-c:
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for k, v := range m.stats {
 		stats[k] = v
 	}
@@ -494,4 +520,43 @@ func (f *fakeRegistryClient) Clients() (osclient.Interface, kclientset.Interface
 }
 func (f *fakeRegistryClient) SafeClientConfig() restclient.Config {
 	return (&registryClient{}).SafeClientConfig()
+}
+
+// passthroughBlobDescriptorService passes all Stat and Clear requests to
+// custom blobDescriptorService by default. If
+// "openshift.test.passthrough-to-upstream" is set on context with value
+// "true", all the requests will be passed straight to the upstream blob
+// descriptor service.
+type passthroughBlobDescriptorService struct {
+	distribution.BlobDescriptorService
+}
+
+func (pbds *passthroughBlobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	passthrough := GetTestPassThroughToUpstream(ctx)
+	if passthrough {
+		context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Stat: passing down to upstream blob descriptor service")
+		return pbds.BlobDescriptorService.Stat(ctx, dgst)
+	}
+	context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Stat: passing to openshift wrapper")
+	return (&blobDescriptorServiceFactory{}).BlobAccessController(pbds.BlobDescriptorService).Stat(ctx, dgst)
+}
+
+func (pbds *passthroughBlobDescriptorService) Clear(ctx context.Context, dgst digest.Digest) error {
+	passthrough := GetTestPassThroughToUpstream(ctx)
+	if passthrough {
+		context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Clear: passing down to upstream blob descriptor service")
+		return pbds.BlobDescriptorService.Clear(ctx, dgst)
+	}
+	context.GetLogger(ctx).Debugf("(*passthroughBlobDescriptorService).Clear: passing to openshift wrapper")
+	return (&blobDescriptorServiceFactory{}).BlobAccessController(pbds.BlobDescriptorService).Clear(ctx, dgst)
+}
+
+type passthroughBlobDescriptorServiceFactory struct{}
+
+func (pbf *passthroughBlobDescriptorServiceFactory) BlobAccessController(svc distribution.BlobDescriptorService) distribution.BlobDescriptorService {
+	return &passthroughBlobDescriptorService{svc}
+}
+
+func setPassthroughBlobDescriptorServiceFactory() {
+	middleware.RegisterOptions(storage.BlobDescriptorServiceFactory(&passthroughBlobDescriptorServiceFactory{}))
 }
