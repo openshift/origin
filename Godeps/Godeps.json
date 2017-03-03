@@ -563,8 +563,8 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/integration",
-			"Comment": "v3.1.0-rc.0",
-			"Rev": "83347907774bf36cbb261c594a32fd7b0f5dd9f6"
+			"Comment": "v3.1.0",
+			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/lease",
@@ -698,13 +698,13 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/proxy/grpcproxy",
-			"Comment": "v3.1.0-rc.0",
-			"Rev": "83347907774bf36cbb261c594a32fd7b0f5dd9f6"
+			"Comment": "v3.1.0",
+			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/proxy/grpcproxy/cache",
-			"Comment": "v3.1.0-rc.0",
-			"Rev": "83347907774bf36cbb261c594a32fd7b0f5dd9f6"
+			"Comment": "v3.1.0",
+			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/raft",
