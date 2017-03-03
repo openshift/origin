@@ -100,7 +100,7 @@ func TestFrontProxy(t *testing.T) {
 		&authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{Name: listProjectsRoleName},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("list").Groups(projectapi.GroupName).Resources("projects").RuleOrDie(),
+				authorizationapi.NewRule("list").Groups(projectapi.LegacyGroupName).Resources("projects").RuleOrDie(),
 			},
 		},
 	); err != nil {

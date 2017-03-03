@@ -1236,7 +1236,7 @@ func sendTimeout(t *testing.T, ch chan string, s string, timeout time.Duration) 
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
