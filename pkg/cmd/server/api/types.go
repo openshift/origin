@@ -43,17 +43,35 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube           = ""
-	APIGroupExtensions     = "extensions"
-	APIGroupApps           = "apps"
-	APIGroupAuthentication = "authentication.k8s.io"
-	APIGroupAuthorization  = "authorization.k8s.io"
-	APIGroupAutoscaling    = "autoscaling"
-	APIGroupBatch          = "batch"
-	APIGroupCertificates   = "certificates.k8s.io"
-	APIGroupFederation     = "federation"
-	APIGroupPolicy         = "policy"
-	APIGroupStorage        = "storage.k8s.io"
+	APIGroupKube              = ""
+	APIGroupExtensions        = "extensions"
+	APIGroupApps              = "apps"
+	APIGroupAuthentication    = "authentication.k8s.io"
+	APIGroupAuthorization     = "authorization.k8s.io"
+	APIGroupImagePolicy       = "imagepolicy.k8s.io"
+	APIGroupAutoscaling       = "autoscaling"
+	APIGroupBatch             = "batch"
+	APIGroupCertificates      = "certificates.k8s.io"
+	APIGroupFederation        = "federation"
+	APIGroupPolicy            = "policy"
+	APIGroupStorage           = "storage.k8s.io"
+	APIGroupComponentConfig   = "componentconfig"
+	APIGroupAuthorizationRbac = "rbac.authorization.k8s.io"
+
+	OriginAPIGroupCore                = ""
+	OriginAPIGroupAuthorization       = "authorization.openshift.io"
+	OriginAPIGroupBuild               = "build.openshift.io"
+	OriginAPIGroupDeploy              = "apps.openshift.io"
+	OriginAPIGroupTemplate            = "template.openshift.io"
+	OriginAPIGroupImage               = "image.openshift.io"
+	OriginAPIGroupProject             = "project.openshift.io"
+	OriginAPIGroupProjectRequestLimit = "requestlimit.project.openshift.io"
+	OriginAPIGroupUser                = "user.openshift.io"
+	OriginAPIGroupOAuth               = "oauth.openshift.io"
+	OriginAPIGroupRoute               = "route.openshift.io"
+	OriginAPIGroupNetwork             = "network.openshift.io"
+	OriginAPIGroupQuota               = "quota.openshift.io"
+	OriginAPIGroupSecurity            = "security.openshift.io"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
@@ -70,6 +88,22 @@ var (
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
+
+	OriginAPIGroupsToAllowedVersions = map[string][]string{
+		OriginAPIGroupAuthorization: {"v1"},
+		OriginAPIGroupBuild:         {"v1"},
+		OriginAPIGroupDeploy:        {"v1"},
+		OriginAPIGroupTemplate:      {"v1"},
+		OriginAPIGroupImage:         {"v1"},
+		OriginAPIGroupProject:       {"v1"},
+		OriginAPIGroupUser:          {"v1"},
+		OriginAPIGroupOAuth:         {"v1"},
+		OriginAPIGroupNetwork:       {"v1"},
+		OriginAPIGroupRoute:         {"v1"},
+		OriginAPIGroupQuota:         {"v1"},
+		OriginAPIGroupSecurity:      {"v1"},
+	}
+
 	// Map of group names to known, but disallowed REST API versions
 	KubeAPIGroupsToDeadVersions = map[string][]string{
 		APIGroupKube:        {"v1beta3"},
@@ -79,7 +113,8 @@ var (
 		APIGroupPolicy:      {},
 		APIGroupApps:        {},
 	}
-	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
+	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
+	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
 
 	// FeatureAliases maps deprecated names of feature flag to their canonical
 	// names. Aliases must be lower-cased for O(1) lookup.
