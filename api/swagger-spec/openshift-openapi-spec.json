@@ -69966,7 +69966,7 @@
     "description": "DockerBuildStrategy defines input parameters specific to Docker build.",
     "properties": {
      "buildArgs": {
-      "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+      "description": "buildArgs contains build arguments that will be resolved in the Dockerfile.  See https://docs.docker.com/engine/reference/builder/#/arg for more details.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.EnvVar"
@@ -69990,6 +69990,10 @@
      "from": {
       "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build.",
       "$ref": "#/definitions/v1.ObjectReference"
+     },
+     "imageOptimizationPolicy": {
+      "description": "imageOptimizationPolicy describes what optimizations the system can use when building images to reduce the final size or time spent building the image. The default policy is 'None' which means the final build image will be equivalent to an image created by the Docker build API. The experimental policy 'SkipLayers' will avoid commiting new layers in between each image step, and will fail if the Dockerfile cannot provide compatibility with the 'None' policy. An additional experimental policy 'SkipLayersAndWarn' is the same as 'SkipLayers' but simply warns if compatibility cannot be preserved.",
+      "type": "string"
      },
      "noCache": {
       "description": "noCache if set to true indicates that the docker build must be executed with the --no-cache=true flag",

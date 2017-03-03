@@ -782,6 +782,13 @@ func DeepCopy_api_DockerBuildStrategy(in interface{}, out interface{}, c *conver
 		}
 		out.ForcePull = in.ForcePull
 		out.DockerfilePath = in.DockerfilePath
+		if in.ImageOptimizationPolicy != nil {
+			in, out := &in.ImageOptimizationPolicy, &out.ImageOptimizationPolicy
+			*out = new(ImageOptimizationPolicy)
+			**out = **in
+		} else {
+			out.ImageOptimizationPolicy = nil
+		}
 		return nil
 	}
 }

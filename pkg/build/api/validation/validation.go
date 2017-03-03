@@ -485,6 +485,14 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 
+	switch t := strategy.ImageOptimizationPolicy; {
+	case t == nil:
+	case *t == buildapi.ImageOptimizationSkipLayers, *t == buildapi.ImageOptimizationSkipLayersAndWarn,
+		*t == buildapi.ImageOptimizationNone:
+	default:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("imageOptimizationPolicy"), *t, "must be unset, 'None', 'SkipLayers', or 'SkipLayersAndWarn"))
+	}
+
 	if len(strategy.DockerfilePath) != 0 {
 		cleaned, errs := validateRelativePath(strategy.DockerfilePath, "dockerfilePath", fldPath.Child("dockerfilePath"))
 		allErrs = append(allErrs, errs...)
