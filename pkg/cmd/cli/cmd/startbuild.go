@@ -238,9 +238,9 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 			return err
 		}
 		switch resource {
-		case buildapi.Resource("buildconfigs"):
+		case buildapi.Resource("buildconfigs"), buildapi.LegacyResource("buildconfigs"):
 			// no special handling required
-		case buildapi.Resource("builds"):
+		case buildapi.Resource("builds"), buildapi.LegacyResource("builds"):
 			if len(o.ListWebhooks) == 0 {
 				return fmt.Errorf("use --from-build to rerun your builds")
 			}
@@ -250,7 +250,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	}
 
 	// when listing webhooks, allow --from-build to lookup a build config
-	if resource == buildapi.Resource("builds") && len(o.ListWebhooks) > 0 {
+	if (resource == buildapi.Resource("builds") || resource == buildapi.LegacyResource("builds")) && len(o.ListWebhooks) > 0 {
 		build, err := client.Builds(namespace).Get(name)
 		if err != nil {
 			return err

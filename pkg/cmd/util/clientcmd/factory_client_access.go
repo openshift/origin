@@ -376,14 +376,14 @@ func (f *ring0Factory) Generators(cmdName string) map[string]kubectl.Generator {
 }
 
 func (f *ring0Factory) CanBeExposed(kind unversioned.GroupKind) error {
-	if kind == deployapi.Kind("DeploymentConfig") {
+	if kind == deployapi.Kind("DeploymentConfig") || kind == deployapi.LegacyKind("DeploymentConfig") {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeExposed(kind)
 }
 
 func (f *ring0Factory) CanBeAutoscaled(kind unversioned.GroupKind) error {
-	if kind == deployapi.Kind("DeploymentConfig") {
+	if kind == deployapi.Kind("DeploymentConfig") || kind == deployapi.LegacyKind("DeploymentConfig") {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeAutoscaled(kind)

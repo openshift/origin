@@ -140,7 +140,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 
 		switch resource {
-		case buildapi.Resource("buildconfigs"):
+		case buildapi.Resource("buildconfigs"), buildapi.LegacyResource("buildconfigs"):
 			list, err := buildutil.BuildConfigBuilds(o.BuildLister, o.Namespace, name, nil)
 			if err != nil {
 				return err
@@ -148,7 +148,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			for _, b := range list.Items {
 				o.BuildNames = append(o.BuildNames, b.Name)
 			}
-		case buildapi.Resource("builds"):
+		case buildapi.Resource("builds"), buildapi.LegacyResource("builds"):
 			o.BuildNames = append(o.BuildNames, strings.TrimSpace(name))
 		default:
 			return fmt.Errorf("invalid resource provided: %v", resource)

@@ -30,7 +30,7 @@ func NewReplenishmentControllerFactory(isInformer shared.ImageStreamInformer) kr
 
 func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.ControllerInterface, error) {
 	switch options.GroupKind {
-	case imageapi.Kind("ImageStream"):
+	case imageapi.Kind("ImageStream"), imageapi.LegacyKind("ImageStream"):
 		r.isInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: ImageStreamReplenishmentUpdateFunc(options),
 			DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),

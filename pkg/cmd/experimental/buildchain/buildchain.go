@@ -104,7 +104,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 
 	switch resource {
-	case imageapi.Resource("imagestreamtags"):
+	case imageapi.Resource("imagestreamtags"), imageapi.LegacyResource("imagestreamtags"):
 		o.name = imageapi.NormalizeImageStreamTag(o.name)
 		glog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
 	default:

@@ -64,7 +64,8 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 	if len(attributes.GetSubresource()) != 0 {
 		return nil
 	}
-	if attributes.GetResource().GroupResource() != buildapi.Resource("buildconfigs") && attributes.GetResource().GroupResource() != buildapi.Resource("builds") {
+	if attributes.GetResource().GroupResource() != buildapi.Resource("buildconfigs") && attributes.GetResource().GroupResource() != buildapi.Resource("builds") &&
+		attributes.GetResource().GroupResource() != buildapi.LegacyResource("buildconfigs") && attributes.GetResource().GroupResource() != buildapi.LegacyResource("builds") {
 		return nil
 	}
 	if !needsJenkinsTemplate(attributes.GetObject()) {

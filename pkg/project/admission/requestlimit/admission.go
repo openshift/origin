@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -70,12 +71,16 @@ type projectRequestLimit struct {
 var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
 var _ = oadmission.WantsOpenshiftClient(&projectRequestLimit{})
 
+func isProjectRequest(gk unversioned.GroupResource) bool {
+	return gk == projectapi.Resource("projectrequests") || gk == projectapi.LegacyResource("projectrequests")
+}
+
 // Admit ensures that only a configured number of projects can be requested by a particular user.
 func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
 	if o.config == nil {
 		return nil
 	}
-	if a.GetResource().GroupResource() != projectapi.Resource("projectrequests") {
+	if !isProjectRequest(a.GetResource().GroupResource()) {
 		return nil
 	}
 	if _, isProjectRequest := a.GetObject().(*projectapi.ProjectRequest); !isProjectRequest {

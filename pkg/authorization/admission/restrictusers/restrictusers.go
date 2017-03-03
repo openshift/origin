@@ -86,8 +86,8 @@ func objectReferenceDelta(elementsToIgnore, elements []kapi.ObjectReference) []k
 func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	// We only care about rolebindings and policybindings; ignore anything else.
 	switch a.GetResource().GroupResource() {
-	case authorizationapi.Resource("rolebindings"):
-	case authorizationapi.Resource("policybindings"):
+	case authorizationapi.Resource("rolebindings"), authorizationapi.LegacyResource("rolebindings"):
+	case authorizationapi.Resource("policybindings"), authorizationapi.LegacyResource("policybindings"):
 	default:
 		return nil
 	}
@@ -107,7 +107,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 
 	obj, oldObj := a.GetObject(), a.GetOldObject()
 	switch a.GetResource().GroupResource() {
-	case authorizationapi.Resource("rolebindings"):
+	case authorizationapi.Resource("rolebindings"), authorizationapi.LegacyResource("rolebindings"):
 		rolebinding, ok := obj.(*authorizationapi.RoleBinding)
 		if !ok {
 			return admission.NewForbidden(a,
@@ -132,7 +132,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 		glog.V(4).Infof("Handling rolebinding %s/%s",
 			rolebinding.Namespace, rolebinding.Name)
 
-	case authorizationapi.Resource("policybindings"):
+	case authorizationapi.Resource("policybindings"), authorizationapi.LegacyResource("policybindings"):
 		policybinding, ok := obj.(*authorizationapi.PolicyBinding)
 		if !ok {
 			return admission.NewForbidden(a,

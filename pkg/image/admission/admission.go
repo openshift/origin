@@ -92,7 +92,8 @@ func (a *imageLimitRangerPlugin) SupportsAttributes(attr kadmission.Attributes) 
 		return false
 	}
 
-	return attr.GetKind().GroupKind() == imageapi.Kind("ImageStreamMapping")
+	return attr.GetKind().GroupKind() == imageapi.Kind("ImageStreamMapping") ||
+		attr.GetKind().GroupKind() == imageapi.LegacyKind("ImageStreamMapping")
 }
 
 // SupportsLimit provides a check to see if the limitRange is applicable to image objects.

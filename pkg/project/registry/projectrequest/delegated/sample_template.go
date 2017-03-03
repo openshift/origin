@@ -5,10 +5,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapiv1 "github.com/openshift/origin/pkg/project/api/v1"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -32,8 +33,6 @@ func DefaultTemplate() *templateapi.Template {
 
 	ns := "${" + ProjectNameParam + "}"
 
-	templateContents := []runtime.Object{}
-
 	project := &projectapi.Project{}
 	project.Name = ns
 	project.Annotations = map[string]string{
@@ -41,11 +40,15 @@ func DefaultTemplate() *templateapi.Template {
 		oapi.OpenShiftDisplayName:   "${" + ProjectDisplayNameParam + "}",
 		projectapi.ProjectRequester: "${" + ProjectRequesterParam + "}",
 	}
-	templateContents = append(templateContents, project)
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{project}, projectapiv1.SchemeGroupVersion); err != nil {
+		panic(err)
+	}
 
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
-		templateContents = append(templateContents, &serviceAccountRoleBindings[i])
+		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, authorizationapiv1.SchemeGroupVersion); err != nil {
+			panic(err)
+		}
 	}
 
 	binding := &authorizationapi.RoleBinding{}
@@ -53,9 +56,7 @@ func DefaultTemplate() *templateapi.Template {
 	binding.Namespace = ns
 	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
-	templateContents = append(templateContents, binding)
-
-	if err := templateapi.AddObjectsToTemplate(ret, templateContents, latest.Version); err != nil {
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{binding}, authorizationapiv1.SchemeGroupVersion); err != nil {
 		// this should never happen because we're tightly controlling what goes in.
 		panic(err)
 	}

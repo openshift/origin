@@ -39,15 +39,26 @@ func NewBuildByStrategy() admission.Interface {
 var (
 	buildsResource       = buildapi.Resource("builds")
 	buildConfigsResource = buildapi.Resource("buildconfigs")
+
+	legacyBuildsResource       = buildapi.LegacyResource("builds")
+	legacyBuildConfigsResource = buildapi.LegacyResource("buildconfigs")
 )
 
+func isBuildResource(gvr unversioned.GroupResource) bool {
+	return gvr == buildsResource || gvr == legacyBuildsResource
+}
+
+func isBuildConfigResource(gvr unversioned.GroupResource) bool {
+	return gvr == buildConfigsResource || gvr == legacyBuildConfigsResource
+}
+
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {
-	if resource := attr.GetResource().GroupResource(); resource != buildsResource && resource != buildConfigsResource {
+	if resource := attr.GetResource().GroupResource(); !isBuildConfigResource(resource) && !isBuildResource(resource) {
 		return nil
 	}
 	// Explicitly exclude the builds/details subresource because it's only
 	// updating commit info and cannot change build type.
-	if attr.GetResource().GroupResource() == buildsResource && attr.GetSubresource() == "details" {
+	if isBuildResource(attr.GetResource().GroupResource()) && attr.GetSubresource() == "details" {
 		return nil
 	}
 	switch obj := attr.GetObject().(type) {
@@ -135,13 +146,13 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
 	switch attr.GetResource().GroupResource() {
-	case buildsResource:
+	case buildsResource, legacyBuildsResource:
 		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(build, attr)
-	case buildConfigsResource:
+	case buildConfigsResource, legacyBuildConfigsResource:
 		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
 			return admission.NewForbidden(attr, err)
@@ -157,8 +168,22 @@ func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAc
 	if err != nil {
 		return admission.NewForbidden(attr, err)
 	}
+	// If not allowed, try to check against the legacy resource
+	// FIXME: Remove this when the legacy API is deprecated
 	if !resp.Allowed {
-		return notAllowed(strategy, attr)
+		obj, err := kapi.Scheme.DeepCopy(subjectAccessReview)
+		if err != nil {
+			return admission.NewForbidden(attr, err)
+		}
+		legacySar := obj.(*authorizationapi.LocalSubjectAccessReview)
+		legacySar.Action.Group = ""
+		resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(legacySar)
+		if err != nil {
+			return admission.NewForbidden(attr, err)
+		}
+		if !resp.Allowed {
+			return notAllowed(strategy, attr)
+		}
 	}
 	return nil
 }

@@ -479,7 +479,8 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	return gvk[0].GroupKind() == build.Kind("BuildConfig") || gvk[0].GroupKind() == image.Kind("ImageStream")
+	return gvk[0].GroupKind() == build.Kind("BuildConfig") || gvk[0].GroupKind() == image.Kind("ImageStream") ||
+		gvk[0].GroupKind() == build.LegacyKind("BuildConfig") || gvk[0].GroupKind() == image.LegacyKind("ImageStream")
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects
