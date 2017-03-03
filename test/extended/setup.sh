@@ -91,7 +91,7 @@ function os::test::extended::setup () {
 		LOCAL_STORAGE_QUOTA="1"
 		export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
 	else
-		os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
+		os::log::warning "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
 	fi
 
 	# Allow setting $JUNIT_REPORT to toggle output behavior
@@ -201,7 +201,7 @@ function os::test::extended::run () {
 	os::test::extended::test_list "${listArgs[@]}"
 
 	if [[ "${TEST_COUNT}" -eq 0 ]]; then
-		os::log::warn "No tests were selected"
+		os::log::warning "No tests were selected"
 		return
 	fi
 
@@ -237,7 +237,7 @@ function os::test::extended::test_list () {
 	done
 	if [[ -n "${PRINT_TESTS:-}" ]]; then
 		if [[ ${#selected_tests[@]} -eq 0 ]]; then
-			os::log::warn "No tests were selected"
+			os::log::warning "No tests were selected"
 		else
 			printf '%s\n' "${selected_tests[@]}" | sort
 		fi

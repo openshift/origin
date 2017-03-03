@@ -2,7 +2,7 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 if [[ "${PROTO_OPTIONAL:-}" == "1" ]]; then
-  os::log::warn "Skipping protobuf generation as \$PROTO_OPTIONAL is set."
+  os::log::warning "Skipping protobuf generation as \$PROTO_OPTIONAL is set."
   exit 0
 fi
 
