@@ -21,7 +21,7 @@ func (z *AdapterAuthorizer) Authorize(kattrs kauthorizer.Attributes) (bool, stri
 	allowed, reason, err := z.originAuthorizer.Authorize(OriginAuthorizerAttributes(kattrs))
 
 	if err != nil {
-		glog.V(5).Infof("evaluation error: %v", err)
+		glog.V(5).Infof("Authorize error: %v", err)
 		return allowed, reason, err
 	}
 
