@@ -312,6 +312,10 @@ const (
 	// build has failed.
 	StatusReasonFetchSourceFailed StatusReason = "FetchSourceFailed"
 
+	// StatusReasonInvalidContextDirectory indicates that the supplied
+	// contextDir does not exist
+	StatusReasonInvalidContextDirectory StatusReason = "InvalidContextDirectory"
+
 	// StatusReasonCancelledBuild indicates that the build was cancelled by the
 	// user.
 	StatusReasonCancelledBuild StatusReason = "CancelledBuild"
@@ -338,6 +342,7 @@ const (
 	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry."
 	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image."
 	StatusMessageFetchSourceFailed         = "Failed to fetch the input source."
+	StatusMessageInvalidContextDirectory   = "The supplied context directory does not exist."
 	StatusMessageCancelledBuild            = "The build was cancelled by the user."
 	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
 	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
