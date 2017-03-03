@@ -41,32 +41,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 
-# TODO(skuznets): remove these once we've migrated all tools to the new vars
-if [[ -n "${KUBE_TIMEOUT+x}" ]]; then
-    TIMEOUT="${KUBE_TIMEOUT}"
-    os::log::warning "The flag \$KUBE_TIMEOUT for $0 is deprecated, use \$TIMEOUT instead."
-fi
-
-if [[ -n "${KUBE_COVER+x}" ]]; then
-    COVERAGE_SPEC="${KUBE_COVER}"
-    os::log::warning "The flag \$KUBE_COVER for $0 is deprecated, use \$COVERAGE_SPEC instead."
-fi
-
-if [[ -n "${OUTPUT_COVERAGE+x}" ]]; then
-    COVERAGE_OUTPUT_DIR="${OUTPUT_COVERAGE}"
-    os::log::warning "The flag \$OUTPUT_COVERAGE for $0 is deprecated, use \$COVERAGE_OUTPUT_DIR instead."
-fi
-
-if [[ -n "${KUBE_RACE+x}" ]]; then
-    DETECT_RACES="${KUBE_RACE}"
-    os::log::warning "The flag \$KUBE_RACE for $0 is deprecated, use \$DETECT_RACES instead."
-fi
-
-if [[ -n "${PRINT_PACKAGES+x}" ]]; then
-    DRY_RUN="${PRINT_PACKAGES}"
-    os::log::warning "The flag \$PRINT_PACKAGES for $0 is deprecated, use \$DRY_RUN instead."
-fi
-
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
 test_kube="${TEST_KUBE:-}"
