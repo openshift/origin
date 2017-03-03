@@ -168,6 +168,12 @@ type SecureServingInfo struct {
 	SNICerts []NamedCertKey
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA *x509.CertPool
+	// MinTLSVersion optionally overrides the minimum TLS version supported.
+	// If 0, the default is used.
+	MinTLSVersion uint16
+	// CipherSuites optionally overrides the list of cipher suites for the server.
+	// If empty, the default is used.
+	CipherSuites []uint16
 }
 
 type CertKey struct {
