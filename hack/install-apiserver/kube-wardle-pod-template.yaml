@@ -1,0 +1,94 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "kube-wardle"
+labels:
+  createdBy: "kube-wardle"
+parameters:
+  - name: CLIENT_CA
+    description: "ca for validating clients"
+    required: true
+  - name: ETCD_URL
+    description: "where to hit etcd"
+    required: true
+  - name: ETCD_CA
+    description: "ca to trust the etcd server"
+    required: true
+  - name: ETCD_WRITE_CRT
+    description: "client cert to use for etcd communication"
+    required: true
+  - name: ETCD_WRITE_KEY
+    description: "client cert to use for etcd communication"
+    required: true
+  - name: SERVING_CRT
+    description: "serving cert"
+    required: true
+  - name: SERVING_KEY
+    description: "serving key"
+    required: true
+  - name: KUBECONFIG
+    description: "kubeconfig identifying this apiserver pod to the core apiserver"
+    required: true
+  - name: NAMESPACE
+    description: "namespace for this pod"
+    required: true
+  - name: CONFIG_DIR
+    description: "config dir for hostpath"
+    required: true
+  - name: CONFIG_DIR_MOUNT
+    description: "config dir to mount the hostpath"
+    required: true
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      name: "apiserver"
+      namespace: "${NAMESPACE}"
+      labels:
+        app: "api"
+    spec:
+      hostNetwork: true
+      containers:
+        - name: "apiserver"
+          image: "deads2k/kube-sample-apiserver"
+          args:
+          - "--authentication-skip-lookup"
+          - "--authentication-kubeconfig=${KUBECONFIG}"
+          - "--authorization-kubeconfig=${KUBECONFIG}"
+          - "--client-ca-file=${CLIENT_CA}"
+          - "--etcd-servers=${ETCD_URL}"
+          - "--etcd-cafile=${ETCD_CA}"
+          - "--etcd-certfile=${ETCD_WRITE_CRT}"
+          - "--etcd-keyfile=${ETCD_WRITE_KEY}"
+          - "--tls-cert-file=${SERVING_CRT}"
+          - "--tls-private-key-file=${SERVING_KEY}"
+          - "--v=5"
+          ports:
+            - containerPort: 443
+              protocol: TCP
+          volumeMounts:
+          - name: config-dir
+            mountPath: ${CONFIG_DIR_MOUNT}
+          livenessProbe: 
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 443
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 443
+              scheme: HTTPS
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+      volumes:
+      - name: config-dir
+        hostPath:
+          path: ${CONFIG_DIR}
