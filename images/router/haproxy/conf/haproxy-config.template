@@ -448,7 +448,11 @@ backend be_secure_{{$cfgIdx}}
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   {{ if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
+    {{ if ne $cfg.InsecureEdgeTerminationPolicy "Allow" }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
+    {{ else }}
+  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
+    {{ end }}
   {{ end }}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ if ne $weight 0 }}
