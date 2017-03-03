@@ -132,6 +132,10 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 	switch info.Object.(type) {
 	// TODO: add any custom mutations necessary
 	default:
+		// FIXME: This is happening for projectrequests/ resource
+		if len(info.Name) == 0 {
+			return migrate.ErrUnchanged
+		}
 		// load the body and save it back, without transformation to avoid losing fields
 		get := info.Client.Get().
 			Resource(info.Mapping.Resource).

@@ -23,18 +23,24 @@ var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
 	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
 	batch.Resource("jobs"):                  batch.Kind("Job"),
 	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
+
 	// TODO do we still need this or is cronjob sufficient?
-	batch.Resource("scheduledjobs"):                             batch.Kind("ScheduledJob"),
-	batch.Resource("cronjobs"):                                  batch.Kind("CronJob"),
-	extensions.Resource("deployments"):                          extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"):                          extensions.Kind("ReplicaSet"),
-	extensions.Resource("jobs"):                                 extensions.Kind("Job"),
-	extensions.Resource("jobtemplates"):                         extensions.Kind("JobTemplate"),
-	apps.Resource("statefulsets"):                               apps.Kind("StatefulSet"),
-	deployapi.Resource("deploymentconfigs"):                     deployapi.Kind("DeploymentConfig"),
-	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
-	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
-	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),
+	batch.Resource("scheduledjobs"):     batch.Kind("ScheduledJob"),
+	batch.Resource("cronjobs"):          batch.Kind("CronJob"),
+	extensions.Resource("deployments"):  extensions.Kind("Deployment"),
+	extensions.Resource("replicasets"):  extensions.Kind("ReplicaSet"),
+	extensions.Resource("jobs"):         extensions.Kind("Job"),
+	extensions.Resource("jobtemplates"): extensions.Kind("JobTemplate"),
+	apps.Resource("statefulsets"):       apps.Kind("StatefulSet"),
+
+	deployapi.Resource("deploymentconfigs"):                           deployapi.Kind("DeploymentConfig"),
+	deployapi.LegacyResource("deploymentconfigs"):                     deployapi.LegacyKind("DeploymentConfig"),
+	securityapi.Resource("podsecuritypolicysubjectreviews"):           securityapi.Kind("PodSecurityPolicySubjectReview"),
+	securityapi.LegacyResource("podsecuritypolicysubjectreviews"):     securityapi.LegacyKind("PodSecurityPolicySubjectReview"),
+	securityapi.Resource("podsecuritypolicyselfsubjectreviews"):       securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
+	securityapi.LegacyResource("podsecuritypolicyselfsubjectreviews"): securityapi.LegacyKind("PodSecurityPolicySelfSubjectReview"),
+	securityapi.Resource("podsecuritypolicyreviews"):                  securityapi.Kind("PodSecurityPolicyReview"),
+	securityapi.LegacyResource("podsecuritypolicyreviews"):            securityapi.LegacyKind("PodSecurityPolicyReview"),
 }
 
 // HasPodSpec returns true if the resource is known to have a pod spec.

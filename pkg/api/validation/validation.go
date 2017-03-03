@@ -128,12 +128,17 @@ func GetRequiresNamespace(obj runtime.Object) (bool, error) {
 		return false, err
 	}
 
-	restMapping, err := registered.RESTMapper().RESTMapping(groupVersionKinds[0].GroupKind())
-	if err != nil {
-		return false, err
+	for _, gvk := range groupVersionKinds {
+		restMapping, err := registered.RESTMapper().RESTMapping(gvk.GroupKind())
+		if err != nil {
+			return false, err
+		}
+		if restMapping.Scope.Name() == meta.RESTScopeNameNamespace {
+			return true, nil
+		}
 	}
 
-	return restMapping.Scope.Name() == meta.RESTScopeNameNamespace, nil
+	return false, nil
 }
 
 func HasObjectMeta(obj runtime.Object) bool {

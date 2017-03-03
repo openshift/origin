@@ -609,8 +609,8 @@ var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent")
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
 	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
-		osapi.SchemeGroupVersion:    {v1.SchemeGroupVersion},
-		quotaapi.SchemeGroupVersion: {quotaapiv1.SchemeGroupVersion},
+		osapi.SchemeGroupVersion:          {v1.SchemeGroupVersion},
+		quotaapi.LegacySchemeGroupVersion: {quotaapiv1.LegacySchemeGroupVersion},
 	}
 
 	for internalVersion, externalVersions := range internalVersionToExternalVersions {
