@@ -74,7 +74,7 @@ function image-build() {
 
 	# build the image
 	if ! os::build::image "${dir}" "${dest}"; then
-		os::log::warn "Retrying build once"
+		os::log::warning "Retrying build once"
 		os::build::image "${dir}" "${dest}"
 	fi
 

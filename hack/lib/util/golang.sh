@@ -14,8 +14,8 @@ function os::golang::verify_go_version() {
 			os::log::error "Please install Go version 1.7 or use PERMISSIVE_GO=y to bypass this check."
 			return 1
 		else
-			os::log::warn "Detected golang version doesn't match preferred Go version for Origin."
-			os::log::warn "This version mismatch could lead to differences in execution between this run and the Origin CI systems."
+			os::log::warning "Detected golang version doesn't match preferred Go version for Origin."
+			os::log::warning "This version mismatch could lead to differences in execution between this run and the Origin CI systems."
 			return 0
 		fi
 	fi
