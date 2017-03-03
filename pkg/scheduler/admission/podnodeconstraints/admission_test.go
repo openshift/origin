@@ -208,8 +208,8 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 		},
 		{
 			resource:      podTemplate,
-			kind:          deployapi.Kind("PodTemplate"),
-			groupresource: deployapi.Resource("podtemplates"),
+			kind:          deployapi.LegacyKind("PodTemplate"),
+			groupresource: deployapi.LegacyResource("podtemplates"),
 			prefix:        "PodTemplate",
 		},
 		{

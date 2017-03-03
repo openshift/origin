@@ -63,7 +63,7 @@ func TestAuthorize(t *testing.T) {
 		{
 			name:           "scope covers",
 			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
-			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", Resource: "users", ResourceName: "~"},
+			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", Resource: "users", APIGroup: "user.openshift.io", ResourceName: "~"},
 			expectedCalled: true,
 		},
 		{

@@ -19,7 +19,7 @@ import (
 
 func TestDeploymentConfigDescriber(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.LegacySchemeGroupVersion))
 	podList := &kapi.PodList{}
 
 	fake := &testclient.Fake{}

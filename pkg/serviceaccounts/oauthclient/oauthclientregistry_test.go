@@ -142,7 +142,7 @@ func TestGetClient(t *testing.T) {
 						UID:       types.UID("any"),
 						Annotations: map[string]string{
 							OAuthRedirectModelAnnotationURIPrefix + "one":     "http://anywhere",
-							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
 						},
 					},
 				},
@@ -263,7 +263,7 @@ func TestGetClient(t *testing.T) {
 						UID:       types.UID("any"),
 						Annotations: map[string]string{
 							OAuthRedirectModelAnnotationURIPrefix + "one":     "http://anywhere",
-							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
 						},
 					},
 				},
@@ -323,8 +323,8 @@ func TestGetClient(t *testing.T) {
 						UID:       types.UID("any"),
 						Annotations: map[string]string{
 							OAuthRedirectModelAnnotationURIPrefix + "one":     "http://anywhere",
-							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", ""),
-							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route2", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
+							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route2", "route.openshift.io"),
 							OAuthRedirectModelAnnotationReferencePrefix + "3": buildRedirectObjectReferenceString(routeKind, "missingroute", ""),
 						},
 					},
@@ -408,9 +408,9 @@ func TestGetClient(t *testing.T) {
 						Name:      "default",
 						UID:       types.UID("any"),
 						Annotations: map[string]string{
-							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
 							OAuthRedirectModelAnnotationURIPrefix + "1":       "//redhat.com",
-							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route2", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route2", "route.openshift.io"),
 							OAuthRedirectModelAnnotationURIPrefix + "2":       "//google.com",
 						},
 					},
@@ -488,9 +488,9 @@ func TestGetClient(t *testing.T) {
 						UID:       types.UID("any"),
 						Annotations: map[string]string{
 							OAuthRedirectModelAnnotationURIPrefix + "1":       "/awesomepath",
-							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "1": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
 							OAuthRedirectModelAnnotationURIPrefix + "2":       "//:8000",
-							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route1", ""),
+							OAuthRedirectModelAnnotationReferencePrefix + "2": buildRedirectObjectReferenceString(routeKind, "route1", "route.openshift.io"),
 						},
 					},
 				},

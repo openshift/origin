@@ -27,7 +27,7 @@ func TestRESTRootScope(t *testing.T) {
 func TestResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := Version.WithKind("User")
-	gvk, err := registered.RESTMapper().KindFor(userapi.SchemeGroupVersion.WithResource("User"))
+	gvk, err := registered.RESTMapper().KindFor(userapi.LegacyResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

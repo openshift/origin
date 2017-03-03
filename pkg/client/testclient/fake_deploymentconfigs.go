@@ -65,7 +65,7 @@ func (c *FakeDeploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, e
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(deployapi.SchemeGroupVersion.WithResource("generatedeploymentconfigs"), c.Namespace, name), &deployapi.DeploymentConfig{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(deployapi.LegacySchemeGroupVersion.WithResource("generatedeploymentconfigs"), c.Namespace, name), &deployapi.DeploymentConfig{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConf
 }
 
 func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigs/rollback"), c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewCreateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/rollback"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollba
 }
 
 func (c *FakeDeploymentConfigs) RollbackDeprecated(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigrollbacks"), c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewCreateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigrollbacks"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (c *FakeDeploymentConfigs) RollbackDeprecated(inObj *deployapi.DeploymentCo
 }
 
 func (c *FakeDeploymentConfigs) GetScale(name string) (*extensions.Scale, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, name), &extensions.Scale{})
+	obj, err := c.Fake.Invokes(core.NewGetAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, name), &extensions.Scale{})
 	if obj == nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (c *FakeDeploymentConfigs) GetScale(name string) (*extensions.Scale, error)
 }
 
 func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extensions.Scale, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extension
 }
 
 func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigs/status"), c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/status"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) 
 
 func (c *FakeDeploymentConfigs) Instantiate(inObj *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error) {
 	deployment := &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: inObj.Name}}
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.SchemeGroupVersion.WithResource("deploymentconfigs/instantiate"), c.Namespace, deployment), deployment)
+	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/instantiate"), c.Namespace, deployment), deployment)
 	if obj == nil {
 		return nil, err
 	}

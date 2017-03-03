@@ -194,7 +194,7 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 	if err == nil || !kerrors.IsNotFound(err) {
 		t.Fatalf("Unexpected error type: %v", err)
 	}
-	if !strings.Contains(err.Error(), "DeploymentConfig \"deploy1\" not found") {
+	if !strings.Contains(err.Error(), `DeploymentConfig.apps.openshift.io "deploy1" not found`) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }

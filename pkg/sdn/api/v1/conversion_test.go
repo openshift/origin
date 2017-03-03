@@ -11,6 +11,28 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
+	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "ClusterNetwork",
+		// Ensure all currently returned labels are supported
+		api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}),
+	)
+
+	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "HostSubnet",
+		// Ensure all currently returned labels are supported
+		api.HostSubnetToSelectableFields(&api.HostSubnet{}),
+	)
+
+	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "NetNamespace",
+		// Ensure all currently returned labels are supported
+		api.NetNamespaceToSelectableFields(&api.NetNamespace{}),
+	)
+
+	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "EgressNetworkPolicy",
+		// Ensure all currently returned labels are supported
+		api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}),
+	)
+}
+
+func TestLegacyFieldSelectorConversions(t *testing.T) {
 	testutil.CheckFieldLabelConversions(t, "v1", "ClusterNetwork",
 		// Ensure all currently returned labels are supported
 		api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}),

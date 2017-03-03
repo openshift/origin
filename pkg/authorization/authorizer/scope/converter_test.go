@@ -122,7 +122,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 				},
 			},
 			scopes:   []string{ClusterRoleIndicator + "missing:*"},
-			err:      `clusterrole "missing" not found`,
+			err:      `clusterrole.authorization.openshift.io "missing" not found`,
 			numRules: 1,
 		},
 		{

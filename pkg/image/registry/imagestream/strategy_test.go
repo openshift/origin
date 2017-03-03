@@ -312,6 +312,7 @@ func TestTagVerifier(t *testing.T) {
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
 				Action: authorizationapi.Action{
+					Group:        "image.openshift.io",
 					Verb:         "get",
 					Resource:     "imagestreams/layers",
 					ResourceName: "otherstream",
