@@ -275,6 +275,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
 				// which we do not control when running with http.Server#ListenAndServeTLS
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+				MinVersion:     crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion),
+				CipherSuites:   crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites),
 			}),
 			CertFile: options.ServingInfo.ServerCert.CertFile,
 			KeyFile:  options.ServingInfo.ServerCert.KeyFile,

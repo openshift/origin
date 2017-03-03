@@ -27,64 +27,150 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"sort"
+
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
-// SecureTLSConfig enforces the default minimum security settings for the
-// cluster.
-// TODO: allow override
-func SecureTLSConfig(config *tls.Config) *tls.Config {
-	// Recommendations from https://wiki.mozilla.org/Security/Server_Side_TLS
+var versions = map[string]uint16{
+	"VersionTLS10": tls.VersionTLS10,
+	"VersionTLS11": tls.VersionTLS11,
+	"VersionTLS12": tls.VersionTLS12,
+}
+
+func TLSVersion(versionName string) (uint16, error) {
+	if len(versionName) == 0 {
+		return DefaultTLSVersion(), nil
+	}
+	if version, ok := versions[versionName]; ok {
+		return version, nil
+	}
+	return 0, fmt.Errorf("unknown tls version %q", versionName)
+}
+func TLSVersionOrDie(versionName string) uint16 {
+	version, err := TLSVersion(versionName)
+	if err != nil {
+		panic(err)
+	}
+	return version
+}
+func ValidTLSVersions() []string {
+	validVersions := []string{}
+	for k := range versions {
+		validVersions = append(validVersions, k)
+	}
+	sort.Strings(validVersions)
+	return validVersions
+}
+func DefaultTLSVersion() uint16 {
 	// Can't use SSLv3 because of POODLE and BEAST
 	// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
 	// Can't use TLSv1.1 because of RC4 cipher usage
-	config.MinVersion = tls.VersionTLS12
-	// In a legacy environment, allow cipher control to be disabled.
-	if len(os.Getenv("OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES")) == 0 {
-		config.PreferServerCipherSuites = true
-		config.CipherSuites = []uint16{
-			// Ciphers below are selected and ordered based on the recommended "Intermediate compatibility" suite
-			// Compare with available ciphers when bumping Go versions
-			//
-			// Available ciphers from last comparison (go 1.6):
-			// TLS_RSA_WITH_RC4_128_SHA - no
-			// TLS_RSA_WITH_3DES_EDE_CBC_SHA
-			// TLS_RSA_WITH_AES_128_CBC_SHA
-			// TLS_RSA_WITH_AES_256_CBC_SHA
-			// TLS_RSA_WITH_AES_128_GCM_SHA256
-			// TLS_RSA_WITH_AES_256_GCM_SHA384
-			// TLS_ECDHE_ECDSA_WITH_RC4_128_SHA - no
-			// TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-			// TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-			// TLS_ECDHE_RSA_WITH_RC4_128_SHA - no
-			// TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
-			// TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-			// TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-			// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-			// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-			// TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-			// TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	return tls.VersionTLS12
+}
 
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			// the next two are in the intermediate suite, but go1.6 http2 complains when they are included at the recommended index
-			// fixed in https://github.com/golang/go/commit/b5aae1a2845f157a2565b856fb2d7773a0f7af25 in go1.7
-			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+var ciphers = map[string]uint16{
+	"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
+	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":        tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_RC4_128_SHA":          tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":     tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+}
+
+func CipherSuite(cipherName string) (uint16, error) {
+	if cipher, ok := ciphers[cipherName]; ok {
+		return cipher, nil
+	}
+	return 0, fmt.Errorf("unknown cipher name %q", cipherName)
+}
+
+func CipherSuitesOrDie(cipherNames []string) []uint16 {
+	if len(cipherNames) == 0 {
+		return DefaultCiphers()
+	}
+	cipherValues := []uint16{}
+	for _, cipherName := range cipherNames {
+		cipher, err := CipherSuite(cipherName)
+		if err != nil {
+			panic(err)
 		}
-	} else {
-		glog.Warningf("Potentially insecure TLS cipher suites are allowed in client connections because environment variable OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES is set")
+		cipherValues = append(cipherValues, cipher)
+	}
+	return cipherValues
+}
+func ValidCipherSuites() []string {
+	validCipherSuites := []string{}
+	for k := range ciphers {
+		validCipherSuites = append(validCipherSuites, k)
+	}
+	sort.Strings(validCipherSuites)
+	return validCipherSuites
+}
+func DefaultCiphers() []uint16 {
+	return []uint16{
+		// Ciphers below are selected and ordered based on the recommended "Intermediate compatibility" suite
+		// Compare with available ciphers when bumping Go versions
+		//
+		// Available ciphers from last comparison (go 1.6):
+		// TLS_RSA_WITH_RC4_128_SHA - no
+		// TLS_RSA_WITH_3DES_EDE_CBC_SHA
+		// TLS_RSA_WITH_AES_128_CBC_SHA
+		// TLS_RSA_WITH_AES_256_CBC_SHA
+		// TLS_RSA_WITH_AES_128_GCM_SHA256
+		// TLS_RSA_WITH_AES_256_GCM_SHA384
+		// TLS_ECDHE_ECDSA_WITH_RC4_128_SHA - no
+		// TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+		// TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+		// TLS_ECDHE_RSA_WITH_RC4_128_SHA - no
+		// TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+		// TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+		// TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+		// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+		// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+		// TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+		// TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		// the next two are in the intermediate suite, but go1.6 http2 complains when they are included at the recommended index
+		// fixed in https://github.com/golang/go/commit/b5aae1a2845f157a2565b856fb2d7773a0f7af25 in go1.7
+		// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	}
+}
+
+// SecureTLSConfig enforces the default minimum security settings for the cluster.
+func SecureTLSConfig(config *tls.Config) *tls.Config {
+	if config.MinVersion == 0 {
+		config.MinVersion = DefaultTLSVersion()
+	}
+
+	config.PreferServerCipherSuites = true
+	if len(config.CipherSuites) == 0 {
+		config.CipherSuites = DefaultCiphers()
 	}
 	return config
 }
