@@ -70,7 +70,7 @@ var (
 		--docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
 		to find an existing docker machine with that name and start it if it's not running.
 
-		By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
+		By default, the OpenShift cluster will be setup to use a routing suffix that ends in nip.io.
 		This is to allow dynamic host names to be created for routes. An alternate routing suffix
 		can be specified using the --routing-suffix flag.
 

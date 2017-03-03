@@ -593,7 +593,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	if len(opt.RoutingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", opt.RouterIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.nip.io", opt.RouterIP)
 	}
 
 	if len(opt.MetricsHost) > 0 && cfg.AssetConfig != nil {

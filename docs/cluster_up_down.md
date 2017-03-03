@@ -372,7 +372,7 @@ If a host data directory is not specified, the data directory used by OpenShift 
 
 ## Routing
 
-The default routing suffix used by `oc cluster up` is CLUSTER_IP.xip.io where CLUSTER_IP is the IP address of your cluster.
+The default routing suffix used by `oc cluster up` is CLUSTER_IP.nip.io where CLUSTER_IP is the IP address of your cluster.
 To use a different suffix, specify it with `--routing-suffix`.
 
 ## Specifying Images to Use
