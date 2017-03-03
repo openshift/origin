@@ -49,12 +49,12 @@ func (e gitNotFoundError) Error() string {
 func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
 	hasGitSource := false
 
-	// expect to receive input from STDIN
+	// Expect to receive input from STDIN
 	if err := extractInputBinary(in, build.Spec.Source.Binary, dir); err != nil {
 		return nil, err
 	}
 
-	// may retrieve source from Git
+	// May retrieve source from Git
 	hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 	case build.Spec.Strategy.CustomStrategy != nil:
 		forcePull = build.Spec.Strategy.CustomStrategy.ForcePull
 	}
-	// extract source from an Image if specified
+	// Extract source from an Image if specified
 	for i, image := range build.Spec.Source.Images {
 		imageSecretIndex := i
 		if image.PullSecret == nil {
@@ -92,10 +92,10 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		}
 	}
 
-	// a Dockerfile has been specified, create or overwrite into the destination
+	// A Dockerfile has been specified, create or overwrite into the destination
 	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
 		baseDir := dir
-		// if a context dir has been defined and we cloned source, overwrite the destination
+		// If a context dir has been defined and we cloned source, overwrite the destination
 		if hasGitSource && len(build.Spec.Source.ContextDir) != 0 {
 			baseDir = filepath.Join(baseDir, build.Spec.Source.ContextDir)
 		}
@@ -215,7 +215,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	usingRevision := revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0
 	usingRef := len(gitSource.Ref) != 0 || usingRevision
 
-	// check if we specify a commit, ref, or branch to check out
+	// Check if we specify a commit, ref, or branch to check out
 	// Recursive clone if we're not going to checkout a ref and submodule update later
 	if !usingRef {
 		cloneOptions = append(cloneOptions, "--recursive")
@@ -232,7 +232,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return true, err
 	}
 
-	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
+	// If we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
 		commit := gitSource.Ref
 
