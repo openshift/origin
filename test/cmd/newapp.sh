@@ -377,6 +377,8 @@ os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'e
 # ensure circular ref flagged but allowed for template
 os::cmd::expect_success 'oc create -f test/testdata/circular-is.yaml'
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/circular.yaml' 'should be different than input'
+# ensure circular does not choke on image stream image
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
 
 # do not allow use of non-existent image (should fail)
 os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"
