@@ -592,9 +592,9 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 }
 
 // WaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
-// Defaults to waiting for 60 seconds
+// Defaults to waiting for 300 seconds
 func WaitForAnImageStreamTag(oc *CLI, namespace, name, tag string) error {
-	return TimedWaitForAnImageStreamTag(oc, namespace, name, tag, time.Second*60)
+	return TimedWaitForAnImageStreamTag(oc, namespace, name, tag, time.Second*300)
 }
 
 // TimedWaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
