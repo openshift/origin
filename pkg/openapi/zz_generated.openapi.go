@@ -5656,6 +5656,24 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/image/api/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
+		"github.com/openshift/origin/pkg/image/api/v1.ImageLookupPolicy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ImageLookupPolicy describes how an image stream can be used to override the image references used by pods, builds, and other resources in a namespace.",
+					Properties: map[string]spec.Schema{
+						"local": {
+							SchemaProps: spec.SchemaProps{
+								Description: "local will change the docker short image references (like \"mysql\" or \"php:latest\") on objects in this namespace to the image ID whenever they match this image stream, instead of reaching out to a remote registry. The name will be fully qualified to an image ID if found. The tag's referencePolicy is taken into account on the replaced value. Only works within the current namespace.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"local"},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"github.com/openshift/origin/pkg/image/api/v1.ImageSignature": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -6049,16 +6067,22 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamSpec represents options for ImageStreams.",
 					Properties: map[string]spec.Schema{
+						"lookupPolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "lookupPolicy controls how other resources reference images within this namespace.",
+								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.ImageLookupPolicy"),
+							},
+						},
 						"dockerImageRepository": {
 							SchemaProps: spec.SchemaProps{
-								Description: "DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+								Description: "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"tags": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Tags map arbitrary string values to specific image locators",
+								Description: "tags map arbitrary string values to specific image locators",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -6073,7 +6097,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/api/v1.TagReference"},
+				"github.com/openshift/origin/pkg/image/api/v1.ImageLookupPolicy", "github.com/openshift/origin/pkg/image/api/v1.TagReference"},
 		},
 		"github.com/openshift/origin/pkg/image/api/v1.ImageStreamStatus": {
 			Schema: spec.Schema{
@@ -6134,20 +6158,26 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"tag": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
+								Description: "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.TagReference"),
 							},
 						},
 						"generation": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or Conditions will be filled out indicating any error.",
+								Description: "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
+						"lookupPolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "lookupPolicy indicates whether this tag will handle image references in this namespace.",
+								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.ImageLookupPolicy"),
+							},
+						},
 						"conditions": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Conditions is an array of conditions that apply to the image stream tag.",
+								Description: "conditions is an array of conditions that apply to the image stream tag.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -6160,16 +6190,16 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"image": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Image associated with the ImageStream and tag.",
+								Description: "image associated with the ImageStream and tag.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.Image"),
 							},
 						},
 					},
-					Required: []string{"tag", "generation", "image"},
+					Required: []string{"tag", "generation", "lookupPolicy", "image"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/api/v1.Image", "github.com/openshift/origin/pkg/image/api/v1.TagEventCondition", "github.com/openshift/origin/pkg/image/api/v1.TagReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/origin/pkg/image/api/v1.Image", "github.com/openshift/origin/pkg/image/api/v1.ImageLookupPolicy", "github.com/openshift/origin/pkg/image/api/v1.TagEventCondition", "github.com/openshift/origin/pkg/image/api/v1.TagReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
 		"github.com/openshift/origin/pkg/image/api/v1.ImageStreamTagList": {
 			Schema: spec.Schema{

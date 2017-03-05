@@ -141,12 +141,14 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 }
 
 func Convert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
+	out.LookupPolicy = newer.ImageLookupPolicy{Local: in.LookupPolicy.Local}
 	out.DockerImageRepository = in.DockerImageRepository
 	out.Tags = make(map[string]newer.TagReference)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
 func Convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
+	out.LookupPolicy = ImageLookupPolicy{Local: in.LookupPolicy.Local}
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7

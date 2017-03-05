@@ -81,6 +81,15 @@ func (ImageList) SwaggerDoc() map[string]string {
 	return map_ImageList
 }
 
+var map_ImageLookupPolicy = map[string]string{
+	"":      "ImageLookupPolicy describes how an image stream can be used to override the image references used by pods, builds, and other resources in a namespace.",
+	"local": "local will change the docker short image references (like \"mysql\" or \"php:latest\") on objects in this namespace to the image ID whenever they match this image stream, instead of reaching out to a remote registry. The name will be fully qualified to an image ID if found. The tag's referencePolicy is taken into account on the replaced value. Only works within the current namespace.",
+}
+
+func (ImageLookupPolicy) SwaggerDoc() map[string]string {
+	return map_ImageLookupPolicy
+}
+
 var map_ImageSignature = map[string]string{
 	"":              "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. Mandatory fields should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
 	"metadata":      "Standard object's metadata.",
@@ -174,9 +183,10 @@ func (ImageStreamMapping) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamSpec = map[string]string{
-	"": "ImageStreamSpec represents options for ImageStreams.",
-	"dockerImageRepository": "DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
-	"tags":                  "Tags map arbitrary string values to specific image locators",
+	"":                      "ImageStreamSpec represents options for ImageStreams.",
+	"lookupPolicy":          "lookupPolicy controls how other resources reference images within this namespace.",
+	"dockerImageRepository": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+	"tags":                  "tags map arbitrary string values to specific image locators",
 }
 
 func (ImageStreamSpec) SwaggerDoc() map[string]string {
@@ -194,12 +204,13 @@ func (ImageStreamStatus) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamTag = map[string]string{
-	"":           "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
-	"metadata":   "Standard object's metadata.",
-	"tag":        "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
-	"generation": "Generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or Conditions will be filled out indicating any error.",
-	"conditions": "Conditions is an array of conditions that apply to the image stream tag.",
-	"image":      "Image associated with the ImageStream and tag.",
+	"":             "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
+	"metadata":     "Standard object's metadata.",
+	"tag":          "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
+	"generation":   "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
+	"lookupPolicy": "lookupPolicy indicates whether this tag will handle image references in this namespace.",
+	"conditions":   "conditions is an array of conditions that apply to the image stream tag.",
+	"image":        "image associated with the ImageStream and tag.",
 }
 
 func (ImageStreamTag) SwaggerDoc() map[string]string {
