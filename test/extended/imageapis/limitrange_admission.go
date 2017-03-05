@@ -21,7 +21,7 @@ import (
 
 const limitRangeName = "limits"
 
-var _ = g.Describe("[imageapis] openshift limit range admission", func() {
+var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
 

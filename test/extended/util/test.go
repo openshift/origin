@@ -322,6 +322,7 @@ var (
 		`Generated release_1_2 clientset`,
 		`should create a pod that reads a secret`,
 		`should create a pod that prints his name and namespace`,
+		`ImageLookup`,
 	}
 	parallelConformanceTestsFilter = regexp.MustCompile(strings.Join(parallelConformanceTests, `|`))
 
