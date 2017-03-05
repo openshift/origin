@@ -121,6 +121,21 @@ update: build
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
 
+# Update all generated artifacts for the API
+#
+# Example:
+#   make update-api
+update-api:
+	hack/update-generated-deep-copies.sh
+	hack/update-generated-conversions.sh
+	hack/update-generated-defaulters.sh
+	hack/update-generated-swagger-descriptions.sh
+	hack/update-generated-protobuf.sh
+	$(MAKE) build
+	hack/update-generated-swagger-spec.sh
+	hack/update-generated-openapi.sh
+.PHONY: update-api
+
 # Build and run the complete test-suite.
 #
 # Example:
