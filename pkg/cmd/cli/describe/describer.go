@@ -540,7 +540,7 @@ func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.Des
 		return "", err
 	}
 
-	return describeImage(image, "")
+	return DescribeImage(image, "")
 }
 
 func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) error {
@@ -561,13 +561,23 @@ func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) er
 	return nil
 }
 
-func describeImage(image *imageapi.Image, imageName string) (string, error) {
+func DescribeImage(image *imageapi.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, image.ObjectMeta)
-		formatString(out, "Docker Image", image.DockerImageReference)
 		if len(imageName) > 0 {
 			formatString(out, "Image Name", imageName)
 		}
+		formatString(out, "Docker Image", image.DockerImageReference)
+		formatString(out, "Name", image.Name)
+		if !image.CreationTimestamp.IsZero() {
+			formatTime(out, "Created", image.CreationTimestamp.Time)
+		}
+		if len(image.Labels) > 0 {
+			formatMapStringString(out, "Labels", image.Labels)
+		}
+		if len(image.Annotations) > 0 {
+			formatAnnotations(out, image.ObjectMeta, "")
+		}
+
 		switch l := len(image.DockerImageLayers); l {
 		case 0:
 			// legacy case, server does not know individual layers
@@ -674,7 +684,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kpri
 		return "", err
 	}
 
-	return describeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
+	return DescribeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -694,7 +704,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kp
 		return "", err
 	}
 
-	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
+	return DescribeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
 // ImageStreamDescriber generates information about a ImageStream (Image).
@@ -709,7 +719,10 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
+	return DescribeImageStream(imageStream)
+}
 
+func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
 		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
