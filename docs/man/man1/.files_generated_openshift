@@ -324,6 +324,7 @@ openshift-cli-set-build-hook.1
 openshift-cli-set-build-secret.1
 openshift-cli-set-deployment-hook.1
 openshift-cli-set-env.1
+openshift-cli-set-image-lookup.1
 openshift-cli-set-image.1
 openshift-cli-set-probe.1
 openshift-cli-set-resources.1
