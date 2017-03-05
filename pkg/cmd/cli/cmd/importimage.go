@@ -26,7 +26,7 @@ import (
 
 var (
 	importImageLong = templates.LongDesc(`
-		Import tag and image information from an external Docker image repository
+		Import the latest image information from a tag in a Docker registry
 
 		Only image streams that have a value set for spec.dockerImageRepository and/or
 		spec.Tags may have tag and image information imported.`)
