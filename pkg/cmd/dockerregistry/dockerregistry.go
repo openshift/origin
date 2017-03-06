@@ -36,6 +36,8 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3-aws"
 	_ "github.com/docker/distribution/registry/storage/driver/swift"
 
+	"strings"
+
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
@@ -123,7 +125,31 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	} else {
-		tlsConf := crypto.SecureTLSConfig(&tls.Config{ClientAuth: tls.NoClientCert})
+		var (
+			minVersion   uint16
+			cipherSuites []uint16
+		)
+		if s := os.Getenv("REGISTRY_HTTP_TLS_MINVERSION"); len(s) > 0 {
+			minVersion, err = crypto.TLSVersion(s)
+			if err != nil {
+				context.GetLogger(app).Fatalln(fmt.Errorf("invalid TLS version %q specified in REGISTRY_HTTP_TLS_MINVERSION: %v (valid values are %q)", s, err, crypto.ValidTLSVersions()))
+			}
+		}
+		if s := os.Getenv("REGISTRY_HTTP_TLS_CIPHERSUITES"); len(s) > 0 {
+			for _, cipher := range strings.Split(s, ",") {
+				cipherSuite, err := crypto.CipherSuite(cipher)
+				if err != nil {
+					context.GetLogger(app).Fatalln(fmt.Errorf("invalid cipher suite %q specified in REGISTRY_HTTP_TLS_CIPHERSUITES: %v (valid suites are %q)", s, err, crypto.ValidCipherSuites()))
+				}
+				cipherSuites = append(cipherSuites, cipherSuite)
+			}
+		}
+
+		tlsConf := crypto.SecureTLSConfig(&tls.Config{
+			ClientAuth:   tls.NoClientCert,
+			MinVersion:   minVersion,
+			CipherSuites: cipherSuites,
+		})
 
 		if len(config.HTTP.TLS.ClientCAs) != 0 {
 			pool := x509.NewCertPool()
