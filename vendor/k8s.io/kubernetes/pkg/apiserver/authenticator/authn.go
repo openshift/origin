@@ -43,11 +43,6 @@ import (
 type RequestHeaderConfig struct {
 	// UsernameHeaders are the headers to check (in order, case-insensitively) for an identity. The first header with a value wins.
 	UsernameHeaders []string
-	// GroupHeaders are the headers to check (case-insensitively) for a group names.  All values will be used.
-	GroupHeaders []string
-	// ExtraHeaderPrefixes are the head prefixes to check (case-insentively) for filling in
-	// the user.Info.Extra.  All values of all matching headers will be added.
-	ExtraHeaderPrefixes []string
 	// ClientCA points to CA bundle file which is used verify the identity of the front proxy
 	ClientCA string
 	// AllowedClientNames is a list of common names that may be presented by the authenticating front proxy.  Empty means: accept any.
@@ -76,20 +71,6 @@ type AuthenticatorConfig struct {
 	RequestHeaderConfig *RequestHeaderConfig
 }
 
-func (c *RequestHeaderConfig) ToAuthenticator() (authenticator.Request, error) {
-	if c == nil {
-		return nil, nil
-	}
-
-	return headerrequest.NewSecure(
-		c.ClientCA,
-		c.AllowedClientNames,
-		c.UsernameHeaders,
-		c.GroupHeaders,
-		c.ExtraHeaderPrefixes,
-	)
-}
-
 // New returns an authenticator.Request or an error that supports the standard
 // Kubernetes authentication mechanisms.
 func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefinitions, error) {
@@ -98,12 +79,22 @@ func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefin
 	hasBasicAuth := false
 	hasTokenAuth := false
 
-	requestHeaderAuthenticator, err := config.RequestHeaderConfig.ToAuthenticator()
-	if err != nil {
-		return nil, nil, err
+	// front-proxy, BasicAuth methods, local first, then remote
+	// Add the front proxy authenticator if requested
+	if config.RequestHeaderConfig != nil {
+		requestHeaderAuthenticator, err := headerrequest.NewSecure(
+			config.RequestHeaderConfig.ClientCA,
+			config.RequestHeaderConfig.AllowedClientNames,
+			config.RequestHeaderConfig.UsernameHeaders,
+			[]string{},
+			[]string{},
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		authenticators = append(authenticators, requestHeaderAuthenticator)
 	}
 
-	// BasicAuth methods, local first, then remote
 	if len(config.BasicAuthFile) > 0 {
 		basicAuth, err := newAuthenticatorFromBasicAuthFile(config.BasicAuthFile)
 		if err != nil {
@@ -196,22 +187,27 @@ func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefin
 		}
 	}
 
-	topLevelAuthenticators := []authenticator.Request{}
-	if requestHeaderAuthenticator != nil {
-		topLevelAuthenticators = append(topLevelAuthenticators, requestHeaderAuthenticator)
-	}
-	if len(authenticators) > 0 {
-		topLevelAuthenticators = append(topLevelAuthenticators, group.NewGroupAdder(union.New(authenticators...), []string{user.AllAuthenticated}))
-	}
-	if config.Anonymous {
-		topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
+	if len(authenticators) == 0 {
+		if config.Anonymous {
+			return anonymous.NewAuthenticator(), &securityDefinitions, nil
+		}
 	}
 
-	if len(topLevelAuthenticators) == 0 {
+	switch len(authenticators) {
+	case 0:
 		return nil, &securityDefinitions, nil
 	}
 
-	return union.NewFailOnError(topLevelAuthenticators...), &securityDefinitions, nil
+	authenticator := union.New(authenticators...)
+
+	authenticator = group.NewGroupAdder(authenticator, []string{user.AllAuthenticated})
+
+	if config.Anonymous {
+		// If the authenticator chain returns an error, return an error (don't consider a bad bearer token anonymous).
+		authenticator = union.NewFailOnError(authenticator, anonymous.NewAuthenticator())
+	}
+
+	return authenticator, &securityDefinitions, nil
 }
 
 // IsValidServiceAccountKeyFile returns true if a valid public RSA key can be read from the given file
