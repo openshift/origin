@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/template/api"
-	tregistry "github.com/openshift/origin/pkg/template/registry"
+	"github.com/openshift/origin/pkg/template/registry/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -20,11 +20,11 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.Template{} },
 		NewListFunc:       func() runtime.Object { return &api.TemplateList{} },
-		PredicateFunc:     tregistry.Matcher,
+		PredicateFunc:     template.Matcher,
 		QualifiedResource: api.Resource("templates"),
 
-		CreateStrategy: tregistry.Strategy,
-		UpdateStrategy: tregistry.Strategy,
+		CreateStrategy: template.Strategy,
+		UpdateStrategy: template.Strategy,
 
 		ReturnDeletedObject: true,
 	}
