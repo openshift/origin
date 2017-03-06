@@ -85,6 +85,9 @@ func TestInternalJsonTags(t *testing.T) {
 var internalTypesWithAllowedJsonTags = sets.NewString("DockerConfig", "DockerImage")
 
 func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
+	if objType.Kind() != reflect.Struct {
+		return
+	}
 	if _, exists := (*seen)[objType]; exists {
 		return
 	}
@@ -129,6 +132,9 @@ func TestExternalJsonTags(t *testing.T) {
 }
 
 func checkExternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
+	if objType.Kind() != reflect.Struct {
+		return
+	}
 	if _, exists := (*seen)[objType]; exists {
 		return
 	}
