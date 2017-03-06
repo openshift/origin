@@ -18,6 +18,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
+	"k8s.io/kubernetes/pkg/auth/group"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -41,7 +42,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	"github.com/openshift/origin/pkg/auth/group"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -665,6 +665,8 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
+	resultingAuthenticator := &unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}
+
 	topLevelAuthenticators := []authenticator.Request{}
 	//	if we have a front proxy providing authentication configuration, wire it up and it should come first
 	if config.AuthConfig.RequestHeader != nil {
@@ -678,15 +680,22 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		if err != nil {
 			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
 		}
-		topLevelAuthenticators = append(topLevelAuthenticators, requestHeaderAuthenticator)
+		topLevelAuthenticators = append(topLevelAuthenticators, &unionrequest.Authenticator{
+			FailOnError: false,
+			Handlers:    []authenticator.Request{requestHeaderAuthenticator, resultingAuthenticator},
+		})
+
+	} else {
+		topLevelAuthenticators = append(topLevelAuthenticators, resultingAuthenticator)
+
 	}
-	topLevelAuthenticators = append(topLevelAuthenticators, group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}))
+
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return &unionrequest.Authenticator{
+	return group.NewAuthenticatedGroupAdder(&unionrequest.Authenticator{
 		FailOnError: true,
 		Handlers:    topLevelAuthenticators,
-	}, nil
+	}), nil
 }
 
 func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
