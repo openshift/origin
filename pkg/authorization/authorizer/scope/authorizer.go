@@ -23,7 +23,7 @@ func NewAuthorizer(delegate defaultauthorizer.Authorizer, clusterPolicyGetter cl
 	return &scopeAuthorizer{delegate: delegate, clusterPolicyGetter: clusterPolicyGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
-func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
+func (a *scopeAuthorizer) Authorize(ctx kapi.Context, attributes defaultauthorizer.Action) (bool, string, error) {
 	user, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return false, "", fmt.Errorf("user missing from context")
@@ -31,7 +31,7 @@ func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultau
 
 	scopes := user.GetExtra()[authorizationapi.ScopesKey]
 	if len(scopes) == 0 {
-		return a.delegate.Authorize(ctx, passedAttributes)
+		return a.delegate.Authorize(ctx, attributes)
 	}
 
 	nonFatalErrors := []error{}
@@ -43,17 +43,15 @@ func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultau
 		nonFatalErrors = append(nonFatalErrors, err)
 	}
 
-	attributes := defaultauthorizer.CoerceToDefaultAuthorizationAttributes(passedAttributes)
-
 	for _, rule := range rules {
 		// check rule against attributes
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := defaultauthorizer.RuleMatches(attributes, rule)
 		if err != nil {
 			nonFatalErrors = append(nonFatalErrors, err)
 			continue
 		}
 		if matches {
-			return a.delegate.Authorize(ctx, passedAttributes)
+			return a.delegate.Authorize(ctx, attributes)
 		}
 	}
 

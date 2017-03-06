@@ -357,7 +357,7 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPol
 
 	errors := []error{}
 	for _, rule := range rules {
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := authorizer.RuleMatches(attributes, rule)
 		if err != nil {
 			errors = append(errors, err)
 			continue
