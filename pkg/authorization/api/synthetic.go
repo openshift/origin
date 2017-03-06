@@ -7,6 +7,7 @@ const (
 	CustomBuildResource          = "builds/custom"
 	JenkinsPipelineBuildResource = "builds/jenkinspipeline"
 
+	// these are valid under the "nodes" resource
 	NodeMetricsSubresource = "metrics"
 	NodeStatsSubresource   = "stats"
 	NodeSpecSubresource    = "spec"

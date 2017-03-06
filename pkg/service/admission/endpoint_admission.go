@@ -12,6 +12,7 @@ import (
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -82,15 +83,17 @@ func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) stri
 }
 
 func (r *restrictedEndpointsAdmission) checkAccess(attr kadmission.Attributes) (bool, error) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
-	authzAttr := authorizer.DefaultAuthorizationAttributes{
-		Verb:         "create",
-		Resource:     "endpoints",
-		Subresource:  "restricted",
-		APIGroup:     kapi.GroupName,
-		ResourceName: attr.GetName(),
+	authzAttr := kauthorizer.AttributesRecord{
+		User:            attr.GetUserInfo(),
+		Verb:            "create",
+		Namespace:       attr.GetNamespace(),
+		Resource:        "endpoints",
+		Subresource:     "restricted",
+		APIGroup:        kapi.GroupName,
+		Name:            attr.GetName(),
+		ResourceRequest: true,
 	}
-	allow, _, err := r.authorizer.Authorize(ctx, authzAttr)
+	allow, _, err := r.authorizer.Authorize(authzAttr)
 	return allow, err
 }
 

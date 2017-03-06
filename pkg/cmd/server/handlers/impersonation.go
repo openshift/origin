@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -41,6 +42,11 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 			Forbidden("context not found", nil, w, req)
 			return
 		}
+		oldUser, ok := kapi.UserFrom(ctx)
+		if !ok {
+			Forbidden("user not found", nil, w, req)
+			return
+		}
 
 		// if groups are not specified, then we need to look them up differently depending on the type of user
 		// if they are specified, then they are the authority
@@ -51,27 +57,30 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 		username := ""
 		groups := []string{}
 		for _, subject := range subjects {
-			actingAsAttributes := &authorizer.DefaultAuthorizationAttributes{
-				Verb: "impersonate",
+			actingAsAttributes := &kauthorizer.AttributesRecord{
+				User:            oldUser,
+				Verb:            "impersonate",
+				Namespace:       subject.Namespace,
+				ResourceRequest: true,
 			}
 
 			switch subject.GetObjectKind().GroupVersionKind().GroupKind() {
 			case userapi.Kind(authorizationapi.GroupKind):
 				actingAsAttributes.APIGroup = userapi.GroupName
 				actingAsAttributes.Resource = authorizationapi.GroupResource
-				actingAsAttributes.ResourceName = subject.Name
+				actingAsAttributes.Name = subject.Name
 				groups = append(groups, subject.Name)
 
 			case userapi.Kind(authorizationapi.SystemGroupKind):
 				actingAsAttributes.APIGroup = userapi.GroupName
 				actingAsAttributes.Resource = authorizationapi.SystemGroupResource
-				actingAsAttributes.ResourceName = subject.Name
+				actingAsAttributes.Name = subject.Name
 				groups = append(groups, subject.Name)
 
 			case userapi.Kind(authorizationapi.UserKind):
 				actingAsAttributes.APIGroup = userapi.GroupName
 				actingAsAttributes.Resource = authorizationapi.UserResource
-				actingAsAttributes.ResourceName = subject.Name
+				actingAsAttributes.Name = subject.Name
 				username = subject.Name
 				if !groupsSpecified {
 					if actualGroups, err := groupCache.GroupsFor(subject.Name); err == nil {
@@ -85,7 +94,7 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 			case userapi.Kind(authorizationapi.SystemUserKind):
 				actingAsAttributes.APIGroup = userapi.GroupName
 				actingAsAttributes.Resource = authorizationapi.SystemUserResource
-				actingAsAttributes.ResourceName = subject.Name
+				actingAsAttributes.Name = subject.Name
 				username = subject.Name
 				if !groupsSpecified {
 					if subject.Name == bootstrappolicy.UnauthenticatedUsername {
@@ -98,7 +107,7 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 			case kapi.Kind(authorizationapi.ServiceAccountKind):
 				actingAsAttributes.APIGroup = kapi.GroupName
 				actingAsAttributes.Resource = authorizationapi.ServiceAccountResource
-				actingAsAttributes.ResourceName = subject.Name
+				actingAsAttributes.Name = subject.Name
 				username = serviceaccount.MakeUsername(subject.Namespace, subject.Name)
 				if !groupsSpecified {
 					groups = append(serviceaccount.MakeGroupNames(subject.Namespace, subject.Name), bootstrappolicy.AuthenticatedGroup)
@@ -109,9 +118,7 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 				return
 			}
 
-			authCheckCtx := kapi.WithNamespace(ctx, subject.Namespace)
-
-			allowed, reason, err := a.Authorize(authCheckCtx, actingAsAttributes)
+			allowed, reason, err := a.Authorize(actingAsAttributes)
 			if err != nil {
 				Forbidden(err.Error(), actingAsAttributes, w, req)
 				return
@@ -134,7 +141,6 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 		}
 		contextMapper.Update(req, kapi.WithUser(ctx, newUser))
 
-		oldUser, _ := kapi.UserFrom(ctx)
 		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
 
 		handler.ServeHTTP(w, req)

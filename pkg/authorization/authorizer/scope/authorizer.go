@@ -3,7 +3,7 @@ package scope
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -23,22 +23,21 @@ func NewAuthorizer(delegate defaultauthorizer.Authorizer, clusterPolicyGetter cl
 	return &scopeAuthorizer{delegate: delegate, clusterPolicyGetter: clusterPolicyGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
-func (a *scopeAuthorizer) Authorize(ctx kapi.Context, attributes defaultauthorizer.Action) (bool, string, error) {
-	user, exists := kapi.UserFrom(ctx)
-	if !exists {
+func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+	user := attributes.GetUser()
+	if user == nil {
 		return false, "", fmt.Errorf("user missing from context")
 	}
 
 	scopes := user.GetExtra()[authorizationapi.ScopesKey]
 	if len(scopes) == 0 {
-		return a.delegate.Authorize(ctx, attributes)
+		return a.delegate.Authorize(attributes)
 	}
 
 	nonFatalErrors := []error{}
 
-	namespace, _ := kapi.NamespaceFrom(ctx)
 	// scopeResolutionErrors aren't fatal.  If any of the scopes we find allow this, then the overall scope limits allow it
-	rules, err := ScopesToRules(scopes, namespace, a.clusterPolicyGetter)
+	rules, err := ScopesToRules(scopes, attributes.GetNamespace(), a.clusterPolicyGetter)
 	if err != nil {
 		nonFatalErrors = append(nonFatalErrors, err)
 	}
@@ -51,11 +50,11 @@ func (a *scopeAuthorizer) Authorize(ctx kapi.Context, attributes defaultauthoriz
 			continue
 		}
 		if matches {
-			return a.delegate.Authorize(ctx, attributes)
+			return a.delegate.Authorize(attributes)
 		}
 	}
 
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(defaultauthorizer.MessageContext{User: user, Namespace: namespace, Attributes: attributes})
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(defaultauthorizer.MessageContext{Attributes: attributes})
 	if err != nil {
 		denyReason = err.Error()
 	}
@@ -65,6 +64,6 @@ func (a *scopeAuthorizer) Authorize(ctx kapi.Context, attributes defaultauthoriz
 
 // TODO remove this. We don't logically need it, but it requires splitting our interface
 // GetAllowedSubjects returns the subjects it knows can perform the action.
-func (a *scopeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
-	return a.delegate.GetAllowedSubjects(ctx, attributes)
+func (a *scopeAuthorizer) GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error) {
+	return a.delegate.GetAllowedSubjects(attributes)
 }

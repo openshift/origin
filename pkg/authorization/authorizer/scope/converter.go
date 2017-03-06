@@ -8,6 +8,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/conversion"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -349,10 +350,11 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPol
 		return nil, err
 	}
 
-	attributes := authorizer.DefaultAuthorizationAttributes{
-		APIGroup: kapi.GroupName,
-		Verb:     "get",
-		Resource: "namespaces",
+	attributes := kauthorizer.AttributesRecord{
+		APIGroup:        kapi.GroupName,
+		Verb:            "get",
+		Resource:        "namespaces",
+		ResourceRequest: true,
 	}
 
 	errors := []error{}

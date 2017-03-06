@@ -8,8 +8,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/hashicorp/golang-lru"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -59,11 +59,11 @@ func NewAuthorizer(a authorizer.Authorizer, ttl time.Duration, cacheSize int) (a
 	}, nil
 }
 
-func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allowed bool, reason string, err error) {
-	key, err := cacheKey(ctx, a)
+func (c *CacheAuthorizer) Authorize(a kauthorizer.Attributes) (allowed bool, reason string, err error) {
+	key, err := cacheKey(a)
 	if err != nil {
 		glog.V(5).Infof("could not build cache key for %#v: %v", a, err)
-		return c.authorizer.Authorize(ctx, a)
+		return c.authorizer.Authorize(a)
 	}
 
 	if value, hit := c.authorizeCache.Get(key); hit {
@@ -80,7 +80,7 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allo
 		}
 	}
 
-	allowed, reason, err = c.authorizer.Authorize(ctx, a)
+	allowed, reason, err = c.authorizer.Authorize(a)
 
 	// Don't cache results if there was an error unrelated to authorization
 	// TODO: figure out a better way to determine this
@@ -91,11 +91,11 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allo
 	return allowed, reason, err
 }
 
-func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
-	key, err := cacheKey(ctx, attributes)
+func (c *CacheAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
+	key, err := cacheKey(attributes)
 	if err != nil {
 		glog.V(5).Infof("could not build cache key for %#v: %v", attributes, err)
-		return c.authorizer.GetAllowedSubjects(ctx, attributes)
+		return c.authorizer.GetAllowedSubjects(attributes)
 	}
 
 	if value, hit := c.allowedSubjectsCache.Get(key); hit {
@@ -112,7 +112,7 @@ func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes author
 		}
 	}
 
-	users, groups, err := c.authorizer.GetAllowedSubjects(ctx, attributes)
+	users, groups, err := c.authorizer.GetAllowedSubjects(attributes)
 
 	// Don't cache results if there was an error
 	if err == nil {
@@ -122,22 +122,21 @@ func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes author
 	return users, groups, err
 }
 
-func cacheKey(ctx kapi.Context, a authorizer.Action) (string, error) {
+func cacheKey(a kauthorizer.Attributes) (string, error) {
 	keyData := map[string]interface{}{
-		"verb":           a.GetVerb(),
-		"apiVersion":     a.GetAPIVersion(),
-		"apiGroup":       a.GetAPIGroup(),
-		"resource":       a.GetResource(),
-		"subresource":    a.GetSubresource(),
-		"resourceName":   a.GetResourceName(),
-		"nonResourceURL": a.IsNonResourceURL(),
-		"url":            a.GetURL(),
+		"verb":            a.GetVerb(),
+		"apiVersion":      a.GetAPIVersion(),
+		"apiGroup":        a.GetAPIGroup(),
+		"resource":        a.GetResource(),
+		"subresource":     a.GetSubresource(),
+		"name":            a.GetName(),
+		"readOnly":        a.IsReadOnly(),
+		"resourceRequest": a.IsResourceRequest(),
+		"path":            a.GetPath(),
+		"namespace":       a.GetNamespace(),
 	}
 
-	if namespace, ok := kapi.NamespaceFrom(ctx); ok {
-		keyData["namespace"] = namespace
-	}
-	if user, ok := kapi.UserFrom(ctx); ok {
+	if user := a.GetUser(); user != nil {
 		keyData["user"] = user.GetName()
 		keyData["groups"] = user.GetGroups()
 		keyData["scopes"] = user.GetExtra()[authorizationapi.ScopesKey]
