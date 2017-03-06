@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,6 +35,7 @@ import (
 	genericroutes "k8s.io/kubernetes/pkg/genericapiserver/routes"
 	"k8s.io/kubernetes/pkg/healthz"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -163,6 +165,13 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
+	clientCARegistrationHook, err := c.ClientCARegistrationHook()
+	if err != nil {
+		glog.Fatalf("Failed to launch master: %v", err)
+	}
+	if kmaster.GenericAPIServer.AddPostStartHook("ca-registration", clientCARegistrationHook.PostStartHook); err != nil {
+		glog.Fatalf("Error registering PostStartHook %q: %v", "ca-registration", err)
+	}
 
 	c.InstallProtectedAPI(kmaster.GenericAPIServer.HandlerContainer)
 	messages = append(messages, c.kubernetesAPIMessages(kc)...)
@@ -174,6 +183,29 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) ClientCARegistrationHook() (*master.ClientCARegistrationHook, error) {
+	clientCA, err := readCAorNil(c.Options.ServingInfo.ClientCA)
+	if err != nil {
+		return nil, err
+	}
+	ret := &master.ClientCARegistrationHook{ClientCA: clientCA}
+
+	var requestHeaderProxyCA []byte
+	if c.Options.AuthConfig.RequestHeader != nil {
+		requestHeaderProxyCA, err = readCAorNil(c.Options.AuthConfig.RequestHeader.ClientCA)
+		if err != nil {
+			return nil, err
+		}
+		ret.RequestHeaderUsernameHeaders = c.Options.AuthConfig.RequestHeader.UsernameHeaders
+		ret.RequestHeaderGroupHeaders = c.Options.AuthConfig.RequestHeader.GroupHeaders
+		ret.RequestHeaderExtraHeaderPrefixes = c.Options.AuthConfig.RequestHeader.ExtraHeaderPrefixes
+		ret.RequestHeaderCA = requestHeaderProxyCA
+		ret.RequestHeaderAllowedNames = c.Options.AuthConfig.RequestHeader.ClientCommonNames
+	}
+
+	return ret, nil
 }
 
 func (c *MasterConfig) RunInProxyMode(proxy *kubernetes.ProxyConfig, assetConfig *AssetConfig) {
@@ -218,6 +250,13 @@ func (c *MasterConfig) RunInProxyMode(proxy *kubernetes.ProxyConfig, assetConfig
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func readCAorNil(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return nil, nil
+	}
+	return ioutil.ReadFile(file)
 }
 
 type sortedGroupVersions []unversioned.GroupVersion

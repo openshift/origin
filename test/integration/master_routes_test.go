@@ -46,6 +46,7 @@ var expectedIndex = []string{
 	"/healthz",
 	"/healthz/ping",
 	"/healthz/poststarthook/bootstrap-controller",
+	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/extensions/third-party-resources",
 	"/healthz/ready",
 	"/metrics",
