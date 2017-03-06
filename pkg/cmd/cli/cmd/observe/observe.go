@@ -660,6 +660,7 @@ func (o *ObserveOptions) next(deltaType cache.DeltaType, obj runtime.Object, out
 		cmd := exec.Command(command, args...)
 		cmd.Stdout = out
 		cmd.Stderr = errOut
+		cmd.Env = os.Environ()
 		if len(o.objectEnvVar) > 0 {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", o.objectEnvVar, string(output)))
 		}
