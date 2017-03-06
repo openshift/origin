@@ -35,7 +35,7 @@ func (mp *multiTenantPlugin) Start(node *OsdnNode) error {
 		return err
 	}
 
-	otx := node.ovs.NewTransaction()
+	otx := node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=200, reg0=0, actions=output:NXM_NX_REG2[]")
 	otx.AddFlow("table=80, priority=200, reg1=0, actions=output:NXM_NX_REG2[]")
 	if err := otx.EndTransaction(); err != nil {
@@ -138,7 +138,7 @@ func (mp *multiTenantPlugin) RefVNID(vnid uint32) {
 	}
 	glog.V(5).Infof("RefVNID %d adding rule", vnid)
 
-	otx := mp.node.ovs.NewTransaction()
+	otx := mp.node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=100, reg0=%d, reg1=%d, actions=output:NXM_NX_REG2[]", vnid, vnid)
 	if err := otx.EndTransaction(); err != nil {
 		glog.Errorf("Error adding OVS flow for VNID: %v", err)
@@ -162,7 +162,7 @@ func (mp *multiTenantPlugin) UnrefVNID(vnid uint32) {
 	}
 	glog.V(5).Infof("UnrefVNID %d removing rule", vnid)
 
-	otx := mp.node.ovs.NewTransaction()
+	otx := mp.node.oc.NewTransaction()
 	otx.DeleteFlows("table=80, reg0=%d, reg1=%d", vnid, vnid)
 	if err := otx.EndTransaction(); err != nil {
 		glog.Errorf("Error deleting OVS flow for VNID: %v", err)
@@ -175,7 +175,7 @@ func (mp *multiTenantPlugin) moveVNIDRefs(num int, oldVNID, newVNID uint32) {
 	mp.vnidRefsLock.Lock()
 	defer mp.vnidRefsLock.Unlock()
 
-	otx := mp.node.ovs.NewTransaction()
+	otx := mp.node.oc.NewTransaction()
 	if mp.vnidRefs[oldVNID] <= num {
 		otx.DeleteFlows("table=80, reg0=%d, reg1=%d", oldVNID, oldVNID)
 	}

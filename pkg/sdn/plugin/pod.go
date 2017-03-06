@@ -9,7 +9,6 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 	"github.com/openshift/origin/pkg/util/netutils"
-	"github.com/openshift/origin/pkg/util/ovs"
 
 	"github.com/golang/glog"
 
@@ -49,18 +48,18 @@ type podManager struct {
 	mtu             uint32
 	hostportHandler kubehostport.HostportHandler
 	host            knetwork.Host
-	ovs             ovs.Interface
+	oc              *ovsController
 }
 
 // Creates a new live podManager; used by node code
-func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, ovs ovs.Interface) (*podManager, error) {
+func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, oc *ovsController) (*podManager, error) {
 	pm := newDefaultPodManager(host)
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
 	pm.hostportHandler = kubehostport.NewHostportHandler()
 	pm.podHandler = pm
-	pm.ovs = ovs
+	pm.oc = oc
 
 	var err error
 	pm.ipamConfig, err = getIPAMConfig(netInfo.ClusterNetwork, localSubnetCIDR)
@@ -206,7 +205,7 @@ func localMulticastOutputs(runningPods map[string]*runningPod, vnid uint32) stri
 
 func (m *podManager) updateLocalMulticastRulesWithLock(vnid uint32) {
 	var outputs string
-	otx := m.ovs.NewTransaction()
+	otx := m.oc.NewTransaction()
 	if m.policy.GetMulticastEnabled(vnid) {
 		outputs = localMulticastOutputs(m.runningPods, vnid)
 		otx.AddFlow("table=110, reg0=%d, actions=goto_table:111", vnid)
@@ -256,7 +255,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 			result.Response, err = json.Marshal(ipamResult)
 			if result.Err == nil {
 				m.runningPods[pk] = runningPod
-				if m.ovs != nil {
+				if m.oc != nil {
 					m.updateLocalMulticastRulesWithLock(runningPod.vnid)
 				}
 			}
@@ -275,7 +274,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 	case cniserver.CNI_DEL:
 		if runningPod, exists := m.runningPods[pk]; exists {
 			delete(m.runningPods, pk)
-			if m.ovs != nil {
+			if m.oc != nil {
 				m.updateLocalMulticastRulesWithLock(runningPod.vnid)
 			}
 		}

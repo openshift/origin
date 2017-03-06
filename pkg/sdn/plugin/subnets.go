@@ -270,7 +270,7 @@ func (master *OsdnMaster) watchSubnets() {
 type hostSubnetMap map[string]*osapi.HostSubnet
 
 func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
-	otx := plugin.ovs.NewTransaction()
+	otx := plugin.oc.NewTransaction()
 
 	// Build the list of all nodes for multicast forwarding
 	tun_dsts := make([]string, 0, len(subnets))
