@@ -370,6 +370,8 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		}
 	}
 
+	numDockerBuilds := 0
+
 	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), DockerStrategyOptions, c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %v", group)
@@ -382,8 +384,13 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
+
 				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
+				}
+
+				if refInput.Uses.GetStrategy() == generate.StrategyDocker {
+					numDockerBuilds++
 				}
 
 				var (
@@ -443,6 +450,16 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		}
 		pipelines = append(pipelines, common...)
 	}
+
+	if len(c.BuildArgs) > 0 {
+		if numDockerBuilds == 0 {
+			return nil, fmt.Errorf("Cannot use '--build-arg' without a Docker build")
+		}
+		if numDockerBuilds > 1 {
+			fmt.Fprintf(c.ErrOut, "--> WARNING: Applying --build-arg to multiple Docker builds.\n")
+		}
+	}
+
 	return pipelines, nil
 }
 
