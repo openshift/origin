@@ -1,4 +1,4 @@
-package registry
+package template
 
 import (
 	"math/rand"
