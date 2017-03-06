@@ -28,6 +28,7 @@ type Action interface {
 	GetAPIGroup() string
 	// GetResource returns the resource type.  If IsNonResourceURL() is true, then GetResource() is "".
 	GetResource() string
+	GetSubresource() string
 	GetResourceName() string
 	// IsNonResourceURL returns true if this is not an action performed against the resource API
 	IsNonResourceURL() bool

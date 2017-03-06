@@ -6,7 +6,6 @@ import (
 	"net"
 	"reflect"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -86,7 +85,8 @@ func (r *restrictedEndpointsAdmission) checkAccess(attr kadmission.Attributes) (
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
 	authzAttr := authorizer.DefaultAuthorizationAttributes{
 		Verb:         "create",
-		Resource:     authorizationapi.RestrictedEndpointsResource,
+		Resource:     "endpoints",
+		Subresource:  "restricted",
 		APIGroup:     kapi.GroupName,
 		ResourceName: attr.GetName(),
 	}

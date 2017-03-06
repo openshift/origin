@@ -378,8 +378,9 @@ func TestAdminGetStatusInMallet(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "pods/status",
+			Verb:        "get",
+			Resource:    "pods",
+			Subresource: "status",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",

@@ -14,6 +14,7 @@ type DefaultAuthorizationAttributes struct {
 	APIVersion     string
 	APIGroup       string
 	Resource       string
+	Subresource    string
 	ResourceName   string
 	NonResourceURL bool
 	URL            string
@@ -22,11 +23,23 @@ type DefaultAuthorizationAttributes struct {
 // ToDefaultAuthorizationAttributes coerces Action to DefaultAuthorizationAttributes.  Namespace is not included
 // because the authorizer takes that information on the context
 func ToDefaultAuthorizationAttributes(in authorizationapi.Action) Action {
+	tokens := strings.SplitN(in.Resource, "/", 2)
+	resource := ""
+	subresource := ""
+	switch {
+	case len(tokens) == 2:
+		subresource = tokens[1]
+		fallthrough
+	case len(tokens) == 1:
+		resource = tokens[0]
+	}
+
 	return DefaultAuthorizationAttributes{
 		Verb:           in.Verb,
 		APIGroup:       in.Group,
 		APIVersion:     in.Version,
-		Resource:       in.Resource,
+		Resource:       resource,
+		Subresource:    subresource,
 		ResourceName:   in.ResourceName,
 		URL:            in.Path,
 		NonResourceURL: in.IsNonResourceURL,
@@ -85,7 +98,15 @@ func verbMatches(a Action, verbs sets.String) bool {
 }
 
 func resourceMatches(a Action, allowedResourceTypes sets.String) bool {
-	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
+	if allowedResourceTypes.Has(authorizationapi.ResourceAll) {
+		return true
+	}
+
+	if len(a.GetSubresource()) == 0 {
+		return allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
+	}
+
+	return allowedResourceTypes.Has(strings.ToLower(a.GetResource() + "/" + a.GetSubresource()))
 }
 
 // nameMatches checks to see if the resourceName of the action is in a the specified whitelist.  An empty whitelist indicates that any name is allowed.
@@ -145,6 +166,10 @@ func (a DefaultAuthorizationAttributes) GetAPIGroup() string {
 
 func (a DefaultAuthorizationAttributes) GetResource() string {
 	return a.Resource
+}
+
+func (a DefaultAuthorizationAttributes) GetSubresource() string {
+	return a.Subresource
 }
 
 func (a DefaultAuthorizationAttributes) GetResourceName() string {

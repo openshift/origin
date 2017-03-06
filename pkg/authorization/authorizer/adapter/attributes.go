@@ -1,8 +1,6 @@
 package adapter
 
 import (
-	"strings"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -38,16 +36,11 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 		APIGroup:     kattrs.GetAPIGroup(),
 		APIVersion:   kattrs.GetAPIVersion(),
 		Resource:     kattrs.GetResource(),
+		Subresource:  kattrs.GetSubresource(),
 		ResourceName: kattrs.GetName(),
 
 		NonResourceURL: kattrs.IsResourceRequest() == false,
 		URL:            kattrs.GetPath(),
-
-		// TODO: add to kube authorizer attributes
-		// RequestAttributes interface{}
-	}
-	if len(kattrs.GetSubresource()) > 0 {
-		oattrs.Resource = kattrs.GetResource() + "/" + kattrs.GetSubresource()
 	}
 
 	return ctx, oattrs
@@ -86,19 +79,11 @@ func (a AdapterAttributes) GetName() string {
 }
 
 func (a AdapterAttributes) GetSubresource() string {
-	tokens := strings.SplitN(a.authorizationAttributes.GetResource(), "/", 2)
-	if len(tokens) != 2 {
-		return ""
-	}
-	return tokens[1]
+	return a.authorizationAttributes.GetSubresource()
 }
 
 func (a AdapterAttributes) GetResource() string {
-	tokens := strings.SplitN(a.authorizationAttributes.GetResource(), "/", 2)
-	if len(tokens) < 1 {
-		return ""
-	}
-	return tokens[0]
+	return a.authorizationAttributes.GetResource()
 }
 
 // GetUserName satisfies the kubernetes authorizer.Attributes interface
