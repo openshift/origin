@@ -2,35 +2,70 @@ package authorizer
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apiserver/request"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-func IsPersonalAccessReview(a Action) (bool, error) {
-	switch extendedAttributes := a.GetRequestAttributes().(type) {
-	case *http.Request:
-		return isPersonalAccessReviewFromRequest(a, extendedAttributes)
+type personalSARRequestInfoResolver struct {
+	// infoFactory is used to determine info for the request
+	infoFactory RequestInfoFactory
+}
 
-	case *authorizationapi.SubjectAccessReview:
-		return isPersonalAccessReviewFromSAR(extendedAttributes), nil
-
-	case *authorizationapi.LocalSubjectAccessReview:
-		return isPersonalAccessReviewFromLocalSAR(extendedAttributes), nil
-
-	default:
-		return false, fmt.Errorf("unexpected request attributes for checking personal access review: %v", extendedAttributes)
-
+func NewPersonalSARRequestInfoResolver(infoFactory RequestInfoFactory) RequestInfoFactory {
+	return &personalSARRequestInfoResolver{
+		infoFactory: infoFactory,
 	}
 }
 
+func (a *personalSARRequestInfoResolver) NewRequestInfo(req *http.Request) (*request.RequestInfo, error) {
+	requestInfo, err := a.infoFactory.NewRequestInfo(req)
+	if err != nil {
+		return requestInfo, err
+	}
+
+	// only match SAR and LSAR requests for personal review
+	switch {
+	case !requestInfo.IsResourceRequest:
+		return requestInfo, nil
+
+	case len(requestInfo.APIGroup) != 0:
+		return requestInfo, nil
+
+	case len(requestInfo.Subresource) != 0:
+		return requestInfo, nil
+
+	case strings.ToLower(requestInfo.Verb) != "create":
+		return requestInfo, nil
+
+	case strings.ToLower(requestInfo.Resource) != "subjectaccessreviews" && strings.ToLower(requestInfo.Resource) != "localsubjectaccessreviews":
+		return requestInfo, nil
+	}
+
+	// at this point we're probably running a SAR or LSAR.  Decode the body and check.  This is expensive.
+	isSelfSAR, err := isPersonalAccessReviewFromRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	if !isSelfSAR {
+		return requestInfo, nil
+	}
+
+	// if we do have a self-SAR, rewrite the requestInfo to indicate this is a selfsubjectaccessreviews.authorization.k8s.io request
+	requestInfo.APIGroup = "authorization.k8s.io"
+	requestInfo.Resource = "selfsubjectaccessreviews"
+
+	return requestInfo, nil
+}
+
 // isPersonalAccessReviewFromRequest this variant handles the case where we have an httpRequest
-func isPersonalAccessReviewFromRequest(a Action, req *http.Request) (bool, error) {
+func isPersonalAccessReviewFromRequest(req *http.Request) (bool, error) {
 	// TODO once we're integrated with the api installer, we should have direct access to the deserialized content
 	// for now, this only happens on subjectaccessreviews with a personal check, pay the double retrieve and decode cost
 	body, err := ioutil.ReadAll(req.Body)
@@ -45,7 +80,7 @@ func isPersonalAccessReviewFromRequest(a Action, req *http.Request) (bool, error
 	}
 	switch castObj := obj.(type) {
 	case *authorizationapi.SubjectAccessReview:
-		return isPersonalAccessReviewFromSAR(castObj), nil
+		return IsPersonalAccessReviewFromSAR(castObj), nil
 
 	case *authorizationapi.LocalSubjectAccessReview:
 		return isPersonalAccessReviewFromLocalSAR(castObj), nil
@@ -55,8 +90,8 @@ func isPersonalAccessReviewFromRequest(a Action, req *http.Request) (bool, error
 	}
 }
 
-// isPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
-func isPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
+// IsPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
+func IsPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
 	if len(sar.User) == 0 && len(sar.Groups) == 0 {
 		return true
 	}

@@ -113,11 +113,21 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 // isAllowed checks to see if the current user has rights to issue a LocalSubjectAccessReview on the namespace they're attempting to access
 func (r *REST) isAllowed(ctx kapi.Context, sar *authorizationapi.SubjectAccessReview) error {
-	localSARAttributes := authorizer.DefaultAuthorizationAttributes{
-		Verb:              "create",
-		Resource:          "localsubjectaccessreviews",
-		RequestAttributes: sar,
+	var localSARAttributes authorizer.DefaultAuthorizationAttributes
+	// if they are running a personalSAR, create synthentic check for selfSAR
+	if authorizer.IsPersonalAccessReviewFromSAR(sar) {
+		localSARAttributes = authorizer.DefaultAuthorizationAttributes{
+			Verb:     "create",
+			APIGroup: "authorization.k8s.io",
+			Resource: "selfsubjectaccessreviews",
+		}
+	} else {
+		localSARAttributes = authorizer.DefaultAuthorizationAttributes{
+			Verb:     "create",
+			Resource: "localsubjectaccessreviews",
+		}
 	}
+
 	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, sar.Action.Namespace), localSARAttributes)
 
 	if err != nil {

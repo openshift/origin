@@ -2,7 +2,6 @@ package cache
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -124,11 +123,6 @@ func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes author
 }
 
 func cacheKey(ctx kapi.Context, a authorizer.Action) (string, error) {
-	if a.GetRequestAttributes() != nil {
-		// TODO: see if we can serialize this?
-		return "", errors.New("cannot cache request attributes")
-	}
-
 	keyData := map[string]interface{}{
 		"verb":           a.GetVerb(),
 		"apiVersion":     a.GetAPIVersion(),

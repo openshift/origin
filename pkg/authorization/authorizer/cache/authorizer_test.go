@@ -26,11 +26,6 @@ func TestCacheKey(t *testing.T) {
 		ExpectedKey string
 		ExpectedErr bool
 	}{
-		"uncacheable request attributes": {
-			Context:     kapi.NewContext(),
-			Attrs:       &authorizer.DefaultAuthorizationAttributes{RequestAttributes: true},
-			ExpectedErr: true,
-		},
 		"empty": {
 			Context:     kapi.NewContext(),
 			Attrs:       &authorizer.DefaultAuthorizationAttributes{},
@@ -39,14 +34,13 @@ func TestCacheKey(t *testing.T) {
 		"full": {
 			Context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "myns"), &user.DefaultInfo{Name: "me", Groups: []string{"group1", "group2"}}),
 			Attrs: &authorizer.DefaultAuthorizationAttributes{
-				Verb:              "v",
-				APIVersion:        "av",
-				APIGroup:          "ag",
-				Resource:          "r",
-				ResourceName:      "rn",
-				RequestAttributes: nil,
-				NonResourceURL:    true,
-				URL:               "/abc",
+				Verb:           "v",
+				APIVersion:     "av",
+				APIGroup:       "ag",
+				Resource:       "r",
+				ResourceName:   "rn",
+				NonResourceURL: true,
+				URL:            "/abc",
 			},
 			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"url":"/abc","user":"me","verb":"v"}`,
 		},
