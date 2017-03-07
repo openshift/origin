@@ -17,11 +17,11 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	authorizer authorizer.Authorizer
+	authorizer kauthorizer.Authorizer
 }
 
 // NewREST creates a new REST for policies.
-func NewREST(authorizer authorizer.Authorizer) *REST {
+func NewREST(authorizer kauthorizer.Authorizer) *REST {
 	return &REST{authorizer}
 }
 

@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -422,7 +421,7 @@ type fakeTestAuthorizer struct {
 	t *testing.T
 }
 
-func fakeAuthorizer(t *testing.T) *fakeTestAuthorizer {
+func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 	return &fakeTestAuthorizer{
 		t: t,
 	}
@@ -439,10 +438,6 @@ func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (bool, 
 	}
 	// User without pods/bindings. permission:
 	return false, "", nil
-}
-
-func (a *fakeTestAuthorizer) GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error) {
-	return nil, nil, nil
 }
 
 func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {

@@ -12,7 +12,6 @@ import (
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
@@ -23,7 +22,7 @@ type GroupCache interface {
 }
 
 // ImpersonationFilter checks for impersonation rules against the current user.
-func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCache GroupCache, contextMapper kapi.RequestContextMapper) http.Handler {
+func ImpersonationFilter(handler http.Handler, a kauthorizer.Authorizer, groupCache GroupCache, contextMapper kapi.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		requestedUser := req.Header.Get(authenticationapi.ImpersonateUserHeader)
 		if len(requestedUser) == 0 {

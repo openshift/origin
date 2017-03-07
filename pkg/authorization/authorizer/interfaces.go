@@ -8,8 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-type Authorizer interface {
-	Authorize(attributes authorizer.Attributes) (allowed bool, reason string, err error)
+type SubjectLocator interface {
 	GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error)
 }
 

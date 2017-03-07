@@ -6,13 +6,12 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -83,7 +82,7 @@ func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) stri
 }
 
 func (r *restrictedEndpointsAdmission) checkAccess(attr kadmission.Attributes) (bool, error) {
-	authzAttr := kauthorizer.AttributesRecord{
+	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
 		Namespace:       attr.GetNamespace(),

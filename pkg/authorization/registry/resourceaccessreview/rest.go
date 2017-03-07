@@ -17,12 +17,13 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	authorizer authorizer.Authorizer
+	authorizer     kauthorizer.Authorizer
+	subjectLocator authorizer.SubjectLocator
 }
 
 // NewREST creates a new REST for policies.
-func NewREST(authorizer authorizer.Authorizer) *REST {
-	return &REST{authorizer}
+func NewREST(authorizer kauthorizer.Authorizer, subjectLocator authorizer.SubjectLocator) *REST {
+	return &REST{authorizer, subjectLocator}
 }
 
 // New creates a new ResourceAccessReview object
@@ -58,7 +59,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	attributes := authorizer.ToDefaultAuthorizationAttributes(nil, resourceAccessReview.Action.Namespace, resourceAccessReview.Action)
-	users, groups, err := r.authorizer.GetAllowedSubjects(attributes)
+	users, groups, err := r.subjectLocator.GetAllowedSubjects(attributes)
 
 	response := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: resourceAccessReview.Action.Namespace,

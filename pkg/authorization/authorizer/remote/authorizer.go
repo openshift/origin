@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	oclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -26,7 +25,7 @@ type RemoteAuthorizerClient interface {
 	oclient.LocalResourceAccessReviewsNamespacer
 }
 
-func NewAuthorizer(client RemoteAuthorizerClient) (authorizer.Authorizer, error) {
+func NewAuthorizer(client RemoteAuthorizerClient) (kauthorizer.Authorizer, error) {
 	return &RemoteAuthorizer{client}, nil
 }
 

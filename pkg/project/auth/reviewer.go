@@ -93,10 +93,10 @@ func (r *reviewer) Review(name string) (Review, error) {
 }
 
 type authorizerReviewer struct {
-	policyChecker authorizer.Authorizer
+	policyChecker authorizer.SubjectLocator
 }
 
-func NewAuthorizerReviewer(policyChecker authorizer.Authorizer) Reviewer {
+func NewAuthorizerReviewer(policyChecker authorizer.SubjectLocator) Reviewer {
 	return &authorizerReviewer{policyChecker: policyChecker}
 }
 

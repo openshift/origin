@@ -15,8 +15,9 @@ type openshiftAuthorizer struct {
 	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
-func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) Authorizer {
-	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
+func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) (authorizer.Authorizer, SubjectLocator) {
+	ret := &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
+	return ret, ret
 }
 
 func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {

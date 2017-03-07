@@ -104,7 +104,7 @@ func TestNoErrors(t *testing.T) {
 }
 
 func (r *resourceAccessTest) runTest(t *testing.T) {
-	storage := REST{r.authorizer}
+	storage := REST{r.authorizer, r.authorizer}
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: r.reviewRequest.Action.Namespace,

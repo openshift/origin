@@ -72,7 +72,7 @@ func TestConflictingNamespace(t *testing.T) {
 		},
 	}
 
-	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer)))
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer, authorizer)))
 	ctx := kapi.WithNamespace(kapi.NewContext(), "bar")
 	_, err := storage.Create(ctx, reviewRequest)
 	if err == nil {
@@ -120,7 +120,7 @@ func TestNoErrors(t *testing.T) {
 }
 
 func (r *resourceAccessTest) runTest(t *testing.T) {
-	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer)))
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer, r.authorizer)))
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: r.reviewRequest.Action.Namespace,

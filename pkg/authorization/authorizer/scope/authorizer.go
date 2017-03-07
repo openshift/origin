@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/auth/authorizer"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -13,13 +13,13 @@ import (
 )
 
 type scopeAuthorizer struct {
-	delegate            defaultauthorizer.Authorizer
+	delegate            kauthorizer.Authorizer
 	clusterPolicyGetter client.ClusterPolicyLister
 
 	forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker
 }
 
-func NewAuthorizer(delegate defaultauthorizer.Authorizer, clusterPolicyGetter client.ClusterPolicyLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) defaultauthorizer.Authorizer {
+func NewAuthorizer(delegate kauthorizer.Authorizer, clusterPolicyGetter client.ClusterPolicyLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
 	return &scopeAuthorizer{delegate: delegate, clusterPolicyGetter: clusterPolicyGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
@@ -60,10 +60,4 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (bool, str
 	}
 
 	return false, fmt.Sprintf("scopes %v prevent this action; %v", scopes, denyReason), kerrors.NewAggregate(nonFatalErrors)
-}
-
-// TODO remove this. We don't logically need it, but it requires splitting our interface
-// GetAllowedSubjects returns the subjects it knows can perform the action.
-func (a *scopeAuthorizer) GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error) {
-	return a.delegate.GetAllowedSubjects(attributes)
 }

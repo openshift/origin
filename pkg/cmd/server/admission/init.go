@@ -2,10 +2,10 @@ package admission
 
 import (
 	"k8s.io/kubernetes/pkg/admission"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/quota"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -19,7 +19,7 @@ type PluginInitializer struct {
 	OpenshiftClient       client.Interface
 	ProjectCache          *cache.ProjectCache
 	OriginQuotaRegistry   quota.Registry
-	Authorizer            authorizer.Authorizer
+	Authorizer            kauthorizer.Authorizer
 	JenkinsPipelineConfig configapi.JenkinsPipelineConfig
 	RESTClientConfig      restclient.Config
 	Informers             shared.InformerFactory

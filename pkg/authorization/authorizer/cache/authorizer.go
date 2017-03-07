@@ -11,17 +11,14 @@ import (
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 type CacheAuthorizer struct {
-	authorizer authorizer.Authorizer
+	authorizer kauthorizer.Authorizer
 
-	authorizeCache       *lru.Cache
-	allowedSubjectsCache *lru.Cache
+	authorizeCache *lru.Cache
 
 	ttl time.Duration
 	now func() time.Time
@@ -34,28 +31,17 @@ type authorizeCacheRecord struct {
 	err     error
 }
 
-type allowedSubjectsCacheRecord struct {
-	created time.Time
-	users   sets.String
-	groups  sets.String
-}
-
 // NewAuthorizer returns an authorizer that caches the results of the given authorizer
-func NewAuthorizer(a authorizer.Authorizer, ttl time.Duration, cacheSize int) (authorizer.Authorizer, error) {
+func NewAuthorizer(a kauthorizer.Authorizer, ttl time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {
 	authorizeCache, err := lru.New(cacheSize)
 	if err != nil {
 		return nil, err
 	}
-	allowedSubjectsCache, err := lru.New(cacheSize)
-	if err != nil {
-		return nil, err
-	}
 	return &CacheAuthorizer{
-		authorizer:           a,
-		authorizeCache:       authorizeCache,
-		allowedSubjectsCache: allowedSubjectsCache,
-		ttl:                  ttl,
-		now:                  time.Now,
+		authorizer:     a,
+		authorizeCache: authorizeCache,
+		ttl:            ttl,
+		now:            time.Now,
 	}, nil
 }
 
@@ -89,37 +75,6 @@ func (c *CacheAuthorizer) Authorize(a kauthorizer.Attributes) (allowed bool, rea
 	}
 
 	return allowed, reason, err
-}
-
-func (c *CacheAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
-	key, err := cacheKey(attributes)
-	if err != nil {
-		glog.V(5).Infof("could not build cache key for %#v: %v", attributes, err)
-		return c.authorizer.GetAllowedSubjects(attributes)
-	}
-
-	if value, hit := c.allowedSubjectsCache.Get(key); hit {
-		switch record := value.(type) {
-		case *allowedSubjectsCacheRecord:
-			if record.created.Add(c.ttl).After(c.now()) {
-				return record.users, record.groups, nil
-			} else {
-				glog.V(5).Infof("cache record expired for %s", key)
-				c.allowedSubjectsCache.Remove(key)
-			}
-		default:
-			utilruntime.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
-		}
-	}
-
-	users, groups, err := c.authorizer.GetAllowedSubjects(attributes)
-
-	// Don't cache results if there was an error
-	if err == nil {
-		c.allowedSubjectsCache.Add(key, &allowedSubjectsCacheRecord{created: c.now(), users: users, groups: groups})
-	}
-
-	return users, groups, err
 }
 
 func cacheKey(a kauthorizer.Attributes) (string, error) {

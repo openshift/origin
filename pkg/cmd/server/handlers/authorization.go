@@ -21,12 +21,12 @@ import (
 
 type bypassAuthorizer struct {
 	paths      sets.String
-	authorizer authorizer.Authorizer
+	authorizer kauthorizer.Authorizer
 }
 
 // NewBypassAuthorizer creates an Authorizer that always allows the exact paths described, and delegates to the nested
 // authorizer for everything else.
-func NewBypassAuthorizer(auth authorizer.Authorizer, paths ...string) authorizer.Authorizer {
+func NewBypassAuthorizer(auth kauthorizer.Authorizer, paths ...string) kauthorizer.Authorizer {
 	return bypassAuthorizer{paths: sets.NewString(paths...), authorizer: auth}
 }
 
@@ -36,12 +36,9 @@ func (a bypassAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed 
 	}
 	return a.authorizer.Authorize(attributes)
 }
-func (a bypassAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
-	return a.authorizer.GetAllowedSubjects(attributes)
-}
 
 // AuthorizationFilter imposes normal authorization rules
-func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
+func AuthorizationFilter(handler http.Handler, authorizer kauthorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
