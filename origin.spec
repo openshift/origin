@@ -173,6 +173,7 @@ Summary:          %{product_name} SDN Plugin for Open vSwitch
 Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
+Requires:         bind-utils
 Requires:         ethtool
 Requires:         procps-ng
 Requires:         iproute

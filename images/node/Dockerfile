@@ -22,7 +22,7 @@ COPY system-container/manifest.json system-container/config.json.template system
 RUN INSTALL_PKGS="libmnl libnetfilter_conntrack conntrack-tools openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
-      iscsi-initiator-utils" && \
+      iscsi-initiator-utils bind-utils" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
