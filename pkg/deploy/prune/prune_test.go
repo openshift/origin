@@ -46,10 +46,6 @@ func TestPruneTask(t *testing.T) {
 		deployapi.DeploymentStatusComplete,
 		deployapi.DeploymentStatusFailed,
 	}
-	deploymentStatusFilterSet := sets.String{}
-	for _, deploymentStatus := range deploymentStatusFilter {
-		deploymentStatusFilterSet.Insert(string(deploymentStatus))
-	}
 
 	for _, orphans := range []bool{true, false} {
 		for _, deploymentStatusOption := range deploymentStatusOptions {

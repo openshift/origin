@@ -35,5 +35,6 @@ func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out, errOut io
 	cmds.AddCommand(NewCmdPruneDeployments(f, fullName, PruneDeploymentsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneImages(f, fullName, PruneImagesRecommendedName, out))
 	cmds.AddCommand(groups.NewCmdPrune(PruneGroupsRecommendedName, fullName+" "+PruneGroupsRecommendedName, f, out))
+	cmds.AddCommand(NewCmdPruneJobs(f, fullName, PruneJobsRecommendedName, out))
 	return cmds
 }
