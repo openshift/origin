@@ -190,6 +190,7 @@ func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sour
 		latestBuild.Status.Reason = build.Status.Reason
 		latestBuild.Status.Message = build.Status.Message
 		latestBuild.Status.Output.To = build.Status.Output.To
+		latestBuild.Status.Stages = build.Status.Stages
 
 		if _, err := client.UpdateDetails(latestBuild); err != nil {
 			return err
