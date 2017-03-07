@@ -68300,6 +68300,13 @@
       "description": "reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.",
       "type": "string"
      },
+     "stages": {
+      "description": "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.StageInfo"
+      }
+     },
      "startTimestamp": {
       "description": "startTimestamp is a timestamp representing the server time when this Build started running in a Pod. It is represented in RFC3339 form and is in UTC.",
       "$ref": "#/definitions/unversioned.Time"
@@ -76210,6 +76217,49 @@
      "type": {
       "description": "type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'",
       "type": "string"
+     }
+    }
+   },
+   "v1.StageInfo": {
+    "description": "StageInfo contains details about a build stage.",
+    "properties": {
+     "durationMilliseconds": {
+      "description": "durationMilliseconds identifies how long the stage took to complete in milliseconds. Note: the duration of a stage can exceed the sum of the duration of the steps within the stage as not all actions are accounted for in explicit build steps.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "name": {
+      "description": "name is a unique identifier for each build stage that occurs.",
+      "type": "string"
+     },
+     "startTime": {
+      "description": "startTime is a timestamp representing the server time when this Stage started. It is represented in RFC3339 form and is in UTC.",
+      "$ref": "#/definitions/unversioned.Time"
+     },
+     "steps": {
+      "description": "steps contains details about each step that occurs during a build stage including start time and duration in milliseconds.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.StepInfo"
+      }
+     }
+    }
+   },
+   "v1.StepInfo": {
+    "description": "StepInfo contains details about a build step.",
+    "properties": {
+     "durationMilliseconds": {
+      "description": "durationMilliseconds identifies how long the step took to complete in milliseconds.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "name": {
+      "description": "name is a unique identifier for each build step.",
+      "type": "string"
+     },
+     "startTime": {
+      "description": "startTime is a timestamp representing the server time when this Step started. it is represented in RFC3339 form and is in UTC.",
+      "$ref": "#/definitions/unversioned.Time"
      }
     }
    },

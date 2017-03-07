@@ -147,6 +147,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		// output like "duration: 1.2724395728934s"
 		formatString(out, "Duration", describeBuildDuration(build))
 
+		for _, stage := range build.Status.Stages {
+			duration := stage.StartTime.Time.Add(time.Duration(stage.DurationMilliseconds * int64(time.Millisecond))).Round(time.Second).Sub(stage.StartTime.Time.Round(time.Second))
+			formatString(out, fmt.Sprintf("  %v", stage.Name), fmt.Sprintf("  %v", duration))
+		}
+
+		fmt.Fprintln(out, "")
+
 		if build.Status.Config != nil {
 			formatString(out, "Build Config", build.Status.Config.Name)
 		}

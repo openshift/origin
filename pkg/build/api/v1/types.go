@@ -208,7 +208,95 @@ type BuildStatus struct {
 
 	// output describes the Docker image the build has produced.
 	Output BuildStatusOutput `json:"output,omitempty" protobuf:"bytes,10,opt,name=output"`
+
+	// stages contains details about each stage that occurs during the build
+	// including start time, duration (in milliseconds), and the steps that
+	// occured within each stage.
+	Stages []StageInfo `json:"stages,omitempty" protobuf:"bytes,11,opt,name=stages"`
 }
+
+// StageInfo contains details about a build stage.
+type StageInfo struct {
+	// name is a unique identifier for each build stage that occurs.
+	Name StageName `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+
+	// startTime is a timestamp representing the server time when this Stage started.
+	// It is represented in RFC3339 form and is in UTC.
+	StartTime unversioned.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
+
+	// durationMilliseconds identifies how long the stage took
+	// to complete in milliseconds.
+	// Note: the duration of a stage can exceed the sum of the duration of the steps within
+	// the stage as not all actions are accounted for in explicit build steps.
+	DurationMilliseconds int64 `json:"durationMilliseconds,omitempty" protobuf:"varint,3,opt,name=durationMilliseconds"`
+
+	// steps contains details about each step that occurs during a build stage
+	// including start time and duration in milliseconds.
+	Steps []StepInfo `json:"steps,omitempty" protobuf:"bytes,4,opt,name=steps"`
+}
+
+// StageName is the unique identifier for each build stage.
+type StageName string
+
+// Valid values for StageName
+const (
+	// StageFetchInputs fetches any inputs such as source code.
+	StageFetchInputs StageName = "FetchInputs"
+
+	// StagePullImages pulls any images that are needed such as
+	// base images or input images.
+	StagePullImages StageName = "PullImages"
+
+	// StageBuild performs the steps necessary to build the image.
+	StageBuild StageName = "Build"
+
+	// StagePostCommit executes any post commit steps.
+	StagePostCommit StageName = "PostCommit"
+
+	// StagePushImage pushes the image to the node.
+	StagePushImage StageName = "PushImage"
+)
+
+// StepInfo contains details about a build step.
+type StepInfo struct {
+	// name is a unique identifier for each build step.
+	Name StepName `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+
+	// startTime is a timestamp representing the server time when this Step started.
+	// it is represented in RFC3339 form and is in UTC.
+	StartTime unversioned.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
+
+	// durationMilliseconds identifies how long the step took
+	// to complete in milliseconds.
+	DurationMilliseconds int64 `json:"durationMilliseconds,omitempty" protobuf:"varint,3,opt,name=durationMilliseconds"`
+}
+
+// StepName is a unique identifier for each build step.
+type StepName string
+
+// Valid values for StepName
+const (
+	// StepExecPostCommitHook executes the buildconfigs post commit hook.
+	StepExecPostCommitHook StepName = "RunPostCommitHook"
+
+	// StepFetchGitSource fetches source code for the build.
+	StepFetchGitSource StepName = "FetchGitSource"
+
+	// StepPullBaseImage pulls a base image for the build.
+	StepPullBaseImage StepName = "PullBaseImage"
+
+	// StepPullInputImage pulls an input image for the build.
+	StepPullInputImage StepName = "PullInputImage"
+
+	// StepPushImage pushes an image to the registry.
+	StepPushImage StepName = "PushImage"
+
+	// StepPushDockerImage pushes a docker image to the registry.
+	StepPushDockerImage StepName = "PushDockerImage"
+
+	//StepDockerBuild performs the docker build
+	StepDockerBuild StepName = "DockerBuild"
+)
 
 // BuildPhase represents the status of a build at a point in time.
 type BuildPhase string

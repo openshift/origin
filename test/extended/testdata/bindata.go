@@ -17,6 +17,14 @@
 // test/extended/testdata/build-secrets/test-s2i-build.json
 // test/extended/testdata/build-secrets/test-secret-2.json
 // test/extended/testdata/build-secrets/test-secret.json
+// test/extended/testdata/build-timing/Dockerfile
+// test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble
+// test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run
+// test/extended/testdata/build-timing/s2i-binary-dir/Gemfile
+// test/extended/testdata/build-timing/s2i-binary-dir/config.ru
+// test/extended/testdata/build-timing/test-docker-build.json
+// test/extended/testdata/build-timing/test-is.json
+// test/extended/testdata/build-timing/test-s2i-build.json
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -859,6 +867,237 @@ func testExtendedTestdataBuildSecretsTestSecretJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingDockerfile = []byte(`FROM centos/ruby-22-centos7
+
+USER root
+`)
+
+func testExtendedTestdataBuildTimingDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingDockerfile, nil
+}
+
+func testExtendedTestdataBuildTimingDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
+
+`)
+
+func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble, nil
+}
+
+func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssembleBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
+
+`)
+
+func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRunBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun, nil
+}
+
+func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRunBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingS2iBinaryDirGemfile = []byte(`source "https://rubygems.org"
+
+gem "rack"
+`)
+
+func testExtendedTestdataBuildTimingS2iBinaryDirGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingS2iBinaryDirGemfile, nil
+}
+
+func testExtendedTestdataBuildTimingS2iBinaryDirGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirGemfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingS2iBinaryDirConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+`)
+
+func testExtendedTestdataBuildTimingS2iBinaryDirConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingS2iBinaryDirConfigRu, nil
+}
+
+func testExtendedTestdataBuildTimingS2iBinaryDirConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirConfigRuBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingTestDockerBuildJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary",
+      "binary": {}
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "forcePull": true,
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ]
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildTimingTestDockerBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingTestDockerBuildJson, nil
+}
+
+func testExtendedTestdataBuildTimingTestDockerBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingTestDockerBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingTestIsJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test"
+  }
+}
+`)
+
+func testExtendedTestdataBuildTimingTestIsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingTestIsJson, nil
+}
+
+func testExtendedTestdataBuildTimingTestIsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingTestIsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildTimingTestS2iBuildJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary",
+      "binary": {}
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ]
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildTimingTestS2iBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildTimingTestS2iBuildJson, nil
+}
+
+func testExtendedTestdataBuildTimingTestS2iBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildTimingTestS2iBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18730,6 +18969,14 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-secrets/test-s2i-build.json": testExtendedTestdataBuildSecretsTestS2iBuildJson,
 	"test/extended/testdata/build-secrets/test-secret-2.json": testExtendedTestdataBuildSecretsTestSecret2Json,
 	"test/extended/testdata/build-secrets/test-secret.json": testExtendedTestdataBuildSecretsTestSecretJson,
+	"test/extended/testdata/build-timing/Dockerfile": testExtendedTestdataBuildTimingDockerfile,
+	"test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/build-timing/s2i-binary-dir/Gemfile": testExtendedTestdataBuildTimingS2iBinaryDirGemfile,
+	"test/extended/testdata/build-timing/s2i-binary-dir/config.ru": testExtendedTestdataBuildTimingS2iBinaryDirConfigRu,
+	"test/extended/testdata/build-timing/test-docker-build.json": testExtendedTestdataBuildTimingTestDockerBuildJson,
+	"test/extended/testdata/build-timing/test-is.json": testExtendedTestdataBuildTimingTestIsJson,
+	"test/extended/testdata/build-timing/test-s2i-build.json": testExtendedTestdataBuildTimingTestS2iBuildJson,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -19024,6 +19271,22 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
 					"test-secret-2.json": &bintree{testExtendedTestdataBuildSecretsTestSecret2Json, map[string]*bintree{}},
 					"test-secret.json": &bintree{testExtendedTestdataBuildSecretsTestSecretJson, map[string]*bintree{}},
+				}},
+				"build-timing": &bintree{nil, map[string]*bintree{
+					"Dockerfile": &bintree{testExtendedTestdataBuildTimingDockerfile, map[string]*bintree{}},
+					"s2i-binary-dir": &bintree{nil, map[string]*bintree{
+						".s2i": &bintree{nil, map[string]*bintree{
+							"bin": &bintree{nil, map[string]*bintree{
+								"assemble": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
+								"run": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+							}},
+						}},
+						"Gemfile": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirGemfile, map[string]*bintree{}},
+						"config.ru": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirConfigRu, map[string]*bintree{}},
+					}},
+					"test-docker-build.json": &bintree{testExtendedTestdataBuildTimingTestDockerBuildJson, map[string]*bintree{}},
+					"test-is.json": &bintree{testExtendedTestdataBuildTimingTestIsJson, map[string]*bintree{}},
+					"test-s2i-build.json": &bintree{testExtendedTestdataBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 				}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},

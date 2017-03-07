@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,8 +18,11 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/source-to-image/pkg/tar"
+
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 const (
@@ -51,7 +55,7 @@ func (e contextDirNotFoundError) Error() string {
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
+func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
 	hasGitSource := false
 
 	// expect to receive input from STDIN
@@ -60,7 +64,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 	}
 
 	// may retrieve source from Git
-	hasGitSource, err := extractGitSource(gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
+	hasGitSource, err := extractGitSource(ctx, gitClient, build.Spec.Source.Git, build.Spec.Revision, dir, urlTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +95,7 @@ func fetchSource(dockerClient DockerClient, dir string, build *api.Build, urlTim
 		if image.PullSecret == nil {
 			imageSecretIndex = -1
 		}
-		err := extractSourceFromImage(dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
+		err := extractSourceFromImage(ctx, dockerClient, image.From.Name, dir, imageSecretIndex, image.Paths, forcePull)
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +214,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 	return nil
 }
 
-func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string, timeout time.Duration) (bool, error) {
+func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string, timeout time.Duration) (bool, error) {
 	if gitSource == nil {
 		return false, nil
 	}
@@ -239,9 +243,12 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	if !glog.Is(5) {
 		cloneOptions = append(cloneOptions, "--quiet")
 	}
+	startTime := unversioned.Now()
 	if err := gitClient.CloneWithOptions(dir, gitSource.URI, cloneOptions...); err != nil {
 		return true, err
 	}
+
+	timing.RecordNewStep(ctx, api.StageFetchInputs, api.StepFetchGitSource, startTime, unversioned.Now())
 
 	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
@@ -322,9 +329,8 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
 }
 
-func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []api.ImageSourcePath, forcePull bool) error {
+func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []api.ImageSourcePath, forcePull bool) error {
 	glog.V(4).Infof("Extracting image source from %s", image)
-
 	dockerAuth := docker.AuthConfiguration{}
 	if imageSecretIndex != -1 {
 		pullSecret := os.Getenv(fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, imageSecretIndex))
@@ -356,9 +362,13 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 
 	if !exists || forcePull {
 		glog.V(0).Infof("Pulling image %q ...", image)
+		startTime := unversioned.Now()
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
+
+		timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullInputImage, startTime, unversioned.Now())
+
 	}
 
 	containerConfig := &docker.Config{Image: image}

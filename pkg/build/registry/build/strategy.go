@@ -102,6 +102,7 @@ func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 	// ignore phase updates unless the caller is updating the build to
 	// a completed phase.
 	phase := oldBuild.Status.Phase
+	stages := newBuild.Status.Stages
 	if buildutil.IsBuildComplete(newBuild) {
 		phase = newBuild.Status.Phase
 	}
@@ -111,6 +112,7 @@ func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 	outputTo := newBuild.Status.Output.To
 	*newBuild = *oldBuild
 	newBuild.Status.Phase = phase
+	newBuild.Status.Stages = stages
 	newBuild.Spec.Revision = revision
 	newBuild.Status.Reason = reason
 	newBuild.Status.Message = message

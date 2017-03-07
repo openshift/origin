@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
@@ -18,9 +20,12 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
+
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
@@ -90,6 +95,14 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 // Build executes STI build based on configured builder, S2I builder factory
 // and S2I config validator
 func (s *S2IBuilder) Build() error {
+
+	var err error
+	ctx := timing.NewContext(context.Background())
+	defer func() {
+		s.build.Status.Stages = api.AppendStageAndStepInfo(s.build.Status.Stages, timing.GetStages(ctx))
+		handleBuildStatusUpdate(s.build, s.client, nil)
+	}()
+
 	if s.build.Spec.Strategy.SourceStrategy == nil {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
@@ -114,7 +127,8 @@ func (s *S2IBuilder) Build() error {
 	pushTag := s.build.Status.OutputDockerImageReference
 
 	// fetch source
-	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
+	sourceInfo, err := fetchSource(ctx, s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
+
 	if err != nil {
 		switch err.(type) {
 		case contextDirNotFoundError:
@@ -129,6 +143,7 @@ func (s *S2IBuilder) Build() error {
 		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
+
 	contextDir := ""
 	if len(s.build.Spec.Source.ContextDir) > 0 {
 		contextDir = filepath.Clean(s.build.Spec.Source.ContextDir)
@@ -272,7 +287,15 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
+	startTime := unversioned.Now()
 	result, err := builder.Build(config)
+
+	for _, stage := range result.BuildInfo.Stages {
+		for _, step := range stage.Steps {
+			timing.RecordNewStep(ctx, api.StageName(stage.Name), api.StepName(step.Name), unversioned.NewTime(step.StartTime), unversioned.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+		}
+	}
+
 	if err != nil {
 		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
@@ -285,7 +308,12 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	if err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName); err != nil {
+	startTime = unversioned.Now()
+	err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
+
+	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, unversioned.Now())
+
+	if err != nil {
 		s.build.Status.Phase = api.BuildPhaseFailed
 		s.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		s.build.Status.Message = api.StatusMessagePostCommitHookFailed
@@ -315,7 +343,11 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
+		startTime = unversioned.Now()
 		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+
+		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushImage, startTime, unversioned.Now())
+
 		if err != nil {
 			s.build.Status.Phase = api.BuildPhaseFailed
 			s.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
@@ -323,6 +355,7 @@ func (s *S2IBuilder) Build() error {
 			handleBuildStatusUpdate(s.build, s.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
+
 		if len(digest) > 0 {
 			s.build.Status.Output.To = &api.BuildStatusOutputTo{
 				ImageDigest: digest,

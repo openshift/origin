@@ -8633,12 +8633,25 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.BuildStatusOutput"),
 						},
 					},
+					"stages": {
+						SchemaProps: spec.SchemaProps{
+							Description: "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.StageInfo"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"phase"},
 			},
 		},
 		Dependencies: []string{
-			"unversioned.Time", "v1.BuildStatusOutput", "v1.ObjectReference"},
+			"unversioned.Time", "v1.BuildStatusOutput", "v1.ObjectReference", "v1.StageInfo"},
 	},
 	"v1.BuildStatusOutput": {
 		Schema: spec.Schema{
@@ -23316,6 +23329,81 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		},
 		Dependencies: []string{
 			"v1.GitSourceRevision"},
+	},
+	"v1.StageInfo": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StageInfo contains details about a build stage.",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is a unique identifier for each build stage that occurs.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"startTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "startTime is a timestamp representing the server time when this Stage started. It is represented in RFC3339 form and is in UTC.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.Time"),
+						},
+					},
+					"durationMilliseconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "durationMilliseconds identifies how long the stage took to complete in milliseconds. Note: the duration of a stage can exceed the sum of the duration of the steps within the stage as not all actions are accounted for in explicit build steps.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"steps": {
+						SchemaProps: spec.SchemaProps{
+							Description: "steps contains details about each step that occurs during a build stage including start time and duration in milliseconds.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.StepInfo"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.Time", "v1.StepInfo"},
+	},
+	"v1.StepInfo": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StepInfo contains details about a build step.",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is a unique identifier for each build step.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"startTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "startTime is a timestamp representing the server time when this Step started. it is represented in RFC3339 form and is in UTC.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.Time"),
+						},
+					},
+					"durationMilliseconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "durationMilliseconds identifies how long the step took to complete in milliseconds.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.Time"},
 	},
 	"v1.SubjectAccessReview": {
 		Schema: spec.Schema{

@@ -115,6 +115,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_SourceControlUser_To_v1_SourceControlUser,
 		Convert_v1_SourceRevision_To_api_SourceRevision,
 		Convert_api_SourceRevision_To_v1_SourceRevision,
+		Convert_v1_StageInfo_To_api_StageInfo,
+		Convert_api_StageInfo_To_v1_StageInfo,
+		Convert_v1_StepInfo_To_api_StepInfo,
+		Convert_api_StepInfo_To_v1_StepInfo,
 		Convert_v1_WebHookTrigger_To_api_WebHookTrigger,
 		Convert_api_WebHookTrigger_To_v1_WebHookTrigger,
 	)
@@ -818,6 +822,7 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *api.Bui
 	if err := Convert_v1_BuildStatusOutput_To_api_BuildStatusOutput(&in.Output, &out.Output, s); err != nil {
 		return err
 	}
+	out.Stages = *(*[]api.StageInfo)(unsafe.Pointer(&in.Stages))
 	return nil
 }
 
@@ -846,6 +851,7 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *Bui
 	if err := Convert_api_BuildStatusOutput_To_v1_BuildStatusOutput(&in.Output, &out.Output, s); err != nil {
 		return err
 	}
+	out.Stages = *(*[]StageInfo)(unsafe.Pointer(&in.Stages))
 	return nil
 }
 
@@ -2091,6 +2097,52 @@ func Convert_v1_SourceRevision_To_api_SourceRevision(in *SourceRevision, out *ap
 func autoConvert_api_SourceRevision_To_v1_SourceRevision(in *api.SourceRevision, out *SourceRevision, s conversion.Scope) error {
 	out.Git = (*GitSourceRevision)(unsafe.Pointer(in.Git))
 	return nil
+}
+
+func autoConvert_v1_StageInfo_To_api_StageInfo(in *StageInfo, out *api.StageInfo, s conversion.Scope) error {
+	out.Name = api.StageName(in.Name)
+	out.StartTime = in.StartTime
+	out.DurationMilliseconds = in.DurationMilliseconds
+	out.Steps = *(*[]api.StepInfo)(unsafe.Pointer(&in.Steps))
+	return nil
+}
+
+func Convert_v1_StageInfo_To_api_StageInfo(in *StageInfo, out *api.StageInfo, s conversion.Scope) error {
+	return autoConvert_v1_StageInfo_To_api_StageInfo(in, out, s)
+}
+
+func autoConvert_api_StageInfo_To_v1_StageInfo(in *api.StageInfo, out *StageInfo, s conversion.Scope) error {
+	out.Name = StageName(in.Name)
+	out.StartTime = in.StartTime
+	out.DurationMilliseconds = in.DurationMilliseconds
+	out.Steps = *(*[]StepInfo)(unsafe.Pointer(&in.Steps))
+	return nil
+}
+
+func Convert_api_StageInfo_To_v1_StageInfo(in *api.StageInfo, out *StageInfo, s conversion.Scope) error {
+	return autoConvert_api_StageInfo_To_v1_StageInfo(in, out, s)
+}
+
+func autoConvert_v1_StepInfo_To_api_StepInfo(in *StepInfo, out *api.StepInfo, s conversion.Scope) error {
+	out.Name = api.StepName(in.Name)
+	out.StartTime = in.StartTime
+	out.DurationMilliseconds = in.DurationMilliseconds
+	return nil
+}
+
+func Convert_v1_StepInfo_To_api_StepInfo(in *StepInfo, out *api.StepInfo, s conversion.Scope) error {
+	return autoConvert_v1_StepInfo_To_api_StepInfo(in, out, s)
+}
+
+func autoConvert_api_StepInfo_To_v1_StepInfo(in *api.StepInfo, out *StepInfo, s conversion.Scope) error {
+	out.Name = StepName(in.Name)
+	out.StartTime = in.StartTime
+	out.DurationMilliseconds = in.DurationMilliseconds
+	return nil
+}
+
+func Convert_api_StepInfo_To_v1_StepInfo(in *api.StepInfo, out *StepInfo, s conversion.Scope) error {
+	return autoConvert_api_StepInfo_To_v1_StepInfo(in, out, s)
 }
 
 func autoConvert_v1_WebHookTrigger_To_api_WebHookTrigger(in *WebHookTrigger, out *api.WebHookTrigger, s conversion.Scope) error {

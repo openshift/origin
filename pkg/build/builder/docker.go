@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,6 +14,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -21,6 +23,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
@@ -55,6 +58,14 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+
+	var err error
+	ctx := timing.NewContext(context.Background())
+	defer func() {
+		d.build.Status.Stages = api.AppendStageAndStepInfo(d.build.Status.Stages, timing.GetStages(ctx))
+		handleBuildStatusUpdate(d.build, d.client, nil)
+	}()
+
 	if d.build.Spec.Source.Git == nil && d.build.Spec.Source.Binary == nil &&
 		d.build.Spec.Source.Dockerfile == nil && d.build.Spec.Source.Images == nil {
 		return fmt.Errorf("must provide a value for at least one of source, binary, images, or dockerfile")
@@ -66,7 +77,8 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	sourceInfo, err := fetchSource(d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
+
+	sourceInfo, err := fetchSource(ctx, d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
 	if err != nil {
 		switch err.(type) {
 		case contextDirNotFoundError:
@@ -127,17 +139,28 @@ func (d *DockerBuilder) Build() error {
 				dockercfg.PullAuthType,
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
-			if err = pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
+			startTime := unversioned.Now()
+			err = pullImage(d.dockerClient, imageName, pullAuthConfig)
+
+			timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullBaseImage, startTime, unversioned.Now())
+
+			if err != nil {
 				d.build.Status.Phase = api.BuildPhaseFailed
 				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
 				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
 				handleBuildStatusUpdate(d.build, d.client, nil)
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
+
 		}
 	}
 
-	if err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
+	startTime := unversioned.Now()
+	err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets)
+
+	timing.RecordNewStep(ctx, api.StageBuild, api.StepDockerBuild, startTime, unversioned.Now())
+
+	if err != nil {
 		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
 		d.build.Status.Message = api.StatusMessageDockerBuildFailed
@@ -146,7 +169,12 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-	if err := execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname); err != nil {
+	startTime = unversioned.Now()
+	err = execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
+
+	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, unversioned.Now())
+
+	if err != nil {
 		d.build.Status.Phase = api.BuildPhaseFailed
 		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
@@ -174,7 +202,11 @@ func (d *DockerBuilder) Build() error {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
+		startTime = unversioned.Now()
 		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
+
+		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushDockerImage, startTime, unversioned.Now())
+
 		if err != nil {
 			d.build.Status.Phase = api.BuildPhaseFailed
 			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
@@ -182,6 +214,7 @@ func (d *DockerBuilder) Build() error {
 			handleBuildStatusUpdate(d.build, d.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
+
 		if len(digest) > 0 {
 			d.build.Status.Output.To = &api.BuildStatusOutputTo{
 				ImageDigest: digest,

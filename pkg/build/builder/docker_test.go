@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
+	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
@@ -293,6 +294,10 @@ func TestDockerfilePath(t *testing.T) {
 
 func TestEmptySource(t *testing.T) {
 	build := &api.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "buildid",
+			Namespace: "default",
+		},
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{},
@@ -309,8 +314,11 @@ func TestEmptySource(t *testing.T) {
 		},
 	}
 
+	client := testclient.Fake{}
+
 	dockerBuilder := &DockerBuilder{
-		build: build,
+		client: client.Builds(""),
+		build:  build,
 	}
 
 	if err := dockerBuilder.Build(); err == nil {
@@ -340,6 +348,10 @@ USER 1001`
 	}
 
 	build := &api.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "buildid",
+			Namespace: "default",
+		},
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
 				Source: api.BuildSource{
@@ -365,7 +377,10 @@ USER 1001`
 		},
 	}
 
+	client := testclient.Fake{}
+
 	dockerBuilder := &DockerBuilder{
+		client:       client.Builds(""),
 		build:        build,
 		dockerClient: dockerClient,
 		gitClient:    git.NewRepository(),

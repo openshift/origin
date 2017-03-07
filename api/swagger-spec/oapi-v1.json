@@ -24394,6 +24394,13 @@
      "output": {
       "$ref": "v1.BuildStatusOutput",
       "description": "output describes the Docker image the build has produced."
+     },
+     "stages": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.StageInfo"
+      },
+      "description": "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage."
      }
     }
    },
@@ -24414,6 +24421,51 @@
      "imageDigest": {
       "type": "string",
       "description": "imageDigest is the digest of the built Docker image. The digest uniquely identifies the image in the registry to which it was pushed.\n\nPlease note that this field may not always be set even if the push completes successfully - e.g. when the registry returns no digest or returns it in a format that the builder doesn't understand."
+     }
+    }
+   },
+   "v1.StageInfo": {
+    "id": "v1.StageInfo",
+    "description": "StageInfo contains details about a build stage.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "name is a unique identifier for each build stage that occurs."
+     },
+     "startTime": {
+      "type": "string",
+      "description": "startTime is a timestamp representing the server time when this Stage started. It is represented in RFC3339 form and is in UTC."
+     },
+     "durationMilliseconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "durationMilliseconds identifies how long the stage took to complete in milliseconds. Note: the duration of a stage can exceed the sum of the duration of the steps within the stage as not all actions are accounted for in explicit build steps."
+     },
+     "steps": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.StepInfo"
+      },
+      "description": "steps contains details about each step that occurs during a build stage including start time and duration in milliseconds."
+     }
+    }
+   },
+   "v1.StepInfo": {
+    "id": "v1.StepInfo",
+    "description": "StepInfo contains details about a build step.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "name is a unique identifier for each build step."
+     },
+     "startTime": {
+      "type": "string",
+      "description": "startTime is a timestamp representing the server time when this Step started. it is represented in RFC3339 form and is in UTC."
+     },
+     "durationMilliseconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "durationMilliseconds identifies how long the step took to complete in milliseconds."
      }
     }
    },

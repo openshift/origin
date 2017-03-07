@@ -66,6 +66,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SourceBuildStrategy, InType: reflect.TypeOf(&SourceBuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SourceControlUser, InType: reflect.TypeOf(&SourceControlUser{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SourceRevision, InType: reflect.TypeOf(&SourceRevision{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_StageInfo, InType: reflect.TypeOf(&StageInfo{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_StepInfo, InType: reflect.TypeOf(&StepInfo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_WebHookTrigger, InType: reflect.TypeOf(&WebHookTrigger{})},
 	)
 }
@@ -524,6 +526,17 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 		}
 		if err := DeepCopy_v1_BuildStatusOutput(&in.Output, &out.Output, c); err != nil {
 			return err
+		}
+		if in.Stages != nil {
+			in, out := &in.Stages, &out.Stages
+			*out = make([]StageInfo, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_StageInfo(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Stages = nil
 		}
 		return nil
 	}
@@ -1220,6 +1233,39 @@ func DeepCopy_v1_SourceRevision(in interface{}, out interface{}, c *conversion.C
 		} else {
 			out.Git = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_StageInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*StageInfo)
+		out := out.(*StageInfo)
+		out.Name = in.Name
+		out.StartTime = in.StartTime.DeepCopy()
+		out.DurationMilliseconds = in.DurationMilliseconds
+		if in.Steps != nil {
+			in, out := &in.Steps, &out.Steps
+			*out = make([]StepInfo, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_StepInfo(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Steps = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_StepInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*StepInfo)
+		out := out.(*StepInfo)
+		out.Name = in.Name
+		out.StartTime = in.StartTime.DeepCopy()
+		out.DurationMilliseconds = in.DurationMilliseconds
 		return nil
 	}
 }
