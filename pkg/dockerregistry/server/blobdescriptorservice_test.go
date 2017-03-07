@@ -256,6 +256,33 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		},
 
 		{
+			name:     "delete manifest with repository unset",
+			method:   http.MethodDelete,
+			endpoint: v2.RouteNameManifest,
+			vars: []string{
+				"name", "user/app",
+				"reference", testImage.Name,
+			},
+			unsetRepository: true,
+			expectedStatus:  http.StatusInternalServerError,
+			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
+			expectedMethodInvocations: map[string]int{"Stat": 1},
+		},
+
+		{
+			name:     "delete manifest",
+			method:   http.MethodDelete,
+			endpoint: v2.RouteNameManifest,
+			vars: []string{
+				"name", "user/app",
+				"reference", testImage.Name,
+			},
+			expectedStatus: http.StatusNotFound,
+			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
+			expectedMethodInvocations: map[string]int{"Stat": 1},
+		},
+
+		{
 			name:     "get manifest with repository unset",
 			method:   http.MethodGet,
 			endpoint: v2.RouteNameManifest,
@@ -281,36 +308,6 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			// manifest is retrieved from etcd
 			expectedMethodInvocations: map[string]int{"Stat": 1},
-		},
-
-		{
-			name:     "delete manifest with repository unset",
-			method:   http.MethodDelete,
-			endpoint: v2.RouteNameManifest,
-			vars: []string{
-				"name", "user/app",
-				"reference", testImage.Name,
-			},
-			unsetRepository: true,
-			expectedStatus:  http.StatusInternalServerError,
-			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
-			expectedMethodInvocations: map[string]int{"Stat": 1},
-		},
-
-		{
-			name:     "delete manifest",
-			method:   http.MethodDelete,
-			endpoint: v2.RouteNameManifest,
-			vars: []string{
-				"name", "user/app",
-				"reference", testImage.Name,
-			},
-			expectedStatus: http.StatusAccepted,
-			// we don't allow to delete manifests from etcd; in this case, we attempt to delete layer link
-			expectedMethodInvocations: map[string]int{
-				"Stat":  1,
-				"Clear": 1,
-			},
 		},
 	} {
 		doTest(tc)
