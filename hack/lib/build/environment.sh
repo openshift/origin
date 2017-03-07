@@ -128,8 +128,8 @@ function os::build::environment::start() {
       fi
       os::log::debug "Copying from ${container}:${workingdir}/${path} to ${parent}"
       if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
-        os::log::warn "Copying ${path} from the container failed!"
-        os::log::warn "${output}"
+        os::log::warning "Copying ${path} from the container failed!"
+        os::log::warning "${output}"
       fi
     done
     IFS="${oldIFS}"
