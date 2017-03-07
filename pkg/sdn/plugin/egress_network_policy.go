@@ -18,6 +18,9 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
 
+	plugin.egressPoliciesLock.Lock()
+	defer plugin.egressPoliciesLock.Unlock()
+
 	for _, policy := range policies.Items {
 		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
@@ -47,6 +50,9 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
 		}
 
+		plugin.egressPoliciesLock.Lock()
+		defer plugin.egressPoliciesLock.Unlock()
+
 		policies := plugin.egressPolicies[vnid]
 		for i, oldPolicy := range policies {
 			if oldPolicy.UID == policy.UID {
@@ -69,6 +75,9 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 
 func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) {
 	var policy *osapi.EgressNetworkPolicy
+
+	plugin.egressPoliciesLock.Lock()
+	defer plugin.egressPoliciesLock.Unlock()
 
 	policies := plugin.egressPolicies[oldVnid]
 	for i, oldPolicy := range policies {
@@ -99,6 +108,8 @@ func (plugin *OsdnNode) syncEgressDNSPolicyRules() {
 			continue
 		}
 
+		plugin.egressPoliciesLock.Lock()
+		defer plugin.egressPoliciesLock.Unlock()
 		plugin.updateEgressNetworkPolicyRules(vnid)
 	}
 }

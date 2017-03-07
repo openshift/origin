@@ -62,8 +62,10 @@ type OsdnNode struct {
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 
-	egressPolicies map[uint32][]osapi.EgressNetworkPolicy
-	egressDNS      *EgressDNS
+	// Synchronizes operations on egressPolicies
+	egressPoliciesLock sync.Mutex
+	egressPolicies     map[uint32][]osapi.EgressNetworkPolicy
+	egressDNS          *EgressDNS
 
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
