@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
-  os::log::warn "Generating completions on ${platform} may not be identical to running on linux/amd64 due to conditional compilation."
+  os::log::warning "Generating completions on ${platform} may not be identical to running on linux/amd64 due to conditional compilation."
 fi
 
 OUTPUT_REL_DIR=${1:-""}

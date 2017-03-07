@@ -224,7 +224,7 @@ function run-extended-tests() {
 
   if [[ -n "${log_path}" ]]; then
     if [[ -n "${dlv_debug}" ]]; then
-      os::log::warn "Not logging to file since DLV_DEBUG is enabled"
+      os::log::warning "Not logging to file since DLV_DEBUG is enabled"
     else
       test_cmd="${test_cmd} | tee ${log_path}"
     fi
@@ -266,7 +266,7 @@ TEST_EXTRA_ARGS="$@"
 
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]] &&
      os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
-  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
+  os::log::warning "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
 else
   hack/build-go.sh test/extended/extended.test
 fi
