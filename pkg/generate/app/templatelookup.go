@@ -95,7 +95,7 @@ func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatche
 }
 
 // IsPossibleTemplateFile returns true if the argument can be a template file
-func IsPossibleTemplateFile(value string) bool {
+func IsPossibleTemplateFile(value string) (bool, error) {
 	return isFile(value)
 }
 
