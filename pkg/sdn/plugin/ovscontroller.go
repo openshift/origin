@@ -177,6 +177,70 @@ func (oc *ovsController) NewTransaction() ovs.Transaction {
 	return oc.ovs.NewTransaction()
 }
 
+func policyNames(policies []osapi.EgressNetworkPolicy) string {
+	names := make([]string, len(policies))
+	for i, policy := range policies {
+		names[i] = policy.Namespace + ":" + policy.Name
+	}
+	return strings.Join(names, ", ")
+}
+
+func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressNetworkPolicy, vnid uint32, namespaces []string) error {
+	otx := oc.ovs.NewTransaction()
+	var inputErr error
+
+	if len(policies) == 0 {
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
+	} else if vnid == 0 {
+		inputErr = fmt.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
+	} else if len(namespaces) > 1 {
+		// Rationale: In our current implementation, multiple namespaces share their network by using the same VNID.
+		// Even though Egress network policy is defined per namespace, its implementation is based on VNIDs.
+		// So in case of shared network namespaces, egress policy of one namespace will affect all other namespaces that are sharing the network which might not be desirable.
+		inputErr = fmt.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
+		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
+	} else if len(policies) > 1 {
+		// Rationale: If we have allowed more than one policy, we could end up with different network restrictions depending
+		// on the order of policies that were processed and also it doesn't give more expressive power than a single policy.
+		inputErr = fmt.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
+		otx.DeleteFlows("table=100, reg0=%d", vnid)
+		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
+	} else /* vnid != 0 && len(policies) == 1 */ {
+		// Temporarily drop all outgoing traffic, to avoid race conditions while modifying the other rules
+		otx.AddFlow("table=100, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
+		otx.DeleteFlows("table=100, reg0=%d, cookie=0/1", vnid)
+
+		for i, rule := range policies[0].Spec.Egress {
+			priority := len(policies[0].Spec.Egress) - i
+
+			var action string
+			if rule.Type == osapi.EgressNetworkPolicyRuleAllow {
+				action = "output:2"
+			} else {
+				action = "drop"
+			}
+
+			var dst string
+			if rule.To.CIDRSelector == "0.0.0.0/0" {
+				dst = ""
+			} else {
+				dst = fmt.Sprintf(", nw_dst=%s", rule.To.CIDRSelector)
+			}
+
+			otx.AddFlow("table=100, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+		}
+		otx.DeleteFlows("table=100, reg0=%d, cookie=1/1", vnid)
+	}
+
+	txErr := otx.EndTransaction()
+	if inputErr != nil {
+		return inputErr
+	} else {
+		return txErr
+	}
+}
+
 func (oc *ovsController) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 	otx := oc.ovs.NewTransaction()
 

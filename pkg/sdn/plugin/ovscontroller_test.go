@@ -212,3 +212,402 @@ func TestOVSService(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
 	}
 }
+
+var enp1 = osapi.EgressNetworkPolicy{
+	TypeMeta: kapiunversioned.TypeMeta{
+		Kind: "EgressNetworkPolicy",
+	},
+	ObjectMeta: kapi.ObjectMeta{
+		Name: "enp1",
+	},
+	Spec: osapi.EgressNetworkPolicySpec{
+		Egress: []osapi.EgressNetworkPolicyRule{
+			{
+				Type: osapi.EgressNetworkPolicyRuleAllow,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "192.168.0.0/16",
+				},
+			},
+			{
+				Type: osapi.EgressNetworkPolicyRuleDeny,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "192.168.1.0/24",
+				},
+			},
+			{
+				Type: osapi.EgressNetworkPolicyRuleAllow,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "192.168.1.1/32",
+				},
+			},
+		},
+	},
+}
+
+var enp2 = osapi.EgressNetworkPolicy{
+	TypeMeta: kapiunversioned.TypeMeta{
+		Kind: "EgressNetworkPolicy",
+	},
+	ObjectMeta: kapi.ObjectMeta{
+		Name: "enp2",
+	},
+	Spec: osapi.EgressNetworkPolicySpec{
+		Egress: []osapi.EgressNetworkPolicyRule{
+			{
+				Type: osapi.EgressNetworkPolicyRuleAllow,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "192.168.1.0/24",
+				},
+			},
+			{
+				Type: osapi.EgressNetworkPolicyRuleAllow,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "192.168.2.0/24",
+				},
+			},
+			{
+				Type: osapi.EgressNetworkPolicyRuleDeny,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "0.0.0.0/0",
+				},
+			},
+		},
+	},
+}
+
+var enpDenyAll = osapi.EgressNetworkPolicy{
+	TypeMeta: kapiunversioned.TypeMeta{
+		Kind: "EgressNetworkPolicy",
+	},
+	ObjectMeta: kapi.ObjectMeta{
+		Name: "enpDenyAll",
+	},
+	Spec: osapi.EgressNetworkPolicySpec{
+		Egress: []osapi.EgressNetworkPolicyRule{
+			{
+				Type: osapi.EgressNetworkPolicyRuleDeny,
+				To: osapi.EgressNetworkPolicyPeer{
+					CIDRSelector: "0.0.0.0/0",
+				},
+			},
+		},
+	},
+}
+
+type enpFlowAddition struct {
+	policy *osapi.EgressNetworkPolicy
+	vnid   int
+}
+
+func assertENPFlowAdditions(origFlows, newFlows []string, additions ...enpFlowAddition) error {
+	changes := make([]flowChange, 0)
+	for _, addition := range additions {
+		for i, rule := range addition.policy.Spec.Egress {
+			var change flowChange
+			change.kind = flowAdded
+			change.match = []string{
+				"table=100",
+				fmt.Sprintf("reg0=%d", addition.vnid),
+				fmt.Sprintf("priority=%d", len(addition.policy.Spec.Egress)-i),
+			}
+			if rule.To.CIDRSelector == "0.0.0.0/0" {
+				change.noMatch = []string{"nw_dst"}
+			} else {
+				change.match = append(change.match, fmt.Sprintf("nw_dst=%s", rule.To.CIDRSelector))
+			}
+			if rule.Type == osapi.EgressNetworkPolicyRuleAllow {
+				change.match = append(change.match, "actions=output")
+			} else {
+				change.match = append(change.match, "actions=drop")
+			}
+			changes = append(changes, change)
+		}
+	}
+
+	return assertFlowChanges(origFlows, newFlows, changes...)
+}
+
+func TestOVSEgressNetworkPolicy(t *testing.T) {
+	ovsif, oc, origFlows := setup(t)
+
+	// SUCCESSFUL CASES
+
+	// Set one EgressNetworkPolicy on VNID 42
+	err := oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp1},
+		42,
+		[]string{"ns1"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err := ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp1,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Set one EgressNetworkPolicy on VNID 43
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp2},
+		43,
+		[]string{"ns2"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp1,
+		},
+		enpFlowAddition{
+			vnid:   43,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Change VNID 42 from ENP1 to ENP2
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp2},
+		42,
+		[]string{"ns1"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+		enpFlowAddition{
+			vnid:   43,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Drop EgressNetworkPolicy from VNID 43
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{},
+		43,
+		[]string{"ns2"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Set no EgressNetworkPolicy on VNID 0
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{},
+		0,
+		[]string{"default", "my-global-project"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Set no EgressNetworkPolicy on a shared namespace
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{},
+		44,
+		[]string{"ns3", "ns4"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// ERROR CASES
+
+	// Can't set non-empty ENP in default namespace
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp1},
+		0,
+		[]string{"default"},
+	)
+	if err == nil {
+		t.Fatalf("Unexpected lack of error updating egress network policy")
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Can't set non-empty ENP in a shared namespace
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp1},
+		45,
+		[]string{"ns3", "ns4"},
+	)
+	if err == nil {
+		t.Fatalf("Unexpected lack of error updating egress network policy")
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+		enpFlowAddition{
+			vnid:   45,
+			policy: &enpDenyAll,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// Can't set multiple policies
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{enp1, enp2},
+		46,
+		[]string{"ns5"},
+	)
+	if err == nil {
+		t.Fatalf("Unexpected lack of error updating egress network policy")
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+		enpFlowAddition{
+			vnid:   45,
+			policy: &enpDenyAll,
+		},
+		enpFlowAddition{
+			vnid:   46,
+			policy: &enpDenyAll,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// CLEARING ERRORS
+
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{},
+		45,
+		[]string{"ns3", "ns4"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+		enpFlowAddition{
+			vnid:   46,
+			policy: &enpDenyAll,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	err = oc.UpdateEgressNetworkPolicyRules(
+		[]osapi.EgressNetworkPolicy{},
+		46,
+		[]string{"ns5"},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error updating egress network policy: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertENPFlowAdditions(origFlows, flows,
+		enpFlowAddition{
+			vnid:   42,
+			policy: &enp2,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+}
