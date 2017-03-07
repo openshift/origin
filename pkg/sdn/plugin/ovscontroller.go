@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -150,15 +151,15 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	// eg, "table=100, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
 	otx.AddFlow("table=100, priority=0, actions=output:2")
 
-	// Table 110: outbound multicast filtering, updated by updateLocalMulticastFlows() in pod.go
+	// Table 110: outbound multicast filtering, updated by UpdateLocalMulticastFlows()
 	// eg, "table=110, priority=100, reg0=${tenant_id}, actions=goto_table:111
 	otx.AddFlow("table=110, priority=0, actions=drop")
 
-	// Table 111: multicast delivery from local pods to the VXLAN; only one rule, updated by updateVXLANMulticastRules() in subnets.go
+	// Table 111: multicast delivery from local pods to the VXLAN; only one rule, updated by UpdateVXLANMulticastRules()
 	// eg, "table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:${remote_node_ip_1}->tun_dst,output:1,set_field:${remote_node_ip_2}->tun_dst,output:1,goto_table:120"
-	otx.AddFlow("table=111, priority=0, actions=drop")
+	otx.AddFlow("table=111, priority=100, actions=goto_table:120")
 
-	// Table 120: multicast delivery to local pods (either from VXLAN or local pods); updated by updateLocalMulticastFlows() in pod.go
+	// Table 120: multicast delivery to local pods (either from VXLAN or local pods); updated by UpdateLocalMulticastFlows()
 	// eg, "table=120, priority=100, reg0=${tenant_id}, actions=output:${ovs_port_1},output:${ovs_port_2}"
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
@@ -303,4 +304,45 @@ func generateBaseAddServiceRule(IP string, protocol kapi.Protocol, port int) (st
 		return "", fmt.Errorf("unhandled protocol %v", protocol)
 	}
 	return generateBaseServiceRule(IP) + dst, nil
+}
+
+func (oc *ovsController) UpdateLocalMulticastFlows(vnid uint32, enabled bool, ofports []int) error {
+	otx := oc.ovs.NewTransaction()
+
+	if enabled {
+		otx.AddFlow("table=110, reg0=%d, actions=goto_table:111", vnid)
+	} else {
+		otx.DeleteFlows("table=110, reg0=%d", vnid)
+	}
+
+	var actions []string
+	if enabled && len(ofports) > 0 {
+		actions = make([]string, len(ofports))
+		for i, ofport := range ofports {
+			actions[i] = fmt.Sprintf("output:%d", ofport)
+		}
+		sort.Strings(actions)
+		otx.AddFlow("table=120, priority=100, reg0=%d, actions=%s", vnid, strings.Join(actions, ","))
+	} else {
+		otx.DeleteFlows("table=120, reg0=%d", vnid)
+	}
+
+	return otx.EndTransaction()
+}
+
+func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
+	otx := oc.ovs.NewTransaction()
+
+	if len(remoteIPs) > 0 {
+		actions := make([]string, len(remoteIPs))
+		for i, ip := range remoteIPs {
+			actions[i] = fmt.Sprintf("set_field:%s->tun_dst,output:1", ip)
+		}
+		sort.Strings(actions)
+		otx.AddFlow("table=111, priority=100, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],%s,goto_table:120", strings.Join(actions, ","))
+	} else {
+		otx.AddFlow("table=111, priority=100, actions=goto_table:120")
+	}
+
+	return otx.EndTransaction()
 }

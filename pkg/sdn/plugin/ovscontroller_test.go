@@ -213,6 +213,121 @@ func TestOVSService(t *testing.T) {
 	}
 }
 
+func TestOVSMulticast(t *testing.T) {
+	ovsif, oc, origFlows := setup(t)
+
+	// local flows
+	err := oc.UpdateLocalMulticastFlows(99, true, []int{4, 5, 6})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	flows, err := ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=110", "reg0=99", "goto_table:111"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=120", "reg0=99", "output:4,output:5,output:6"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	err = oc.UpdateLocalMulticastFlows(88, false, []int{7, 8})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	lastFlows := flows
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(lastFlows, flows) // no changes
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	err = oc.UpdateLocalMulticastFlows(99, false, []int{4, 5})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows) // no changes
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	// VXLAN
+	err = oc.UpdateVXLANMulticastFlows([]string{"192.168.1.2", "192.168.1.5", "192.168.1.3"})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:    flowRemoved,
+			match:   []string{"table=111", "goto_table:120"},
+			noMatch: []string{"->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=111", "192.168.1.2->tun_dst", "192.168.1.3->tun_dst", "192.168.1.5->tun_dst"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	err = oc.UpdateVXLANMulticastFlows([]string{"192.168.1.5", "192.168.1.3"})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:    flowRemoved,
+			match:   []string{"table=111", "goto_table:120"},
+			noMatch: []string{"->tun_dst"},
+		},
+		flowChange{
+			kind:    flowAdded,
+			match:   []string{"table=111", "192.168.1.3->tun_dst", "192.168.1.5->tun_dst"},
+			noMatch: []string{"192.168.1.2"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+
+	err = oc.UpdateVXLANMulticastFlows([]string{})
+	if err != nil {
+		t.Fatalf("Unexpected error adding multicast flows: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows) // no changes
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+	}
+}
+
 var enp1 = osapi.EgressNetworkPolicy{
 	TypeMeta: kapiunversioned.TypeMeta{
 		Kind: "EgressNetworkPolicy",

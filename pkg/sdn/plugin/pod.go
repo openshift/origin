@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sort"
 	"sync"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
@@ -181,44 +180,20 @@ func (m *podManager) handleCNIRequest(request *cniserver.PodRequest) ([]byte, er
 	return result.Response, result.Err
 }
 
-func localMulticastOutputs(runningPods map[string]*runningPod, vnid uint32) string {
-	var ofports []int
-	for _, pod := range runningPods {
-		if pod.vnid == vnid {
-			ofports = append(ofports, pod.ofport)
-		}
-	}
-	if len(ofports) == 0 {
-		return ""
-	}
-
-	sort.Ints(ofports)
-	outputs := ""
-	for _, ofport := range ofports {
-		if len(outputs) > 0 {
-			outputs += ","
-		}
-		outputs += fmt.Sprintf("output:%d", ofport)
-	}
-	return outputs
-}
-
 func (m *podManager) updateLocalMulticastRulesWithLock(vnid uint32) {
-	var outputs string
-	otx := m.oc.NewTransaction()
-	if m.policy.GetMulticastEnabled(vnid) {
-		outputs = localMulticastOutputs(m.runningPods, vnid)
-		otx.AddFlow("table=110, reg0=%d, actions=goto_table:111", vnid)
-	} else {
-		otx.DeleteFlows("table=110, reg0=%d", vnid)
+	var ofports []int
+	enabled := m.policy.GetMulticastEnabled(vnid)
+	if enabled {
+		for _, pod := range m.runningPods {
+			if pod.vnid == vnid {
+				ofports = append(ofports, pod.ofport)
+			}
+		}
 	}
-	if len(outputs) > 0 {
-		otx.AddFlow("table=120, priority=100, reg0=%d, actions=%s", vnid, outputs)
-	} else {
-		otx.DeleteFlows("table=120, reg0=%d", vnid)
-	}
-	if err := otx.EndTransaction(); err != nil {
+
+	if err := m.oc.UpdateLocalMulticastFlows(vnid, enabled, ofports); err != nil {
 		glog.Errorf("Error updating OVS multicast flows for VNID %d: %v", vnid, err)
+
 	}
 }
 
