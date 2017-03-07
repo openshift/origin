@@ -555,6 +555,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("build.openshift.io", "v1", "buildrequests"),
 	gvr("", "v1", "binarybuildrequestoptionses"),
 	gvr("build.openshift.io", "v1", "binarybuildrequestoptionses"),
+	gvr("build.openshift.io", "v1", "statuses"),
 	// --
 
 	// github.com/openshift/origin/pkg/deploy/api/v1
@@ -569,6 +570,11 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("apps.openshift.io", "v1", "deploymentrequests"),        // triggers new dc, not stored in etcd
 	gvr("", "v1", "deploymentconfigrollbacks"),                  // triggers rolleback dc, not stored in etcd
 	gvr("apps.openshift.io", "v1", "deploymentconfigrollbacks"), // triggers rolleback dc, not stored in etcd
+
+	gvr("", "v1", "scales"),                  // not stored in etcd, part of kapiv1.ReplicationController
+	gvr("apps.openshift.io", "v1", "scales"), // not stored in etcd, part of kapiv1.ReplicationController
+	// --
+
 	// --
 
 	// github.com/openshift/origin/pkg/image/api/v1
