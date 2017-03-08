@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	localPluginSnapshotImage = "openshift/jenkins-plugin-snapshot-test:latest"
+	localPluginSnapshotImageStream = "jenkins-plugin-snapshot-test"
+	localPluginSnapshotImage       = "openshift/" + localPluginSnapshotImageStream + ":latest"
 )
 
 // ginkgolog creates simple entry in the GinkgoWriter.
@@ -151,7 +152,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		g.By("kick off the build for the jenkins ephermeral and application templates")
 
 		newAppArgs := []string{exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")}
-		newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(localPluginSnapshotImage, "jenkins-plugin-snapshot-test", newAppArgs, oc)
+		newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalPluginSnapshotEnvVarName, localPluginSnapshotImage, localPluginSnapshotImageStream, newAppArgs, oc)
 
 		err := oc.Run("new-app").Args(newAppArgs...).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
