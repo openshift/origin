@@ -165,6 +165,10 @@ func pluginIsolatesNamespaces() bool {
 	return os.Getenv("NETWORKING_E2E_ISOLATION") == "true"
 }
 
+func pluginImplementsNetworkPolicy() bool {
+	return os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true"
+}
+
 func makeNamespaceGlobal(ns *api.Namespace) {
 	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
 	expectNoError(err)
@@ -233,6 +237,18 @@ func InMultiTenantContext(body func()) {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
 				e2e.Skipf("This plugin does not isolate namespaces by default.")
+			}
+		})
+
+		body()
+	})
+}
+
+func InNetworkPolicyContext(body func()) {
+	Context("when using a plugin that implements NetworkPolicy", func() {
+		BeforeEach(func() {
+			if !pluginImplementsNetworkPolicy() {
+				e2e.Skipf("This plugin does not implement NetworkPolicy.")
 			}
 		})
 
