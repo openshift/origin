@@ -217,10 +217,10 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 }
 
 func InSingleTenantContext(body func()) {
-	Context("when using a single-tenant plugin", func() {
+	Context("when using a plugin that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
-				e2e.Skipf("Not a single-tenant plugin.")
+				e2e.Skipf("This plugin isolates namespaces by default.")
 			}
 		})
 
@@ -229,10 +229,10 @@ func InSingleTenantContext(body func()) {
 }
 
 func InMultiTenantContext(body func()) {
-	Context("when using a multi-tenant plugin", func() {
+	Context("when using a plugin that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
-				e2e.Skipf("Not a multi-tenant plugin.")
+				e2e.Skipf("This plugin does not isolate namespaces by default.")
 			}
 		})
 
