@@ -3,7 +3,7 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 # Set this to false if namespaces are not isolated
-export OPENSHIFT_NETWORK_ISOLATION="${OPENSHIFT_NETWORK_ISOLATION:-true}"
+export NETWORKING_E2E_ISOLATION="${NETWORKING_E2E_ISOLATION:-true}"
 export NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-\[networking\]}"
 export NETWORKING_E2E_MINIMAL=1
 

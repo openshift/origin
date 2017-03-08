@@ -162,7 +162,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 }
 
 func pluginIsolatesNamespaces() bool {
-	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
+	return os.Getenv("NETWORKING_E2E_ISOLATION") == "true"
 }
 
 func makeNamespaceGlobal(ns *api.Namespace) {

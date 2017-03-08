@@ -165,7 +165,7 @@ function test-osdn-plugin() {
 
     local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
     if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
-         OPENSHIFT_NETWORK_ISOLATION="${isolation}" \
+         NETWORKING_E2E_ISOLATION="${isolation}" \
          run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
       tests_failed=1
       os::log::error "e2e tests failed for plugin: ${plugin}"
