@@ -111,7 +111,6 @@ func (c *ClientJoinConfig) StartOpenShiftNode(out io.Writer) error {
 	opt := &openshift.StartOptions{
 		ServerIP:           c.ServerIP,
 		UseSharedVolume:    !c.UseNsenterMount,
-		SetPropagationMode: c.SetPropagationMode,
 		Images:             c.imageFormat(),
 		HostVolumesDir:     c.HostVolumesDir,
 		HostConfigDir:      c.HostConfigDir,
