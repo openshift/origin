@@ -19,10 +19,8 @@ export SHELLOPTS
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services should be able to create a functioning NodePort service|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
-# Limit the scope of execution to minimize runtime
-NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
-
 DEFAULT_SKIP_LIST=(
+  # Requires lots of setup that this script doesn't so
   "\[Feature:Federation\]"
 
   # Skipped until https://github.com/openshift/origin/issues/11042 is resolved
@@ -49,8 +47,25 @@ DEFAULT_SKIP_LIST=(
   "Networking.*should check kube-proxy urls"
 )
 
+NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
+
+# Tests that are skipped when running networking-minimal.sh because they're slow
+# and unlikely to be broken by changes outside of the SDN code.
 MINIMAL_SKIP_LIST=(
   "OVS"
+  "multicast"
+)
+
+NETWORKING_E2E_EXTERNAL="${NETWORKING_E2E_EXTERNAL:-}"
+
+# Tests that are are openshift-sdn-specific, so shouldn't be run against external plugins
+EXTERNAL_PLUGIN_SKIP_LIST=(
+  # Tests OpenShift-SDN-specific behavior. Would not necessarily apply even to other
+  # OVS-based plugins
+  "OVS"
+
+  # Relies on an OpenShift-specific annotation, and is not a "required" feature for
+  # network plugins
   "multicast"
 )
 
@@ -204,6 +219,9 @@ function run-extended-tests() {
     skip_regex="$(join '|' "${DEFAULT_SKIP_LIST[@]}")"
     if [[ -n "${NETWORKING_E2E_MINIMAL}" ]]; then
       skip_regex="${skip_regex}|$(join '|' "${MINIMAL_SKIP_LIST[@]}")"
+    fi
+    if [[ -n "${NETWORKING_E2E_EXTERNAL}" ]]; then
+      skip_regex="${skip_regex}|$(join '|' "${EXTERNAL_PLUGIN_SKIP_LIST[@]}")"
     fi
   fi
 

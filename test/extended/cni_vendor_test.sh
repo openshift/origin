@@ -4,8 +4,9 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 # Set this to false if namespaces are not isolated
 export NETWORKING_E2E_ISOLATION="${NETWORKING_E2E_ISOLATION:-true}"
+
 export NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-\[networking\]}"
-export NETWORKING_E2E_MINIMAL=1
+export NETWORKING_E2E_EXTERNAL=1
 
 # Checking for a given kubeconfig
 os::log::info "Starting 'networking' extended tests for cni plugin"
