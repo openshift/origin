@@ -77,6 +77,11 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			"delete": configuration.Parameters{
 				"enabled": true,
 			},
+			"maintenance": configuration.Parameters{
+				"uploadpurging": map[interface{}]interface{}{
+					"enabled": false,
+				},
+			},
 		},
 		Middleware: map[string][]configuration.Middleware{
 			"registry":   {{Name: "openshift"}},

@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
@@ -31,7 +29,6 @@ import (
 func TestPullthroughServeBlob(t *testing.T) {
 	namespace, name := "user", "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, name)
-	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
@@ -209,7 +206,6 @@ func TestPullthroughServeBlob(t *testing.T) {
 func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	namespace, name := "user", "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, name)
-	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
@@ -367,7 +363,6 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 	repo1Name := fmt.Sprintf("%s/%s", namespace, repo1)
 	repo2Name := fmt.Sprintf("%s/%s", namespace, repo2)
 
-	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
