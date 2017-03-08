@@ -757,15 +757,13 @@ func TestX509Verifier(t *testing.T) {
 			Opts:  getDefaultVerifyOptions(t),
 			Certs: getCerts(t, selfSignedCert),
 
-			ExpectOK:  false,
-			ExpectErr: false,
+			ExpectErr: true,
 		},
 
 		"server cert disallowed": {
 			Opts:  getDefaultVerifyOptions(t),
 			Certs: getCerts(t, serverCert),
 
-			ExpectOK:  false,
 			ExpectErr: true,
 		},
 		"server cert allowing non-client cert usages": {
@@ -789,7 +787,7 @@ func TestX509Verifier(t *testing.T) {
 			Certs:      getCerts(t, clientCNCert),
 
 			ExpectOK:  false,
-			ExpectErr: false,
+			ExpectErr: true,
 		},
 		"valid client cert with right CN": {
 			Opts:       getDefaultVerifyOptions(t),

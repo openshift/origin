@@ -118,6 +118,13 @@ type AppConfig struct {
 
 	OSClient        client.Interface
 	OriginNamespace string
+
+	ArgumentClassificationErrors []ArgumentClassificationError
+}
+
+type ArgumentClassificationError struct {
+	Key   string
+	Value error
 }
 
 type ErrRequiresExplicitAccess struct {
@@ -220,30 +227,92 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 	}
 }
 
+func (c *AppConfig) tryToAddEnvironmentArguments(s string) bool {
+	rc := cmdutil.IsEnvironmentArgument(s)
+	if rc {
+		glog.V(2).Infof("treating %s as possible environment argument\n", s)
+		c.Environment = append(c.Environment, s)
+	}
+	return rc
+}
+
+func (c *AppConfig) tryToAddSourceArguments(s string) bool {
+	remote, rerr := app.IsRemoteRepository(s)
+	local, derr := app.IsDirectory(s)
+
+	if remote || local {
+		glog.V(2).Infof("treating %s as possible source repo\n", s)
+		c.SourceRepositories = append(c.SourceRepositories, s)
+		return true
+	}
+
+	if rerr != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a Git repository URL", s),
+			Value: rerr,
+		})
+	}
+
+	if derr != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a local directory pointing to a Git repository", s),
+			Value: derr,
+		})
+	}
+
+	return false
+}
+
+func (c *AppConfig) tryToAddComponentArguments(s string) bool {
+	err := app.IsComponentReference(s)
+	if err == nil {
+		glog.V(2).Infof("treating %s as a component ref\n", s)
+		c.Components = append(c.Components, s)
+		return true
+	}
+	c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+		Key:   fmt.Sprintf("%s as a template loaded in an accessible project, an imagestream tag, or a docker image reference", s),
+		Value: err,
+	})
+
+	return false
+}
+
+func (c *AppConfig) tryToAddTemplateArguments(s string) bool {
+	rc, err := app.IsPossibleTemplateFile(s)
+	if rc {
+		glog.V(2).Infof("treating %s as possible template file\n", s)
+		c.Components = append(c.Components, s)
+		return true
+	}
+	if err != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a template stored in a local file", s),
+			Value: err,
+		})
+	}
+	return false
+}
+
 // AddArguments converts command line arguments into the appropriate bucket based on what they look like
 func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
+	c.ArgumentClassificationErrors = []ArgumentClassificationError{}
 	for _, s := range args {
+		if len(s) == 0 {
+			continue
+		}
+
 		switch {
-		case cmdutil.IsEnvironmentArgument(s):
-			glog.V(2).Infof("treating %s as possible environment argument\n", s)
-			c.Environment = append(c.Environment, s)
-		case app.IsPossibleSourceRepository(s):
-			glog.V(2).Infof("treating %s as possible source repo\n", s)
-			c.SourceRepositories = append(c.SourceRepositories, s)
-		case app.IsComponentReference(s):
-			glog.V(2).Infof("treating %s as a component ref\n", s)
-			c.Components = append(c.Components, s)
-		case app.IsPossibleTemplateFile(s):
-			glog.V(2).Infof("treating %s as possible template file\n", s)
-			c.Components = append(c.Components, s)
+		case c.tryToAddEnvironmentArguments(s):
+		case c.tryToAddSourceArguments(s):
+		case c.tryToAddComponentArguments(s):
+		case c.tryToAddTemplateArguments(s):
 		default:
 			glog.V(2).Infof("treating %s as unknown\n", s)
-			if len(s) == 0 {
-				break
-			}
 			unknown = append(unknown, s)
 		}
+
 	}
 	return unknown
 }
@@ -644,7 +713,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	// TODO: I don't belong here
 	c.ensureDockerSearch()
 
-	resolved, err := Resolve(&c.Resolvers, &c.ComponentInputs, &c.GenerationInputs)
+	resolved, err := Resolve(c)
 	if err != nil {
 		return nil, err
 	}

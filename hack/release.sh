@@ -11,7 +11,7 @@ if [[ -z "${tag}" ]]; then
   fi
   tag="$( git tag --points-at HEAD )"
 elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
-  os::log::warn "You are running a version of hack/release.sh that does not match OS_TAG - images may not be build correctly"
+  os::log::warning "You are running a version of hack/release.sh that does not match OS_TAG - images may not be build correctly"
 fi
 commit="$( git rev-parse ${tag} )"
 

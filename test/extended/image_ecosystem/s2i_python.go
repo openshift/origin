@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -20,8 +21,11 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 		djangoRepository = "https://github.com/openshift/django-ex.git"
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
-		dcName           = "django-ex-1"
-		dcLabel          = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
+		dcName           = "django-ex"
+		rcNameOne        = fmt.Sprintf("%s-1", dcName)
+		rcNameTwo        = fmt.Sprintf("%s-2", dcName)
+		dcLabelOne       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
+		dcLabelTwo       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
 	)
 	g.Describe("Django example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
@@ -34,55 +38,56 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "django-ex-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
 			if err != nil {
-				exutil.DumpBuildLogs("django-ex", oc)
+				exutil.DumpBuildLogs(dcName, oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "django-ex", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), dcName, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
-			err = oc.KubeFramework().WaitForAnEndpoint("django-ex")
+			err = oc.KubeFramework().WaitForAnEndpoint(dcName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			assertPageCountIs := func(i int) {
+			assertPageCountIs := func(i int, dcLabel labels.Selector) {
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "django-ex", "", pageCountFn(i))
+				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}
 
 			g.By("checking page count")
-			assertPageCountIs(1)
-			assertPageCountIs(2)
+			assertPageCountIs(1, dcLabelOne)
+			assertPageCountIs(2, dcLabelOne)
 
 			g.By("modifying the source code with disabled hot deploy")
-			RunInPodContainer(oc, dcLabel, modifyCommand)
-			assertPageCountIs(3)
+			RunInPodContainer(oc, dcLabelOne, modifyCommand)
+			assertPageCountIs(3, dcLabelOne)
 
-			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabel})
+			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabelOne})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 
 			g.By("turning on hot-deploy")
-			err = oc.Run("env").Args("rc", dcName, "APP_CONFIG=conf/reload.py").Execute()
+			err = oc.Run("env").Args("dc", dcName, "APP_CONFIG=conf/reload.py").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.Run("scale").Args("rc", dcName, "--replicas=0").Execute()
+			err = oc.Run("scale").Args("dc", dcName, "--replicas=0").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.Run("scale").Args("rc", dcName, "--replicas=1").Execute()
+			err = oc.Run("scale").Args("dc", dcName, "--replicas=1").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("modifying the source code with enabled hot deploy")
-			RunInPodContainer(oc, dcLabel, modifyCommand)
-			assertPageCountIs(1337)
+			assertPageCountIs(1, dcLabelTwo)
+			RunInPodContainer(oc, dcLabelTwo, modifyCommand)
+			assertPageCountIs(1337, dcLabelTwo)
 		})
 	})
 })

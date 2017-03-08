@@ -258,7 +258,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
-			return handleRunError(err, o.BaseName, o.CommandName, o.CommandPath)
+			return handleError(err, o.BaseName, o.CommandName, o.CommandPath, config, transformRunError)
 		}
 
 		if o.Action.ShouldPrint() {
@@ -271,7 +271,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	checkGitInstalled(out)
 
 	result, err := config.Run()
-	if err := handleRunError(err, o.BaseName, o.CommandName, o.CommandPath); err != nil {
+	if err := handleError(err, o.BaseName, o.CommandName, o.CommandPath, config, transformRunError); err != nil {
 		return err
 	}
 
@@ -610,7 +610,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func handleRunError(err error, baseName, commandName, commandPath string) error {
+func handleError(err error, baseName, commandName, commandPath string, config *newcmd.AppConfig, transformError func(err error, baseName, commandName, commandPath string, groups errorGroups)) error {
 	if err == nil {
 		return nil
 	}
@@ -623,6 +623,14 @@ func handleRunError(err error, baseName, commandName, commandPath string) error 
 		transformError(err, baseName, commandName, commandPath, groups)
 	}
 	buf := &bytes.Buffer{}
+	if len(config.ArgumentClassificationErrors) > 0 {
+		fmt.Fprintf(buf, "Errors occurred while determining argument types:\n")
+		for _, classErr := range config.ArgumentClassificationErrors {
+			fmt.Fprintf(buf, fmt.Sprintf("\n%s:  %v\n", classErr.Key, classErr.Value))
+		}
+		fmt.Fprint(buf, "\n")
+	}
+	fmt.Fprintln(buf, "Errors occurred during resource creation:")
 	for _, group := range groups {
 		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
 		if len(group.suggestion) > 0 {
@@ -647,7 +655,7 @@ func (g errorGroups) Add(group string, suggestion string, err error, errs ...err
 	g[group] = all
 }
 
-func transformError(err error, baseName, commandName, commandPath string, groups errorGroups) {
+func transformRunError(err error, baseName, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {

@@ -236,6 +236,9 @@ const (
 	// Default stats and healthz port.
 	defaultStatsPort   = 1936
 	defaultHealthzPort = defaultStatsPort
+
+	// Default initial delay for probes are 10 seconds
+	defaultProbeInitialDelay = 10
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
@@ -402,11 +405,36 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
-		probe = &kapi.Probe{}
+		probe = &kapi.Probe{InitialDelaySeconds: defaultProbeInitialDelay}
+		healthzPort := defaultHealthzPort
+		if cfg.StatsPort > 0 {
+			healthzPort = cfg.StatsPort
+		}
+
+		// https://bugzilla.redhat.com/show_bug.cgi?id=1405440
+		// To avoid the failure of HTTP requests due to connection limit in high load scenarios,
+		// a TCP connection check can be used to check whether the HAProxy process is alive or not.
+		// This is the most lightweight & cheapest TRUE solution to the BUG.
+		probe.Handler.TCPSocket = &kapi.TCPSocketAction{
+			Port: intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: int32(healthzPort),
+			},
+		}
+	}
+
+	return probe
+}
+
+func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+	var probe *kapi.Probe
+
+	if cfg.Type == "haproxy-router" {
+		probe = &kapi.Probe{InitialDelaySeconds: defaultProbeInitialDelay}
 		healthzPort := defaultHealthzPort
 		if cfg.StatsPort > 0 {
 			healthzPort = cfg.StatsPort
@@ -428,22 +456,6 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 		}
 	}
 
-	return probe
-}
-
-func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
-	if probe != nil {
-		probe.InitialDelaySeconds = 10
-	}
-	return probe
-}
-
-func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
-	if probe != nil {
-		probe.InitialDelaySeconds = 10
-	}
 	return probe
 }
 

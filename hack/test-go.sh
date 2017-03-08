@@ -41,32 +41,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 
-# TODO(skuznets): remove these once we've migrated all tools to the new vars
-if [[ -n "${KUBE_TIMEOUT+x}" ]]; then
-    TIMEOUT="${KUBE_TIMEOUT}"
-    os::log::warn "The flag \$KUBE_TIMEOUT for $0 is deprecated, use \$TIMEOUT instead."
-fi
-
-if [[ -n "${KUBE_COVER+x}" ]]; then
-    COVERAGE_SPEC="${KUBE_COVER}"
-    os::log::warn "The flag \$KUBE_COVER for $0 is deprecated, use \$COVERAGE_SPEC instead."
-fi
-
-if [[ -n "${OUTPUT_COVERAGE+x}" ]]; then
-    COVERAGE_OUTPUT_DIR="${OUTPUT_COVERAGE}"
-    os::log::warn "The flag \$OUTPUT_COVERAGE for $0 is deprecated, use \$COVERAGE_OUTPUT_DIR instead."
-fi
-
-if [[ -n "${KUBE_RACE+x}" ]]; then
-    DETECT_RACES="${KUBE_RACE}"
-    os::log::warn "The flag \$KUBE_RACE for $0 is deprecated, use \$DETECT_RACES instead."
-fi
-
-if [[ -n "${PRINT_PACKAGES+x}" ]]; then
-    DRY_RUN="${PRINT_PACKAGES}"
-    os::log::warn "The flag \$PRINT_PACKAGES for $0 is deprecated, use \$DRY_RUN instead."
-fi
-
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
 test_kube="${TEST_KUBE:-}"
@@ -229,24 +203,24 @@ if [[ -n "${junit_report}" ]]; then
 
     if echo "${summary}" | grep -q ', 0 failed,'; then
         if [[ "${test_return_code}" -ne "0" ]]; then
-            os::log::warn "While the jUnit report found no failed tests, the \`go test\` process failed."
-            os::log::warn "This usually means that the unit test suite failed to compile."
+            os::log::warning "While the jUnit report found no failed tests, the \`go test\` process failed."
+            os::log::warning "This usually means that the unit test suite failed to compile."
         fi
     fi
 
     if [[ -s "${test_error_file}" ]]; then
-        os::log::warn "\`go test\` had the following output to stderr:"
+        os::log::warning "\`go test\` had the following output to stderr:"
         cat "${test_error_file}"
     fi
 
     if grep -q 'WARNING: DATA RACE' "${test_output_file}"; then
         locations=( $( sed -n '/WARNING: DATA RACE/=' "${test_output_file}") )
         if [[ "${#locations[@]}" -gt 1 ]]; then
-            os::log::warn "\`go test\` detected data races."
-            os::log::warn "Details can be found in the full output file at lines ${locations[*]}."
+            os::log::warning "\`go test\` detected data races."
+            os::log::warning "Details can be found in the full output file at lines ${locations[*]}."
         else
-            os::log::warn "\`go test\` detected a data race."
-            os::log::warn "Details can be found in the full output file at line ${locations[*]}."
+            os::log::warning "\`go test\` detected a data race."
+            os::log::warning "Details can be found in the full output file at line ${locations[*]}."
         fi
     fi
 

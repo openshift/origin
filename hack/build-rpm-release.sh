@@ -50,8 +50,8 @@ elif [[ "${#output_directories[@]}" -gt 1 ]]; then
 			output_directory="${directory}"
 		fi
 	done
-	os::log::warn 'After the tito build, more than one rpmbuild directory was found!'
-	os::log::warn 'This script will unpack the most recently modified directory: '"${output_directory}"
+	os::log::warning 'After the tito build, more than one rpmbuild directory was found!'
+	os::log::warning 'This script will unpack the most recently modified directory: '"${output_directory}"
 else
 	output_directory="${output_directories[0]}"
 fi
@@ -83,5 +83,5 @@ name = OpenShift Origin Release from Local Source
 	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
 	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
 else
-	os::log::warn "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
+	os::log::warning "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
 fi

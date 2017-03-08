@@ -237,7 +237,7 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         # disabling cgo allows use of delve
-        CGO_ENABLED=0 GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+        CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${version_ldflags}" \
@@ -555,10 +555,10 @@ function os::build::get_version_vars() {
       return
     fi
     if [[ ! -d "${OS_ROOT}/.git" ]]; then
-      os::log::warn "No version file at ${OS_VERSION_FILE}"
+      os::log::warning "No version file at ${OS_VERSION_FILE}"
       exit 1
     fi
-    os::log::warn "No version file at ${OS_VERSION_FILE}, falling back to git versions"
+    os::log::warning "No version file at ${OS_VERSION_FILE}, falling back to git versions"
   fi
   os::build::os_version_vars
   os::build::kube_version_vars
@@ -739,7 +739,7 @@ function os::build::image() {
       return $?
     fi
 
-    os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+    os::log::warning "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
     # clear options since we were unable to select imagebuilder
     options=""
   fi

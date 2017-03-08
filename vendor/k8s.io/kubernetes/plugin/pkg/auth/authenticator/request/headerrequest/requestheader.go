@@ -18,7 +18,6 @@ package headerrequest
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -108,7 +107,7 @@ func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string,
 func (a *requestHeaderAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	name := headerValue(req.Header, a.nameHeaders)
 	if len(name) == 0 {
-		return nil, false, errors.New("proxy did not provide user information")
+		return nil, false, nil
 	}
 	groups := allHeaderValues(req.Header, a.groupHeaders)
 	extra := newExtra(req.Header, a.extraHeaderPrefixes)

@@ -26,9 +26,14 @@ name="$(basename ${package})"
 dlv_debug="${DLV_DEBUG:-}"
 verbose="${VERBOSE:-}"
 
+# CGO must be disabled in order to debug
+if [[ -n "${dlv_debug}" ]]; then
+	export OS_TEST_CGO_ENABLED=0
+fi
+
 # build the test executable
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
-  os::log::warn "Skipping build due to OPENSHIFT_SKIP_BUILD"
+  os::log::warning "Skipping build due to OPENSHIFT_SKIP_BUILD"
 else
 	"${OS_ROOT}/hack/build-go.sh" "${package}/${name}.test"
 fi
