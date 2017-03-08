@@ -404,13 +404,21 @@ func (c *MasterConfig) RunServiceServingCertController(client *kclientset.Client
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
-	importRate := float32(c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute) / float32(time.Minute/time.Second)
-	importBurst := c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute * 2
+
+	var limiter flowcontrol.RateLimiter = nil
+	if c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute <= 0 {
+		limiter = flowcontrol.NewFakeAlwaysRateLimiter()
+	} else {
+		importRate := float32(c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute) / float32(time.Minute/time.Second)
+		importBurst := c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute * 2
+		limiter = flowcontrol.NewTokenBucketRateLimiter(importRate, importBurst)
+	}
+
 	factory := imagecontroller.ImportControllerFactory{
 		Client:               osclient,
 		ResyncInterval:       10 * time.Minute,
 		MinimumCheckInterval: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
-		ImportRateLimiter:    flowcontrol.NewTokenBucketRateLimiter(importRate, importBurst),
+		ImportRateLimiter:    limiter,
 		ScheduleEnabled:      !c.Options.ImagePolicyConfig.DisableScheduledImport,
 	}
 	controller, scheduledController := factory.Create()
