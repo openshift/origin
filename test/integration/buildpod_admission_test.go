@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
 	watchapi "k8s.io/kubernetes/pkg/watch"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
