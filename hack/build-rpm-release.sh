@@ -26,7 +26,7 @@ if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 	# provided by the Origin build scripts to the
 	# version that RPM will expect.
 	rpm_version="${BASH_REMATCH[1]}"
-	rpm_release="0${BASH_REMATCH[3]//-/.}"
+	rpm_release="999${BASH_REMATCH[3]//-/.}"
 fi
 tito tag --use-version="${rpm_version}" \
          --use-release="${rpm_release}" \
