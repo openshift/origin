@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/glog"
 
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type FirewallRule struct {

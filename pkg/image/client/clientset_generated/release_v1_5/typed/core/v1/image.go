@@ -2,10 +2,10 @@ package v1
 
 import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
+	watch "k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // ImagesGetter has a method to return a ImageInterface.

@@ -1,8 +1,9 @@
 package install
 
 import (
+	"k8s.io/apimachinery/pkg/conversion"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/conversion"
+	kv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	// we have a strong dependency on kube objects for deployments and scale
 	_ "k8s.io/kubernetes/pkg/api/install"
@@ -25,10 +26,9 @@ import (
 	_ "github.com/openshift/origin/pkg/template/api/install"
 	_ "github.com/openshift/origin/pkg/user/api/install"
 
-	kv1 "k8s.io/kubernetes/pkg/api/v1"
-
-	watchapi "k8s.io/kubernetes/pkg/watch"
-	watchv1 "k8s.io/kubernetes/pkg/watch/versioned"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -57,34 +57,33 @@ func init() {
 	// TODO: generate one of these for every external API group - this is to prove the impact
 	kapi.Scheme.AddGenericConversionFunc(func(objA, objB interface{}, s conversion.Scope) (bool, error) {
 		switch a := objA.(type) {
-
-		case *watchv1.Event:
+		case *metav1.WatchEvent:
 			switch b := objB.(type) {
-			case *watchv1.InternalEvent:
-				return true, watchv1.Convert_versioned_Event_to_versioned_InternalEvent(a, b, s)
+			case *metav1.InternalEvent:
+				return true, metav1.Convert_versioned_Event_to_versioned_InternalEvent(a, b, s)
 			case *watchapi.Event:
-				return true, watchv1.Convert_versioned_Event_to_watch_Event(a, b, s)
+				return true, metav1.Convert_versioned_Event_to_watch_Event(a, b, s)
 			}
-		case *watchv1.InternalEvent:
+		case *metav1.InternalEvent:
 			switch b := objB.(type) {
-			case *watchv1.Event:
-				return true, watchv1.Convert_versioned_InternalEvent_to_versioned_Event(a, b, s)
+			case *metav1.WatchEvent:
+				return true, metav1.Convert_versioned_InternalEvent_to_versioned_Event(a, b, s)
 			}
 		case *watchapi.Event:
 			switch b := objB.(type) {
-			case *watchv1.Event:
-				return true, watchv1.Convert_watch_Event_to_versioned_Event(a, b, s)
+			case *metav1.WatchEvent:
+				return true, metav1.Convert_watch_Event_to_versioned_Event(a, b, s)
 			}
 
-		case *kapi.ListOptions:
+		case *metainternal.ListOptions:
 			switch b := objB.(type) {
-			case *kv1.ListOptions:
-				return true, kv1.Convert_api_ListOptions_To_v1_ListOptions(a, b, s)
+			case *metav1.ListOptions:
+				return true, metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(a, b, s)
 			}
-		case *kv1.ListOptions:
+		case *metav1.ListOptions:
 			switch b := objB.(type) {
-			case *kapi.ListOptions:
-				return true, kv1.Convert_v1_ListOptions_To_api_ListOptions(a, b, s)
+			case *metainternal.ListOptions:
+				return true, metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(a, b, s)
 			}
 
 		case *kv1.ServiceAccount:

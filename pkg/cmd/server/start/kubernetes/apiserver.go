@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kflag "k8s.io/apiserver/pkg/util/flag"
 	apiserverapp "k8s.io/kubernetes/cmd/kube-apiserver/app"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	kflag "k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/util/logs"
 )
 

@@ -5,17 +5,18 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/admission"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -45,13 +46,13 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create instantiates a deployment config
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	req, ok := obj.(*deployapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
 
-	configObj, err := r.store.Get(ctx, req.Name)
+	configObj, err := r.store.Get(ctx, req.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	// If we cannot trigger then there is nothing to do here.
 	if !canTrigger {
-		return &unversioned.Status{
+		return &metav1.Status{
 			Message: fmt.Sprintf("deployment config %q cannot be instantiated", config.Name),
 			Code:    int32(204),
 		}, nil
@@ -95,7 +96,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	config.Status.LatestVersion++
 
-	userInfo, _ := kapi.UserFrom(ctx)
+	userInfo, _ := apirequest.UserFrom(ctx)
 	attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
 	if err := r.admit.Admit(attrs); err != nil {
 		return nil, err
@@ -127,7 +128,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 
 		// Tag references are already validated
 		name, tag, _ := imageapi.SplitImageStreamTag(params.From.Name)
-		stream, err := isn.ImageStreams(params.From.Namespace).Get(name)
+		stream, err := isn.ImageStreams(params.From.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				errs = append(errs, err)
@@ -257,7 +258,7 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclie
 	}
 
 	latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName)
+	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of
 		// comparison. It's the responsibility of the deployment config controller

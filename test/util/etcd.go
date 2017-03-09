@@ -14,8 +14,8 @@ import (
 
 	etcdclient "github.com/coreos/etcd/client"
 
+	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/capabilities"
-	etcdtest "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	serveretcd "github.com/openshift/origin/pkg/cmd/server/etcd"
 )

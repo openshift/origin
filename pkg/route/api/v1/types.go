@@ -1,9 +1,9 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // +genclient=true
@@ -26,9 +26,9 @@ import (
 // If a client chooses a duplicate name, for instance, the route status conditions are used
 // to indicate the route cannot be chosen.
 type Route struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is the desired state of the route
 	Spec RouteSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -38,9 +38,9 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of routes
 	Items []Route `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -159,7 +159,7 @@ type RouteIngressCondition struct {
 	// Human readable message indicating details about last transition.
 	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
 	// RFC 3339 date and time when this condition last transitioned
-	LastTransitionTime *unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,5,opt,name=lastTransitionTime"`
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,5,opt,name=lastTransitionTime"`
 }
 
 // RouterShard has information of a routing shard and is used to

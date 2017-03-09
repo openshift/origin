@@ -3,6 +3,7 @@ package scc
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 
@@ -12,14 +13,14 @@ import (
 
 func TestDeduplicateSecurityContextConstraints(t *testing.T) {
 	duped := []*kapi.SecurityContextConstraints{
-		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "b"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "b"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "c"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "d"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "e"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "e"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "b"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "b"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "c"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "d"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "e"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "e"}},
 	}
 
 	deduped := DeduplicateSecurityContextConstraints(duped)
@@ -51,7 +52,7 @@ func TestAssignSecurityContext(t *testing.T) {
 	var uid int64 = 9999
 	fsGroup := int64(1)
 	scc := &kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test scc",
 		},
 		SELinuxContext: kapi.SELinuxContextStrategyOptions{
@@ -416,7 +417,7 @@ func hasBlock(block uid.Block, blocks []uid.Block) bool {
 func TestGetPreallocatedFSGroup(t *testing.T) {
 	ns := func() *kapi.Namespace {
 		return &kapi.Namespace{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
 		}
@@ -492,7 +493,7 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 	ns := func() *kapi.Namespace {
 		return &kapi.Namespace{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
 		}

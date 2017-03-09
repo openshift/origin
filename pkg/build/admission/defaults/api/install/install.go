@@ -3,8 +3,8 @@ package install
 import (
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/openshift/origin/pkg/build/admission/defaults/api"
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/v1"
@@ -16,7 +16,7 @@ const importPrefix = "github.com/openshift/origin/pkg/build/admission/defaults/a
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
+var availableVersions = []schema.GroupVersion{v1.SchemeGroupVersion}
 
 func init() {
 	if err := enableVersions(availableVersions); err != nil {
@@ -28,12 +28,12 @@ func init() {
 // group.
 // We can combine registered.RegisterVersions, registered.EnableVersions and
 // registered.RegisterGroup once we have moved enableVersions there.
-func enableVersions(externalVersions []unversioned.GroupVersion) error {
+func enableVersions(externalVersions []schema.GroupVersion) error {
 	addVersionsToScheme(externalVersions...)
 	return nil
 }
 
-func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
+func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	// add the internal version to Scheme
 	api.AddToScheme(configapi.Scheme)
 	// add the enabled external versions to Scheme

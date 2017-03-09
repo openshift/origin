@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
+	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -50,7 +51,7 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 
 	if dryRun {
 		out := bytes.NewBuffer([]byte("\n"))
-		kubectl.DescribePodTemplate(rolledback.Spec.Template, out)
+		kinternalprinters.DescribePodTemplate(rolledback.Spec.Template, out)
 		return out.String(), nil
 	}
 

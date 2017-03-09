@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func mockDeploymentConfig(namespace, name string) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	return &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
 func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationController {
@@ -22,7 +22,7 @@ func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationC
 	return item
 }
 
-func withCreated(item *kapi.ReplicationController, creationTimestamp unversioned.Time) *kapi.ReplicationController {
+func withCreated(item *kapi.ReplicationController, creationTimestamp metav1.Time) *kapi.ReplicationController {
 	item.CreationTimestamp = creationTimestamp
 	return item
 }
@@ -33,7 +33,7 @@ func withStatus(item *kapi.ReplicationController, status deployapi.DeploymentSta
 }
 
 func mockDeployment(namespace, name string, deploymentConfig *deployapi.DeploymentConfig) *kapi.ReplicationController {
-	item := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
+	item := &kapi.ReplicationController{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
 	if deploymentConfig != nil {
 		item.Annotations[deployapi.DeploymentConfigAnnotation] = deploymentConfig.Name
 	}
@@ -65,8 +65,8 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := unversioned.Now()
-	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
+	now := metav1.Now()
+	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
 	items := []*kapi.ReplicationController{}
 	items = append(items, withCreated(mockDeployment("a", "old", nil), old))
 	items = append(items, withCreated(mockDeployment("a", "new", nil), now))

@@ -4,14 +4,16 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // 1. Check that users can't create or update templateinstances unless they are,
@@ -52,12 +54,12 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		viewuser = createUser(cli, "viewuser", bootstrappolicy.ViewRoleName)
 
 		dummytemplateinstance = &templateapi.TemplateInstance{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
 			Spec: templateapi.TemplateInstanceSpec{
 				Template: templateapi.Template{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "template",
 						Namespace: "dummy",
 					},
@@ -118,7 +120,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1
 		clusterrole, err = cli.AdminClient().ClusterRoles().Create(&authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "-impersonate",
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -133,7 +135,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "-impersonate",
 			},
 			RoleRef: kapi.ObjectReference{
@@ -170,7 +172,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
@@ -178,7 +180,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -192,10 +194,10 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			newtemplateinstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
+			newtemplateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
@@ -207,10 +209,10 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			// ensure spec (particularly including spec.requester.username) is
 			// immutable
 			templateinstance.Spec.Requester.Username = edituser2.Name
-			_, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
+			_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			o.Expect(err).To(o.HaveOccurred())
 
-			err = cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
@@ -222,17 +224,17 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			if test.expectDeleteSuccess {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsForbidden(err)).To(o.BeTrue())
 
-				err = cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}

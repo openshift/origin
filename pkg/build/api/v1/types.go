@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -13,9 +13,9 @@ import (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is all the inputs used to execute the build.
 	Spec BuildSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
@@ -186,13 +186,13 @@ type BuildStatus struct {
 	// startTimestamp is a timestamp representing the server time when this Build started
 	// running in a Pod.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *unversioned.Time `json:"startTimestamp,omitempty" protobuf:"bytes,5,opt,name=startTimestamp"`
+	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty" protobuf:"bytes,5,opt,name=startTimestamp"`
 
 	// completionTimestamp is a timestamp representing the server time when this Build was
 	// finished, whether that build failed or succeeded.  It reflects the time at which
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *unversioned.Time `json:"completionTimestamp,omitempty" protobuf:"bytes,6,opt,name=completionTimestamp"`
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty" protobuf:"bytes,6,opt,name=completionTimestamp"`
 
 	// duration contains time.Duration object describing build time.
 	Duration time.Duration `json:"duration,omitempty" protobuf:"varint,7,opt,name=duration,casttype=time.Duration"`
@@ -843,9 +843,9 @@ type ImageLabel struct {
 //
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 type BuildConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildConfig.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -975,9 +975,9 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildList.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of builds
 	Items []Build `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -985,9 +985,9 @@ type BuildList struct {
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildConfigList.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of build configs
 	Items []BuildConfig `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -1018,7 +1018,7 @@ type GitInfo struct {
 
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 }
 
 // DockerStrategyOptions contains extra strategy options for Docker builds
@@ -1030,9 +1030,9 @@ type DockerStrategyOptions struct {
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildRequest.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,2,opt,name=revision"`
@@ -1065,9 +1065,9 @@ type BuildRequest struct {
 
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 type BinaryBuildRequestOptions struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for BinaryBuildRequestOptions.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// asFile determines if the binary should be created as a file within the source rather than extracted as an archive
 	AsFile string `json:"asFile,omitempty" protobuf:"bytes,2,opt,name=asFile"`
@@ -1095,7 +1095,7 @@ type BinaryBuildRequestOptions struct {
 
 // BuildLogOptions is the REST options for a build log
 type BuildLogOptions struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// cointainer for which to stream logs. Defaults to only container if there is one container in the pod.
 	Container string `json:"container,omitempty" protobuf:"bytes,1,opt,name=container"`
@@ -1113,7 +1113,7 @@ type BuildLogOptions struct {
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
-	SinceTime *unversioned.Time `json:"sinceTime,omitempty" protobuf:"bytes,5,opt,name=sinceTime"`
+	SinceTime *metav1.Time `json:"sinceTime,omitempty" protobuf:"bytes,5,opt,name=sinceTime"`
 	// timestamps, If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
 	// of log output. Defaults to false.
 	Timestamps bool `json:"timestamps,omitempty" protobuf:"varint,6,opt,name=timestamps"`

@@ -6,11 +6,11 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
 )
 
 func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {

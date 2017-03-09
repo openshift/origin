@@ -6,13 +6,15 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -340,19 +342,19 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		oc := &testclient.Fake{}
-		oc.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			dc := action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+		oc.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			dc := action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
 			return true, dc, nil
 		})
 		kc := &fake.Clientset{}
-		kc.AddReactor("create", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.CreateAction).GetObject().(*kapi.ReplicationController)
+		kc.AddReactor("create", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.CreateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
-		kc.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		kc.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
@@ -360,11 +362,11 @@ func TestHandleScenarios(t *testing.T) {
 
 		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
+				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+					return oc.DeploymentConfigs(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					return oc.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+					return oc.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&deployapi.DeploymentConfig{},
@@ -373,11 +375,11 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		rcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					return kc.Core().ReplicationControllers(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					return kc.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					return kc.Core().ReplicationControllers(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.ReplicationController{},
@@ -386,11 +388,11 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		podInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					return kc.Core().Pods(kapi.NamespaceAll).List(options)
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					return kc.Core().Pods(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					return kc.Core().Pods(kapi.NamespaceAll).Watch(options)
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					return kc.Core().Pods(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.Pod{},

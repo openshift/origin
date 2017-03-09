@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/client-go/tools/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )

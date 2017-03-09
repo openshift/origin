@@ -7,7 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -45,7 +46,7 @@ func (d *MetricsApiProxy) CanRun() (bool, error) {
 	}
 	// see if there's even a service to reach - if not, they probably haven't deployed
 	// metrics and don't need to get errors about it; skip the diagnostic
-	if _, err := d.KubeClient.Core().Services(MetricsApiProxyProject).Get(MetricsApiProxyService); kapierrors.IsNotFound(err) {
+	if _, err := d.KubeClient.Core().Services(MetricsApiProxyProject).Get(MetricsApiProxyService, metav1.GetOptions{}); kapierrors.IsNotFound(err) {
 		return false, fmt.Errorf(errMsgNoHeapsterService, MetricsApiProxyService, MetricsApiProxyProject)
 	} else if err != nil {
 		return false, fmt.Errorf("Unexpected error while retrieving %[1]s service: (%[2]T) %[2]v", MetricsApiProxyService, err)
@@ -57,7 +58,7 @@ func (d *MetricsApiProxy) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MetricsApiProxyName)
 
 	// see if it has any active endpoints
-	if endpoints, err := d.KubeClient.Core().Endpoints(MetricsApiProxyProject).Get(MetricsApiProxyService); err != nil {
+	if endpoints, err := d.KubeClient.Core().Endpoints(MetricsApiProxyProject).Get(MetricsApiProxyService, metav1.GetOptions{}); err != nil {
 		r.Error("DClu4001", err, fmt.Sprintf("Unexpected error while retrieving %[1]s service endpoints: (%[2]T) %[2]v", MetricsApiProxyService, err))
 		return r
 	} else {

@@ -1,6 +1,6 @@
 package v1
 
-import "k8s.io/kubernetes/pkg/runtime"
+import "k8s.io/apimachinery/pkg/runtime"
 
 func SetDefaults_OAuthAuthorizeToken(obj *OAuthAuthorizeToken) {
 	if len(obj.CodeChallenge) > 0 && len(obj.CodeChallengeMethod) == 0 {

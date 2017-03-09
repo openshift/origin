@@ -4,29 +4,32 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // templateInstanceStrategy implements behavior for Templates
 type templateInstanceStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 	oc *client.Client
 }
 
 func NewStrategy(oc *client.Client) *templateInstanceStrategy {
-	return &templateInstanceStrategy{kapi.Scheme, kapi.SimpleNameGenerator, oc}
+	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, oc}
 }
 
 // NamespaceScoped is true for templateinstances.
@@ -35,7 +38,7 @@ func (templateInstanceStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (templateInstanceStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (templateInstanceStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -43,11 +46,11 @@ func (templateInstanceStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (templateInstanceStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	templateInstance := obj.(*templateapi.TemplateInstance)
 
 	if templateInstance.Spec.Requester == nil {
-		user, _ := kapi.UserFrom(ctx)
+		user, _ := apirequest.UserFrom(ctx)
 		templateInstance.Spec.Requester = &templateapi.TemplateInstanceRequester{
 			Username: user.GetName(),
 		}
@@ -55,8 +58,8 @@ func (templateInstanceStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.O
 }
 
 // Validate validates a new templateinstance.
-func (s *templateInstanceStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
-	user, ok := kapi.UserFrom(ctx)
+func (s *templateInstanceStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("user not found in context"))}
 	}
@@ -78,8 +81,8 @@ func (templateInstanceStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s *templateInstanceStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
-	user, ok := kapi.UserFrom(ctx)
+func (s *templateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("user not found in context"))}
 	}

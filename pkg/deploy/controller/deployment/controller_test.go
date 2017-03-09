@@ -7,14 +7,15 @@ import (
 	"testing"
 	"time"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
@@ -59,7 +60,7 @@ func deployerPod(deployment *kapi.ReplicationController, alternateName string, r
 	deployment.Namespace = "test"
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      deployerPodName,
 			Namespace: deployment.Namespace,
 			Labels: map[string]string{
@@ -102,13 +103,13 @@ func TestHandle_createPodOk(t *testing.T) {
 	)
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		pod := action.(core.CreateAction).GetObject().(*kapi.Pod)
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		pod := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod)
 		createdPod = pod
 		return true, pod, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -195,12 +196,12 @@ func TestHandle_createPodFail(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.CreateAction).GetObject().(*kapi.Pod).Name
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
 		return true, nil, fmt.Errorf("failed to create pod %q", name)
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -266,12 +267,12 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 
 		client := &fake.Clientset{}
-		client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			name := action.(core.CreateAction).GetObject().(*kapi.Pod).Name
+		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
 			return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 		})
-		client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			updatedDeployment = rc
 			return true, rc, nil
 		})
@@ -305,12 +306,12 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.CreateAction).GetObject().(*kapi.Pod).Name
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
 		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -346,12 +347,12 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	deployment.Spec.Replicas = 1
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.CreateAction).GetObject().(*kapi.Pod).Name
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
 		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -433,12 +434,12 @@ func TestHandle_failedTest(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -470,16 +471,16 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	deletedPodNames := []string{}
 
 	client := &fake.Clientset{}
-	client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.DeleteAction).GetName()
+	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.DeleteAction).GetName()
 		deletedPodNames = append(deletedPodNames, name)
 		return true, nil, nil
 	})
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected deployment update")
 		return true, nil, nil
 	})
@@ -513,17 +514,17 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 
 	client := &fake.Clientset{}
-	client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.DeleteAction).GetName()
+	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.DeleteAction).GetName()
 		deletedPodNames = append(deletedPodNames, name)
 		return true, nil, nil
 	})
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -558,15 +559,15 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 // if the deployer pods are not listed based on a label query
 func TestHandle_cleanupPodNoop(t *testing.T) {
 	client := &fake.Clientset{}
-	client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to delete pod")
 		return true, nil, nil
 	})
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected deployment update")
 		return true, nil, nil
 	})
@@ -590,14 +591,14 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 // deployer pod for a completed deployment results in an actionable error.
 func TestHandle_cleanupPodFail(t *testing.T) {
 	client := &fake.Clientset{}
-	client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewInternalError(fmt.Errorf("deployer pod internal error"))
 	})
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected deployment update")
 		return true, nil, nil
 	})
@@ -624,12 +625,12 @@ func TestHandle_cancelNew(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 
 	client := &fake.Clientset{}
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -660,16 +661,16 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 
 	client := &fake.Clientset{}
-	client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deletedDeployer = true
 		return true, nil, nil
 	})
-	client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		t.Fatalf("unexpected call to create pod")
 		return true, nil, nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
 		return true, nil, nil
 	})
@@ -739,11 +740,11 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 		deletedPods := 0
 
 		client := &fake.Clientset{}
-		client.AddReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			deletedPods++
 			return true, nil, nil
 		})
-		client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			// None of these tests should transition the phase.
 			t.Errorf("%s: unexpected call to update a deployment", test.name)
 			return true, nil, nil
@@ -800,8 +801,8 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 		updateCalled := false
 
 		client := &fake.Clientset{}
-		client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
@@ -939,8 +940,8 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		updateCalled := false
 
 		client := &fake.Clientset{}
-		client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
@@ -1004,7 +1005,7 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 		deployment, _ := deployutil.MakeDeployment(config, codec)
 
 		client := &fake.Clientset{}
-		client.AddReactor("create", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deployerPod(deployment, "", true), nil
 		})
 

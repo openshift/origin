@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -53,7 +54,7 @@ func TestImageAddSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	image, err = adminClient.Images().Get(image.Name)
+	image, err = adminClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,7 +115,7 @@ func TestImageRemoveSignature(t *testing.T) {
 			t.Fatalf("creating signature %d: unexpected error: %v", i, err)
 		}
 		signature := imageapi.ImageSignature{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 			Type:    "unknown",
@@ -126,7 +127,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		}
 	}
 
-	image, err := userClient.Images().Get(image.Name)
+	image, err := userClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,7 +168,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name); err != nil {
+	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 2 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))
@@ -185,7 +186,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name); err != nil {
+	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 0 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))

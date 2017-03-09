@@ -8,11 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -206,7 +207,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 		}
 		rolesNotFound.Delete(expectedClusterRoleBinding.RoleRef.Name)
 
-		actualClusterRoleBinding, err := o.RoleBindingClient.Get(expectedClusterRoleBinding.Name)
+		actualClusterRoleBinding, err := o.RoleBindingClient.Get(expectedClusterRoleBinding.Name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			// Remove excluded subjects from the new role binding
 			expectedClusterRoleBinding.Subjects, _ = DiffObjectReferenceLists(expectedClusterRoleBinding.Subjects, o.ExcludeSubjects)
@@ -240,7 +241,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changedRoleBindings []*authorizationapi.ClusterRoleBinding) error {
 	errs := []error{}
 	for i := range changedRoleBindings {
-		roleBinding, err := o.RoleBindingClient.Get(changedRoleBindings[i].Name)
+		roleBinding, err := o.RoleBindingClient.Get(changedRoleBindings[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			errs = append(errs, err)
 			continue

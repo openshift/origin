@@ -13,8 +13,9 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -240,7 +241,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
 		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
@@ -293,7 +294,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment with 'oc deploy --latest dc/%s'.", config.Status.LatestVersion, config.Name)
@@ -313,12 +314,12 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	}
 
 	// Delete the deployer pod as well as the deployment hooks pods, if any
-	pods, err := o.kubeClient.Core().Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName)})
+	pods, err := o.kubeClient.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName).String()})
 	if err != nil {
 		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)
 	}
 	for _, pod := range pods.Items {
-		err := o.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		err := o.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 		if err != nil {
 			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)
 		}
@@ -346,7 +347,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")
 	}
-	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return err
 	}

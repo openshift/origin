@@ -14,8 +14,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	restclient "k8s.io/client-go/rest"
+	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func TestNormalizeServerURL(t *testing.T) {
@@ -282,8 +282,10 @@ func TestDialToHTTPSServer(t *testing.T) {
 	for name, test := range testCases {
 		t.Logf("evaluating test: %s", name)
 		clientConfig := &restclient.Config{
-			Host:     test.serverURL,
-			Insecure: test.skipTLSVerify,
+			Host: test.serverURL,
+			TLSClientConfig: restclient.TLSClientConfig{
+				Insecure: test.skipTLSVerify,
+			},
 		}
 		if err := dialToServer(*clientConfig); err != nil {
 			if test.evalExpectedErr == nil || !test.evalExpectedErr(err) {

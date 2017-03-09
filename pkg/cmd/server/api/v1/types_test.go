@@ -5,10 +5,11 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer"
-	"k8s.io/kubernetes/pkg/util/diff"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/diff"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -633,11 +634,11 @@ volumeConfig:
 }
 
 type AdmissionPluginTestConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	Data string `json:"data"`
 }
 
-func (obj *AdmissionPluginTestConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *AdmissionPluginTestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestMasterConfig(t *testing.T) {
 	internal.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &AdmissionPluginTestConfig{})

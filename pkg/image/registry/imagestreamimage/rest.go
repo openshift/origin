@@ -1,9 +1,10 @@
 package imagestreamimage
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -41,13 +42,13 @@ func parseNameAndID(input string) (name string, id string, err error) {
 
 // Get retrieves an image by ID that has previously been tagged into an image stream.
 // `id` is of the form <repo name>@<image id>.
-func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
 	name, imageID, err := parseNameAndID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	imageName := event.Image
-	image, err := r.imageRegistry.GetImage(ctx, imageName)
+	image, err := r.imageRegistry.GetImage(ctx, imageName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +74,8 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	image.DockerImageConfig = ""
 
 	isi := api.ImageStreamImage{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace:         kapi.NamespaceValue(ctx),
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         apirequest.NamespaceValue(ctx),
 			Name:              api.MakeImageStreamImageName(name, imageID),
 			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
 			Annotations:       repo.Annotations,

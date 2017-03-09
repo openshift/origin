@@ -5,7 +5,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
@@ -153,7 +153,7 @@ func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descr
 		return distribution.ErrRepositoryUnknown{Name: t.repo.Named().Name()}
 	}
 
-	image, err := t.repo.registryOSClient.Images().Get(dgst.Digest.String())
+	image, err := t.repo.registryOSClient.Images().Get(dgst.Digest.String(), metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("unable to get image: %s", dgst.Digest.String())
 		return err
@@ -165,7 +165,7 @@ func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descr
 	}
 
 	ism := imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: imageStream.Namespace,
 			Name:      imageStream.Name,
 		},

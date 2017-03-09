@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -14,12 +15,12 @@ type UsersInterface interface {
 
 // UserInterface exposes methods on user resources.
 type UserInterface interface {
-	List(opts kapi.ListOptions) (*userapi.UserList, error)
+	List(opts metainternal.ListOptions) (*userapi.UserList, error)
 	Get(name string) (*userapi.User, error)
 	Create(user *userapi.User) (*userapi.User, error)
 	Update(user *userapi.User) (*userapi.User, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 // users implements UserInterface interface
@@ -35,7 +36,7 @@ func newUsers(c *Client) *users {
 }
 
 // List returns a list of users that match the label and field selectors.
-func (c *users) List(opts kapi.ListOptions) (result *userapi.UserList, err error) {
+func (c *users) List(opts metainternal.ListOptions) (result *userapi.UserList, err error) {
 	result = &userapi.UserList{}
 	err = c.r.Get().
 		Resource("users").
@@ -72,7 +73,7 @@ func (c *users) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested users.
-func (c *users) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *users) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("users").

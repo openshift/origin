@@ -1,11 +1,11 @@
 package rulevalidation
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/auth/user"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
@@ -34,12 +34,12 @@ type AuthorizationRuleResolver interface {
 }
 
 func (a *DefaultRuleResolver) GetRoleBindings(namespace string) ([]authorizationinterfaces.RoleBinding, error) {
-	clusterBindings, clusterErr := a.clusterBindingLister.List(kapi.ListOptions{})
+	clusterBindings, clusterErr := a.clusterBindingLister.List(metav1.ListOptions{})
 
 	var namespaceBindings *authorizationapi.PolicyBindingList
 	var namespaceErr error
 	if a.bindingLister != nil && len(namespace) > 0 {
-		namespaceBindings, namespaceErr = a.bindingLister.PolicyBindings(namespace).List(kapi.ListOptions{})
+		namespaceBindings, namespaceErr = a.bindingLister.PolicyBindings(namespace).List(metav1.ListOptions{})
 	}
 
 	// return all loaded bindings
@@ -83,7 +83,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBi
 	name := roleBinding.RoleRef().Name
 
 	if len(namespace) == 0 {
-		policy, err := a.clusterPolicyGetter.Get(authorizationapi.PolicyName)
+		policy, err := a.clusterPolicyGetter.Get(authorizationapi.PolicyName, metav1.GetOptions{})
 		if kapierror.IsNotFound(err) {
 			return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 		}
@@ -103,7 +103,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBi
 		return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 
-	policy, err := a.policyGetter.Policies(namespace).Get(authorizationapi.PolicyName)
+	policy, err := a.policyGetter.Policies(namespace).Get(authorizationapi.PolicyName, metav1.GetOptions{})
 	if kapierror.IsNotFound(err) {
 		return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 	}

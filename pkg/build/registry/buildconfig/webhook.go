@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/client"
@@ -18,7 +20,7 @@ import (
 )
 
 // NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
-func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, groupVersion unversioned.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
+func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
 	hook := &WebHook{
 		groupVersion: groupVersion,
 		registry:     registry,
@@ -29,14 +31,14 @@ func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiat
 }
 
 type WebHook struct {
-	groupVersion unversioned.GroupVersion
+	groupVersion schema.GroupVersion
 	registry     Registry
 	instantiator client.BuildConfigInstantiator
 	plugins      map[string]webhook.Plugin
 }
 
 // ServeHTTP implements rest.HookHandler
-func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx kapi.Context, name, subpath string) error {
+func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
 	parts := strings.Split(subpath, "/")
 	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))
@@ -48,7 +50,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		return errors.NewNotFound(buildapi.LegacyResource("buildconfighook"), hookType)
 	}
 
-	config, err := w.registry.GetBuildConfig(ctx, name)
+	config, err := w.registry.GetBuildConfig(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		// clients should not be able to find information about build configs in
 		// the system unless the config exists and the secret matches
@@ -73,7 +75,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 	buildTriggerCauses := generateBuildTriggerInfo(revision, hookType, secret)
 	request := &buildapi.BuildRequest{
 		TriggeredBy: buildTriggerCauses,
-		ObjectMeta:  kapi.ObjectMeta{Name: name},
+		ObjectMeta:  metav1.ObjectMeta{Name: name},
 		Revision:    revision,
 		Env:         envvars,
 		DockerStrategyOptions: dockerStrategyOptions,

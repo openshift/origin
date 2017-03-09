@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -85,7 +85,7 @@ func TestConflictingNamespace(t *testing.T) {
 	}
 
 	storage := NewREST(subjectaccessreview.NewRegistry(subjectaccessreview.NewREST(authorizer)))
-	ctx := kapi.WithNamespace(kapi.NewContext(), "bar")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "bar")
 	_, err := storage.Create(ctx, reviewRequest)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
@@ -264,11 +264,11 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 		EvaluationError: r.authorizer.err,
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), r.reviewRequest.Action.Namespace)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), r.reviewRequest.Action.Namespace)
 	if r.requestingUser != nil {
-		ctx = kapi.WithUser(ctx, r.requestingUser)
+		ctx = apirequest.WithUser(ctx, r.requestingUser)
 	} else {
-		ctx = kapi.WithUser(ctx, &user.DefaultInfo{Name: "dummy"})
+		ctx = apirequest.WithUser(ctx, &user.DefaultInfo{Name: "dummy"})
 	}
 
 	obj, err := storage.Create(ctx, r.reviewRequest)

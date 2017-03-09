@@ -1,9 +1,9 @@
 package origin
 
 import (
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/registry/rest"
 )
 
 var (
@@ -181,7 +181,7 @@ var (
 )
 
 // LegacyStorage returns a storage for locked legacy types.
-func LegacyStorage(storage map[unversioned.GroupVersion]map[string]rest.Storage) map[string]rest.Storage {
+func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[string]rest.Storage {
 	legacyStorage := map[string]rest.Storage{}
 	for _, gvStorage := range storage {
 		for resource, s := range gvStorage {

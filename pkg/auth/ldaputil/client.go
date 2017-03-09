@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/kubernetes/pkg/util/cert"
+	"k8s.io/client-go/util/cert"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"gopkg.in/ldap.v2"

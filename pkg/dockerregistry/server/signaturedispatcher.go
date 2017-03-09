@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	ctxu "github.com/docker/distribution/context"
 

@@ -2,11 +2,11 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/user/api"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakeUsers implements UserInterface
@@ -15,7 +15,7 @@ type FakeUsers struct {
 	ns   string
 }
 
-var usersResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+var usersResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
 
 func (c *FakeUsers) Create(user *api.User) (result *api.User, err error) {
 	obj, err := c.Fake.

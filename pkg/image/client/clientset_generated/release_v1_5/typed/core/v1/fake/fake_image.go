@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakeImages implements ImageInterface
@@ -16,7 +16,7 @@ type FakeImages struct {
 	ns   string
 }
 
-var imagesResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "images"}
+var imagesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "images"}
 
 func (c *FakeImages) Create(image *v1.Image) (result *v1.Image, err error) {
 	obj, err := c.Fake.

@@ -3,8 +3,8 @@ package test
 import (
 	"fmt"
 
-	"k8s.io/client-go/pkg/api/errors"
-	"k8s.io/client-go/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/kubectl"
 )
 
@@ -36,7 +36,7 @@ func (t *FakeLaggedScaler) Scale(namespace, name string, newSize uint, precondit
 		t.RetryCount += 1
 		// This is faking a real error from the
 		// "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle" package.
-		return errors.NewForbidden(unversioned.GroupResource{Resource: "ReplicationController"}, name, fmt.Errorf("%s: not yet ready to handle request", name))
+		return errors.NewForbidden(schema.GroupResource{Resource: "ReplicationController"}, name, fmt.Errorf("%s: not yet ready to handle request", name))
 	}
 	t.Events = append(t.Events, ScaleEvent{name, newSize})
 	return nil

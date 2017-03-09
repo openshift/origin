@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"

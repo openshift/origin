@@ -7,18 +7,20 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -35,14 +37,14 @@ type REST struct {
 	templateName      string
 
 	openshiftClient *client.Client
-	kubeClient      *kclientset.Clientset
+	kubeClient      kclientset.Interface
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
 	policyBindings client.PolicyBindingsListerNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclientset.Clientset, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient kclientset.Interface, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -58,7 +60,7 @@ func (r *REST) New() runtime.Object {
 }
 
 func (r *REST) NewList() runtime.Object {
-	return &unversioned.Status{}
+	return &metav1.Status{}
 }
 
 var _ = rest.Creater(&REST{})
@@ -68,7 +70,7 @@ var (
 	forbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 )
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
@@ -86,14 +88,14 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 
-	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name); err == nil {
+	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
 		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
 	}
 
 	projectName := projectRequest.Name
 	projectAdmin := ""
 	projectRequester := ""
-	if userInfo, exists := kapi.UserFrom(ctx); exists {
+	if userInfo, exists := apirequest.UserFrom(ctx); exists {
 		projectAdmin = userInfo.GetName()
 		projectRequester = userInfo.GetName()
 	}
@@ -118,7 +120,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 
-	list, err := r.openshiftClient.TemplateConfigs(kapi.NamespaceDefault).Create(template)
+	list, err := r.openshiftClient.TemplateConfigs(metav1.NamespaceDefault).Create(template)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +173,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 				if latest.OriginKind(mapping.GroupVersionKind) {
 					return r.openshiftClient, nil
 				}
-				return r.kubeClient.CoreClient.RESTClient(), nil
+				return r.kubeClient.Core().RESTClient(), nil
 			}),
 		},
 		After: stopOnErr,
@@ -191,7 +193,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		r.waitForRoleBinding(projectName, lastRoleBinding.Name)
 	}
 
-	return r.openshiftClient.Projects().Get(projectName)
+	return r.openshiftClient.Projects().Get(projectName, metav1.GetOptions{})
 }
 
 func (r *REST) waitForRoleBinding(namespace, name string) {
@@ -201,7 +203,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(kapi.ListOptions{})
+		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(metav1.ListOptions{})
 		for _, policyBinding := range policyBindingList.Items {
 			for roleBindingName := range policyBinding.RoleBindings {
 				if roleBindingName == name {
@@ -223,13 +225,13 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 		return DefaultTemplate(), nil
 	}
 
-	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName)
+	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
 }
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	userInfo, exists := kapi.UserFrom(ctx)
+func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")
 	}
@@ -249,15 +251,15 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 		return nil, err
 	}
 	if accessReviewResponse.Allowed {
-		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+		return &metav1.Status{Status: metav1.StatusSuccess}, nil
 	}
 
 	forbiddenError := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
-		forbiddenError.ErrStatus.Details = &unversioned.StatusDetails{
+		forbiddenError.ErrStatus.Details = &metav1.StatusDetails{
 			Kind: "ProjectRequest",
-			Causes: []unversioned.StatusCause{
+			Causes: []metav1.StatusCause{
 				{Message: r.message},
 			},
 		}

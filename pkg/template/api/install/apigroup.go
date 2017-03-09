@@ -1,8 +1,8 @@
 package install
 
 import (
-	"k8s.io/kubernetes/pkg/apimachinery/announced"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/v1"

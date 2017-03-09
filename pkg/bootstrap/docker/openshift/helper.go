@@ -14,8 +14,9 @@ import (
 	"github.com/blang/semver"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/homedir"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
@@ -427,7 +428,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 // CheckNodes determines if there is more than one node that corresponds to the
 // current machine and removes the one that doesn't match the default node name
 func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
-	nodes, err := kclient.Core().Nodes().List(kapi.ListOptions{})
+	nodes, err := kclient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err)
 	}

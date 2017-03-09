@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakePolicies implements PolicyInterface
@@ -16,7 +16,7 @@ type FakePolicies struct {
 	ns   string
 }
 
-var policiesResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}
+var policiesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}
 
 func (c *FakePolicies) Create(policy *v1.Policy) (result *v1.Policy, err error) {
 	obj, err := c.Fake.

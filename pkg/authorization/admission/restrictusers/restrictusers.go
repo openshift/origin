@@ -8,9 +8,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oclient "github.com/openshift/origin/pkg/client"
@@ -170,7 +172,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 
 	// TODO: Cache rolebinding restrictions.
 	roleBindingRestrictionList, err := q.oclient.RoleBindingRestrictions(ns).
-		List(kapi.ListOptions{})
+		List(metav1.ListOptions{})
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}

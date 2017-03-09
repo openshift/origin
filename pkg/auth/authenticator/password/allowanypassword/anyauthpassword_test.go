@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/auth/api"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type testUserIdentityMapper struct{}

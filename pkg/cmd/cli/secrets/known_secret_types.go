@@ -3,8 +3,8 @@ package secrets
 import (
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type KnownSecretType struct {

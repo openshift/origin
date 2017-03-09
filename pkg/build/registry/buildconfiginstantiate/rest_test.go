@@ -3,9 +3,10 @@ package buildconfiginstantiate
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
@@ -25,30 +26,30 @@ func TestCreateInstantiate(t *testing.T) {
 		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: generator.Client{
-			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
-			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 				return nil
 			},
-			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 				return &buildapi.Build{}, nil
 			},
-			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{Image: *image}, nil
 			},
-			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{Image: *image}, nil
 			},
 		}}}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: "name"}})
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -56,7 +57,7 @@ func TestCreateInstantiate(t *testing.T) {
 
 func TestCreateInstantiateValidationError(t *testing.T) {
 	rest := InstantiateREST{&generator.BuildGenerator{}}
-	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil {
 		t.Error("Expected object got none!")
 	}

@@ -13,8 +13,9 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	kapi "k8s.io/kubernetes/pkg/api"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	buildv1 "github.com/openshift/origin/pkg/build/api/v1"
@@ -272,7 +273,7 @@ func TestApiGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer kclientset.Namespaces().Delete(ns, &kapi.DeleteOptions{})
+	defer kclientset.Core().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 
 	t.Logf("GETting builds")
 	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
@@ -341,7 +342,7 @@ func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, err
 
 func testBuild() *build.Build {
 	return &build.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 		Spec: build.BuildSpec{

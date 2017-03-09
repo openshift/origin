@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	jsschema "github.com/lestrrat/go-jsschema"
+
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"

@@ -14,8 +14,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	krand "k8s.io/kubernetes/pkg/util/rand"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	krand "k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )

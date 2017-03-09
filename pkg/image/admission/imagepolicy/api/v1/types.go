@@ -1,12 +1,12 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImagePolicyConfig is the configuration for control of images running on the platform.
 type ImagePolicyConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// ResolveImages indicates what kind of image resolution should be done.  If a rewriting policy is chosen,
 	// then the image pull specs will be updated.
@@ -83,7 +83,7 @@ type ImageCondition struct {
 	// conditions must match.
 	MatchDockerImageLabels []ValueCondition `json:"matchDockerImageLabels"`
 	// MatchImageLabels checks against the resolved image for a label. All conditions must match.
-	MatchImageLabels []unversioned.LabelSelector `json:"matchImageLabels"`
+	MatchImageLabels []metav1.LabelSelector `json:"matchImageLabels"`
 	// MatchImageAnnotations checks against the resolved image for an annotation. All conditions must match.
 	MatchImageAnnotations []ValueCondition `json:"matchImageAnnotations"`
 }

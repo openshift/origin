@@ -6,11 +6,12 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type bulkTester struct {
@@ -28,7 +29,7 @@ func (bt *bulkTester) ResourceSingularizer(resource string) (string, error) {
 	return resource, nil
 }
 
-func (bt *bulkTester) InfoForObject(obj runtime.Object, preferredGVKs []unversioned.GroupVersionKind) (*resource.Info, error) {
+func (bt *bulkTester) InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupVersionKind) (*resource.Info, error) {
 	bt.infos = append(bt.infos, obj)
 	// These checks are here to make sure the preferredGVKs are set to retain the legacy
 	// behavior for bulk operations.
@@ -119,7 +120,7 @@ func TestBulkAction(t *testing.T) {
 	b := &BulkAction{Bulk: bulk, Output: "", Out: out, ErrOut: err}
 	b2 := b.WithMessage("test1", "test2")
 
-	in := &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Name: "obj1"}}
+	in := &kapi.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
 	if errs := b2.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) != 0 {
 		t.Fatal(errs)
 	}
@@ -152,7 +153,7 @@ func TestBulkActionCompact(t *testing.T) {
 	b.Compact()
 	b2 := b.WithMessage("test1", "test2")
 
-	in := &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Name: "obj1"}}
+	in := &kapi.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
 	if errs := b2.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) != 0 {
 		t.Fatal(errs)
 	}

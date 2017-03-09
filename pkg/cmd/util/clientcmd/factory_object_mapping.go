@@ -11,18 +11,22 @@ import (
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -99,7 +103,7 @@ func (f *ring1Factory) UnstructuredClientForMapping(mapping *meta.RESTMapping) (
 	return f.kubeObjectMappingFactory.UnstructuredClientForMapping(mapping)
 }
 
-func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kubectl.Describer, error) {
+func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer, error) {
 	if latest.OriginKind(mapping.GroupVersionKind) {
 		oClient, kClient, err := f.clientAccessFactory.Clients()
 		if err != nil {
@@ -155,7 +159,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object) (*restclien
 		if err != nil {
 			return nil, err
 		}
-		builds, err := oc.Builds(t.Namespace).List(kapi.ListOptions{})
+		builds, err := oc.Builds(t.Namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +287,7 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*kapi.Pod,
 			return nil, err
 		}
 		selector := labels.SelectorFromSet(t.Spec.Selector)
-		f := func(pods []*kapi.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+		f := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
 		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector, 1*time.Minute, f)
 		return pod, err
 	default:
@@ -336,7 +340,7 @@ func (f *ring1Factory) Validator(validate bool, cacheDir string) (validation.Sch
 	return f.kubeObjectMappingFactory.Validator(validate, cacheDir)
 }
 
-func (f *ring1Factory) SwaggerSchema(gvk unversioned.GroupVersionKind) (*swagger.ApiDeclaration, error) {
+func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiDeclaration, error) {
 	if !latest.OriginKind(gvk) {
 		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
 	}
@@ -350,7 +354,7 @@ func (f *ring1Factory) SwaggerSchema(gvk unversioned.GroupVersionKind) (*swagger
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *ring1Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (f *ring1Factory) OriginSwaggerSchema(client *restclient.RESTClient, version schema.GroupVersion) (*swagger.ApiDeclaration, error) {
 	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}

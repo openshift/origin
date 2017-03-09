@@ -4,7 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -14,20 +15,20 @@ import (
 )
 
 type TestConfig struct {
-	unversioned.TypeMeta `json:",inline"`
-	Item1                string   `json:"item1"`
-	Item2                []string `json:"item2"`
+	metav1.TypeMeta `json:",inline"`
+	Item1           string   `json:"item1"`
+	Item2           []string `json:"item2"`
 }
 
-func (obj *TestConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 type TestConfigV1 struct {
-	unversioned.TypeMeta `json:",inline"`
-	Item1                string   `json:"item1"`
-	Item2                []string `json:"item2"`
+	metav1.TypeMeta `json:",inline"`
+	Item1           string   `json:"item1"`
+	Item2           []string `json:"item2"`
 }
 
-func (obj *TestConfigV1) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfigV1) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestGetPluginConfig(t *testing.T) {
 	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})

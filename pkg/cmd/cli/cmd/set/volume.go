@@ -14,16 +14,19 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	kresource "k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -122,7 +125,7 @@ type VolumeOptions struct {
 	Confirm       bool
 	Output        string
 	PrintObject   func([]*resource.Info) error
-	OutputVersion unversioned.GroupVersion
+	OutputVersion schema.GroupVersion
 
 	// Add op params
 	AddOpts *AddVolumeOptions
@@ -402,7 +405,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if len(v.AddOpts.ClaimSize) > 0 {
 		v.AddOpts.CreateClaim = true
 		if len(v.AddOpts.ClaimName) == 0 {
-			v.AddOpts.ClaimName = kapi.SimpleNameGenerator.GenerateName("pvc-")
+			v.AddOpts.ClaimName = names.SimpleNameGenerator.GenerateName("pvc-")
 		}
 		q, err := kresource.ParseQuantity(v.AddOpts.ClaimSize)
 		if err != nil {
@@ -513,7 +516,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 
 		glog.V(4).Infof("Calculated patch %s", patch.Patch)
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patch.Patch)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			handlePodUpdateError(v.Err, err, "volume")
 			failed = true
@@ -613,7 +616,7 @@ func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
 
 func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
 	pvc := &kapi.PersistentVolumeClaim{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: v.ClaimName,
 		},
 		Spec: kapi.PersistentVolumeClaimSpec{
@@ -707,7 +710,7 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 			return "", fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
 		}
 	} else { // Generate volume name
-		name := kapi.SimpleNameGenerator.GenerateName(volumePrefix)
+		name := names.SimpleNameGenerator.GenerateName(volumePrefix)
 		if len(v.Output) == 0 {
 			fmt.Fprintf(v.Err, "info: Generated volume name: %s\n", name)
 		}
@@ -900,7 +903,7 @@ func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Inf
 		refInfo := ""
 		if vol.VolumeSource.PersistentVolumeClaim != nil {
 			claimName := vol.VolumeSource.PersistentVolumeClaim.ClaimName
-			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName)
+			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
 			switch {
 			case err == nil:
 				refInfo = fmt.Sprintf("(%s)", describePersistentVolumeClaim(claim))

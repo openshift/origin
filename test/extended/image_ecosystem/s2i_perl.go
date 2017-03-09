@@ -7,8 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -69,7 +69,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			RunInPodContainer(oc, dcLabelOne, modifyCommand)
 			assertPageCountIs(3, dcLabelOne)
 
-			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: dcLabelOne})
+			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabelOne.String()})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 
