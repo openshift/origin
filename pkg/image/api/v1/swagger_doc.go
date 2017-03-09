@@ -41,6 +41,7 @@ var map_ImageImportSpec = map[string]string{
 	"from":            "From is the source of an image to import; only kind DockerImage is allowed",
 	"to":              "To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used",
 	"importPolicy":    "ImportPolicy is the policy controlling how the image is imported",
+	"referencePolicy": "ReferencePolicy defines how other components should consume the image",
 	"includeManifest": "IncludeManifest determines if the manifest for each image is returned in the response",
 }
 
@@ -230,6 +231,7 @@ var map_RepositoryImportSpec = map[string]string{
 	"":                "RepositoryImportSpec describes a request to import images from a Docker image repository.",
 	"from":            "From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed",
 	"importPolicy":    "ImportPolicy is the policy controlling how the image is imported",
+	"referencePolicy": "ReferencePolicy defines how other components should consume the image",
 	"includeManifest": "IncludeManifest determines if the manifest for each image is returned in the response",
 }
 

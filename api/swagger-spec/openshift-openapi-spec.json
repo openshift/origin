@@ -51573,6 +51573,10 @@
       "description": "IncludeManifest determines if the manifest for each image is returned in the response",
       "type": "boolean"
      },
+     "referencePolicy": {
+      "description": "ReferencePolicy defines how other components should consume the image",
+      "$ref": "#/definitions/v1.TagReferencePolicy"
+     },
      "to": {
       "description": "To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used",
       "$ref": "#/definitions/v1.LocalObjectReference"
@@ -54906,6 +54910,10 @@
      "includeManifest": {
       "description": "IncludeManifest determines if the manifest for each image is returned in the response",
       "type": "boolean"
+     },
+     "referencePolicy": {
+      "description": "ReferencePolicy defines how other components should consume the image",
+      "$ref": "#/definitions/v1.TagReferencePolicy"
      }
     }
    },

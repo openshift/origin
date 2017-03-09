@@ -183,6 +183,9 @@ func autoConvert_v1_ImageImportSpec_To_api_ImageImportSpec(in *ImageImportSpec, 
 	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
 		return err
 	}
+	if err := Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
+		return err
+	}
 	out.IncludeManifest = in.IncludeManifest
 	return nil
 }
@@ -205,6 +208,9 @@ func autoConvert_api_ImageImportSpec_To_v1_ImageImportSpec(in *api.ImageImportSp
 		out.To = nil
 	}
 	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	if err := Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
 		return err
 	}
 	out.IncludeManifest = in.IncludeManifest
@@ -765,6 +771,9 @@ func autoConvert_v1_RepositoryImportSpec_To_api_RepositoryImportSpec(in *Reposit
 	if err := Convert_v1_TagImportPolicy_To_api_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
 		return err
 	}
+	if err := Convert_v1_TagReferencePolicy_To_api_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
+		return err
+	}
 	out.IncludeManifest = in.IncludeManifest
 	return nil
 }
@@ -778,6 +787,9 @@ func autoConvert_api_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *api.Rep
 		return err
 	}
 	if err := Convert_api_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
+		return err
+	}
+	if err := Convert_api_TagReferencePolicy_To_v1_TagReferencePolicy(&in.ReferencePolicy, &out.ReferencePolicy, s); err != nil {
 		return err
 	}
 	out.IncludeManifest = in.IncludeManifest
