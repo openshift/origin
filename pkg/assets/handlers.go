@@ -14,7 +14,7 @@ import (
 	"text/template"
 
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")

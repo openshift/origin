@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 // GetName returns a name given a base ("deployment-5") and a suffix ("deploy")

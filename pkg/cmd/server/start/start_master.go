@@ -15,20 +15,20 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -607,7 +607,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// TODO there has to be a better way to do this!
 		// Make a copy of the client config because we need to modify it
 		jobClientConfig := oc.PrivilegedLoopbackClientConfig
-		jobClientConfig.ContentConfig.GroupVersion = &unversioned.GroupVersion{Group: "batch", Version: "v2alpha1"}
+		jobClientConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "batch", Version: "v2alpha1"}
 		_, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
@@ -663,7 +663,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
 		// TODO: should use a dynamic RESTMapper built from the discovery results.
-		restMapper := registered.RESTMapper()
+		restMapper := kapi.Registry.RESTMapper()
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
 
 		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)

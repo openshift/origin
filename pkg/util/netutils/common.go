@@ -6,7 +6,8 @@ import (
 	"net"
 
 	"github.com/golang/glog"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 func IPToUint32(ip net.IP) uint32 {

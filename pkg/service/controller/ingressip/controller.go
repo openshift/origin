@@ -8,21 +8,23 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 const (
@@ -42,7 +44,7 @@ const (
 type IngressIPController struct {
 	client kcoreclient.ServicesGetter
 
-	controller *cache.Controller
+	controller cache.Controller
 
 	maxRetries int
 
@@ -91,11 +93,11 @@ func NewIngressIPController(kc kclientset.Interface, ipNet *net.IPNet, resyncInt
 
 	ic.cache, ic.controller = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return ic.client.Services(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return ic.client.Services(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return ic.client.Services(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return ic.client.Services(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Service{},

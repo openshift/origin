@@ -1,6 +1,7 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -13,7 +14,7 @@ type AppliedClusterResourceQuotasNamespacer interface {
 
 // AppliedClusterResourceQuotaInterface exposes methods on AppliedClusterResourceQuota resources.
 type AppliedClusterResourceQuotaInterface interface {
-	List(opts kapi.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error)
+	List(opts metainternal.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error)
 	Get(name string) (*quotaapi.AppliedClusterResourceQuota, error)
 }
 
@@ -32,7 +33,7 @@ func newAppliedClusterResourceQuotas(c *Client, namespace string) *appliedCluste
 }
 
 // List returns a list of appliedClusterResourceQuotas that match the label and field selectors.
-func (c *appliedClusterResourceQuotas) List(opts kapi.ListOptions) (result *quotaapi.AppliedClusterResourceQuotaList, err error) {
+func (c *appliedClusterResourceQuotas) List(opts metainternal.ListOptions) (result *quotaapi.AppliedClusterResourceQuotaList, err error) {
 	result = &quotaapi.AppliedClusterResourceQuotaList{}
 	err = c.r.Get().Namespace(c.ns).Resource("appliedclusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

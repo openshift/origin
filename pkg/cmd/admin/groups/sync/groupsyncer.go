@@ -9,7 +9,8 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
@@ -140,7 +141,7 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 		return nil, err
 	}
 
-	group, err := s.GroupClient.Get(groupName)
+	group, err := s.GroupClient.Get(groupName, metav1.GetOptions{})
 	if kapierrors.IsNotFound(err) {
 		group = &userapi.Group{}
 		group.Name = groupName

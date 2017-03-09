@@ -5,11 +5,11 @@
 package v1
 
 import (
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -288,9 +288,9 @@ func DeepCopy_v1_GroupRestriction(in interface{}, out interface{}, c *conversion
 		}
 		if in.Selectors != nil {
 			in, out := &in.Selectors, &out.Selectors
-			*out = make([]unversioned.LabelSelector, len(*in))
+			*out = make([]metav1.LabelSelector, len(*in))
 			for i := range *in {
-				if err := unversioned.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
+				if err := metav1.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
 					return err
 				}
 			}
@@ -925,9 +925,9 @@ func DeepCopy_v1_UserRestriction(in interface{}, out interface{}, c *conversion.
 		}
 		if in.Selectors != nil {
 			in, out := &in.Selectors, &out.Selectors
-			*out = make([]unversioned.LabelSelector, len(*in))
+			*out = make([]metav1.LabelSelector, len(*in))
 			for i := range *in {
-				if err := unversioned.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
+				if err := metav1.DeepCopy_unversioned_LabelSelector(&(*in)[i], &(*out)[i], c); err != nil {
 					return err
 				}
 			}

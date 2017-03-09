@@ -3,8 +3,8 @@ package errors
 import "strings"
 
 import (
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TolerateNotFoundError tolerates 'not found' errors
@@ -35,5 +35,5 @@ func IsTimeoutErr(err error) bool {
 	if !ok {
 		return false
 	}
-	return e.ErrStatus.Reason == unversioned.StatusReasonTimeout
+	return e.ErrStatus.Reason == metav1.StatusReasonTimeout
 }

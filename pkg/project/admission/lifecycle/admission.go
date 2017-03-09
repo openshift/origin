@@ -8,11 +8,13 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/admission"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,14 +32,14 @@ func init() {
 }
 
 type lifecycle struct {
-	client clientset.Interface
+	client kclientset.Interface
 	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
-	creatableResources map[unversioned.GroupResource]bool
+	creatableResources map[schema.GroupResource]bool
 }
 
-var recommendedCreatableResources = map[unversioned.GroupResource]bool{
+var recommendedCreatableResources = map[schema.GroupResource]bool{
 	authorizationapi.Resource("resourceaccessreviews"):      true,
 	authorizationapi.Resource("localresourceaccessreviews"): true,
 	authorizationapi.Resource("subjectaccessreviews"):       true,
@@ -68,7 +70,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	groupMeta, err := registered.Group(a.GetKind().Group)
+	groupMeta, err := kapi.Registry.Group(a.GetKind().Group)
 	if err != nil {
 		return err
 	}
@@ -110,7 +112,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		time.Sleep(interval)
 
 		// it's possible the namespace actually was deleted, so just forbid if this occurs
-		namespace, err = e.client.Core().Namespaces().Get(a.GetNamespace())
+		namespace, err = e.client.Core().Namespaces().Get(a.GetNamespace(), metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(a, err)
 		}
@@ -133,7 +135,7 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client clientset.Interface, creatableResources map[unversioned.GroupResource]bool) (admission.Interface, error) {
+func NewLifecycle(client clientset.Interface, creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
 	return &lifecycle{
 		client:             client,
 		creatableResources: creatableResources,

@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
@@ -11,7 +11,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAuditTest(t *testing.T) (*kclientset.Clientset, *client.Client) {
+func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -38,7 +38,7 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 	kubeClient, _ := setupAuditTest(t)
 	defer testutil.DumpEtcdOnFailure(t)
 
-	if _, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Watch(kapi.ListOptions{}); err != nil {
+	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 

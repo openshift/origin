@@ -3,13 +3,15 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
@@ -36,7 +38,7 @@ func TestStorage(t *testing.T) {
 
 func validImage() *api.Image {
 	return &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:         "foo",
 			GenerateName: "foo",
 		},
@@ -107,7 +109,7 @@ func TestDelete(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
-	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
+	image.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo"}
 	test.TestDelete(
 		validImage(),
 	)
@@ -231,7 +233,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 	}{
 		{
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 			},
 		},
@@ -248,7 +250,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 				return true
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
 			},
@@ -260,7 +262,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 		defer server.Terminate(t)
 		defer storage.Store.DestroyFunc()
 
-		obj, err := storage.Create(kapi.NewDefaultContext(), test.image)
+		obj, err := storage.Create(apirequest.NewDefaultContext(), test.image)
 		if obj == nil {
 			t.Errorf("%d: Expected nil obj, got %v", i, obj)
 			continue
@@ -316,13 +318,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{{Name: "test", LayerSize: 10}},
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
 			},
@@ -353,13 +355,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifest,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
@@ -390,13 +392,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifestNoSignature,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,
@@ -410,7 +412,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Clear the resource version before creating
 		test.existing.ResourceVersion = ""
-		created, err := storage.Create(kapi.NewDefaultContext(), test.existing)
+		created, err := storage.Create(apirequest.NewDefaultContext(), test.existing)
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue
@@ -418,7 +420,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Copy the resource version into our update object
 		test.image.ResourceVersion = created.(*api.Image).ResourceVersion
-		obj, _, err := storage.Update(kapi.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
+		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue

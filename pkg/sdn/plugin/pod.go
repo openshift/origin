@@ -41,7 +41,7 @@ type podManager struct {
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient         *kclientset.Clientset
+	kClient         kclientset.Interface
 	policy          osdnPolicy
 	ipamConfig      []byte
 	mtu             uint32
@@ -51,7 +51,7 @@ type podManager struct {
 }
 
 // Creates a new live podManager; used by node code
-func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, oc *ovsController) (*podManager, error) {
+func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient kclientset.Interface, policy osdnPolicy, mtu uint32, oc *ovsController) (*podManager, error) {
 	pm := newDefaultPodManager(host)
 	pm.kClient = kClient
 	pm.policy = policy

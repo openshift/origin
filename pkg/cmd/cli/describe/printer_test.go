@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -66,7 +66,7 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(kctl.PrintOptions{})
+	printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
 
 main:
 	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
@@ -140,7 +140,7 @@ func TestPrintImageStream(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := printImageStream(test.stream, buf, kctl.PrintOptions{}); err != test.expectedErr {
+		if err := printImageStream(test.stream, buf, kprinters.PrintOptions{}); err != test.expectedErr {
 			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
 			continue
 		}
@@ -158,14 +158,14 @@ func TestPrintImageStream(t *testing.T) {
 func mockStreams() []*imageapi.ImageStream {
 	return []*imageapi.ImageStream{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "less-than-three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "less-than-three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -174,7 +174,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -183,14 +183,14 @@ func mockStreams() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -199,7 +199,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -208,7 +208,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -217,14 +217,14 @@ func mockStreams() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "more-than-three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "more-than-three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -233,7 +233,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -242,7 +242,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -251,7 +251,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "another-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
 								Image:                "another-image",
 							},
 						},
@@ -269,7 +269,7 @@ func TestPrintTemplate(t *testing.T) {
 	}{
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 					Annotations: map[string]string{
 						"description": "description",
@@ -282,7 +282,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "long",
 					Annotations: map[string]string{
 						"description": "the long description of this template is way way way way way way way way way way way way way too long",
@@ -295,7 +295,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "multiline",
 					Annotations: map[string]string{
 						"description": "Once upon a time\nthere was a template\nwith multiple\nlines\n",
@@ -308,7 +308,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "trailingnewline",
 					Annotations: map[string]string{
 						"description": "Next line please\n",
@@ -321,7 +321,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "longmultiline",
 					Annotations: map[string]string{
 						"description": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123\n0",
@@ -336,7 +336,7 @@ func TestPrintTemplate(t *testing.T) {
 
 	for i, test := range tests {
 		buf := bytes.NewBuffer([]byte{})
-		err := printTemplate(&test.template, buf, kctl.PrintOptions{})
+		err := printTemplate(&test.template, buf, kprinters.PrintOptions{})
 		if err != nil {
 			t.Errorf("[%d] unexpected error: %v", i, err)
 			continue

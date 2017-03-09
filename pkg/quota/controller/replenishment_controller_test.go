@@ -3,23 +3,24 @@ package controller
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // testReplenishment lets us test replenishment functions are invoked
 type testReplenishment struct {
-	groupKind unversioned.GroupKind
+	groupKind schema.GroupKind
 	namespace string
 }
 
 // mock function that holds onto the last kind that was replenished
-func (t *testReplenishment) Replenish(groupKind unversioned.GroupKind, namespace string, object runtime.Object) {
+func (t *testReplenishment) Replenish(groupKind schema.GroupKind, namespace string, object runtime.Object) {
 	t.groupKind = groupKind
 	t.namespace = namespace
 }
@@ -102,11 +103,11 @@ func TestImageStreamReplenishmentUpdateFunc(t *testing.T) {
 			ResyncPeriod:      controller.NoResyncPeriodFunc,
 		}
 		oldIS := &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Namespace: "test", Name: "is"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "is"},
 			Status:     tc.oldISStatus,
 		}
 		newIS := &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Namespace: "test", Name: "is"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "is"},
 			Status:     tc.newISStatus,
 		}
 		updateFunc := ImageStreamReplenishmentUpdateFunc(&options)

@@ -9,14 +9,14 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apiserver/pkg/util/flag"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flag"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/bootstrap"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -692,7 +692,7 @@ func getPort(theURL url.URL) int {
 }
 
 // applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
-func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (runtime.Object, error) {
+func applyDefaults(config runtime.Object, version schema.GroupVersion) (runtime.Object, error) {
 	ext, err := configapi.Scheme.ConvertToVersion(config, version)
 	if err != nil {
 		return nil, err

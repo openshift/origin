@@ -5,13 +5,14 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/labels"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type ListPodsOptions struct {
@@ -32,7 +33,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, err = l.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
+		printer, err = l.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"})
 		if err != nil {
 			return err
 		}
@@ -64,7 +65,7 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourceP
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	pods, err := l.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector.String(), FieldSelector: fieldSelector.String()})
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kubectl.R
 		}
 		fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
-		pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+		pods, err := l.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector.String(), FieldSelector: fieldSelector.String()})
 		if err != nil {
 			errList = append(errList, err)
 			continue

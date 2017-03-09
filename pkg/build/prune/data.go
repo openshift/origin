@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -54,8 +54,8 @@ type FilterPredicate func(build *buildapi.Build) bool
 
 // NewFilterBeforePredicate is a function that returns true if the build was created before the current time minus specified duration
 func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
-	now := unversioned.Now()
-	before := unversioned.NewTime(now.Time.Add(-1 * d))
+	now := metav1.Now()
+	before := metav1.NewTime(now.Time.Add(-1 * d))
 	return func(build *buildapi.Build) bool {
 		return build.CreationTimestamp.Before(before)
 	}
@@ -101,7 +101,7 @@ func (d *dataSet) GetBuildConfig(build *buildapi.Build) (*buildapi.BuildConfig, 
 	}
 
 	var buildConfig *buildapi.BuildConfig
-	key := &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace}}
+	key := &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace}}
 	item, exists, err := d.buildConfigStore.Get(key)
 	if exists {
 		buildConfig = item.(*buildapi.BuildConfig)

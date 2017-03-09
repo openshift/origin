@@ -3,12 +3,13 @@ package servicebroker
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	templatevalidation "github.com/openshift/origin/pkg/template/api/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
-	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 func ValidateProvisionRequest(preq *api.ProvisionRequest) field.ErrorList {

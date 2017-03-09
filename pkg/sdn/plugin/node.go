@@ -20,15 +20,16 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
-	kwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type osdnPolicy interface {
@@ -49,7 +50,7 @@ type osdnPolicy interface {
 
 type OsdnNode struct {
 	policy             osdnPolicy
-	kClient            *kclientset.Clientset
+	kClient            kclientset.Interface
 	osClient           *osclient.Client
 	oc                 *ovsController
 	networkInfo        *NetworkInfo
@@ -74,7 +75,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
@@ -259,7 +260,7 @@ func (node *OsdnNode) Start() error {
 
 	if networkChanged {
 		var pods []kapi.Pod
-		pods, err = node.GetLocalPods(kapi.NamespaceAll)
+		pods, err = node.GetLocalPods(metav1.NamespaceAll)
 		if err != nil {
 			return err
 		}
@@ -300,9 +301,9 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
-	opts := kapi.ListOptions{
-		LabelSelector: labels.Everything(),
-		FieldSelector: fieldSelector,
+	opts := metav1.ListOptions{
+		LabelSelector: labels.Everything().String(),
+		FieldSelector: fieldSelector.String(),
 	}
 	podList, err := node.kClient.Core().Pods(namespace).List(opts)
 	if err != nil {
@@ -347,7 +348,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	RunEventQueue(node.kClient.CoreClient.RESTClient(), Services, func(delta cache.Delta) error {
+	RunEventQueue(node.kClient.Core().RESTClient(), Services, func(delta cache.Delta) error {
 		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services

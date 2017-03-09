@@ -10,7 +10,7 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 	tutil "github.com/openshift/origin/test/util"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
@@ -36,7 +36,7 @@ func ListImages() ([]string, error) {
 //BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
 func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
 	authCfg := &dockerClient.AuthConfiguration{}
-	secretList, err := oc.AdminKubeClient().Core().Secrets(oc.Namespace()).List(kapi.ListOptions{})
+	secretList, err := oc.AdminKubeClient().Core().Secrets(oc.Namespace()).List(metav1.ListOptions{})
 
 	g.By(fmt.Sprintf("get secret list err %v ", err))
 	if err == nil {

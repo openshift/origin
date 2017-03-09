@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
@@ -18,7 +20,7 @@ import (
 
 func TestCreateErrorDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -31,7 +33,7 @@ func TestCreateErrorDepr(t *testing.T) {
 
 func TestCreateInvalidDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -48,22 +50,22 @@ func TestCreateOkDepr(t *testing.T) {
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -87,22 +89,22 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -119,11 +121,11 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound(kapi.Resource("replicationController"), name)
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+				namespace, _ := apirequest.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
@@ -131,11 +133,11 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -156,14 +158,14 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				// invalidate the encoded config
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+				namespace, _ := apirequest.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
@@ -171,11 +173,11 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -196,22 +198,22 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})

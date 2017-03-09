@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang/glog"
 
-	authorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"

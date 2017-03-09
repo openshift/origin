@@ -9,22 +9,23 @@ import (
 
 	"github.com/golang/glog"
 
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/typed/deploy/internalversion"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/flowcontrol"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
-	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/etcd"
+	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/cert"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
@@ -98,7 +99,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		return
 	}
 	options := sacontroller.DefaultServiceAccountsControllerOptions()
-	options.ServiceAccounts = []kapi.ServiceAccount{}
+	options.ServiceAccounts = []kapiv1.ServiceAccount{}
 
 	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
 		sa := kapi.ServiceAccount{}
@@ -108,7 +109,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	}
 
 	//REBASE: add new args to NewServiceAccountsController
-	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().ServiceAccounts(), c.Informers.KubernetesInformers().Namespaces(), c.KubeClientset(), options).Run(1, utilwait.NeverStop)
+	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientset(), options).Run(1, utilwait.NeverStop)
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -239,10 +240,13 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	stiImage := c.ImageFor("sti-builder")
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
+	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl := admission.InitPlugin("SecurityContextConstraint", c.KubeClientset(), "")
+	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", c.KubeClientset(), "")
+	if err != nil {
+		return err
+	}
 	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
 		wantsInformers.SetInformers(informers)
 	}
@@ -324,11 +328,11 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
-	rcInformer := c.Informers.ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Pods().Informer()
+	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
+	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
 	_, kclient := c.DeploymentControllerClients()
 
-	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
@@ -355,8 +359,8 @@ func (c *MasterConfig) RunDeploymentController() {
 // RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Pods().Informer()
+	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
+	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
 	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.ExternalVersionCodec)
@@ -366,7 +370,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 // RunDeploymentTriggerController starts the deployment trigger controller process.
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.ReplicationControllers().Informer()
+	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
 	osclient := c.DeploymentTriggerControllerClient()
 
@@ -441,7 +445,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
 
-	opts, err := c.RESTOptionsGetter.GetRESTOptions(unversioned.GroupResource{Resource: "securityuidranges"})
+	opts, err := c.RESTOptionsGetter.GetRESTOptions(schema.GroupResource{Resource: "securityuidranges"})
 	if err != nil {
 		glog.Fatalf("Unable to load storage options for security UID ranges")
 	}

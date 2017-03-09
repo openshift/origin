@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -591,7 +591,7 @@ func GetDisabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup stri
 	return allowedVersions.Difference(enabledVersions).List()
 }
 
-func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion unversioned.GroupVersion) bool {
+func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion schema.GroupVersion) bool {
 	enabledVersions := GetEnabledAPIVersionsForGroup(config, groupVersion.Group)
 	return sets.NewString(enabledVersions...).Has(groupVersion.Version)
 }

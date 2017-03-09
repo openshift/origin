@@ -9,11 +9,13 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/admission"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/admission"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
+	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
@@ -31,9 +33,9 @@ func init() {
 // streams
 type originQuotaAdmission struct {
 	*admission.Handler
-	kQuotaAdmission admission.Interface
+	quotaAdmission admission.Interface
 	// must be able to read/write ResourceQuota
-	kClient clientset.Interface
+	kclient kclientset.Interface
 }
 
 var _ = oadmission.WantsOriginQuotaRegistry(&originQuotaAdmission{})
@@ -49,7 +51,7 @@ func NewOriginResourceQuota(kClient clientset.Interface) admission.Interface {
 }
 
 func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
-	return a.kQuotaAdmission.Admit(as)
+	return a.quotaAdmission.Admit(as)
 }
 
 func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) {
@@ -62,7 +64,7 @@ func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) 
 }
 
 func (a *originQuotaAdmission) Validate() error {
-	if a.kQuotaAdmission == nil {
+	if a.quotaAdmission == nil {
 		return fmt.Errorf("%s requires an origin quota registry", PluginName)
 	}
 	return nil

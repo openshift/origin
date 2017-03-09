@@ -13,15 +13,16 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/validation"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -325,7 +326,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 		}
 
 		secret := &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: privkeySecretName,
 			},
 			Data: map[string][]byte{privkeyName: privkeyData},
@@ -366,7 +367,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 		}
 		// The TLSCertKey contains the pem file passed in as the default cert
 		secret := &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: certName,
 			},
 			Type: kapi.SecretTypeTLS,
@@ -576,7 +577,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	service, err := kClient.Core().Services(namespace).Get(name)
+	service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if !generate {
 			if !errors.IsNotFound(err) {
@@ -733,9 +734,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	objects = append(objects,
-		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
+		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: cfg.ServiceAccount}},
 		&authapi.ClusterRoleBinding{
-			ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
+			ObjectMeta: metav1.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
 			Subjects: []kapi.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
@@ -751,7 +752,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	)
 
 	objects = append(objects, &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: label,
 		},
@@ -766,7 +767,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 				{Type: deployapi.DeploymentTriggerOnConfigChange},
 			},
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{Labels: label},
+				ObjectMeta: metav1.ObjectMeta{Labels: label},
 				Spec: kapi.PodSpec{
 					SecurityContext: &kapi.PodSecurityContext{
 						HostNetwork: cfg.HostNetwork,
@@ -874,7 +875,7 @@ func validateServiceAccount(client kclientset.Interface, ns string, serviceAccou
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.Core().SecurityContextConstraints().List(kapi.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

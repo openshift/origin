@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -14,12 +15,12 @@ type TemplatesNamespacer interface {
 
 // TemplateInterface exposes methods on Template resources.
 type TemplateInterface interface {
-	List(opts kapi.ListOptions) (*templateapi.TemplateList, error)
+	List(opts metainternal.ListOptions) (*templateapi.TemplateList, error)
 	Get(name string) (*templateapi.Template, error)
 	Create(template *templateapi.Template) (*templateapi.Template, error)
 	Update(template *templateapi.Template) (*templateapi.Template, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 // templates implements TemplatesNamespacer interface
@@ -37,7 +38,7 @@ func newTemplates(c *Client, namespace string) *templates {
 }
 
 // List returns a list of templates that match the label and field selectors.
-func (c *templates) List(opts kapi.ListOptions) (result *templateapi.TemplateList, err error) {
+func (c *templates) List(opts metainternal.ListOptions) (result *templateapi.TemplateList, err error) {
 	result = &templateapi.TemplateList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -76,7 +77,7 @@ func (c *templates) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested templates
-func (c *templates) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *templates) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

@@ -6,15 +6,16 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/informers"
-	"k8s.io/kubernetes/pkg/labels"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -166,7 +167,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 }
 
 func (c *ClusterQuotaMappingController) syncNamespace(namespace *kapi.Namespace) error {
-	allQuotas, err1 := c.quotaLister.List(kapi.ListOptions{})
+	allQuotas, err1 := c.quotaLister.List(metav1.ListOptions{})
 	if err1 != nil {
 		return err1
 	}

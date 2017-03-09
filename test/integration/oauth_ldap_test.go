@@ -8,9 +8,10 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	restclient "k8s.io/client-go/rest"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/client"
@@ -245,7 +246,7 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	user, err := userClient.Users().Get("~")
+	user, err := userClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -254,7 +255,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Make sure the identity got created and contained the mapped attributes
-	identity, err := clusterAdminClient.Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN))
+	identity, err := clusterAdminClient.Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

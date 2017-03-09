@@ -3,11 +3,10 @@ package restmapper
 import (
 	"sync"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 type discoveryRESTMapper struct {
@@ -40,10 +39,10 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 
 	// always prefer our default group for now.  The version should be discovered from discovery, but this will hold us
 	// for quite some time.
-	resourcePriority := []unversioned.GroupVersionResource{
+	resourcePriority := []schema.GroupVersionResource{
 		{Group: kapi.GroupName, Version: meta.AnyVersion, Resource: meta.AnyResource},
 	}
-	kindPriority := []unversioned.GroupVersionKind{
+	kindPriority := []schema.GroupVersionKind{
 		{Group: kapi.GroupName, Version: meta.AnyVersion, Kind: meta.AnyKind},
 	}
 	groupPriority := []string{}
@@ -57,19 +56,19 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 		groupPriority = append(groupPriority, group.Name)
 
 		if len(group.PreferredVersion.Version) != 0 {
-			preferredVersion := unversioned.GroupVersion{Group: group.Name, Version: group.PreferredVersion.Version}
-			if registered.IsEnabledVersion(preferredVersion) {
+			preferredVersion := schema.GroupVersion{Group: group.Name, Version: group.PreferredVersion.Version}
+			if kapi.Registry.IsEnabledVersion(preferredVersion) {
 				resourcePriority = append(resourcePriority, preferredVersion.WithResource(meta.AnyResource))
 				kindPriority = append(kindPriority, preferredVersion.WithKind(meta.AnyKind))
 			}
 		}
 
 		for _, discoveryVersion := range group.Versions {
-			version := unversioned.GroupVersion{Group: group.Name, Version: discoveryVersion.Version}
-			if !registered.IsEnabledVersion(version) {
+			version := schema.GroupVersion{Group: group.Name, Version: discoveryVersion.Version}
+			if !kapi.Registry.IsEnabledVersion(version) {
 				continue
 			}
-			groupMeta, err := registered.Group(group.Name)
+			groupMeta, err := kapi.Registry.Group(group.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -78,7 +77,7 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 				return nil, err
 			}
 
-			versionMapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{version}, groupMeta.InterfacesFor)
+			versionMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{version}, groupMeta.InterfacesFor)
 			for _, resource := range resources.APIResources {
 				// TODO properly handle resource versus kind
 				gvk := version.WithKind(resource.Kind)
@@ -103,23 +102,23 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 	}
 
 	for _, group := range groupPriority {
-		resourcePriority = append(resourcePriority, unversioned.GroupVersionResource{Group: group, Version: meta.AnyVersion, Resource: meta.AnyResource})
-		kindPriority = append(kindPriority, unversioned.GroupVersionKind{Group: group, Version: meta.AnyVersion, Kind: meta.AnyKind})
+		resourcePriority = append(resourcePriority, schema.GroupVersionResource{Group: group, Version: meta.AnyVersion, Resource: meta.AnyResource})
+		kindPriority = append(kindPriority, schema.GroupVersionKind{Group: group, Version: meta.AnyVersion, Kind: meta.AnyKind})
 	}
 
 	d.delegate = meta.PriorityRESTMapper{Delegate: unionMapper, ResourcePriority: resourcePriority, KindPriority: kindPriority}
 	return d.delegate, nil
 }
 
-func (d *discoveryRESTMapper) KindFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionKind, error) {
+func (d *discoveryRESTMapper) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
-		return unversioned.GroupVersionKind{}, err
+		return schema.GroupVersionKind{}, err
 	}
 	return delegate.KindFor(resource)
 }
 
-func (d *discoveryRESTMapper) KindsFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionKind, error) {
+func (d *discoveryRESTMapper) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
 		return nil, err
@@ -127,15 +126,15 @@ func (d *discoveryRESTMapper) KindsFor(resource unversioned.GroupVersionResource
 	return delegate.KindsFor(resource)
 }
 
-func (d *discoveryRESTMapper) ResourceFor(input unversioned.GroupVersionResource) (unversioned.GroupVersionResource, error) {
+func (d *discoveryRESTMapper) ResourceFor(input schema.GroupVersionResource) (schema.GroupVersionResource, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
-		return unversioned.GroupVersionResource{}, err
+		return schema.GroupVersionResource{}, err
 	}
 	return delegate.ResourceFor(input)
 }
 
-func (d *discoveryRESTMapper) ResourcesFor(input unversioned.GroupVersionResource) ([]unversioned.GroupVersionResource, error) {
+func (d *discoveryRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
 		return nil, err
@@ -143,7 +142,7 @@ func (d *discoveryRESTMapper) ResourcesFor(input unversioned.GroupVersionResourc
 	return delegate.ResourcesFor(input)
 }
 
-func (d *discoveryRESTMapper) RESTMapping(gk unversioned.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+func (d *discoveryRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
 		return nil, err
@@ -151,12 +150,12 @@ func (d *discoveryRESTMapper) RESTMapping(gk unversioned.GroupKind, versions ...
 	return delegate.RESTMapping(gk, versions...)
 }
 
-func (d *discoveryRESTMapper) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMapping, error) {
+func (d *discoveryRESTMapper) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
 		return nil, err
 	}
-	return delegate.RESTMappings(gk)
+	return delegate.RESTMappings(gk, versions...)
 }
 
 func (d *discoveryRESTMapper) AliasesForResource(resource string) ([]string, bool) {

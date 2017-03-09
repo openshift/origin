@@ -6,12 +6,14 @@ import (
 	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -33,7 +35,7 @@ type fakeSubjectAccessReviewRegistry struct {
 
 var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	return nil, nil
 }
 
@@ -113,7 +115,7 @@ func TestGet(t *testing.T) {
 		"happy path": {
 			input: "repo@id",
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Name:      "repo",
 				},
@@ -130,7 +132,7 @@ func TestGet(t *testing.T) {
 				},
 			},
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
 				DockerImageManifest: `{
@@ -199,9 +201,9 @@ func TestGet(t *testing.T) {
 			client, server, storage := setup(t)
 			defer server.Terminate(t)
 
-			ctx := kapi.NewDefaultContext()
+			ctx := apirequest.NewDefaultContext()
 			if test.repo != nil {
-				ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
+				ctx = apirequest.WithNamespace(apirequest.NewContext(), test.repo.Namespace)
 				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),
@@ -224,7 +226,7 @@ func TestGet(t *testing.T) {
 				}
 			}
 
-			obj, err := storage.Get(ctx, test.input)
+			obj, err := storage.Get(ctx, test.input, &metav1.GetOptions{})
 			gotError := err != nil
 			if e, a := test.expectError, gotError; e != a {
 				t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)

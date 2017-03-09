@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/util/flag"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
