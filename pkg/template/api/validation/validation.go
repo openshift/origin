@@ -9,7 +9,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/template/api"
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
+	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 )
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)

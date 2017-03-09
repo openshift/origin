@@ -1,7 +1,7 @@
 package validation
 
 import (
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
+	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	kapivalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
