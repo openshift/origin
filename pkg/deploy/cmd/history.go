@@ -6,10 +6,12 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
+	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -31,7 +33,7 @@ var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}
 
 // ViewHistory returns a description of all the history it can find for a deployment config.
 func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
-	opts := kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)}
+	opts := metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(name).String()}
 	deploymentList, err := h.rn.ReplicationControllers(namespace).List(opts)
 	if err != nil {
 		return "", err
@@ -65,7 +67,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		}
 
 		buf := bytes.NewBuffer([]byte{})
-		kubectl.DescribePodTemplate(desired, buf)
+		kinternalprinters.DescribePodTemplate(desired, buf)
 		return buf.String(), nil
 	}
 

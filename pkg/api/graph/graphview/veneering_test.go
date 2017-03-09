@@ -7,8 +7,8 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
@@ -189,30 +189,30 @@ func TestGraph(t *testing.T) {
 	now := time.Now()
 	builds := []buildapi.Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-1-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
-				CreationTimestamp: unversioned.NewTime(now.Add(-10 * time.Second)),
+				CreationTimestamp: metav1.NewTime(now.Add(-10 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhaseFailed,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-2-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
-				CreationTimestamp: unversioned.NewTime(now.Add(-5 * time.Second)),
+				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhaseComplete,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-3-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabelDeprecated: "build1"},
-				CreationTimestamp: unversioned.NewTime(now.Add(-15 * time.Second)),
+				CreationTimestamp: metav1.NewTime(now.Add(-15 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhasePending,
@@ -224,7 +224,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "build1"},
 		Spec: buildapi.BuildConfigSpec{
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
@@ -244,7 +244,7 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test"},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
@@ -254,7 +254,7 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build2"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "build2"},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
@@ -264,13 +264,13 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	kubegraph.EnsureServiceNode(g, &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc-is-ignored"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc-is-ignored"},
 		Spec: kapi.ServiceSpec{
 			Selector: nil,
 		},
 	})
 	kubegraph.EnsureServiceNode(g, &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc1"},
 		Spec: kapi.ServiceSpec{
 			Selector: map[string]string{
 				"deploymentconfig": "deploy1",
@@ -278,7 +278,7 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	kubegraph.EnsureServiceNode(g, &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc2"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "svc2"},
 		Spec: kapi.ServiceSpec{
 			Selector: map[string]string{
 				"deploymentconfig": "deploy1",
@@ -287,7 +287,7 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "other", Name: "deploy1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "other", Name: "deploy1"},
 		Spec: deployapi.DeploymentConfigSpec{
 			Triggers: []deployapi.DeploymentTriggerPolicy{
 				{
@@ -298,7 +298,7 @@ func TestGraph(t *testing.T) {
 				},
 			},
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"deploymentconfig": "deploy1",
 						"env":              "prod",
@@ -324,10 +324,10 @@ func TestGraph(t *testing.T) {
 		},
 	})
 	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "deploy2"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "deploy2"},
 		Spec: deployapi.DeploymentConfigSpec{
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"deploymentconfig": "deploy2",
 						"env":              "dev",

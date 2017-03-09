@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -75,13 +76,13 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 			name: "import from repository to existing image stream",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "havingtag",
 					},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "is",
 					},
@@ -104,7 +105,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 			name: "import from repository to non-empty project",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "spec",
 					},
@@ -173,7 +174,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 		evaluator := NewImageStreamImportEvaluator(&store)
 
 		isi := &imageapi.ImageStreamImport{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test",
 				Name:      "is",
 			},

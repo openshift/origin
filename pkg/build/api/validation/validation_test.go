@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 
@@ -15,7 +16,7 @@ import (
 
 func TestBuildValidationSuccess(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
@@ -56,7 +57,7 @@ func checkDockerStrategyEmptySourceError(result field.ErrorList) bool {
 func TestBuildEmptySource(t *testing.T) {
 	builds := []buildapi.Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "buildid", Namespace: "default"},
 			Spec: buildapi.BuildSpec{
 				CommonSpec: buildapi.CommonSpec{
 					Source: buildapi.BuildSource{},
@@ -81,7 +82,7 @@ func TestBuildEmptySource(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "buildid", Namespace: "default"},
 			Spec: buildapi.BuildSpec{
 				CommonSpec: buildapi.CommonSpec{
 					Source: buildapi.BuildSource{},
@@ -113,7 +114,7 @@ func TestBuildEmptySource(t *testing.T) {
 	}
 
 	badBuild := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{},
@@ -145,7 +146,7 @@ func TestBuildEmptySource(t *testing.T) {
 func TestBuildConfigEmptySource(t *testing.T) {
 	buildConfigs := []buildapi.BuildConfig{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: buildapi.BuildConfigSpec{
 				RunPolicy: buildapi.BuildRunPolicySerial,
 				CommonSpec: buildapi.CommonSpec{
@@ -168,7 +169,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: buildapi.BuildConfigSpec{
 				RunPolicy: buildapi.BuildRunPolicySerial,
 				CommonSpec: buildapi.CommonSpec{
@@ -198,7 +199,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 	}
 
 	badBuildConfig := buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			CommonSpec: buildapi.CommonSpec{
@@ -227,7 +228,7 @@ func TestBuildConfigEmptySource(t *testing.T) {
 
 func TestBuildValidationFailure(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
+		ObjectMeta: metav1.ObjectMeta{Name: "", Namespace: ""},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
@@ -286,14 +287,14 @@ func newNonDefaultParameters() buildapi.BuildSpec {
 
 func TestValidateBuildUpdate(t *testing.T) {
 	old := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 		Spec:       newDefaultParameters(),
 		Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 	}
 
 	errs := ValidateBuildUpdate(
 		&buildapi.Build{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 			Spec:       newDefaultParameters(),
 			Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 		},
@@ -311,11 +312,11 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}{
 		"changed spec": {
 			Old: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newNonDefaultParameters(),
 			},
 			T: field.ErrorTypeInvalid,
@@ -323,12 +324,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal1": {
 			Old: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -337,12 +338,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal2": {
 			Old: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseCancelled},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -351,12 +352,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal3": {
 			Old: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseError},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -365,12 +366,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal4": {
 			Old: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseFailed},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -401,7 +402,7 @@ func TestValidateBuildUpdate(t *testing.T) {
 // neither DockerStrategy.From nor ImageChange.From are defined.
 func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			CommonSpec: buildapi.CommonSpec{
@@ -445,7 +446,7 @@ func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 
 func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "", Namespace: "foo"},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			CommonSpec: buildapi.CommonSpec{
@@ -717,7 +718,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 
 	for _, tc := range tests {
 		buildConfig := &buildapi.BuildConfig{
-			ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
+			ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "foo"},
 			Spec: buildapi.BuildConfigSpec{
 				RunPolicy: buildapi.BuildRunPolicySerial,
 				CommonSpec: buildapi.CommonSpec{
@@ -762,7 +763,7 @@ func TestBuildConfigImageChangeTriggers(t *testing.T) {
 
 func TestBuildConfigValidationOutputFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: ""},
+		ObjectMeta: metav1.ObjectMeta{Name: ""},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			CommonSpec: buildapi.CommonSpec{
@@ -792,8 +793,8 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
-		string(field.ErrorTypeRequired) + "metadata.namespace": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
-		string(field.ErrorTypeRequired) + "metadata.name":      {ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault}},
+		string(field.ErrorTypeRequired) + "metadata.namespace": {ObjectMeta: metav1.ObjectMeta{Name: "requestName"}},
+		string(field.ErrorTypeRequired) + "metadata.name":      {ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault}},
 	}
 
 	for desc, tc := range testCases {
@@ -2884,7 +2885,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "valid docker build",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -2906,7 +2907,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "valid s2i build w/ runtimeImage",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -2932,7 +2933,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "docker build with ImageStreamTag in from",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -2954,7 +2955,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "s2i build with valid source image references",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -2990,7 +2991,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "image with sources uses ImageStreamTag",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -3038,7 +3039,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "s2i build with ImageStreamTag runtimeImage",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{
@@ -3064,7 +3065,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 		{
 			name: "custom build with ImageStreamTag in from",
 			build: buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
 					CommonSpec: buildapi.CommonSpec{
 						Source: buildapi.BuildSource{

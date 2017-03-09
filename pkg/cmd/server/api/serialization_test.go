@@ -8,14 +8,15 @@ import (
 
 	"github.com/google/gofuzz"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -27,7 +28,7 @@ import (
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 )
 
-func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
+func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
 	f := fuzzerFor(t, forVersion, rand.NewSource(seed))
 	f.Funcs(
 		// these follow defaulting rules
@@ -313,7 +314,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			c.FuzzNoCustom(obj)
 			for i := range obj.ExecutionRules {
 				if len(obj.ExecutionRules[i].OnResources) == 0 {
-					obj.ExecutionRules[i].OnResources = []unversioned.GroupResource{{Resource: "pods"}}
+					obj.ExecutionRules[i].OnResources = []schema.GroupResource{{Resource: "pods"}}
 				}
 				obj.ExecutionRules[i].MatchImageLabelSelectors = nil
 			}
@@ -438,7 +439,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 	testCases := []struct {
 		mediaType string
 		in, out   runtime.Object
-		to, from  unversioned.GroupVersion
+		to, from  schema.GroupVersion
 	}{
 		{
 			in: &configapi.MasterConfig{
@@ -453,7 +454,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 			},
 			to: configapiv1.SchemeGroupVersion,
 			out: &configapiv1.MasterConfig{
-				TypeMeta: unversioned.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
+				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
 				AdmissionConfig: configapiv1.AdmissionConfig{
 					PluginConfig: map[string]configapiv1.AdmissionPluginConfig{
 						"test1": {Configuration: runtime.RawExtension{
@@ -504,7 +505,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 	}
 }
 
-func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) *fuzz.Fuzzer {
+func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz.Fuzzer {
 	f := fuzz.New().NilChance(.5).NumElements(1, 1)
 	if src != nil {
 		f.RandSource(src)
@@ -526,13 +527,13 @@ func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
 			}
 		},
-		func(j *unversioned.TypeMeta, c fuzz.Continue) {
+		func(j *metav1.TypeMeta, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
 			// APIVersion and Kind must remain blank in memory.
 			j.APIVersion = ""
 			j.Kind = ""
 		},
-		func(j *kapi.ObjectMeta, c fuzz.Continue) {
+		func(j *metav1.ObjectMeta, c fuzz.Continue) {
 			j.Name = c.RandString()
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.SelfLink = c.RandString()
@@ -542,7 +543,7 @@ func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			var sec, nsec int64
 			c.Fuzz(&sec)
 			c.Fuzz(&nsec)
-			j.CreationTimestamp = unversioned.Unix(sec, nsec).Rfc3339Copy()
+			j.CreationTimestamp = metav1.Unix(sec, nsec).Rfc3339Copy()
 		},
 		func(j *kapi.ObjectReference, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their

@@ -7,13 +7,15 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubectl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	latest "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
@@ -192,7 +194,7 @@ func (o *RollbackOptions) Run() error {
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
 		dcName := deployutil.DeploymentConfigNameFor(r)
-		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName)
+		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -334,7 +336,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
 	if err != nil {
 		return nil, err
 	}

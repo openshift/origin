@@ -6,17 +6,18 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -123,7 +124,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Retry faster on conflicts
 			var updatedDeployment *kapi.ReplicationController
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 				if kapierrors.IsNotFound(err) {
 					return nil
 				}
@@ -240,7 +241,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		if newReplicaCount != oldReplicaCount {
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 				// refresh the replication controller version
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}

@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	restful "github.com/emicklei/go-restful"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // minimum supported client version

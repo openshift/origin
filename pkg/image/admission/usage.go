@@ -5,10 +5,11 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -169,7 +170,7 @@ func GetImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectRe
 		}
 
 		// <namespace>/<isname>:<tag>
-		return cache.MetaNamespaceKeyFunc(&kapi.ObjectMeta{
+		return cache.MetaNamespaceKeyFunc(&metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      imageapi.JoinImageStreamTag(isName, tag),
 		})

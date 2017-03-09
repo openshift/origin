@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	dapi "github.com/openshift/origin/pkg/deploy/api"
@@ -138,7 +139,7 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 		"ipfailover": name,
 	}
 	podTemplate := &kapi.PodTemplateSpec{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
 		},
 		Spec: kapi.PodSpec{
@@ -152,7 +153,7 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 		},
 	}
 	return &dapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
 		},

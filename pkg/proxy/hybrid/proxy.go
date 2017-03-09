@@ -6,10 +6,10 @@ import (
 	"github.com/openshift/origin/pkg/proxy/userspace"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/config"
-	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/golang/glog"
 )

@@ -5,18 +5,19 @@ import (
 	"io"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/admission"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/admission"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authenticationclient "github.com/openshift/origin/pkg/auth/client"
@@ -79,7 +80,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 	}
 
 	// TODO pull this from a cache.
-	if _, err := a.serviceClient.Services(namespace).Get(svcName); !kapierrors.IsNotFound(err) {
+	if _, err := a.serviceClient.Services(namespace).Get(svcName, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
 		// if it isn't a "not found" error, return the error.  Either its nil and there's nothing to do or something went really wrong
 		return err
 	}
@@ -100,7 +101,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	bulk := &cmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:  registered.RESTMapper(),
+			RESTMapper:  kapi.Registry.RESTMapper(),
 			ObjectTyper: kapi.Scheme,
 			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 				// TODO this is a nasty copy&paste from pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping

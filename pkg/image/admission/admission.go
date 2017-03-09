@@ -6,12 +6,13 @@ import (
 
 	"github.com/golang/glog"
 
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
+	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/informers"
-	"k8s.io/kubernetes/pkg/runtime"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -37,14 +38,14 @@ func init() {
 
 // imageLimitRangerPlugin is the admission plugin.
 type imageLimitRangerPlugin struct {
-	*kadmission.Handler
-	limitRanger kadmission.Interface
+	*admission.Handler
+	limitRanger admission.Interface
 }
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
 var _ kadmission.WantsInformerFactory = &imageLimitRangerPlugin{}
-var _ kadmission.Validator = &imageLimitRangerPlugin{}
+var _ admission.Validator = &imageLimitRangerPlugin{}
 
 // NewImageLimitRangerPlugin provides a new imageLimitRangerPlugin.
 func NewImageLimitRangerPlugin(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
@@ -69,7 +70,7 @@ func (a *imageLimitRangerPlugin) SetInformerFactory(f informers.SharedInformerFa
 }
 
 func (a *imageLimitRangerPlugin) Validate() error {
-	v, ok := a.limitRanger.(kadmission.Validator)
+	v, ok := a.limitRanger.(admission.Validator)
 	if !ok {
 		return fmt.Errorf("limitRanger does not implement kadmission.Validator")
 	}
@@ -77,7 +78,7 @@ func (a *imageLimitRangerPlugin) Validate() error {
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.
-func (a *imageLimitRangerPlugin) Admit(attr kadmission.Attributes) error {
+func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes) error {
 	if !a.SupportsAttributes(attr) {
 		return nil // not applicable
 	}
@@ -87,7 +88,7 @@ func (a *imageLimitRangerPlugin) Admit(attr kadmission.Attributes) error {
 
 // SupportsAttributes is a helper that returns true if the resource is supported by the plugin.
 // Implements the LimitRangerActions interface.
-func (a *imageLimitRangerPlugin) SupportsAttributes(attr kadmission.Attributes) bool {
+func (a *imageLimitRangerPlugin) SupportsAttributes(attr admission.Attributes) bool {
 	if attr.GetSubresource() != "" {
 		return false
 	}

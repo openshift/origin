@@ -15,18 +15,19 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -387,7 +388,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 		LogsForObject: logsForObjectFn,
 		Out:           config.Out,
 	}
-	_, logErr := opts.RunLogs()
+	logErr := opts.RunLogs()
 
 	// status of the pod may take tens of seconds to propagate
 	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, config.Out)); err != nil {
@@ -407,7 +408,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 
 func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.SecretInterface) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.Get(name)
+		pod, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -415,7 +416,7 @@ func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.
 			return false, nil
 		}
 		// delete a secret named the same as the pod if it exists
-		if secret, err := s.Get(name); err == nil {
+		if secret, err := s.Get(name, metav1.GetOptions{}); err == nil {
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
 				if err := s.Delete(name, nil); err != nil {
@@ -429,7 +430,7 @@ func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.
 
 func installationComplete(c kcoreclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.Get(name)
+		pod, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
 				return false, fmt.Errorf("installation pod was deleted; unable to determine whether it completed successfully")

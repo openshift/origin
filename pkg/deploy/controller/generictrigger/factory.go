@@ -6,12 +6,12 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -131,7 +131,7 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 	// we will try to instantiate a deployment config at the expense of duplicating some of the
 	// work that the instantiate endpoint is already doing but I think this is fine.
 	shouldInstantiate := true
-	latestRc, err := c.rcLister.ReplicationControllers(newDc.Namespace).Get(deployutil.LatestDeploymentNameForConfig(newDc))
+	latestRc, err := c.rcLister.ReplicationControllers(newDc.Namespace).Get(deployutil.LatestDeploymentNameForConfig(newDc), metav1.GetOptions{})
 	if err != nil {
 		// If we get an error here it may be due to the rc cache lagging behind. In such a case
 		// just defer to the api server (instantiate REST) where we will retry this.

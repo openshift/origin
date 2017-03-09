@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"text/template"
 
-	"k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

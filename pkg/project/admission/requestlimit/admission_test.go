@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/storage/names"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -19,7 +20,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -340,7 +341,7 @@ func configEquals(a, b *requestlimitapi.ProjectRequestLimitConfig) bool {
 
 func fakeNs(name string, terminating bool) *kapi.Namespace {
 	ns := &kapi.Namespace{}
-	ns.Name = kapi.SimpleNameGenerator.GenerateName("testns")
+	ns.Name = names.SimpleNameGenerator.GenerateName("testns")
 	ns.Annotations = map[string]string{
 		"openshift.io/requester": name,
 	}
@@ -376,9 +377,9 @@ func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectC
 	return pCache
 }
 
-func userFn(usersAndLabels map[string]labels.Set) core.ReactionFunc {
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.GetAction).GetName()
+func userFn(usersAndLabels map[string]labels.Set) clientgotesting.ReactionFunc {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.GetAction).GetName()
 		return true, fakeUser(name, map[string]string(usersAndLabels[name])), nil
 	}
 }

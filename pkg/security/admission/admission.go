@@ -10,14 +10,15 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/controller/shared"
 	oscc "github.com/openshift/origin/pkg/security/scc"
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/golang/glog"
 )
@@ -30,12 +31,12 @@ func init() {
 }
 
 type constraint struct {
-	*kadmission.Handler
-	client    clientset.Interface
+	*admission.Handler
+	client    kclientset.Interface
 	sccLister *oscache.IndexerToSecurityContextConstraintsLister
 }
 
-var _ kadmission.Interface = &constraint{}
+var _ admission.Interface = &constraint{}
 var _ = oadmission.WantsInformers(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
@@ -59,7 +60,7 @@ func NewConstraint(kclient clientset.Interface) *constraint {
 // On updates, the BeforeUpdate of the pod strategy only zeroes out the status.  That means that
 // any change that claims the pod is no longer privileged will be removed.  That should hold until
 // we get a true old/new set of objects in.
-func (c *constraint) Admit(a kadmission.Attributes) error {
+func (c *constraint) Admit(a admission.Attributes) error {
 	if a.GetResource().GroupResource() != kapi.Resource("pods") {
 		return nil
 	}
@@ -79,7 +80,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	sccMatcher := oscc.NewDefaultSCCMatcher(c.sccLister)
 	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
 	if err != nil {
-		return kadmission.NewForbidden(a, err)
+		return admission.NewForbidden(a, err)
 	}
 
 	// get all constraints that are usable by the SA
@@ -88,7 +89,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
 		saConstraints, err := sccMatcher.FindApplicableSCCs(userInfo)
 		if err != nil {
-			return kadmission.NewForbidden(a, err)
+			return admission.NewForbidden(a, err)
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
@@ -101,7 +102,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
-		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
+		return admission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
@@ -123,7 +124,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 
 	// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
 	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, validationErrs)
-	return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
+	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
 // SetInformers implements WantsInformers interface for constraint.

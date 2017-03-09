@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/project/api"
@@ -35,7 +36,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 
 	// Create a namespace directly (not via a project)
-	ns := &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "test"}}
+	ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
 	ns, err = clusterAdminKubeClientset.Core().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +57,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 
 	// Create an origin object
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "route"},
+		ObjectMeta: metav1.ObjectMeta{Name: "route"},
 		Spec:       routeapi.RouteSpec{To: routeapi.RouteTargetReference{Kind: "Service", Name: "test"}},
 	}
 	route, err = clusterAdminClient.Routes(ns.Name).Create(route)
@@ -65,7 +66,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 
 	// Ensure the origin finalizer is added
-	ns, err = clusterAdminKubeClientset.Core().Namespaces().Get(ns.Name)
+	ns, err = clusterAdminKubeClientset.Core().Namespaces().Get(ns.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 
 	// Try to create an origin object in a terminating namespace and ensure it is forbidden
 	route = &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "route2"},
+		ObjectMeta: metav1.ObjectMeta{Name: "route2"},
 		Spec:       routeapi.RouteSpec{To: routeapi.RouteTargetReference{Kind: "Service", Name: "test"}},
 	}
 	_, err = clusterAdminClient.Routes(ns.Name).Create(route)

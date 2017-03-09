@@ -3,12 +3,13 @@ package rollback
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -40,8 +41,8 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewBadRequest("namespace parameter required.")
 	}
@@ -54,7 +55,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, errs)
 	}
 
-	from, err := r.dn.DeploymentConfigs(namespace).Get(rollback.Name)
+	from, err := r.dn.DeploymentConfigs(namespace).Get(rollback.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("cannot get deployment config %q: %v", rollback.Name, err))
 	}
@@ -75,7 +76,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	// Find the target deployment and decode its config.
 	name := deployutil.DeploymentNameForConfigVersion(from.Name, revision)
-	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name)
+	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, err.Error())
 	}

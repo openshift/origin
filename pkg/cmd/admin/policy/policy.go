@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/uuid"
 
 	"github.com/spf13/cobra"
 
@@ -132,7 +132,7 @@ func NewLocalRoleBindingAccessor(bindingNamespace string, client client.Interfac
 }
 
 func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	existingBindings, err := a.Client.PolicyBindings(a.BindingNamespace).Get(authorizationapi.GetPolicyBindingName(roleNamespace))
+	existingBindings, err := a.Client.PolicyBindings(a.BindingNamespace).Get(authorizationapi.GetPolicyBindingName(roleNamespace), metav1.GetOptions{})
 	if err != nil && !kapierrors.IsNotFound(err) {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, 
 }
 
 func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(kapi.ListOptions{})
+	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func NewClusterRoleBindingAccessor(client client.Interface) ClusterRoleBindingAc
 }
 
 func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	uncast, err := a.Client.ClusterPolicyBindings().Get(authorizationapi.GetPolicyBindingName(roleNamespace))
+	uncast, err := a.Client.ClusterPolicyBindings().Get(authorizationapi.GetPolicyBindingName(roleNamespace), metav1.GetOptions{})
 	if err != nil && !kapierrors.IsNotFound(err) {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace
 }
 
 func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	uncast, err := a.Client.ClusterPolicyBindings().List(kapi.ListOptions{})
+	uncast, err := a.Client.ClusterPolicyBindings().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

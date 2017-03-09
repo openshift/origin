@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/extension"
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
@@ -336,9 +336,9 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 			return nil
 		},
 
-		api.Convert_resource_Quantity_To_resource_Quantity,
-		api.Convert_bool_To_Pointer_bool,
-		api.Convert_Pointer_bool_To_bool,
+		metav1.Convert_resource_Quantity_To_resource_Quantity,
+		metav1.Convert_bool_To_Pointer_bool,
+		metav1.Convert_Pointer_bool_To_bool,
 	)
 }
 

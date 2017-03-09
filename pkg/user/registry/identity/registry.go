@@ -1,9 +1,12 @@
 package identity
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -11,13 +14,13 @@ import (
 // Registry is an interface implemented by things that know how to store Identity objects.
 type Registry interface {
 	// ListIdentities obtains a list of Identities having labels which match selector.
-	ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error)
+	ListIdentities(ctx apirequest.Context, options *metainternal.ListOptions) (*api.IdentityList, error)
 	// GetIdentity returns a specific Identity
-	GetIdentity(ctx kapi.Context, name string) (*api.Identity, error)
+	GetIdentity(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Identity, error)
 	// CreateIdentity creates a Identity
-	CreateIdentity(ctx kapi.Context, Identity *api.Identity) (*api.Identity, error)
+	CreateIdentity(ctx apirequest.Context, Identity *api.Identity) (*api.Identity, error)
 	// UpdateIdentity updates an existing Identity
-	UpdateIdentity(ctx kapi.Context, Identity *api.Identity) (*api.Identity, error)
+	UpdateIdentity(ctx apirequest.Context, Identity *api.Identity) (*api.Identity, error)
 }
 
 func identityName(provider, identity string) string {
@@ -31,8 +34,8 @@ type Storage interface {
 	rest.Lister
 	rest.Getter
 
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -46,7 +49,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error) {
+func (s *storage) ListIdentities(ctx apirequest.Context, options *metainternal.ListOptions) (*api.IdentityList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -54,15 +57,15 @@ func (s *storage) ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*
 	return obj.(*api.IdentityList), nil
 }
 
-func (s *storage) GetIdentity(ctx kapi.Context, name string) (*api.Identity, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetIdentity(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Identity, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.Identity), nil
 }
 
-func (s *storage) CreateIdentity(ctx kapi.Context, identity *api.Identity) (*api.Identity, error) {
+func (s *storage) CreateIdentity(ctx apirequest.Context, identity *api.Identity) (*api.Identity, error) {
 	obj, err := s.Create(ctx, identity)
 	if err != nil {
 		return nil, err
@@ -70,7 +73,7 @@ func (s *storage) CreateIdentity(ctx kapi.Context, identity *api.Identity) (*api
 	return obj.(*api.Identity), nil
 }
 
-func (s *storage) UpdateIdentity(ctx kapi.Context, identity *api.Identity) (*api.Identity, error) {
+func (s *storage) UpdateIdentity(ctx apirequest.Context, identity *api.Identity) (*api.Identity, error) {
 	obj, _, err := s.Update(ctx, identity.Name, rest.DefaultUpdatedObjectInfo(identity, kapi.Scheme))
 	if err != nil {
 		return nil, err

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -20,10 +21,10 @@ import (
 )
 
 type UnknownObject struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 }
 
-func (obj *UnknownObject) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *UnknownObject) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 // TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
@@ -39,7 +40,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	mockClient.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient.AddReactor("*", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
@@ -49,7 +50,7 @@ func TestAdmissionExists(t *testing.T) {
 	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
+		ObjectMeta: metav1.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
@@ -82,7 +83,7 @@ func TestAdmissionExists(t *testing.T) {
 func TestSAR(t *testing.T) {
 	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	mockClient := &fake.Clientset{}
-	mockClient.AddReactor("get", "namespaces", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
 	cache := projectcache.NewFake(mockClient.Core().Namespaces(), store, "")

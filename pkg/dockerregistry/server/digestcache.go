@@ -8,7 +8,7 @@ import (
 
 	"github.com/docker/distribution/digest"
 
-	"k8s.io/kubernetes/pkg/util/clock"
+	"k8s.io/client-go/util/clock"
 )
 
 // digestToRepositoryCache maps image digests to recently seen remote repositories that

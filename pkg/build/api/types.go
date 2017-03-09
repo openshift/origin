@@ -3,9 +3,9 @@ package api
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -87,8 +87,8 @@ const (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec is all the inputs used to execute the build.
 	Spec BuildSpec
@@ -261,13 +261,13 @@ type BuildStatus struct {
 	// StartTimestamp is a timestamp representing the server time when this Build started
 	// running in a Pod.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *unversioned.Time
+	StartTimestamp *metav1.Time
 
 	// CompletionTimestamp is a timestamp representing the server time when this Build was
 	// finished, whether that build failed or succeeded.  It reflects the time at which
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *unversioned.Time
+	CompletionTimestamp *metav1.Time
 
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration
@@ -873,8 +873,8 @@ type ImageLabel struct {
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -1013,8 +1013,8 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of builds
 	Items []Build
@@ -1022,8 +1022,8 @@ type BuildList struct {
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of build configs
 	Items []BuildConfig
@@ -1062,7 +1062,7 @@ type GitRefInfo struct {
 
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 }
 
 // DockerStrategyOptions contains extra strategy options for Docker builds
@@ -1074,10 +1074,10 @@ type DockerStrategyOptions struct {
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// TODO: build request should allow name generation via Name and GenerateName, build config
 	// name should be provided as a separate field
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision
@@ -1109,8 +1109,8 @@ type BuildRequest struct {
 }
 
 type BinaryBuildRequestOptions struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	AsFile string
 
@@ -1137,7 +1137,7 @@ type BinaryBuildRequestOptions struct {
 
 // BuildLogOptions is the REST options for a build log
 type BuildLogOptions struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// Container for which to return logs
 	Container string
@@ -1155,7 +1155,7 @@ type BuildLogOptions struct {
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
-	SinceTime *unversioned.Time
+	SinceTime *metav1.Time
 	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
 	// of log output.
 	Timestamps bool

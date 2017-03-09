@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -395,7 +396,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 		{
 			name: "the same image in both spec and status",
 			is: imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "noshared",
 				},
@@ -529,7 +530,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 		{
 			name: "identical tags with fallback namespace",
 			is: imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "fallback",
 					Name:      "is",
 				},

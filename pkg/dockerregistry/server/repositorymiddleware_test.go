@@ -23,9 +23,9 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/util/diff"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -103,7 +103,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:               "local stat",
 			stat:               "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:       []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:       []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			expectedDescriptor: testNewDescriptorForLayer(testImages["nm/is:latest"][0].DockerImageLayers[0]),
 		},
 
@@ -113,7 +113,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/repo:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -140,7 +140,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/unmanaged:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "unmanaged",
 					},
@@ -178,7 +178,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/unmanaged:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -205,7 +205,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*etcdOnlyImages["nm/is"]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "is",
 					},
@@ -231,7 +231,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/is:latest"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -254,7 +254,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:          "auth not performed",
 			stat:          "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:  []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:  []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			skipAuth:      true,
 			expectedError: fmt.Errorf("openshift.auth.completed missing from context"),
 		},
@@ -262,7 +262,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:           "deferred error",
 			stat:           "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:   []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:   []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			deferredErrors: deferredErrors{"nm/is": ErrOpenShiftAccessDenied},
 			expectedError:  ErrOpenShiftAccessDenied,
 		},
@@ -580,7 +580,7 @@ func storeTestImage(
 	} //TODO v2
 
 	image := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: dgst.String(),
 		},
 		DockerImageManifest:  string(payload),
@@ -764,7 +764,7 @@ func testNewDescriptorForLayer(layer imageapi.ImageLayer) distribution.Descripto
 	}
 }
 
-func compareActions(t *testing.T, testCaseName string, actions []core.Action, expectedActions []clientAction) {
+func compareActions(t *testing.T, testCaseName string, actions []clientgotesting.Action, expectedActions []clientAction) {
 	for i, action := range actions {
 		if i >= len(expectedActions) {
 			t.Errorf("[%s] got unexpected client action: %#+v", testCaseName, action)

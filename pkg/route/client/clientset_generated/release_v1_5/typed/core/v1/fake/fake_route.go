@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/route/api/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakeRoutes implements RouteInterface
@@ -16,7 +16,7 @@ type FakeRoutes struct {
 	ns   string
 }
 
-var routesResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}
+var routesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}
 
 func (c *FakeRoutes) Create(route *v1.Route) (result *v1.Route, err error) {
 	obj, err := c.Fake.

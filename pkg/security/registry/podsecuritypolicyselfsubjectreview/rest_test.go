@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -89,7 +91,7 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
-		ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
+		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
 		obj, err := storage.Create(ctx, reviewRequest)
 		if err != nil {
 			t.Errorf("%s - Unexpected error", testName)

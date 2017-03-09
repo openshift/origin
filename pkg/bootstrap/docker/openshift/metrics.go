@@ -3,8 +3,9 @@ package openshift
 import (
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
@@ -26,7 +27,7 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Core().Services(infraNamespace).Get(svcMetrics)
+	_, err = kubeClient.Core().Services(infraNamespace).Get(svcMetrics, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the metrics service already exists
 		return nil
@@ -191,7 +192,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 
 	deadline := int64(60 * 5)
 
-	meta := kapi.ObjectMeta{
+	meta := metav1.ObjectMeta{
 		Name: metricsDeployerJobName,
 	}
 

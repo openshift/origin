@@ -4,11 +4,11 @@ import (
 	"net"
 	"time"
 
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/record"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
-	utilnet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/proxy/userspace"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
