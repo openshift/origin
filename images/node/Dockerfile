@@ -33,7 +33,7 @@ VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
 
 # files required to run as a system container
-COPY system-container/system-container-wrapper.sh /usr/local/bin
+COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
 ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]
