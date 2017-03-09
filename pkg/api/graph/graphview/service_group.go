@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
@@ -126,7 +126,7 @@ func (m ServiceGroupByObjectMeta) Less(i, j int) bool {
 	return CompareObjectMeta(&a.Service.Service.ObjectMeta, &b.Service.Service.ObjectMeta)
 }
 
-func CompareObjectMeta(a, b *kapi.ObjectMeta) bool {
+func CompareObjectMeta(a, b *metav1.ObjectMeta) bool {
 	if a.Namespace == b.Namespace {
 		return a.Name < b.Name
 	}

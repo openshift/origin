@@ -3,11 +3,11 @@ package controllers
 import (
 	lru "github.com/hashicorp/golang-lru"
 
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/storage/etcd"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage/etcd"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 // MutationCache is able to take the result of update operations and stores them in an LRU

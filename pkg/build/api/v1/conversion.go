@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/build/api"

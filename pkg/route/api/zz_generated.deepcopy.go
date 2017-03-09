@@ -5,11 +5,11 @@
 package api
 
 import (
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
 )
 
 func init() {
@@ -84,7 +84,7 @@ func DeepCopy_api_RouteIngressCondition(in interface{}, out interface{}, c *conv
 		out.Message = in.Message
 		if in.LastTransitionTime != nil {
 			in, out := &in.LastTransitionTime, &out.LastTransitionTime
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.LastTransitionTime = nil

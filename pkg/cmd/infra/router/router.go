@@ -8,12 +8,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -248,7 +248,7 @@ type projectNames struct {
 }
 
 func (n projectNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(kapi.ListOptions{LabelSelector: n.selector})
+	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ type namespaceNames struct {
 }
 
 func (n namespaceNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(kapi.ListOptions{LabelSelector: n.selector})
+	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
 	if err != nil {
 		return nil, err
 	}

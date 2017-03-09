@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/errors"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

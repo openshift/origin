@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	kadmission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/controller/informers"
-	"k8s.io/kubernetes/pkg/util/wait"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -173,7 +174,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 		},
 	}
 
-	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -191,7 +192,7 @@ func TestLimitAppliestoImages(t *testing.T) {
 }
 
 func TestHandles(t *testing.T) {
-	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
@@ -211,13 +212,13 @@ func TestHandles(t *testing.T) {
 
 func TestSupports(t *testing.T) {
 	resources := []string{"imagestreammappings"}
-	plugin, err := NewImageLimitRangerPlugin(fake.NewSimpleClientset(), nil)
+	plugin, err := NewImageLimitRangerPlugin(nil)
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, imageapi.LegacyKind("ImageStreamMapping").WithVersion(""), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
 		if !ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is expected to support %#v", r)
 		}
@@ -225,7 +226,7 @@ func TestSupports(t *testing.T) {
 
 	badKinds := []string{"ImageStream", "Image", "Pod", "foo"}
 	for _, k := range badKinds {
-		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind(k).WithVersion("version"), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, imageapi.LegacyKind(k).WithVersion(""), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
 		if ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is not expected to support %s", k)
 		}
@@ -234,7 +235,7 @@ func TestSupports(t *testing.T) {
 
 func getBaseImageWith1Layer() imageapi.Image {
 	return imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        testutil.BaseImageWith1LayerDigest,
 			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 		},
@@ -245,7 +246,7 @@ func getBaseImageWith1Layer() imageapi.Image {
 
 func getLimitRange(limit string) *kapi.LimitRange {
 	return &kapi.LimitRange{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-limit",
 			Namespace: "test",
 		},
@@ -264,7 +265,7 @@ func getLimitRange(limit string) *kapi.LimitRange {
 
 func getImageStreamMapping() *imageapi.ImageStreamMapping {
 	return &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-ism",
 			Namespace: "test",
 		},
@@ -278,9 +279,8 @@ func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	plugins := []kadmission.Interface{plugin}
-	pluginInitializer := kadmission.NewPluginInitializer(f, nil)
-	pluginInitializer.Initialize(plugins)
-	err = kadmission.Validate(plugins)
+	pluginInitializer := kubeadmission.NewPluginInitializer(f, nil, nil, nil)
+	pluginInitializer.Initialize(plugin)
+	err = kadmission.Validate(plugin)
 	return plugin, f, err
 }

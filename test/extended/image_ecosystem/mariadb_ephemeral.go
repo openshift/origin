@@ -29,7 +29,7 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "mariadb", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "mariadb", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the mariadb service get endpoints")

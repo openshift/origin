@@ -4,8 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/openshift/origin/pkg/user"
 	"github.com/openshift/origin/pkg/user/api"
@@ -43,7 +45,7 @@ type strategyTestCase struct {
 
 func makeUser(uid string, name string, identities ...string) *api.User {
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  types.UID(uid),
 		},
@@ -52,7 +54,7 @@ func makeUser(uid string, name string, identities ...string) *api.User {
 }
 func makeIdentity(uid string, providerName string, providerUserName string, userUID string, userName string) *api.Identity {
 	return &api.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 			UID:  types.UID(uid),
 		},
@@ -79,7 +81,7 @@ func (tc strategyTestCase) run(k string, t *testing.T) {
 	testInit := &testInitializer{}
 	strategy := tc.MakeStrategy(userRegistry, testInit)
 
-	user, err := strategy.UserForNewIdentity(kapi.NewContext(), tc.PreferredUsername, tc.Identity)
+	user, err := strategy.UserForNewIdentity(apirequest.NewContext(), tc.PreferredUsername, tc.Identity)
 	if tc.ExpectedError != (err != nil) {
 		t.Errorf("%s: Expected error=%v, got %v", k, tc.ExpectedError, err)
 		return

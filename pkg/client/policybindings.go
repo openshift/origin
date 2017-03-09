@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,11 +15,11 @@ type PolicyBindingsNamespacer interface {
 
 // PolicyBindingInterface exposes methods on PolicyBinding resources.
 type PolicyBindingInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.PolicyBindingList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	Get(name string) (*authorizationapi.PolicyBinding, error)
 	Create(policyBinding *authorizationapi.PolicyBinding) (*authorizationapi.PolicyBinding, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 type PolicyBindingsListerNamespacer interface {
@@ -29,7 +30,7 @@ type SyncedPolicyBindingsListerNamespacer interface {
 	LastSyncResourceVersion() string
 }
 type PolicyBindingLister interface {
-	List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error)
+	List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	Get(name string) (*authorizationapi.PolicyBinding, error)
 }
 
@@ -48,7 +49,7 @@ func newPolicyBindings(c *Client, namespace string) *policyBindings {
 }
 
 // List returns a list of policyBindings that match the label and field selectors.
-func (c *policyBindings) List(opts kapi.ListOptions) (result *authorizationapi.PolicyBindingList, err error) {
+func (c *policyBindings) List(opts metainternal.ListOptions) (result *authorizationapi.PolicyBindingList, err error) {
 	result = &authorizationapi.PolicyBindingList{}
 	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -75,6 +76,6 @@ func (c *policyBindings) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested policyBindings
-func (c *policyBindings) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *policyBindings) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

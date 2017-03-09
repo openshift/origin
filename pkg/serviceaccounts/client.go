@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -30,7 +31,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		}
 
 		// Get the service account
-		serviceAccount, err := s.Client.Core().ServiceAccounts(namespace).Get(name)
+		serviceAccount, err := s.Client.Core().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}
@@ -38,7 +39,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		// Get the secrets
 		// TODO: JTL: create one directly once we have that ability
 		for _, secretRef := range serviceAccount.Secrets {
-			secret, err2 := s.Client.Core().Secrets(namespace).Get(secretRef.Name)
+			secret, err2 := s.Client.Core().Secrets(namespace).Get(secretRef.Name, metav1.GetOptions{})
 			if err2 != nil {
 				// Tolerate fetch errors on a particular secret
 				continue

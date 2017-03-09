@@ -6,8 +6,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
@@ -66,7 +67,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	oClient, _ := client.New(loginOptions.Config)
-	p, err := oClient.Projects().Get(project)
+	p, err := oClient.Projects().Get(project, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -144,7 +145,7 @@ func whoami(clientCfg *restclient.Config) (*api.User, error) {
 		return nil, err
 	}
 
-	me, err := oClient.Users().Get("~")
+	me, err := oClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

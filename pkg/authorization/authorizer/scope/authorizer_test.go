@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"

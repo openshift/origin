@@ -1,8 +1,8 @@
 package api
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/util/namer"
 )

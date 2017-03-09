@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/util/namer"
 )

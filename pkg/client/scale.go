@@ -3,9 +3,9 @@ package client
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
+	"k8s.io/apimachinery/pkg/api/errors"
+	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 
 	"github.com/openshift/origin/pkg/api/latest"
 )

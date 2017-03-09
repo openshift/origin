@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -88,8 +89,8 @@ func (o *GetServiceAccountTokenOptions) Complete(args []string, f *clientcmd.Fac
 		return err
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 
@@ -110,13 +111,13 @@ func (o *GetServiceAccountTokenOptions) Validate() error {
 }
 
 func (o *GetServiceAccountTokenOptions) Run() error {
-	serviceAccount, err := o.SAClient.Get(o.SAName)
+	serviceAccount, err := o.SAClient.Get(o.SAName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	for _, reference := range serviceAccount.Secrets {
-		secret, err := o.SecretsClient.Get(reference.Name)
+		secret, err := o.SecretsClient.Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}

@@ -1,6 +1,6 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import "k8s.io/apimachinery/pkg/fields"
 
 // ImageToSelectableFields returns a label set that represents the object.
 func ImageToSelectableFields(image *Image) fields.Set {

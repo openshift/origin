@@ -7,8 +7,8 @@ import (
 
 	"github.com/pborman/uuid"
 
+	"k8s.io/apiserver/pkg/storage"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	osclient "github.com/openshift/origin/pkg/client"

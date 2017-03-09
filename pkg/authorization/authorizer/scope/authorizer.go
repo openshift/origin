@@ -3,9 +3,9 @@ package scope
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/auth/authorizer"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"

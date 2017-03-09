@@ -1,8 +1,9 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration
@@ -11,7 +12,7 @@ const IgnorePolicyRulesAnnotation = "alpha.image.policy.openshift.io/ignore-rule
 
 // ImagePolicyConfig is the configuration for controlling how images are used in the cluster.
 type ImagePolicyConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// ResolveImages indicates what kind of image resolution should be done.  If a rewriting policy is chosen,
 	// then the image pull specs will be updated.
@@ -58,7 +59,7 @@ type ImageCondition struct {
 	IgnoreNamespaceOverride bool
 
 	// OnResources determines which resources this applies to. Defaults to 'pods' for ImageExecutionPolicyRules.
-	OnResources []unversioned.GroupResource
+	OnResources []schema.GroupResource
 
 	// InvertMatch means the value of the condition is logically inverted (true -> false, false -> true).
 	InvertMatch bool
@@ -78,7 +79,7 @@ type ImageCondition struct {
 	// must match.
 	MatchDockerImageLabels []ValueCondition
 	// MatchImageLabels checks against the resolved image for a label. All conditions must match.
-	MatchImageLabels []unversioned.LabelSelector
+	MatchImageLabels []metav1.LabelSelector
 	// MatchImageLabelSelectors is the processed form of MatchImageLabels. All conditions must match.
 	MatchImageLabelSelectors []labels.Selector
 	// MatchImageAnnotations checks against the resolved image for an annotation. All conditions must match.

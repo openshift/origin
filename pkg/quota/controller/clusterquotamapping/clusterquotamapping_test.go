@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/controller/informers"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -54,12 +54,12 @@ func runFuzzer(t *testing.T) {
 	startingNamespaces := CreateStartingNamespaces()
 	kubeclient := fake.NewSimpleClientset(startingNamespaces...)
 	nsWatch := watch.NewFake()
-	kubeclient.PrependWatchReactor("namespaces", core.DefaultWatchReactor(nsWatch, nil))
+	kubeclient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
 	startingQuotas := CreateStartingQuotas()
 	originclient := testclient.NewSimpleFake(startingQuotas...)
 	quotaWatch := watch.NewFake()
-	originclient.PrependWatchReactor("clusterresourcequotas", core.DefaultWatchReactor(quotaWatch, nil))
+	originclient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 
 	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclient, 10*time.Minute)
 	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeclient, originclient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
@@ -277,7 +277,7 @@ func NewQuota(name string) *quotaapi.ClusterResourceQuota {
 		return ret
 	}
 
-	ret.Spec.Selector.LabelSelector = &unversioned.LabelSelector{MatchLabels: map[string]string{}}
+	ret.Spec.Selector.LabelSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 	for i := 0; i < numSelectorKeys; i++ {
 		key := keys[rand.Intn(len(keys))]
 		value := values[rand.Intn(len(values))]

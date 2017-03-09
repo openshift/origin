@@ -5,17 +5,21 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -138,7 +142,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.Status.Message = ""
 			nextStatus = buildapi.BuildPhasePending
 			if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
-				if _, err := bc.secretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+				if _, err := bc.secretClient.Secrets(build.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 					build.Status.Reason = buildapi.StatusReasonMissingPushSecret
 					build.Status.Message = buildapi.StatusMessageMissingPushSecret
 					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
@@ -202,7 +206,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s%s", build.Namespace, build.Name, build.Status.Phase, nextStatus, reason)
 		build.Status.Phase = nextStatus
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := unversioned.Now()
+			now := metav1.Now()
 			build.Status.StartTimestamp = &now
 			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildStartedEventReason, fmt.Sprintf(buildapi.BuildStartedEventMessage, build.Namespace, build.Name))
 		}

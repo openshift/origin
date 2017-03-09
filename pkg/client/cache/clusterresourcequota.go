@@ -1,9 +1,10 @@
 package cache
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -14,7 +15,7 @@ type IndexerToClusterResourceQuotaLister struct {
 	cache.Indexer
 }
 
-func (i *IndexerToClusterResourceQuotaLister) List(options kapi.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
+func (i *IndexerToClusterResourceQuotaLister) List(options metainternal.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
 	returnedList := i.Indexer.List()
 	ret := make([]*quotaapi.ClusterResourceQuota, 0, len(returnedList))
 	matcher := clusterresourcequotaregistry.Matcher(oapi.ListOptionsToSelectors(&options))
@@ -29,7 +30,7 @@ func (i *IndexerToClusterResourceQuotaLister) List(options kapi.ListOptions) ([]
 }
 
 func (i *IndexerToClusterResourceQuotaLister) Get(name string) (*quotaapi.ClusterResourceQuota, error) {
-	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: kapi.ObjectMeta{Name: name}}
+	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetByKey(key)

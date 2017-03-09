@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	infrarouter "github.com/openshift/origin/pkg/cmd/infra/router"
@@ -234,7 +235,7 @@ func initializeNewRoute(t *testing.T, oc osclient.Interface, kc kclientset.Inter
 
 func createNamespaceProperties() *kapi.Namespace {
 	return &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "namespace-",
 		},
 		Status: kapi.NamespaceStatus{},
@@ -243,7 +244,7 @@ func createNamespaceProperties() *kapi.Namespace {
 
 func createServiceProperties() *kapi.Service {
 	return &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "service-",
 		},
 		Spec: kapi.ServiceSpec{
@@ -257,7 +258,7 @@ func createServiceProperties() *kapi.Service {
 
 func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 	return &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Subsets: []kapi.EndpointSubset{{
@@ -273,7 +274,7 @@ func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 
 func createRouteProperties(serviceName, host string) *routeapi.Route {
 	return &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "route-",
 		},
 		Spec: routeapi.RouteSpec{
@@ -416,7 +417,7 @@ func updateNamespaceLabels(t *testing.T, kc kclientset.Interface, namespace *kap
 		if errors.IsConflict(err) {
 			// The resource was updated by kube machinery.
 			// Get the latest version and retry.
-			namespace, err = kc.Core().Namespaces().Get(namespace.Name)
+			namespace, err = kc.Core().Namespaces().Get(namespace.Name, metav1.GetOptions{})
 			return false, err
 		}
 		return (err == nil), err

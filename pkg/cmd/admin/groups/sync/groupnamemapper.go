@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"

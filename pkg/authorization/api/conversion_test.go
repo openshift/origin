@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -177,7 +177,7 @@ func TestConversionErrors(t *testing.T) {
 			expected: `invalid origin role binding rolebindingname: attempts to reference role in namespace "ns1" instead of current namespace "ns0"`,
 			f: func() error {
 				return authorizationapi.Convert_api_RoleBinding_To_rbac_RoleBinding(&authorizationapi.RoleBinding{
-					ObjectMeta: api.ObjectMeta{Name: "rolebindingname", Namespace: "ns0"},
+					ObjectMeta: metav1.ObjectMeta{Name: "rolebindingname", Namespace: "ns0"},
 					RoleRef:    api.ObjectReference{Namespace: "ns1"},
 				}, &rbac.RoleBinding{}, nil)
 			},
@@ -238,8 +238,8 @@ func TestAttributeRestrictionsRuleLoss(t *testing.T) {
 }
 
 var fuzzer = fuzz.New().NilChance(0).Funcs(
-	func(*unversioned.TypeMeta, fuzz.Continue) {}, // Ignore TypeMeta
-	func(*runtime.Object, fuzz.Continue) {},       // Ignore AttributeRestrictions since they are deprecated
+	func(*metav1.TypeMeta, fuzz.Continue) {}, // Ignore TypeMeta
+	func(*runtime.Object, fuzz.Continue) {},  // Ignore AttributeRestrictions since they are deprecated
 	func(ocrb *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
 		c.FuzzNoCustom(ocrb)
 		setRandomOriginRoleBindingData(ocrb.Subjects, &ocrb.RoleRef, "", c)
@@ -269,7 +269,7 @@ var fuzzer = fuzz.New().NilChance(0).Funcs(
 func setRandomRBACRoleBindingData(subjects []rbac.Subject, roleRef *rbac.RoleRef, namespace string, c fuzz.Continue) {
 	for i := range subjects {
 		subject := &subjects[i]
-		subject.APIVersion = rbac.GroupName
+		subject.APIGroup = rbac.GroupName
 		setValidRBACKindAndNamespace(subject, i, c)
 	}
 	roleRef.APIGroup = rbac.GroupName

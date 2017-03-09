@@ -11,10 +11,10 @@ import (
 
 	"github.com/golang/glog"
 
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/sets"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
 )
 
 // CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth
@@ -133,8 +133,8 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 			unauthorizedError := apierrs.NewUnauthorized("")
 			// Attempt to read body content and include as an error detail
 			if details, err := ioutil.ReadAll(resp.Body); err == nil && len(details) > 0 {
-				unauthorizedError.ErrStatus.Details = &unversioned.StatusDetails{
-					Causes: []unversioned.StatusCause{
+				unauthorizedError.ErrStatus.Details = &metav1.StatusDetails{
+					Causes: []metav1.StatusCause{
 						{Message: string(details)},
 					},
 				}

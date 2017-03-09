@@ -5,11 +5,11 @@ import (
 
 	"github.com/golang/glog"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -38,7 +38,7 @@ func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, osClie
 // Process processes the Jenkins template. If an error occurs
 func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 	var errors []error
-	jenkinsTemplate, err := t.osClient.Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName)
+	jenkinsTemplate, err := t.osClient.Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName, metav1.GetOptions{})
 	if err != nil {
 		if kerrs.IsNotFound(err) {
 			errors = append(errors, fmt.Errorf("Jenkins pipeline template %s/%s not found", t.Config.TemplateNamespace, t.Config.TemplateName))
@@ -64,7 +64,7 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 		}
 	}
 	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", pTemplate.Namespace, pTemplate.Namespace)
-	return &kapi.List{ListMeta: unversioned.ListMeta{}, Items: items}, errors
+	return &kapi.List{ListMeta: metav1.ListMeta{}, Items: items}, errors
 }
 
 // HasJenkinsService searches the template items and return true if the expected

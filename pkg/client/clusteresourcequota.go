@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
@@ -12,12 +13,12 @@ type ClusterResourceQuotasInterface interface {
 }
 
 type ClusterResourceQuotaInterface interface {
-	List(opts kapi.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
+	List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
 	Get(name string) (*quotaapi.ClusterResourceQuota, error)
 	Create(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Update(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 
 	UpdateStatus(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 }
@@ -33,7 +34,7 @@ func newClusterResourceQuotas(c *Client) *clusterResourceQuotas {
 	}
 }
 
-func (c *clusterResourceQuotas) List(opts kapi.ListOptions) (result *quotaapi.ClusterResourceQuotaList, err error) {
+func (c *clusterResourceQuotas) List(opts metainternal.ListOptions) (result *quotaapi.ClusterResourceQuotaList, err error) {
 	result = &quotaapi.ClusterResourceQuotaList{}
 	err = c.r.Get().Resource("clusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -62,7 +63,7 @@ func (c *clusterResourceQuotas) Delete(name string) (err error) {
 	return
 }
 
-func (c *clusterResourceQuotas) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *clusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }
 

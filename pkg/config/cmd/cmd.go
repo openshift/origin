@@ -6,13 +6,13 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type Runner interface {
@@ -32,7 +32,7 @@ type RetryFunc func(info *resource.Info, err error) runtime.Object
 // Mapper is an interface testability that is equivalent to resource.Mapper
 type Mapper interface {
 	meta.RESTMapper
-	InfoForObject(obj runtime.Object, preferredGVKs []unversioned.GroupVersionKind) (*resource.Info, error)
+	InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupVersionKind) (*resource.Info, error)
 }
 
 // IgnoreErrorFunc provides a way to filter errors during the Bulk.Run.  If this function returns
@@ -67,7 +67,7 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 
 	errs := []error{}
 	for i, item := range list.Items {
-		info, err := b.Mapper.InfoForObject(item, []unversioned.GroupVersionKind{{Group: ""}})
+		info, err := b.Mapper.InfoForObject(item, []schema.GroupVersionKind{{Group: ""}})
 		if err != nil {
 			errs = append(errs, err)
 			if after(info, err) {

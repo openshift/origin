@@ -5,9 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -57,7 +58,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		idxPath := itemPath.Index(i)
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			decodedObj, err := runtime.Decode(runtime.UnstructuredJSONScheme, obj.Raw)
+			decodedObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, obj.Raw)
 			if err != nil {
 				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), obj, fmt.Sprintf("unable to handle object: %v", err)))
 				continue
@@ -92,7 +93,7 @@ func stripNamespace(obj runtime.Object) {
 		return
 	}
 	// TODO: allow meta.Accessor to handle runtime.Unstructured
-	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+	if unstruct, ok := obj.(*unstructured.Unstructured); ok && unstruct.Object != nil {
 		if obj, ok := unstruct.Object["metadata"]; ok {
 			if m, ok := obj.(map[string]interface{}); ok {
 				if _, ok := m["namespace"]; ok && !stringParameterExp.MatchString(m["namespace"].(string)) {

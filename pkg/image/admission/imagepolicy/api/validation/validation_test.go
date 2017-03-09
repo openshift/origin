@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 )
@@ -16,7 +16,7 @@ func TestValidation(t *testing.T) {
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{
 				ImageCondition: api.ImageCondition{
-					MatchImageLabels: []unversioned.LabelSelector{
+					MatchImageLabels: []metav1.LabelSelector{
 						{MatchLabels: map[string]string{"test": "other"}},
 					},
 				},
@@ -29,7 +29,7 @@ func TestValidation(t *testing.T) {
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{
 				ImageCondition: api.ImageCondition{
-					MatchImageLabels: []unversioned.LabelSelector{
+					MatchImageLabels: []metav1.LabelSelector{
 						{MatchLabels: map[string]string{"": ""}},
 					},
 				},
@@ -58,7 +58,7 @@ func TestValidation(t *testing.T) {
 	if errs := Validate(&api.ImagePolicyConfig{
 		ResolveImages: api.DoNotAttempt,
 		ExecutionRules: []api.ImageExecutionPolicyRule{
-			{ImageCondition: api.ImageCondition{Name: "test", MatchImageLabels: []unversioned.LabelSelector{{}}}},
+			{ImageCondition: api.ImageCondition{Name: "test", MatchImageLabels: []metav1.LabelSelector{{}}}},
 		},
 	}); len(errs) == 0 {
 		t.Fatal(errs)

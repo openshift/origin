@@ -5,15 +5,16 @@ import (
 
 	"github.com/golang/glog"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -101,7 +102,7 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 	nextStatus := currentStatus
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName)
+	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName, metav1.GetOptions{})
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}
@@ -315,7 +316,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	gracePeriod := int64(10)
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
@@ -326,7 +327,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 			// Set the owner reference to current deployment, so in case the deployment fails
 			// and the deployer pod is preserved when a revisionHistory limit is reached and the
 			// deployment is removed, we also remove the deployer pod with it.
-			OwnerReferences: []kapi.OwnerReference{{
+			OwnerReferences: []metav1.OwnerReference{{
 				// FIXME: This will have to point to apps.openshift.io/v1 after we switch to
 				// clientsets.
 				APIVersion: "v1",
@@ -421,7 +422,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 
 	cleanedAll := true
 	for _, deployerPod := range deployerList {
-		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
 			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))

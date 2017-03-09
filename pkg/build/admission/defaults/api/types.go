@@ -1,8 +1,8 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -11,7 +11,7 @@ const BuildDefaultsPlugin = "BuildDefaults"
 
 // BuildDefaultsConfig controls the default information for Builds
 type BuildDefaultsConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// gitHTTPProxy is the location of the HTTPProxy for Git source
 	GitHTTPProxy string

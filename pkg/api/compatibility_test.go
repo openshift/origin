@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 func TestCompatibility_v1_Pod(t *testing.T) {
@@ -136,7 +136,7 @@ func testCompatibility(
 	}
 
 	// Encode
-	output := runtime.EncodeOrDie(api.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), obj)
+	output := runtime.EncodeOrDie(api.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: version}), obj)
 
 	// Validate old and new fields are encoded
 	generic := map[string]interface{}{}
@@ -154,14 +154,14 @@ func testCompatibility(
 }
 
 func TestAllowedGrouplessVersion(t *testing.T) {
-	versions := map[string]unversioned.GroupVersion{
+	versions := map[string]schema.GroupVersion{
 		"v1":      {Group: "", Version: "v1"},
 		"v1beta3": {Group: "", Version: "v1beta3"},
 		"1.0":     {Group: "", Version: "1.0"},
 		"pre012":  {Group: "", Version: "pre012"},
 	}
 	for apiVersion, expectedGroupVersion := range versions {
-		groupVersion, err := unversioned.ParseGroupVersion(apiVersion)
+		groupVersion, err := schema.ParseGroupVersion(apiVersion)
 		if err != nil {
 			t.Errorf("%s: unexpected error parsing: %v", apiVersion, err)
 			continue

@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -11,9 +11,9 @@ import (
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to
 // synthetic ResourceQuota object to allow quota evaluation re-use.
 type ClusterResourceQuota struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -39,7 +39,7 @@ type ClusterResourceQuotaSpec struct {
 // the project must match both restrictions.
 type ClusterResourceQuotaSelector struct {
 	// LabelSelector is used to select projects by label.
-	LabelSelector *unversioned.LabelSelector `json:"labels" protobuf:"bytes,1,opt,name=labels"`
+	LabelSelector *metav1.LabelSelector `json:"labels" protobuf:"bytes,1,opt,name=labels"`
 
 	// AnnotationSelector is used to select projects by annotation.
 	AnnotationSelector map[string]string `json:"annotations" protobuf:"bytes,2,rep,name=annotations"`
@@ -58,9 +58,9 @@ type ClusterResourceQuotaStatus struct {
 
 // ClusterResourceQuotaList is a collection of ClusterResourceQuotas
 type ClusterResourceQuotaList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of ClusterResourceQuotas
 	Items []ClusterResourceQuota `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -82,9 +82,9 @@ type ResourceQuotaStatusByNamespace struct {
 // into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
 // his project and their associated usage.
 type AppliedClusterResourceQuota struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -95,9 +95,9 @@ type AppliedClusterResourceQuota struct {
 
 // AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
 type AppliedClusterResourceQuotaList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of AppliedClusterResourceQuota
 	Items []AppliedClusterResourceQuota `json:"items" protobuf:"bytes,2,rep,name=items"`

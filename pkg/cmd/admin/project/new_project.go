@@ -7,9 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	errorsutil "k8s.io/kubernetes/pkg/util/errors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client"
@@ -89,7 +90,7 @@ func (o *NewProjectOptions) complete(args []string) error {
 }
 
 func (o *NewProjectOptions) Run(useNodeSelector bool) error {
-	if _, err := o.Client.Projects().Get(o.ProjectName); err != nil {
+	if _, err := o.Client.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
 		}
