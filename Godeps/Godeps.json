@@ -7579,11 +7579,6 @@
 			"ImportPath": "github.com/coreos/etcd/pkg/monotime",
 			"Comment": "v3.1.0",
 			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
-		},
-		{
-			"ImportPath": "github.com/grpc-ecosystem/go-grpc-prometheus",
-			"Comment": "v1.1",
-			"Rev": "6b7015e65d366bf3f19b2b2a000a831940f0f7e0"
 		}
 	]
 }
