@@ -202,7 +202,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			// we've imported a set of tags, ensure spec tag will point to this for later imports
 			from.ID, from.Tag = "", tag
 
-			if updated, ok := r.importSuccessful(ctx, image, stream, tag, from.Exact(), nextGeneration, now, spec.ImportPolicy, importedImages, updatedImages); ok {
+			if updated, ok := r.importSuccessful(ctx, image, stream, tag, from.Exact(), nextGeneration,
+				now, spec.ImportPolicy, spec.ReferencePolicy, importedImages, updatedImages); ok {
 				isi.Status.Repository.Images[i].Image = updated
 			}
 		}
@@ -218,13 +219,14 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		status := isi.Status.Images[i]
 		if checkImportFailure(status, stream, tag, nextGeneration, now) {
 			// ensure that we have a spec tag set
-			ensureSpecTag(stream, tag, spec.From.Name, spec.ImportPolicy, false)
+			ensureSpecTag(stream, tag, spec.From.Name, spec.ImportPolicy, spec.ReferencePolicy, false)
 			continue
 		}
 
 		// record success
 		image := status.Image
-		if updated, ok := r.importSuccessful(ctx, image, stream, tag, spec.From.Name, nextGeneration, now, spec.ImportPolicy, importedImages, updatedImages); ok {
+		if updated, ok := r.importSuccessful(ctx, image, stream, tag, spec.From.Name, nextGeneration,
+			now, spec.ImportPolicy, spec.ReferencePolicy, importedImages, updatedImages); ok {
 			isi.Status.Images[i].Image = updated
 		}
 	}
@@ -338,9 +340,10 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 	return true
 }
 
-// ensureSpecTag guarantees that the spec tag is set with the provided from and importPolicy. If reset is passed,
-// the tag will be overwritten.
-func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.TagImportPolicy, reset bool) api.TagReference {
+// ensureSpecTag guarantees that the spec tag is set with the provided from, importPolicy and referencePolicy.
+// If reset is passed, the tag will be overwritten.
+func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.TagImportPolicy,
+	referencePolicy api.TagReferencePolicy, reset bool) api.TagReference {
 	if stream.Spec.Tags == nil {
 		stream.Spec.Tags = make(map[string]api.TagReference)
 	}
@@ -356,6 +359,7 @@ func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.T
 	zero := int64(0)
 	specTag.Generation = &zero
 	specTag.ImportPolicy = importPolicy
+	specTag.ReferencePolicy = referencePolicy
 	stream.Spec.Tags[tag] = specTag
 	return specTag
 }
@@ -366,7 +370,8 @@ func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.T
 // operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
 	ctx kapi.Context,
-	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time, importPolicy api.TagImportPolicy,
+	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time,
+	importPolicy api.TagImportPolicy, referencePolicy api.TagReferencePolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {
 	Strategy.PrepareImageForCreate(image)
@@ -387,7 +392,7 @@ func (r *REST) importSuccessful(
 	changed := api.DifferentTagEvent(stream, tag, tagEvent) || api.DifferentTagGeneration(stream, tag)
 	specTag, ok := stream.Spec.Tags[tag]
 	if changed || !ok {
-		specTag = ensureSpecTag(stream, tag, from, importPolicy, true)
+		specTag = ensureSpecTag(stream, tag, from, importPolicy, referencePolicy, true)
 		api.AddTagEventToImageStream(stream, tag, tagEvent)
 	}
 	// always reset the import policy

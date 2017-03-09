@@ -52,6 +52,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Wri
 	cmd.Flags().StringVar(&opts.From, "from", "", "A Docker image repository to import images from")
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, allow the image stream import location to be set or changed")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, import all tags from the provided source on creation or if --from is specified")
+	cmd.Flags().StringVar(&opts.ReferencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
 	opts.Insecure = cmd.Flags().Bool("insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP. This flag will take precedence over the insecure annotation.")
 
 	return cmd
@@ -66,10 +67,11 @@ type ImportImageOptions struct {
 	Insecure *bool
 
 	// internal values
-	Namespace string
-	Name      string
-	Tag       string
-	Target    string
+	Namespace       string
+	Name            string
+	Tag             string
+	Target          string
+	ReferencePolicy string
 
 	CommandName string
 
@@ -91,6 +93,9 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	if !cmd.Flags().Lookup("insecure").Changed {
 		o.Insecure = nil
+	}
+	if !cmd.Flags().Lookup("reference-policy").Changed {
+		o.ReferencePolicy = ""
 	}
 
 	namespace, _, err := f.DefaultNamespace()
@@ -423,13 +428,20 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 	if len(from) == 0 {
 		from = o.Target
 	}
-	var stream *imageapi.ImageStream
-	// create new ImageStream
+	var (
+		stream *imageapi.ImageStream
+		isi    *imageapi.ImageStreamImport
+	)
+	// create new ImageStream and accompanying ImageStreamImport
+	// TODO: this should be removed along with the legacy path, we don't need to
+	// create the IS in the new path, the import mechanism will do that for us,
+	// this is only for the legacy path that we need to create the IS.
 	if o.All {
 		stream = &imageapi.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
 			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
 		}
+		isi = o.newImageStreamImportAll(stream, from)
 	} else {
 		stream = &imageapi.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
@@ -440,20 +452,29 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 							Kind: "DockerImage",
 							Name: from,
 						},
+						ReferencePolicy: o.getReferencePolicy(),
 					},
 				},
 			},
 		}
-	}
-	// and accompanying ImageStreamImport
-	var isi *imageapi.ImageStreamImport
-	if o.All {
-		isi = o.newImageStreamImportAll(stream, from)
-	} else {
 		isi = o.newImageStreamImportTags(stream, map[string]string{tag: from})
 	}
 
 	return stream, isi
+}
+
+func (o *ImportImageOptions) getReferencePolicy() imageapi.TagReferencePolicy {
+	ref := imageapi.TagReferencePolicy{}
+	if len(o.ReferencePolicy) == 0 {
+		return ref
+	}
+	switch o.ReferencePolicy {
+	case sourceReferencePolicy:
+		ref.Type = imageapi.SourceTagReferencePolicy
+	case localReferencePolicy:
+		ref.Type = imageapi.LocalTagReferencePolicy
+	}
+	return ref
 }
 
 func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, bool) {
@@ -482,7 +503,8 @@ func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStrea
 			Kind: "DockerImage",
 			Name: from,
 		},
-		ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+		ImportPolicy:    imageapi.TagImportPolicy{Insecure: insecure},
+		ReferencePolicy: o.getReferencePolicy(),
 	}
 
 	return isi
@@ -496,8 +518,9 @@ func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStre
 				Kind: "DockerImage",
 				Name: from,
 			},
-			To:           &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
+			To:              &kapi.LocalObjectReference{Name: tag},
+			ImportPolicy:    imageapi.TagImportPolicy{Insecure: insecure},
+			ReferencePolicy: o.getReferencePolicy(),
 		})
 	}
 	return isi

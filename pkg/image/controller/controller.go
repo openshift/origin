@@ -146,9 +146,10 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 			continue
 		}
 		isi.Spec.Images = append(isi.Spec.Images, api.ImageImportSpec{
-			From:         kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
-			To:           &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy: tagRef.ImportPolicy,
+			From:            kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
+			To:              &kapi.LocalObjectReference{Name: tag},
+			ImportPolicy:    tagRef.ImportPolicy,
+			ReferencePolicy: tagRef.ReferencePolicy,
 		})
 	}
 	if repo := stream.Spec.DockerImageRepository; !partial && len(repo) > 0 {
