@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -14,12 +15,12 @@ type EgressNetworkPoliciesNamespacer interface {
 
 // EgressNetworkPolicyInterface exposes methods on egressNetworkPolicy resources.
 type EgressNetworkPolicyInterface interface {
-	List(opts kapi.ListOptions) (*sdnapi.EgressNetworkPolicyList, error)
+	List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error)
 	Get(name string) (*sdnapi.EgressNetworkPolicy, error)
 	Create(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Update(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 // egressNetworkPolicy implements EgressNetworkPolicyInterface interface
@@ -37,7 +38,7 @@ func newEgressNetworkPolicy(c *Client, namespace string) *egressNetworkPolicy {
 }
 
 // List returns a list of EgressNetworkPolicy that match the label and field selectors.
-func (c *egressNetworkPolicy) List(opts kapi.ListOptions) (result *sdnapi.EgressNetworkPolicyList, err error) {
+func (c *egressNetworkPolicy) List(opts metainternal.ListOptions) (result *sdnapi.EgressNetworkPolicyList, err error) {
 	result = &sdnapi.EgressNetworkPolicyList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -75,7 +76,7 @@ func (c *egressNetworkPolicy) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested EgressNetworkPolicies
-func (c *egressNetworkPolicy) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *egressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

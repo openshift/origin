@@ -4,10 +4,10 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/project/api"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/cache"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 // ProjectLister helps list Projects.

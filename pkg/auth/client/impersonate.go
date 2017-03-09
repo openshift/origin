@@ -3,9 +3,9 @@ package client
 import (
 	"net/http"
 
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
+	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"

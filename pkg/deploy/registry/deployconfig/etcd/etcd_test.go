@@ -3,12 +3,13 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
@@ -41,7 +42,7 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	valid := validDeploymentConfig()
-	valid.ObjectMeta = kapi.ObjectMeta{}
+	valid.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		valid,
 		// invalid

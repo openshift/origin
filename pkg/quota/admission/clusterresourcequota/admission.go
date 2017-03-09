@@ -7,14 +7,13 @@ import (
 	"sync"
 	"time"
 
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	"k8s.io/kubernetes/pkg/admission"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/quota"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
+	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"

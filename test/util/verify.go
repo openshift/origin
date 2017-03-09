@@ -6,8 +6,9 @@ import (
 	"strconv"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 type ValidateFunc func(string) error
@@ -40,7 +41,7 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 	if err != nil {
 		return "", err
 	}
-	watcher, err := client.Core().Endpoints(ns).Watch(kapi.ListOptions{})
+	watcher, err := client.Core().Endpoints(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		return "", fmt.Errorf("Unexpected error: %v", err)
 	}
@@ -82,7 +83,7 @@ func CreatePodFromImage(stream *imageapi.ImageStream, tag, ns string) *kapi.Pod 
 		imageName += ":" + tag
 	}
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   ns,
 			Labels: map[string]string{"name": ns},
 		},
@@ -111,7 +112,7 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 		return nil
 	}
 	service := &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
 		},
 		Spec: kapi.ServiceSpec{

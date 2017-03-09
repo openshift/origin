@@ -3,7 +3,7 @@ package plugin
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )

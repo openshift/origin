@@ -15,14 +15,15 @@ import (
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/request/union"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/client/retry"
-	knet "k8s.io/kubernetes/pkg/util/net"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/placeholderchallenger"
@@ -159,7 +160,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
 		glog.Fatal(err)
 	}
-	browserClient, err := clientRegistry.GetClient(kapi.NewContext(), OpenShiftBrowserClientID)
+	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID, &metav1.GetOptions{})
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -241,14 +242,14 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 }
 
 func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects, preserveExistingSecret bool) error {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	_, err := clientRegistry.CreateClient(ctx, &client)
 	if err == nil || !kerrs.IsAlreadyExists(err) {
 		return err
 	}
 
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing, err := clientRegistry.GetClient(ctx, client.Name)
+		existing, err := clientRegistry.GetClient(ctx, client.Name, &metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -289,7 +290,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) error {
 	{
 		webConsoleClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
 			Secret:                "",
 			RespondWithChallenges: false,
 			RedirectURIs:          assetPublicAddresses,
@@ -302,7 +303,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 	{
 		browserClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftBrowserClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 			Secret:                uuid.New(),
 			RespondWithChallenges: false,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
@@ -315,7 +316,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 	{
 		cliClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 			Secret:                "",
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},

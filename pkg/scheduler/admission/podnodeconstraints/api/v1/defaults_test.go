@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	v1 "github.com/openshift/origin/pkg/cmd/server/api/v1"

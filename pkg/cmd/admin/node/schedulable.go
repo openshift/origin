@@ -3,9 +3,9 @@ package node
 import (
 	"fmt"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type SchedulableOptions struct {

@@ -12,15 +12,15 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utiltesting "k8s.io/client-go/util/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kcontainertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 )
@@ -102,10 +102,10 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
 	activePod := &khostport.ActivePod{
 		Pod: &kapi.Pod{
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind: "Pod",
 			},
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
@@ -177,7 +177,7 @@ func newFakeHost() *fakeHost {
 	}
 }
 
-func (fnh *fakeHost) GetPodByName(name, namespace string) (*kapi.Pod, bool) {
+func (fnh *fakeHost) GetPodByName(name, namespace string) (*kapiv1.Pod, bool) {
 	return nil, false
 }
 

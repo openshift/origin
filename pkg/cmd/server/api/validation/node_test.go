@@ -3,8 +3,8 @@ package validation
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

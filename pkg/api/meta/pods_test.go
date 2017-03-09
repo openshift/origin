@@ -4,10 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -51,15 +50,15 @@ func hasPodSpec(visited map[reflect.Type]bool, t reflect.Type) bool {
 	return false
 }
 
-func internalGroupVersions() []unversioned.GroupVersion {
-	groupVersions := registered.EnabledVersions()
+func internalGroupVersions() []schema.GroupVersion {
+	groupVersions := kapi.Registry.EnabledVersions()
 	groups := map[string]struct{}{}
 	for _, gv := range groupVersions {
 		groups[gv.Group] = struct{}{}
 	}
-	result := []unversioned.GroupVersion{}
+	result := []schema.GroupVersion{}
 	for group := range groups {
-		result = append(result, unversioned.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
+		result = append(result, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
 	return result
 }
@@ -73,13 +72,13 @@ func isList(t reflect.Type) bool {
 	return hasListMeta
 }
 
-func kindsWithPodSpecs() []unversioned.GroupKind {
-	result := []unversioned.GroupKind{}
+func kindsWithPodSpecs() []schema.GroupKind {
+	result := []schema.GroupKind{}
 	for _, gv := range internalGroupVersions() {
 		knownTypes := kapi.Scheme.KnownTypes(gv)
 		for kind, knownType := range knownTypes {
 			if !isList(knownType) && hasPodSpec(map[reflect.Type]bool{}, knownType) {
-				result = append(result, unversioned.GroupKind{Group: gv.Group, Kind: kind})
+				result = append(result, schema.GroupKind{Group: gv.Group, Kind: kind})
 			}
 		}
 	}
@@ -87,8 +86,8 @@ func kindsWithPodSpecs() []unversioned.GroupKind {
 	return result
 }
 
-func knownResourceKinds() map[unversioned.GroupKind]struct{} {
-	result := map[unversioned.GroupKind]struct{}{}
+func knownResourceKinds() map[schema.GroupKind]struct{} {
+	result := map[schema.GroupKind]struct{}{}
 	for _, ka := range resourcesToCheck {
 		result[ka] = struct{}{}
 	}

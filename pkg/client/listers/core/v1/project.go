@@ -5,10 +5,10 @@ package v1
 import (
 	api "github.com/openshift/origin/pkg/project/api"
 	v1 "github.com/openshift/origin/pkg/project/api/v1"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/cache"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 // ProjectLister helps list Projects.

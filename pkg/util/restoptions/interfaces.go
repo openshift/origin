@@ -1,10 +1,10 @@
 package restoptions
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/registry/generic"
 )
 
 type Getter interface {
-	GetRESTOptions(resource unversioned.GroupResource) (generic.RESTOptions, error)
+	GetRESTOptions(resource schema.GroupResource) (generic.RESTOptions, error)
 }

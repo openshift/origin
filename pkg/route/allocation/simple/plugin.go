@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )

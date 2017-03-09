@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/apimachinery/pkg/api/validation/path"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/api/validation/path"
 )
 
 // GetNameValidationFunc returns a name validation function that includes the standard restrictions we want for all types
@@ -38,6 +38,6 @@ func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabe
 // GetResourceKey returns a string of the form [namespace]/[name] for
 // the given resource.  This is a common way of ensuring a key for a
 // resource that is unique across the cluster.
-func GetResourceKey(obj kapi.ObjectMeta) string {
+func GetResourceKey(obj metav1.ObjectMeta) string {
 	return fmt.Sprintf("%s/%s", obj.Namespace, obj.Name)
 }

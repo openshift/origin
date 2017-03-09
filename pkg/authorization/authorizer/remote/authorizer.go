@@ -3,9 +3,9 @@ package remote
 import (
 	"github.com/golang/glog"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/util/sets"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/api"
 	oclient "github.com/openshift/origin/pkg/client"

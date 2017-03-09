@@ -17,15 +17,16 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	ksets "k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	ksets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/ip"
@@ -311,7 +312,7 @@ func (m *podManager) ipamGarbageCollection() {
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -426,7 +427,7 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		req.Netns = netns
 	}
 
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return 0, err
 	}

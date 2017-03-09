@@ -13,8 +13,8 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
+	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 )

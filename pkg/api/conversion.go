@@ -1,9 +1,9 @@
 package api
 
 import (
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/extension"
 )

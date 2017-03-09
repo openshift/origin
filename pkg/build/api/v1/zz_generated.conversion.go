@@ -5,14 +5,14 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	time "time"
 	unsafe "unsafe"
+
+	api "github.com/openshift/origin/pkg/build/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -425,7 +425,7 @@ func autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, 
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*unversioned.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -443,7 +443,7 @@ func autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *api.BuildLogOptio
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*unversioned.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -802,8 +802,8 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *api.Bui
 	out.Cancelled = in.Cancelled
 	out.Reason = api.StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*unversioned.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*unversioned.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*metav1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*metav1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
@@ -830,8 +830,8 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *Bui
 	out.Cancelled = in.Cancelled
 	out.Reason = StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*unversioned.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*unversioned.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*metav1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*metav1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {

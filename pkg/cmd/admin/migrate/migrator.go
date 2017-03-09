@@ -8,12 +8,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -52,7 +52,7 @@ type ResourceOptions struct {
 	ToKey         string
 
 	OverlappingResources []sets.String
-	DefaultExcludes      []unversioned.GroupResource
+	DefaultExcludes      []schema.GroupResource
 
 	Builder   *resource.Builder
 	SaveFn    MigrateActionFunc
@@ -440,7 +440,7 @@ func (t *migrateTracker) try(info *resource.Info) (attemptResult, error) {
 			}
 			if canRetry(err) {
 				if t.retries > 0 {
-					if glog.V(1) && err != ErrRecalculate {
+					if bool(glog.V(1)) && err != ErrRecalculate {
 						t.report("retry:", info, err)
 					}
 					result, err := t.try(info)

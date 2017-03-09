@@ -10,15 +10,17 @@ import (
 
 	"github.com/golang/glog"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kclientgoclientset "k8s.io/client-go/kubernetes"
+	kclientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/util/cert"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
@@ -27,8 +29,6 @@ import (
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util/cert"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -155,8 +155,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.HostNetworkSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
 	server.HostPIDSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
 	server.HostIPCSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
-	server.HTTPCheckFrequency = unversioned.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
-	server.FileCheckFrequency = unversioned.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
+	server.HTTPCheckFrequency = metav1.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
+	server.FileCheckFrequency = metav1.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
@@ -387,14 +387,14 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	proxyconfig.IPTablesSyncPeriod = unversioned.Duration{
+	proxyconfig.IPTablesSyncPeriod = metav1.Duration{
 		Duration: syncPeriod,
 	}
 
 	// ConfigSyncPeriod, use default
 
 	// NodeRef, build from config
-	proxyconfig.NodeRef = &kapi.ObjectReference{
+	proxyconfig.NodeRef = &kclientv1.ObjectReference{
 		Kind: "Node",
 		Name: options.NodeName,
 	}
@@ -419,7 +419,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
 	if sdnapi.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
-		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
 		} else if err != nil {

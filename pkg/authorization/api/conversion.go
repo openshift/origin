@@ -3,11 +3,11 @@ package api
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -87,8 +87,8 @@ func convert_api_Subjects_To_rbac_Subjects(in []api.ObjectReference) ([]rbac.Sub
 	subjects := make([]rbac.Subject, 0, len(in))
 	for _, subject := range in {
 		s := rbac.Subject{
-			Name:       subject.Name,
-			APIVersion: rbac.GroupName,
+			Name:     subject.Name,
+			APIGroup: rbac.GroupName,
 		}
 
 		switch subject.Kind {

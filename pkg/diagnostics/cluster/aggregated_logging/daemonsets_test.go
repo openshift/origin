@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
@@ -51,7 +51,7 @@ func (f *fakeDaemonSetDiagnostic) addDaemonSetWithSelector(key string, value str
 					NodeSelector: selector,
 				},
 			},
-			Selector: &unversioned.LabelSelector{MatchLabels: selector},
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
 		},
 	}
 	f.fakeDaemonsets.Items = append(f.fakeDaemonsets.Items, ds)
@@ -60,14 +60,14 @@ func (f *fakeDaemonSetDiagnostic) addDaemonSetWithSelector(key string, value str
 func (f *fakeDaemonSetDiagnostic) addNodeWithLabel(key string, value string) {
 	labels := map[string]string{key: value}
 	node := kapi.Node{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
 		},
 	}
 	f.fakeNodes.Items = append(f.fakeNodes.Items, node)
 }
 
-func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options kapi.ListOptions) (*kapisext.DaemonSetList, error) {
+func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options metav1.ListOptions) (*kapisext.DaemonSetList, error) {
 	value, ok := f.clienterrors[testDsKey]
 	if ok {
 		return nil, value
@@ -75,7 +75,7 @@ func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options kapi.ListOp
 	return &f.fakeDaemonsets, nil
 }
 
-func (f *fakeDaemonSetDiagnostic) nodes(options kapi.ListOptions) (*kapi.NodeList, error) {
+func (f *fakeDaemonSetDiagnostic) nodes(options metav1.ListOptions) (*kapi.NodeList, error) {
 	value, ok := f.clienterrors[testNodesKey]
 	if ok {
 		return nil, value
@@ -83,7 +83,7 @@ func (f *fakeDaemonSetDiagnostic) nodes(options kapi.ListOptions) (*kapi.NodeLis
 	return &f.fakeNodes, nil
 }
 
-func (f *fakeDaemonSetDiagnostic) pods(project string, options kapi.ListOptions) (*kapi.PodList, error) {
+func (f *fakeDaemonSetDiagnostic) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	value, ok := f.clienterrors[testPodsKey]
 	if ok {
 		return nil, value

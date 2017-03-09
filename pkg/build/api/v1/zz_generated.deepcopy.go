@@ -5,11 +5,11 @@
 package v1
 
 import (
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -243,7 +243,7 @@ func DeepCopy_v1_BuildLogOptions(in interface{}, out interface{}, c *conversion.
 		}
 		if in.SinceTime != nil {
 			in, out := &in.SinceTime, &out.SinceTime
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.SinceTime = nil
@@ -501,14 +501,14 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 		out.Message = in.Message
 		if in.StartTimestamp != nil {
 			in, out := &in.StartTimestamp, &out.StartTimestamp
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.StartTimestamp = nil
 		}
 		if in.CompletionTimestamp != nil {
 			in, out := &in.CompletionTimestamp, &out.CompletionTimestamp
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.CompletionTimestamp = nil

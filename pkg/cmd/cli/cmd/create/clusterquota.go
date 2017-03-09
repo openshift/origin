@@ -8,12 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -78,11 +78,11 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	var labelSelector *unversioned.LabelSelector
+	var labelSelector *metav1.LabelSelector
 	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
 	if len(labelSelectorString) > 0 {
 		var err error
-		labelSelector, err = unversioned.ParseToLabelSelector(labelSelectorString)
+		labelSelector, err = metav1.ParseToLabelSelector(labelSelectorString)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 	}
 
 	o.ClusterQuota = &quotaapi.ClusterResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
+		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Selector: quotaapi.ClusterResourceQuotaSelector{
 				LabelSelector:      labelSelector,

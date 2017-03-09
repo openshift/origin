@@ -18,28 +18,29 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/natefinch/lumberjack.v2"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	apiendpoints "k8s.io/apiserver/pkg/endpoints"
+	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	apiserver "k8s.io/apiserver/pkg/server"
+	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
+	"k8s.io/apiserver/pkg/server/healthz"
+	genericmux "k8s.io/apiserver/pkg/server/mux"
+	genericroutes "k8s.io/apiserver/pkg/server/routes"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kubeapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/apiserver"
-	kapiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
-	genericmux "k8s.io/kubernetes/pkg/genericapiserver/mux"
-	genericroutes "k8s.io/kubernetes/pkg/genericapiserver/routes"
-	"k8s.io/kubernetes/pkg/healthz"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/util/sets"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
@@ -234,7 +235,7 @@ func readCAorNil(file string) ([]byte, error) {
 	return ioutil.ReadFile(file)
 }
 
-type sortedGroupVersions []unversioned.GroupVersion
+type sortedGroupVersions []schema.GroupVersion
 
 func (s sortedGroupVersions) Len() int           { return len(s) }
 func (s sortedGroupVersions) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
@@ -245,9 +246,9 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 
 	// v1 has to be printed separately since it's served from different endpoint than groups
 	if configapi.HasKubernetesAPIVersion(*c.Options.KubernetesMasterConfig, kubeapiv1.SchemeGroupVersion) {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", genericapiserver.DefaultLegacyAPIPrefix))
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", apiserver.DefaultLegacyAPIPrefix))
 	}
-	versions := registered.EnabledVersions()
+	versions := kapi.Registry.EnabledVersions()
 	sort.Sort(sortedGroupVersions(versions))
 	for _, ver := range versions {
 		if ver.String() == "v1" {
@@ -255,7 +256,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 			continue
 		}
 		if configapi.HasKubernetesAPIVersion(*c.Options.KubernetesMasterConfig, ver) {
-			messages = append(messages, fmt.Sprintf("Started Kubernetes API %s at %%s%s", ver.String(), genericapiserver.APIGroupPrefix))
+			messages = append(messages, fmt.Sprintf("Started Kubernetes API %s at %%s%s", ver.String(), apiserver.APIGroupPrefix))
 		}
 	}
 
@@ -265,7 +266,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 	return messages
 }
 
-func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *genericapiserver.Config) (secure, insecure http.Handler), []string, error) {
+func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure, insecure http.Handler), []string, error) {
 	var messages []string
 	if c.Options.OAuthConfig != nil {
 		messages = append(messages, fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix))
@@ -280,9 +281,8 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 	}
 
 	// TODO(sttts): resync with upstream handler chain and re-use upstream filters as much as possible
-	return func(apiHandler http.Handler, kc *genericapiserver.Config) (secure, insecure http.Handler) {
+	return func(apiHandler http.Handler, kc *apiserver.Config) (secure, insecure http.Handler) {
 		contextMapper := c.getRequestContextMapper()
-		attributeGetter := kapiserverfilters.NewRequestAttributeGetter(contextMapper)
 
 		handler := c.versionSkewFilter(apiHandler, contextMapper)
 		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, contextMapper)
@@ -302,7 +302,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 				// backwards compatible writer to regular log
 				writer = cmdutil.NewGLogWriterV(0)
 			}
-			handler = kapiserverfilters.WithAudit(handler, attributeGetter, writer)
+			handler = apifilters.WithAudit(handler, contextMapper, writer)
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 		handler = namespacingFilter(handler, contextMapper)
@@ -331,15 +331,15 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 			handler = WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 		}
 
-		handler = kgenericfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
-		handler = kgenericfilters.WithTimeoutForNonLongRunningRequests(handler, kc.LongRunningFunc)
+		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
+		handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, contextMapper, kc.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 		// NOTE: read vs. write is implemented in Kube 1.6+
-		handler = kgenericfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.LongRunningFunc)
-		handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kc), contextMapper)
-		handler = kapi.WithRequestContext(handler, contextMapper)
+		handler = apiserverfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.MaxMutatingRequestsInFlight, contextMapper, kc.LongRunningFunc)
+		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kc), contextMapper)
+		handler = apirequest.WithRequestContext(handler, contextMapper)
 
 		return handler, nil
 	}, messages, nil
@@ -371,9 +371,9 @@ func (c *MasterConfig) RunHealth() error {
 	contextMapper := c.getRequestContextMapper()
 	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
 	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
-	handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
-	handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(&genericapiserver.Config{}), contextMapper)
-	handler = kapi.WithRequestContext(handler, contextMapper)
+	handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
+	handler = apirequest.WithRequestContext(handler, contextMapper)
 
 	c.serve(handler, []string{"Started health checks at %s"})
 	return nil
@@ -438,30 +438,30 @@ func (c *MasterConfig) InitializeObjects() {
 // apiGroupInfo represents a set of API group versions and their preferred version.
 type apiGroupInfo struct {
 	PreferredVersion string
-	Versions         []unversioned.GroupVersion
+	Versions         []schema.GroupVersion
 }
 
 // apiGroupsVersions holds the list of installed Origin API groups and their preferred version.
 // FIXME: This should be handled in each REST storage separately and on in one place. That
 //        will be addressed as a separate issue.
 var apiGroupsVersions = []apiGroupInfo{
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{securityapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{projectapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{buildapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{quotaapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{networkapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{routeapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{userapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{imageapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{deployapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{authzapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{templateapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []unversioned.GroupVersion{oauthapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{securityapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{projectapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{buildapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{networkapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{userapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{deployapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{templateapiv1.SchemeGroupVersion}},
+	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
 }
 
 // isPreferredGroupVersion returns true if the given GroupVersion is preferred version in
 // the API group.
-func isPreferredGroupVersion(gv unversioned.GroupVersion) bool {
+func isPreferredGroupVersion(gv schema.GroupVersion) bool {
 	for _, info := range apiGroupsVersions {
 		for _, version := range info.Versions {
 			if version == gv && gv.Version == info.PreferredVersion {
@@ -472,8 +472,8 @@ func isPreferredGroupVersion(gv unversioned.GroupVersion) bool {
 	return false
 }
 
-func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAPIServer) ([]string, error) {
-	apiContainer := apiserver.HandlerContainer
+func (c *MasterConfig) InstallProtectedAPI(apiserver *apiserver.GenericAPIServer) ([]string, error) {
+	apiContainer := server.HandlerContainer
 	messages := []string{}
 	storage := c.GetRestStorage()
 	groupVersions := map[string][]string{}
@@ -484,7 +484,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 		if gv == v1.SchemeGroupVersion {
 			continue
 		}
-		if !registered.IsEnabledVersion(gv) {
+		if !kapi.Registry.IsEnabledVersion(gv) {
 			continue
 		}
 		for _, infos := range apiGroupsVersions {
@@ -494,10 +494,10 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 		}
 	}
 	for group, versions := range groupVersions {
-		apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(group)
+		apiGroupInfo := apiserver.NewDefaultAPIGroupInfo(group)
 
 		for _, version := range versions {
-			gv := unversioned.GroupVersion{Group: group, Version: version}
+			gv := schema.GroupVersion{Group: group, Version: version}
 			apiGroupInfo.VersionedResourcesStorageMap[version] = storage[gv]
 			if isPreferredGroupVersion(gv) {
 				apiGroupInfo.GroupMeta.GroupVersion = gv
@@ -549,7 +549,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 			templateservicebroker.NewBroker(
 				c.PrivilegedLoopbackClientConfig,
 				c.PrivilegedLoopbackOpenShiftClient,
-				c.PrivilegedLoopbackKubernetesClientset.Core(),
+				c.PrivilegedLoopbackKubernetesClientsetInternal.Core(),
 				c.Informers,
 				c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace,
 			),
@@ -607,7 +607,7 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 
 	// Create temporary container because we only have a mux for secret routes
 	secretContainer := restful.NewContainer()
-	secretContainer.ServeMux = apiContainer.SecretRoutes.(*http.ServeMux) // we know it's a *http.ServeMux. In kube 1.6, the type will actually be correct.
+	secretContainer.ServeMux = apiContainer.UnlistedRoutes
 
 	// Set up a service to return the OAuth metadata.
 	ws := new(restful.WebService)
@@ -624,9 +624,9 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 	secretContainer.Add(ws)
 }
 
-func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]rest.Storage {
-	//TODO/REBASE use something other than c.KubeClientset
-	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientset().Core().Nodes(), *c.KubeletClientConfig)
+func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.Storage {
+	//TODO/REBASE use something other than c.KubeClientsetInternal
+	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientsetExternal().CoreV1().Nodes(), *c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure the node connection info getter: %v", err)
 	}
@@ -636,7 +636,11 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
-	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{Insecure: true})
+	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{
+		TLSClientConfig: restclient.TLSClientConfig{
+			Insecure: true,
+		},
+	})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
@@ -716,9 +720,9 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientset)
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
-	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -781,7 +785,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset, c.Informers.PolicyBindings().Lister())
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.Informers.PolicyBindings().Lister())
 
 	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -827,7 +831,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	storage := map[unversioned.GroupVersion]map[string]rest.Storage{
+	storage := map[schema.GroupVersion]map[string]rest.Storage{
 		v1.SchemeGroupVersion: {
 			// TODO: Deprecate these
 			"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
@@ -900,7 +904,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 		"deploymentConfigs/scale":       deployConfigScaleStorage,
 		"deploymentConfigs/status":      deployConfigStatusStorage,
 		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter),
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient.Core(), c.DeploymentLogClient().Core(), nodeConnectionInfoGetter),
 		"deploymentConfigs/instantiate": dcInstantiateStorage,
 	}
 
@@ -946,7 +950,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 			"buildConfigs":                   buildConfigStorage,
 			"buildConfigs/webhooks":          buildConfigWebHooks,
 			"buildConfigs/instantiate":       buildconfiginstantiate.NewStorage(buildGenerator),
-			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter),
+			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter),
 		}
 	}
 
@@ -961,8 +965,8 @@ func checkStorageErr(err error) {
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(apiContainer *genericmux.APIContainer, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *unversioned.APIVersions {
-		apiVersionsForDiscovery := unversioned.APIVersions{
+	versionHandler := apiendpoints.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *metav1.APIVersions {
+		apiVersionsForDiscovery := metav1.APIVersions{
 			// TODO: ServerAddressByClientCIDRs: s.getServerAddressByClientCIDRs(req.Request),
 			Versions: versions,
 		}
@@ -1015,27 +1019,27 @@ func initMetricsRoute(apiContainer *genericmux.APIContainer, path string) {
 	apiContainer.Add(ws)
 }
 
-func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
+func (c *MasterConfig) defaultAPIGroupVersion() *apiendpoints.APIGroupVersion {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
+	for _, gv := range kapi.Registry.EnabledVersions() {
 		if seenGroups.Has(gv.Group) {
 			continue
 		}
 		seenGroups.Insert(gv.Group)
 
-		groupMeta, err := registered.Group(gv.Group)
+		groupMeta, err := kapi.Registry.Group(gv.Group)
 		if err != nil {
 			continue
 		}
 		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
 	}
 
-	statusMapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
+	statusMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{kubeapiv1.SchemeGroupVersion}, kapi.Registry.GroupOrDie(kapi.GroupName).InterfacesFor)
 	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot)
 	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
 
-	return &apiserver.APIGroupVersion{
+	return &apiendpoints.APIGroupVersion{
 		Root: api.Prefix,
 
 		Mapper: restMapper,
@@ -1044,16 +1048,16 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
 		Copier:    kapi.Scheme,
-		Linker:    registered.GroupOrDie("").SelfLinker,
+		Linker:    kapi.Registry.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
-		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
+		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
 	}
 }
 
 // apiLegacyV1 returns the resources and codec for API version v1.
-func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiendpoints.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
 	for k, v := range all {
 		if excludedV1Types.Has(k) {
@@ -1071,9 +1075,9 @@ func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGr
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
-func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
+func (c *MasterConfig) getRequestContextMapper() apirequest.RequestContextMapper {
 	if c.RequestContextMapper == nil {
-		c.RequestContextMapper = kapi.NewRequestContextMapper()
+		c.RequestContextMapper = apirequest.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
 }
@@ -1108,8 +1112,12 @@ type clientDeploymentInterface struct {
 }
 
 // GetDeployment returns the deployment with the provided context and name
-func (c clientDeploymentInterface) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.Core().ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
+func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
+	opts := metav1.GetOptions{}
+	if options != nil {
+		opts = *options
+	}
+	return c.KubeClient.Core().ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name, opts)
 }
 
 func WithPatternsHandler(handler http.Handler, patternHandler http.Handler, patterns ...string) http.Handler {

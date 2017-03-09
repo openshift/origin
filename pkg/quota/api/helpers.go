@@ -1,10 +1,10 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var accessor = meta.NewAccessor()
@@ -13,7 +13,7 @@ func GetMatcher(selector ClusterResourceQuotaSelector) (func(obj runtime.Object)
 	var labelSelector labels.Selector
 	if selector.LabelSelector != nil {
 		var err error
-		labelSelector, err = unversioned.LabelSelectorAsSelector(selector.LabelSelector)
+		labelSelector, err = metav1.LabelSelectorAsSelector(selector.LabelSelector)
 		if err != nil {
 			return nil, err
 		}

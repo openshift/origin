@@ -13,8 +13,9 @@ import (
 	disterrors "github.com/docker/distribution/registry/api/v2"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -165,7 +166,7 @@ func getImportContext(
 	osClient osclient.ImageStreamSecretsNamespacer,
 	namespace, name string,
 ) importer.RepositoryRetriever {
-	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, kapi.ListOptions{})
+	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, metav1.ListOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("error getting secrets for repository %s/%s: %v", namespace, name, err)
 		secrets = &kapi.SecretList{}
@@ -188,7 +189,7 @@ func (g *cachedImageStreamGetter) get() (*imageapi.ImageStream, error) {
 		context.GetLogger(g.ctx).Debugf("(*cachedImageStreamGetter).getImageStream: returning cached copy")
 		return g.cachedImageStream, nil
 	}
-	is, err := g.isNamespacer.ImageStreams(g.namespace).Get(g.name)
+	is, err := g.isNamespacer.ImageStreams(g.namespace).Get(g.name, metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(g.ctx).Errorf("failed to get image stream: %v", err)
 		switch {

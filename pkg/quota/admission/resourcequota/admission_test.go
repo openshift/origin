@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/controller/informers"
 
@@ -21,7 +22,7 @@ import (
 // admission will return error we can recognize.
 func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 	resourceQuota := &kapi.ResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: "quota", Namespace: "test", ResourceVersion: "124"},
+		ObjectMeta: metav1.ObjectMeta{Name: "quota", Namespace: "test", ResourceVersion: "124"},
 		Status: kapi.ResourceQuotaStatus{
 			Hard: kapi.ResourceList{
 				imageapi.ResourceImageStreams: resource.MustParse("0"),
@@ -42,7 +43,7 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 	}
 
 	newIS := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			Name:      "is",
 		},

@@ -1,18 +1,18 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient=true
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// message is an optional instructional message that will
 	// be displayed when this template is instantiated.
@@ -41,9 +41,9 @@ type Template struct {
 
 // TemplateList is a list of Template objects.
 type TemplateList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of templates
 	Items []Template `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -99,9 +99,9 @@ type Parameter struct {
 // TemplateInstance requests and records the instantiation of a Template.
 // TemplateInstance is part of an experimental API.
 type TemplateInstance struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec describes the desired state of this TemplateInstance.
 	Spec TemplateInstanceSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -117,7 +117,7 @@ type TemplateInstanceSpec struct {
 
 	// secret is a reference to a Secret object containing the necessary
 	// template parameters.
-	Secret kapi.LocalObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
+	Secret kapiv1.LocalObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
 
 	// requester holds the identity of the agent requesting the template
 	// instantiation.
@@ -144,10 +144,10 @@ type TemplateInstanceCondition struct {
 	// Type of the condition, currently Ready or InstantiateFailure.
 	Type TemplateInstanceConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TemplateInstanceConditionType"`
 	// Status of the condition, one of True, False or Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
+	Status kapiv1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
 	// LastTransitionTime is the last time a condition status transitioned from
 	// one state to another.
-	LastTransitionTime unversioned.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// Reason is a brief machine readable explanation for the condition's last
 	// transition.
 	Reason string `json:"reason" protobuf:"bytes,4,opt,name=reason"`
@@ -171,9 +171,9 @@ const (
 
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of Templateinstances
 	Items []TemplateInstance `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -185,9 +185,9 @@ type TemplateInstanceList struct {
 // BrokerTemplateInstance holds the service broker-related state associated with
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
 type BrokerTemplateInstance struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec describes the state of this BrokerTemplateInstance.
 	Spec BrokerTemplateInstanceSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -197,11 +197,11 @@ type BrokerTemplateInstance struct {
 type BrokerTemplateInstanceSpec struct {
 	// templateinstance is a reference to a TemplateInstance object residing
 	// in a namespace.
-	TemplateInstance kapi.ObjectReference `json:"templateInstance" protobuf:"bytes,1,opt,name=templateInstance"`
+	TemplateInstance kapiv1.ObjectReference `json:"templateInstance" protobuf:"bytes,1,opt,name=templateInstance"`
 
 	// secret is a reference to a Secret object residing in a namespace,
 	// containing the necessary template parameters.
-	Secret kapi.ObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
+	Secret kapiv1.ObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
 
 	// bindingids is a list of 'binding_id's provided during successive bind
 	// calls to the template service broker.
@@ -210,9 +210,9 @@ type BrokerTemplateInstanceSpec struct {
 
 // BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.
 type BrokerTemplateInstanceList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of BrokerTemplateInstances
 	Items []BrokerTemplateInstance `json:"items" protobuf:"bytes,2,rep,name=items"`

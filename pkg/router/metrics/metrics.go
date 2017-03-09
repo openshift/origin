@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"k8s.io/kubernetes/pkg/healthz"
+	"k8s.io/apiserver/pkg/server/healthz"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"

@@ -3,14 +3,16 @@ package image
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/admission"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -39,7 +41,7 @@ func NewImageStreamTagEvaluator(store *oscache.StoreToImageStreamLister, istName
 				return nil, err
 			}
 			obj = &imageapi.ImageStreamTag{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
 					Name:      id,
 				},
@@ -59,7 +61,7 @@ func NewImageStreamTagEvaluator(store *oscache.StoreToImageStreamLister, istName
 		MatchesScopeFunc:     matchesScopeFunc,
 		UsageFunc:            makeImageStreamTagAdmissionUsageFunc(store),
 		GetFuncByNamespace:   getFuncByNamespace,
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+		ListFuncByNamespace: func(namespace string, options metainternal.ListOptions) ([]runtime.Object, error) {
 			return []runtime.Object{}, nil
 		},
 		ConstraintsFunc: imageStreamTagConstraintsFunc,

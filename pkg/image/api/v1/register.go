@@ -1,10 +1,10 @@
 package v1
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch/versioned"
 
 	"github.com/openshift/origin/pkg/image/api/docker10"
@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	SchemeGroupVersion       = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
 	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, addConversionFuncs, addDefaultingFuncs, docker10.AddToSchemeInCoreGroup, dockerpre012.AddToSchemeInCoreGroup)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
@@ -61,11 +61,11 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,
-			&unversioned.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&kapi.ListOptions{},
+			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
+			&metainternal.ListOptions{},
 			&kapiv1.SecretList{},
-			&kapi.DeleteOptions{},
-			&kapi.ExportOptions{},
+			&metainternal.DeleteOptions{},
+			&metainternal.ExportOptions{},
 		)...,
 	)
 	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)

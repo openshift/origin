@@ -3,12 +3,14 @@ package servicebroker
 import (
 	"net/http"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 func (b *Broker) Unbind(instanceID, bindingID string) *api.Response {
-	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID)
+	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return api.BadRequest(err)

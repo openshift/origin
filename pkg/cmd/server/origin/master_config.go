@@ -13,31 +13,36 @@ import (
 	etcdclient "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/admission"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kutilrand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/union"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apiserver/request"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/auth/group"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	kutilrand "k8s.io/kubernetes/pkg/util/rand"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/headerrequest"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
@@ -104,7 +109,7 @@ type MasterConfig struct {
 	Authorizer     kauthorizer.Authorizer
 	SubjectLocator authorizer.SubjectLocator
 
-	// TODO(sttts): replace AuthorizationAttributeBuilder with kapiserverfilters.NewRequestAttributeGetter
+	// TODO(sttts): replace AuthorizationAttributeBuilder with apiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
 	GroupCache                    *usercache.GroupCache
@@ -114,7 +119,7 @@ type MasterConfig struct {
 	LimitVerifier                 imageadmission.LimitVerifier
 
 	// RequestContextMapper maps requests to contexts
-	RequestContextMapper kapi.RequestContextMapper
+	RequestContextMapper apirequest.RequestContextMapper
 
 	AdmissionControl admission.Interface
 
@@ -207,13 +212,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate.Latest = options.ImageConfig.Latest
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(kapi.NamespaceDefault).Get)
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	requestContextMapper := kapi.NewRequestContextMapper()
+	requestContextMapper := apirequest.NewRequestContextMapper()
 
 	groupStorage, err := groupstorage.NewREST(restOptsGetter)
 	if err != nil {
@@ -249,7 +254,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
 	// Authorizer as the 2nd arg. It's currently only used by PSP.
-	kubePluginInitializer := admission.NewPluginInitializer(kubeInformerFactory, nil)
+	kubePluginInitializer := kadmission.NewPluginInitializer(kubeInformerFactory, nil, nil, nil)
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
@@ -297,7 +302,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 
 		// TODO: migration of versions of resources stored in annotations must be sorted out
-		ExternalVersionCodec: kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: "v1"}),
+		ExternalVersionCodec: kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}),
 
 		KubeletClientConfig: kubeletClientConfig,
 
@@ -311,16 +316,16 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.Informers.KubernetesInformers().LimitRanges().Informer()
-	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
-		list, err := config.Informers.KubernetesInformers().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
+	informer := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Informer()
+	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapiv1.LimitRange, error) {
+		list, err := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
 			return nil, err
 		}
 		// the verifier must return an error
 		if len(list) == 0 && len(informer.LastSyncResourceVersion()) == 0 {
 			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", informer)
-			forbiddenErr := kapierrors.NewForbidden(unversioned.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
+			forbiddenErr := kapierrors.NewForbidden(schema.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
 			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
 			return nil, forbiddenErr
 		}
@@ -504,7 +509,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 		switch pluginName {
 		case lifecycle.PluginName:
 			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
-			immortalNamespaces := sets.NewString(kapi.NamespaceDefault)
+			immortalNamespaces := sets.NewString(metav1.NamespaceDefault)
 			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
 			}
@@ -732,7 +737,7 @@ func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWat
 }
 
 func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := clusterpolicyetcd.NewREST(optsGetter)
 	if err != nil {
@@ -741,17 +746,17 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	registry := clusterpolicyregistry.NewRegistry(storage)
 
 	return &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicies(ctx, &options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return registry.WatchClusterPolicies(ctx, &options)
 		},
 	}, nil
 }
 
 func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := clusterpolicybindingetcd.NewREST(optsGetter)
 	if err != nil {
@@ -760,17 +765,17 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 	registry := clusterpolicybindingregistry.NewRegistry(storage)
 
 	return &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicyBindings(ctx, &options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return registry.WatchClusterPolicyBindings(ctx, &options)
 		},
 	}, nil
 }
 
 func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := policyetcd.NewREST(optsGetter)
 	if err != nil {
@@ -779,17 +784,17 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	registry := policyregistry.NewRegistry(storage)
 
 	return &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicies(ctx, &options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return registry.WatchPolicies(ctx, &options)
 		},
 	}, nil
 }
 
 func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := policybindingetcd.NewREST(optsGetter)
 	if err != nil {
@@ -798,10 +803,10 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	registry := policybindingregistry.NewRegistry(storage)
 
 	return &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicyBindings(ctx, &options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return registry.WatchPolicyBindings(ctx, &options)
 		},
 	}, nil
@@ -814,9 +819,9 @@ func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, inform
 	return scopeLimitedAuthorizer, subjectLocator
 }
 
-func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
+func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
 	// Default API request info factory
-	requestInfoFactory := &request.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
 		requestContextMapper,

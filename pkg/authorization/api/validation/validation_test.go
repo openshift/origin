@@ -3,8 +3,9 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -12,7 +13,7 @@ import (
 func TestValidatePolicy(t *testing.T) {
 	errs := ValidatePolicy(
 		&authorizationapi.Policy{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.PolicyName},
 		},
 		true,
 	)
@@ -27,31 +28,31 @@ func TestValidatePolicy(t *testing.T) {
 	}{
 		"zero-length namespace": {
 			A: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.namespace",
 		},
 		"zero-length name": {
 			A: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault},
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.name",
 		},
 		"invalid name": {
 			A: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "name"},
 			},
 			T: field.ErrorTypeInvalid,
 			F: "metadata.name",
 		},
 		"mismatched name": {
 			A: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "any"},
 					},
 				},
 			},
@@ -60,10 +61,10 @@ func TestValidatePolicy(t *testing.T) {
 		},
 		"has role with attributeRestrictions": {
 			A: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -98,17 +99,17 @@ func TestValidatePolicyUpdate(t *testing.T) {
 	}{
 		"no new attribute restrictions": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 							{},
 						},
 					},
 					"any2": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 						},
@@ -116,10 +117,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -129,10 +130,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 		},
 		"new attribute restrictions of the same type": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
@@ -141,10 +142,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -154,10 +155,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 		},
 		"less attribute restrictions": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -165,10 +166,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -193,10 +194,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 	}{
 		"new attribute restrictions": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -204,10 +205,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 						},
@@ -219,10 +220,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 		},
 		"attribute restrictions of a different type": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{},
@@ -233,10 +234,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
 						},
@@ -248,10 +249,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 		},
 		"similiar attribute restrictions": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{},
@@ -261,10 +262,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{},
@@ -278,17 +279,17 @@ func TestValidatePolicyUpdate(t *testing.T) {
 		},
 		"new role with attribute restriction rules like another role's": {
 			newO: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 						},
 					},
 					"any2": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -297,10 +298,10 @@ func TestValidatePolicyUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
 						Rules: []authorizationapi.PolicyRule{
 							{},
 							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -332,7 +333,7 @@ func TestValidatePolicyUpdate(t *testing.T) {
 func TestValidatePolicyBinding(t *testing.T) {
 	errs := ValidatePolicyBinding(
 		&authorizationapi.PolicyBinding{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName("master")},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName("master")},
 			PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 		},
 		true,
@@ -348,7 +349,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 	}{
 		"zero-length namespace": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeRequired,
@@ -356,7 +357,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"zero-length name": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeRequired,
@@ -364,7 +365,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"invalid name": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "name"},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeInvalid,
@@ -372,11 +373,11 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"bad role": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 				RoleBindings: map[string]*authorizationapi.RoleBinding{
 					"any": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "any"},
 						RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 					},
 				},
@@ -386,11 +387,11 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"mismatched name": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 				RoleBindings: map[string]*authorizationapi.RoleBinding{
 					"any1": {
-						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "any"},
 						RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName, Name: "valid"},
 					},
 				},
@@ -419,7 +420,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 func TestValidateRoleBinding(t *testing.T) {
 	errs := ValidateRoleBinding(
 		&authorizationapi.RoleBinding{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 			RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 			Subjects: []kapi.ObjectReference{
 				{Name: "validsaname", Kind: authorizationapi.ServiceAccountKind},
@@ -442,7 +443,7 @@ func TestValidateRoleBinding(t *testing.T) {
 	}{
 		"zero-length namespace": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 			},
 			T: field.ErrorTypeRequired,
@@ -450,7 +451,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"zero-length name": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 			},
 			T: field.ErrorTypeRequired,
@@ -458,7 +459,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"invalid ref": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "name"},
 				RoleRef:    kapi.ObjectReference{Namespace: "-192083", Name: "valid"},
 			},
 			T: field.ErrorTypeInvalid,
@@ -466,7 +467,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"bad role": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: authorizationapi.PolicyName},
 				RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeRequired,
@@ -474,7 +475,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"bad subject kind": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Name: "subject"}},
 			},
@@ -483,7 +484,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"bad subject name": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Name: "subject:bad", Kind: authorizationapi.ServiceAccountKind}},
 			},
@@ -492,7 +493,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"bad system user name": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Name: "user", Kind: authorizationapi.SystemUserKind}},
 			},
@@ -501,7 +502,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"bad system group name": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Name: "valid", Kind: authorizationapi.SystemGroupKind}},
 			},
@@ -510,7 +511,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"forbidden fields": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Name: "subject", Kind: authorizationapi.ServiceAccountKind, APIVersion: "foo"}},
 			},
@@ -519,7 +520,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 		"missing subject name": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 				Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.ServiceAccountKind}},
 			},
@@ -546,13 +547,13 @@ func TestValidateRoleBinding(t *testing.T) {
 
 func TestValidateRoleBindingUpdate(t *testing.T) {
 	old := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master", ResourceVersion: "1"},
 		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 	}
 
 	errs := ValidateRoleBindingUpdate(
 		&authorizationapi.RoleBinding{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master", ResourceVersion: "1"},
 			RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 		},
 		old,
@@ -569,7 +570,7 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 	}{
 		"changedRef": {
 			A: authorizationapi.RoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master", ResourceVersion: "1"},
 				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "changed"},
 			},
 			T: field.ErrorTypeInvalid,
@@ -596,7 +597,7 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 func TestValidateRole(t *testing.T) {
 	errs := ValidateRole(
 		&authorizationapi.Role{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "master"},
 		},
 		true,
 	)
@@ -611,21 +612,21 @@ func TestValidateRole(t *testing.T) {
 	}{
 		"zero-length namespace": {
 			A: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName},
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.namespace",
 		},
 		"zero-length name": {
 			A: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault},
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.name",
 		},
 		"invalid rule": {
 			A: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: kapi.NamespaceDefault},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 				},
@@ -658,24 +659,24 @@ func TestValidateRoleUpdate(t *testing.T) {
 	}{
 		"no attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{},
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 			},
 		},
 		"same attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 				},
@@ -697,7 +698,7 @@ func TestValidateRoleUpdate(t *testing.T) {
 	}{
 		"more attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.Role{}},
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -705,7 +706,7 @@ func TestValidateRoleUpdate(t *testing.T) {
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.Role{}},
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -716,13 +717,13 @@ func TestValidateRoleUpdate(t *testing.T) {
 		},
 		"added attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.Role{}},
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Rules: []authorizationapi.PolicyRule{
 					{},
 				},
@@ -732,13 +733,13 @@ func TestValidateRoleUpdate(t *testing.T) {
 		},
 		"same number of different attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.Role{}},
 				},
@@ -748,13 +749,13 @@ func TestValidateRoleUpdate(t *testing.T) {
 		},
 		"less but different attribute restrictions": {
 			newO: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.ClusterPolicyBinding{}},
 				},
 			},
 			old: authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Rules: []authorizationapi.PolicyRule{
 					{AttributeRestrictions: &authorizationapi.Role{}},
 					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -789,7 +790,7 @@ func TestValidateClusterPolicyBinding(t *testing.T) {
 	}{
 		"external namespace ref": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("master")},
+				ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("master")},
 				PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 			},
 			T: field.ErrorTypeInvalid,

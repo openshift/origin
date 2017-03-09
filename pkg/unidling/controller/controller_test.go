@@ -9,15 +9,16 @@ import (
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployfake "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/fake"
+	deployfake "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/fake"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
-	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	ktestingcore "k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
+	kexternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	// install the APIs we need for the codecs to run correctly in order to build patches
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -28,8 +29,8 @@ type fakeResults struct {
 	resEndpoints *kapi.Endpoints
 }
 
-func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*kfake.Clientset, *deployfake.Clientset, *fakeResults) {
-	fakeClient := &kfake.Clientset{}
+func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*kinternalfake.Clientset, *deployfake.Clientset, *fakeResults) {
+	fakeClient := &kinternalfake.Clientset{}
 	fakeDeployClient := &deployfake.Clientset{}
 
 	nowTimeStr := nowTime.Format(time.RFC3339)
@@ -50,7 +51,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 	}
 
 	endpointsObj := kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "somesvc",
 			Annotations: map[string]string{
 				unidlingapi.IdledAtAnnotation:      nowTimeStr,
@@ -58,20 +59,20 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 			},
 		},
 	}
-	fakeClient.PrependReactor("get", "endpoints", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		if action.(ktestingcore.GetAction).GetName() == endpointsObj.Name {
+	fakeClient.PrependReactor("get", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		if action.(clientgotesting.GetAction).GetName() == endpointsObj.Name {
 			return true, &endpointsObj, nil
 		}
 
 		return false, nil, nil
 	})
 
-	fakeDeployClient.PrependReactor("get", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		objName := action.(ktestingcore.GetAction).GetName()
+	fakeDeployClient.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
 				return true, &deployapi.DeploymentConfig{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: deployapi.DeploymentConfigSpec{
@@ -84,12 +85,12 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), objName)
 	})
 
-	fakeClient.PrependReactor("get", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		objName := action.(ktestingcore.GetAction).GetName()
+	fakeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range scales {
 			if scale.Kind == "ReplicationController" && objName == scale.Name {
 				return true, &kapi.ReplicationController{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: kapi.ReplicationControllerSpec{
@@ -106,8 +107,8 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		resMap: make(map[unidlingapi.CrossGroupObjectReference]kextapi.Scale),
 	}
 
-	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && obj.Name == scale.Name {
 				newScale := scale
@@ -120,8 +121,8 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), obj.Name)
 	})
 
-	fakeClient.PrependReactor("update", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*kapi.ReplicationController)
+	fakeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		for _, scale := range scales {
 			if scale.Kind == "ReplicationController" && obj.Name == scale.Name {
 				newScale := scale
@@ -134,8 +135,8 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), obj.Name)
 	})
 
-	fakeDeployClient.PrependReactor("patch", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		patchAction := action.(ktestingcore.PatchActionImpl)
+	fakeDeployClient.PrependReactor("patch", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		patchAction := action.(clientgotesting.PatchActionImpl)
 		var patch deployapi.DeploymentConfig
 		json.Unmarshal(patchAction.GetPatch(), &patch)
 
@@ -151,8 +152,8 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), patchAction.GetName())
 	})
 
-	fakeClient.PrependReactor("patch", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		patchAction := action.(ktestingcore.PatchActionImpl)
+	fakeClient.PrependReactor("patch", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		patchAction := action.(clientgotesting.PatchActionImpl)
 		var patch kapi.ReplicationController
 		json.Unmarshal(patchAction.GetPatch(), &patch)
 
@@ -168,8 +169,8 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), patchAction.GetName())
 	})
 
-	fakeClient.AddReactor("*", "endpoints", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*kapi.Endpoints)
+	fakeClient.AddReactor("*", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*kapi.Endpoints)
 		if obj.Name != endpointsObj.Name {
 			return false, nil, nil
 		}
@@ -185,11 +186,12 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 func TestControllerHandlesStaleEvents(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Core(),
+		dcNamespacer:        fakeDeployClient.Deploy(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -215,10 +217,10 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []kextapi.Scale{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -226,10 +228,10 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "DeploymentConfig",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -240,12 +242,13 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 
 	idledTime := nowTime.Add(-10 * time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, idledTime, baseScales...)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Core(),
+		dcNamespacer:        fakeDeployClient.Deploy(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -327,10 +330,10 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []kextapi.Scale{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -338,10 +341,10 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind:       "DeploymentConfig",
 				APIVersion: "apps.openshift.io/v1",
 			},
@@ -352,12 +355,13 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	}
 
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Core(),
+		dcNamespacer:        fakeDeployClient.Deploy(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -417,12 +421,12 @@ type failureTestInfo struct {
 	annotationsExpected map[string]string
 }
 
-func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *deployfake.Clientset) {
-	fakeClient := &kfake.Clientset{}
+func prepareFakeClientForFailureTest(test failureTestInfo) (*kinternalfake.Clientset, *deployfake.Clientset) {
+	fakeClient := &kinternalfake.Clientset{}
 	fakeDeployClient := &deployfake.Clientset{}
 
-	fakeClient.PrependReactor("get", "endpoints", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		objName := action.(ktestingcore.GetAction).GetName()
+	fakeClient.PrependReactor("get", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
 		if test.endpointsGet != nil && objName == test.endpointsGet.Name {
 			return true, test.endpointsGet, nil
 		}
@@ -430,12 +434,12 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), objName)
 	})
 
-	fakeDeployClient.PrependReactor("get", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		objName := action.(ktestingcore.GetAction).GetName()
+	fakeDeployClient.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range test.scaleGets {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
 				return true, &deployapi.DeploymentConfig{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: deployapi.DeploymentConfigSpec{
@@ -448,12 +452,12 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), objName)
 	})
 
-	fakeClient.PrependReactor("get", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		objName := action.(ktestingcore.GetAction).GetName()
+	fakeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
 		for _, scale := range test.scaleGets {
 			if scale.Kind == "ReplicationController" && objName == scale.Name {
 				return true, &kapi.ReplicationController{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: kapi.ReplicationControllerSpec{
@@ -466,8 +470,8 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), objName)
 	})
 
-	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		for i, scale := range test.scaleGets {
 			if scale.Kind == "DeploymentConfig" && obj.Name == scale.Name {
 				if test.scaleUpdatesNotFound != nil && test.scaleUpdatesNotFound[i] {
@@ -481,8 +485,8 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), obj.Name)
 	})
 
-	fakeClient.PrependReactor("update", "replicationcontrollers", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*kapi.ReplicationController)
+	fakeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		for i, scale := range test.scaleGets {
 			if scale.Kind == "ReplicationController" && obj.Name == scale.Name {
 				if test.scaleUpdatesNotFound != nil && test.scaleUpdatesNotFound[i] {
@@ -495,8 +499,8 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), obj.Name)
 	})
 
-	fakeClient.PrependReactor("update", "endpoints", func(action ktestingcore.Action) (bool, runtime.Object, error) {
-		obj := action.(ktestingcore.UpdateAction).GetObject().(*kapi.Endpoints)
+	fakeClient.PrependReactor("update", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		obj := action.(clientgotesting.UpdateAction).GetObject().(*kapi.Endpoints)
 		if obj.Name != test.endpointsGet.Name {
 			return false, nil, nil
 		}
@@ -561,7 +565,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "not retry on failure to parse time",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation: "cheddar",
@@ -574,7 +578,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "not retry on failure to unmarshal target scalables",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -588,7 +592,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "remove a scalable from the list if it cannot be found (while getting)",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -598,11 +602,11 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -617,7 +621,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "should remove a scalable from the list if it cannot be found (while updating)",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -627,20 +631,20 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -656,7 +660,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "retry on failed endpoints update",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -666,20 +670,20 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -693,11 +697,12 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 
 	for _, test := range tests {
 		fakeClient, fakeDeployClient := prepareFakeClientForFailureTest(test)
+		fakeExternalClient := kexternalfake.NewSimpleClientset()
 		controller := &UnidlingController{
-			scaleNamespacer:     fakeClient.Extensions(),
+			scaleNamespacer:     fakeExternalClient.Extensions(),
 			endpointsNamespacer: fakeClient.Core(),
 			rcNamespacer:        fakeClient.Core(),
-			dcNamespacer:        fakeDeployClient.Core(),
+			dcNamespacer:        fakeDeployClient.Deploy(),
 		}
 
 		var retry bool

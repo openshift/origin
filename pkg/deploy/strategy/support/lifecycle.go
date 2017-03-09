@@ -9,18 +9,18 @@ import (
 
 	"github.com/golang/glog"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kdeployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -149,7 +149,7 @@ func (e *hookExecutor) tagImages(hook *deployapi.LifecycleHook, rc *kapi.Replica
 			namespace = rc.Namespace
 		}
 		if _, err := e.tags.ImageStreamTags(namespace).Update(&imageapi.ImageStreamTag{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      action.To.Name,
 				Namespace: namespace,
 			},
@@ -184,7 +184,7 @@ func (e *hookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, rc *kapi
 		return err
 	}
 
-	deployerPod, err := e.pods.Pods(rc.Namespace).Get(deployutil.DeployerPodNameForDeployment(rc.Name))
+	deployerPod, err := e.pods.Pods(rc.Namespace).Get(deployutil.DeployerPodNameForDeployment(rc.Name), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -390,7 +390,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	}
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: namer.GetPodName(rc.Name, suffix),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: rc.Name,
@@ -449,12 +449,12 @@ func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
 func newPodWatch(client kcoreclient.PodInterface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-			options.FieldSelector = fieldSelector
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fieldSelector.String()
 			return client.List(options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-			options.FieldSelector = fieldSelector
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = fieldSelector.String()
 			return client.Watch(options)
 		},
 	}
@@ -487,12 +487,12 @@ func NewAcceptAvailablePods(
 			selector := labels.Set(rc.Spec.Selector).AsSelector()
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 			lw := &cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-					options.LabelSelector = selector
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					options.LabelSelector = selector.String()
 					return kclient.Pods(rc.Namespace).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-					options.LabelSelector = selector
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					options.LabelSelector = selector.String()
 					return kclient.Pods(rc.Namespace).Watch(options)
 				},
 			}
@@ -559,7 +559,7 @@ func (c *acceptAvailablePods) Accept(rc *kapi.ReplicationController) error {
 			if c.acceptedPods.Has(pod.Name) {
 				continue
 			}
-			if kdeployutil.IsPodAvailable(pod, c.minReadySeconds, time.Now()) {
+			if kapi.IsPodAvailable(pod, c.minReadySeconds, metav1.NewTime(time.Now())) {
 				// If the pod is ready, track it as accepted.
 				c.acceptedPods.Insert(pod.Name)
 			} else {

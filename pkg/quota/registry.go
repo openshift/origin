@@ -1,8 +1,8 @@
 package quota
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
@@ -25,7 +25,7 @@ func NewAllResourceQuotaRegistry(informerFactory shared.InformerFactory, osClien
 }
 
 // AllEvaluatedGroupKinds is the list of all group kinds that we evaluate for quotas in openshift and kube
-var AllEvaluatedGroupKinds = []unversioned.GroupKind{
+var AllEvaluatedGroupKinds = []schema.GroupKind{
 	kapi.Kind("Pod"),
 	kapi.Kind("Service"),
 	kapi.Kind("ReplicationController"),

@@ -5,18 +5,18 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func mockBuildConfig(namespace, name string) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	return &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
-func withCreated(build *buildapi.Build, creationTimestamp unversioned.Time) *buildapi.Build {
+func withCreated(build *buildapi.Build, creationTimestamp metav1.Time) *buildapi.Build {
 	build.CreationTimestamp = creationTimestamp
 	return build
 }
@@ -27,7 +27,7 @@ func withStatus(build *buildapi.Build, status buildapi.BuildPhase) *buildapi.Bui
 }
 
 func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 	if buildConfig != nil {
 		build.Status.Config = &kapi.ObjectReference{
 			Name:      buildConfig.Name,
@@ -68,17 +68,17 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := unversioned.Now()
-	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
+	now := metav1.Now()
+	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
 	builds := []*buildapi.Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "old",
 				CreationTimestamp: old,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "new",
 				CreationTimestamp: now,
 			},

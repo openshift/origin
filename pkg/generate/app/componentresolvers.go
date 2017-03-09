@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 // Resolver is an interface for resolving provided input to component matches.

@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -14,13 +15,13 @@ type RoutesNamespacer interface {
 
 // RouteInterface exposes methods on Route resources
 type RouteInterface interface {
-	List(opts kapi.ListOptions) (*routeapi.RouteList, error)
+	List(opts metainternal.ListOptions) (*routeapi.RouteList, error)
 	Get(name string) (*routeapi.Route, error)
 	Create(route *routeapi.Route) (*routeapi.Route, error)
 	Update(route *routeapi.Route) (*routeapi.Route, error)
 	UpdateStatus(route *routeapi.Route) (*routeapi.Route, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 // routes implements RouteInterface interface
@@ -38,7 +39,7 @@ func newRoutes(c *Client, namespace string) *routes {
 }
 
 // List takes a label and field selector, and returns the list of routes that match that selectors
-func (c *routes) List(opts kapi.ListOptions) (result *routeapi.RouteList, err error) {
+func (c *routes) List(opts metainternal.ListOptions) (result *routeapi.RouteList, err error) {
 	result = &routeapi.RouteList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -83,7 +84,7 @@ func (c *routes) UpdateStatus(route *routeapi.Route) (result *routeapi.Route, er
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *routes) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

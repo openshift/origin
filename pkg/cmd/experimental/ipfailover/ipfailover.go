@@ -8,11 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -192,7 +193,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	}
 
 	configList := []runtime.Object{
-		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: options.ServiceAccount}},
+		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: options.ServiceAccount}},
 	}
 
 	list.Items = append(configList, list.Items...)
@@ -210,7 +211,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 
 func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string) error {
 
-	sccList, err := client.Core().SecurityContextConstraints().List(kapi.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

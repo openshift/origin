@@ -1,8 +1,11 @@
 package oauthclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -10,21 +13,21 @@ import (
 // Registry is an interface for things that know how to store OAuthClient objects.
 type Registry interface {
 	// ListClients obtains a list of clients that match a selector.
-	ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error)
+	ListClients(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error)
 	// GetClient retrieves a specific client.
-	GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error)
+	GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error)
 	// CreateClient creates a new client.
-	CreateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error)
+	CreateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error)
 	// UpdateClient updates a client.
-	UpdateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error)
+	UpdateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error)
 	// DeleteClient deletes a client.
-	DeleteClient(ctx kapi.Context, name string) error
+	DeleteClient(ctx apirequest.Context, name string) error
 }
 
 // Getter exposes a way to get a specific client.  This is useful for other registries to get scope limitations
 // on particular clients.   This interface will make its easier to write a future cache on it
 type Getter interface {
-	GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error)
+	GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error)
 }
 
 // storage puts strong typing around storage calls
@@ -38,7 +41,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error) {
+func (s *storage) ListClients(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -46,15 +49,15 @@ func (s *storage) ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api
 	return obj.(*api.OAuthClientList), nil
 }
 
-func (s *storage) GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.OAuthClient), nil
 }
 
-func (s *storage) CreateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+func (s *storage) CreateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
 	obj, err := s.Create(ctx, client)
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func (s *storage) CreateClient(ctx kapi.Context, client *api.OAuthClient) (*api.
 	return obj.(*api.OAuthClient), nil
 }
 
-func (s *storage) UpdateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+func (s *storage) UpdateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
 	obj, _, err := s.Update(ctx, client.Name, rest.DefaultUpdatedObjectInfo(client, kapi.Scheme))
 	if err != nil {
 		return nil, err
@@ -70,8 +73,8 @@ func (s *storage) UpdateClient(ctx kapi.Context, client *api.OAuthClient) (*api.
 	return obj.(*api.OAuthClient), nil
 }
 
-func (s *storage) DeleteClient(ctx kapi.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+func (s *storage) DeleteClient(ctx apirequest.Context, name string) error {
+	_, _, err := s.Delete(ctx, name, nil)
 	if err != nil {
 		return err
 	}

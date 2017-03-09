@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 )

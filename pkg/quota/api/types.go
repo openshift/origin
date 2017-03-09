@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // +genclient=true
@@ -14,9 +14,9 @@ import (
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to
 // synthetic ResourceQuota object to allow quota evaluation re-use.
 type ClusterResourceQuota struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec
@@ -42,7 +42,7 @@ type ClusterResourceQuotaSpec struct {
 // the project must match both restrictions.
 type ClusterResourceQuotaSelector struct {
 	// LabelSelector is used to select projects by label.
-	LabelSelector *unversioned.LabelSelector
+	LabelSelector *metav1.LabelSelector
 
 	// AnnotationSelector is used to select projects by annotation.
 	AnnotationSelector map[string]string
@@ -61,9 +61,9 @@ type ClusterResourceQuotaStatus struct {
 
 // ClusterResourceQuotaList is a collection of ClusterResourceQuotas
 type ClusterResourceQuotaList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of ClusterResourceQuotas
 	Items []ClusterResourceQuota
@@ -73,9 +73,9 @@ type ClusterResourceQuotaList struct {
 // into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
 // his project and their associated usage.
 type AppliedClusterResourceQuota struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec
@@ -86,9 +86,9 @@ type AppliedClusterResourceQuota struct {
 
 // AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
 type AppliedClusterResourceQuotaList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of AppliedClusterResourceQuota
 	Items []AppliedClusterResourceQuota

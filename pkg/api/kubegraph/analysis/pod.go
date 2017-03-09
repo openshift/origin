@@ -6,8 +6,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -23,7 +23,7 @@ const (
 )
 
 // exposed for testing
-var nowFn = unversioned.Now
+var nowFn = metav1.Now
 
 // FindRestartingPods inspects all Pods to see if they've restarted more than the threshold. logsCommandName is the name of
 // the command that should be invoked to see pod logs. securityPolicyCommandPattern is a format string accepting two replacement
@@ -120,7 +120,7 @@ func containerCrashLoopBackOff(status kapi.ContainerStatus) bool {
 	return status.State.Waiting != nil && status.State.Waiting.Reason == "CrashLoopBackOff"
 }
 
-func ContainerRestartedRecently(status kapi.ContainerStatus, now unversioned.Time) bool {
+func ContainerRestartedRecently(status kapi.ContainerStatus, now metav1.Time) bool {
 	if status.RestartCount == 0 {
 		return false
 	}

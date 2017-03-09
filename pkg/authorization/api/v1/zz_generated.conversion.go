@@ -5,13 +5,13 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
+
+	api "github.com/openshift/origin/pkg/authorization/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -445,7 +445,7 @@ func Convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleList, 
 
 func autoConvert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, out *api.GroupRestriction, s conversion.Scope) error {
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]metav1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
@@ -455,7 +455,7 @@ func Convert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, o
 
 func autoConvert_api_GroupRestriction_To_v1_GroupRestriction(in *api.GroupRestriction, out *GroupRestriction, s conversion.Scope) error {
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]metav1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
@@ -1202,7 +1202,7 @@ func Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in *api
 func autoConvert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out *api.UserRestriction, s conversion.Scope) error {
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]metav1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
@@ -1213,7 +1213,7 @@ func Convert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out 
 func autoConvert_api_UserRestriction_To_v1_UserRestriction(in *api.UserRestriction, out *UserRestriction, s conversion.Scope) error {
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]metav1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
