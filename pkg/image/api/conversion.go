@@ -3,9 +3,9 @@ package api
 import (
 	"github.com/fsouza/go-dockerclient"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/conversion"
 )
 
 func init() {
@@ -21,7 +21,7 @@ func init() {
 			out.ID = in.ID
 			out.Parent = in.Parent
 			out.Comment = in.Comment
-			out.Created = unversioned.NewTime(in.Created)
+			out.Created = metav1.NewTime(in.Created)
 			out.Container = in.Container
 			out.DockerVersion = in.DockerVersion
 			out.Author = in.Author

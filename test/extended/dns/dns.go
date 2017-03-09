@@ -9,23 +9,24 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 func createDNSPod(namespace, probeCmd string) *api.Pod {
 	pod := &api.Pod{
-		TypeMeta: unversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
+			APIVersion: kapi.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dns-test-" + string(uuid.NewUUID()),
 			Namespace: namespace,
 		},
@@ -158,7 +159,7 @@ func assertLinesExist(lines sets.String, expect int, r io.Reader) error {
 func PodSucceeded(event watch.Event) (bool, error) {
 	switch event.Type {
 	case watch.Deleted:
-		return false, errors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, "")
+		return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, "")
 	}
 	switch t := event.Object.(type) {
 	case *api.Pod:
@@ -178,14 +179,14 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
-		podClient.Delete(pod.Name, api.NewDeleteOptions(0))
+		podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
 	}()
 	updated, err := podClient.Create(pod)
 	if err != nil {
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(api.SingleObject(api.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
@@ -216,7 +217,7 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 
 func createServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *api.Service {
 	s := &api.Service{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Spec: api.ServiceSpec{
@@ -239,7 +240,7 @@ func createServiceSpec(serviceName string, isHeadless bool, externalName string,
 
 func createEndpointSpec(name string) *api.Endpoints {
 	return &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Subsets: []api.EndpointSubset{
@@ -290,7 +291,7 @@ var _ = Describe("DNS", func() {
 			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
-		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes")
+		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to find endpoints for kubernetes.default: %v", err)
 		}

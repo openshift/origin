@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -71,7 +72,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	}
 
 	for _, changedClusterRoleBinding := range changedClusterRoleBindings {
-		actualClusterRole, err := d.ClusterRoleBindingsClient.ClusterRoleBindings().Get(changedClusterRoleBinding.Name)
+		actualClusterRole, err := d.ClusterRoleBindingsClient.ClusterRoleBindings().Get(changedClusterRoleBinding.Name, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			r.Error("CRBD1001", nil, fmt.Sprintf("clusterrolebinding/%s is missing.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to create the role binding.", changedClusterRoleBinding.Name))
 			continue

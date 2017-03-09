@@ -4,10 +4,11 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/authorization/api/install"
@@ -24,7 +25,7 @@ func TestClusterRoleReaper(t *testing.T) {
 		{
 			name: "no bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
@@ -32,25 +33,25 @@ func TestClusterRoleReaper(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
 			bindings: []*authorizationapi.ClusterRoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-1",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-2",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-3",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
@@ -69,8 +70,8 @@ func TestClusterRoleReaper(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "clusterrolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
+		tc.PrependReactor("delete", "clusterrolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(clientgotesting.DeleteAction).GetName())
 			return true, nil, nil
 		})
 
@@ -98,27 +99,27 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "ns-one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-2",
 						Namespace: "ns-one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-3",
 						Namespace: "ns-one",
 					},
@@ -138,8 +139,8 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "rolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
+		tc.PrependReactor("delete", "rolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(clientgotesting.DeleteAction).GetName())
 			return true, nil, nil
 		})
 

@@ -5,19 +5,21 @@ import (
 	"net/http"
 	"reflect"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/auth/user"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 func (b *Broker) ensureSecret(impersonatedKC *kclientset.Clientset, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
 	secret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{Name: instanceID},
+		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Data:       map[string][]byte{},
 	}
 
@@ -34,7 +36,7 @@ func (b *Broker) ensureSecret(impersonatedKC *kclientset.Clientset, namespace st
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		existingSec, err := impersonatedKC.Secrets(namespace).Get(secret.Name)
+		existingSec, err := impersonatedKC.Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(secret.Data, existingSec.Data) {
 			return existingSec, nil
 		}
@@ -50,7 +52,7 @@ func (b *Broker) ensureSecret(impersonatedKC *kclientset.Clientset, namespace st
 
 func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient *templateclientset.Clientset, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, impersonate string, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
 	templateInstance := &templateapi.TemplateInstance{
-		ObjectMeta: kapi.ObjectMeta{Name: instanceID},
+		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Spec: templateapi.TemplateInstanceSpec{
 			Template: *template,
 			Secret:   kapi.LocalObjectReference{Name: secret.Name},
@@ -67,7 +69,7 @@ func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient *templateclie
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		existingTemplateInstance, err := impersonatedTemplateclient.TemplateInstances(namespace).Get(templateInstance.Name)
+		existingTemplateInstance, err := impersonatedTemplateclient.TemplateInstances(namespace).Get(templateInstance.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(templateInstance.Spec, existingTemplateInstance.Spec) {
 			return existingTemplateInstance, nil
 		}
@@ -96,7 +98,7 @@ func (b *Broker) ensureBrokerTemplateInstanceUIDs(brokerTemplateInstance *templa
 
 func (b *Broker) ensureBrokerTemplateInstance(namespace, instanceID string, didWork *bool) (*templateapi.BrokerTemplateInstance, *api.Response) {
 	brokerTemplateInstance := &templateapi.BrokerTemplateInstance{
-		ObjectMeta: kapi.ObjectMeta{Name: instanceID},
+		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Spec: templateapi.BrokerTemplateInstanceSpec{
 			TemplateInstance: kapi.ObjectReference{
 				Kind:      "TemplateInstance",
@@ -118,7 +120,7 @@ func (b *Broker) ensureBrokerTemplateInstance(namespace, instanceID string, didW
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		existingBrokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(brokerTemplateInstance.Name)
+		existingBrokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(brokerTemplateInstance.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(brokerTemplateInstance.Spec, existingBrokerTemplateInstance.Spec) {
 			return existingBrokerTemplateInstance, nil
 		}

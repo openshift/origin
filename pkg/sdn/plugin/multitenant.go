@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
@@ -58,7 +59,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 	if err != nil {
 		glog.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err)
 	}
-	services, err := mp.node.kClient.Core().Services(namespace).List(kapi.ListOptions{})
+	services, err := mp.node.kClient.Core().Services(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Could not get list of services in namespace %q: %v", namespace, err)
 		services = &kapi.ServiceList{}

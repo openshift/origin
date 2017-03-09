@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -22,14 +22,14 @@ type testAction struct {
 func testData() []*imageapi.ImageStream {
 	return []*imageapi.ImageStream{
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{},
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -44,7 +44,7 @@ func testData() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -64,10 +64,10 @@ func testData() []*imageapi.ImageStream {
 func TestRunTag_AddAccrossNamespaces(t *testing.T) {
 	streams := testData()
 	client := testclient.NewSimpleFake(streams[2], streams[0])
-	client.PrependReactor("create", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "create")
 	})
-	client.PrependReactor("update", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("update", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "update")
 	})
 
@@ -117,10 +117,10 @@ func TestRunTag_AddAccrossNamespaces(t *testing.T) {
 func TestRunTag_AddOld(t *testing.T) {
 	streams := testData()
 	client := testclient.NewSimpleFake(streams[0])
-	client.PrependReactor("create", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "create")
 	})
-	client.PrependReactor("update", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("update", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "update")
 	})
 
@@ -169,13 +169,13 @@ func TestRunTag_AddOld(t *testing.T) {
 func TestRunTag_DeleteOld(t *testing.T) {
 	streams := testData()
 	client := testclient.NewSimpleFake(streams[1])
-	client.PrependReactor("delete", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("delete", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewForbidden(imageapi.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
-	client.PrependReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, testData()[1], nil
 	})
-	client.PrependReactor("update", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("update", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, nil
 	})
 
@@ -218,7 +218,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 func TestRunTag_AddNew(t *testing.T) {
 	client := testclient.NewSimpleFake(
 		&imageapi.ImageStreamTag{
-			ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 		},
 	)
 
@@ -263,10 +263,10 @@ func TestRunTag_AddNew(t *testing.T) {
 
 func TestRunTag_AddRestricted(t *testing.T) {
 	client := testclient.NewSimpleFake()
-	client.PrependReactor("create", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		return true, action.(core.CreateAction).GetObject(), nil
+	client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, action.(clientgotesting.CreateAction).GetObject(), nil
 	})
-	client.PrependReactor("update", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.PrependReactor("update", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewForbidden(imageapi.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
 
@@ -312,7 +312,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 
 func TestRunTag_DeleteNew(t *testing.T) {
 	is := &imageapi.ImageStreamTag{
-		ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: unversioned.Now()},
+		ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 	}
 	client := testclient.NewSimpleFake(is)
 

@@ -17,12 +17,15 @@ import (
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
 	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -34,18 +37,16 @@ import (
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilnode "k8s.io/kubernetes/pkg/util/node"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/volume/emptydir"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/tools/cache"
 )
 
 type commandExecutor interface {
@@ -263,12 +264,12 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 		return
 	}
 
-	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", kapi.NamespaceAll, fields.Everything())
+	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", metav1.NamespaceAll, fields.Everything())
 	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
 	serviceReflector.Run()
 
 	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", metav1.NamespaceAll, fields.Everything())
 		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
 		endpointReflector.Run()
 
@@ -286,7 +287,7 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
 	if c.KubeletServer.ClusterDNS == "" {
-		if service, err := c.Client.Core().Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if service, err := c.Client.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -294,7 +295,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.Client.Core().Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if endpoint, err := c.Client.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)
@@ -502,9 +503,9 @@ func (c *NodeConfig) RunProxy() {
 }
 
 // getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
-func getNodeIP(client *kclientset.Clientset, hostname string) net.IP {
+func getNodeIP(client kclientset.Interface, hostname string) net.IP {
 	var nodeIP net.IP
-	node, err := client.Core().Nodes().Get(hostname)
+	node, err := client.Core().Nodes().Get(hostname, metav1.GetOptions{})
 	if err != nil {
 		glog.Warningf("Failed to retrieve node info: %v", err)
 		return nil

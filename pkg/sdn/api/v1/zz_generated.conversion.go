@@ -5,11 +5,12 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
+
+	api "github.com/openshift/origin/pkg/sdn/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {

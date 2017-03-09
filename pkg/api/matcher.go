@@ -1,12 +1,12 @@
 package api
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
-func ListOptionsToSelectors(options *kapi.ListOptions) (labels.Selector, fields.Selector) {
+func ListOptionsToSelectors(options *metainternal.ListOptions) (labels.Selector, fields.Selector) {
 	label := labels.Everything()
 	if options != nil && options.LabelSelector != nil {
 		label = options.LabelSelector

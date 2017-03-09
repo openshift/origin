@@ -11,8 +11,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -55,7 +56,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -105,7 +106,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override")
+				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

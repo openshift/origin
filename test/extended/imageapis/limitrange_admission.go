@@ -5,8 +5,9 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -254,7 +255,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 // createLimitRangeOfType creates a new limit range object with given limits for given limit type in current namespace
 func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits kapi.ResourceList) (*kapi.LimitRange, error) {
 	lr := &kapi.LimitRange{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: limitRangeName,
 		},
 		Spec: kapi.LimitRangeSpec{

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -87,7 +87,7 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
 		o.Namespace, _, err = f.DefaultNamespace()
@@ -122,7 +122,7 @@ func (o PruneBuildsOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune builds command.
 func (o PruneBuildsOptions) Run() error {
-	buildConfigList, err := o.OSClient.BuildConfigs(o.Namespace).List(kapi.ListOptions{})
+	buildConfigList, err := o.OSClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func (o PruneBuildsOptions) Run() error {
 		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
 	}
 
-	buildList, err := o.OSClient.Builds(o.Namespace).List(kapi.ListOptions{})
+	buildList, err := o.OSClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

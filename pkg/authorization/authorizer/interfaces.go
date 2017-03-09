@@ -3,9 +3,9 @@ package authorizer
 import (
 	"net/http"
 
-	"k8s.io/kubernetes/pkg/apiserver/request"
-	"k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type SubjectLocator interface {
@@ -17,7 +17,7 @@ type AuthorizationAttributeBuilder interface {
 }
 
 type RequestInfoFactory interface {
-	NewRequestInfo(req *http.Request) (*request.RequestInfo, error)
+	NewRequestInfo(req *http.Request) (*apirequest.RequestInfo, error)
 }
 
 // ForbiddenMessageMaker creates a forbidden message from Attributes

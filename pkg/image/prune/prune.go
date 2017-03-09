@@ -12,11 +12,11 @@ import (
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -321,7 +321,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 			}
 		}
 
-		age := unversioned.Now().Sub(image.CreationTimestamp.Time)
+		age := metav1.Now().Sub(image.CreationTimestamp.Time)
 		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
 			glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", image.Name, age)
 			continue
@@ -367,7 +367,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, li
 		// use a weak reference for old image revisions by default
 		oldImageRevisionReferenceKind := WeakReferencedImageEdgeKind
 
-		age := unversioned.Now().Sub(stream.CreationTimestamp.Time)
+		age := metav1.Now().Sub(stream.CreationTimestamp.Time)
 		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
 			// stream's age is below threshold - use a strong reference for old image revisions instead
 			oldImageRevisionReferenceKind = ReferencedImageEdgeKind
@@ -479,7 +479,7 @@ func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm)
 		glog.V(4).Infof("Examining pod %s/%s", pod.Namespace, pod.Name)
 
 		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
-			age := unversioned.Now().Sub(pod.CreationTimestamp.Time)
+			age := metav1.Now().Sub(pod.CreationTimestamp.Time)
 			if age >= algorithm.keepYoungerThan {
 				glog.V(4).Infof("Pod %s/%s is not running or pending and age is at least minimum pruning age - skipping", pod.Namespace, pod.Name)
 				// not pending or running, age is at least minimum pruning age, skip

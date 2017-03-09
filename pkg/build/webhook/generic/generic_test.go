@@ -10,9 +10,9 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 var mockBuildStrategy = api.BuildStrategy{
@@ -61,8 +61,8 @@ func matchWarning(t *testing.T, err error, message string) {
 		return
 	}
 
-	if status.ErrStatus.Status != unversioned.StatusSuccess {
-		t.Errorf("Unexpected response status %v, expected %v", status.ErrStatus.Status, unversioned.StatusSuccess)
+	if status.ErrStatus.Status != metav1.StatusSuccess {
+		t.Errorf("Unexpected response status %v, expected %v", status.ErrStatus.Status, metav1.StatusSuccess)
 	}
 	if status.ErrStatus.Code != http.StatusOK {
 		t.Errorf("Unexpected response code %v, expected %v", status.ErrStatus.Code, http.StatusOK)

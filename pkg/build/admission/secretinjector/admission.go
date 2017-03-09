@@ -8,11 +8,11 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/admission"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -64,7 +64,7 @@ func (si *secretInjector) Admit(attr admission.Attributes) (err error) {
 		return nil
 	}
 
-	secrets, err := client.Secrets(namespace).List(api.ListOptions{})
+	secrets, err := client.Secrets(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		glog.V(2).Infof("secretinjector: failed to list Secrets: %v", err)
 		return nil

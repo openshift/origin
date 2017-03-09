@@ -16,7 +16,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
+	utiltesting "k8s.io/client-go/util/testing"
 )
 
 var expectedResult cnitypes.Result

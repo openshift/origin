@@ -10,12 +10,13 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	ktypes "k8s.io/kubernetes/pkg/types"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type firewallItem struct {
@@ -29,7 +30,7 @@ type proxyFirewallItem struct {
 }
 
 type OsdnProxy struct {
-	kClient              *kclientset.Clientset
+	kClient              kclientset.Interface
 	osClient             *osclient.Client
 	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
@@ -43,7 +44,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset) (*OsdnProxy, error) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (*OsdnProxy, error) {
 	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
@@ -66,7 +67,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}

@@ -9,10 +9,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
@@ -815,11 +816,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
 			g.By("verifying that all pods are ready")
-			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
+			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			selector := labels.Set(config.Spec.Selector).AsSelector()
-			opts := kapi.ListOptions{LabelSelector: selector}
+			opts := metav1.ListOptions{LabelSelector: selector.String()}
 			ready := 0
 			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)
@@ -843,7 +844,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying that the deployment is still running")
 			latestName := deployutil.DeploymentNameForConfigVersion(name, config.Status.LatestVersion)
-			latest, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName)
+			latest, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if deployutil.IsTerminatedDeployment(latest) {
 				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())

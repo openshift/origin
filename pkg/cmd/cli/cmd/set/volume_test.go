@@ -6,17 +6,18 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
 func fakePodWithVol() *api.Pod {
 	fakePod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "fakepod",
 		},
@@ -49,7 +50,7 @@ func fakePodWithVol() *api.Pod {
 
 func makeFakePod() *api.Pod {
 	fakePod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "fakepod",
 		},
@@ -67,7 +68,7 @@ func makeFakePod() *api.Pod {
 func getFakeMapping() *meta.RESTMapping {
 	fakeMapping := &meta.RESTMapping{
 		Resource: "fake-mount",
-		GroupVersionKind: unversioned.GroupVersionKind{
+		GroupVersionKind: schema.GroupVersionKind{
 			Group:   "test.group",
 			Version: "v1",
 		},
@@ -89,7 +90,7 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = api.Codecs.LegacyCodec(registered.EnabledVersions()...)
+	vOptions.Encoder = api.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...)
 	vOptions.Containers = "*"
 	vOptions.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	return infos, vOptions

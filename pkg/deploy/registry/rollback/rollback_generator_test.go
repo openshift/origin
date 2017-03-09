@@ -3,6 +3,7 @@ package rollback
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -31,7 +32,7 @@ func TestGeneration(t *testing.T) {
 		spec := &deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 			IncludeTriggers:        i&(1<<0) > 0,
 			IncludeTemplate:        i&(1<<1) > 0,

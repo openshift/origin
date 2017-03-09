@@ -3,8 +3,9 @@ package identitymapper
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user/registry/user"
@@ -21,14 +22,14 @@ type lookupIdentityMapper struct {
 
 // UserFor returns info about the user for whom identity info has been provided
 func (p *lookupIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kuser.Info, error) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 
-	mapping, err := p.mappings.GetUserIdentityMapping(ctx, info.GetIdentityName())
+	mapping, err := p.mappings.GetUserIdentityMapping(ctx, info.GetIdentityName(), &metav1.GetOptions{})
 	if err != nil {
 		return nil, NewLookupError(info, err)
 	}
 
-	u, err := p.users.GetUser(ctx, mapping.User.Name)
+	u, err := p.users.GetUser(ctx, mapping.User.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, NewLookupError(info, err)
 	}

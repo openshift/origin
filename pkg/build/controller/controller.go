@@ -5,13 +5,13 @@ import (
 
 	"github.com/golang/glog"
 
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	errors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -315,7 +315,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.Status.Message = ""
 			nextStatus = buildapi.BuildPhasePending
 			if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
-				if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+				if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 					build.Status.Reason = buildapi.StatusReasonMissingPushSecret
 					build.Status.Message = buildapi.StatusMessageMissingPushSecret
 					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
@@ -368,7 +368,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			setBuildCompletionTimeAndDuration(build)
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := unversioned.Now()
+			now := metav1.Now()
 			build.Status.StartTimestamp = &now
 		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -475,7 +475,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 // in the cache store, given a pod for the build
 func buildKey(pod *kapi.Pod) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildutil.GetBuildName(pod),
 			Namespace: pod.Namespace,
 		},
@@ -498,7 +498,7 @@ func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
 }
 
 func setBuildCompletionTimeAndDuration(build *buildapi.Build) {
-	now := unversioned.Now()
+	now := metav1.Now()
 	build.Status.CompletionTimestamp = &now
 	if build.Status.StartTimestamp != nil {
 		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)

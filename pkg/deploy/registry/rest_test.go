@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -21,7 +21,7 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 
 	kubeclient := fake.NewSimpleClientset([]runtime.Object{fakeController}...)
 	fakeWatch := watch.NewFake()
-	kubeclient.PrependWatchReactor("replicationcontrollers", core.DefaultWatchReactor(fakeWatch, nil))
+	kubeclient.PrependWatchReactor("replicationcontrollers", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	stopChan := make(chan struct{})
 
 	go func() {
@@ -52,14 +52,14 @@ func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
 	fakeWatch := watch.NewFake()
 
 	watchCalledChan := make(chan struct{})
-	kubeclient.PrependWatchReactor("replicationcontrollers", func(action core.Action) (bool, watch.Interface, error) {
+	kubeclient.PrependWatchReactor("replicationcontrollers", func(action clientgotesting.Action) (bool, watch.Interface, error) {
 		fakeWatch.Reset()
 		watchCalledChan <- struct{}{}
-		return core.DefaultWatchReactor(fakeWatch, nil)(action)
+		return clientgotesting.DefaultWatchReactor(fakeWatch, nil)(action)
 	})
 
 	getReceivedChan := make(chan struct{})
-	kubeclient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (bool, runtime.Object, error) {
+	kubeclient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		close(getReceivedChan)
 		return true, fakeController, nil
 	})
@@ -86,7 +86,7 @@ func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
 	}
 
 	// Send the StatusReasonGone error to watcher which should trigger the watch restart.
-	goneError := &unversioned.Status{Reason: unversioned.StatusReasonGone}
+	goneError := &metav1.Status{Reason: metav1.StatusReasonGone}
 	fakeWatch.Error(goneError)
 
 	// Make sure we observed the "get" action on replication controller, so the watch gets

@@ -5,12 +5,12 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 // AuthenticationHandlerFilter creates a filter object that will enforce authentication directly
-func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper kapi.RequestContextMapper) http.Handler {
+func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper apirequest.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		user, ok, err := authenticator.AuthenticateRequest(req)
 		if err != nil || !ok {
@@ -23,7 +23,7 @@ func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticat
 			http.Error(w, "Unable to find request context", http.StatusInternalServerError)
 			return
 		}
-		if err := contextMapper.Update(req, kapi.WithUser(ctx, user)); err != nil {
+		if err := contextMapper.Update(req, apirequest.WithUser(ctx, user)); err != nil {
 			glog.V(4).Infof("Error setting authenticated context: %v", err)
 			http.Error(w, "Unable to set authenticated request context", http.StatusInternalServerError)
 			return

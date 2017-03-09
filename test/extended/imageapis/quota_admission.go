@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -121,7 +122,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 // a first usage refresh
 func createResourceQuota(oc *exutil.CLI, hard kapi.ResourceList) (*kapi.ResourceQuota, error) {
 	rq := &kapi.ResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: quotaName,
 		},
 		Spec: kapi.ResourceQuotaSpec{
@@ -219,7 +220,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		oc.Namespace(),
 	} {
 		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminClient().ImageStreams(projectName).List(kapi.ListOptions{})
+		iss, err := oc.AdminClient().ImageStreams(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			continue
 		}

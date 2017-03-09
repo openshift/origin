@@ -1,10 +1,10 @@
 package ratelimiter
 
 import (
-	kcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	kcache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // HandlerFunc defines function signature for a RateLimitedFunction.

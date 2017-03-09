@@ -3,7 +3,7 @@
 package image
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
@@ -19,7 +19,7 @@ func NewImageQuotaRegistry(isInformer shared.ImageStreamInformer, osClient oscli
 	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), osClient)
 	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
 	return &generic.GenericRegistry{
-		InternalEvaluators: map[unversioned.GroupKind]quota.Evaluator{
+		InternalEvaluators: map[schema.GroupKind]quota.Evaluator{
 			imageStream.GroupKind():       imageStream,
 			imageStreamTag.GroupKind():    imageStreamTag,
 			imageStreamImport.GroupKind(): imageStreamImport,

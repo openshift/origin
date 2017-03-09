@@ -1,12 +1,12 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -18,17 +18,17 @@ type DeploymentConfigsNamespacer interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	List(opts kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
+	List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
 	Get(name string) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
-	GetScale(name string) (*extensions.Scale, error)
-	UpdateScale(scale *extensions.Scale) (*extensions.Scale, error)
+	GetScale(name string) (*extensionsv1beta1.Scale, error)
+	UpdateScale(scale *extensionsv1beta1.Scale) (*extensionsv1beta1.Scale, error)
 	UpdateStatus(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Instantiate(request *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error)
 }
@@ -48,7 +48,7 @@ func newDeploymentConfigs(c *Client, namespace string) *deploymentConfigs {
 }
 
 // List takes a label and field selectors, and returns the list of deploymentConfigs that match that selectors
-func (c *deploymentConfigs) List(opts kapi.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts metainternal.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -86,7 +86,7 @@ func (c *deploymentConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
@@ -129,15 +129,15 @@ func (c *deploymentConfigs) RollbackDeprecated(config *deployapi.DeploymentConfi
 }
 
 // GetScale returns information about a particular deploymentConfig via its scale subresource
-func (c *deploymentConfigs) GetScale(name string) (result *extensions.Scale, err error) {
-	result = &extensions.Scale{}
+func (c *deploymentConfigs) GetScale(name string) (result *extensionsv1beta1.Scale, err error) {
+	result = &extensionsv1beta1.Scale{}
 	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("scale").Do().Into(result)
 	return
 }
 
 // UpdateScale scales an existing deploymentConfig via its scale subresource
-func (c *deploymentConfigs) UpdateScale(scale *extensions.Scale) (result *extensions.Scale, err error) {
-	result = &extensions.Scale{}
+func (c *deploymentConfigs) UpdateScale(scale *extensionsv1beta1.Scale) (result *extensionsv1beta1.Scale, err error) {
+	result = &extensionsv1beta1.Scale{}
 
 	// TODO fix by making the client understand how to encode using different codecs for different resources
 	encodedBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(extensionsv1beta1.SchemeGroupVersion), scale)

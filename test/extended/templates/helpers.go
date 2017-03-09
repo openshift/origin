@@ -9,6 +9,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -16,7 +17,7 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	name = cli.Namespace() + "-" + name
 
 	user, err := cli.AdminClient().Users().Create(&userapi.User{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	})
@@ -24,7 +25,7 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 
 	if role != "" {
 		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
 			RoleRef: kapi.ObjectReference{

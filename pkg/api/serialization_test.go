@@ -11,18 +11,18 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/meta"
+	apitesting "k8s.io/apimachinery/pkg/api/testing"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/protobuf"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer/protobuf"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
@@ -47,18 +47,18 @@ import (
 	_ "k8s.io/kubernetes/pkg/api/install"
 )
 
-var codecsToTest = []func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error){
-	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+var codecsToTest = []func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error){
+	func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error) {
 		return kapi.Codecs.LegacyCodec(version), nil
 	},
-	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+	func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error) {
 		s := protobuf.NewSerializer(kapi.Scheme, kapi.Scheme, "application/arbitrary.content.type")
 		return kapi.Codecs.CodecForVersions(s, s, testapi.ExternalGroupVersions(), nil), nil
 	},
 }
 
-func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
-	f := apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed))
+func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
+	f := apitesting.FuzzerFor(nil, rand.NewSource(seed))
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
@@ -502,7 +502,7 @@ func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) 
 	}
 }
 
-func roundTripWithAllCodecs(t *testing.T, version unversioned.GroupVersion, item runtime.Object) {
+func roundTripWithAllCodecs(t *testing.T, version schema.GroupVersion, item runtime.Object) {
 	var codecs []runtime.Codec
 	for _, fn := range codecsToTest {
 		codec, err := fn(version, item)
@@ -576,7 +576,7 @@ func dataToString(s []byte) string {
 }
 
 // skipStandardVersions is a map of Kind to a list of API versions to test with.
-var skipStandardVersions = map[string][]unversioned.GroupVersion{
+var skipStandardVersions = map[string][]schema.GroupVersion{
 	// The API versions here are to test our object that serializes from/into
 	// docker's registry API.
 	"DockerImage": {dockerpre012.SchemeGroupVersion, docker10.SchemeGroupVersion},
@@ -614,7 +614,7 @@ var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent", "DeleteOptions
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
+	internalVersionToExternalVersions := map[schema.GroupVersion][]schema.GroupVersion{
 		osapi.SchemeGroupVersion: {v1.SchemeGroupVersion},
 		// Test the API groups
 		quotaapi.LegacySchemeGroupVersion: {quotaapiv1.LegacySchemeGroupVersion},

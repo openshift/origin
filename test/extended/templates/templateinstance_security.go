@@ -6,16 +6,18 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 // Check that objects created through the TemplateInstance mechanism are done
@@ -29,7 +31,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 		adminuser, edituser *userapi.User
 
 		dummyservice = &kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "service",
 				Namespace: "${NAMESPACE}",
 			},
@@ -43,7 +45,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 		}
 
 		dummyrolebinding = &authorizationapi.RoleBinding{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rolebinding",
 				Namespace: "${NAMESPACE}",
 			},
@@ -79,7 +81,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyservice},
 				expectCondition: templateapi.TemplateInstanceReady,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name)
+					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
 					return err == nil
 				},
 			},
@@ -90,7 +92,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyservice},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name)
+					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
@@ -101,7 +103,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name)
+					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
@@ -112,7 +114,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceReady,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name)
+					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 					return err == nil
 				},
 			},
@@ -123,7 +125,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			cli.ChangeUser(test.user.Name)
 
 			secret, err := cli.KubeClient().Secrets(cli.Namespace()).Create(&kapi.Secret{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret",
 				},
 				Data: map[string][]byte{
@@ -133,12 +135,12 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			templateinstance := &templateapi.TemplateInstance{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "templateinstance",
 				},
 				Spec: templateapi.TemplateInstanceSpec{
 					Template: templateapi.Template{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "template",
 							Namespace: cli.Namespace(),
 						},
@@ -162,7 +164,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(templateinstance.Name)
+				templateinstance, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

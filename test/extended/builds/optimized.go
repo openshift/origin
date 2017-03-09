@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -37,7 +37,7 @@ USER 1001
 	g.It("should succeed as an admin [Conformance]", func() {
 		g.By("creating a build directly")
 		build, err := oc.AdminClient().Builds(oc.Namespace()).Create(&buildapi.Build{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "optimized",
 			},
 			Spec: buildapi.BuildSpec{
@@ -78,7 +78,7 @@ USER 1001
 	g.It("should fail as a normal user [Conformance]", func() {
 		g.By("creating a build directly")
 		_, err := oc.Client().Builds(oc.Namespace()).Create(&buildapi.Build{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "optimized",
 			},
 			Spec: buildapi.BuildSpec{

@@ -3,10 +3,11 @@ package shared
 import (
 	"reflect"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -35,11 +36,11 @@ func (f *deploymentConfigInformer) Informer() cache.SharedIndexInformer {
 
 	informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.originClient.DeploymentConfigs(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+				return f.originClient.DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.originClient.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+				return f.originClient.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		informerObj,

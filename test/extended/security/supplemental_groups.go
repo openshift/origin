@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -41,7 +42,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 			// we should have been admitted with the groups that we requested but if for any
 			// reason they are different we will fail.
 			g.By("retrieving the pod and ensuring groups are set")
-			retrievedPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name)
+			retrievedPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(*retrievedPod.Spec.SecurityContext.FSGroup).To(o.Equal(*submittedPod.Spec.SecurityContext.FSGroup))
 			o.Expect(retrievedPod.Spec.SecurityContext.SupplementalGroups).To(o.Equal(submittedPod.Spec.SecurityContext.SupplementalGroups))
@@ -53,7 +54,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 
 			// find the docker id of our running container.
 			g.By("finding the docker container id on the pod")
-			retrievedPod, err = f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name)
+			retrievedPod, err = f.ClientSet.Core().Pods(f.Namespace.Name).Get(submittedPod.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			containerID, err := getContainerID(retrievedPod)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -93,7 +94,7 @@ func getContainerID(p *kapi.Pod) (string, error) {
 // supGroupPod generates the pod requesting supplemental groups.
 func supGroupPod(fsGroup int64, supGroup int64) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "supplemental-groups",
 		},
 		Spec: kapi.PodSpec{

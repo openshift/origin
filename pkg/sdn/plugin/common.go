@@ -11,10 +11,11 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/fields"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
@@ -77,7 +78,7 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 }
 
 func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
-	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +142,7 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	eventQueue := newEventQueue(client, resourceName, expectedType, kapi.NamespaceAll)
+	eventQueue := newEventQueue(client, resourceName, expectedType, metav1.NamespaceAll)
 	for {
 		eventQueue.Pop(process, expectedType)
 	}

@@ -5,11 +5,11 @@
 package v1
 
 import (
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -115,8 +115,8 @@ func DeepCopy_v1_ClusterResourceQuotaSelector(in interface{}, out interface{}, c
 		out := out.(*ClusterResourceQuotaSelector)
 		if in.LabelSelector != nil {
 			in, out := &in.LabelSelector, &out.LabelSelector
-			*out = new(unversioned.LabelSelector)
-			if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			*out = new(metav1.LabelSelector)
+			if err := metav1.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
 				return err
 			}
 		} else {

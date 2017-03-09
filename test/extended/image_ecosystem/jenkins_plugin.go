@@ -13,8 +13,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
@@ -39,7 +40,7 @@ func loadFixture(oc *exutil.CLI, filename string) {
 
 func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]string) {
 
-	buildList, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+	buildList, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Ensure that expected start-build environment variables were injected
@@ -77,7 +78,7 @@ func initExecPod(oc *exutil.CLI) *kapi.Pod {
 
 	var targetPod *kapi.Pod
 	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{})
 		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 		for _, p := range pods.Items {
 			if strings.HasPrefix(p.Name, "centos") && !strings.Contains(p.Name, "deploy") && p.Status.Phase == "Running" {
@@ -339,7 +340,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.It("jenkins-plugin test trigger build DSL", func() {
 
-			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			data, err := j.BuildDSLJob(oc.Namespace(),
@@ -355,12 +356,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-				buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+				buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return (len(buildsAfter.Items) != len(buildsBefore.Items)), nil
 			})
 
-			buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 

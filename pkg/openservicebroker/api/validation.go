@@ -3,7 +3,7 @@ package api
 import (
 	"regexp"
 
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func ValidateProvisionRequest(preq *ProvisionRequest) field.ErrorList {

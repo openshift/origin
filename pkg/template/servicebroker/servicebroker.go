@@ -8,21 +8,21 @@ import (
 	"github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
 	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 type Broker struct {
-	kc                *kclientset.Clientset
+	kc                kclientset.Interface
 	oc                *client.Client
 	templateclient    *templateclientset.Clientset
-	restconfig        *restclient.Config
+	restconfig        *rest.Config
 	lister            cache.StoreToTemplateLister
 	templateNamespace string
 }
 
-func NewBroker(restconfig *restclient.Config, oc *client.Client, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
+func NewBroker(restconfig *rest.Config, oc *client.Client, kc kclientset.Interface, informers shared.InformerFactory, templateNamespace string) *Broker {
 	return &Broker{
 		kc:                kc,
 		oc:                oc,

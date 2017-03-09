@@ -9,14 +9,14 @@ import (
 	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
-	"k8s.io/kubernetes/pkg/util/yaml"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiinstall "github.com/openshift/origin/pkg/cmd/server/api/install"
@@ -26,14 +26,14 @@ import (
 
 const PatchRecommendedName = "patch"
 
-var patchTypes = map[string]api.PatchType{"json": api.JSONPatchType, "merge": api.MergePatchType, "strategic": api.StrategicMergePatchType}
+var patchTypes = map[string]types.PatchType{"json": types.JSONPatchType, "merge": types.MergePatchType, "strategic": types.StrategicMergePatchType}
 
 // PatchOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
 // referencing the cmd.Flags()
 type PatchOptions struct {
 	Filename  string
 	Patch     string
-	PatchType api.PatchType
+	PatchType types.PatchType
 
 	Builder *resource.Builder
 
@@ -148,20 +148,20 @@ func (o *PatchOptions) RunPatch() error {
 	return nil
 }
 
-func getPatchedJS(patchType api.PatchType, originalJS, patchJS []byte, obj runtime.Object) ([]byte, error) {
+func getPatchedJS(patchType types.PatchType, originalJS, patchJS []byte, obj runtime.Object) ([]byte, error) {
 	switch patchType {
-	case api.JSONPatchType:
+	case types.JSONPatchType:
 		patchObj, err := jsonpatch.DecodePatch(patchJS)
 		if err != nil {
 			return nil, err
 		}
 		return patchObj.Apply(originalJS)
 
-	case api.MergePatchType:
+	case types.MergePatchType:
 		return jsonpatch.MergePatch(originalJS, patchJS)
 
-	case api.StrategicMergePatchType:
-		return strategicpatch.StrategicMergePatchData(originalJS, patchJS, obj)
+	case types.StrategicMergePatchType:
+		return strategicpatch.StrategicMergePatch(originalJS, patchJS, obj)
 
 	default:
 		// only here as a safety net - go-restful filters content-type

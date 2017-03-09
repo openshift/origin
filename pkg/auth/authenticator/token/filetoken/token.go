@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type TokenAuthenticator struct {

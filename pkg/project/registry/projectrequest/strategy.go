@@ -1,9 +1,10 @@
 package projectrequest
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
@@ -16,7 +17,7 @@ type strategy struct {
 
 var Strategy = strategy{kapi.Scheme}
 
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for projectrequest objects
 func (strategy) NamespaceScoped() bool {
@@ -27,17 +28,17 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	projectrequest := obj.(*projectapi.ProjectRequest)
 	return projectvalidation.ValidateProjectRequest(projectrequest)
 }
 
 // ValidateUpdate validates a client update
-func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	return nil
 }
 

@@ -14,7 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/spf13/cobra"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 

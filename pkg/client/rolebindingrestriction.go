@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -12,12 +13,12 @@ type RoleBindingRestrictionsNamespacer interface {
 }
 
 type RoleBindingRestrictionInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error)
 	Get(name string) (*authorizationapi.RoleBindingRestriction, error)
 	Create(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Update(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 type roleBindingRestrictions struct {
@@ -33,7 +34,7 @@ func newRoleBindingRestrictions(c *Client, namespace string) *roleBindingRestric
 	}
 }
 
-func (c *roleBindingRestrictions) List(opts kapi.ListOptions) (result *authorizationapi.RoleBindingRestrictionList, err error) {
+func (c *roleBindingRestrictions) List(opts metainternal.ListOptions) (result *authorizationapi.RoleBindingRestrictionList, err error) {
 	result = &authorizationapi.RoleBindingRestrictionList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -88,7 +89,7 @@ func (c *roleBindingRestrictions) Delete(name string) (err error) {
 	return
 }
 
-func (c *roleBindingRestrictions) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *roleBindingRestrictions) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

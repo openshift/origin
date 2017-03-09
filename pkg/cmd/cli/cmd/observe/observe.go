@@ -22,16 +22,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/healthz"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/server/healthz"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/jsonpath"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/jsonpath"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -289,7 +291,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("you may only specify one argument containing the resource to observe (use '--' to separate your resource and your command)")
 	}
 
-	gr := unversioned.ParseGroupResource(args[0])
+	gr := schema.ParseGroupResource(args[0])
 	if gr.Empty() {
 		return fmt.Errorf("unknown resource argument")
 	}
@@ -599,7 +601,7 @@ func (o *ObserveOptions) calculateArguments(delta cache.Delta) (runtime.Object, 
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		unstructured := &runtime.Unstructured{}
+		unstructured := &unstructured.Unstructured{}
 		unstructured.SetNamespace(namespace)
 		unstructured.SetName(name)
 		object = unstructured
@@ -770,12 +772,20 @@ type restListWatcher struct {
 	namespace string
 }
 
-func (lw restListWatcher) List(opt api.ListOptions) (runtime.Object, error) {
-	return lw.Helper.List(lw.namespace, "", opt.LabelSelector, false)
+func (lw restListWatcher) List(opt metav1.ListOptions) (runtime.Object, error) {
+	labelSelector, err := labels.Parse(opt.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	return lw.Helper.List(lw.namespace, "", labelSelector, false)
 }
 
-func (lw restListWatcher) Watch(opt api.ListOptions) (watch.Interface, error) {
-	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, "", opt.LabelSelector)
+func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error) {
+	labelSelector, err := labels.Parse(opt.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, "", labelSelector)
 }
 
 type JSONPathColumnPrinter struct {

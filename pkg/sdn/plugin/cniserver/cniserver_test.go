@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
+	utiltesting "k8s.io/client-go/util/testing"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 )

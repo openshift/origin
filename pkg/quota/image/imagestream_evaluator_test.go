@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -31,7 +31,7 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 			name: "one image stream",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "onetag",
 					},
@@ -45,13 +45,13 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 			name: "two image streams",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "is1",
 					},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "is2",
 					},
@@ -65,13 +65,13 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 			name: "two image streams in different namespaces",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "is1",
 					},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "other",
 						Name:      "is2",
 					},
@@ -145,7 +145,7 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 			name: "image stream already exists",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "is",
 					},
@@ -158,7 +158,7 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 			name: "new image stream in non-empty project",
 			iss: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "existing",
 					},
@@ -168,7 +168,7 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 		},
 	} {
 		newIS := &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test",
 				Name:      "is",
 			},

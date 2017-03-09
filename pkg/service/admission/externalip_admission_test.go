@@ -5,14 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // TestAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestAdmission(t *testing.T) {
 	svc := &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 	}
 	var oldSvc *kapi.Service
 
@@ -200,7 +201,7 @@ func TestAdmission(t *testing.T) {
 		if len(test.ingressIP) > 0 {
 			// Provide an ingress ip via the previous object state
 			oldSvc = &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Status: kapi.ServiceStatus{
 					LoadBalancer: kapi.LoadBalancerStatus{
 						Ingress: []kapi.LoadBalancerIngress{
