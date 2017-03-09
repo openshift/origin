@@ -2350,6 +2350,54 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
+    name: system:persistent-volume-provisioner
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - storageclasses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
     name: registry-admin
   rules:
   - apiGroups:
