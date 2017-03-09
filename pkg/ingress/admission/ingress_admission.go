@@ -7,7 +7,7 @@ import (
 	"io"
 	"reflect"
 
-	"k8s.io/client-go/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
