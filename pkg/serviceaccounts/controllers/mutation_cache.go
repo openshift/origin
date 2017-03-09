@@ -3,9 +3,9 @@ package controllers
 import (
 	lru "github.com/hashicorp/golang-lru"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )

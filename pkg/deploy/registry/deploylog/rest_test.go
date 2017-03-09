@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -50,7 +50,7 @@ var (
 				ObjectMeta: kapi.ObjectMeta{
 					Name:              "config-5-application-pod-1",
 					Namespace:         kapi.NamespaceDefault,
-					CreationTimestamp: unversioned.Date(2016, time.February, 1, 1, 0, 1, 0, time.UTC),
+					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 1, 0, time.UTC),
 					Labels:            testSelector,
 				},
 				Spec: kapi.PodSpec{
@@ -66,7 +66,7 @@ var (
 				ObjectMeta: kapi.ObjectMeta{
 					Name:              "config-5-application-pod-2",
 					Namespace:         kapi.NamespaceDefault,
-					CreationTimestamp: unversioned.Date(2016, time.February, 1, 1, 0, 3, 0, time.UTC),
+					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 3, 0, time.UTC),
 					Labels:            testSelector,
 				},
 				Spec: kapi.PodSpec{

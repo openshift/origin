@@ -8,13 +8,13 @@ import (
 
 	"github.com/google/gofuzz"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -447,7 +447,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 			},
 			to: configapiv1.SchemeGroupVersion,
 			out: &configapiv1.MasterConfig{
-				TypeMeta: unversioned.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
+				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
 				AdmissionConfig: configapiv1.AdmissionConfig{
 					PluginConfig: map[string]configapiv1.AdmissionPluginConfig{
 						"test1": {Configuration: runtime.RawExtension{
@@ -520,7 +520,7 @@ func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
 			}
 		},
-		func(j *unversioned.TypeMeta, c fuzz.Continue) {
+		func(j *metav1.TypeMeta, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
 			// APIVersion and Kind must remain blank in memory.
 			j.APIVersion = ""
@@ -536,7 +536,7 @@ func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			var sec, nsec int64
 			c.Fuzz(&sec)
 			c.Fuzz(&nsec)
-			j.CreationTimestamp = unversioned.Unix(sec, nsec).Rfc3339Copy()
+			j.CreationTimestamp = metav1.Unix(sec, nsec).Rfc3339Copy()
 		},
 		func(j *kapi.ObjectReference, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their

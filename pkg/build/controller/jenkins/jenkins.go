@@ -6,10 +6,10 @@ import (
 	"github.com/golang/glog"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -64,7 +64,7 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 		}
 	}
 	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", pTemplate.Namespace, pTemplate.Namespace)
-	return &kapi.List{ListMeta: unversioned.ListMeta{}, Items: items}, errors
+	return &kapi.List{ListMeta: metav1.ListMeta{}, Items: items}, errors
 }
 
 // HasJenkinsService searches the template items and return true if the expected

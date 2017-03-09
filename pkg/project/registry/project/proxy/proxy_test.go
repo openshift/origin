@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -125,11 +125,11 @@ func TestDeleteProject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-	status, ok := obj.(*unversioned.Status)
+	status, ok := obj.(*metav1.Status)
 	if !ok {
 		t.Errorf("Expected status type, got: %#v", obj)
 	}
-	if status.Status != unversioned.StatusSuccess {
+	if status.Status != metav1.StatusSuccess {
 		t.Errorf("Expected status=success, got: %#v", status)
 	}
 	if len(mockClient.Actions()) != 1 {

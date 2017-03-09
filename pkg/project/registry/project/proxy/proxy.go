@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
-	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -171,7 +171,7 @@ var _ = rest.Deleter(&REST{})
 
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name, nil)
+	return &metav1.Status{Status: metav1.StatusSuccess}, s.client.Delete(name, nil)
 }
 
 // decoratorFunc can mutate the provided object prior to being returned.

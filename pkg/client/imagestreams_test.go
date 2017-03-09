@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
 	_ "github.com/openshift/origin/pkg/image/api/install"
@@ -25,7 +25,7 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestImageStreamImportUnsupported(t *testing.T) {
 	testCases := []struct {
-		status unversioned.Status
+		status metav1.Status
 		errFn  func(err error) bool
 	}{
 		{

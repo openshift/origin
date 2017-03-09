@@ -6,11 +6,11 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -91,7 +91,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -100,7 +100,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -201,7 +201,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -229,7 +229,7 @@ func TestControllerStart(t *testing.T) {
 			run: true,
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -257,7 +257,7 @@ func TestControllerStart(t *testing.T) {
 			run: true,
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -368,7 +368,7 @@ func TestScheduledImport(t *testing.T) {
 		},
 		Status: api.ImageStreamImportStatus{
 			Images: []api.ImageImportStatus{{
-				Status: unversioned.Status{Status: unversioned.StatusSuccess},
+				Status: metav1.Status{Status: metav1.StatusSuccess},
 				Image:  &api.Image{},
 			}},
 		},

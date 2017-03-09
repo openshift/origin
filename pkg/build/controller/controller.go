@@ -7,7 +7,7 @@ import (
 
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -364,7 +364,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			setBuildCompletionTimeAndDuration(build)
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := unversioned.Now()
+			now := metav1.Now()
 			build.Status.StartTimestamp = &now
 		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -494,7 +494,7 @@ func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
 }
 
 func setBuildCompletionTimeAndDuration(build *buildapi.Build) {
-	now := unversioned.Now()
+	now := metav1.Now()
 	build.Status.CompletionTimestamp = &now
 	if build.Status.StartTimestamp != nil {
 		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)

@@ -2,8 +2,8 @@ package localresourceaccessreview
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type Registry interface {

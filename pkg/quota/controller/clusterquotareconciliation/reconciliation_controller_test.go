@@ -9,7 +9,7 @@ import (
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -86,7 +86,7 @@ func TestSyncFunc(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
 				mapper.quotaToNamespaces["foo"] = sets.NewString("one")
-				mapper.quotaToSelector["foo"] = quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{}}
+				mapper.quotaToSelector["foo"] = quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{}}
 				return mapper
 			},
 			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {

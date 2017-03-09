@@ -1,9 +1,9 @@
 package imagestreammapping
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -11,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store ImageStreamMapping objects.
 type Registry interface {
 	// CreateImageStreamMapping creates a new image stream mapping.
-	CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*unversioned.Status, error)
+	CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*metav1.Status, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -31,10 +31,10 @@ func NewRegistry(s Storage) Registry {
 }
 
 // CreateImageStreamMapping will create an image stream mapping.
-func (s *storage) CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*unversioned.Status, error) {
+func (s *storage) CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*metav1.Status, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*unversioned.Status), nil
+	return obj.(*metav1.Status), nil
 }

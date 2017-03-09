@@ -7,14 +7,14 @@ import (
 	"github.com/golang/glog"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -57,7 +57,7 @@ func (r *REST) New() runtime.Object {
 }
 
 func (r *REST) NewList() runtime.Object {
-	return &unversioned.Status{}
+	return &metav1.Status{}
 }
 
 var _ = rest.Creater(&REST{})
@@ -233,15 +233,15 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 		return nil, err
 	}
 	if accessReviewResponse.Allowed {
-		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+		return &metav1.Status{Status: metav1.StatusSuccess}, nil
 	}
 
 	forbiddenError := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
-		forbiddenError.ErrStatus.Details = &unversioned.StatusDetails{
+		forbiddenError.ErrStatus.Details = &metav1.StatusDetails{
 			Kind: "ProjectRequest",
-			Causes: []unversioned.StatusCause{
+			Causes: []metav1.StatusCause{
 				{Message: r.message},
 			},
 		}

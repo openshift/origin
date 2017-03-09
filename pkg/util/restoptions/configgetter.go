@@ -6,15 +6,15 @@ import (
 	"strings"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/storage/storagebackend/factory"
@@ -149,7 +149,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 			continue
 		}
 
-		resource := unversioned.ParseGroupResource(tokens[0])
+		resource := metav1.ParseGroupResource(tokens[0])
 
 		size, err := strconv.Atoi(tokens[1])
 		if err != nil {

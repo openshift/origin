@@ -13,13 +13,13 @@ import (
 	units "github.com/docker/go-units"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -169,7 +169,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 }
 
 func describeBuildDuration(build *buildapi.Build) string {
-	t := unversioned.Now().Rfc3339Copy()
+	t := metav1.Now().Rfc3339Copy()
 	if build.Status.StartTimestamp == nil &&
 		build.Status.CompletionTimestamp != nil &&
 		(build.Status.Phase == buildapi.BuildPhaseCancelled ||
@@ -182,7 +182,7 @@ func describeBuildDuration(build *buildapi.Build) string {
 		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.Status.StartTimestamp != nil && build.Status.CompletionTimestamp == nil {
 		// time a still running build has been running in a pod
-		duration := unversioned.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+		duration := metav1.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 		return fmt.Sprintf("running for %v", duration)
 	}
 	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
@@ -1518,7 +1518,7 @@ func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.D
 }
 
 func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) {
-	labelSelector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector.LabelSelector)
+	labelSelector, err := metav1.LabelSelectorAsSelector(quota.Spec.Selector.LabelSelector)
 	if err != nil {
 		return "", err
 	}
@@ -1671,7 +1671,7 @@ func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, setti
 		}
 		formatString(out, "Subject type", subjectType)
 
-		var labelSelectors []unversioned.LabelSelector
+		var labelSelectors []metav1.LabelSelector
 
 		switch {
 		case rbr.Spec.UserRestriction != nil:
@@ -1700,7 +1700,7 @@ func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, setti
 			} else {
 				fmt.Fprintf(out, "Label selectors:\n")
 				for _, labelSelector := range labelSelectors {
-					selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+					selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 					if err != nil {
 						return err
 					}

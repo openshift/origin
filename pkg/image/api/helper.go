@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/blang/semver"
@@ -870,7 +870,7 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	switch len(set) {
 	case 1:
 		return &TagEvent{
-			Created:              unversioned.Now(),
+			Created:              metav1.Now(),
 			DockerImageReference: event.DockerImageReference,
 			Image:                event.Image,
 		}, nil

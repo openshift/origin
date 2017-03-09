@@ -1,10 +1,10 @@
 package proxy
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -70,7 +70,7 @@ func (s *ClusterRoleStorage) Delete(ctx kapi.Context, name string, options *kapi
 		return nil, err
 	}
 
-	return ret.(*unversioned.Status), err
+	return ret.(*metav1.Status), err
 }
 
 func (s *ClusterRoleStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {

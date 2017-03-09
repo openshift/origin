@@ -718,7 +718,7 @@ func (this *RouteIngressCondition) String() string {
 		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
 		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
 		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
-		`LastTransitionTime:` + strings.Replace(fmt.Sprintf("%v", this.LastTransitionTime), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
+		`LastTransitionTime:` + strings.Replace(fmt.Sprintf("%v", this.LastTransitionTime), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -728,7 +728,7 @@ func (this *RouteList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&RouteList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Route", "Route", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -1325,7 +1325,7 @@ func (m *RouteIngressCondition) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.LastTransitionTime == nil {
-				m.LastTransitionTime = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.LastTransitionTime = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.LastTransitionTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err

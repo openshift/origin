@@ -77,7 +77,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 // equals the Replicas count.
 //
 // This is a slightly modified version of
-// unversioned.ControllerHasDesiredReplicas. This  is necessary because when
+// metav1.ControllerHasDesiredReplicas. This  is necessary because when
 // scaling an RC via a DC, the RC spec replica count is not immediately
 // updated to match the owning DC.
 func controllerHasSpecifiedReplicas(c kclientset.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {

@@ -6,7 +6,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/labels"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
@@ -194,7 +194,7 @@ func (checker UserSubjectChecker) Allowed(subject kapi.ObjectReference, ctx *Rol
 		}
 
 		for _, labelSelector := range checker.userRestriction.Selectors {
-			selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+			selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 			if err != nil {
 				return false, err
 			}
@@ -245,7 +245,7 @@ func (checker GroupSubjectChecker) Allowed(subject kapi.ObjectReference, ctx *Ro
 		}
 
 		for _, labelSelector := range checker.groupRestriction.Selectors {
-			selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+			selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 			if err != nil {
 				return false, err
 			}

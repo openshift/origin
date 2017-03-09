@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -45,7 +45,7 @@ func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/" {
-			output, err := json.MarshalIndent(unversioned.RootPaths{Paths: rootPaths}, "", "  ")
+			output, err := json.MarshalIndent(metav1.RootPaths{Paths: rootPaths}, "", "  ")
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

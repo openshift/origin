@@ -9,11 +9,11 @@ import (
 	gocontext "golang.org/x/net/context"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -113,13 +113,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err := credentials.Err(); err != nil {
 		for i, image := range isi.Status.Images {
 			switch image.Status.Reason {
-			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
 				isi.Status.Images[i].Status.Message = fmt.Sprintf("Unable to load secrets for this image: %v; (%s)", err, image.Status.Message)
 			}
 		}
 		if r := isi.Status.Repository; r != nil {
 			switch r.Status.Reason {
-			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
 				r.Status.Message = fmt.Sprintf("Unable to load secrets for this repository: %v; (%s)", err, r.Status.Message)
 			}
 		}
@@ -164,7 +164,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if stream.Annotations == nil {
 		stream.Annotations = make(map[string]string)
 	}
-	now := unversioned.Now()
+	now := metav1.Now()
 	_, hasAnnotation := stream.Annotations[api.DockerImageRepositoryCheckAnnotation]
 	nextGeneration := stream.Generation + 1
 
@@ -291,7 +291,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // recordLimitExceededStatus adds the limit err to any new tag.
-func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.ImageStream, err error, now unversioned.Time, nextGeneration int64) {
+func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.ImageStream, err error, now metav1.Time, nextGeneration int64) {
 	for tag := range newStream.Status.Tags {
 		if _, ok := originalStream.Status.Tags[tag]; !ok {
 			api.SetTagConditions(originalStream, tag, newImportFailedCondition(err, nextGeneration, now))
@@ -299,8 +299,8 @@ func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.I
 	}
 }
 
-func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, tag string, nextGeneration int64, now unversioned.Time) bool {
-	if status.Image != nil && status.Status.Status == unversioned.StatusSuccess {
+func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, tag string, nextGeneration int64, now metav1.Time) bool {
+	if status.Image != nil && status.Status.Status == metav1.StatusSuccess {
 		return false
 	}
 	message := status.Status.Message
@@ -366,7 +366,7 @@ func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.T
 // operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
 	ctx kapi.Context,
-	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time, importPolicy api.TagImportPolicy,
+	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now metav1.Time, importPolicy api.TagImportPolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {
 	Strategy.PrepareImageForCreate(image)
@@ -450,7 +450,7 @@ func clearManifests(isi *api.ImageStreamImport) {
 	}
 }
 
-func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.TagEventCondition {
+func newImportFailedCondition(err error, gen int64, now metav1.Time) api.TagEventCondition {
 	c := api.TagEventCondition{
 		Type:       api.ImportSuccess,
 		Status:     kapi.ConditionFalse,
@@ -466,6 +466,6 @@ func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.Ta
 	return c
 }
 
-func invalidStatus(kind, position string, errs ...*field.Error) unversioned.Status {
+func invalidStatus(kind, position string, errs ...*field.Error) metav1.Status {
 	return kapierrors.NewInvalid(api.Kind(kind), position, errs).ErrStatus
 }

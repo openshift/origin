@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // negotiateVersion queries the server's supported api versions to find a version that both client and server support.
@@ -60,7 +60,7 @@ func negotiateVersion(client restclient.Interface, config *restclient.Config, re
 // serverAPIVersions fetches the server versions available from the groupless API at the given prefix
 func serverAPIVersions(c restclient.Interface, grouplessPrefix string) ([]schema.GroupVersion, error) {
 	// Get versions doc
-	var v unversioned.APIVersions
+	var v metav1.APIVersions
 	if err := c.Get().AbsPath(grouplessPrefix).Do().Into(&v); err != nil {
 		return []schema.GroupVersion{}, err
 	}
@@ -68,7 +68,7 @@ func serverAPIVersions(c restclient.Interface, grouplessPrefix string) ([]schema
 	// Convert to GroupVersion structs
 	serverAPIVersions := []schema.GroupVersion{}
 	for _, version := range v.Versions {
-		gv, err := unversioned.ParseGroupVersion(version)
+		gv, err := metav1.ParseGroupVersion(version)
 		if err != nil {
 			return []schema.GroupVersion{}, err
 		}

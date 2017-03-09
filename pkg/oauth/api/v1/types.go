@@ -1,13 +1,13 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // OAuthAccessToken describes an OAuth access token
 type OAuthAccessToken struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -38,7 +38,7 @@ type OAuthAccessToken struct {
 
 // OAuthAuthorizeToken describes an OAuth authorization token
 type OAuthAuthorizeToken struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -75,7 +75,7 @@ type OAuthAuthorizeToken struct {
 
 // OAuthClient describes an OAuth client
 type OAuthClient struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -137,7 +137,7 @@ type ClusterRoleScopeRestriction struct {
 
 // OAuthClientAuthorization describes an authorization created by an OAuth client
 type OAuthClientAuthorization struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -157,43 +157,43 @@ type OAuthClientAuthorization struct {
 
 // OAuthAccessTokenList is a collection of OAuth access tokens
 type OAuthAccessTokenList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth access tokens
 	Items []OAuthAccessToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
 type OAuthAuthorizeTokenList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth authorization tokens
 	Items []OAuthAuthorizeToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // OAuthClientList is a collection of OAuth clients
 type OAuthClientList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth clients
 	Items []OAuthClient `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // OAuthClientAuthorizationList is a collection of OAuth client authorizations
 type OAuthClientAuthorizationList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // OAuthRedirectReference is a reference to an OAuth redirect object.
 type OAuthRedirectReference struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// The reference to an redirect object in the current namespace.

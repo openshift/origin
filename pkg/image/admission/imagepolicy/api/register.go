@@ -1,9 +1,9 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: runtime.APIVersionInternal}
@@ -20,4 +20,4 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func (obj *ImagePolicyConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ImagePolicyConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }

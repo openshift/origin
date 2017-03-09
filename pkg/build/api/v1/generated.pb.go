@@ -3220,7 +3220,7 @@ func (this *BuildConfigList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&BuildConfigList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "BuildConfig", "BuildConfig", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3253,7 +3253,7 @@ func (this *BuildList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&BuildList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Build", "Build", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3277,7 +3277,7 @@ func (this *BuildLogOptions) String() string {
 		`Follow:` + fmt.Sprintf("%v", this.Follow) + `,`,
 		`Previous:` + fmt.Sprintf("%v", this.Previous) + `,`,
 		`SinceSeconds:` + valueToStringGenerated(this.SinceSeconds) + `,`,
-		`SinceTime:` + strings.Replace(fmt.Sprintf("%v", this.SinceTime), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
+		`SinceTime:` + strings.Replace(fmt.Sprintf("%v", this.SinceTime), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
 		`Timestamps:` + fmt.Sprintf("%v", this.Timestamps) + `,`,
 		`TailLines:` + valueToStringGenerated(this.TailLines) + `,`,
 		`LimitBytes:` + valueToStringGenerated(this.LimitBytes) + `,`,
@@ -3366,8 +3366,8 @@ func (this *BuildStatus) String() string {
 		`Cancelled:` + fmt.Sprintf("%v", this.Cancelled) + `,`,
 		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
 		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
-		`StartTimestamp:` + strings.Replace(fmt.Sprintf("%v", this.StartTimestamp), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
-		`CompletionTimestamp:` + strings.Replace(fmt.Sprintf("%v", this.CompletionTimestamp), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
+		`StartTimestamp:` + strings.Replace(fmt.Sprintf("%v", this.StartTimestamp), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
+		`CompletionTimestamp:` + strings.Replace(fmt.Sprintf("%v", this.CompletionTimestamp), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
 		`Duration:` + fmt.Sprintf("%v", this.Duration) + `,`,
 		`OutputDockerImageReference:` + fmt.Sprintf("%v", this.OutputDockerImageReference) + `,`,
 		`Config:` + strings.Replace(fmt.Sprintf("%v", this.Config), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1) + `,`,
@@ -4995,7 +4995,7 @@ func (m *BuildLogOptions) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.SinceTime == nil {
-				m.SinceTime = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.SinceTime = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.SinceTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
@@ -6306,7 +6306,7 @@ func (m *BuildStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.StartTimestamp == nil {
-				m.StartTimestamp = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.StartTimestamp = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.StartTimestamp.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
@@ -6339,7 +6339,7 @@ func (m *BuildStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.CompletionTimestamp == nil {
-				m.CompletionTimestamp = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.CompletionTimestamp = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.CompletionTimestamp.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err

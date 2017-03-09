@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestParseImageStreamImageName(t *testing.T) {
@@ -609,7 +609,7 @@ func TestImageWithMetadata(t *testing.T) {
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
 					Comment:   "",
-					Created:   unversioned.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
+					Created:   metav1.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
 					Container: "c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec",
 					ContainerConfig: DockerConfig{
 						Hostname:        "43bd710ec89a",
@@ -688,7 +688,7 @@ func TestImageWithMetadata(t *testing.T) {
 					ID:            "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d",
 					Parent:        "",
 					Comment:       "",
-					Created:       unversioned.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
+					Created:       metav1.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
 					Container:     "e91032eb0403a61bfe085ff5a5a48e3659e5a6deae9f4d678daa2ae399d5a001",
 					DockerVersion: "1.9.0-dev",
 					Author:        "",
@@ -1750,7 +1750,7 @@ func TestIndexOfImageSignature(t *testing.T) {
 }
 
 func mockImageStream(policy TagReferencePolicyType) *ImageStream {
-	now := unversioned.Now()
+	now := metav1.Now()
 	stream := &ImageStream{}
 	stream.Status = ImageStreamStatus{}
 	stream.Spec = ImageStreamSpec{}
@@ -1778,7 +1778,7 @@ func mockImageStream(policy TagReferencePolicyType) *ImageStream {
 		{
 			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb",
 			DockerImageReference: "test/foo@sha256:oldbar",
-			Created:              unversioned.Time{Time: now.Add(-5 * time.Second)},
+			Created:              metav1.Time{Time: now.Add(-5 * time.Second)},
 			Generation:           1,
 		},
 	}}

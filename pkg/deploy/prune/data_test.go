@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -22,7 +22,7 @@ func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationC
 	return item
 }
 
-func withCreated(item *kapi.ReplicationController, creationTimestamp unversioned.Time) *kapi.ReplicationController {
+func withCreated(item *kapi.ReplicationController, creationTimestamp metav1.Time) *kapi.ReplicationController {
 	item.CreationTimestamp = creationTimestamp
 	return item
 }
@@ -65,8 +65,8 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := unversioned.Now()
-	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
+	now := metav1.Now()
+	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
 	items := []*kapi.ReplicationController{}
 	items = append(items, withCreated(mockDeployment("a", "old", nil), old))
 	items = append(items, withCreated(mockDeployment("a", "new", nil), now))

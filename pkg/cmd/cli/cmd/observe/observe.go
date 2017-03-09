@@ -22,14 +22,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/healthz"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/jsonpath"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -289,7 +289,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("you may only specify one argument containing the resource to observe (use '--' to separate your resource and your command)")
 	}
 
-	gr := unversioned.ParseGroupResource(args[0])
+	gr := metav1.ParseGroupResource(args[0])
 	if gr.Empty() {
 		return fmt.Errorf("unknown resource argument")
 	}

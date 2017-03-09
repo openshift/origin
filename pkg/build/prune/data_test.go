@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -16,7 +16,7 @@ func mockBuildConfig(namespace, name string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
-func withCreated(build *buildapi.Build, creationTimestamp unversioned.Time) *buildapi.Build {
+func withCreated(build *buildapi.Build, creationTimestamp metav1.Time) *buildapi.Build {
 	build.CreationTimestamp = creationTimestamp
 	return build
 }
@@ -68,8 +68,8 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := unversioned.Now()
-	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
+	now := metav1.Now()
+	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
 	builds := []*buildapi.Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{

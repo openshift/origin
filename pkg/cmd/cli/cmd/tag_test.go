@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -22,14 +22,14 @@ type testAction struct {
 func testData() []*imageapi.ImageStream {
 	return []*imageapi.ImageStream{
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{},
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -44,7 +44,7 @@ func testData() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -218,7 +218,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 func TestRunTag_AddNew(t *testing.T) {
 	client := testclient.NewSimpleFake(
 		&imageapi.ImageStreamTag{
-			ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 		},
 	)
 
@@ -312,7 +312,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 
 func TestRunTag_DeleteNew(t *testing.T) {
 	is := &imageapi.ImageStreamTag{
-		ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: unversioned.Now()},
+		ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 	}
 	client := testclient.NewSimpleFake(is)
 

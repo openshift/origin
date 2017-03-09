@@ -10,15 +10,15 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -219,7 +219,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
 		}
-		gv, err := unversioned.ParseGroupVersion(ref.APIVersion)
+		gv, err := metav1.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +327,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 }
 
 func makeCrossGroupObjRef(ref *kapi.ObjectReference) (unidlingapi.CrossGroupObjectReference, error) {
-	gv, err := unversioned.ParseGroupVersion(ref.APIVersion)
+	gv, err := metav1.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return unidlingapi.CrossGroupObjectReference{}, err
 	}

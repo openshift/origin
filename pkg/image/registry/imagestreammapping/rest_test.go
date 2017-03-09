@@ -11,12 +11,12 @@ import (
 	"golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/watch"
@@ -750,7 +750,7 @@ type fakeImageStreamRegistry struct {
 	updateImageStream       func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStreamSpec   func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStreamStatus func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	deleteImageStream       func(ctx kapi.Context, id string) (*unversioned.Status, error)
+	deleteImageStream       func(ctx kapi.Context, id string) (*metav1.Status, error)
 	watchImageStreams       func(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
 }
 
@@ -772,7 +772,7 @@ func (f *fakeImageStreamRegistry) UpdateImageStreamSpec(ctx kapi.Context, repo *
 func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.updateImageStreamStatus(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error) {
+func (f *fakeImageStreamRegistry) DeleteImageStream(ctx kapi.Context, id string) (*metav1.Status, error) {
 	return f.deleteImageStream(ctx, id)
 }
 func (f *fakeImageStreamRegistry) WatchImageStreams(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {

@@ -6,13 +6,13 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -272,7 +272,7 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 	switch tagRef.From.Kind {
 	case "DockerImage":
 		event = &api.TagEvent{
-			Created:              unversioned.Now(),
+			Created:              metav1.Now(),
 			DockerImageReference: tagRef.From.Name,
 		}
 

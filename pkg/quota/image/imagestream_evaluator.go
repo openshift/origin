@@ -1,11 +1,11 @@
 package image
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"

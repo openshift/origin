@@ -10,7 +10,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -421,7 +421,7 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kctl.Print
 	tags := ""
 	const numOfTagsShown = 3
 
-	var latest unversioned.Time
+	var latest metav1.Time
 	for _, list := range stream.Status.Tags {
 		if len(list.Items) > 0 {
 			if list.Items[0].Created.After(latest.Time) {
@@ -1036,7 +1036,7 @@ func printClusterResourceQuota(resourceQuota *quotaapi.ClusterResourceQuota, w i
 	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(resourceQuota.Spec.Selector.LabelSelector)); err != nil {
+	if _, err := fmt.Fprintf(w, "\t%s", metav1.FormatLabelSelector(resourceQuota.Spec.Selector.LabelSelector)); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "\t%s", resourceQuota.Spec.Selector.AnnotationSelector); err != nil {
@@ -1086,7 +1086,7 @@ func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w
 		}
 		for _, selector := range rbr.Spec.UserRestriction.Selectors {
 			subjectList = append(subjectList,
-				unversioned.FormatLabelSelector(&selector))
+				metav1.FormatLabelSelector(&selector))
 		}
 	case rbr.Spec.GroupRestriction != nil:
 		for _, group := range rbr.Spec.GroupRestriction.Groups {
@@ -1094,7 +1094,7 @@ func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w
 		}
 		for _, selector := range rbr.Spec.GroupRestriction.Selectors {
 			subjectList = append(subjectList,
-				unversioned.FormatLabelSelector(&selector))
+				metav1.FormatLabelSelector(&selector))
 		}
 	case rbr.Spec.ServiceAccountRestriction != nil:
 		for _, sa := range rbr.Spec.ServiceAccountRestriction.ServiceAccounts {

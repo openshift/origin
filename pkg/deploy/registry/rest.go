@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -39,8 +39,8 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 			// When we send too old resource version in observed replication controller to
 			// watcher, restart the watch with latest available controller.
 			switch t := e.Object.(type) {
-			case *unversioned.Status:
-				if t.Reason == unversioned.StatusReasonGone {
+			case *metav1.Status:
+				if t.Reason == metav1.StatusReasonGone {
 					glog.V(5).Infof("encountered error while watching for replication controller: %v (retrying)", t)
 					return false, ErrTooOldResourceVersion
 				}

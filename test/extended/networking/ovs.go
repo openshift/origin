@@ -83,7 +83,7 @@ var _ = Describe("[networking] OVS", func() {
 
 			nodeName := "ovs-test-node"
 			node := &kapi.Node{
-				TypeMeta: kapiunversioned.TypeMeta{
+				TypeMeta: kapimetav1.TypeMeta{
 					Kind: "Node",
 				},
 				ObjectMeta: kapi.ObjectMeta{
@@ -196,7 +196,7 @@ func findFlowOrError(msg string, flows []string, ip string) error {
 
 func doGetFlowsForNode(oc *testexutil.CLI, nodeName string) ([]string, error) {
 	pod := &kapi.Pod{
-		TypeMeta: kapiunversioned.TypeMeta{
+		TypeMeta: kapimetav1.TypeMeta{
 			Kind: "Pod",
 		},
 		ObjectMeta: kapi.ObjectMeta{

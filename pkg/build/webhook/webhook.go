@@ -8,7 +8,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -79,8 +79,8 @@ func ValidateWebHookSecret(webHookTriggers []buildapi.BuildTriggerPolicy, secret
 
 // NewWarning returns an StatusError object with a http.StatusOK (200) code.
 func NewWarning(message string) *kerrors.StatusError {
-	return &kerrors.StatusError{ErrStatus: unversioned.Status{
-		Status:  unversioned.StatusSuccess,
+	return &kerrors.StatusError{ErrStatus: metav1.Status{
+		Status:  metav1.StatusSuccess,
 		Code:    http.StatusOK,
 		Message: message,
 	}}

@@ -4,20 +4,20 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 type FakeLabelsResource struct {
-	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 }
 
-func (obj *FakeLabelsResource) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *FakeLabelsResource) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string

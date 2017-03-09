@@ -18,12 +18,12 @@ import (
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/websocket"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -427,7 +427,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 
 	waitForRouterToBecomeAvailable("127.0.0.1", statsPort)
 
-	now := unversioned.Now()
+	now := metav1.Now()
 
 	protocols := []struct {
 		name string
@@ -522,7 +522,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: unversioned.Time{Time: now.Add(time.Hour)},
+				CreationTimestamp: metav1.Time{Time: now.Add(time.Hour)},
 				Name:              "path",
 				Namespace:         "alt",
 			},
@@ -643,7 +643,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: unversioned.Time{Time: now.Add(time.Hour)},
+				CreationTimestamp: metav1.Time{Time: now.Add(time.Hour)},
 				Name:              "host",
 				Namespace:         "alt",
 			},
@@ -681,7 +681,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: unversioned.Time{Time: now.Add(-time.Hour)},
+				CreationTimestamp: metav1.Time{Time: now.Add(-time.Hour)},
 				Name:              "host",
 				Namespace:         "alt",
 			},
@@ -1755,7 +1755,7 @@ func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels
 	namespaceLabels = fmt.Sprintf("%s=%s", key, value)
 
 	namespaceList := &kapi.NamespaceList{
-		ListMeta: unversioned.ListMeta{
+		ListMeta: metav1.ListMeta{
 			ResourceVersion: fmt.Sprintf("%d", len(*namespaceNames)),
 		},
 		Items: []kapi.Namespace{},

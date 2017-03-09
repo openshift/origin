@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -165,7 +165,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -174,7 +174,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -190,7 +190,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -199,7 +199,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -208,7 +208,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -224,7 +224,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -233,7 +233,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -242,7 +242,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -251,7 +251,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "another-ref",
-								Created:              unversioned.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
+								Created:              metav1.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
 								Image:                "another-image",
 							},
 						},

@@ -11,12 +11,11 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployfake "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/fake"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	ktestingcore "k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 
 	// install the APIs we need for the codecs to run correctly in order to build patches
@@ -218,7 +217,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -229,7 +228,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind: "DeploymentConfig",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -330,7 +329,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -341,7 +340,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind:       "DeploymentConfig",
 				APIVersion: "apps.openshift.io/v1",
 			},
@@ -598,7 +597,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: kmetav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
@@ -627,7 +626,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: kmetav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
 					ObjectMeta: kapi.ObjectMeta{
@@ -636,7 +635,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: kmetav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
@@ -666,7 +665,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: kmetav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
 					ObjectMeta: kapi.ObjectMeta{
@@ -675,7 +674,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kunversioned.TypeMeta{
+					TypeMeta: kmetav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},

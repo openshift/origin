@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PodNodeConstraintsConfig is the configuration for the pod node name
@@ -11,7 +11,7 @@ import (
 // setting NodeSelectors whose labels appear in the blacklist field
 // "NodeSelectorLabelBlacklist"
 type PodNodeConstraintsConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// NodeSelectorLabelBlacklist specifies a list of labels which cannot be set by entities without the "pods/binding" permission
 	NodeSelectorLabelBlacklist []string
 }

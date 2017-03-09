@@ -11,7 +11,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -151,7 +151,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		}
 	}
 
-	o.APIVersion, err = unversioned.ParseGroupVersion(apiVersionString)
+	o.APIVersion, err = metav1.ParseGroupVersion(apiVersionString)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -837,11 +837,11 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	}
 	out := []string{}
 
-	passTime := unversioned.Time{}
+	passTime := metav1.Time{}
 	if lastSuccessfulBuild != nil {
 		passTime = buildTimestamp(lastSuccessfulBuild.Build)
 	}
-	failTime := unversioned.Time{}
+	failTime := metav1.Time{}
 	if lastUnsuccessfulBuild != nil {
 		failTime = buildTimestamp(lastUnsuccessfulBuild.Build)
 	}
@@ -852,9 +852,9 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	}
 
 	var firstBuildToDisplay *buildgraph.BuildNode
-	firstTime := unversioned.Time{}
+	firstTime := metav1.Time{}
 	var secondBuildToDisplay *buildgraph.BuildNode
-	secondTime := unversioned.Time{}
+	secondTime := metav1.Time{}
 
 	// display the last successful build if specifically requested or we're going to display an active build for context
 	if includeSuccess || len(activeBuilds) > 0 {
@@ -902,7 +902,7 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	return out
 }
 
-func describeBuildPhase(build *buildapi.Build, t *unversioned.Time, parentName string, pushTargetResolved bool) string {
+func describeBuildPhase(build *buildapi.Build, t *metav1.Time, parentName string, pushTargetResolved bool) string {
 	imageStreamFailure := ""
 	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
 	if (build.Spec.Output.To != nil) && !pushTargetResolved {
@@ -979,9 +979,9 @@ func describeSourceControlUser(user buildapi.SourceControlUser) string {
 	return fmt.Sprintf("%s <%s>", user.Name, user.Email)
 }
 
-func buildTimestamp(build *buildapi.Build) unversioned.Time {
+func buildTimestamp(build *buildapi.Build) metav1.Time {
 	if build == nil {
-		return unversioned.Time{}
+		return metav1.Time{}
 	}
 	if !build.Status.CompletionTimestamp.IsZero() {
 		return *build.Status.CompletionTimestamp

@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
@@ -150,7 +150,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image labels": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []metav1.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -162,8 +162,8 @@ func TestAccept(t *testing.T) {
 		"accepts matching multiple image label values": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value2"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []metav1.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []metav1.LabelSelector{{MatchLabels: map[string]string{"label1": "value2"}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -175,7 +175,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image labels by key": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchExpressions: []unversioned.LabelSelectorRequirement{{Key: "label1", Operator: unversioned.LabelSelectorOpExists}}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []metav1.LabelSelector{{MatchExpressions: []metav1.LabelSelectorRequirement{{Key: "label1", Operator: metav1.LabelSelectorOpExists}}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -398,7 +398,7 @@ func TestWasError(t *testing.T) {
 			isi: &imageapi.ImageStreamImport{
 				Status: imageapi.ImageStreamImportStatus{
 					Images: []imageapi.ImageImportStatus{
-						{Status: unversioned.Status{Status: unversioned.StatusFailure}},
+						{Status: metav1.Status{Status: metav1.StatusFailure}},
 					},
 				},
 			},
@@ -408,7 +408,7 @@ func TestWasError(t *testing.T) {
 			isi: &imageapi.ImageStreamImport{
 				Status: imageapi.ImageStreamImportStatus{
 					Repository: &imageapi.RepositoryImportStatus{
-						Status: unversioned.Status{Status: unversioned.StatusFailure},
+						Status: metav1.Status{Status: metav1.StatusFailure},
 					},
 				},
 			},

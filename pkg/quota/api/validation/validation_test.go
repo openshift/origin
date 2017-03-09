@@ -3,7 +3,7 @@ package validation
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 	"testing"
@@ -58,7 +58,7 @@ func TestValidationClusterQuota(t *testing.T) {
 		&quotaapi.ClusterResourceQuota{
 			ObjectMeta: api.ObjectMeta{Name: "good"},
 			Spec: quotaapi.ClusterResourceQuotaSpec{
-				Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+				Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 				Quota:    spec(),
 			},
 		},
@@ -76,7 +76,7 @@ func TestValidationClusterQuota(t *testing.T) {
 			A: quotaapi.ClusterResourceQuota{
 				ObjectMeta: api.ObjectMeta{Namespace: "bad", Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    spec(),
 				},
 			},
@@ -107,7 +107,7 @@ func TestValidationClusterQuota(t *testing.T) {
 			A: quotaapi.ClusterResourceQuota{
 				ObjectMeta: api.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    spec(api.ResourceQuotaScopeNotTerminating),
 				},
 			},
@@ -118,7 +118,7 @@ func TestValidationClusterQuota(t *testing.T) {
 			A: quotaapi.ClusterResourceQuota{
 				ObjectMeta: api.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    invalidQuotaResourceSpec,
 				},
 			},

@@ -1,8 +1,8 @@
 package api
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/build/api"

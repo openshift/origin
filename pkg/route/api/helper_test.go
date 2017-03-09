@@ -5,20 +5,20 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/types"
 )
 
 func TestRouteLessThan(t *testing.T) {
-	olderTimestamp := unversioned.Now().Rfc3339Copy()
-	newerTimestamp := unversioned.Time{
+	olderTimestamp := metav1.Now().Rfc3339Copy()
+	newerTimestamp := metav1.Time{
 		Time: olderTimestamp.Add(1 * time.Minute),
 	}
 
 	tcs := []struct {
 		testName   string
-		timestamp1 unversioned.Time
-		timestamp2 unversioned.Time
+		timestamp1 metav1.Time
+		timestamp2 metav1.Time
 		uid1       types.UID
 		uid2       types.UID
 		expected   bool

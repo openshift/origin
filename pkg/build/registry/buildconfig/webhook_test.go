@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
@@ -68,7 +68,7 @@ func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigReg
 
 func TestNewWebHook(t *testing.T) {
 	hook, _, _ := newStorage()
-	if out, ok := hook.New().(*unversioned.Status); !ok {
+	if out, ok := hook.New().(*metav1.Status); !ok {
 		t.Errorf("unexpected new: %#v", out)
 	}
 }

@@ -9,7 +9,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -129,7 +129,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (string, error) {
 	contName := fmt.Sprintf("%s-container", podName)
 	pod := &api.Pod{
-		TypeMeta: unversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
 		},
 		ObjectMeta: api.ObjectMeta{

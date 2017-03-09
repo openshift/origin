@@ -19,7 +19,7 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
-import k8s_io_kubernetes_pkg_runtime "k8s.io/kubernetes/pkg/runtime"
+import k8s_io_kubernetes_pkg_runtime "k8s.io/apimachinery/pkg/runtime"
 
 import strings "strings"
 import reflect "reflect"
@@ -360,7 +360,7 @@ func (this *TemplateList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&TemplateList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Template", "Template", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")

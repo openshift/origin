@@ -1,18 +1,18 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	ID              string           `json:"Id"`
 	Parent          string           `json:"Parent,omitempty"`
 	Comment         string           `json:"Comment,omitempty"`
-	Created         unversioned.Time `json:"Created,omitempty"`
+	Created         metav1.Time `json:"Created,omitempty"`
 	Container       string           `json:"Container,omitempty"`
 	ContainerConfig DockerConfig     `json:"ContainerConfig,omitempty"`
 	DockerVersion   string           `json:"DockerVersion,omitempty"`
@@ -106,7 +106,7 @@ type DockerV1CompatibilityImage struct {
 	ID              string           `json:"id"`
 	Parent          string           `json:"parent,omitempty"`
 	Comment         string           `json:"comment,omitempty"`
-	Created         unversioned.Time `json:"created"`
+	Created         metav1.Time `json:"created"`
 	Container       string           `json:"container,omitempty"`
 	ContainerConfig DockerConfig     `json:"container_config,omitempty"`
 	DockerVersion   string           `json:"docker_version,omitempty"`
@@ -127,7 +127,7 @@ type DockerImageConfig struct {
 	ID              string                `json:"id"`
 	Parent          string                `json:"parent,omitempty"`
 	Comment         string                `json:"comment,omitempty"`
-	Created         unversioned.Time      `json:"created"`
+	Created         metav1.Time      `json:"created"`
 	Container       string                `json:"container,omitempty"`
 	ContainerConfig DockerConfig          `json:"container_config,omitempty"`
 	DockerVersion   string                `json:"docker_version,omitempty"`
@@ -143,7 +143,7 @@ type DockerImageConfig struct {
 
 // DockerConfigHistory stores build commands that were used to create an image
 type DockerConfigHistory struct {
-	Created    unversioned.Time `json:"created"`
+	Created    metav1.Time `json:"created"`
 	Author     string           `json:"author,omitempty"`
 	CreatedBy  string           `json:"created_by,omitempty"`
 	Comment    string           `json:"comment,omitempty"`

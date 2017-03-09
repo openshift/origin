@@ -23,7 +23,7 @@ import (
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -230,7 +230,7 @@ func BuildKubernetesMasterConfig(
 	cmserver.Address = ""                   // no healthz endpoint
 	cmserver.Port = 0                       // no healthz endpoint
 	cmserver.EnableGarbageCollector = false // disabled until we add the controller
-	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
+	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
 
 	// resolve extended arguments
@@ -528,7 +528,7 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 					no backwards incompatible changes are allowed without incrementing the
 					apiVersion. The server will return and accept a number of standard
 					responses that share a common schema - for instance, the common
-					error type is 'unversioned.Status' (described below) and will be returned
+					error type is 'metav1.Status' (described below) and will be returned
 					on any error from the API server.
 
 					The API is available in multiple serialization formats - the default is

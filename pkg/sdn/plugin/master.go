@@ -55,7 +55,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		}
 	} else {
 		cn = &osapi.ClusterNetwork{
-			TypeMeta:   kapiunversioned.TypeMeta{Kind: "ClusterNetwork"},
+			TypeMeta:   kapimetav1.TypeMeta{Kind: "ClusterNetwork"},
 			ObjectMeta: kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
 		}
 		createConfig = true

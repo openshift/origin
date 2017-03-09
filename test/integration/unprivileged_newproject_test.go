@@ -7,7 +7,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -57,8 +57,8 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if allowed.Status != unversioned.StatusSuccess {
-		t.Fatalf("expected %v, got %v", unversioned.StatusSuccess, allowed.Status)
+	if allowed.Status != metav1.StatusSuccess {
+		t.Fatalf("expected %v, got %v", metav1.StatusSuccess, allowed.Status)
 	}
 
 	requestProject := oc.NewProjectOptions{

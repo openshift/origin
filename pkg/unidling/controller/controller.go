@@ -15,11 +15,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
@@ -282,7 +282,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		return false, nil
 	}
 
-	// TODO: ew, this is unversioned.  Such is life when working with annotations.
+	// TODO: ew, this is metav1.  Such is life when working with annotations.
 	var targetScalables []unidlingapi.RecordedScaleReference
 	if targetScalablesStr, hasTargetScalables := targetEndpoints.Annotations[unidlingapi.UnidleTargetAnnotation]; hasTargetScalables {
 		if err = json.Unmarshal([]byte(targetScalablesStr), &targetScalables); err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -42,7 +42,7 @@ func ScaleFromConfig(dc *DeploymentConfig) *extensions.Scale {
 		},
 		Status: extensions.ScaleStatus{
 			Replicas: dc.Status.Replicas,
-			Selector: &unversioned.LabelSelector{
+			Selector: &metav1.LabelSelector{
 				MatchLabels: dc.Spec.Selector,
 			},
 		},

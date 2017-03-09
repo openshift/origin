@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"

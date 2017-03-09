@@ -1,7 +1,7 @@
 package graphview
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
@@ -43,7 +43,7 @@ func (rc *ReplicationController) MaxRecentContainerRestarts() int32 {
 	var maxRestarts int32
 	for _, pod := range rc.OwnedPods {
 		for _, status := range pod.Status.ContainerStatuses {
-			if status.RestartCount > maxRestarts && analysis.ContainerRestartedRecently(status, unversioned.Now()) {
+			if status.RestartCount > maxRestarts && analysis.ContainerRestartedRecently(status, metav1.Now()) {
 				maxRestarts = status.RestartCount
 			}
 		}

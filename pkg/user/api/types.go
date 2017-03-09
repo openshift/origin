@@ -2,7 +2,7 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Auth system gets identity name and provider
@@ -11,7 +11,7 @@ import (
 // +genclient=true
 
 type User struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	FullName string
@@ -22,13 +22,13 @@ type User struct {
 }
 
 type UserList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []User
 }
 
 type Identity struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// ProviderName is the source of identity information
@@ -45,13 +45,13 @@ type Identity struct {
 }
 
 type IdentityList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []Identity
 }
 
 type UserIdentityMapping struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	Identity kapi.ObjectReference
@@ -60,14 +60,14 @@ type UserIdentityMapping struct {
 
 // Group represents a referenceable set of Users
 type Group struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	Users []string
 }
 
 type GroupList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []Group
 }

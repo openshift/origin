@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	oapi "github.com/openshift/origin/pkg/api"

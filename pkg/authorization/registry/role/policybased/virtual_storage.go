@@ -6,14 +6,14 @@ import (
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -103,14 +103,14 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 		}
 
 		delete(policy.Roles, name)
-		policy.LastModified = unversioned.Now()
+		policy.LastModified = metav1.Now()
 
 		return m.PolicyStorage.UpdatePolicy(ctx, policy)
 	}); err != nil {
 		return nil, err
 	}
 
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, nil
 }
 
 func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -151,7 +151,7 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 
 		role.ResourceVersion = policy.ResourceVersion
 		policy.Roles[role.Name] = role
-		policy.LastModified = unversioned.Now()
+		policy.LastModified = metav1.Now()
 
 		return m.PolicyStorage.UpdatePolicy(ctx, policy)
 	}); err != nil {
@@ -225,7 +225,7 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, name string, objInfo rest.
 
 		role.ResourceVersion = policy.ResourceVersion
 		policy.Roles[role.Name] = role
-		policy.LastModified = unversioned.Now()
+		policy.LastModified = metav1.Now()
 
 		if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 			return err
@@ -279,7 +279,7 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 	policy := &authorizationapi.Policy{}
 	policy.Name = authorizationapi.PolicyName
 	policy.Namespace = namespace
-	policy.CreationTimestamp = unversioned.Now()
+	policy.CreationTimestamp = metav1.Now()
 	policy.LastModified = policy.CreationTimestamp
 	policy.Roles = make(map[string]*authorizationapi.Role)
 

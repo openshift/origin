@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/pkg/api/validation/path"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/runtime"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 

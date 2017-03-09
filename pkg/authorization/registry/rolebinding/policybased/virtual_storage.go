@@ -6,14 +6,14 @@ import (
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -108,14 +108,14 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 		}
 
 		delete(owningPolicyBinding.RoleBindings, name)
-		owningPolicyBinding.LastModified = unversioned.Now()
+		owningPolicyBinding.LastModified = metav1.Now()
 
 		return m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
 	}); err != nil {
 		return nil, err
 	}
 
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, nil
 }
 
 func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -160,7 +160,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 		roleBinding.ResourceVersion = policyBinding.ResourceVersion
 		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-		policyBinding.LastModified = unversioned.Now()
+		policyBinding.LastModified = metav1.Now()
 
 		return m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding)
 	}); err != nil {
@@ -240,7 +240,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInf
 
 		roleBinding.ResourceVersion = policyBinding.ResourceVersion
 		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-		policyBinding.LastModified = unversioned.Now()
+		policyBinding.LastModified = metav1.Now()
 
 		if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 			return err

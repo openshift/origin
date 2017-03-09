@@ -46,7 +46,6 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
-import k8s_io_kubernetes_pkg_api_unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 
 import strings "strings"
@@ -2118,7 +2117,7 @@ func (this *ImageImportStatus) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ImageImportStatus{`,
-		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "Status", "k8s_io_kubernetes_pkg_api_unversioned.Status", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "Status", "k8s_io_kubernetes_pkg_api_metav1.Status", 1), `&`, ``, 1) + `,`,
 		`Image:` + strings.Replace(fmt.Sprintf("%v", this.Image), "Image", "Image", 1) + `,`,
 		`Tag:` + fmt.Sprintf("%v", this.Tag) + `,`,
 		`}`,
@@ -2142,7 +2141,7 @@ func (this *ImageList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ImageList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Image", "Image", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2169,7 +2168,7 @@ func (this *ImageSignature) String() string {
 		`Conditions:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Conditions), "SignatureCondition", "SignatureCondition", 1), `&`, ``, 1) + `,`,
 		`ImageIdentity:` + fmt.Sprintf("%v", this.ImageIdentity) + `,`,
 		`SignedClaims:` + mapStringForSignedClaims + `,`,
-		`Created:` + strings.Replace(fmt.Sprintf("%v", this.Created), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
+		`Created:` + strings.Replace(fmt.Sprintf("%v", this.Created), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
 		`IssuedBy:` + strings.Replace(fmt.Sprintf("%v", this.IssuedBy), "SignatureIssuer", "SignatureIssuer", 1) + `,`,
 		`IssuedTo:` + strings.Replace(fmt.Sprintf("%v", this.IssuedTo), "SignatureSubject", "SignatureSubject", 1) + `,`,
 		`}`,
@@ -2240,7 +2239,7 @@ func (this *ImageStreamList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ImageStreamList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ImageStream", "ImageStream", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2299,7 +2298,7 @@ func (this *ImageStreamTagList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ImageStreamTagList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ImageStreamTag", "ImageStreamTag", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2334,7 +2333,7 @@ func (this *RepositoryImportStatus) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&RepositoryImportStatus{`,
-		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "Status", "k8s_io_kubernetes_pkg_api_unversioned.Status", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "Status", "k8s_io_kubernetes_pkg_api_metav1.Status", 1), `&`, ``, 1) + `,`,
 		`Images:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Images), "ImageImportStatus", "ImageImportStatus", 1), `&`, ``, 1) + `,`,
 		`AdditionalTags:` + fmt.Sprintf("%v", this.AdditionalTags) + `,`,
 		`}`,
@@ -2348,8 +2347,8 @@ func (this *SignatureCondition) String() string {
 	s := strings.Join([]string{`&SignatureCondition{`,
 		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
 		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
-		`LastProbeTime:` + strings.Replace(strings.Replace(this.LastProbeTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
-		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastProbeTime:` + strings.Replace(strings.Replace(this.LastProbeTime.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
+		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
 		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
 		`}`,
@@ -2393,7 +2392,7 @@ func (this *TagEvent) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&TagEvent{`,
-		`Created:` + strings.Replace(strings.Replace(this.Created.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`Created:` + strings.Replace(strings.Replace(this.Created.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`DockerImageReference:` + fmt.Sprintf("%v", this.DockerImageReference) + `,`,
 		`Image:` + fmt.Sprintf("%v", this.Image) + `,`,
 		`Generation:` + fmt.Sprintf("%v", this.Generation) + `,`,
@@ -2408,7 +2407,7 @@ func (this *TagEventCondition) String() string {
 	s := strings.Join([]string{`&TagEventCondition{`,
 		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
 		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
-		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
 		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
 		`Generation:` + fmt.Sprintf("%v", this.Generation) + `,`,
@@ -3872,7 +3871,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Created == nil {
-				m.Created = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.Created = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.Created.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err

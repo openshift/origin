@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -756,15 +756,15 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 
 func resolveError(kind string, namespace string, name string, err error) error {
 	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
-	return &errors.StatusError{ErrStatus: unversioned.Status{
-		Status:  unversioned.StatusFailure,
+	return &errors.StatusError{ErrStatus: metav1.Status{
+		Status:  metav1.StatusFailure,
 		Code:    errors.StatusUnprocessableEntity,
-		Reason:  unversioned.StatusReasonInvalid,
+		Reason:  metav1.StatusReasonInvalid,
 		Message: msg,
-		Details: &unversioned.StatusDetails{
+		Details: &metav1.StatusDetails{
 			Kind: kind,
 			Name: name,
-			Causes: []unversioned.StatusCause{{
+			Causes: []metav1.StatusCause{{
 				Field:   "from",
 				Message: msg,
 			}},
@@ -857,7 +857,7 @@ func getNextBuildNameFromBuild(build *buildapi.Build, buildConfig *buildapi.Buil
 		nameElems := strings.Split(buildName, "-")
 		buildName = strings.Join(nameElems[:len(nameElems)-1], "-")
 	}
-	suffix := fmt.Sprintf("%v", unversioned.Now().UnixNano())
+	suffix := fmt.Sprintf("%v", metav1.Now().UnixNano())
 	if len(suffix) > 10 {
 		suffix = suffix[len(suffix)-10:]
 	}

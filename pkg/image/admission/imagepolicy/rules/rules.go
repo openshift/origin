@@ -2,7 +2,7 @@ package rules
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -62,7 +62,7 @@ func imageConditionInfo(rule *api.ImageCondition) (covers resourceSet, selectors
 	}
 
 	for i := range rule.MatchImageLabels {
-		s, err := unversioned.LabelSelectorAsSelector(&rule.MatchImageLabels[i])
+		s, err := metav1.LabelSelectorAsSelector(&rule.MatchImageLabels[i])
 		if err != nil {
 			return nil, nil, err
 		}

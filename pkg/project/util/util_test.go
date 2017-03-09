@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/google/gofuzz"
 	"github.com/openshift/origin/pkg/project/api"
@@ -18,7 +18,7 @@ func TestProjectFidelity(t *testing.T) {
 	p := &api.Project{}
 	for i := 0; i < 100; i++ {
 		f.Fuzz(p)
-		p.TypeMeta = unversioned.TypeMeta{} // Ignore TypeMeta
+		p.TypeMeta = metav1.TypeMeta{} // Ignore TypeMeta
 		namespace := ConvertProject(p)
 		p2 := ConvertNamespace(namespace)
 		if !reflect.DeepEqual(p, p2) {
@@ -33,7 +33,7 @@ func TestNamespaceFidelity(t *testing.T) {
 	n := &kapi.Namespace{}
 	for i := 0; i < 100; i++ {
 		f.Fuzz(n)
-		n.TypeMeta = unversioned.TypeMeta{} // Ignore TypeMeta
+		n.TypeMeta = metav1.TypeMeta{} // Ignore TypeMeta
 		project := ConvertNamespace(n)
 		n2 := ConvertProject(project)
 		if !reflect.DeepEqual(n, n2) {

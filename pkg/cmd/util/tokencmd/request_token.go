@@ -13,7 +13,7 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -133,8 +133,8 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 			unauthorizedError := apierrs.NewUnauthorized("")
 			// Attempt to read body content and include as an error detail
 			if details, err := ioutil.ReadAll(resp.Body); err == nil && len(details) > 0 {
-				unauthorizedError.ErrStatus.Details = &unversioned.StatusDetails{
-					Causes: []unversioned.StatusCause{
+				unauthorizedError.ErrStatus.Details = &metav1.StatusDetails{
+					Causes: []metav1.StatusCause{
 						{Message: string(details)},
 					},
 				}

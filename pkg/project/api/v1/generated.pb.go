@@ -348,7 +348,7 @@ func (this *ProjectList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ProjectList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Project", "Project", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")

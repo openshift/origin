@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 )
@@ -31,7 +31,7 @@ func TestSetBuild(t *testing.T) {
 	build := u.Build().WithSourceStrategy()
 	for _, version := range []string{"v1"} {
 		pod := u.Pod().WithEnvVar("BUILD", "foo")
-		groupVersion, err := unversioned.ParseGroupVersion(version)
+		groupVersion, err := metav1.ParseGroupVersion(version)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

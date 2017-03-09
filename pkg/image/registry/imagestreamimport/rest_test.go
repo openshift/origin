@@ -3,9 +3,9 @@ package imagestreamimport
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -23,7 +23,7 @@ func (_ fakeImageCreater) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 func TestImportSuccessful(t *testing.T) {
 	one := int64(1)
 	two := int64(2)
-	now := unversioned.Now()
+	now := metav1.Now()
 	tests := map[string]struct {
 		image    *api.Image
 		stream   *api.ImageStream

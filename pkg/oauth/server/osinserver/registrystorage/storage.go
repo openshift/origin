@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -183,7 +183,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 	token := &api.OAuthAuthorizeToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.Code,
-			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
+			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		CodeChallenge:       data.CodeChallenge,
 		CodeChallengeMethod: data.CodeChallengeMethod,
@@ -230,7 +230,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessT
 	token := &api.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.AccessToken,
-			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
+			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,

@@ -18,17 +18,17 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/selection"
 	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -1045,7 +1045,7 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 func GetPodForContainer(container kapi.Container) *kapi.Pod {
 	name := namer.GetPodName("test-pod", string(uuid.NewUUID()))
 	return &kapi.Pod{
-		TypeMeta: unversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
@@ -1063,7 +1063,7 @@ func GetPodForContainer(container kapi.Container) *kapi.Pod {
 // CreatePersistentVolume creates a HostPath Persistent Volume.
 func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVolume {
 	return &kapi.PersistentVolume{
-		TypeMeta: unversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
 		},

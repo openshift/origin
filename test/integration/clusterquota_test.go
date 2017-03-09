@@ -8,7 +8,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
@@ -45,7 +45,7 @@ func TestClusterQuota(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "overall"},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Selector: quotaapi.ClusterResourceQuotaSelector{
-				LabelSelector: &unversioned.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{

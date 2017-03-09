@@ -14,12 +14,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -117,7 +117,7 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	version, _ := cmd.Flags().GetString("output-version")
 	for _, v := range strings.Split(version, ",") {
-		gv, err := unversioned.ParseGroupVersion(v)
+		gv, err := metav1.ParseGroupVersion(v)
 		if err != nil {
 			return fmt.Errorf("provided output-version %q is not valid: %v", v, err)
 		}

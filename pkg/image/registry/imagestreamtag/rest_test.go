@@ -9,12 +9,12 @@ import (
 	"golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
@@ -85,7 +85,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 }
 
 type statusError interface {
-	Status() unversioned.Status
+	Status() metav1.Status
 }
 
 func TestGetImageStreamTag(t *testing.T) {
@@ -118,7 +118,7 @@ func TestGetImageStreamTag(t *testing.T) {
 						"latest": {
 							Items: []api.TagEvent{
 								{
-									Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+									Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 									DockerImageReference: "test",
 									Image:                "10",
 								},
@@ -217,7 +217,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Image.Annotations; !reflect.DeepEqual(e, a) {
 					t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
 				}
-				if e, a := unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
+				if e, a := metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
 					t.Errorf("%s: timestamp: expected %v, got %v", name, e, a)
 				}
 			}
@@ -238,7 +238,7 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 				"latest": {
 					Items: []api.TagEvent{
 						{
-							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 							DockerImageReference: expDockerImageReference,
 							Image:                "10",
 						},
@@ -400,7 +400,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 			if obj == nil {
 				t.Fatalf("%s: unexpected nil response", name)
 			}
-			expectedStatus := &unversioned.Status{Status: unversioned.StatusSuccess}
+			expectedStatus := &metav1.Status{Status: metav1.StatusSuccess}
 			if e, a := expectedStatus, obj; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s:\nexpect=%#v\nactual=%#v", name, e, a)
 			}

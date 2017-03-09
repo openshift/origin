@@ -1,8 +1,8 @@
 package projectrequest
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"

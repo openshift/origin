@@ -1,8 +1,8 @@
 package buildclone
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"

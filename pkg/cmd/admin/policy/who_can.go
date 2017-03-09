@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -77,7 +77,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 }
 
 func resourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersionResource {
-	fullySpecifiedGVR, groupResource := unversioned.ParseResourceArg(strings.ToLower(resourceArg))
+	fullySpecifiedGVR, groupResource := metav1.ParseResourceArg(strings.ToLower(resourceArg))
 	gvr := schema.GroupVersionResource{}
 	if fullySpecifiedGVR != nil {
 		gvr, _ = mapper.ResourceFor(*fullySpecifiedGVR)

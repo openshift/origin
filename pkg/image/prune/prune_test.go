@@ -14,12 +14,12 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -61,7 +61,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 	image := imageWithLayers(id, ref, nil, layer1, layer2, layer3, layer4, layer5)
 
 	if ageInMinutes >= 0 {
-		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		image.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return image
@@ -69,7 +69,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 
 func sizedImage(id, ref string, size int64, configName *string) imageapi.Image {
 	image := imageWithLayers(id, ref, configName, layer1, layer2, layer3, layer4, layer5)
-	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
+	image.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1) * time.Minute))
 	image.DockerImageMetadata.Size = size
 
 	return image
@@ -141,7 +141,7 @@ func agedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 	}
 
 	if ageInMinutes >= 0 {
-		pod.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		pod.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return pod
@@ -183,7 +183,7 @@ func agedStream(registry, namespace, name string, ageInMinutes int64, tags map[s
 	}
 
 	if ageInMinutes >= 0 {
-		stream.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		stream.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return stream

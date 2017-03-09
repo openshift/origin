@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -216,11 +216,11 @@ func (o *ImportImageOptions) Run() error {
 
 func wasError(isi *imageapi.ImageStreamImport) bool {
 	for _, image := range isi.Status.Images {
-		if image.Status.Status == unversioned.StatusFailure {
+		if image.Status.Status == metav1.StatusFailure {
 			return true
 		}
 	}
-	if isi.Status.Repository != nil && isi.Status.Repository.Status.Status == unversioned.StatusFailure {
+	if isi.Status.Repository != nil && isi.Status.Repository.Status.Status == metav1.StatusFailure {
 		return true
 	}
 	return false

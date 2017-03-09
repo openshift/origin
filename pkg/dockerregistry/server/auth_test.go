@@ -13,9 +13,9 @@ import (
 	"github.com/docker/distribution/registry/auth"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"

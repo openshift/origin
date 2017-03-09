@@ -12,7 +12,7 @@ import (
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
@@ -328,9 +328,9 @@ func (np *networkPolicyPlugin) updatePodWatch(npns *npNamespace) {
 	}
 }
 
-func (np *networkPolicyPlugin) selectNamespaces(lsel *unversioned.LabelSelector) []uint32 {
+func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
 	vnids := []uint32{}
-	sel, err := unversioned.LabelSelectorAsSelector(lsel)
+	sel, err := metav1.LabelSelectorAsSelector(lsel)
 	if err != nil {
 		// Shouldn't happen
 		glog.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err)
@@ -346,9 +346,9 @@ func (np *networkPolicyPlugin) selectNamespaces(lsel *unversioned.LabelSelector)
 	return vnids
 }
 
-func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *unversioned.LabelSelector) []string {
+func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelSelector) []string {
 	ips := []string{}
-	sel, err := unversioned.LabelSelectorAsSelector(lsel)
+	sel, err := metav1.LabelSelectorAsSelector(lsel)
 	if err != nil {
 		// Shouldn't happen
 		glog.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err)

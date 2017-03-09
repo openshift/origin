@@ -1,10 +1,10 @@
 package v1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 )
@@ -38,4 +38,4 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	)
 }
 
-func (obj *ImagePolicyConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *ImagePolicyConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }

@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -86,7 +86,7 @@ func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
 	}
 
 	// Send the StatusReasonGone error to watcher which should trigger the watch restart.
-	goneError := &unversioned.Status{Reason: unversioned.StatusReasonGone}
+	goneError := &metav1.Status{Reason: metav1.StatusReasonGone}
 	fakeWatch.Error(goneError)
 
 	// Make sure we observed the "get" action on replication controller, so the watch gets

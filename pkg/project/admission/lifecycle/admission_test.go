@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -20,10 +20,10 @@ import (
 )
 
 type UnknownObject struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 }
 
-func (obj *UnknownObject) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *UnknownObject) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
 
 // TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {

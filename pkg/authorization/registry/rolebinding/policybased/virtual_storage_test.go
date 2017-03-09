@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -105,7 +105,7 @@ func TestCreateValidAutoCreateMasterPolicyBindings(t *testing.T) {
 	}
 
 	switch r := obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		t.Errorf("Got back unexpected status: %#v", r)
 	case *authorizationapi.RoleBinding:
 		// expected case
@@ -130,7 +130,7 @@ func TestCreateValid(t *testing.T) {
 	}
 
 	switch obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		t.Errorf("Got back unexpected status: %#v", obj)
 	case *authorizationapi.RoleBinding:
 		// expected case
@@ -165,7 +165,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	switch actual := obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.RoleBinding:
@@ -208,7 +208,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 	}
 
 	switch actual := obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.RoleBinding:
@@ -276,7 +276,7 @@ func TestUpdateNoOp(t *testing.T) {
 	}
 
 	switch o := obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.RoleBinding:
@@ -372,7 +372,7 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	switch r := obj.(type) {
-	case *unversioned.Status:
+	case *metav1.Status:
 		if r.Status != "Success" {
 			t.Fatalf("Got back non-success status: %#v", r)
 		}

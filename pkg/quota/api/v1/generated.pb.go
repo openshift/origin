@@ -565,7 +565,7 @@ func (this *AppliedClusterResourceQuotaList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&AppliedClusterResourceQuotaList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "AppliedClusterResourceQuota", "AppliedClusterResourceQuota", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -588,7 +588,7 @@ func (this *ClusterResourceQuotaList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterResourceQuotaList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterResourceQuota", "ClusterResourceQuota", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -609,7 +609,7 @@ func (this *ClusterResourceQuotaSelector) String() string {
 	}
 	mapStringForAnnotationSelector += "}"
 	s := strings.Join([]string{`&ClusterResourceQuotaSelector{`,
-		`LabelSelector:` + strings.Replace(fmt.Sprintf("%v", this.LabelSelector), "LabelSelector", "k8s_io_kubernetes_pkg_api_unversioned.LabelSelector", 1) + `,`,
+		`LabelSelector:` + strings.Replace(fmt.Sprintf("%v", this.LabelSelector), "LabelSelector", "k8s_io_kubernetes_pkg_api_metav1.LabelSelector", 1) + `,`,
 		`AnnotationSelector:` + mapStringForAnnotationSelector + `,`,
 		`}`,
 	}, "")
@@ -1214,7 +1214,7 @@ func (m *ClusterResourceQuotaSelector) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.LabelSelector == nil {
-				m.LabelSelector = &k8s_io_kubernetes_pkg_api_unversioned.LabelSelector{}
+				m.LabelSelector = &k8s_io_kubernetes_pkg_api_metav1.LabelSelector{}
 			}
 			if err := m.LabelSelector.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err

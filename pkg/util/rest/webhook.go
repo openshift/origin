@@ -3,10 +3,10 @@ package rest
 import (
 	"net/http"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // HookHandler is a Kubernetes API compatible webhook that is able to get access to the raw request
@@ -53,7 +53,7 @@ func NewHTTPWebHook(handler http.Handler, allowGet bool) *WebHook {
 
 // New() responds with the status object.
 func (h *WebHook) New() runtime.Object {
-	return &unversioned.Status{}
+	return &metav1.Status{}
 }
 
 // Connect responds to connections with a ConnectHandler

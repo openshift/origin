@@ -1837,10 +1837,10 @@ func (this *DeploymentCondition) String() string {
 	s := strings.Join([]string{`&DeploymentCondition{`,
 		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
 		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
-		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
 		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
-		`LastUpdateTime:` + strings.Replace(strings.Replace(this.LastUpdateTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastUpdateTime:` + strings.Replace(strings.Replace(this.LastUpdateTime.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1862,7 +1862,7 @@ func (this *DeploymentConfigList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&DeploymentConfigList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "DeploymentConfig", "DeploymentConfig", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -1980,7 +1980,7 @@ func (this *DeploymentLogOptions) String() string {
 		`Follow:` + fmt.Sprintf("%v", this.Follow) + `,`,
 		`Previous:` + fmt.Sprintf("%v", this.Previous) + `,`,
 		`SinceSeconds:` + valueToStringGenerated(this.SinceSeconds) + `,`,
-		`SinceTime:` + strings.Replace(fmt.Sprintf("%v", this.SinceTime), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1) + `,`,
+		`SinceTime:` + strings.Replace(fmt.Sprintf("%v", this.SinceTime), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1) + `,`,
 		`Timestamps:` + fmt.Sprintf("%v", this.Timestamps) + `,`,
 		`TailLines:` + valueToStringGenerated(this.TailLines) + `,`,
 		`LimitBytes:` + valueToStringGenerated(this.LimitBytes) + `,`,
@@ -4250,7 +4250,7 @@ func (m *DeploymentLogOptions) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.SinceTime == nil {
-				m.SinceTime = &k8s_io_kubernetes_pkg_api_unversioned.Time{}
+				m.SinceTime = &k8s_io_kubernetes_pkg_api_metav1.Time{}
 			}
 			if err := m.SinceTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err

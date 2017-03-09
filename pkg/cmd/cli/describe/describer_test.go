@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
@@ -157,10 +157,10 @@ func TestDescribeBuildDuration(t *testing.T) {
 	}
 
 	// now a minute ago
-	now := unversioned.Now()
-	minuteAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-60, 0)
-	twoMinutesAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-120, 0)
-	threeMinutesAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-180, 0)
+	now := metav1.Now()
+	minuteAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-60, 0)
+	twoMinutesAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-120, 0)
+	threeMinutesAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-180, 0)
 
 	tests := []testBuild{
 		{ // 0 - build new

@@ -11,7 +11,7 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
@@ -106,7 +106,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 	discoveryClient := client.NewDiscoveryClient(clusterAdminClient.RESTClient)
 
-	// (map[string]*unversioned.APIResourceList, error)
+	// (map[string]*metav1.APIResourceList, error)
 	allResourceList, err := discoveryClient.ServerResources()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,7 +114,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 	allResources := map[schema.GroupResource]bool{}
 	for _, resources := range allResourceList {
-		version, err := unversioned.ParseGroupVersion(resources.GroupVersion)
+		version, err := metav1.ParseGroupVersion(resources.GroupVersion)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

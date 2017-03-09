@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
@@ -51,7 +51,7 @@ func (f *fakeDaemonSetDiagnostic) addDaemonSetWithSelector(key string, value str
 					NodeSelector: selector,
 				},
 			},
-			Selector: &unversioned.LabelSelector{MatchLabels: selector},
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
 		},
 	}
 	f.fakeDaemonsets.Items = append(f.fakeDaemonsets.Items, ds)

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -32,7 +32,7 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	}
 
 	for _, resource := range resources {
-		gv, err := unversioned.ParseGroupVersion(resource.GroupVersion)
+		gv, err := metav1.ParseGroupVersion(resource.GroupVersion)
 		if err != nil {
 			continue
 		}

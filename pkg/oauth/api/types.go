@@ -2,11 +2,11 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type OAuthAccessToken struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this token.
@@ -35,7 +35,7 @@ type OAuthAccessToken struct {
 }
 
 type OAuthAuthorizeToken struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this token.
@@ -70,7 +70,7 @@ type OAuthAuthorizeToken struct {
 // +genclient=true
 
 type OAuthClient struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// Secret is the unique secret associated with a client
@@ -127,7 +127,7 @@ type ClusterRoleScopeRestriction struct {
 }
 
 type OAuthClientAuthorization struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this authorization
@@ -145,31 +145,31 @@ type OAuthClientAuthorization struct {
 }
 
 type OAuthAccessTokenList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []OAuthAccessToken
 }
 
 type OAuthAuthorizeTokenList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []OAuthAuthorizeToken
 }
 
 type OAuthClientList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []OAuthClient
 }
 
 type OAuthClientAuthorizationList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []OAuthClientAuthorization
 }
 
 type OAuthRedirectReference struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 	Reference RedirectReference
 }

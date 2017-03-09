@@ -997,7 +997,7 @@ func (this *OAuthAccessTokenList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&OAuthAccessTokenList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "OAuthAccessToken", "OAuthAccessToken", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -1027,7 +1027,7 @@ func (this *OAuthAuthorizeTokenList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&OAuthAuthorizeTokenList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "OAuthAuthorizeToken", "OAuthAuthorizeToken", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -1068,7 +1068,7 @@ func (this *OAuthClientAuthorizationList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&OAuthClientAuthorizationList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "OAuthClientAuthorization", "OAuthClientAuthorization", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -1079,7 +1079,7 @@ func (this *OAuthClientList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&OAuthClientList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "OAuthClient", "OAuthClient", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")

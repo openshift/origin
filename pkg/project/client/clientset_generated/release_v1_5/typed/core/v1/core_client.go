@@ -6,7 +6,6 @@ import (
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
@@ -53,7 +52,7 @@ func New(c restclient.Interface) *CoreV1Client {
 }
 
 func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("/v1")
+	gv, err := metav1.ParseGroupVersion("/v1")
 	if err != nil {
 		return err
 	}

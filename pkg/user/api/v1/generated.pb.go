@@ -603,7 +603,7 @@ func (this *GroupList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&GroupList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Group", "Group", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -638,7 +638,7 @@ func (this *IdentityList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&IdentityList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Identity", "Identity", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -674,7 +674,7 @@ func (this *UserList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&UserList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "User", "User", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")

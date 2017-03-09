@@ -7,7 +7,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -442,14 +442,14 @@ func TestHandlePod(t *testing.T) {
 		matchID             bool
 		inStatus            buildapi.BuildPhase
 		outStatus           buildapi.BuildPhase
-		startTimestamp      *unversioned.Time
-		completionTimestamp *unversioned.Time
+		startTimestamp      *metav1.Time
+		completionTimestamp *metav1.Time
 		podStatus           kapi.PodPhase
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 		podManager          podManager
 	}
-	dummy := unversioned.Now()
+	dummy := metav1.Now()
 	curtime := &dummy
 	tests := []handlePodTest{
 		{ // 0
@@ -575,10 +575,10 @@ func TestCancelBuild(t *testing.T) {
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 		podManager          podManager
-		startTimestamp      *unversioned.Time
-		completionTimestamp *unversioned.Time
+		startTimestamp      *metav1.Time
+		completionTimestamp *metav1.Time
 	}
-	dummy := unversioned.Now()
+	dummy := metav1.Now()
 	curtime := &dummy
 
 	tests := []handleCancelBuildTest{

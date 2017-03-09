@@ -7,7 +7,7 @@ import (
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -210,7 +210,7 @@ func (vmap *masterVNIDMap) assignVNID(osClient *osclient.Client, nsName string) 
 	if !exists {
 		// Create NetNamespace Object and update vnid map
 		netns := &osapi.NetNamespace{
-			TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
+			TypeMeta:   metav1.TypeMeta{Kind: "NetNamespace"},
 			ObjectMeta: kapi.ObjectMeta{Name: nsName},
 			NetName:    nsName,
 			NetID:      netid,

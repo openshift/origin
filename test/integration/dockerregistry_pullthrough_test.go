@@ -16,7 +16,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -247,7 +247,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		t.Fatalf("imported unexpected number of images (%d != 1)", len(isi.Status.Images))
 	}
 	for i, image := range isi.Status.Images {
-		if image.Status.Status != unversioned.StatusSuccess {
+		if image.Status.Status != metav1.StatusSuccess {
 			t.Fatalf("unexpected status %d: %#v", i, image.Status)
 		}
 

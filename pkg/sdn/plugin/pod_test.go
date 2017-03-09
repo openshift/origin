@@ -102,7 +102,7 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
 	activePod := &khostport.ActivePod{
 		Pod: &kapi.Pod{
-			TypeMeta: kunversioned.TypeMeta{
+			TypeMeta: kmetav1.TypeMeta{
 				Kind: "Pod",
 			},
 			ObjectMeta: kapi.ObjectMeta{

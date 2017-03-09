@@ -8,8 +8,8 @@ import (
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kruntime "k8s.io/kubernetes/pkg/runtime"
 	ktypes "k8s.io/kubernetes/pkg/types"
 
 	// install all APIs

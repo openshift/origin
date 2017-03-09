@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -196,7 +196,7 @@ func testImageStreamImport(t *testing.T, c *client.Client, imageSize int64, imag
 	}
 
 	for i, image := range isi.Status.Images {
-		if image.Status.Status != unversioned.StatusSuccess {
+		if image.Status.Status != metav1.StatusSuccess {
 			t.Errorf("unexpected status %d: %#v", i, image.Status)
 		}
 
@@ -433,7 +433,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Fatalf("unexpected responses: %#v", isi)
 	}
 	for i, image := range isi.Status.Images {
-		if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
+		if image.Status.Status != metav1.StatusFailure || image.Status.Reason != metav1.StatusReasonUnauthorized {
 			t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
 		}
 	}
@@ -466,11 +466,11 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		for i, image := range isi.Status.Images {
 			switch i {
 			case 1, 2:
-				if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonUnauthorized {
+				if image.Status.Status != metav1.StatusFailure || image.Status.Reason != metav1.StatusReasonUnauthorized {
 					t.Fatalf("import of image %d did not report unauthorized: %#v", i, image.Status)
 				}
 			default:
-				if image.Status.Status != unversioned.StatusSuccess {
+				if image.Status.Status != metav1.StatusSuccess {
 					t.Fatalf("import of image %d did not succeed: %#v", i, image.Status)
 				}
 			}
@@ -580,7 +580,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	for i, image := range isi.Status.Repository.Images {
 		switch i {
 		case 1:
-			if image.Status.Status != unversioned.StatusSuccess {
+			if image.Status.Status != metav1.StatusSuccess {
 				t.Errorf("import of image %d did not succeed: %#v", i, image.Status)
 			}
 			if image.Tag != "v1" {
@@ -596,7 +596,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 				t.Errorf("expected etcd digest as a name of the image (%s != %s)", image.Image.Name, etcdDigest)
 			}
 		default:
-			if image.Status.Status != unversioned.StatusFailure || image.Status.Reason != unversioned.StatusReasonInternalError {
+			if image.Status.Status != metav1.StatusFailure || image.Status.Reason != metav1.StatusReasonInternalError {
 				t.Fatalf("import of image %d did not report internal server error: %#v", i, image.Status)
 			}
 			expectedTags := []string{"latest", "", "v2"}[i]
@@ -829,7 +829,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 		errs := []error{}
 		for i, d := range imports.Status.Images {
 			fromName := imports.Spec.Images[i].From.Name
-			if d.Status.Status != unversioned.StatusSuccess && fromName != "mysql/doesnotexistinanyform" {
+			if d.Status.Status != metav1.StatusSuccess && fromName != "mysql/doesnotexistinanyform" {
 				errs = append(errs, fmt.Errorf("failed to import an image %s: %v", fromName, d.Status.Message))
 			}
 		}
@@ -839,7 +839,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if imports.Status.Repository.Status.Status != unversioned.StatusSuccess || len(imports.Status.Repository.Images) != 3 || len(imports.Status.Repository.AdditionalTags) < 1 {
+	if imports.Status.Repository.Status.Status != metav1.StatusSuccess || len(imports.Status.Repository.Images) != 3 || len(imports.Status.Repository.AdditionalTags) < 1 {
 		t.Errorf("unexpected repository: %#v", imports.Status.Repository)
 	}
 	if len(imports.Status.Images) != 4 {
@@ -858,7 +858,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 		t.Errorf("unexpected object: %#v", d.Image)
 	}
 	d = imports.Status.Images[3]
-	if d.Image != nil || d.Status.Status != unversioned.StatusFailure || d.Status.Reason != "Unauthorized" {
+	if d.Image != nil || d.Status.Status != metav1.StatusFailure || d.Status.Reason != "Unauthorized" {
 		t.Errorf("unexpected object: %#v", d)
 	}
 }
@@ -885,7 +885,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 		errs := []error{}
 		for i, d := range imports.Status.Images {
 			fromName := imports.Spec.Images[i].From.Name
-			if d.Status.Status != unversioned.StatusSuccess {
+			if d.Status.Status != metav1.StatusSuccess {
 				if d.Status.Reason == "NotV2Registry" {
 					t.Skipf("the server did not report as a v2 registry: %#v", d.Status)
 				}
@@ -942,7 +942,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		t.Fatalf("unexpected response: %#v", imports.Status.Images)
 	}
 	d := imports.Status.Images[0]
-	if d.Image == nil || d.Status.Status == unversioned.StatusFailure {
+	if d.Image == nil || d.Status.Status == metav1.StatusFailure {
 		t.Errorf("unexpected object: %#v", d.Status)
 	}
 
@@ -965,7 +965,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		errs := []error{}
 		for i, d := range imports.Status.Images {
 			fromName := imports.Spec.Images[i].From.Name
-			if d.Status.Status != unversioned.StatusSuccess {
+			if d.Status.Status != metav1.StatusSuccess {
 				errs = append(errs, fmt.Errorf("failed to import an image %s: %v", fromName, d.Status.Message))
 			}
 		}

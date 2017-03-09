@@ -9,7 +9,7 @@ import (
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -159,7 +159,7 @@ func (c *MasterConfig) securityContextConstraintsSupported() (bool, error) {
 		return false, err
 	}
 	// find the preferred version of the legacy group
-	var legacyGroup *unversioned.APIGroup
+	var legacyGroup *metav1.APIGroup
 	for i := range serverGroupList.Groups {
 		if len(serverGroupList.Groups[i].Name) == 0 {
 			legacyGroup = &serverGroupList.Groups[i]

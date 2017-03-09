@@ -8,8 +8,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/registry/core/controller"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 	"k8s.io/kubernetes/pkg/registry/core/namespace"
@@ -20,7 +21,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/resourcequota"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
@@ -49,7 +49,7 @@ func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
 	if !exact {
 		objMeta.Namespace = ""
 	}
-	objMeta.CreationTimestamp = unversioned.Time{}
+	objMeta.CreationTimestamp = metav1.Time{}
 	objMeta.DeletionTimestamp = nil
 	objMeta.ResourceVersion = ""
 	objMeta.SelfLink = ""

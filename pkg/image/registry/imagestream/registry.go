@@ -1,10 +1,10 @@
 package imagestream
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -25,7 +25,7 @@ type Registry interface {
 	// UpdateImageStreamStatus updates an image stream's status.
 	UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
-	DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error)
+	DeleteImageStream(ctx kapi.Context, id string) (*metav1.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
 	WatchImageStreams(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
 }
@@ -102,12 +102,12 @@ func (s *storage) UpdateImageStreamStatus(ctx kapi.Context, imageStream *api.Ima
 	return obj.(*api.ImageStream), nil
 }
 
-func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*unversioned.Status, error) {
+func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*metav1.Status, error) {
 	obj, err := s.Delete(ctx, imageStreamID, nil)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*unversioned.Status), nil
+	return obj.(*metav1.Status), nil
 }
 
 func (s *storage) WatchImageStreams(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {

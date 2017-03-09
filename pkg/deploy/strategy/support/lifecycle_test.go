@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -31,8 +31,8 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func nowFunc() *unversioned.Time {
-	return &unversioned.Time{Time: time.Now().Add(-5 * time.Second)}
+func nowFunc() *metav1.Time {
+	return &metav1.Time{Time: time.Now().Add(-5 * time.Second)}
 }
 
 func newTestClient(config *deployapi.DeploymentConfig) *fake.Clientset {

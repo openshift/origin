@@ -2,7 +2,7 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 // +genclient=true
 
 type ClusterNetwork struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	Network          string
@@ -23,14 +23,14 @@ type ClusterNetwork struct {
 }
 
 type ClusterNetworkList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []ClusterNetwork
 }
 
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	// host may just be an IP address, resolvable hostname or a complete DNS
@@ -41,14 +41,14 @@ type HostSubnet struct {
 
 // HostSubnetList is a collection of HostSubnets
 type HostSubnetList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []HostSubnet
 }
 
 // NetNamespace holds the network id against its name
 type NetNamespace struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	NetName string
@@ -57,8 +57,8 @@ type NetNamespace struct {
 
 // NetNamespaceList is a collection of NetNamespaces
 type NetNamespaceList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []NetNamespace
 }
 
@@ -88,7 +88,7 @@ type EgressNetworkPolicySpec struct {
 
 // EgressNetworkPolicy describes the current egress network policy
 type EgressNetworkPolicy struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	kapi.ObjectMeta
 
 	Spec EgressNetworkPolicySpec
@@ -96,7 +96,7 @@ type EgressNetworkPolicy struct {
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 type EgressNetworkPolicyList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []EgressNetworkPolicy
 }

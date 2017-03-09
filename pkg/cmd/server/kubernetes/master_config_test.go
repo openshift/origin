@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
@@ -109,19 +109,19 @@ func TestCMServerDefaults(t *testing.T) {
 			LookupCacheSizeForDaemonSet:       1024,
 			ConfigureCloudRoutes:              true,
 			NodeCIDRMaskSize:                  24,
-			ServiceSyncPeriod:                 unversioned.Duration{Duration: 5 * time.Minute},
-			ResourceQuotaSyncPeriod:           unversioned.Duration{Duration: 5 * time.Minute},
-			NamespaceSyncPeriod:               unversioned.Duration{Duration: 5 * time.Minute},
-			PVClaimBinderSyncPeriod:           unversioned.Duration{Duration: 15 * time.Second},
-			HorizontalPodAutoscalerSyncPeriod: unversioned.Duration{Duration: 30 * time.Second},
-			DeploymentControllerSyncPeriod:    unversioned.Duration{Duration: 30 * time.Second},
-			MinResyncPeriod:                   unversioned.Duration{Duration: 12 * time.Hour},
+			ServiceSyncPeriod:                 metav1.Duration{Duration: 5 * time.Minute},
+			ResourceQuotaSyncPeriod:           metav1.Duration{Duration: 5 * time.Minute},
+			NamespaceSyncPeriod:               metav1.Duration{Duration: 5 * time.Minute},
+			PVClaimBinderSyncPeriod:           metav1.Duration{Duration: 15 * time.Second},
+			HorizontalPodAutoscalerSyncPeriod: metav1.Duration{Duration: 30 * time.Second},
+			DeploymentControllerSyncPeriod:    metav1.Duration{Duration: 30 * time.Second},
+			MinResyncPeriod:                   metav1.Duration{Duration: 12 * time.Hour},
 			RegisterRetryCount:                10,
-			RouteReconciliationPeriod:         unversioned.Duration{Duration: 10 * time.Second},
-			PodEvictionTimeout:                unversioned.Duration{Duration: 5 * time.Minute},
-			NodeMonitorGracePeriod:            unversioned.Duration{Duration: 40 * time.Second},
-			NodeStartupGracePeriod:            unversioned.Duration{Duration: 60 * time.Second},
-			NodeMonitorPeriod:                 unversioned.Duration{Duration: 5 * time.Second},
+			RouteReconciliationPeriod:         metav1.Duration{Duration: 10 * time.Second},
+			PodEvictionTimeout:                metav1.Duration{Duration: 5 * time.Minute},
+			NodeMonitorGracePeriod:            metav1.Duration{Duration: 40 * time.Second},
+			NodeStartupGracePeriod:            metav1.Duration{Duration: 60 * time.Second},
+			NodeMonitorPeriod:                 metav1.Duration{Duration: 5 * time.Second},
 			ClusterName:                       "kubernetes",
 			TerminatedPodGCThreshold:          12500,
 			VolumeConfiguration: componentconfig.VolumeConfiguration{
@@ -141,15 +141,15 @@ func TestCMServerDefaults(t *testing.T) {
 			KubeAPIBurst: 30,
 			LeaderElection: componentconfig.LeaderElectionConfiguration{
 				LeaderElect:   true,
-				LeaseDuration: unversioned.Duration{Duration: 15 * time.Second},
-				RenewDeadline: unversioned.Duration{Duration: 10 * time.Second},
-				RetryPeriod:   unversioned.Duration{Duration: 2 * time.Second},
+				LeaseDuration: metav1.Duration{Duration: 15 * time.Second},
+				RenewDeadline: metav1.Duration{Duration: 10 * time.Second},
+				RetryPeriod:   metav1.Duration{Duration: 2 * time.Second},
 			},
 			ClusterSigningCertFile:            "/etc/kubernetes/ca/ca.pem",
 			ClusterSigningKeyFile:             "/etc/kubernetes/ca/ca.key",
 			EnableGarbageCollector:            true,
 			DisableAttachDetachReconcilerSync: false,
-			ReconcilerSyncLoopPeriod:          unversioned.Duration{Duration: 5 * time.Second},
+			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 5 * time.Second},
 		},
 	}
 
@@ -178,13 +178,13 @@ func TestSchedulerServerDefaults(t *testing.T) {
 			FailureDomains:                 "kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region",
 			LeaderElection: componentconfig.LeaderElectionConfiguration{
 				LeaderElect: true,
-				LeaseDuration: unversioned.Duration{
+				LeaseDuration: metav1.Duration{
 					Duration: 15 * time.Second,
 				},
-				RenewDeadline: unversioned.Duration{
+				RenewDeadline: metav1.Duration{
 					Duration: 10 * time.Second,
 				},
-				RetryPeriod: unversioned.Duration{
+				RetryPeriod: metav1.Duration{
 					Duration: 2 * time.Second,
 				},
 			},

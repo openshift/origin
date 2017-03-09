@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -472,7 +472,7 @@ func TestHandleRoute(t *testing.T) {
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, rejections)
 
-	original := unversioned.Time{Time: time.Now()}
+	original := metav1.Time{Time: time.Now()}
 
 	//add
 	route := &routeapi.Route{
@@ -516,7 +516,7 @@ func TestHandleRoute(t *testing.T) {
 	// attempt to add a second route with a newer time, verify it is ignored
 	duplicateRoute := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: unversioned.Time{Time: original.Add(time.Hour)},
+			CreationTimestamp: metav1.Time{Time: original.Add(time.Hour)},
 			Namespace:         "foo",
 			Name:              "dupe",
 		},
@@ -567,7 +567,7 @@ func TestHandleRoute(t *testing.T) {
 	rejections.rejections = nil
 
 	// add a second route with an older time, verify it takes effect
-	duplicateRoute.CreationTimestamp = unversioned.Time{Time: original.Add(-time.Hour)}
+	duplicateRoute.CreationTimestamp = metav1.Time{Time: original.Add(-time.Hour)}
 	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err != nil {
 		t.Fatal("unexpected error")
 	}
@@ -641,7 +641,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 	extendedValidatorPlugin := controller.NewExtendedValidator(templatePlugin, rejections)
 	plugin := controller.NewUniqueHost(extendedValidatorPlugin, controller.HostForRoute, false, rejections)
 
-	original := unversioned.Time{Time: time.Now()}
+	original := metav1.Time{Time: time.Now()}
 
 	//add
 	route := &routeapi.Route{

@@ -1,11 +1,11 @@
 package v1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
@@ -53,7 +53,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,
-			&unversioned.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
+			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
 			&kapi.ListOptions{},
 			&kapi.DeleteOptions{},
 			&kapi.ExportOptions{},

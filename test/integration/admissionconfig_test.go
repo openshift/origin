@@ -7,12 +7,12 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
 	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -25,11 +25,11 @@ import (
 )
 
 type TestPluginConfig struct {
-	unversioned.TypeMeta `json:",inline"`
-	Data                 string `json:"data"`
+	metav1.TypeMeta `json:",inline"`
+	Data            string `json:"data"`
 }
 
-func (obj *TestPluginConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestPluginConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
 
 func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclientset.Clientset, *client.Client) {
 	testutil.RequireEtcd(t)

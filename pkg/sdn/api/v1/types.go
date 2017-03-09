@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -15,7 +15,7 @@ const (
 // named "default", which is created by the SDN network plugin based on the master configuration
 // when the cluster is brought up for the first time.
 type ClusterNetwork struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -31,9 +31,9 @@ type ClusterNetwork struct {
 
 // ClusterNetworkList is a collection of ClusterNetworks
 type ClusterNetworkList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of cluster networks
 	Items []ClusterNetwork `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -41,7 +41,7 @@ type ClusterNetworkList struct {
 // HostSubnet describes the container subnet network on a node. The HostSubnet object must have the
 // same name as the Node object it corresponds to.
 type HostSubnet struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -55,9 +55,9 @@ type HostSubnet struct {
 
 // HostSubnetList is a collection of HostSubnets
 type HostSubnetList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of host subnets
 	Items []HostSubnet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -66,7 +66,7 @@ type HostSubnetList struct {
 // plugin, every Namespace will have a corresponding NetNamespace object with the same name.
 // (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)
 type NetNamespace struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -78,9 +78,9 @@ type NetNamespace struct {
 
 // NetNamespaceList is a collection of NetNamespaces
 type NetNamespaceList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of net namespaces
 	Items []NetNamespace `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -119,7 +119,7 @@ type EgressNetworkPolicySpec struct {
 // namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy
 // is present) then the traffic will be allowed by default.
 type EgressNetworkPolicy struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for EgressNetworkPolicy
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -129,9 +129,9 @@ type EgressNetworkPolicy struct {
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 type EgressNetworkPolicyList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// metadata for EgressNetworkPolicyList
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// items is the list of policies
 	Items []EgressNetworkPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

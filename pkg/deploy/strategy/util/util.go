@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -18,7 +18,7 @@ import (
 // RecordConfigEvent records an event for the deployment config referenced by the
 // deployment.
 func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, decoder runtime.Decoder, eventType, reason, msg string) {
-	t := unversioned.Time{Time: time.Now()}
+	t := metav1.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
 	if config, err := deployutil.DecodeDeploymentConfig(deployment, decoder); err == nil {
 		obj = config

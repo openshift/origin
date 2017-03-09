@@ -673,7 +673,7 @@ func (this *ClusterNetworkList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterNetworkList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterNetwork", "ClusterNetwork", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -695,7 +695,7 @@ func (this *EgressNetworkPolicyList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&EgressNetworkPolicyList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "EgressNetworkPolicy", "EgressNetworkPolicy", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -750,7 +750,7 @@ func (this *HostSubnetList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&HostSubnetList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "HostSubnet", "HostSubnet", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -773,7 +773,7 @@ func (this *NetNamespaceList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&NetNamespaceList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "NetNamespace", "NetNamespace", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")

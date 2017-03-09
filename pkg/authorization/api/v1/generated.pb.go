@@ -59,7 +59,6 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
-import k8s_io_kubernetes_pkg_api_unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 
 import strings "strings"
@@ -2843,7 +2842,7 @@ func (this *ClusterPolicy) String() string {
 	}
 	s := strings.Join([]string{`&ClusterPolicy{`,
 		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
-		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`Roles:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Roles), "NamedClusterRole", "NamedClusterRole", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2855,7 +2854,7 @@ func (this *ClusterPolicyBinding) String() string {
 	}
 	s := strings.Join([]string{`&ClusterPolicyBinding{`,
 		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
-		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`PolicyRef:` + strings.Replace(strings.Replace(this.PolicyRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
 		`RoleBindings:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.RoleBindings), "NamedClusterRoleBinding", "NamedClusterRoleBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
@@ -2867,7 +2866,7 @@ func (this *ClusterPolicyBindingList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterPolicyBindingList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterPolicyBinding", "ClusterPolicyBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2878,7 +2877,7 @@ func (this *ClusterPolicyList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterPolicyList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterPolicy", "ClusterPolicy", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2914,7 +2913,7 @@ func (this *ClusterRoleBindingList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterRoleBindingList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterRoleBinding", "ClusterRoleBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2925,7 +2924,7 @@ func (this *ClusterRoleList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ClusterRoleList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterRole", "ClusterRole", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -2937,7 +2936,7 @@ func (this *GroupRestriction) String() string {
 	}
 	s := strings.Join([]string{`&GroupRestriction{`,
 		`Groups:` + fmt.Sprintf("%v", this.Groups) + `,`,
-		`Selectors:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Selectors), "LabelSelector", "k8s_io_kubernetes_pkg_api_unversioned.LabelSelector", 1), `&`, ``, 1) + `,`,
+		`Selectors:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Selectors), "LabelSelector", "k8s_io_kubernetes_pkg_api_metav1.LabelSelector", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3024,7 +3023,7 @@ func (this *Policy) String() string {
 	}
 	s := strings.Join([]string{`&Policy{`,
 		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
-		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`Roles:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Roles), "NamedRole", "NamedRole", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3036,7 +3035,7 @@ func (this *PolicyBinding) String() string {
 	}
 	s := strings.Join([]string{`&PolicyBinding{`,
 		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
-		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_metav1.Time", 1), `&`, ``, 1) + `,`,
 		`PolicyRef:` + strings.Replace(strings.Replace(this.PolicyRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
 		`RoleBindings:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.RoleBindings), "NamedRoleBinding", "NamedRoleBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
@@ -3048,7 +3047,7 @@ func (this *PolicyBindingList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&PolicyBindingList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "PolicyBinding", "PolicyBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3059,7 +3058,7 @@ func (this *PolicyList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&PolicyList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Policy", "Policy", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3133,7 +3132,7 @@ func (this *RoleBindingList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&RoleBindingList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "RoleBinding", "RoleBinding", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3155,7 +3154,7 @@ func (this *RoleBindingRestrictionList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&RoleBindingRestrictionList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "RoleBindingRestriction", "RoleBindingRestriction", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3178,7 +3177,7 @@ func (this *RoleList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&RoleList{`,
-		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_metav1.ListMeta", 1), `&`, ``, 1) + `,`,
 		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Role", "Role", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
@@ -3294,7 +3293,7 @@ func (this *UserRestriction) String() string {
 	s := strings.Join([]string{`&UserRestriction{`,
 		`Users:` + fmt.Sprintf("%v", this.Users) + `,`,
 		`Groups:` + fmt.Sprintf("%v", this.Groups) + `,`,
-		`Selectors:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Selectors), "LabelSelector", "k8s_io_kubernetes_pkg_api_unversioned.LabelSelector", 1), `&`, ``, 1) + `,`,
+		`Selectors:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Selectors), "LabelSelector", "k8s_io_kubernetes_pkg_api_metav1.LabelSelector", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4768,7 +4767,7 @@ func (m *GroupRestriction) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Selectors = append(m.Selectors, k8s_io_kubernetes_pkg_api_unversioned.LabelSelector{})
+			m.Selectors = append(m.Selectors, k8s_io_kubernetes_pkg_api_metav1.LabelSelector{})
 			if err := m.Selectors[len(m.Selectors)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -8817,7 +8816,7 @@ func (m *UserRestriction) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Selectors = append(m.Selectors, k8s_io_kubernetes_pkg_api_unversioned.LabelSelector{})
+			m.Selectors = append(m.Selectors, k8s_io_kubernetes_pkg_api_metav1.LabelSelector{})
 			if err := m.Selectors[len(m.Selectors)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}

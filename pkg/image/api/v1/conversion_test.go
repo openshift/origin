@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/v1"

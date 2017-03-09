@@ -3,11 +3,11 @@ package policybinding
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -103,7 +103,7 @@ func NewEmptyPolicyBinding(namespace, policyNamespace, policyBindingName string)
 	binding := &authorizationapi.PolicyBinding{}
 	binding.Name = policyBindingName
 	binding.Namespace = namespace
-	binding.CreationTimestamp = unversioned.Now()
+	binding.CreationTimestamp = metav1.Now()
 	binding.LastModified = binding.CreationTimestamp
 	binding.PolicyRef = kapi.ObjectReference{Name: authorizationapi.PolicyName, Namespace: policyNamespace}
 	binding.RoleBindings = make(map[string]*authorizationapi.RoleBinding)

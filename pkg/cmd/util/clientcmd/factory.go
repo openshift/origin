@@ -10,12 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -23,7 +24,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -286,7 +286,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(ds.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(ds.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
@@ -304,7 +304,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
@@ -322,7 +322,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(rs.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
@@ -358,7 +358,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 }
 
 func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
-	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
@@ -382,7 +382,7 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 		return nil, err
 	}
 	for apiVersion, v := range all {
-		gv, err := unversioned.ParseGroupVersion(apiVersion)
+		gv, err := metav1.ParseGroupVersion(apiVersion)
 		if err != nil {
 			continue
 		}

@@ -1,8 +1,8 @@
 package install
 
 import (
+	"k8s.io/apimachinery/pkg/conversion"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/conversion"
 
 	// we have a strong dependency on kube objects for deployments and scale
 	_ "k8s.io/kubernetes/pkg/api/install"

@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -187,7 +187,7 @@ func TestBuildAdmission(t *testing.T) {
 
 type fakeObject struct{}
 
-func (*fakeObject) GetObjectKind() unversioned.ObjectKind { return nil }
+func (*fakeObject) GetObjectKind() metav1.ObjectKind { return nil }
 
 func fakeUser() user.Info {
 	return &user.DefaultInfo{

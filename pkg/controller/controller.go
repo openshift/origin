@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -131,7 +131,7 @@ type Retry struct {
 	Count int
 
 	// StartTimestamp is retry start timestamp
-	StartTimestamp unversioned.Time
+	StartTimestamp metav1.Time
 }
 
 // ReQueue is a queue that allows an object to be requeued
@@ -158,7 +158,7 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 	id, _ := r.keyFunc(resource)
 
 	if _, exists := r.retries[id]; !exists {
-		r.retries[id] = Retry{0, unversioned.Now()}
+		r.retries[id] = Retry{0, metav1.Now()}
 	}
 	tries := r.retries[id]
 

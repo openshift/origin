@@ -78,7 +78,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	}
 
 	sub = &osapi.HostSubnet{
-		TypeMeta:   kapiunversioned.TypeMeta{Kind: "HostSubnet"},
+		TypeMeta:   kapimetav1.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
 		Host:       nodeName,
 		HostIP:     nodeIP,
@@ -149,7 +149,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 			condition.Status = kapi.ConditionFalse
 			condition.Reason = "RouteCreated"
 			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
-			condition.LastTransitionTime = kapiunversioned.Now()
+			condition.LastTransitionTime = kapimetav1.Now()
 			knode, err = master.kClient.Nodes().UpdateStatus(knode)
 			if err == nil {
 				cleared = true

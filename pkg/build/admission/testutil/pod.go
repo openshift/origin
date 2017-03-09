@@ -3,10 +3,10 @@ package test
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -38,7 +38,7 @@ func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 }
 
 func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build, version string) *TestPod {
-	gv, err := unversioned.ParseGroupVersion(version)
+	gv, err := metav1.ParseGroupVersion(version)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

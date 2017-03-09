@@ -8,7 +8,7 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/controller/informers"
@@ -217,7 +217,7 @@ func TestSupports(t *testing.T) {
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, metav1.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
 		if !ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is expected to support %#v", r)
 		}
@@ -225,7 +225,7 @@ func TestSupports(t *testing.T) {
 
 	badKinds := []string{"ImageStream", "Image", "Pod", "foo"}
 	for _, k := range badKinds {
-		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind(k).WithVersion("version"), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, metav1.Kind(k).WithVersion("version"), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
 		if ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is not expected to support %s", k)
 		}

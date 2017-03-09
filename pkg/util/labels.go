@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )

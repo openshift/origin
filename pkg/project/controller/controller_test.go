@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -20,7 +20,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		KubeClient: mockKubeClient,
 		Client:     mockOriginClient,
 	}
-	now := unversioned.Now()
+	now := metav1.Now()
 	testNamespace := &kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              "test",
