@@ -260,8 +260,8 @@ func TestRepositoryBlobStat(t *testing.T) {
 			name:           "deferred error",
 			stat:           "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
 			imageStreams:   []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
-			deferredErrors: deferredErrors{"nm/is": ErrOpenShiftAccessDenied},
-			expectedError:  ErrOpenShiftAccessDenied,
+			deferredErrors: deferredErrors{"nm/is": ErrAccessDenied},
+			expectedError:  ErrAccessDenied,
 		},
 	} {
 		ref, err := reference.Parse(tc.stat)
