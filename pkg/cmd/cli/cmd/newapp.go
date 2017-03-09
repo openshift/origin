@@ -532,6 +532,10 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	if config.BinaryBuild && config.Strategy == generate.StrategyPipeline {
 		return kcmdutil.UsageError(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
 	}
+
+	if len(config.BuildArgs) > 0 && config.Strategy != generate.StrategyUnspecified && config.Strategy != generate.StrategyDocker {
+		return kcmdutil.UsageError(c, "Cannot use '--build-arg' without a Docker build")
+	}
 	return nil
 }
 
