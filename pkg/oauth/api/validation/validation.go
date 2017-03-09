@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/api/validation/path"
+	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
