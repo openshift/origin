@@ -46,6 +46,18 @@ function os::build::host_platform_friendly() {
 }
 readonly -f os::build::host_platform_friendly
 
+# This converts from platform/arch to PLATFORM_ARCH, host platform will be
+# considered if no parameter passed
+function os::build::platform_arch() {
+  local platform=${1:-}
+  if [[ -z "${platform}" ]]; then
+    platform=$(os::build::host_platform)
+  fi
+
+  echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+}
+readonly -f os::build::platform_arch
+
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
 # good enough for the Kubernetes build.
@@ -216,8 +228,8 @@ os::build::internal::build_binaries() {
         unset GOBIN
       fi
 
-      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
-      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(os::build::platform_arch ${platform})
+      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(os::build::platform_arch ${platform})
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \

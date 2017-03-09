@@ -8,8 +8,7 @@ host_platform="$(os::build::host_platform)"
 
 # Set build tags for these binaries
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
-readonly OS_GOFLAGS_TAGS_LINUX_PPC64LE="gssapi"
-readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
+readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
 
 # by default, build for these platforms
 platforms=(
