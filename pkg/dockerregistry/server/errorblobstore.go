@@ -108,7 +108,7 @@ func checkPendingCrossMountErrors(ctx context.Context, opts *distribution.Create
 	if err != nil {
 		return err
 	}
-	return checkPendingErrors(context.GetLogger(ctx), ctx, namespace, name)
+	return checkPendingErrors(ctx, context.GetLogger(ctx), namespace, name)
 }
 
 // guardCreateOptions ensures the expected options type is passed, and optionally disables cross mounting
