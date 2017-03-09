@@ -1,9 +1,9 @@
 package internalversion
 
 import (
-	api "k8s.io/kubernetes/pkg/api"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	restclient "k8s.io/client-go/rest"
+	api "k8s.io/kubernetes/pkg/api"
 )
 
 type CoreInterface interface {

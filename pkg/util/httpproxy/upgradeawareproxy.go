@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
+	restclient "k8s.io/client-go/rest"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 

@@ -15,9 +15,9 @@ import (
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	registrystorage "github.com/docker/distribution/registry/storage"
 
+	restclient "k8s.io/client-go/rest"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"

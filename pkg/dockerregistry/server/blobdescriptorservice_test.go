@@ -23,9 +23,9 @@ import (
 	"github.com/docker/distribution/registry/storage"
 
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
+	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"

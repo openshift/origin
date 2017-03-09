@@ -11,9 +11,9 @@ import (
 
 	"github.com/golang/glog"
 
+	restclient "k8s.io/client-go/rest"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 

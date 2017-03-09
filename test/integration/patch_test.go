@@ -8,11 +8,11 @@ import (
 
 	"github.com/pborman/uuid"
 
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	templatesapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"

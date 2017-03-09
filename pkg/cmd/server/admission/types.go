@@ -1,8 +1,8 @@
 package admission
 
 import (
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/admission"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"

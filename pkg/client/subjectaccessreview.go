@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	restclient "k8s.io/client-go/rest"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

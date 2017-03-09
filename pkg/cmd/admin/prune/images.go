@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	knet "k8s.io/kubernetes/pkg/util/net"
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"

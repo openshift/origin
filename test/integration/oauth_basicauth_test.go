@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	restclient "k8s.io/client-go/rest"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

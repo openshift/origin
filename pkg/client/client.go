@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"strings"
 
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 
 	"github.com/openshift/origin/pkg/api/latest"

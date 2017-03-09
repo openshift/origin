@@ -2,10 +2,11 @@ package v1
 
 import (
 	fmt "fmt"
+
+	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
+	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
