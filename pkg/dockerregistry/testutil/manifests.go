@@ -21,8 +21,8 @@ import (
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/libtrust"
 
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

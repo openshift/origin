@@ -6,8 +6,8 @@ import (
 
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
