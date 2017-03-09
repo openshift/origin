@@ -15,7 +15,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	restclient "k8s.io/client-go/rest"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/wait"
 

@@ -9,9 +9,9 @@ import (
 
 	etcdversion "github.com/coreos/etcd/version"
 
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 

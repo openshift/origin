@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
