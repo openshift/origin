@@ -1,16 +1,16 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // ImageList is a list of Image objects.
 type ImageList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of images
 	Items []Image `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -21,9 +21,9 @@ type ImageList struct {
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
@@ -61,9 +61,9 @@ type ImageLayer struct {
 // Mandatory fields should be parsed by clients doing image verification. The others are parsed from
 // signature's content by the server. They serve just an informative purpose.
 type ImageSignature struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Required: Describes a type of stored blob.
 	Type string `json:"type" protobuf:"bytes,2,opt,name=type"`
@@ -81,7 +81,7 @@ type ImageSignature struct {
 	// Contains claims from the signature.
 	SignedClaims map[string]string `json:"signedClaims,omitempty" protobuf:"bytes,6,rep,name=signedClaims"`
 	// If specified, it is the time of signature's creation.
-	Created *unversioned.Time `json:"created,omitempty" protobuf:"bytes,7,opt,name=created"`
+	Created *metav1.Time `json:"created,omitempty" protobuf:"bytes,7,opt,name=created"`
 	// If specified, it holds information about an issuer of signing certificate or key (a person or entity
 	// who signed the signing certificate or key).
 	IssuedBy *SignatureIssuer `json:"issuedBy,omitempty" protobuf:"bytes,8,opt,name=issuedBy"`
@@ -100,9 +100,9 @@ type SignatureCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// Last time the condition was checked.
-	LastProbeTime unversioned.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
 	// Last time the condition transit from one status to another.
-	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
 	// (brief) reason for the condition's last transition.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
 	// Human readable message indicating details about last transition.
@@ -134,9 +134,9 @@ type SignatureSubject struct {
 
 // ImageStreamList is a list of ImageStream objects.
 type ImageStreamList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of imageStreams
 	Items []ImageStream `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -146,9 +146,9 @@ type ImageStreamList struct {
 // when images are tagged in a stream, and an optional reference to a Docker image
 // repository on a registry.
 type ImageStream struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec describes the desired state of this stream
 	Spec ImageStreamSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -243,7 +243,7 @@ type NamedTagEventList struct {
 // TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.
 type TagEvent struct {
 	// Created holds the time the TagEvent was created
-	Created unversioned.Time `json:"created" protobuf:"bytes,1,opt,name=created"`
+	Created metav1.Time `json:"created" protobuf:"bytes,1,opt,name=created"`
 	// DockerImageReference is the string that can be used to pull this image
 	DockerImageReference string `json:"dockerImageReference" protobuf:"bytes,2,opt,name=dockerImageReference"`
 	// Image is the image
@@ -267,7 +267,7 @@ type TagEventCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// LastTransitionTIme is the time the condition transitioned from one status to another.
-	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// Reason is a brief machine readable explanation for the condition's last transition.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 	// Message is a human readable description of the details about last transition, complementing reason.
@@ -279,9 +279,9 @@ type TagEventCondition struct {
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image stream the image came from.
 type ImageStreamMapping struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Image is a Docker image.
 	Image Image `json:"image" protobuf:"bytes,2,opt,name=image"`
@@ -291,9 +291,9 @@ type ImageStreamMapping struct {
 
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
 	// if only pushes have occurred to this image stream.
@@ -314,9 +314,9 @@ type ImageStreamTag struct {
 
 // ImageStreamTagList is a list of ImageStreamTag objects.
 type ImageStreamTagList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of image stream tags
 	Items []ImageStreamTag `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -324,9 +324,9 @@ type ImageStreamTagList struct {
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Image associated with the ImageStream and image name.
 	Image Image `json:"image" protobuf:"bytes,2,opt,name=image"`
@@ -355,9 +355,9 @@ type DockerImageReference struct {
 // (for instance, to generate an application from it). Clients that know the desired image can continue
 // to create spec.tags directly into their image streams.
 type ImageStreamImport struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec is a description of the images that the user wishes to import
 	Spec ImageStreamImportSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -403,7 +403,7 @@ type RepositoryImportSpec struct {
 // RepositoryImportStatus describes the result of an image repository import
 type RepositoryImportStatus struct {
 	// Status reflects whether any failure occurred during import
-	Status unversioned.Status `json:"status,omitempty" protobuf:"bytes,1,opt,name=status"`
+	Status metav1.Status `json:"status,omitempty" protobuf:"bytes,1,opt,name=status"`
 	// Images is a list of images successfully retrieved by the import of the repository.
 	Images []ImageImportStatus `json:"images,omitempty" protobuf:"bytes,2,rep,name=images"`
 	// AdditionalTags are tags that exist in the repository but were not imported because
@@ -429,7 +429,7 @@ type ImageImportSpec struct {
 // ImageImportStatus describes the result of an image import.
 type ImageImportStatus struct {
 	// Status is the status of the image import, including errors encountered while retrieving the image
-	Status unversioned.Status `json:"status" protobuf:"bytes,1,opt,name=status"`
+	Status metav1.Status `json:"status" protobuf:"bytes,1,opt,name=status"`
 	// Image is the metadata of that image, if the image was located
 	Image *Image `json:"image,omitempty" protobuf:"bytes,2,opt,name=image"`
 	// Tag is the tag this image was located under, if any
