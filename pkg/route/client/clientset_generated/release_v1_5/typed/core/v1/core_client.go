@@ -4,7 +4,7 @@ import (
 	fmt "fmt"
 	api "k8s.io/kubernetes/pkg/api"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
+	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
@@ -14,7 +14,7 @@ type CoreV1Interface interface {
 	RoutesGetter
 }
 
-// CoreV1Client is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// CoreV1Client is used to interact with features provided by the k8s.io/apimachinery/pkg/apimachinery/registered.Group group.
 type CoreV1Client struct {
 	restClient restclient.Interface
 }

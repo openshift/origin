@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"

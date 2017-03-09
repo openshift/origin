@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
