@@ -1891,6 +1891,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 
 // TestRouterIngress validates that an ingress resource can configure a router to expose a tls route.
 func TestIngressConfiguredRouter(t *testing.T) {
+	t.Skip()
 	enableIngress := true
 	// Enable namespace filtering to allow validation of compatibility with ingress.
 	namespaceNames := []string{defaultNamespace}
