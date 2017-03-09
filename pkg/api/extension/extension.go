@@ -3,6 +3,7 @@ package extension
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -16,7 +17,7 @@ func Convert_runtime_Object_To_runtime_RawExtension(c runtime.ObjectConvertor, i
 	obj := *in
 
 	switch obj.(type) {
-	case *runtime.Unknown, *runtime.Unstructured:
+	case *runtime.Unknown, *unstructured.Unstructured:
 		out.Raw = nil
 		out.Object = obj
 		return nil
@@ -44,7 +45,7 @@ func Convert_runtime_RawExtension_To_runtime_Object(c runtime.ObjectConvertor, i
 	}
 
 	switch in.Object.(type) {
-	case *runtime.Unknown, *runtime.Unstructured:
+	case *runtime.Unknown, *unstructured.Unstructured:
 		*out = in.Object
 		return nil
 	}
