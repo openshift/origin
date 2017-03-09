@@ -6,18 +6,19 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
 	utilquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
@@ -41,7 +42,7 @@ type ClusterQuotaReconcilationControllerOptions struct {
 	ReplenishmentResyncPeriod controller.ResyncPeriodFunc
 	// List of GroupKind objects that should be monitored for replenishment at
 	// a faster frequency than the quota controller recalculation interval
-	GroupKindsToReplenish []unversioned.GroupKind
+	GroupKindsToReplenish []schema.GroupKind
 }
 
 type ClusterQuotaReconcilationController struct {
@@ -172,7 +173,7 @@ func (c *ClusterQuotaReconcilationController) forceCalculation(quotaName string,
 }
 
 func (c *ClusterQuotaReconcilationController) calculateAll() {
-	quotas, err := c.clusterQuotaLister.List(kapi.ListOptions{})
+	quotas, err := c.clusterQuotaLister.List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
@@ -322,7 +323,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 }
 
 // replenishQuota is a replenishment function invoked by a controller to notify that a quota should be recalculated
-func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind unversioned.GroupKind, namespace string, object runtime.Object) {
+func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind schema.GroupKind, namespace string, object runtime.Object) {
 	// check if the quota controller can evaluate this kind, if not, ignore it altogether...
 	evaluators := c.registry.Evaluators()
 	evaluator, found := evaluators[groupKind]

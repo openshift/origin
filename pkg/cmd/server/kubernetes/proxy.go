@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
+	restclient "k8s.io/client-go/rest"
 
 	restful "github.com/emicklei/go-restful"
 

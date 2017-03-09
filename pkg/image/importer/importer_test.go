@@ -12,8 +12,8 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -27,8 +27,8 @@ func TestImportNothing(t *testing.T) {
 	}
 }
 
-func expectStatusError(status unversioned.Status, message string) bool {
-	if status.Status != unversioned.StatusFailure || status.Message != message {
+func expectStatusError(status metav1.Status, message string) bool {
+	if status.Status != metav1.StatusFailure || status.Message != message {
 		return false
 	}
 	return true
@@ -135,7 +135,7 @@ func TestImport(t *testing.T) {
 				if len(isi.Status.Repository.Images) != 0 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
-				if isi.Status.Repository.Status.Status != unversioned.StatusFailure || isi.Status.Repository.Status.Message != "Internal error occurred: error" {
+				if isi.Status.Repository.Status.Status != metav1.StatusFailure || isi.Status.Repository.Status.Message != "Internal error occurred: error" {
 					t.Errorf("unexpected status: %#v", isi.Status.Repository.Status)
 				}
 			},
@@ -156,7 +156,7 @@ func TestImport(t *testing.T) {
 				}
 				expectedTags := []string{"", "tag"}
 				for i, image := range isi.Status.Images {
-					if image.Status.Status != unversioned.StatusSuccess {
+					if image.Status.Status != metav1.StatusSuccess {
 						t.Errorf("unexpected status %d: %#v", i, image.Status)
 					}
 					// the image name is always the sha256, and size is calculated
@@ -196,7 +196,7 @@ func TestImport(t *testing.T) {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
 				image := isi.Status.Images[0]
-				if image.Status.Status != unversioned.StatusSuccess {
+				if image.Status.Status != metav1.StatusSuccess {
 					t.Errorf("unexpected status: %#v", image.Status)
 				}
 				// the image name is always the sha256, and size is calculated
@@ -247,7 +247,7 @@ func TestImport(t *testing.T) {
 				}
 				expectedTags := []string{"3.1", "3", "abc", "other", "v1"}
 				for i, image := range isi.Status.Repository.Images {
-					if image.Status.Status != unversioned.StatusFailure || image.Status.Message != "Internal error occurred: no such manifest tag" {
+					if image.Status.Status != metav1.StatusFailure || image.Status.Message != "Internal error occurred: no such manifest tag" {
 						t.Errorf("unexpected status %d: %#v", i, isi.Status.Repository.Images)
 					}
 					if image.Tag != expectedTags[i] {

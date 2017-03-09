@@ -5,12 +5,13 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller"
@@ -29,11 +30,11 @@ type ImportControllerFactory struct {
 // Create creates an ImportController.
 func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
 	lw := &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-			return f.Client.ImageStreams(kapi.NamespaceAll).List(options)
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			return f.Client.ImageStreams(metav1.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-			return f.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			return f.Client.ImageStreams(metav1.NamespaceAll).Watch(options)
 		},
 	}
 	q := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)

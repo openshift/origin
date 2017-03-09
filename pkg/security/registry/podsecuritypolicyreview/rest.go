@@ -6,14 +6,15 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
@@ -24,12 +25,12 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher oscc.SCCMatcher
-	saCache    *cache.StoreToServiceAccountLister
+	saCache    kcorelisters.ServiceAccountLister
 	client     clientset.Interface
 }
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, saCache *cache.StoreToServiceAccountLister, c clientset.Interface) *REST {
+func NewREST(m oscc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clientset.Interface) *REST {
 	return &REST{sccMatcher: m, saCache: saCache, client: c}
 }
 
@@ -39,7 +40,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new PodSecurityPolicyReview instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	pspr, ok := obj.(*securityapi.PodSecurityPolicyReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicyReview: %#v", obj))
@@ -47,7 +48,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if errs := securityvalidation.ValidatePodSecurityPolicyReview(pspr); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicyReview"), "", errs)
 	}
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
@@ -99,10 +100,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return pspr, nil
 }
 
-func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache *cache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
+func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache kcorelisters.ServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 	//  TODO: express 'all service accounts'
-	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(kapi.ListOptions{}); err == nil {
+	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(metainternal.ListOptions{}); err == nil {
 	//	serviceAccounts = serviceAccountList.Items
 	//	return serviceAccounts, fmt.Errorf("unable to retrieve service accounts: %v", err)
 	//}

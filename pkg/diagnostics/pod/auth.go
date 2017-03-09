@@ -11,12 +11,13 @@ import (
 
 	"github.com/miekg/dns"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
+	restclient "k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-
-	"k8s.io/kubernetes/pkg/client/restclient"
-	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 const (
@@ -76,7 +77,7 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 	}
 	rchan := make(chan error, 1) // for concurrency with timeout
 	go func() {
-		_, err := oclient.Users().Get("~")
+		_, err := oclient.Users().Get("~", metav1.GetOptions{})
 		rchan <- err
 	}()
 

@@ -10,15 +10,16 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -33,11 +34,11 @@ import (
 )
 
 // Etcd data for all persisted objects.
-var etcdStorageData = map[unversioned.GroupVersionResource]struct {
-	stub             string                        // Valid JSON stub to use during create
-	prerequisites    []prerequisite                // Optional, ordered list of JSON objects to create before stub
-	expectedEtcdPath string                        // Expected location of object in etcd, do not use any variables, constants, etc to derive this value - always supply the full raw string
-	expectedGVK      *unversioned.GroupVersionKind // The GVK that we expect this object to be stored as - leave this nil to use the default
+var etcdStorageData = map[schema.GroupVersionResource]struct {
+	stub             string                   // Valid JSON stub to use during create
+	prerequisites    []prerequisite           // Optional, ordered list of JSON objects to create before stub
+	expectedEtcdPath string                   // Expected location of object in etcd, do not use any variables, constants, etc to derive this value - always supply the full raw string
+	expectedGVK      *schema.GroupVersionKind // The GVK that we expect this object to be stored as - leave this nil to use the default
 }{
 	// github.com/openshift/origin/pkg/authorization/api/v1
 	gvr("", "v1", "clusterpolicybindings"): { // no stub because cannot create one of these but it always exists
@@ -772,13 +773,13 @@ func TestEtcdStoragePath(t *testing.T) {
 		t.Fatalf("error creating client: %#v", err)
 	}
 
-	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: testNamespace}}); err != nil {
+	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 
 	kindSeen := sets.NewString()
-	etcdSeen := map[unversioned.GroupVersionResource]empty{}
-	ephemeralSeen := map[unversioned.GroupVersionResource]empty{}
+	etcdSeen := map[schema.GroupVersionResource]empty{}
+	ephemeralSeen := map[schema.GroupVersionResource]empty{}
 
 	for gvk, apiType := range kapi.Scheme.AllKnownTypes() {
 		// we do not care about internal objects or lists // TODO make sure this is always true
@@ -908,8 +909,8 @@ type metaObject struct {
 	} `json:"metadata,omitempty" protobuf:"bytes,3,opt,name=metadata"`
 }
 
-func (obj *metaObject) getGVK() unversioned.GroupVersionKind {
-	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
+func (obj *metaObject) getGVK() schema.GroupVersionKind {
+	return schema.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
 }
 
 func (obj *metaObject) isEmpty() bool {
@@ -917,7 +918,7 @@ func (obj *metaObject) isEmpty() bool {
 }
 
 type prerequisite struct {
-	gvrData unversioned.GroupVersionResource
+	gvrData schema.GroupVersionResource
 	stub    string
 }
 
@@ -928,16 +929,16 @@ type cleanupData struct {
 	mapping *meta.RESTMapping
 }
 
-func gvr(g, v, r string) unversioned.GroupVersionResource {
-	return unversioned.GroupVersionResource{Group: g, Version: v, Resource: r}
+func gvr(g, v, r string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{Group: g, Version: v, Resource: r}
 }
 
-func gvkP(g, v, k string) *unversioned.GroupVersionKind {
-	return &unversioned.GroupVersionKind{Group: g, Version: v, Kind: k}
+func gvkP(g, v, k string) *schema.GroupVersionKind {
+	return &schema.GroupVersionKind{Group: g, Version: v, Kind: k}
 }
 
-func createEphemeralWhiteList(gvrs ...unversioned.GroupVersionResource) map[unversioned.GroupVersionResource]empty {
-	ephemeral := map[unversioned.GroupVersionResource]empty{}
+func createEphemeralWhiteList(gvrs ...schema.GroupVersionResource) map[schema.GroupVersionResource]empty {
+	ephemeral := map[schema.GroupVersionResource]empty{}
 	for _, gvResource := range gvrs {
 		if _, ok := ephemeral[gvResource]; ok {
 			panic("invalid ephemeral whitelist contains duplicate keys")
@@ -960,7 +961,7 @@ func keyStringer(i interface{}) string {
 	switch key := i.(type) {
 	case string:
 		return base + key
-	case unversioned.GroupVersionResource:
+	case schema.GroupVersionResource:
 		return base + key.String()
 	default:
 		panic("unexpected type")
@@ -973,7 +974,7 @@ type allClient struct {
 	backoff restclient.BackoffManager
 }
 
-func (c *allClient) verb(verb string, gvk unversioned.GroupVersionKind) (*restclient.Request, error) {
+func (c *allClient) verb(verb string, gvk schema.GroupVersionKind) (*restclient.Request, error) {
 	apiPath := "/apis"
 	switch {
 	case latest.OriginLegacyKind(gvk):
@@ -1098,7 +1099,7 @@ func createSerializers(config restclient.ContentConfig) (*restclient.Serializers
 		info = mediaTypes[0]
 	}
 
-	internalGV := unversioned.GroupVersions{
+	internalGV := schema.GroupVersions{
 		{
 			Group:   config.GroupVersion.Group,
 			Version: runtime.APIVersionInternal,

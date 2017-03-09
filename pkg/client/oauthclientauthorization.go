@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,11 +14,11 @@ type OAuthClientAuthorizationsInterface interface {
 
 type OAuthClientAuthorizationInterface interface {
 	Create(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
-	List(opts kapi.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error)
+	List(opts metainternal.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error)
 	Get(name string) (*oauthapi.OAuthClientAuthorization, error)
 	Update(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 type oauthClientAuthorizations struct {
@@ -42,7 +43,7 @@ func (c *oauthClientAuthorizations) Update(obj *oauthapi.OAuthClientAuthorizatio
 	return
 }
 
-func (c *oauthClientAuthorizations) List(opts kapi.ListOptions) (result *oauthapi.OAuthClientAuthorizationList, err error) {
+func (c *oauthClientAuthorizations) List(opts metainternal.ListOptions) (result *oauthapi.OAuthClientAuthorizationList, err error) {
 	result = &oauthapi.OAuthClientAuthorizationList{}
 	err = c.r.Get().Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -59,6 +60,6 @@ func (c *oauthClientAuthorizations) Delete(name string) (err error) {
 	return
 }
 
-func (c *oauthClientAuthorizations) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *oauthClientAuthorizations) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

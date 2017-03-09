@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakeClusterNetworks implements ClusterNetworkInterface
@@ -16,7 +16,7 @@ type FakeClusterNetworks struct {
 	ns   string
 }
 
-var clusternetworksResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "clusternetworks"}
+var clusternetworksResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "clusternetworks"}
 
 func (c *FakeClusterNetworks) Create(clusterNetwork *v1.ClusterNetwork) (result *v1.ClusterNetwork, err error) {
 	obj, err := c.Fake.

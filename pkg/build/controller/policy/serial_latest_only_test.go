@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
@@ -41,7 +41,7 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 			t.Errorf("%s should be runnable, it is not", build.Name)
 		}
 	}
-	builds, err := client.List("test", kapi.ListOptions{})
+	builds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
 			t.Errorf("%s should not be runnable", build.Name)
 		}
 	}
-	builds, err := client.List("test", kapi.ListOptions{})
+	builds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

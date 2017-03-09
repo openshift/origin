@@ -3,11 +3,12 @@ package cmd
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/deploy/util"
@@ -44,11 +45,11 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 	}
 	// TODO: convert to a watch and use resource version from the ScaleCondition - kubernetes/kubernetes#31051
 	if waitForReplicas != nil {
-		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
+		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
+		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc), metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -77,7 +78,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 // equals the Replicas count.
 //
 // This is a slightly modified version of
-// unversioned.ControllerHasDesiredReplicas. This  is necessary because when
+// metav1.ControllerHasDesiredReplicas. This  is necessary because when
 // scaling an RC via a DC, the RC spec replica count is not immediately
 // updated to match the owning DC.
 func controllerHasSpecifiedReplicas(c kclientset.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {
@@ -86,7 +87,7 @@ func controllerHasSpecifiedReplicas(c kclientset.Interface, controller *kapi.Rep
 	desiredGeneration := controller.Generation
 
 	return func() (bool, error) {
-		ctrl, err := c.Core().ReplicationControllers(controller.Namespace).Get(controller.Name)
+		ctrl, err := c.Core().ReplicationControllers(controller.Namespace).Get(controller.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

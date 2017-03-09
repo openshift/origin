@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -163,7 +163,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 	var builds []*buildapi.Build
 
 	for _, name := range o.BuildNames {
-		build, err := o.BuildClient.Get(name)
+		build, err := o.BuildClient.Get(name, metav1.GetOptions{})
 		if err != nil {
 			o.ReportError(fmt.Errorf("build %s/%s not found", o.Namespace, name))
 			continue
@@ -210,7 +210,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				case err == nil:
 					return true, nil
 				case kapierrors.IsConflict(err):
-					build, err = o.BuildClient.Get(build.Name)
+					build, err = o.BuildClient.Get(build.Name, metav1.GetOptions{})
 					return false, err
 				}
 				return true, err
@@ -222,7 +222,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 			// Make sure the build phase is really cancelled.
 			err = wait.Poll(500*time.Millisecond, 30*time.Second, func() (bool, error) {
-				updatedBuild, err := o.BuildClient.Get(build.Name)
+				updatedBuild, err := o.BuildClient.Get(build.Name, metav1.GetOptions{})
 				if err != nil {
 					return true, err
 				}
@@ -241,7 +241,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 	if o.Restart {
 		for _, b := range builds {
-			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
+			request := &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
 			build, err := o.BuildClient.Clone(request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))

@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -24,7 +24,7 @@ func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error
 
 type okBuildLister struct{}
 
-func (okc *okBuildLister) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
 }
 
@@ -95,7 +95,7 @@ type okImageStreamClient struct{}
 
 func (*okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: "image/repo",
 		},
@@ -116,7 +116,7 @@ func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*im
 
 func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
 			Annotations: map[string]string{
@@ -163,7 +163,7 @@ func mockBuildController() *BuildController {
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "data-build-build",
 			Annotations: map[string]string{
 				buildapi.BuildAnnotation: "data-build",
@@ -436,10 +436,10 @@ func TestCancelBuild(t *testing.T) {
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 		podManager          podManager
-		startTimestamp      *unversioned.Time
-		completionTimestamp *unversioned.Time
+		startTimestamp      *metav1.Time
+		completionTimestamp *metav1.Time
 	}
-	dummy := unversioned.Now()
+	dummy := metav1.Now()
 	curtime := &dummy
 
 	tests := []handleCancelBuildTest{
@@ -584,7 +584,7 @@ func TestHandleHandleBuildDeletionOK(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -610,7 +610,7 @@ func TestHandleHandlePipelineBuildDeletionOK(t *testing.T) {
 	build.Spec.Strategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -635,7 +635,7 @@ func TestHandleHandleBuildDeletionOKDeprecatedLabel(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -717,7 +717,7 @@ func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil

@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,10 +15,10 @@ type PoliciesNamespacer interface {
 
 // PolicyInterface exposes methods on Policy resources.
 type PolicyInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.PolicyList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 type PoliciesListerNamespacer interface {
@@ -28,7 +29,7 @@ type SyncedPoliciesListerNamespacer interface {
 	LastSyncResourceVersion() string
 }
 type PolicyLister interface {
-	List(options kapi.ListOptions) (*authorizationapi.PolicyList, error)
+	List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 }
 
@@ -47,7 +48,7 @@ func newPolicies(c *Client, namespace string) *policies {
 }
 
 // List returns a list of policies that match the label and field selectors.
-func (c *policies) List(opts kapi.ListOptions) (result *authorizationapi.PolicyList, err error) {
+func (c *policies) List(opts metainternal.ListOptions) (result *authorizationapi.PolicyList, err error) {
 	result = &authorizationapi.PolicyList{}
 	err = c.r.Get().Namespace(c.ns).Resource("policies").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -67,6 +68,6 @@ func (c *policies) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested policies
-func (c *policies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *policies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policies").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

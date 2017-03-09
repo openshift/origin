@@ -3,7 +3,7 @@ package authorizer
 import (
 	"net/http"
 
-	"k8s.io/kubernetes/pkg/apiserver/request"
+	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type projectRequestInfoResolver struct {

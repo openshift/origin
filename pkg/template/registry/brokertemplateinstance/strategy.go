@@ -3,25 +3,28 @@ package brokertemplateinstance
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // brokerTemplateInstanceStrategy implements behavior for Templates
 type brokerTemplateInstanceStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating BrokerTemplateInstance
 // objects via the REST API.
-var Strategy = brokerTemplateInstanceStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = brokerTemplateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for brokertemplateinstances.
 func (brokerTemplateInstanceStrategy) NamespaceScoped() bool {
@@ -29,7 +32,7 @@ func (brokerTemplateInstanceStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (brokerTemplateInstanceStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (brokerTemplateInstanceStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -37,11 +40,11 @@ func (brokerTemplateInstanceStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (brokerTemplateInstanceStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (brokerTemplateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new brokertemplateinstance.
-func (brokerTemplateInstanceStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (brokerTemplateInstanceStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateBrokerTemplateInstance(obj.(*api.BrokerTemplateInstance))
 }
 
@@ -55,7 +58,7 @@ func (brokerTemplateInstanceStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBrokerTemplateInstanceUpdate(obj.(*api.BrokerTemplateInstance), old.(*api.BrokerTemplateInstance))
 }
 

@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-
 	_ "github.com/openshift/origin/pkg/authorization/api/v1"
 	_ "github.com/openshift/origin/pkg/build/api/v1"
 	_ "github.com/openshift/origin/pkg/deploy/api/v1"
@@ -14,7 +12,8 @@ import (
 	_ "github.com/openshift/origin/pkg/security/api/v1"
 	_ "github.com/openshift/origin/pkg/template/api/v1"
 	_ "github.com/openshift/origin/pkg/user/api/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}

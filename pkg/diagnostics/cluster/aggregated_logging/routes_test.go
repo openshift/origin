@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
@@ -37,7 +38,7 @@ func (f *fakeRoutesDiagnostic) addRouteWith(condType routesapi.RouteIngressCondi
 		},
 	}
 	route := routesapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "aname"},
+		ObjectMeta: metav1.ObjectMeta{Name: "aname"},
 		Status: routesapi.RouteStatus{
 			Ingress: []routesapi.RouteIngress{ingress},
 		},
@@ -52,7 +53,7 @@ func (f *fakeRoutesDiagnostic) addRouteWith(condType routesapi.RouteIngressCondi
 	f.fakeRoutes.Items = append(f.fakeRoutes.Items, route)
 }
 
-func (f *fakeRoutesDiagnostic) routes(project string, options kapi.ListOptions) (*routesapi.RouteList, error) {
+func (f *fakeRoutesDiagnostic) routes(project string, options metav1.ListOptions) (*routesapi.RouteList, error) {
 	value, ok := f.clienterrors[testRoutesKey]
 	if ok {
 		return nil, value

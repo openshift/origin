@@ -4,34 +4,34 @@ import (
 	"fmt"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/storage"
 )
 
 // DefaultKeyFunctions sets the default behavior for storage key generation onto a Store.
 func DefaultKeyFunctions(store *registry.Store, prefix string, isNamespaced bool) {
 	if isNamespaced {
 		if store.KeyRootFunc == nil {
-			store.KeyRootFunc = func(ctx kapi.Context) string {
+			store.KeyRootFunc = func(ctx apirequest.Context) string {
 				return registry.NamespaceKeyRootFunc(ctx, prefix)
 			}
 		}
 		if store.KeyFunc == nil {
-			store.KeyFunc = func(ctx kapi.Context, name string) (string, error) {
+			store.KeyFunc = func(ctx apirequest.Context, name string) (string, error) {
 				return registry.NamespaceKeyFunc(ctx, prefix, name)
 			}
 		}
 	} else {
 		if store.KeyRootFunc == nil {
-			store.KeyRootFunc = func(ctx kapi.Context) string {
+			store.KeyRootFunc = func(ctx apirequest.Context) string {
 				return prefix
 			}
 		}
 		if store.KeyFunc == nil {
-			store.KeyFunc = func(ctx kapi.Context, name string) (string, error) {
+			store.KeyFunc = func(ctx apirequest.Context, name string) (string, error) {
 				return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 			}
 		}

@@ -6,10 +6,12 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -33,7 +35,7 @@ func (c *customBuildUpdater) Update(namespace string, build *buildapi.Build) err
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "data-build-build",
 			Namespace: "namespace",
 			Annotations: map[string]string{
@@ -55,7 +57,7 @@ func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 
 func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
 			Annotations: map[string]string{
@@ -115,14 +117,14 @@ func TestHandlePod(t *testing.T) {
 		matchID             bool
 		inStatus            buildapi.BuildPhase
 		outStatus           buildapi.BuildPhase
-		startTimestamp      *unversioned.Time
-		completionTimestamp *unversioned.Time
+		startTimestamp      *metav1.Time
+		completionTimestamp *metav1.Time
 		podStatus           kapi.PodPhase
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 	}
 
-	dummy := unversioned.Now()
+	dummy := metav1.Now()
 	curtime := &dummy
 	tests := []handlePodTest{
 		{ // 0

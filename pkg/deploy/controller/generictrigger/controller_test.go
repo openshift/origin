@@ -4,12 +4,14 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -23,11 +25,11 @@ var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&deployapi.DeploymentConfig{},
@@ -36,11 +38,11 @@ var (
 	)
 	rcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return (fake.NewSimpleClientset()).Core().ReplicationControllers(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return (fake.NewSimpleClientset()).Core().ReplicationControllers(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.ReplicationController{},
@@ -49,11 +51,11 @@ var (
 	)
 	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&imageapi.ImageStream{},
@@ -70,7 +72,7 @@ func TestHandle_noTriggers(t *testing.T) {
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
-	config.Namespace = kapi.NamespaceDefault
+	config.Namespace = metav1.NamespaceDefault
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -87,7 +89,7 @@ func TestHandle_pausedConfig(t *testing.T) {
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
-	config.Namespace = kapi.NamespaceDefault
+	config.Namespace = metav1.NamespaceDefault
 	config.Spec.Paused = true
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -103,7 +105,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
@@ -111,7 +113,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
-	config.Namespace = kapi.NamespaceDefault
+	config.Namespace = metav1.NamespaceDefault
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger()}
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -127,7 +129,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
@@ -135,7 +137,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
-	config.Namespace = kapi.NamespaceDefault
+	config.Namespace = metav1.NamespaceDefault
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkImageChangeTrigger()}
 	if err := controller.Handle(config); err != nil {
 		t.Fatalf("unexpected error: %v", err)

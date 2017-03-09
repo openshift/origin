@@ -32,7 +32,7 @@ func (m PostgreSQL) PodName() string {
 
 // IsReady pings the PostgreSQL server.
 func (m PostgreSQL) IsReady(oc *util.CLI) (bool, error) {
-	conf, err := getPodConfig(oc.KubeClient().Core().Pods(oc.Namespace()), m.podName)
+	conf, err := getPodConfig(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.podName)
 	if err != nil {
 		return false, err
 	}
@@ -51,11 +51,11 @@ func (m PostgreSQL) IsReady(oc *util.CLI) (bool, error) {
 
 // Query executes an SQL query as an ordinary user and returns the result.
 func (m PostgreSQL) Query(oc *util.CLI, query string) (string, error) {
-	container, err := firstContainerName(oc.KubeClient().Core().Pods(oc.Namespace()), m.podName)
+	container, err := firstContainerName(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.podName)
 	if err != nil {
 		return "", err
 	}
-	masterConf, err := getPodConfig(oc.KubeClient().Core().Pods(oc.Namespace()), m.masterPodName)
+	masterConf, err := getPodConfig(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.masterPodName)
 	if err != nil {
 		return "", err
 	}
@@ -67,11 +67,11 @@ func (m PostgreSQL) Query(oc *util.CLI, query string) (string, error) {
 
 // QueryPrivileged executes an SQL query as a root user and returns the result.
 func (m PostgreSQL) QueryPrivileged(oc *util.CLI, query string) (string, error) {
-	container, err := firstContainerName(oc.KubeClient().Core().Pods(oc.Namespace()), m.podName)
+	container, err := firstContainerName(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.podName)
 	if err != nil {
 		return "", err
 	}
-	masterConf, err := getPodConfig(oc.KubeClient().Core().Pods(oc.Namespace()), m.masterPodName)
+	masterConf, err := getPodConfig(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.masterPodName)
 	if err != nil {
 		return "", err
 	}
@@ -83,11 +83,11 @@ func (m PostgreSQL) QueryPrivileged(oc *util.CLI, query string) (string, error) 
 
 // TestRemoteLogin will test whether we can login through to a remote database.
 func (m PostgreSQL) TestRemoteLogin(oc *util.CLI, hostAddress string) error {
-	container, err := firstContainerName(oc.KubeClient().Core().Pods(oc.Namespace()), m.podName)
+	container, err := firstContainerName(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.podName)
 	if err != nil {
 		return err
 	}
-	masterConf, err := getPodConfig(oc.KubeClient().Core().Pods(oc.Namespace()), m.masterPodName)
+	masterConf, err := getPodConfig(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.masterPodName)
 	if err != nil {
 		return err
 	}

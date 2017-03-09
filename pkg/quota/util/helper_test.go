@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

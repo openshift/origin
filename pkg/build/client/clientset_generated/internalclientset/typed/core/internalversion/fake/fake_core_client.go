@@ -2,7 +2,7 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/build/client/clientset_generated/internalclientset/typed/core/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	restclient "k8s.io/client-go/rest"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 

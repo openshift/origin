@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -37,7 +38,7 @@ func TestProjectStatus(t *testing.T) {
 		"empty project with display name": {
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "example",
 						Namespace: "",
 						Annotations: map[string]string{
@@ -56,7 +57,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "k8s-service-with-nothing.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -71,7 +72,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "k8s-unserviced-rc.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -87,7 +88,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "bad_secret_with_just_rc.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -102,7 +103,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "dueling-rcs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "dueling-rc", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "dueling-rc", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -115,7 +116,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "service-with-pod.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -130,7 +131,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "build-chains.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -142,7 +143,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "prereq-image-present-with-sched.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -154,7 +155,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "bare-rc.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -168,7 +169,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "new-project-no-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -187,7 +188,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "unpushable-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -199,7 +200,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "bare-bc-can-push.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -215,7 +216,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "circular.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -229,7 +230,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "new-project-one-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -248,7 +249,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -268,7 +269,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "new-project-deployed-app.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -299,7 +300,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "statefulset.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -315,7 +316,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "restarting-pod.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -330,7 +331,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "different-project-image-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -344,7 +345,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "k8s-lonely-pod.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -358,7 +359,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "simple-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },
@@ -372,7 +373,7 @@ func TestProjectStatus(t *testing.T) {
 			File: "available-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },

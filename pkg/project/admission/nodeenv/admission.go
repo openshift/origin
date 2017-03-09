@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/kubernetes/pkg/admission"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -23,7 +24,7 @@ func init() {
 // podNodeEnvironment is an implementation of admission.Interface.
 type podNodeEnvironment struct {
 	*admission.Handler
-	client clientset.Interface
+	client kclientset.Interface
 	cache  *cache.ProjectCache
 }
 

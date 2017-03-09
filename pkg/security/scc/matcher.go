@@ -6,13 +6,14 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
@@ -37,7 +38,7 @@ func NewDefaultSCCMatcher(c *oscache.IndexerToSecurityContextConstraintsLister) 
 // FindApplicableSCCs implements SCCMatcher interface for DefaultSCCMatcher
 func (d DefaultSCCMatcher) FindApplicableSCCs(userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
 	var matchedConstraints []*kapi.SecurityContextConstraints
-	constraints, err := d.cache.List()
+	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +180,7 @@ func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interf
 	if ns != nil && name == ns.Name {
 		return ns, nil
 	}
-	return client.Core().Namespaces().Get(name)
+	return client.Core().Namespaces().Get(name, metav1.GetOptions{})
 }
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
