@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -139,7 +140,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 	o.CertFile = kcmdutil.GetFlagString(cmd, "client-certificate")
 	o.KeyFile = kcmdutil.GetFlagString(cmd, "client-key")
 	apiVersionString := kcmdutil.GetFlagString(cmd, "api-version")
-	o.APIVersion = unversioned.GroupVersion{}
+	o.APIVersion = schema.GroupVersion{}
 
 	// if the API version isn't explicitly passed, use the API version from the default context (same rules as the server above)
 	if len(apiVersionString) == 0 {

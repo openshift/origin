@@ -11,9 +11,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -83,7 +83,7 @@ type TriggersOptions struct {
 
 	ShortOutput   bool
 	Mapper        meta.RESTMapper
-	OutputVersion unversioned.GroupVersion
+	OutputVersion schema.GroupVersion
 
 	PrintTable  bool
 	PrintObject func([]*resource.Info) error

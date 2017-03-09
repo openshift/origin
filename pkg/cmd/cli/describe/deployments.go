@@ -9,8 +9,8 @@ import (
 	"text/tabwriter"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rcutils "k8s.io/kubernetes/pkg/controller/replication"
@@ -270,7 +270,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 
 	// Autoscaling info
 	// FIXME: The CrossVersionObjectReference should specify the Group
-	printAutoscalingInfo([]unversioned.GroupResource{deployapi.Resource("DeploymentConfig"), deployapi.LegacyResource("DeploymentConfig")}, dc.Namespace, dc.Name, kc, w)
+	printAutoscalingInfo([]schema.GroupResource{deployapi.Resource("DeploymentConfig"), deployapi.LegacyResource("DeploymentConfig")}, dc.Namespace, dc.Name, kc, w)
 
 	// Triggers
 	printTriggers(spec.Triggers, w)
@@ -291,7 +291,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 }
 
 // TODO: Move this upstream
-func printAutoscalingInfo(res []unversioned.GroupResource, namespace, name string, kclient kclientset.Interface, w *tabwriter.Writer) {
+func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kclient kclientset.Interface, w *tabwriter.Writer) {
 	hpaList, err := kclient.Autoscaling().HorizontalPodAutoscalers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
 	if err != nil {
 		return

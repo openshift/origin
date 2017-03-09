@@ -7,9 +7,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/apimachinery"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -22,11 +22,11 @@ const importPrefix = "github.com/openshift/origin/pkg/quota/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{quotaapiv1.LegacySchemeGroupVersion}
+var availableVersions = []schema.GroupVersion{quotaapiv1.LegacySchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
-	externalVersions := []unversioned.GroupVersion{}
+	externalVersions := []schema.GroupVersion{}
 	for _, v := range availableVersions {
 		if registered.IsAllowedVersion(v) {
 			externalVersions = append(externalVersions, v)
@@ -51,7 +51,7 @@ func init() {
 // group.
 // We can combine registered.RegisterVersions, registered.EnableVersions and
 // registered.RegisterGroup once we have moved enableVersions there.
-func enableVersions(externalVersions []unversioned.GroupVersion) error {
+func enableVersions(externalVersions []schema.GroupVersion) error {
 	addVersionsToScheme(externalVersions...)
 	preferredExternalVersion := externalVersions[0]
 
@@ -69,7 +69,7 @@ func enableVersions(externalVersions []unversioned.GroupVersion) error {
 	return nil
 }
 
-func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper {
+func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString("ClusterResourceQuota")
 	ignoredKinds := sets.NewString()
 
@@ -78,7 +78,7 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 
 // interfacesFor returns the default Codec and ResourceVersioner for a given version
 // string, or an error if the version is not known.
-func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
+func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
 	case quotaapiv1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
@@ -91,7 +91,7 @@ func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, e
 	}
 }
 
-func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
+func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	// add the internal version to Scheme
 	quotaapi.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme

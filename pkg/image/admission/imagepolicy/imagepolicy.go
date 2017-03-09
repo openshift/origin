@@ -10,9 +10,9 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -57,7 +57,7 @@ type imagePolicyPlugin struct {
 
 	integratedRegistryMatcher integratedRegistryMatcher
 
-	resolveGroupResources []unversioned.GroupResource
+	resolveGroupResources []schema.GroupResource
 
 	projectCache *cache.ProjectCache
 	resolver     imageResolver

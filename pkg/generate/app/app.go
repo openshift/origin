@@ -12,8 +12,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -474,7 +474,7 @@ func LabelsFromSpec(spec []string) (map[string]string, []string, error) {
 }
 
 // TODO: move to pkg/runtime or pkg/api
-func AsVersionedObjects(objects []runtime.Object, typer runtime.ObjectTyper, convertor runtime.ObjectConvertor, versions ...unversioned.GroupVersion) []error {
+func AsVersionedObjects(objects []runtime.Object, typer runtime.ObjectTyper, convertor runtime.ObjectConvertor, versions ...schema.GroupVersion) []error {
 	var errs []error
 	for i, object := range objects {
 		kinds, _, err := typer.ObjectKinds(object)
@@ -498,7 +498,7 @@ func AsVersionedObjects(objects []runtime.Object, typer runtime.ObjectTyper, con
 	return errs
 }
 
-func isInternalOnly(kinds []unversioned.GroupVersionKind) bool {
+func isInternalOnly(kinds []schema.GroupVersionKind) bool {
 	for _, kind := range kinds {
 		if kind.Version != runtime.APIVersionInternal {
 			return false
@@ -507,7 +507,7 @@ func isInternalOnly(kinds []unversioned.GroupVersionKind) bool {
 	return true
 }
 
-func kindsInVersions(kinds []unversioned.GroupVersionKind, versions []unversioned.GroupVersion) bool {
+func kindsInVersions(kinds []schema.GroupVersionKind, versions []schema.GroupVersion) bool {
 	for _, kind := range kinds {
 		for _, version := range versions {
 			if kind.GroupVersion() == version {
@@ -519,7 +519,7 @@ func kindsInVersions(kinds []unversioned.GroupVersionKind, versions []unversione
 }
 
 // tryConvert attempts to convert the given object to the provided versions in order.
-func tryConvert(convertor runtime.ObjectConvertor, object runtime.Object, versions []unversioned.GroupVersion) (runtime.Object, error) {
+func tryConvert(convertor runtime.ObjectConvertor, object runtime.Object, versions []schema.GroupVersion) (runtime.Object, error) {
 	var last error
 	for _, version := range versions {
 		obj, err := convertor.ConvertToVersion(object, version)

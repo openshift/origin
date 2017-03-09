@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
@@ -18,7 +18,7 @@ type FakeImages struct {
 
 var _ client.ImageInterface = &FakeImages{}
 
-var imagesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "images"}
+var imagesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "images"}
 
 func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(imagesResource, name), &imageapi.Image{})

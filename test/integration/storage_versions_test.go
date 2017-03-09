@@ -7,9 +7,9 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batch_v1 "k8s.io/kubernetes/pkg/apis/batch/v1"
@@ -49,7 +49,7 @@ func (c legacyExtensionsAutoscaling) Get(name string) (*autoscaling.HorizontalPo
 	return &result, c.client.Get().Resource("horizontalpodautoscalers").Namespace(c.namespace).Name(name).Do().Into(&result)
 }
 
-func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*unversioned.GroupVersionKind, error) {
+func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*schema.GroupVersionKind, error) {
 	keys := etcd.NewKeysAPI(etcdClient)
 	key := path.Join(masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, prefix, ns, name)
 	resp, err := keys.Get(context.TODO(), key, nil)

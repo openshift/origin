@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -15,7 +15,7 @@ type FakeNetNamespace struct {
 	Fake *Fake
 }
 
-var netNamespacesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "netnamespaces"}
+var netNamespacesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "netnamespaces"}
 
 func (c *FakeNetNamespace) Get(name string) (*sdnapi.NetNamespace, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(netNamespacesResource, name), &sdnapi.NetNamespace{})

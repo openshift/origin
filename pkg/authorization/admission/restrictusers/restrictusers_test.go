@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -84,8 +85,8 @@ func TestAdmission(t *testing.T) {
 
 		object      runtime.Object
 		oldObject   runtime.Object
-		kind        unversioned.GroupVersionKind
-		resource    unversioned.GroupVersionResource
+		kind        schema.GroupVersionKind
+		resource    schema.GroupVersionResource
 		namespace   string
 		subresource string
 		objects     []runtime.Object

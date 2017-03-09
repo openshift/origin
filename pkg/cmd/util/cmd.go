@@ -10,10 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -44,9 +45,9 @@ func GetDisplayFilename(filename string) string {
 
 // ResolveResource returns the resource type and name of the resourceString.
 // If the resource string has no specified type, defaultResource will be returned.
-func ResolveResource(defaultResource unversioned.GroupResource, resourceString string, mapper meta.RESTMapper) (unversioned.GroupResource, string, error) {
+func ResolveResource(defaultResource schema.GroupResource, resourceString string, mapper meta.RESTMapper) (schema.GroupResource, string, error) {
 	if mapper == nil {
-		return unversioned.GroupResource{}, "", errors.New("mapper cannot be nil")
+		return schema.GroupResource{}, "", errors.New("mapper cannot be nil")
 	}
 
 	var name string
@@ -64,18 +65,18 @@ func ResolveResource(defaultResource unversioned.GroupResource, resourceString s
 
 		gvr, err := mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {
-			return unversioned.GroupResource{}, "", err
+			return schema.GroupResource{}, "", err
 		}
 		return gvr.GroupResource(), name, nil
 	default:
-		return unversioned.GroupResource{}, "", fmt.Errorf("invalid resource format: %s", resourceString)
+		return schema.GroupResource{}, "", fmt.Errorf("invalid resource format: %s", resourceString)
 	}
 
 	return defaultResource, name, nil
 }
 
 // convertItemsForDisplay returns a new list that contains parallel elements that have been converted to the most preferred external version
-func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversioned.GroupVersion) ([]runtime.Object, error) {
+func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.GroupVersion) ([]runtime.Object, error) {
 	ret := []runtime.Object{}
 
 	for i := range objs {
@@ -89,7 +90,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 			return nil, err
 		}
 
-		requestedVersion := unversioned.GroupVersion{}
+		requestedVersion := schema.GroupVersion{}
 		for _, preferredVersion := range preferredVersions {
 			if preferredVersion.Group == kind.Group {
 				requestedVersion = preferredVersion
@@ -97,7 +98,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 			}
 		}
 
-		actualOutputVersion := unversioned.GroupVersion{}
+		actualOutputVersion := schema.GroupVersion{}
 		for _, externalVersion := range groupMeta.GroupVersions {
 			if externalVersion == requestedVersion {
 				actualOutputVersion = externalVersion

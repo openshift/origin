@@ -2,7 +2,7 @@ package testclient
 
 import (
 	securityapi "github.com/openshift/origin/pkg/security/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 )
 
@@ -14,7 +14,7 @@ type FakePodSecurityPolicyReviews struct {
 	Namespace string
 }
 
-var podSecurityPolicyReviewsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyreviews"}
+var podSecurityPolicyReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyreviews"}
 
 func (c *FakePodSecurityPolicyReviews) Create(inObj *securityapi.PodSecurityPolicyReview) (*securityapi.PodSecurityPolicyReview, error) {
 	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicyReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicyReview{})

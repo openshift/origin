@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -13,7 +13,7 @@ type FakeClusterNetwork struct {
 	Fake *Fake
 }
 
-var clusterNetworksResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "clusternetworks"}
+var clusterNetworksResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusternetworks"}
 
 func (c *FakeClusterNetwork) Get(name string) (*sdnapi.ClusterNetwork, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterNetworksResource, name), &sdnapi.ClusterNetwork{})

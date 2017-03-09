@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -16,7 +16,7 @@ type FakeEgressNetworkPolicy struct {
 	Namespace string
 }
 
-var egressNetworkPoliciesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
+var egressNetworkPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
 
 func (c *FakeEgressNetworkPolicy) Get(name string) (*sdnapi.EgressNetworkPolicy, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})

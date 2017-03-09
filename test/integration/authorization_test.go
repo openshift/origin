@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
@@ -111,7 +112,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	allResources := map[unversioned.GroupResource]bool{}
+	allResources := map[schema.GroupResource]bool{}
 	for _, resources := range allResourceList {
 		version, err := unversioned.ParseGroupVersion(resources.GroupVersion)
 		if err != nil {
@@ -123,7 +124,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		}
 	}
 
-	escalatingResources := map[unversioned.GroupResource]bool{
+	escalatingResources := map[schema.GroupResource]bool{
 		oauthapi.Resource("oauthauthorizetokens"):       true,
 		oauthapi.LegacyResource("oauthauthorizetokens"): true,
 		oauthapi.Resource("oauthaccesstokens"):          true,
@@ -147,7 +148,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 	for _, rule := range readerRole.Rules {
 		for _, group := range rule.APIGroups {
 			for resource := range rule.Resources {
-				gr := unversioned.GroupResource{Group: group, Resource: resource}
+				gr := schema.GroupResource{Group: group, Resource: resource}
 				if escalatingResources[gr] {
 					t.Errorf("cluster-reader role has escalating resource %v.  Check pkg/cmd/server/bootstrappolicy/policy.go.", gr)
 				}
@@ -162,7 +163,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 	}
 
 	// remove resources without read APIs
-	nonreadingResources := []unversioned.GroupResource{
+	nonreadingResources := []schema.GroupResource{
 		buildapi.Resource("buildconfigs/instantiatebinary"),
 		buildapi.LegacyResource("buildconfigs/instantiatebinary"),
 		buildapi.Resource("buildconfigs/instantiate"),

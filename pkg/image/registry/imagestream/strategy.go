@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -83,13 +84,13 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 func (s Strategy) validateTagsAndLimits(ctx kapi.Context, oldStream, newStream *api.ImageStream) error {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return kerrors.NewForbidden(unversioned.GroupResource{Resource: "imagestreams"}, newStream.Name, fmt.Errorf("no user context available"))
+		return kerrors.NewForbidden(schema.GroupResource{Resource: "imagestreams"}, newStream.Name, fmt.Errorf("no user context available"))
 	}
 
 	errs := s.tagVerifier.Verify(oldStream, newStream, user)
 	errs = append(errs, s.tagsChanged(oldStream, newStream)...)
 	if len(errs) > 0 {
-		return kerrors.NewInvalid(unversioned.GroupKind{Kind: "imagestreams"}, newStream.Name, errs)
+		return kerrors.NewInvalid(schema.GroupKind{Kind: "imagestreams"}, newStream.Name, errs)
 	}
 
 	ns, ok := kapi.NamespaceFrom(ctx)

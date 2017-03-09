@@ -8,8 +8,8 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -25,8 +25,8 @@ var (
 	configName           = strings.Repeat("a", validation.DNS1123LabelMaxLength)
 	longConfigNameA      = strings.Repeat("0", 250) + "a"
 	longConfigNameB      = strings.Repeat("0", 250) + "b"
-	buildsResource       = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "builds"}
-	buildConfigsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
+	buildsResource       = schema.GroupVersionResource{Group: "", Version: "", Resource: "builds"}
+	buildConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
 )
 
 func makeBuildConfig(configName string, version int64, deleting bool) *buildapi.BuildConfig {

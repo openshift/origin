@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -14,7 +14,7 @@ type FakeIdentities struct {
 	Fake *Fake
 }
 
-var identitiesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "identities"}
+var identitiesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "identities"}
 
 func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(identitiesResource, name), &userapi.Identity{})

@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -45,12 +46,12 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	expectedGroupVersions := sets.NewString()
 	for group, versions := range configapi.KubeAPIGroupsToAllowedVersions {
 		for _, version := range versions {
-			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
+			expectedGroupVersions.Insert(schema.GroupVersion{Group: group, Version: version}.String())
 		}
 	}
 	for group, versions := range configapi.OriginAPIGroupsToAllowedVersions {
 		for _, version := range versions {
-			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
+			expectedGroupVersions.Insert(schema.GroupVersion{Group: group, Version: version}.String())
 		}
 	}
 

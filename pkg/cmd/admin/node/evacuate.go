@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
@@ -113,7 +113,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		return err
 	}
 
-	printer, err := e.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
+	printer, err := e.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"})
 	if err != nil {
 		return err
 	}

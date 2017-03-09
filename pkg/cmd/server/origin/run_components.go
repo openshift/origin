@@ -10,11 +10,11 @@ import (
 	"github.com/golang/glog"
 
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
@@ -237,7 +237,7 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	stiImage := c.ImageFor("sti-builder")
 
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
+	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
 	admissionControl := admission.InitPlugin("SecurityContextConstraint", c.KubeClientset(), "")
@@ -436,7 +436,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
 
-	opts, err := c.RESTOptionsGetter.GetRESTOptions(unversioned.GroupResource{Resource: "securityuidranges"})
+	opts, err := c.RESTOptionsGetter.GetRESTOptions(schema.GroupResource{Resource: "securityuidranges"})
 	if err != nil {
 		glog.Fatalf("Unable to load storage options for security UID ranges")
 	}

@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
@@ -17,7 +17,7 @@ type FakeImageSignatures struct {
 
 var _ client.ImageSignatureInterface = &FakeImageSignatures{}
 
-var imageSignaturesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagesignatures"}
+var imageSignaturesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagesignatures"}
 
 func (c *FakeImageSignatures) Create(inObj *imageapi.ImageSignature) (*imageapi.ImageSignature, error) {
 	_, err := c.Fake.Invokes(core.NewRootCreateAction(imageSignaturesResource, inObj), inObj)

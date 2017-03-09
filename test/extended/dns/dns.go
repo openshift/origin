@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -158,7 +159,7 @@ func assertLinesExist(lines sets.String, expect int, r io.Reader) error {
 func PodSucceeded(event watch.Event) (bool, error) {
 	switch event.Type {
 	case watch.Deleted:
-		return false, errors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, "")
+		return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, "")
 	}
 	switch t := event.Object.(type) {
 	case *api.Pod:

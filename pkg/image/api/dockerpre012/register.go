@@ -1,7 +1,7 @@
 package dockerpre012
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -11,8 +11,8 @@ const (
 )
 
 var (
-	SchemeGroupVersion       = unversioned.GroupVersion{Group: GroupName, Version: "pre012"}
-	LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: "pre012"}
+	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "pre012"}
+	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "pre012"}
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme

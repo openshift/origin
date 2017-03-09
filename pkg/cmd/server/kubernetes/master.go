@@ -10,10 +10,10 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -79,7 +79,7 @@ func (c *MasterConfig) RunNamespaceController(kubeClient kclientset.Interface, c
 	if err != nil {
 		glog.Fatalf("Failed to get resources: %v", err)
 	}
-	gvrFn := func() ([]unversioned.GroupVersionResource, error) {
+	gvrFn := func() ([]schema.GroupVersionResource, error) {
 		return groupVersionResources, nil
 	}
 	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, clientPool, gvrFn, c.ControllerManager.NamespaceSyncPeriod.Duration, kapi.FinalizerKubernetes)

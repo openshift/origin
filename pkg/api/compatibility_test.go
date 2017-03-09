@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -136,7 +137,7 @@ func testCompatibility(
 	}
 
 	// Encode
-	output := runtime.EncodeOrDie(api.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), obj)
+	output := runtime.EncodeOrDie(api.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: version}), obj)
 
 	// Validate old and new fields are encoded
 	generic := map[string]interface{}{}
@@ -154,7 +155,7 @@ func testCompatibility(
 }
 
 func TestAllowedGrouplessVersion(t *testing.T) {
-	versions := map[string]unversioned.GroupVersion{
+	versions := map[string]schema.GroupVersion{
 		"v1":      {Group: "", Version: "v1"},
 		"v1beta3": {Group: "", Version: "v1beta3"},
 		"1.0":     {Group: "", Version: "1.0"},

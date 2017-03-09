@@ -2,7 +2,7 @@ package testclient
 
 import (
 	securityapi "github.com/openshift/origin/pkg/security/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 )
 
@@ -14,7 +14,7 @@ type FakePodSecurityPolicySubjectReviews struct {
 	Namespace string
 }
 
-var podSecurityPolicySubjectReviewsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicysubjectreviews"}
+var podSecurityPolicySubjectReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicysubjectreviews"}
 
 func (c *FakePodSecurityPolicySubjectReviews) Create(inObj *securityapi.PodSecurityPolicySubjectReview) (*securityapi.PodSecurityPolicySubjectReview, error) {
 	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicySubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySubjectReview{})
@@ -32,7 +32,7 @@ type FakePodSecurityPolicySelfSubjectReviews struct {
 	Namespace string
 }
 
-var podSecurityPolicySelfSubjectReviewsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyselfsubjectreviews"}
+var podSecurityPolicySelfSubjectReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyselfsubjectreviews"}
 
 func (c *FakePodSecurityPolicySelfSubjectReviews) Create(inObj *securityapi.PodSecurityPolicySelfSubjectReview) (*securityapi.PodSecurityPolicySelfSubjectReview, error) {
 	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicySelfSubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySelfSubjectReview{})

@@ -8,13 +8,13 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 )
 
-func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
+func ConfirmNoEscalation(ctx kapi.Context, resource schema.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	var ruleResolutionErrors []error
 
 	user, ok := kapi.UserFrom(ctx)

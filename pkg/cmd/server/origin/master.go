@@ -19,6 +19,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -227,7 +228,7 @@ func readCAorNil(file string) ([]byte, error) {
 	return ioutil.ReadFile(file)
 }
 
-type sortedGroupVersions []unversioned.GroupVersion
+type sortedGroupVersions []schema.GroupVersion
 
 func (s sortedGroupVersions) Len() int           { return len(s) }
 func (s sortedGroupVersions) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
@@ -575,7 +576,7 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 	secretContainer.Add(ws)
 }
 
-func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]rest.Storage {
+func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.Storage {
 	//TODO/REBASE use something other than c.KubeClientset
 	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientset().Core().Nodes(), *c.KubeletClientConfig)
 	if err != nil {
@@ -772,7 +773,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 
-	storage := map[unversioned.GroupVersion]map[string]rest.Storage{
+	storage := map[schema.GroupVersion]map[string]rest.Storage{
 		v1.SchemeGroupVersion: {
 			// TODO: Deprecate these
 			"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
@@ -966,7 +967,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
 	}
 
-	statusMapper := meta.NewDefaultRESTMapper([]unversioned.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
+	statusMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
 	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot)
 	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
 
@@ -983,7 +984,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
-		SubresourceGroupVersionKind: map[string]unversioned.GroupVersionKind{},
+		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
 	}
 }
 

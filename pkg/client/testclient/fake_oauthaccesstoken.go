@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -14,7 +14,7 @@ type FakeOAuthAccessTokens struct {
 	Fake *Fake
 }
 
-var oAuthAccessTokensResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "oauthaccesstokens"}
+var oAuthAccessTokensResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthaccesstokens"}
 
 func (c *FakeOAuthAccessTokens) Delete(name string) error {
 	_, err := c.Fake.Invokes(core.NewRootDeleteAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})

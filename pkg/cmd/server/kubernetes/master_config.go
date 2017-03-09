@@ -18,6 +18,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
@@ -136,25 +137,25 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 	resourceEncodingConfig := genericapiserver.NewDefaultResourceEncodingConfig()
 	resourceEncodingConfig.SetVersionEncoding(
 		kapi.GroupName,
-		unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion},
+		schema.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion},
 		kapi.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		extensions.GroupName,
-		unversioned.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"},
+		schema.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"},
 		extensions.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		batch.GroupName,
-		unversioned.GroupVersion{Group: batch.GroupName, Version: "v1"},
+		schema.GroupVersion{Group: batch.GroupName, Version: "v1"},
 		batch.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		autoscaling.GroupName,
-		unversioned.GroupVersion{Group: autoscaling.GroupName, Version: "v1"},
+		schema.GroupVersion{Group: autoscaling.GroupName, Version: "v1"},
 		autoscaling.SchemeGroupVersion,
 	)
 
@@ -178,7 +179,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 		genericapiserver.NewDefaultResourceEncodingConfig(),
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
-		[]unversioned.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
+		[]schema.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
 		master.DefaultAPIResourceConfigSource(), server.GenericServerRunOptions.RuntimeConfig,
 	)
 	if err != nil {
@@ -558,14 +559,14 @@ func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIRe
 
 	for group := range configapi.KnownKubeAPIGroups {
 		for _, version := range configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
-			gv := unversioned.GroupVersion{Group: group, Version: version}
+			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.EnableVersions(gv)
 		}
 	}
 
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
 		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
-			gv := unversioned.GroupVersion{Group: group, Version: version}
+			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.DisableVersions(gv)
 		}
 	}

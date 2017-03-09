@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -14,7 +14,7 @@ type FakeClusterRoles struct {
 	Fake *Fake
 }
 
-var clusterRolesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "clusterroles"}
+var clusterRolesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterroles"}
 
 func (c *FakeClusterRoles) Get(name string) (*authorizationapi.ClusterRole, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterRolesResource, name), &authorizationapi.ClusterRole{})

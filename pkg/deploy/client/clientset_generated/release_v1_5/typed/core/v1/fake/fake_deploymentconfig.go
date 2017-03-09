@@ -2,8 +2,8 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 	labels "k8s.io/kubernetes/pkg/labels"
@@ -16,7 +16,7 @@ type FakeDeploymentConfigs struct {
 	ns   string
 }
 
-var deploymentconfigsResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfigs"}
+var deploymentconfigsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfigs"}
 
 func (c *FakeDeploymentConfigs) Create(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
 	obj, err := c.Fake.

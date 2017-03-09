@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/protobuf"
@@ -47,17 +47,17 @@ import (
 	_ "k8s.io/kubernetes/pkg/api/install"
 )
 
-var codecsToTest = []func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error){
-	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+var codecsToTest = []func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error){
+	func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error) {
 		return kapi.Codecs.LegacyCodec(version), nil
 	},
-	func(version unversioned.GroupVersion, item runtime.Object) (runtime.Codec, error) {
+	func(version schema.GroupVersion, item runtime.Object) (runtime.Codec, error) {
 		s := protobuf.NewSerializer(kapi.Scheme, kapi.Scheme, "application/arbitrary.content.type")
 		return kapi.Codecs.CodecForVersions(s, s, testapi.ExternalGroupVersions(), nil), nil
 	},
 }
 
-func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
+func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
 	f := apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed))
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
@@ -498,7 +498,7 @@ func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) 
 	}
 }
 
-func roundTripWithAllCodecs(t *testing.T, version unversioned.GroupVersion, item runtime.Object) {
+func roundTripWithAllCodecs(t *testing.T, version schema.GroupVersion, item runtime.Object) {
 	var codecs []runtime.Codec
 	for _, fn := range codecsToTest {
 		codec, err := fn(version, item)
@@ -572,7 +572,7 @@ func dataToString(s []byte) string {
 }
 
 // skipStandardVersions is a map of Kind to a list of API versions to test with.
-var skipStandardVersions = map[string][]unversioned.GroupVersion{
+var skipStandardVersions = map[string][]schema.GroupVersion{
 	// The API versions here are to test our object that serializes from/into
 	// docker's registry API.
 	"DockerImage": {dockerpre012.SchemeGroupVersion, docker10.SchemeGroupVersion},
@@ -608,7 +608,7 @@ var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
+	internalVersionToExternalVersions := map[schema.GroupVersion][]schema.GroupVersion{
 		osapi.SchemeGroupVersion:          {v1.SchemeGroupVersion},
 		quotaapi.LegacySchemeGroupVersion: {quotaapiv1.LegacySchemeGroupVersion},
 	}

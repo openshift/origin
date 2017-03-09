@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -25,18 +26,18 @@ type acceptResult struct {
 }
 
 func TestAccept(t *testing.T) {
-	podResource := unversioned.GroupResource{Resource: "pods"}
+	podResource := schema.GroupResource{Resource: "pods"}
 
 	testCases := map[string]struct {
 		rules   []api.ImageExecutionPolicyRule
 		matcher RegistryMatcher
-		covers  map[unversioned.GroupResource]bool
+		covers  map[schema.GroupResource]bool
 		accepts []acceptResult
 	}{
 		"empty": {
 			matcher: nameSet{},
-			covers: map[unversioned.GroupResource]bool{
-				unversioned.GroupResource{}: false,
+			covers: map[schema.GroupResource]bool{
+				schema.GroupResource{}: false,
 			},
 		},
 		"accepts when rules are empty": {
@@ -51,7 +52,7 @@ func TestAccept(t *testing.T) {
 		"when all rules are deny, match everything else": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{Reject: true, ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchIntegratedRegistry: true}},
+				{Reject: true, ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchIntegratedRegistry: true}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{}, true},
@@ -64,9 +65,9 @@ func TestAccept(t *testing.T) {
 		"deny rule and accept rule": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}}},
 				{Reject: true, ImageCondition: api.ImageCondition{
-					OnResources:     []unversioned.GroupResource{podResource},
+					OnResources:     []schema.GroupResource{podResource},
 					MatchRegistries: []string{"index.docker.io"},
 				}},
 			},
@@ -81,7 +82,7 @@ func TestAccept(t *testing.T) {
 		"exclude a deny rule": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{Reject: true, ImageCondition: api.ImageCondition{Name: "excluded-rule", OnResources: []unversioned.GroupResource{podResource}, MatchIntegratedRegistry: true, SkipOnResolutionFailure: true}},
+				{Reject: true, ImageCondition: api.ImageCondition{Name: "excluded-rule", OnResources: []schema.GroupResource{podResource}, MatchIntegratedRegistry: true, SkipOnResolutionFailure: true}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{ExcludedRules: sets.NewString("excluded-rule")}, true},
@@ -94,7 +95,7 @@ func TestAccept(t *testing.T) {
 		"invert a deny rule": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{InvertMatch: true, OnResources: []unversioned.GroupResource{podResource}, MatchIntegratedRegistry: true}},
+				{ImageCondition: api.ImageCondition{InvertMatch: true, OnResources: []schema.GroupResource{podResource}, MatchIntegratedRegistry: true}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{}, true},
@@ -107,7 +108,7 @@ func TestAccept(t *testing.T) {
 		"reject an inverted deny rule": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{Reject: true, ImageCondition: api.ImageCondition{InvertMatch: true, OnResources: []unversioned.GroupResource{podResource}, MatchIntegratedRegistry: true}},
+				{Reject: true, ImageCondition: api.ImageCondition{InvertMatch: true, OnResources: []schema.GroupResource{podResource}, MatchIntegratedRegistry: true}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{}, true},
@@ -119,7 +120,7 @@ func TestAccept(t *testing.T) {
 		},
 		"flags image resolution failure on matching resources": {
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, SkipOnResolutionFailure: false}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, SkipOnResolutionFailure: false}},
 			},
 			accepts: []acceptResult{
 				// allowed because they are on different resources
@@ -138,7 +139,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching registries": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchRegistries: []string{"myregistry.io"}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchRegistries: []string{"myregistry.io"}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource, Name: imageref("myregistry.io:5000/test:latest")}, false},
@@ -149,7 +150,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image labels": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -161,8 +162,8 @@ func TestAccept(t *testing.T) {
 		"accepts matching multiple image label values": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value2"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value1"}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchLabels: map[string]string{"label1": "value2"}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -174,7 +175,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image labels by key": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchExpressions: []unversioned.LabelSelectorRequirement{{Key: "label1", Operator: unversioned.LabelSelectorOpExists}}}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageLabels: []unversioned.LabelSelector{{MatchExpressions: []unversioned.LabelSelectorRequirement{{Key: "label1", Operator: unversioned.LabelSelectorOpExists}}}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -186,7 +187,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image annotations": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -198,8 +199,8 @@ func TestAccept(t *testing.T) {
 		"accepts matching multiple image annotations values": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value2"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Value: "value2"}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -211,7 +212,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching image annotations by key": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Set: true}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchImageAnnotations: []api.ValueCondition{{Key: "label1", Set: true}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -223,7 +224,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching docker image labels": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -235,8 +236,8 @@ func TestAccept(t *testing.T) {
 		"accepts matching multiple docker image label values": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value2"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value1"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Value: "value2"}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -248,7 +249,7 @@ func TestAccept(t *testing.T) {
 		"accepts matching docker image labels by key": {
 			matcher: NewRegistryMatcher([]string{"myregistry.io:5000"}),
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Set: true}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource}, MatchDockerImageLabels: []api.ValueCondition{{Key: "label1", Set: true}}}},
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
@@ -259,17 +260,17 @@ func TestAccept(t *testing.T) {
 		},
 		"covers calculations": {
 			rules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{podResource, {Resource: "services"}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{{Resource: "services", Group: "extra"}}}},
-				{ImageCondition: api.ImageCondition{OnResources: []unversioned.GroupResource{{Resource: "nodes", Group: "extra"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{podResource, {Resource: "services"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{{Resource: "services", Group: "extra"}}}},
+				{ImageCondition: api.ImageCondition{OnResources: []schema.GroupResource{{Resource: "nodes", Group: "extra"}}}},
 			},
 			matcher: nameSet{},
-			covers: map[unversioned.GroupResource]bool{
-				podResource: true,
-				unversioned.GroupResource{Resource: "services"}:                 true,
-				unversioned.GroupResource{Group: "extra", Resource: "services"}: true,
-				unversioned.GroupResource{Group: "extra", Resource: "nodes"}:    true,
-				unversioned.GroupResource{Resource: "nodes"}:                    false,
+			covers: map[schema.GroupResource]bool{
+				podResource:                                                true,
+				schema.GroupResource{Resource: "services"}:                 true,
+				schema.GroupResource{Group: "extra", Resource: "services"}: true,
+				schema.GroupResource{Group: "extra", Resource: "nodes"}:    true,
+				schema.GroupResource{Resource: "nodes"}:                    false,
 			},
 		},
 	}

@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,7 +15,7 @@ type FakeRoleBindings struct {
 	Namespace string
 }
 
-var roleBindingsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
+var roleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
 
 func (c *FakeRoleBindings) Get(name string) (*authorizationapi.RoleBinding, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(roleBindingsResource, c.Namespace, name), &authorizationapi.RoleBinding{})

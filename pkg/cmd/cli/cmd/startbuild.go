@@ -23,11 +23,11 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
@@ -689,7 +689,7 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 	if hook.Scheme == "https" {
 		config, err := o.ClientConfig.ClientConfig()
 		if err == nil {
-			if url, _, err := restclient.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
+			if url, _, err := restclient.DefaultServerURL(config.Host, "", schema.GroupVersion{}, true); err == nil {
 				if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
 					if rt, err := restclient.TransportFor(config); err == nil {
 						httpClient = &http.Client{Transport: rt}

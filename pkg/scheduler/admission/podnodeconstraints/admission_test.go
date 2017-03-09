@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -29,8 +29,8 @@ func TestPodNodeConstraints(t *testing.T) {
 	tests := []struct {
 		config           *api.PodNodeConstraintsConfig
 		resource         runtime.Object
-		kind             unversioned.GroupKind
-		groupresource    unversioned.GroupResource
+		kind             schema.GroupKind
+		groupresource    schema.GroupResource
 		userinfo         user.Info
 		reviewResponse   *authorizationapi.SubjectAccessReviewResponse
 		expectedResource string
@@ -166,8 +166,8 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 	}
 	testresources := []struct {
 		resource      func(bool) runtime.Object
-		kind          unversioned.GroupKind
-		groupresource unversioned.GroupResource
+		kind          schema.GroupKind
+		groupresource schema.GroupResource
 		prefix        string
 	}{
 		{

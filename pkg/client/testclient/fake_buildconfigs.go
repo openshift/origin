@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/url"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -21,7 +21,7 @@ type FakeBuildConfigs struct {
 	Namespace string
 }
 
-var buildConfigsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
+var buildConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
 
 func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})

@@ -7,8 +7,8 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
@@ -41,7 +41,7 @@ type ClusterQuotaReconcilationControllerOptions struct {
 	ReplenishmentResyncPeriod controller.ResyncPeriodFunc
 	// List of GroupKind objects that should be monitored for replenishment at
 	// a faster frequency than the quota controller recalculation interval
-	GroupKindsToReplenish []unversioned.GroupKind
+	GroupKindsToReplenish []schema.GroupKind
 }
 
 type ClusterQuotaReconcilationController struct {
@@ -322,7 +322,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 }
 
 // replenishQuota is a replenishment function invoked by a controller to notify that a quota should be recalculated
-func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind unversioned.GroupKind, namespace string, object runtime.Object) {
+func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind schema.GroupKind, namespace string, object runtime.Object) {
 	// check if the quota controller can evaluate this kind, if not, ignore it altogether...
 	evaluators := c.registry.Evaluators()
 	evaluator, found := evaluators[groupKind]

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	usersResource                     = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "users"}
-	securityContextContraintsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
-	oAuthClientAuthorizationsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
+	usersResource                     = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+	securityContextContraintsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
+	oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
 )
 
 func TestUserReaper(t *testing.T) {

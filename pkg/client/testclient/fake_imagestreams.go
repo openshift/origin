@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -20,8 +20,8 @@ type FakeImageStreams struct {
 
 var _ client.ImageStreamInterface = &FakeImageStreams{}
 
-var imageStreamsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagestreams"}
-var imageStreamImportsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
+var imageStreamsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreams"}
+var imageStreamImportsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
 
 func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})

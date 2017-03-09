@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -24,7 +24,7 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, version := range []unversioned.GroupVersion{v1.SchemeGroupVersion} {
+	for _, version := range []schema.GroupVersion{v1.SchemeGroupVersion} {
 		config, err := testutil.GetClusterAdminClientConfig(path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

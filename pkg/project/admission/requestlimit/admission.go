@@ -6,9 +6,9 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -71,7 +71,7 @@ type projectRequestLimit struct {
 var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
 var _ = oadmission.WantsOpenshiftClient(&projectRequestLimit{})
 
-func isProjectRequest(gk unversioned.GroupResource) bool {
+func isProjectRequest(gk schema.GroupResource) bool {
 	return gk == projectapi.Resource("projectrequests") || gk == projectapi.LegacyResource("projectrequests")
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -213,7 +214,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 	}
 
 	controllersLoaded := make(map[kapi.ObjectReference]runtime.Object)
-	helpers := make(map[unversioned.GroupKind]*resource.Helper)
+	helpers := make(map[schema.GroupKind]*resource.Helper)
 	getController := func(ref kapi.ObjectReference) (runtime.Object, error) {
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
@@ -223,11 +224,11 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 			return nil, err
 		}
 		// just get the unversioned version of this
-		gk := unversioned.GroupKind{Group: gv.Group, Kind: ref.Kind}
+		gk := schema.GroupKind{Group: gv.Group, Kind: ref.Kind}
 		helper, ok := helpers[gk]
 		if !ok {
 			var mapping *meta.RESTMapping
-			mapping, err = mapper.RESTMapping(unversioned.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
+			mapping, err = mapper.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
 			if err != nil {
 				return nil, err
 			}

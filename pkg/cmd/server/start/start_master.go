@@ -17,8 +17,8 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -612,7 +612,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// TODO there has to be a better way to do this!
 		// Make a copy of the client config because we need to modify it
 		jobClientConfig := oc.PrivilegedLoopbackClientConfig
-		jobClientConfig.ContentConfig.GroupVersion = &unversioned.GroupVersion{Group: "batch", Version: "v2alpha1"}
+		jobClientConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "batch", Version: "v2alpha1"}
 		_, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)

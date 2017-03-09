@@ -14,11 +14,11 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/informers"
@@ -294,7 +294,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 
 		// TODO: migration of versions of resources stored in annotations must be sorted out
-		ExternalVersionCodec: kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: "v1"}),
+		ExternalVersionCodec: kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}),
 
 		KubeletClientConfig: kubeletClientConfig,
 
@@ -317,7 +317,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		// the verifier must return an error
 		if len(list) == 0 && len(informer.LastSyncResourceVersion()) == 0 {
 			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", informer)
-			forbiddenErr := kapierrors.NewForbidden(unversioned.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
+			forbiddenErr := kapierrors.NewForbidden(schema.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
 			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
 			return nil, forbiddenErr
 		}

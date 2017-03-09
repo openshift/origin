@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -16,7 +16,7 @@ type FakePolicies struct {
 	Namespace string
 }
 
-var policiesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "policies"}
+var policiesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "policies"}
 
 func (c *FakePolicies) Get(name string) (*authorizationapi.Policy, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(policiesResource, c.Namespace, name), &authorizationapi.Policy{})

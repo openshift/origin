@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -69,7 +70,7 @@ func TestInternalJsonTags(t *testing.T) {
 		}
 		seenGroups.Insert(version.Group)
 
-		internalVersion := unversioned.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
+		internalVersion := schema.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
 		for _, apiType := range kapi.Scheme.KnownTypes(internalVersion) {
 			checkInternalJsonTags(apiType, &seen, t)
 		}

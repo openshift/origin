@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -15,7 +15,7 @@ type FakeProjects struct {
 	Fake *Fake
 }
 
-var projectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
+var projectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
 
 func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(projectsResource, name), &projectapi.Project{})

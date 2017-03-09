@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -199,33 +200,33 @@ func TestSchedulerServerDefaults(t *testing.T) {
 func TestGetAPIGroupVersionOverrides(t *testing.T) {
 	testcases := map[string]struct {
 		DisabledVersions         map[string][]string
-		ExpectedDisabledVersions []unversioned.GroupVersion
-		ExpectedEnabledVersions  []unversioned.GroupVersion
+		ExpectedDisabledVersions []schema.GroupVersion
+		ExpectedEnabledVersions  []schema.GroupVersion
 	}{
 		"empty": {
 			DisabledVersions:         nil,
-			ExpectedDisabledVersions: []unversioned.GroupVersion{},
-			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedDisabledVersions: []schema.GroupVersion{},
+			ExpectedEnabledVersions:  []schema.GroupVersion{apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"* -> v1": {
 			DisabledVersions:         map[string][]string{"": {"*"}},
-			ExpectedDisabledVersions: []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
-			ExpectedEnabledVersions:  []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedDisabledVersions: []schema.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []schema.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"v1": {
 			DisabledVersions:         map[string][]string{"": {"v1"}},
-			ExpectedDisabledVersions: []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
-			ExpectedEnabledVersions:  []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedDisabledVersions: []schema.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []schema.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
 		},
 		"* -> v1beta1": {
 			DisabledVersions:         map[string][]string{"extensions": {"*"}},
-			ExpectedDisabledVersions: []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
-			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedDisabledVersions: []schema.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []schema.GroupVersion{apiv1.SchemeGroupVersion},
 		},
 		"extensions/v1beta1": {
 			DisabledVersions:         map[string][]string{"extensions": {"v1beta1"}},
-			ExpectedDisabledVersions: []unversioned.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
-			ExpectedEnabledVersions:  []unversioned.GroupVersion{apiv1.SchemeGroupVersion},
+			ExpectedDisabledVersions: []schema.GroupVersion{extensionsapiv1beta1.SchemeGroupVersion},
+			ExpectedEnabledVersions:  []schema.GroupVersion{apiv1.SchemeGroupVersion},
 		},
 	}
 

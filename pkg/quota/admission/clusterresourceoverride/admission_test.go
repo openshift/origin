@@ -6,10 +6,10 @@ import (
 	"io"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -219,7 +219,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			continue
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
-		attrs := admission.NewAttributesRecord(test.pod, nil, unversioned.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
+		attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
 		if err = c.Admit(attrs); err != nil {
 			t.Errorf("%s: admission controller returned error: %v", test.name, err)
 			continue

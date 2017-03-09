@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -138,8 +138,8 @@ func TestTokenDeletion(t *testing.T) {
 			DeletedSecret: serviceAccountTokenSecret(),
 
 			ExpectedActions: []core.Action{
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount with reference": {
@@ -147,8 +147,8 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []core.Action{
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount without reference": {
@@ -156,8 +156,8 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []core.Action{
-				core.NewListAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 	}

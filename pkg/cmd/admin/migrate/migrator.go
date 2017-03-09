@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -52,7 +52,7 @@ type ResourceOptions struct {
 	ToKey         string
 
 	OverlappingResources []sets.String
-	DefaultExcludes      []unversioned.GroupResource
+	DefaultExcludes      []schema.GroupResource
 
 	Builder   *resource.Builder
 	SaveFn    MigrateActionFunc

@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -46,7 +46,7 @@ func (c *serviceLWLookup) LookupService(endpoints *api.Endpoints) (*api.Service,
 	if rawSvc, ok, err = c.store.Get(endpoints); err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, errors.NewNotFound(unversioned.GroupResource{
+		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    api.GroupName,
 			Resource: "Service",
 		}, endpoints.Name)

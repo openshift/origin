@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
@@ -18,7 +18,7 @@ type FakeImageStreamTags struct {
 
 var _ client.ImageStreamTagInterface = &FakeImageStreamTags{}
 
-var imageStreamTagsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamtags"}
+var imageStreamTagsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamtags"}
 
 func (c *FakeImageStreamTags) Get(name, tag string) (*imageapi.ImageStreamTag, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamTagsResource, c.Namespace, imageapi.JoinImageStreamTag(name, tag)), &imageapi.ImageStreamTag{})

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	groupsResource              = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "groups"}
-	clusterRoleBindingsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "clusterrolebindings"}
-	roleBindingsResource        = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
+	groupsResource              = schema.GroupVersionResource{Group: "", Version: "", Resource: "groups"}
+	clusterRoleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterrolebindings"}
+	roleBindingsResource        = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
 )
 
 func TestGroupReaper(t *testing.T) {
@@ -116,7 +116,7 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: unversioned.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
+				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
 					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},

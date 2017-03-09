@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -16,7 +16,7 @@ type FakeTemplates struct {
 	Namespace string
 }
 
-var templatesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
+var templatesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
 
 func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})

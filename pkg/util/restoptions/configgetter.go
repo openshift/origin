@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -32,28 +33,28 @@ type configRESTOptionsGetter struct {
 	masterOptions configapi.MasterConfig
 
 	restOptionsLock sync.Mutex
-	restOptionsMap  map[unversioned.GroupResource]genericrest.RESTOptions
+	restOptionsMap  map[schema.GroupResource]genericrest.RESTOptions
 
 	storageFactory        genericapiserver.StorageFactory
 	defaultResourceConfig *genericapiserver.ResourceConfig
 
 	cacheEnabled            bool
 	defaultCacheSize        int
-	cacheSizes              map[unversioned.GroupResource]int
-	quorumResources         map[unversioned.GroupResource]struct{}
-	defaultResourcePrefixes map[unversioned.GroupResource]string
+	cacheSizes              map[schema.GroupResource]int
+	quorumResources         map[schema.GroupResource]struct{}
+	defaultResourcePrefixes map[schema.GroupResource]string
 }
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
 // By default, the etcd watch cache is enabled with a size of 1000 per resource type.
 // TODO: this class should either not need to know about configapi.MasterConfig, or not be in pkg/util
-func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *genericapiserver.ResourceConfig, defaultResourcePrefixes map[unversioned.GroupResource]string, quorumResources map[unversioned.GroupResource]struct{}) Getter {
+func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *genericapiserver.ResourceConfig, defaultResourcePrefixes map[schema.GroupResource]string, quorumResources map[schema.GroupResource]struct{}) Getter {
 	getter := &configRESTOptionsGetter{
 		masterOptions:           masterOptions,
 		cacheEnabled:            true,
 		defaultCacheSize:        1000,
-		cacheSizes:              map[unversioned.GroupResource]int{},
-		restOptionsMap:          map[unversioned.GroupResource]genericrest.RESTOptions{},
+		cacheSizes:              map[schema.GroupResource]int{},
+		restOptionsMap:          map[schema.GroupResource]genericrest.RESTOptions{},
 		defaultResourceConfig:   defaultResourceConfig,
 		quorumResources:         quorumResources,
 		defaultResourcePrefixes: defaultResourcePrefixes,
@@ -105,7 +106,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 	// instead of being late to the party and patching here:
 
 	// use legacy group name "" for all resources that existed when apigroups were introduced
-	for _, gvr := range []unversioned.GroupVersionResource{
+	for _, gvr := range []schema.GroupVersionResource{
 		{"authorization.openshift.io", "v1", "clusterpolicybindings"},
 		{"authorization.openshift.io", "v1", "clusterpolicies"},
 		{"authorization.openshift.io", "v1", "policybindings"},
@@ -132,7 +133,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 		{"user.openshift.io", "v1", "users"},
 		{"user.openshift.io", "v1", "identities"},
 	} {
-		resourceEncodingConfig.SetResourceEncoding(gvr.GroupResource(), unversioned.GroupVersion{Version: gvr.Version}, unversioned.GroupVersion{Version: runtime.APIVersionInternal})
+		resourceEncodingConfig.SetResourceEncoding(gvr.GroupResource(), schema.GroupVersion{Version: gvr.Version}, schema.GroupVersion{Version: runtime.APIVersionInternal})
 	}
 
 	storageFactory.DefaultResourcePrefixes = g.defaultResourcePrefixes
@@ -161,7 +162,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 	return kerrors.NewAggregate(errs)
 }
 
-func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResource) (genericrest.RESTOptions, error) {
+func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (genericrest.RESTOptions, error) {
 	g.restOptionsLock.Lock()
 	defer g.restOptionsLock.Unlock()
 	if resourceOptions, ok := g.restOptionsMap[resource]; ok {

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -10,7 +11,7 @@ import (
 )
 
 type ImagePolicyAttributes struct {
-	Resource           unversioned.GroupResource
+	Resource           schema.GroupResource
 	Name               imageapi.DockerImageReference
 	Image              *imageapi.Image
 	ExcludedRules      sets.String
@@ -46,7 +47,7 @@ func NewRegistryMatcher(names []string) RegistryMatcher {
 	return nameSet(names)
 }
 
-type resourceSet map[unversioned.GroupResource]struct{}
+type resourceSet map[schema.GroupResource]struct{}
 
 func (s resourceSet) addAll(other resourceSet) {
 	for k := range other {

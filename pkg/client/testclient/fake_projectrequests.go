@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -14,7 +15,7 @@ type FakeProjectRequests struct {
 	Fake *Fake
 }
 
-var newProjectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
+var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
 
 func (c *FakeProjectRequests) List(opts kapi.ListOptions) (*unversioned.Status, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(newProjectsResource, opts), &unversioned.Status{})

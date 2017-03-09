@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -14,7 +14,7 @@ func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
 	return restoptions.NewConfigGetter(
 		options,
 		&genericapiserver.ResourceConfig{},
-		map[unversioned.GroupResource]string{
+		map[schema.GroupResource]string{
 			{Resource: "clusterpolicies"}:                                            "authorization/cluster/policies",
 			{Resource: "clusterpolicies", Group: "authorization.openshift.io"}:       "authorization/cluster/policies",
 			{Resource: "clusterpolicybindings"}:                                      "authorization/cluster/policybindings",
@@ -45,7 +45,7 @@ func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
 			{Resource: "netnamespaces"}:                                        "registry/sdnnetnamespaces",
 			{Resource: "netnamespaces", Group: "network.openshift.io"}:         "registry/sdnnetnamespaces",
 		},
-		map[unversioned.GroupResource]struct{}{
+		map[schema.GroupResource]struct{}{
 			{Resource: "oauthauthorizetokens"}:                              {},
 			{Resource: "oauthauthorizetokens", Group: "oauth.openshift.io"}: {},
 			{Resource: "oauthaccesstokens"}:                                 {},

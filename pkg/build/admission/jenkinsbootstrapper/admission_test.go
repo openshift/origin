@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -31,37 +31,37 @@ func TestAdmission(t *testing.T) {
 	}{
 		{
 			name:            "disabled",
-			attributes:      admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:      admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled:  boolptr(false),
 			validateClients: noAction,
 		},
 		{
 			name:            "not a jenkins build",
-			attributes:      admission.NewAttributesRecord(&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{}}}}, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:      admission.NewAttributesRecord(&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{}}}}, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled:  boolptr(true),
 			validateClients: noAction,
 		},
 		{
 			name:            "not a build kind",
-			attributes:      admission.NewAttributesRecord(&kapi.Service{}, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:      admission.NewAttributesRecord(&kapi.Service{}, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled:  boolptr(true),
 			validateClients: noAction,
 		},
 		{
 			name:            "not a build resource",
-			attributes:      admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("notbuilds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:      admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("notbuilds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled:  boolptr(true),
 			validateClients: noAction,
 		},
 		{
 			name:            "subresource",
-			attributes:      admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "subresource", admission.Create, &user.DefaultInfo{}),
+			attributes:      admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "subresource", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled:  boolptr(true),
 			validateClients: noAction,
 		},
 		{
 			name:           "service present",
-			attributes:     admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:     admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled: boolptr(true),
 			objects: []runtime.Object{
 				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
@@ -75,7 +75,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			name:       "works on true",
-			attributes: admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes: admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			objects: []runtime.Object{
 				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
@@ -89,7 +89,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			name:       "enabled default",
-			attributes: admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes: admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			objects: []runtime.Object{
 				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
@@ -102,7 +102,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			name:           "service missing",
-			attributes:     admission.NewAttributesRecord(enableBuild, nil, unversioned.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
+			attributes:     admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled: boolptr(true),
 			objects:        []runtime.Object{},
 			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake) string {

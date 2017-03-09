@@ -10,8 +10,8 @@ import (
 	restful "github.com/emicklei/go-restful"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -96,7 +96,7 @@ func Forbidden(reason string, attributes authorizer.Action, w http.ResponseWrite
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
 	// that makes sense when a human reads it.
-	forbiddenError := kapierrors.NewForbidden(unversioned.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/)
+	forbiddenError := kapierrors.NewForbidden(schema.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/)
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}

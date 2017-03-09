@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -22,8 +23,8 @@ import (
 func TestBuildAdmission(t *testing.T) {
 	tests := []struct {
 		name             string
-		kind             unversioned.GroupKind
-		resource         unversioned.GroupResource
+		kind             schema.GroupKind
+		resource         schema.GroupResource
 		subResource      string
 		object           runtime.Object
 		oldObject        runtime.Object

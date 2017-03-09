@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
@@ -374,8 +375,8 @@ func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duratio
 // represented.
 // TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
 // TODO: fallback to the scheme when discovery is not possible.
-func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]unversioned.GroupResource, error) {
-	set := make(map[unversioned.GroupResource]struct{})
+func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+	set := make(map[schema.GroupResource]struct{})
 	all, err := d.ServerResources()
 	if err != nil {
 		return nil, err
@@ -393,14 +394,14 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
 			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
 			// lookup (KindsFor) does not error.
-			if mapping, err := m.RESTMapping(unversioned.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
 				if _, err := m.KindsFor(mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)); err == nil {
-					set[unversioned.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}] = struct{}{}
+					set[schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}] = struct{}{}
 				}
 			}
 		}
 	}
-	var groupResources []unversioned.GroupResource
+	var groupResources []schema.GroupResource
 	for k := range set {
 		groupResources = append(groupResources, k)
 	}
@@ -408,7 +409,7 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 	return groupResources, nil
 }
 
-type groupResourcesByName []unversioned.GroupResource
+type groupResourcesByName []schema.GroupResource
 
 func (g groupResourcesByName) Len() int { return len(g) }
 func (g groupResourcesByName) Less(i, j int) bool {

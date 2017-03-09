@@ -5,9 +5,10 @@ import (
 
 	"github.com/gonum/graph"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -220,12 +221,12 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			Namespace: hpaNode.HorizontalPodAutoscaler.Namespace,
 		}
 
-		var groupVersionResource unversioned.GroupVersionResource
+		var groupVersionResource schema.GroupVersionResource
 		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Kind)
 		if groupVersion, err := unversioned.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
 			groupVersionResource = groupVersion.WithResource(resource)
 		} else {
-			groupVersionResource = unversioned.GroupVersionResource{Resource: resource}
+			groupVersionResource = schema.GroupVersionResource{Resource: resource}
 		}
 
 		groupVersionResource, err := registered.RESTMapper().ResourceFor(groupVersionResource)

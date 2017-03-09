@@ -7,9 +7,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/apimachinery"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -20,11 +20,11 @@ import (
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.LegacySchemeGroupVersion}
+var availableVersions = []schema.GroupVersion{v1.LegacySchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
-	externalVersions := []unversioned.GroupVersion{}
+	externalVersions := []schema.GroupVersion{}
 	for _, v := range availableVersions {
 		if registered.IsAllowedVersion(v) {
 			externalVersions = append(externalVersions, v)
@@ -47,7 +47,7 @@ func init() {
 // group.
 // We can combine registered.RegisterVersions, registered.EnableVersions and
 // registered.RegisterGroup once we have moved enableVersions there.
-func enableVersions(externalVersions []unversioned.GroupVersion) error {
+func enableVersions(externalVersions []schema.GroupVersion) error {
 	addVersionsToScheme(externalVersions...)
 	preferredExternalVersion := externalVersions[0]
 
@@ -65,7 +65,7 @@ func enableVersions(externalVersions []unversioned.GroupVersion) error {
 	return nil
 }
 
-func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
+func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	// add the internal version to Scheme
 	api.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
@@ -85,13 +85,13 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 	}
 }
 
-func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper {
+func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString()
 	ignoredKinds := sets.NewString()
 	return kapi.NewDefaultRESTMapper(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
 }
 
-func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
+func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
 	case v1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{

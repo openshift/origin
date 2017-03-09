@@ -8,10 +8,10 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -34,10 +34,10 @@ type lifecycle struct {
 	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
-	creatableResources map[unversioned.GroupResource]bool
+	creatableResources map[schema.GroupResource]bool
 }
 
-var recommendedCreatableResources = map[unversioned.GroupResource]bool{
+var recommendedCreatableResources = map[schema.GroupResource]bool{
 	authorizationapi.Resource("resourceaccessreviews"):      true,
 	authorizationapi.Resource("localresourceaccessreviews"): true,
 	authorizationapi.Resource("subjectaccessreviews"):       true,
@@ -133,7 +133,7 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client clientset.Interface, creatableResources map[unversioned.GroupResource]bool) (admission.Interface, error) {
+func NewLifecycle(client clientset.Interface, creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
 	return &lifecycle{
 		client:             client,
 		creatableResources: creatableResources,

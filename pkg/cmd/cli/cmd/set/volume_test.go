@@ -6,10 +6,10 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
@@ -67,7 +67,7 @@ func makeFakePod() *api.Pod {
 func getFakeMapping() *meta.RESTMapping {
 	fakeMapping := &meta.RESTMapping{
 		Resource: "fake-mount",
-		GroupVersionKind: unversioned.GroupVersionKind{
+		GroupVersionKind: schema.GroupVersionKind{
 			Group:   "test.group",
 			Version: "v1",
 		},

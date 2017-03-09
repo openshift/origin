@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -28,7 +28,7 @@ func (bt *bulkTester) ResourceSingularizer(resource string) (string, error) {
 	return resource, nil
 }
 
-func (bt *bulkTester) InfoForObject(obj runtime.Object, preferredGVKs []unversioned.GroupVersionKind) (*resource.Info, error) {
+func (bt *bulkTester) InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupVersionKind) (*resource.Info, error) {
 	bt.infos = append(bt.infos, obj)
 	return &resource.Info{Object: obj, Mapping: bt.mapping}, bt.err
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/gofuzz"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -27,7 +28,7 @@ import (
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 )
 
-func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
+func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
 	f := fuzzerFor(t, forVersion, rand.NewSource(seed))
 	f.Funcs(
 		// these follow defaulting rules
@@ -306,7 +307,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			c.FuzzNoCustom(obj)
 			for i := range obj.ExecutionRules {
 				if len(obj.ExecutionRules[i].OnResources) == 0 {
-					obj.ExecutionRules[i].OnResources = []unversioned.GroupResource{{Resource: "pods"}}
+					obj.ExecutionRules[i].OnResources = []schema.GroupResource{{Resource: "pods"}}
 				}
 				obj.ExecutionRules[i].MatchImageLabelSelectors = nil
 			}
@@ -431,7 +432,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 	testCases := []struct {
 		mediaType string
 		in, out   runtime.Object
-		to, from  unversioned.GroupVersion
+		to, from  schema.GroupVersion
 	}{
 		{
 			in: &configapi.MasterConfig{
@@ -497,7 +498,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 	}
 }
 
-func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) *fuzz.Fuzzer {
+func fuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz.Fuzzer {
 	f := fuzz.New().NilChance(.5).NumElements(1, 1)
 	if src != nil {
 		f.RandSource(src)

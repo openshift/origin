@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -17,7 +18,6 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -47,7 +47,7 @@ var modelPrefixes = []string{
 // These values can be overridden by user specified data.
 type namesToObjMapperFunc func(namespace string, names sets.String) map[string]redirectURIList
 
-var emptyGroupKind = unversioned.GroupKind{} // Used with static redirect URIs
+var emptyGroupKind = schema.GroupKind{} // Used with static redirect URIs
 var routeGroupKind = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
 
 // TODO add ingress support
@@ -82,8 +82,8 @@ type model struct {
 }
 
 // getGroupKind is used to determine if a group and kind combination is supported.
-func (m *model) getGroupKind() unversioned.GroupKind {
-	return unversioned.GroupKind{Group: m.group, Kind: m.kind}
+func (m *model) getGroupKind() schema.GroupKind {
+	return schema.GroupKind{Group: m.group, Kind: m.kind}
 }
 
 // updateFromURI updates the data in the model with the user provided URL data.
@@ -278,8 +278,8 @@ func parseModelPrefixName(key string) (string, string, bool) {
 // The returned redirect URIs may contain duplicates and invalid entries.
 func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, namespace string) redirectURIList {
 	var data redirectURIList
-	groupKindModelListMapper := map[unversioned.GroupKind]modelList{} // map of GroupKind to all models belonging to it
-	groupKindModelToURI := map[unversioned.GroupKind]namesToObjMapperFunc{
+	groupKindModelListMapper := map[schema.GroupKind]modelList{} // map of GroupKind to all models belonging to it
+	groupKindModelToURI := map[schema.GroupKind]namesToObjMapperFunc{
 		routeGroupKind: a.redirectURIsFromRoutes,
 		// TODO add support for ingresses by creating the appropriate GroupKind and namesToObjMapperFunc
 		// ingressGroupKind: a.redirectURIsFromIngresses,

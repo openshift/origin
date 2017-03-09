@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -15,7 +15,7 @@ type FakeHostSubnet struct {
 	Fake *Fake
 }
 
-var hostSubnetsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
+var hostSubnetsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
 
 func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})

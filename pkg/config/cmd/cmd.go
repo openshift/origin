@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -32,7 +32,7 @@ type RetryFunc func(info *resource.Info, err error) runtime.Object
 // Mapper is an interface testability that is equivalent to resource.Mapper
 type Mapper interface {
 	meta.RESTMapper
-	InfoForObject(obj runtime.Object, preferredGVKs []unversioned.GroupVersionKind) (*resource.Info, error)
+	InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupVersionKind) (*resource.Info, error)
 }
 
 // IgnoreErrorFunc provides a way to filter errors during the Bulk.Run.  If this function returns

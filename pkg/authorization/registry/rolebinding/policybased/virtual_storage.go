@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -30,11 +31,11 @@ type VirtualStorage struct {
 
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
-	Resource       unversioned.GroupResource
+	Resource       schema.GroupResource
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) rolebindingregistry.Storage {
+func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource schema.GroupResource) rolebindingregistry.Storage {
 	return &VirtualStorage{
 		BindingRegistry: bindingRegistry,
 

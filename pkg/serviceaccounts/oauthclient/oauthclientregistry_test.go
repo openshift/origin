@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -22,9 +22,9 @@ import (
 var (
 	encoder                 = kapi.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
 	decoder                 = kapi.Codecs.UniversalDecoder()
-	serviceAccountsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
-	secretsResource         = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
-	routesResource          = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
+	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
+	secretsResource         = schema.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
+	routesResource          = schema.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
 )
 
 func TestGetClient(t *testing.T) {

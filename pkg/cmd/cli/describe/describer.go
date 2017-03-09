@@ -13,6 +13,7 @@ import (
 	units "github.com/docker/go-units"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -36,8 +37,8 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclientset.Interface, host string, withCoreGroup bool) map[unversioned.GroupKind]kctl.Describer {
-	m := map[unversioned.GroupKind]kctl.Describer{
+func describerMap(c *client.Client, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kctl.Describer {
+	m := map[schema.GroupKind]kctl.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
 		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{c, kclient, nil},
@@ -97,7 +98,7 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind unversioned.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind schema.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kctl.Describer, bool) {
 	f, ok := describerMap(c, kclient, host, true)[kind]
 	if ok {
 		return f, true

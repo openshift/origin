@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/informers"
@@ -42,12 +42,12 @@ type InformerFactory interface {
 type ListerWatcherOverrides interface {
 	// GetListerWatcher returns back a ListerWatcher for a given resource or nil if
 	// no particular ListerWatcher was specified for the type
-	GetListerWatcher(resource unversioned.GroupResource) cache.ListerWatcher
+	GetListerWatcher(resource schema.GroupResource) cache.ListerWatcher
 }
 
-type DefaultListerWatcherOverrides map[unversioned.GroupResource]cache.ListerWatcher
+type DefaultListerWatcherOverrides map[schema.GroupResource]cache.ListerWatcher
 
-func (o DefaultListerWatcherOverrides) GetListerWatcher(resource unversioned.GroupResource) cache.ListerWatcher {
+func (o DefaultListerWatcherOverrides) GetListerWatcher(resource schema.GroupResource) cache.ListerWatcher {
 	return o[resource]
 }
 

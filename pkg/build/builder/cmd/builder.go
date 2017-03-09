@@ -12,9 +12,9 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
@@ -56,7 +56,7 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 		return nil, fmt.Errorf("unable to parse build: %v", err)
 	}
 	if errs := validation.ValidateBuild(cfg.build); len(errs) > 0 {
-		return nil, errors.NewInvalid(unversioned.GroupKind{Kind: "Build"}, cfg.build.Name, errs)
+		return nil, errors.NewInvalid(schema.GroupKind{Kind: "Build"}, cfg.build.Name, errs)
 	}
 	glog.V(4).Infof("Build: %#v", cfg.build)
 

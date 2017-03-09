@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -17,7 +17,7 @@ type FakeRoleBindingRestrictions struct {
 	Namespace string
 }
 
-var roleBindingRestritionsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "rolebindingrestrictions"}
+var roleBindingRestritionsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindingrestrictions"}
 
 func (c *FakeRoleBindingRestrictions) Get(name string) (*authorizationapi.RoleBindingRestriction, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(roleBindingRestritionsResource, c.Namespace, name), &authorizationapi.RoleBindingRestriction{})

@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -165,7 +165,7 @@ func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kubectl.ResourceP
 	return n.GetPrinters(gvk[0])
 }
 
-func (n *NodeOptions) GetPrintersByResource(resource unversioned.GroupVersionResource) (kubectl.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrintersByResource(resource schema.GroupVersionResource) (kubectl.ResourcePrinter, error) {
 	gvks, err := n.Mapper.KindsFor(resource)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func (n *NodeOptions) GetPrintersByResource(resource unversioned.GroupVersionRes
 	return n.GetPrinters(gvks[0])
 }
 
-func (n *NodeOptions) GetPrinters(gvk unversioned.GroupVersionKind) (kubectl.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrinters(gvk schema.GroupVersionKind) (kubectl.ResourcePrinter, error) {
 	mapping, err := n.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
