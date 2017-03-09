@@ -3,13 +3,14 @@ package controller
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api"
 )
@@ -324,7 +325,7 @@ func TestIngressTranslator_generateRouteEvents(t *testing.T) {
 		"Rule-less ingress should generate no events": {
 			eventType: watch.Added,
 			ingress: &extensions.Ingress{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "empty-ingress",
 					Namespace: "my-namespace",
 				},
@@ -664,7 +665,7 @@ func TestGetNameForHost(t *testing.T) {
 
 func getTestIngress() *extensions.Ingress {
 	return &extensions.Ingress{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-ingress",
 			Namespace: "my-namespace",
 		},
@@ -693,7 +694,7 @@ func getTestIngress() *extensions.Ingress {
 
 func getTestSecret(namespace, name, cert, privateKey string) *kapi.Secret {
 	return &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},

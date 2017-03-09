@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -115,7 +116,7 @@ func (c *ImageChangeController) HandleImageStream(stream *imageapi.ImageStream) 
 			buildCauses := []buildapi.BuildTriggerCause{}
 			// instantiate new build
 			request := &buildapi.BuildRequest{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      config.Name,
 					Namespace: config.Namespace,
 				},

@@ -8,17 +8,17 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -153,10 +153,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		return "", err
 	}
 
-	allNamespaces := namespace == kapi.NamespaceAll
+	allNamespaces := namespace == metav1.NamespaceAll
 	var project *projectapi.Project
 	if !allNamespaces {
-		p, err := d.C.Projects().Get(namespace)
+		p, err := d.C.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil {
 			// a forbidden error here (without a --namespace value) means that
 			// the user has not created any projects, and is therefore using a
@@ -167,7 +167,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			if !kapierrors.IsNotFound(err) {
 				return "", err
 			}
-			p = &projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}
+			p = &projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 		}
 		project = p
 		f = namespacedFormatter{currentNamespace: namespace}
@@ -837,11 +837,11 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	}
 	out := []string{}
 
-	passTime := unversioned.Time{}
+	passTime := metav1.Time{}
 	if lastSuccessfulBuild != nil {
 		passTime = buildTimestamp(lastSuccessfulBuild.Build)
 	}
-	failTime := unversioned.Time{}
+	failTime := metav1.Time{}
 	if lastUnsuccessfulBuild != nil {
 		failTime = buildTimestamp(lastUnsuccessfulBuild.Build)
 	}
@@ -852,9 +852,9 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	}
 
 	var firstBuildToDisplay *buildgraph.BuildNode
-	firstTime := unversioned.Time{}
+	firstTime := metav1.Time{}
 	var secondBuildToDisplay *buildgraph.BuildNode
-	secondTime := unversioned.Time{}
+	secondTime := metav1.Time{}
 
 	// display the last successful build if specifically requested or we're going to display an active build for context
 	if includeSuccess || len(activeBuilds) > 0 {
@@ -902,7 +902,7 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 	return out
 }
 
-func describeBuildPhase(build *buildapi.Build, t *unversioned.Time, parentName string, pushTargetResolved bool) string {
+func describeBuildPhase(build *buildapi.Build, t *metav1.Time, parentName string, pushTargetResolved bool) string {
 	imageStreamFailure := ""
 	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
 	if (build.Spec.Output.To != nil) && !pushTargetResolved {
@@ -979,9 +979,9 @@ func describeSourceControlUser(user buildapi.SourceControlUser) string {
 	return fmt.Sprintf("%s <%s>", user.Name, user.Email)
 }
 
-func buildTimestamp(build *buildapi.Build) unversioned.Time {
+func buildTimestamp(build *buildapi.Build) metav1.Time {
 	if build == nil {
-		return unversioned.Time{}
+		return metav1.Time{}
 	}
 	if !build.Status.CompletionTimestamp.IsZero() {
 		return *build.Status.CompletionTimestamp
@@ -1220,7 +1220,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if !ok {
 			continue
 		}
-		meta, err := kapi.ObjectMetaFor(actualPod)
+		meta, err := metav1.ObjectMetaFor(actualPod)
 		if err != nil {
 			return nil, err
 		}
@@ -1251,7 +1251,7 @@ type rcLoader struct {
 }
 
 func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ReplicationControllers(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1275,7 +1275,7 @@ type serviceLoader struct {
 }
 
 func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Services(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1299,7 +1299,7 @@ type podLoader struct {
 }
 
 func (l *podLoader) Load() error {
-	list, err := l.lister.Pods(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Pods(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1323,7 +1323,7 @@ type statefulSetLoader struct {
 }
 
 func (l *statefulSetLoader) Load() error {
-	list, err := l.lister.StatefulSets(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.StatefulSets(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1347,7 +1347,7 @@ type horizontalPodAutoscalerLoader struct {
 }
 
 func (l *horizontalPodAutoscalerLoader) Load() error {
-	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1371,7 +1371,7 @@ type serviceAccountLoader struct {
 }
 
 func (l *serviceAccountLoader) Load() error {
-	list, err := l.lister.ServiceAccounts(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ServiceAccounts(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1395,7 +1395,7 @@ type secretLoader struct {
 }
 
 func (l *secretLoader) Load() error {
-	list, err := l.lister.Secrets(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Secrets(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1419,7 +1419,7 @@ type pvcLoader struct {
 }
 
 func (l *pvcLoader) Load() error {
-	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1443,7 +1443,7 @@ type isLoader struct {
 }
 
 func (l *isLoader) Load() error {
-	list, err := l.lister.ImageStreams(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ImageStreams(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1468,7 +1468,7 @@ type dcLoader struct {
 }
 
 func (l *dcLoader) Load() error {
-	list, err := l.lister.DeploymentConfigs(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1492,7 +1492,7 @@ type bcLoader struct {
 }
 
 func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.BuildConfigs(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1516,7 +1516,7 @@ type buildLoader struct {
 }
 
 func (l *buildLoader) Load() error {
-	list, err := l.lister.Builds(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Builds(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1540,7 +1540,7 @@ type routeLoader struct {
 }
 
 func (l *routeLoader) Load() error {
-	list, err := l.lister.Routes(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Routes(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

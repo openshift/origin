@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -19,13 +20,13 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 		routeName = serviceName
 	}
 
-	svc, err := kc.Core().Services(namespace).Get(serviceName)
+	svc, err := kc.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
 		}
 		return &api.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: routeName,
 			},
 			Spec: api.RouteSpec{
@@ -43,7 +44,7 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 	}
 
 	route := &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   routeName,
 			Labels: svc.Labels,
 		},

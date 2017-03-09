@@ -16,8 +16,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -331,7 +332,7 @@ func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 }
 
 // Finds the pod running Jenkins
-func FindJenkinsPod(oc *exutil.CLI) *kapi.Pod {
+func FindJenkinsPod(oc *exutil.CLI) *kapiv1.Pod {
 	pods, err := exutil.GetDeploymentConfigPods(oc, "jenkins")
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
@@ -422,7 +423,7 @@ func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, 
 func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 	var err error
 	if t.Build == nil {
-		t.Build, err = oc.Client().Builds(oc.Namespace()).Get(t.BuildName)
+		t.Build, err = oc.Client().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", fmt.Errorf("cannot retrieve build %s: %v", t.BuildName, err)
 		}

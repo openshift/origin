@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/tools/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 

@@ -3,7 +3,7 @@ package client
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // BuildConfigGetter provides methods for getting BuildConfigs
@@ -27,8 +27,8 @@ func NewOSClientBuildConfigClient(client osclient.Interface) *OSClientBuildConfi
 }
 
 // Get returns a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Get(namespace, name string) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name)
+func (c OSClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	return c.Client.BuildConfigs(namespace).Get(name, options)
 }
 
 // Update updates a BuildConfig using the OpenShift client.
@@ -44,7 +44,7 @@ type BuildUpdater interface {
 
 // BuildLister provides methods for listing the Builds.
 type BuildLister interface {
-	List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error)
+	List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error)
 }
 
 // OSClientBuildClient delegates build create and update operations to the OpenShift client interface
@@ -64,7 +64,7 @@ func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) err
 }
 
 // List lists the builds using the OpenShift client.
-func (c OSClientBuildClient) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+func (c OSClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	return c.Client.Builds(namespace).List(opts)
 }
 

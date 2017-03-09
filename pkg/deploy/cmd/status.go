@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -25,7 +26,7 @@ var _ kubectl.StatusViewer = &DeploymentConfigStatusViewer{}
 
 // Status returns a message describing deployment status, and a bool value indicating if the status is considered done
 func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRevision int64) (string, bool, error) {
-	config, err := s.dn.DeploymentConfigs(namespace).Get(name)
+	config, err := s.dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", false, err
 	}

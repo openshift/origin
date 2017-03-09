@@ -2,9 +2,9 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/template/api"
+	watch "k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // TemplatesGetter has a method to return a TemplateInterface.

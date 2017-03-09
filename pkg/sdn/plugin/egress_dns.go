@@ -9,7 +9,7 @@ import (
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
-	ktypes "k8s.io/kubernetes/pkg/types"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 )
 

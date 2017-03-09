@@ -1,16 +1,16 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type ExtendedArguments map[string][]string
 
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname.
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
@@ -169,7 +169,7 @@ type FeatureList []string
 
 // MasterConfig holds the necessary configuration options for the OpenShift master
 type MasterConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
@@ -769,7 +769,7 @@ type SessionConfig struct {
 
 // SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
 type SessionSecrets struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// Secrets is a list of secrets
 	// New sessions are signed and encrypted using the first secret.
@@ -801,7 +801,7 @@ type IdentityProvider struct {
 
 // BasicAuthPasswordIdentityProvider provides identities for users authenticating using HTTP basic auth credentials
 type BasicAuthPasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// RemoteConnectionInfo contains information about how to connect to the external basic auth server
 	RemoteConnectionInfo `json:",inline"`
@@ -809,17 +809,17 @@ type BasicAuthPasswordIdentityProvider struct {
 
 // AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords
 type AllowAllPasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 }
 
 // DenyAllPasswordIdentityProvider provides no identities for users
 type DenyAllPasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 }
 
 // HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials
 type HTPasswdPasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// File is a reference to your htpasswd file
 	File string `json:"file"`
@@ -827,7 +827,7 @@ type HTPasswdPasswordIdentityProvider struct {
 
 // LDAPPasswordIdentityProvider provides identities for users authenticating using LDAP credentials
 type LDAPPasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
 	//    ldap://host:port/basedn?attribute?scope?filter
 	URL string `json:"url"`
@@ -866,7 +866,7 @@ type LDAPAttributeMapping struct {
 
 // KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials
 type KeystonePasswordIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// RemoteConnectionInfo contains information about how to connect to the keystone server
 	RemoteConnectionInfo `json:",inline"`
 	// Domain Name is required for keystone v3
@@ -875,7 +875,7 @@ type KeystonePasswordIdentityProvider struct {
 
 // RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials
 type RequestHeaderIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// LoginURL is a URL to redirect unauthenticated /authorize requests to
 	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
@@ -910,7 +910,7 @@ type RequestHeaderIdentityProvider struct {
 
 // GitHubIdentityProvider provides identities for users authenticating using GitHub credentials
 type GitHubIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
@@ -924,7 +924,7 @@ type GitHubIdentityProvider struct {
 
 // GitLabIdentityProvider provides identities for users authenticating using GitLab credentials
 type GitLabIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
@@ -939,7 +939,7 @@ type GitLabIdentityProvider struct {
 
 // GoogleIdentityProvider provides identities for users authenticating using Google credentials
 type GoogleIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
@@ -952,7 +952,7 @@ type GoogleIdentityProvider struct {
 
 // OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials
 type OpenIDIdentityProvider struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
@@ -1148,7 +1148,7 @@ type StringSourceSpec struct {
 
 // LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync
 type LDAPSyncConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Host is the scheme, host and port of the LDAP server to connect to:
 	// scheme://host:port
 	URL string `json:"url"`
@@ -1340,7 +1340,7 @@ type ServiceServingCert struct {
 // When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,
 // this will cause an "off by default" admission plugin to be enabled
 type DefaultAdmissionConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// Disable turns off an admission plugin that is enabled by default.
 	Disable bool `json:"disable"`

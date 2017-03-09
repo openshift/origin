@@ -1,8 +1,9 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,17 +15,17 @@ type ClusterPoliciesInterface interface {
 
 // ClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ClusterPolicyInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
 
 type ClusterPoliciesListerInterface interface {
 	ClusterPolicies() ClusterPolicyLister
 }
 type ClusterPolicyLister interface {
-	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
 }
 type SyncedClusterPoliciesListerInterface interface {
@@ -43,7 +44,7 @@ func newClusterPolicies(c *Client) *clusterPolicies {
 }
 
 // List returns a list of policies that match the label and field selectors.
-func (c *clusterPolicies) List(opts kapi.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
+func (c *clusterPolicies) List(opts metainternal.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
 	result = &authorizationapi.ClusterPolicyList{}
 	err = c.r.Get().Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -63,6 +64,6 @@ func (c *clusterPolicies) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested clusterPolicies
-func (c *clusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *clusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

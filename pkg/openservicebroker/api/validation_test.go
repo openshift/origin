@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const validUUID = "fe6e44ea-377a-457c-9fa1-ba06ad356839"

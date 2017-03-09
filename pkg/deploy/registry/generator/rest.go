@@ -1,8 +1,8 @@
 package generator
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -22,6 +22,6 @@ func (s *REST) New() runtime.Object {
 	return &deployapi.DeploymentConfig{}
 }
 
-func (s *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 	return s.generator.Generate(ctx, id)
 }

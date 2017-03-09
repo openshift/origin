@@ -18,33 +18,40 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 
-	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	openapicommon "k8s.io/apimachinery/pkg/openapi"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	apiserverendpointsopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	apiserver "k8s.io/apiserver/pkg/server"
+	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
+	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
+	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
+	utilflag "k8s.io/apiserver/pkg/util/flag"
+	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	apiserveropenapi "k8s.io/kubernetes/pkg/apiserver/openapi"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/authorizer"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
-	openapicommon "k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
+	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
-	endpointsetcd "k8s.io/kubernetes/pkg/registry/core/endpoint/etcd"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	storagefactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
-	"k8s.io/kubernetes/pkg/util/config"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	knet "k8s.io/kubernetes/pkg/util/net"
-	"k8s.io/kubernetes/pkg/util/sets"
+	endpointsstorage "k8s.io/kubernetes/pkg/registry/core/endpoint/storage"
 	kversion "k8s.io/kubernetes/pkg/version"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
@@ -63,7 +70,7 @@ import (
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
-var LegacyAPIGroupPrefixes = sets.NewString(genericapiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
+var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -136,25 +143,25 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 	resourceEncodingConfig := genericapiserver.NewDefaultResourceEncodingConfig()
 	resourceEncodingConfig.SetVersionEncoding(
 		kapi.GroupName,
-		unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion},
+		schema.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion},
 		kapi.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		extensions.GroupName,
-		unversioned.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"},
+		schema.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"},
 		extensions.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		batch.GroupName,
-		unversioned.GroupVersion{Group: batch.GroupName, Version: "v1"},
+		schema.GroupVersion{Group: batch.GroupName, Version: "v1"},
 		batch.SchemeGroupVersion,
 	)
 
 	resourceEncodingConfig.SetVersionEncoding(
 		autoscaling.GroupName,
-		unversioned.GroupVersion{Group: autoscaling.GroupName, Version: "v1"},
+		schema.GroupVersion{Group: autoscaling.GroupName, Version: "v1"},
 		autoscaling.SchemeGroupVersion,
 	)
 
@@ -178,7 +185,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 		genericapiserver.NewDefaultResourceEncodingConfig(),
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
-		[]unversioned.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
+		[]schema.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
 		master.DefaultAPIResourceConfigSource(), server.GenericServerRunOptions.RuntimeConfig,
 	)
 	if err != nil {
@@ -202,7 +209,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 // TODO this function's parameters need to be refactored
 func BuildKubernetesMasterConfig(
 	options configapi.MasterConfig,
-	requestContextMapper kapi.RequestContextMapper,
+	requestContextMapper apirequest.RequestContextMapper,
 	kubeClient kclientset.Interface,
 	informers shared.InformerFactory,
 	admissionControl admission.Interface,
@@ -229,7 +236,7 @@ func BuildKubernetesMasterConfig(
 	cmserver.Address = ""                   // no healthz endpoint
 	cmserver.Port = 0                       // no healthz endpoint
 	cmserver.EnableGarbageCollector = false // disabled until we add the controller
-	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
+	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
 
 	// resolve extended arguments
@@ -448,7 +455,7 @@ func BuildKubernetesMasterConfig(
 
 func DefaultOpenAPIConfig() *openapicommon.Config {
 	return &openapicommon.Config{
-		Definitions:    openapigenerated.OpenAPIDefinitions,
+		GetDefinitions: openapigenerated.GetOpenAPIDefinitions,
 		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
 		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
 			op := r.Operation
@@ -468,7 +475,7 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 			if op != r.Operation {
 				return op, []string{}, nil
 			}
-			return apiserveropenapi.GetOperationIDAndTags(servePath, r)
+			return apiserverendpointsopenapi.GetOperationIDAndTags(servePath, r)
 		},
 		Info: &spec.Info{
 			InfoProps: spec.InfoProps{
@@ -526,7 +533,7 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 					no backwards incompatible changes are allowed without incrementing the
 					apiVersion. The server will return and accept a number of standard
 					responses that share a common schema - for instance, the common
-					error type is 'unversioned.Status' (described below) and will be returned
+					error type is 'metav1.Status' (described below) and will be returned
 					on any error from the API server.
 
 					The API is available in multiple serialization formats - the default is
@@ -552,19 +559,19 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 }
 
 // getAPIResourceConfig builds the config for enabling resources
-func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIResourceConfigSource {
-	resourceConfig := genericapiserver.NewResourceConfig()
+func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIResourceConfigSource {
+	resourceConfig := apiserverstorage.NewResourceConfig()
 
 	for group := range configapi.KnownKubeAPIGroups {
 		for _, version := range configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
-			gv := unversioned.GroupVersion{Group: group, Version: version}
+			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.EnableVersions(gv)
 		}
 	}
 
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
 		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
-			gv := unversioned.GroupVersion{Group: group, Version: version}
+			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.DisableVersions(gv)
 		}
 	}

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -58,8 +58,8 @@ func TestPruneTask(t *testing.T) {
 		for _, BuildPhaseOption := range BuildPhaseOptions {
 			keepYoungerThan := time.Hour
 
-			now := unversioned.Now()
-			old := unversioned.NewTime(now.Time.Add(-1 * keepYoungerThan))
+			now := metav1.Now()
+			old := metav1.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
 			buildConfigs := []*buildapi.BuildConfig{}
 			builds := []*buildapi.Build{}

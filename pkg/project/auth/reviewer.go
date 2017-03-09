@@ -1,8 +1,8 @@
 package auth
 
 import (
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"

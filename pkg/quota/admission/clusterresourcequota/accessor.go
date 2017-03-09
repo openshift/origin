@@ -5,12 +5,12 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/storage/etcd"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"

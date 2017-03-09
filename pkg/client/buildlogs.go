@@ -1,8 +1,8 @@
 package client
 
 import (
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	api "github.com/openshift/origin/pkg/build/api"
 )

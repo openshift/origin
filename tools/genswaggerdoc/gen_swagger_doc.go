@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	kruntime "k8s.io/kubernetes/pkg/runtime"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 
 	flag "github.com/spf13/pflag"
 )

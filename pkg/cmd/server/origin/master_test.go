@@ -6,7 +6,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 
-	"k8s.io/kubernetes/pkg/genericapiserver/mux"
+	"k8s.io/apiserver/pkg/server/mux"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )

@@ -3,12 +3,13 @@ package role
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/api/validation"
@@ -43,12 +44,12 @@ func (s strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	_ = obj.(*authorizationapi.Role)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (s strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.Role)
 }
 
@@ -57,12 +58,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new role.
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateRole(obj.(*authorizationapi.Role), s.namespaced)
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRoleUpdate(obj.(*authorizationapi.Role), old.(*authorizationapi.Role), s.namespaced, nil)
 }
 

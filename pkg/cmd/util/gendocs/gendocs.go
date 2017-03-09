@@ -8,13 +8,15 @@ import (
 	"sort"
 
 	"github.com/spf13/cobra"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
-type Examples []*runtime.Unstructured
+type Examples []*unstructured.Unstructured
 
 func (x Examples) Len() int      { return len(x) }
 func (x Examples) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
@@ -47,7 +49,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 	}
 
 	err = printer.PrintObj(&kapi.List{
-		ListMeta: unversioned.ListMeta{},
+		ListMeta: metav1.ListMeta{},
 		Items:    items,
 	}, out)
 	if err != nil {
@@ -76,7 +78,7 @@ func extractExamples(cmd *cobra.Command) Examples {
 		objs = append(objs, extractExamples(c)...)
 	}
 	if cmd.HasExample() {
-		o := &runtime.Unstructured{
+		o := &unstructured.Unstructured{
 			Object: make(map[string]interface{}),
 		}
 		o.Object["name"] = cmd.Name()

@@ -1,6 +1,7 @@
 package aggregated_logging
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
@@ -18,7 +19,7 @@ type diagnosticReporter interface {
 }
 
 type routesAdapter interface {
-	routes(project string, options kapi.ListOptions) (*routesapi.RouteList, error)
+	routes(project string, options metav1.ListOptions) (*routesapi.RouteList, error)
 }
 
 type sccAdapter interface {
@@ -32,29 +33,29 @@ type clusterRoleBindingsAdapter interface {
 //deploymentConfigAdapter is an abstraction to retrieve resource for validating dcs
 //for aggregated logging diagnostics
 type deploymentConfigAdapter interface {
-	deploymentconfigs(project string, options kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
+	deploymentconfigs(project string, options metav1.ListOptions) (*deployapi.DeploymentConfigList, error)
 	podsAdapter
 }
 
 //daemonsetAdapter is an abstraction to retrieve resources for validating daemonsets
 //for aggregated logging diagnostics
 type daemonsetAdapter interface {
-	daemonsets(project string, options kapi.ListOptions) (*kapisext.DaemonSetList, error)
-	nodes(options kapi.ListOptions) (*kapi.NodeList, error)
+	daemonsets(project string, options metav1.ListOptions) (*kapisext.DaemonSetList, error)
+	nodes(options metav1.ListOptions) (*kapi.NodeList, error)
 	podsAdapter
 }
 
 type podsAdapter interface {
-	pods(project string, options kapi.ListOptions) (*kapi.PodList, error)
+	pods(project string, options metav1.ListOptions) (*kapi.PodList, error)
 }
 
 //saAdapter abstractions to retrieve service accounts
 type saAdapter interface {
-	serviceAccounts(project string, options kapi.ListOptions) (*kapi.ServiceAccountList, error)
+	serviceAccounts(project string, options metav1.ListOptions) (*kapi.ServiceAccountList, error)
 }
 
 //servicesAdapter abstracts retrieving services
 type servicesAdapter interface {
-	services(project string, options kapi.ListOptions) (*kapi.ServiceList, error)
+	services(project string, options metav1.ListOptions) (*kapi.ServiceList, error)
 	endpointsForService(project string, serviceName string) (*kapi.Endpoints, error)
 }

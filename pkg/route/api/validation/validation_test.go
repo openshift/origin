@@ -3,8 +3,9 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -618,7 +619,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No Name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 				},
 				Spec: api.RouteSpec{
@@ -631,7 +632,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No namespace",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
 				Spec: api.RouteSpec{
@@ -644,7 +645,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No host",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -657,7 +658,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Invalid DNS 952 host",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -671,7 +672,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No service name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -685,7 +686,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No service kind",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -699,7 +700,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Zero port",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -716,7 +717,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Empty string port",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -733,7 +734,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Valid route",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -747,7 +748,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Valid route with path",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -762,7 +763,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Invalid route with path",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -777,7 +778,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Passthrough route with path",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -795,7 +796,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "No wildcard policy",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "nowildcard",
 					Namespace: "foo",
 				},
@@ -809,7 +810,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "wildcard policy none",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "nowildcard2",
 					Namespace: "foo",
 				},
@@ -824,7 +825,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "wildcard policy subdomain",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "wildcardpolicy",
 					Namespace: "foo",
 				},
@@ -839,7 +840,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Invalid wildcard policy",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "badwildcard",
 					Namespace: "foo",
 				},
@@ -854,7 +855,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Invalid host for wildcard policy",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "badhost",
 					Namespace: "foo",
 				},
@@ -868,7 +869,7 @@ func TestValidateRoute(t *testing.T) {
 		{
 			name: "Empty host for wildcard policy",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "emptyhost",
 					Namespace: "foo",
 				},
@@ -1098,7 +1099,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 	}{
 		{
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",
@@ -1116,7 +1117,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 		},
 		{
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",
@@ -1134,7 +1135,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 		},
 		{
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",

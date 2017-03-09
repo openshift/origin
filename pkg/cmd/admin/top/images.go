@@ -7,10 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -80,23 +81,23 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 	}
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
-		namespace = kapi.NamespaceAll
+		namespace = metav1.NamespaceAll
 	}
 	o.out = out
 
-	allImages, err := osClient.Images().List(kapi.ListOptions{})
+	allImages, err := osClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := osClient.ImageStreams(namespace).List(kapi.ListOptions{})
+	allStreams, err := osClient.ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Streams = allStreams
 
-	allPods, err := kClient.Core().Pods(namespace).List(kapi.ListOptions{})
+	allPods, err := kClient.Core().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

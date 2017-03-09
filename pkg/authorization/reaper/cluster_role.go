@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -27,8 +28,8 @@ type ClusterRoleReaper struct {
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing clusterroleclusterBindings
 // then delete the clusterrole.
-func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
-	clusterBindings, err := r.clusterBindingClient.ClusterRoleBindings().List(kapi.ListOptions{})
+func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
+	clusterBindings, err := r.clusterBindingClient.ClusterRoleBindings().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 		}
 	}
 
-	namespacedBindings, err := r.bindingClient.RoleBindings(kapi.NamespaceNone).List(kapi.ListOptions{})
+	namespacedBindings, err := r.bindingClient.RoleBindings(kapi.NamespaceNone).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

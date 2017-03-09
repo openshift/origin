@@ -11,16 +11,17 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	utilcert "k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	utilcert "k8s.io/kubernetes/pkg/util/cert"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"crypto/rsa"
+
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -83,7 +84,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 	}
 
 	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("node-bootstrapper-client-%s", safeSecretName(o.NodeArgs.NodeName)),
 		},
 		Spec: certificates.CertificateSigningRequestSpec{
@@ -97,7 +98,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 			return nil, err
 		}
 		glog.V(3).Infof("Bootstrap client certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +116,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 			glog.V(2).Infof("Bootstrap client cert approved")
 			return true, nil
 		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
 		return false, err
 	})
 	if err != nil {
@@ -193,7 +194,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 	}
 
 	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("node-bootstrapper-server-%s", safeSecretName(o.NodeArgs.NodeName)),
 		},
 		Spec: certificates.CertificateSigningRequestSpec{
@@ -207,7 +208,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 			return err
 		}
 		glog.V(3).Infof("Bootstrap server certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -225,7 +226,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 			glog.V(2).Infof("Bootstrap serving cert approved")
 			return true, nil
 		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
 		return false, err
 	})
 	if err != nil {
@@ -281,7 +282,7 @@ func (o NodeOptions) loadBootstrap(hostnames []string, nodeConfigDir string) err
 
 	// try to refresh the latest node-config.yaml
 	o.ConfigFile = filepath.Join(nodeConfigDir, "node-config.yaml")
-	config, err := c.Core().ConfigMaps("openshift-infra").Get("node-config")
+	config, err := c.Core().ConfigMaps("openshift-infra").Get("node-config", metav1.GetOptions{})
 	if err == nil {
 		// skip all the config we generated ourselves
 		skipConfig := map[string]struct{}{"server.crt": {}, "server.key": {}, "master-client.crt": {}, "master-client.key": {}, "node.kubeconfig": {}}

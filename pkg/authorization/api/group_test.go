@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestEscalating(t *testing.T) {

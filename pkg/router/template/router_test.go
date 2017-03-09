@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -199,7 +199,7 @@ func TestDeleteEndpoints(t *testing.T) {
 func TestRouteKey(t *testing.T) {
 	router := NewFakeTemplateRouter()
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
 		},
@@ -248,7 +248,7 @@ func TestRouteKey(t *testing.T) {
 	startCount := len(router.state)
 	for _, tc := range testCases {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: tc.Namespace,
 				Name:      tc.Name,
 			},
@@ -290,7 +290,7 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 	serviceWeight := int32(30)
 
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "bar",
 		},
@@ -338,7 +338,7 @@ func TestAddRoute(t *testing.T) {
 	serviceName := "TestService"
 
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "bar",
 		},
@@ -383,7 +383,7 @@ func TestUpdateRoute(t *testing.T) {
 
 	// Add a route that can be targeted for an update
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
 		},
@@ -458,7 +458,7 @@ func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *t
 func TestRemoveRoute(t *testing.T) {
 	router := NewFakeTemplateRouter()
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar",
 		},
@@ -467,7 +467,7 @@ func TestRemoveRoute(t *testing.T) {
 		},
 	}
 	route2 := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "bar2",
 		},
@@ -636,7 +636,7 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 
 	for _, tc := range testCases {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      tc.Name,
 			},
