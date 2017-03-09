@@ -3,8 +3,8 @@ package extension
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Convert_runtime_Object_To_runtime_RawExtension attempts to convert runtime.Objects to the appropriate target, returning an error
