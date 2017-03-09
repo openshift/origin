@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"

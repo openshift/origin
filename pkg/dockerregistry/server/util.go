@@ -13,8 +13,8 @@ import (
 	disterrors "github.com/docker/distribution/registry/api/v2"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"

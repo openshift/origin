@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"

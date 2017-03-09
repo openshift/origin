@@ -14,9 +14,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	"github.com/spf13/cobra"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/util/wait"

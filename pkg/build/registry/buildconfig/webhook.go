@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/client"

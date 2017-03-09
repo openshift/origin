@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"

@@ -10,9 +10,9 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kendpoints "k8s.io/kubernetes/pkg/api/endpoints"
-	"k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/util/validation"
 

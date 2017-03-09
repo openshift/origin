@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testutil "github.com/openshift/origin/test/util"

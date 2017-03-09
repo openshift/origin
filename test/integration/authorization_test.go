@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"

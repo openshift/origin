@@ -3,8 +3,8 @@ package registry
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"

@@ -16,7 +16,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"

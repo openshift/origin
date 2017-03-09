@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	errorsutil "k8s.io/kubernetes/pkg/util/errors"
 

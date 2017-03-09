@@ -13,8 +13,8 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	regapi "github.com/docker/distribution/registry/api/v2"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"

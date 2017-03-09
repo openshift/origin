@@ -10,11 +10,11 @@ import (
 
 	"github.com/golang/glog"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"

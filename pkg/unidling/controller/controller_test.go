@@ -10,8 +10,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployfake "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/fake"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"

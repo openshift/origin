@@ -5,9 +5,9 @@ import (
 	"net"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/endpoints"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 	kruntime "k8s.io/kubernetes/pkg/runtime"

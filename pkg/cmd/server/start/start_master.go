@@ -15,10 +15,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"

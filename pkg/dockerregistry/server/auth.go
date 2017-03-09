@@ -11,8 +11,8 @@ import (
 	context "github.com/docker/distribution/context"
 	registryauth "github.com/docker/distribution/registry/auth"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"

@@ -15,9 +15,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"

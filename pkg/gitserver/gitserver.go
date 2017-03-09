@@ -18,9 +18,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/healthz"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"

@@ -7,8 +7,8 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 	ktypes "k8s.io/kubernetes/pkg/types"

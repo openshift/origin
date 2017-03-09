@@ -8,9 +8,9 @@ import (
 
 	"github.com/pborman/uuid"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apiserver"
 

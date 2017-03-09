@@ -19,7 +19,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

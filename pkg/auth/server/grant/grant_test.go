@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
 	knet "k8s.io/kubernetes/pkg/util/net"
 

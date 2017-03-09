@@ -10,8 +10,8 @@ import (
 	unidlingutil "github.com/openshift/origin/pkg/unidling/util"
 
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"

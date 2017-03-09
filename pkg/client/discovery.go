@@ -3,9 +3,9 @@ package client
 import (
 	"net/url"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 

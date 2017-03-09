@@ -7,8 +7,8 @@ import (
 	"errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 type fakeBuildClient struct {

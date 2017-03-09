@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 

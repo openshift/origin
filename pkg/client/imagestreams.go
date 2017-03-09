@@ -3,8 +3,8 @@ package client
 import (
 	"errors"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"

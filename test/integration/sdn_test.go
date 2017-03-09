@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	osclient "github.com/openshift/origin/pkg/client"

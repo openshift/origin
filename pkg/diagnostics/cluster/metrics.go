@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"

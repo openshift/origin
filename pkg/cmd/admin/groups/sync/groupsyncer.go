@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"

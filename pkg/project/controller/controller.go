@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	projectutil "github.com/openshift/origin/pkg/project/util"

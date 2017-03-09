@@ -3,8 +3,8 @@ package testclient
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )

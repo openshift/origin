@@ -9,8 +9,8 @@ import (
 	etcdclient "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
 

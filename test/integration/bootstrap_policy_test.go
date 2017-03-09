@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 

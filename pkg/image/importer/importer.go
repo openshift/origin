@@ -16,7 +16,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/sets"

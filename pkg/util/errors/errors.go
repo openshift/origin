@@ -3,7 +3,7 @@ package errors
 import "strings"
 
 import (
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 

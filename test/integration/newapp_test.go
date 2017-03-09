@@ -22,8 +22,8 @@ import (
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"

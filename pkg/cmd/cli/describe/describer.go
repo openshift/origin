@@ -12,8 +12,8 @@ import (
 
 	units "github.com/docker/go-units"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"

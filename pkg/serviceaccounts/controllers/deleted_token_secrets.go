@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fields"

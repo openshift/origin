@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 

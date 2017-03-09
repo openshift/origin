@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"

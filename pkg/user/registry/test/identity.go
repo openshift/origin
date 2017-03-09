@@ -1,8 +1,8 @@
 package test
 
 import (
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/user/api"
 )

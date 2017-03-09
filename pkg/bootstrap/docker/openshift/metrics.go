@@ -3,8 +3,8 @@ package openshift
 import (
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"

@@ -3,8 +3,8 @@ package etcd
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"

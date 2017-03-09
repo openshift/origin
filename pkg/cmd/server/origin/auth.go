@@ -15,8 +15,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/retry"
 	knet "k8s.io/kubernetes/pkg/util/net"

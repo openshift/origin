@@ -9,8 +9,8 @@ import (
 	"time"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	waitutil "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/miekg/dns"

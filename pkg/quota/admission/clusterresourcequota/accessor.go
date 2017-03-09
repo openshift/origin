@@ -5,8 +5,8 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/storage/etcd"

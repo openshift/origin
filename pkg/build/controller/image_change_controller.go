@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"

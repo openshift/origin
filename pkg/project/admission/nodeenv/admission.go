@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
