@@ -3,12 +3,12 @@ package common
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 // SetBuildCompletionTimeAndDuration will set the build completion timestamp
@@ -19,7 +19,7 @@ func SetBuildCompletionTimeAndDuration(build *buildapi.Build) bool {
 	if build.Status.CompletionTimestamp != nil {
 		return false
 	}
-	now := unversioned.Now()
+	now := metav1.Now()
 	build.Status.CompletionTimestamp = &now
 	// apparently this build completed so fast we didn't see the pod running event,
 	// so just use the completion time as the start time.

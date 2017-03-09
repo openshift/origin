@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/oauth/api/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
 )
 
 // FakeOAuthClients implements OAuthClientInterface
@@ -16,7 +16,7 @@ type FakeOAuthClients struct {
 	ns   string
 }
 
-var oauthclientsResource = unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "oauthclients"}
+var oauthclientsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "oauthclients"}
 
 func (c *FakeOAuthClients) Create(oAuthClient *v1.OAuthClient) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.

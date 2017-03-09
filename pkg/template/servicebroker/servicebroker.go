@@ -1,10 +1,10 @@
 package servicebroker
 
 import (
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
+	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authclient "github.com/openshift/origin/pkg/auth/client"
 	"github.com/openshift/origin/pkg/client"

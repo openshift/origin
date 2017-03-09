@@ -7,7 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func getPodNameForTest(image string, t tc) string {
@@ -20,7 +20,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -29,7 +29,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 			g.Describe("returning s2i usage when running the image", func() {
 				g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), func() {
 					g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
-					pod := exutil.GetPodForContainer(kapi.Container{
+					pod := exutil.GetPodForContainer(kapiv1.Container{
 						Name:  "test",
 						Image: t.DockerImageReference,
 					})
@@ -40,7 +40,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 			g.Describe("using the SCL in s2i images", func() {
 				g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), func() {
 					g.By(fmt.Sprintf("creating a sample pod for %q with /bin/bash -c command", t.DockerImageReference))
-					pod := exutil.GetPodForContainer(kapi.Container{
+					pod := exutil.GetPodForContainer(kapiv1.Container{
 						Image:   t.DockerImageReference,
 						Name:    "test",
 						Command: []string{"/bin/bash", "-c", t.Cmd},
@@ -49,12 +49,12 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 					oc.KubeFramework().TestContainerOutput(getPodNameForTest(image, t), pod, 0, []string{t.Expected})
 
 					g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
-					pod = exutil.GetPodForContainer(kapi.Container{
+					pod = exutil.GetPodForContainer(kapiv1.Container{
 						Image:   t.DockerImageReference,
 						Name:    "test",
 						Command: []string{"/usr/bin/sleep", "infinity"},
 					})
-					_, err := oc.KubeClient().Core().Pods(oc.Namespace()).Create(pod)
+					_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(pod)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					err = oc.KubeFramework().WaitForPodRunning(pod.Name)

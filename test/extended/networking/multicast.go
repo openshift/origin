@@ -8,8 +8,8 @@ import (
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -40,10 +40,10 @@ var _ = Describe("[networking] multicast", func() {
 	})
 })
 
-func makeNamespaceMulticastEnabled(ns *api.Namespace) {
+func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
 	expectNoError(err)
-	netns, err := client.NetNamespaces().Get(ns.Name)
+	netns, err := client.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
@@ -97,7 +97,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 			return err[i]
 		}
 		var zero int64
-		defer f.ClientSet.Core().Pods(f.Namespace.Name).Delete(pod[i], &api.DeleteOptions{GracePeriodSeconds: &zero})
+		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 		matchIP[i] = regexp.MustCompile(ip[i] + ".*multicast.*1/1/0%")
 		ch[i] = make(chan struct{})
 	}
@@ -128,15 +128,15 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 
 func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (string, error) {
 	contName := fmt.Sprintf("%s-container", podName)
-	pod := &api.Pod{
-		TypeMeta: unversioned.TypeMeta{
+	pod := &kapiv1.Pod{
+		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
-		Spec: api.PodSpec{
-			Containers: []api.Container{
+		Spec: kapiv1.PodSpec{
+			Containers: []kapiv1.Container{
 				{
 					Name:    contName,
 					Image:   "openshift/test-multicast",
@@ -144,15 +144,15 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 				},
 			},
 			NodeName:      nodeName,
-			RestartPolicy: api.RestartPolicyNever,
+			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
-	podClient := f.ClientSet.Core().Pods(f.Namespace.Name)
+	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	_, err := podClient.Create(pod)
 	expectNoError(err)
 
 	podIP := ""
-	err = waitForPodCondition(f.ClientSet, f.Namespace.Name, podName, "running", podStartTimeout, func(pod *api.Pod) (bool, error) {
+	err = waitForPodCondition(f.ClientSet, f.Namespace.Name, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
 		podIP = pod.Status.PodIP
 		return podIP != "", nil
 	})

@@ -5,10 +5,11 @@ import (
 
 	"github.com/golang/glog"
 
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	errors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/record"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -318,7 +319,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 // in the cache store, given a pod for the build
 func buildKey(pod *kapi.Pod) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildutil.GetBuildName(pod),
 			Namespace: pod.Namespace,
 		},

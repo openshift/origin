@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -34,7 +35,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create processes a Template and creates a new list of objects
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.NewBadRequest("not a template")
@@ -56,7 +57,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	// objects using the unstructured codec BEFORE the REST layers gets its shot at encoding to avoid a layered
 	// encode being done.
 	for i := range tpl.Objects {
-		tpl.Objects[i] = runtime.NewEncodable(runtime.UnstructuredJSONScheme, tpl.Objects[i])
+		tpl.Objects[i] = runtime.NewEncodable(unstructured.UnstructuredJSONScheme, tpl.Objects[i])
 	}
 
 	return tpl, nil

@@ -5,12 +5,12 @@
 package v1
 
 import (
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
-	intstr "k8s.io/kubernetes/pkg/util/intstr"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -317,7 +317,7 @@ func DeepCopy_v1_DeploymentLogOptions(in interface{}, out interface{}, c *conver
 		}
 		if in.SinceTime != nil {
 			in, out := &in.SinceTime, &out.SinceTime
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.SinceTime = nil

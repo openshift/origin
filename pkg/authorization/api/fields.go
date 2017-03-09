@@ -1,6 +1,6 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import "k8s.io/apimachinery/pkg/fields"
 
 // ClusterPolicyToSelectableFields returns a label set that represents the object
 // changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc

@@ -12,7 +12,7 @@ import (
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

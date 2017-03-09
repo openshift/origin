@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

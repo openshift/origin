@@ -1,6 +1,7 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,7 +14,7 @@ type ClusterRolesInterface interface {
 
 // ClusterRoleInterface exposes methods on ClusterRoles resources
 type ClusterRoleInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.ClusterRoleList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.ClusterRoleList, error)
 	Get(name string) (*authorizationapi.ClusterRole, error)
 	Create(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
 	Update(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
@@ -32,7 +33,7 @@ func newClusterRoles(c *Client) *clusterRoles {
 }
 
 // List returns a list of clusterRoles that match the label and field selectors.
-func (c *clusterRoles) List(opts kapi.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
+func (c *clusterRoles) List(opts metainternal.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
 	result = &authorizationapi.ClusterRoleList{}
 	err = c.r.Get().Resource("clusterRoles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

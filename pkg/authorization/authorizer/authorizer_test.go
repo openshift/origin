@@ -6,11 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -93,7 +94,7 @@ func TestAPIGroupAllAllow(t *testing.T) {
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.policies[0].Roles["by-group"] = &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "by-group",
 			Namespace: "adze",
 		},
@@ -104,7 +105,7 @@ func TestAPIGroupAllAllow(t *testing.T) {
 		},
 	}
 	test.bindings[0].RoleBindings["by-group"] = &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "by-group",
 		},
 		RoleRef: kapi.ObjectReference{
@@ -134,7 +135,7 @@ func TestAPIAllAllow(t *testing.T) {
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.policies[0].Roles["by-group"] = &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "by-group",
 			Namespace: "adze",
 		},
@@ -145,7 +146,7 @@ func TestAPIAllAllow(t *testing.T) {
 		},
 	}
 	test.bindings[0].RoleBindings["by-group"] = &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "by-group",
 		},
 		RoleRef: kapi.ObjectReference{
@@ -268,7 +269,7 @@ func TestDeniedWithError(t *testing.T) {
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "missing",
 		},
 		RoleRef: kapi.ObjectReference{
@@ -298,7 +299,7 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "missing",
 		},
 		RoleRef: kapi.ObjectReference{
@@ -647,12 +648,12 @@ func newDefaultClusterPolicies() []authorizationapi.ClusterPolicy {
 }
 func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 	policyBinding := authorizationapi.ClusterPolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: authorizationapi.ClusterPolicyBindingName,
 		},
 		RoleBindings: map[string]*authorizationapi.ClusterRoleBinding{
 			"extra-cluster-admins": {
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster-admins",
 				},
 				RoleRef: kapi.ObjectReference{
@@ -661,7 +662,7 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 				Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "ClusterAdmin"}, {Kind: authorizationapi.GroupKind, Name: "RootUsers"}, {Name: "default", Namespace: "foo", Kind: authorizationapi.ServiceAccountKind}},
 			},
 			"user-only": {
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "user-only",
 				},
 				RoleRef: kapi.ObjectReference{
@@ -680,13 +681,13 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 func newAdzePolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.PolicyName,
 				Namespace: "adze",
 			},
 			Roles: map[string]*authorizationapi.Role{
 				"restrictedViewer": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "admin",
 						Namespace: "adze",
 					},
@@ -703,13 +704,13 @@ func newAdzePolicies() []authorizationapi.Policy {
 func newAdzeBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "adze",
 			},
 			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"projectAdmins": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "projectAdmins",
 						Namespace: "adze",
 					},
@@ -719,7 +720,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Anna"}},
 				},
 				"viewers": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "viewers",
 						Namespace: "adze",
 					},
@@ -733,7 +734,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 					},
 				},
 				"editors": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "editors",
 						Namespace: "adze",
 					},
@@ -745,13 +746,13 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.GetPolicyBindingName("adze"),
 				Namespace: "adze",
 			},
 			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"restrictedViewers": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "restrictedViewers",
 						Namespace: "adze",
 					},

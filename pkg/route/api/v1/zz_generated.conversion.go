@@ -5,13 +5,13 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/route/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
+
+	api "github.com/openshift/origin/pkg/route/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -110,7 +110,7 @@ func autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *Route
 	out.Status = pkg_api.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*metav1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -123,7 +123,7 @@ func autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *api.R
 	out.Status = api_v1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*metav1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 

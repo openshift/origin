@@ -9,8 +9,8 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	regclient "github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -54,7 +54,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking that the image converted...")
-		image, err := oc.AsAdmin().Client().Images().Get(imageDigest)
+		image, err := oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
@@ -68,7 +68,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(len(manifest)).Should(o.BeNumerically(">", 0))
 
 		g.By("restoring manifest...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest)
+		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageMetadataNotEmpty(image)
 
@@ -79,7 +79,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		imageMetadataNotEmpty(newImage)
 
 		g.By("checking that the manifest is present in the image...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest)
+		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.BeNumerically(">", 0))
 		o.Expect(image.DockerImageManifest).Should(o.Equal(string(manifest)))
@@ -95,7 +95,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking that the manifest was removed from the image...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest)
+		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
@@ -131,7 +131,7 @@ func imageMetadataNotEmpty(image *imageapi.Image) {
 
 func waitForImageUpdate(oc *exutil.CLI, image *imageapi.Image) error {
 	return wait.Poll(200*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		newImage, err := oc.AsAdmin().Client().Images().Get(image.Name)
+		newImage, err := oc.AsAdmin().Client().Images().Get(image.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -144,7 +144,7 @@ func waitForImageUpdate(oc *exutil.CLI, image *imageapi.Image) error {
 // namespaces. It also deletes shared projects.
 func deleteTestImages(oc *exutil.CLI) {
 	g.By(fmt.Sprintf("Deleting images and image streams in project %q", oc.Namespace()))
-	iss, err := oc.AdminClient().ImageStreams(oc.Namespace()).List(kapi.ListOptions{})
+	iss, err := oc.AdminClient().ImageStreams(oc.Namespace()).List(metav1.ListOptions{})
 	if err != nil {
 		return
 	}

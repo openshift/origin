@@ -5,13 +5,13 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
+
+	api "github.com/openshift/origin/pkg/image/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 func init() {
@@ -330,7 +330,7 @@ func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out
 	out.Conditions = *(*[]api.SignatureCondition)(unsafe.Pointer(&in.Conditions))
 	out.ImageIdentity = in.ImageIdentity
 	out.SignedClaims = *(*map[string]string)(unsafe.Pointer(&in.SignedClaims))
-	out.Created = (*unversioned.Time)(unsafe.Pointer(in.Created))
+	out.Created = (*metav1.Time)(unsafe.Pointer(in.Created))
 	out.IssuedBy = (*api.SignatureIssuer)(unsafe.Pointer(in.IssuedBy))
 	out.IssuedTo = (*api.SignatureSubject)(unsafe.Pointer(in.IssuedTo))
 	return nil
@@ -349,7 +349,7 @@ func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature,
 	out.Conditions = *(*[]SignatureCondition)(unsafe.Pointer(&in.Conditions))
 	out.ImageIdentity = in.ImageIdentity
 	out.SignedClaims = *(*map[string]string)(unsafe.Pointer(&in.SignedClaims))
-	out.Created = (*unversioned.Time)(unsafe.Pointer(in.Created))
+	out.Created = (*metav1.Time)(unsafe.Pointer(in.Created))
 	out.IssuedBy = (*SignatureIssuer)(unsafe.Pointer(in.IssuedBy))
 	out.IssuedTo = (*SignatureSubject)(unsafe.Pointer(in.IssuedTo))
 	return nil

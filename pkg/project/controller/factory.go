@@ -3,13 +3,14 @@ package controller
 import (
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
@@ -25,10 +26,10 @@ type NamespaceControllerFactory struct {
 // Create creates a NamespaceController.
 func (factory *NamespaceControllerFactory) Create() controller.RunnableController {
 	namespaceLW := &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return factory.KubeClient.Core().Namespaces().List(options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return factory.KubeClient.Core().Namespaces().Watch(options)
 		},
 	}

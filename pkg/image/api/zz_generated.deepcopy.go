@@ -5,11 +5,11 @@
 package api
 
 import (
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
 )
 
 func init() {
@@ -479,7 +479,7 @@ func DeepCopy_api_ImageImportStatus(in interface{}, out interface{}, c *conversi
 		in := in.(*ImageImportStatus)
 		out := out.(*ImageImportStatus)
 		out.Tag = in.Tag
-		if err := unversioned.DeepCopy_unversioned_Status(&in.Status, &out.Status, c); err != nil {
+		if err := metav1.DeepCopy_unversioned_Status(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
 		if in.Image != nil {
@@ -566,7 +566,7 @@ func DeepCopy_api_ImageSignature(in interface{}, out interface{}, c *conversion.
 		}
 		if in.Created != nil {
 			in, out := &in.Created, &out.Created
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.Created = nil
@@ -859,7 +859,7 @@ func DeepCopy_api_RepositoryImportStatus(in interface{}, out interface{}, c *con
 	{
 		in := in.(*RepositoryImportStatus)
 		out := out.(*RepositoryImportStatus)
-		if err := unversioned.DeepCopy_unversioned_Status(&in.Status, &out.Status, c); err != nil {
+		if err := metav1.DeepCopy_unversioned_Status(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
 		if in.Images != nil {

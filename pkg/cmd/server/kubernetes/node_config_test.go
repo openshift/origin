@@ -6,17 +6,17 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apiserver/pkg/util/flag"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/flag"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -34,7 +34,7 @@ func TestKubeletDefaults(t *testing.T) {
 			AllowPrivileged: false,     // overridden
 			Authentication: componentconfig.KubeletAuthentication{
 				Webhook: componentconfig.KubeletWebhookAuthentication{
-					CacheTTL: unversioned.Duration{Duration: 2 * time.Minute},
+					CacheTTL: metav1.Duration{Duration: 2 * time.Minute},
 				},
 				Anonymous: componentconfig.KubeletAnonymousAuthentication{
 					Enabled: true,
@@ -43,12 +43,12 @@ func TestKubeletDefaults(t *testing.T) {
 			Authorization: componentconfig.KubeletAuthorization{
 				Mode: componentconfig.KubeletAuthorizationModeAlwaysAllow,
 				Webhook: componentconfig.KubeletWebhookAuthorization{
-					CacheAuthorizedTTL:   unversioned.Duration{Duration: 5 * time.Minute},
-					CacheUnauthorizedTTL: unversioned.Duration{Duration: 30 * time.Second},
+					CacheAuthorizedTTL:   metav1.Duration{Duration: 5 * time.Minute},
+					CacheUnauthorizedTTL: metav1.Duration{Duration: 30 * time.Second},
 				},
 			},
 			CAdvisorPort:                4194, // disabled
-			VolumeStatsAggPeriod:        unversioned.Duration{Duration: time.Minute},
+			VolumeStatsAggPeriod:        metav1.Duration{Duration: time.Minute},
 			CertDirectory:               "/var/run/kubernetes",
 			CgroupRoot:                  "",
 			CgroupDriver:                "cgroupfs",
@@ -65,14 +65,14 @@ func TestKubeletDefaults(t *testing.T) {
 			EnableDebuggingHandlers:     true,
 			EnableServer:                true,
 			EvictionHard:                "memory.available<100Mi",
-			FileCheckFrequency:          unversioned.Duration{Duration: 20 * time.Second}, // overridden
-			HealthzBindAddress:          "127.0.0.1",                                      // disabled
-			HealthzPort:                 10248,                                            // disabled
-			HostNetworkSources:          []string{"*"},                                    // overridden
-			HostPIDSources:              []string{"*"},                                    // overridden
-			HostIPCSources:              []string{"*"},                                    // overridden
-			HTTPCheckFrequency:          unversioned.Duration{Duration: 20 * time.Second}, // disabled
-			ImageMinimumGCAge:           unversioned.Duration{Duration: 120 * time.Second},
+			FileCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // overridden
+			HealthzBindAddress:          "127.0.0.1",                                 // disabled
+			HealthzPort:                 10248,                                       // disabled
+			HostNetworkSources:          []string{"*"},                               // overridden
+			HostPIDSources:              []string{"*"},                               // overridden
+			HostIPCSources:              []string{"*"},                               // overridden
+			HTTPCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // disabled
+			ImageMinimumGCAge:           metav1.Duration{Duration: 120 * time.Second},
 			ImageGCHighThresholdPercent: 85,
 			ImageGCLowThresholdPercent:  80,
 			IPTablesMasqueradeBit:       14,
@@ -84,12 +84,12 @@ func TestKubeletDefaults(t *testing.T) {
 			MaxPerPodContainerCount:     1,
 			MaxOpenFiles:                1000000,
 			MaxPods:                     110, // overridden
-			MinimumGCAge:                unversioned.Duration{},
+			MinimumGCAge:                metav1.Duration{},
 			NetworkPluginDir:            "",
 			NetworkPluginName:           "", // overridden
 			NonMasqueradeCIDR:           "10.0.0.0/8",
 			VolumePluginDir:             "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
-			NodeStatusUpdateFrequency:   unversioned.Duration{Duration: 10 * time.Second},
+			NodeStatusUpdateFrequency:   metav1.Duration{Duration: 10 * time.Second},
 			NodeLabels:                  nil,
 			OOMScoreAdj:                 -999,
 			LockFilePath:                "",
@@ -108,24 +108,24 @@ func TestKubeletDefaults(t *testing.T) {
 			RootDirectory:                  "/var/lib/kubelet", // overridden
 			RuntimeCgroups:                 "",
 			SerializeImagePulls:            true,
-			StreamingConnectionIdleTimeout: unversioned.Duration{Duration: 4 * time.Hour},
-			SyncFrequency:                  unversioned.Duration{Duration: 1 * time.Minute},
+			StreamingConnectionIdleTimeout: metav1.Duration{Duration: 4 * time.Hour},
+			SyncFrequency:                  metav1.Duration{Duration: 1 * time.Minute},
 			SystemCgroups:                  "",
 			TLSCertFile:                    "", // overridden to prevent cert generation
 			TLSPrivateKeyFile:              "", // overridden to prevent cert generation
 			ReconcileCIDR:                  true,
 			KubeAPIQPS:                     5.0,
 			KubeAPIBurst:                   10,
-			OutOfDiskTransitionFrequency:   unversioned.Duration{Duration: 5 * time.Minute},
+			OutOfDiskTransitionFrequency:   metav1.Duration{Duration: 5 * time.Minute},
 			HairpinMode:                    "promiscuous-bridge",
 			BabysitDaemons:                 false,
 			SeccompProfileRoot:             "/var/lib/kubelet/seccomp",
 			CloudProvider:                  "auto-detect",
-			RuntimeRequestTimeout:          unversioned.Duration{Duration: 2 * time.Minute},
+			RuntimeRequestTimeout:          metav1.Duration{Duration: 2 * time.Minute},
 			ContentType:                    "application/vnd.kubernetes.protobuf",
 			EnableControllerAttachDetach:   true,
 
-			EvictionPressureTransitionPeriod:    unversioned.Duration{Duration: 5 * time.Minute},
+			EvictionPressureTransitionPeriod:    metav1.Duration{Duration: 5 * time.Minute},
 			ExperimentalKernelMemcgNotification: false,
 
 			SystemReserved: utilconfig.ConfigurationMap{},
@@ -150,18 +150,18 @@ func TestProxyConfig(t *testing.T) {
 			BindAddress:                  "0.0.0.0",
 			ClusterCIDR:                  "",
 			ConntrackMin:                 128 * 1024,
-			ConntrackTCPCloseWaitTimeout: unversioned.Duration{Duration: 1 * time.Hour},
+			ConntrackTCPCloseWaitTimeout: metav1.Duration{Duration: 1 * time.Hour},
 			HealthzPort:                  10249,         // disabled
 			HealthzBindAddress:           "127.0.0.1",   // disabled
 			OOMScoreAdj:                  &oomScoreAdj,  // disabled
 			ResourceContainer:            "/kube-proxy", // disabled
-			IPTablesSyncPeriod:           unversioned.Duration{Duration: 30 * time.Second},
+			IPTablesSyncPeriod:           metav1.Duration{Duration: 30 * time.Second},
 			// from k8s.io/kubernetes/cmd/kube-proxy/app/options/options.go
 			// defaults to 14.
 			IPTablesMasqueradeBit:          &ipTablesMasqueratebit,
-			UDPIdleTimeout:                 unversioned.Duration{Duration: 250 * time.Millisecond},
+			UDPIdleTimeout:                 metav1.Duration{Duration: 250 * time.Millisecond},
 			ConntrackMaxPerCore:            32 * 1024,
-			ConntrackTCPEstablishedTimeout: unversioned.Duration{Duration: 86400 * time.Second}, // 1 day (1/5 default)
+			ConntrackTCPEstablishedTimeout: metav1.Duration{Duration: 86400 * time.Second}, // 1 day (1/5 default)
 		},
 		ConfigSyncPeriod: 15 * time.Minute,
 		KubeAPIQPS:       5.0,

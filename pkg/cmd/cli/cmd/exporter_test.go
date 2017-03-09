@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -30,7 +31,7 @@ func TestExport(t *testing.T) {
 			name:   "export deploymentConfig",
 			object: deploytest.OkDeploymentConfig(1),
 			expectedObj: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:       "config",
 					Generation: 1,
 				},
@@ -42,7 +43,7 @@ func TestExport(t *testing.T) {
 		{
 			name: "export imageStream",
 			object: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "other",
 				},
@@ -63,7 +64,7 @@ func TestExport(t *testing.T) {
 				},
 			},
 			expectedObj: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "",
 				},
@@ -87,7 +88,7 @@ func TestExport(t *testing.T) {
 		{
 			name: "remove unexportable SA secrets",
 			object: &kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
@@ -101,7 +102,7 @@ func TestExport(t *testing.T) {
 				},
 			},
 			expectedObj: &kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
@@ -116,7 +117,7 @@ func TestExport(t *testing.T) {
 		{
 			name: "do not remove unexportable SA secrets with exact",
 			object: &kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{
@@ -130,7 +131,7 @@ func TestExport(t *testing.T) {
 				},
 			},
 			expectedObj: &kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: baseSA.Name,
 				},
 				ImagePullSecrets: []kapi.LocalObjectReference{

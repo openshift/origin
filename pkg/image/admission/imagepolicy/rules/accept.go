@@ -2,22 +2,21 @@ package rules
 
 import (
 	"github.com/golang/glog"
-
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 )
 
 type Accepter interface {
-	Covers(unversioned.GroupResource) bool
+	Covers(schema.GroupResource) bool
 
 	Accepts(*ImagePolicyAttributes) bool
 }
 
 // mappedAccepter implements the Accepter interface for a map of group resources and accepters
-type mappedAccepter map[unversioned.GroupResource]Accepter
+type mappedAccepter map[schema.GroupResource]Accepter
 
-func (a mappedAccepter) Covers(gr unversioned.GroupResource) bool {
+func (a mappedAccepter) Covers(gr schema.GroupResource) bool {
 	_, ok := a[gr]
 	return ok
 }
@@ -34,7 +33,7 @@ func (a mappedAccepter) Accepts(attr *ImagePolicyAttributes) bool {
 
 type executionAccepter struct {
 	rules         []api.ImageExecutionPolicyRule
-	covers        unversioned.GroupResource
+	covers        schema.GroupResource
 	defaultReject bool
 
 	integratedRegistryMatcher RegistryMatcher
@@ -82,7 +81,7 @@ func NewExecutionRulesAccepter(rules []api.ImageExecutionPolicyRule, integratedR
 	return mapped, nil
 }
 
-func (r *executionAccepter) Covers(gr unversioned.GroupResource) bool {
+func (r *executionAccepter) Covers(gr schema.GroupResource) bool {
 	return r.covers == gr
 }
 

@@ -2,11 +2,12 @@ package v1
 
 import (
 	fmt "fmt"
+
+	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
 type CoreV1Interface interface {
@@ -14,7 +15,7 @@ type CoreV1Interface interface {
 	PoliciesGetter
 }
 
-// CoreV1Client is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// CoreV1Client is used to interact with features provided by the k8s.io/apimachinery/pkg/apimachinery/registered.Group group.
 type CoreV1Client struct {
 	restClient restclient.Interface
 }
@@ -52,7 +53,7 @@ func New(c restclient.Interface) *CoreV1Client {
 }
 
 func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("/v1")
+	gv, err := schema.ParseGroupVersion("/v1")
 	if err != nil {
 		return err
 	}

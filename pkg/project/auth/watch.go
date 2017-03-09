@@ -6,13 +6,13 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/auth/user"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
@@ -123,7 +123,7 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, users,
 		select {
 		case w.cacheIncoming <- watch.Event{
 			Type:   watch.Deleted,
-			Object: projectutil.ConvertNamespace(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespaceName}}),
+			Object: projectutil.ConvertNamespace(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}),
 		}:
 		default:
 			// remove the watcher so that we wont' be notified again and block
@@ -215,8 +215,8 @@ func (w *userProjectWatcher) Watch() {
 func makeErrorEvent(err error) watch.Event {
 	return watch.Event{
 		Type: watch.Error,
-		Object: &unversioned.Status{
-			Status:  unversioned.StatusFailure,
+		Object: &metav1.Status{
+			Status:  metav1.StatusFailure,
 			Message: err.Error(),
 		},
 	}

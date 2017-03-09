@@ -7,14 +7,15 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 // QuotaApplicator is used to apply quota to an emptyDir volume.
 type QuotaApplicator interface {
 	// Apply the quota to the given EmptyDir path:
-	Apply(dir string, medium api.StorageMedium, pod *api.Pod, fsGroup *int64, quota resource.Quantity) error
+	Apply(dir string, medium v1.StorageMedium, pod *v1.Pod, fsGroup *int64, quota resource.Quantity) error
 }
 
 type xfsQuotaApplicator struct {
@@ -103,9 +104,9 @@ func (cr *realQuotaCommandRunner) RunMountOptionsCommand() (string, error) {
 // if anything goes wrong during the process. (not an XFS filesystem, etc) If the volume medium is set
 // to memory, or no FSGroup is provided (indicating the request matched an SCC set to RunAsAny), this
 // method will effectively no-op.
-func (xqa *xfsQuotaApplicator) Apply(dir string, medium api.StorageMedium, pod *api.Pod, fsGroup *int64, quota resource.Quantity) error {
+func (xqa *xfsQuotaApplicator) Apply(dir string, medium v1.StorageMedium, pod *v1.Pod, fsGroup *int64, quota resource.Quantity) error {
 
-	if medium == api.StorageMediumMemory {
+	if medium == v1.StorageMediumMemory {
 		glog.V(5).Infof("Skipping quota application due to memory storage medium.")
 		return nil
 	}

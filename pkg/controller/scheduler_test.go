@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	flowcontrol "k8s.io/kubernetes/pkg/util/flowcontrol"
+	flowcontrol "k8s.io/client-go/util/flowcontrol"
 )
 
 func TestScheduler(t *testing.T) {

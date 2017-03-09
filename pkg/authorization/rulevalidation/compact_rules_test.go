@@ -5,9 +5,9 @@ import (
 	"sort"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/api"
 )
@@ -142,63 +142,63 @@ func TestIsSimpleResourceRule(t *testing.T) {
 	testcases := map[string]struct {
 		Rule     api.PolicyRule
 		Simple   bool
-		Resource unversioned.GroupResource
+		Resource schema.GroupResource
 	}{
 		"simple, no verbs": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString(), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
-			Resource: unversioned.GroupResource{Group: "", Resource: "builds"},
+			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 		"simple, one verb": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
-			Resource: unversioned.GroupResource{Group: "", Resource: "builds"},
+			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 		"simple, multi verb": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get", "list"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
-			Resource: unversioned.GroupResource{Group: "", Resource: "builds"},
+			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 
 		"complex, empty": {
 			Rule:     api.PolicyRule{},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, no group": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{}, Resources: sets.NewString("builds")},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, multi group": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{"a", "b"}, Resources: sets.NewString("builds")},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, no resource": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString()},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, multi resource": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, resource names": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("foo")},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, attribute restrictions": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 		"complex, non-resource urls": {
 			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/")},
 			Simple:   false,
-			Resource: unversioned.GroupResource{},
+			Resource: schema.GroupResource{},
 		},
 	}
 

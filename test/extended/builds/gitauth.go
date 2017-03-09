@@ -10,6 +10,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -106,7 +108,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the token secret name for the builder service account")
-				sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder")
+				sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				for _, s := range sa.Secrets {
 					if strings.Contains(s.Name, "token") {

@@ -1,9 +1,10 @@
 package cache
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 )
 
 // IndexerToSecurityContextConstraintsLister gives a store List and Exists methods. The store must contain only SecurityContextConstraints.
@@ -21,7 +22,7 @@ func (s *IndexerToSecurityContextConstraintsLister) List() ([]*kapi.SecurityCont
 }
 
 func (s *IndexerToSecurityContextConstraintsLister) Get(name string) (*kapi.SecurityContextConstraints, error) {
-	keyObj := &kapi.SecurityContextConstraints{ObjectMeta: kapi.ObjectMeta{Name: name}}
+	keyObj := &kapi.SecurityContextConstraints{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := s.GetByKey(key)

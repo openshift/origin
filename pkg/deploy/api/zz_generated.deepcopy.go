@@ -5,12 +5,12 @@
 package api
 
 import (
-	image_api "github.com/openshift/origin/pkg/image/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
+
+	image_api "github.com/openshift/origin/pkg/image/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	pkg_api "k8s.io/kubernetes/pkg/api"
 )
 
 func init() {
@@ -318,7 +318,7 @@ func DeepCopy_api_DeploymentLogOptions(in interface{}, out interface{}, c *conve
 		}
 		if in.SinceTime != nil {
 			in, out := &in.SinceTime, &out.SinceTime
-			*out = new(unversioned.Time)
+			*out = new(metav1.Time)
 			**out = (*in).DeepCopy()
 		} else {
 			out.SinceTime = nil

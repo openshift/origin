@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -28,7 +29,7 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 	}
 	var netns *sdnapi.NetNamespace
 	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
-		netns, err = osClient.NetNamespaces().Get(name)
+		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return false, nil
 		} else if err != nil {
@@ -56,7 +57,7 @@ func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, a
 	}
 	name := netns.Name
 	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
-		netns, err = osClient.NetNamespaces().Get(name)
+		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -121,7 +122,7 @@ func TestOadmPodNetwork(t *testing.T) {
 	if newNetns2.NetID != origNetns1.NetID {
 		t.Fatalf("expected netns2 (%d) to be joined to netns1 (%d)", newNetns2.NetID, origNetns1.NetID)
 	}
-	newNetns1, err := osClient.NetNamespaces().Get("one")
+	newNetns1, err := osClient.NetNamespaces().Get("one", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting refetching NetNamespace: %v", err)
 	}
@@ -136,7 +137,7 @@ func TestOadmPodNetwork(t *testing.T) {
 	if newNetns1.NetID != 0 {
 		t.Fatalf("expected netns1 (%d) to be global", newNetns1.NetID)
 	}
-	newNetns2, err = osClient.NetNamespaces().Get("two")
+	newNetns2, err = osClient.NetNamespaces().Get("two", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting refetching NetNamespace: %v", err)
 	}

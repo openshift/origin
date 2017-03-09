@@ -15,9 +15,9 @@ import (
 
 	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/util/interrupt"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/source-to-image/pkg/tar"
 

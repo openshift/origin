@@ -3,12 +3,12 @@ package api
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type tag struct {
 	Name    string
-	Created unversioned.Time
+	Created metav1.Time
 }
 
 type byCreationTimestamp []tag

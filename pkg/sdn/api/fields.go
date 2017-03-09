@@ -1,6 +1,6 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import "k8s.io/apimachinery/pkg/fields"
 
 // ClusterNetworkToSelectableFields returns a label set that represents the object
 func ClusterNetworkToSelectableFields(network *ClusterNetwork) fields.Set {

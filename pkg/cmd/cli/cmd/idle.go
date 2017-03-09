@@ -10,22 +10,24 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/typed/deploy/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
@@ -202,7 +204,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
-		pod, err := client.Pods(ref.Namespace).Get(ref.Name)
+		pod, err := client.Core().Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -213,21 +215,21 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 	}
 
 	controllersLoaded := make(map[kapi.ObjectReference]runtime.Object)
-	helpers := make(map[unversioned.GroupKind]*resource.Helper)
+	helpers := make(map[schema.GroupKind]*resource.Helper)
 	getController := func(ref kapi.ObjectReference) (runtime.Object, error) {
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
 		}
-		gv, err := unversioned.ParseGroupVersion(ref.APIVersion)
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, err
 		}
 		// just get the unversioned version of this
-		gk := unversioned.GroupKind{Group: gv.Group, Kind: ref.Kind}
+		gk := schema.GroupKind{Group: gv.Group, Kind: ref.Kind}
 		helper, ok := helpers[gk]
 		if !ok {
 			var mapping *meta.RESTMapping
-			mapping, err = mapper.RESTMapping(unversioned.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
+			mapping, err = mapper.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
 			if err != nil {
 				return nil, err
 			}
@@ -326,7 +328,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 }
 
 func makeCrossGroupObjRef(ref *kapi.ObjectReference) (unidlingapi.CrossGroupObjectReference, error) {
-	gv, err := unversioned.ParseGroupVersion(ref.APIVersion)
+	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return unidlingapi.CrossGroupObjectReference{}, err
 	}
@@ -482,7 +484,7 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 }
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
-func patchObj(obj runtime.Object, metadata meta.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
+func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
 	newData, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
@@ -499,7 +501,7 @@ func patchObj(obj runtime.Object, metadata meta.Object, oldData []byte, mapping 
 	}
 	helper := resource.NewHelper(client, mapping)
 
-	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), kapi.StrategicMergePatchType, patchBytes)
+	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), types.StrategicMergePatchType, patchBytes)
 }
 
 type scaleInfo struct {
@@ -535,7 +537,8 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		return err
 	}
 
-	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient.Extensions())
+	externalKubeExtensionClient := kextensionsclient.New(kclient.Core().RESTClient())
+	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, externalKubeExtensionClient)
 	dcGetter := deployclient.New(oclient.RESTClient)
 
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, kclient.Core(), func(currentReplicas int32, annotations map[string]string) {

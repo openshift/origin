@@ -1,8 +1,7 @@
 package api
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -13,8 +12,8 @@ const (
 // +genclient=true
 
 type ClusterNetwork struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	Network          string
 	HostSubnetLength uint32
@@ -23,15 +22,15 @@ type ClusterNetwork struct {
 }
 
 type ClusterNetworkList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []ClusterNetwork
 }
 
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// host may just be an IP address, resolvable hostname or a complete DNS
 	Host   string
@@ -41,15 +40,15 @@ type HostSubnet struct {
 
 // HostSubnetList is a collection of HostSubnets
 type HostSubnetList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []HostSubnet
 }
 
 // NetNamespace holds the network id against its name
 type NetNamespace struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	NetName string
 	NetID   uint32
@@ -57,8 +56,8 @@ type NetNamespace struct {
 
 // NetNamespaceList is a collection of NetNamespaces
 type NetNamespaceList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []NetNamespace
 }
 
@@ -89,15 +88,15 @@ type EgressNetworkPolicySpec struct {
 
 // EgressNetworkPolicy describes the current egress network policy
 type EgressNetworkPolicy struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	Spec EgressNetworkPolicySpec
 }
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 type EgressNetworkPolicyList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []EgressNetworkPolicy
 }

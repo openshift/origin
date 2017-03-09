@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -185,7 +186,7 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 }
 
 func (o *SCCModificationOptions) AddSCC() error {
-	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName)
+	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -206,7 +207,7 @@ func (o *SCCModificationOptions) AddSCC() error {
 }
 
 func (o *SCCModificationOptions) RemoveSCC() error {
-	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName)
+	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

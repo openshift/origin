@@ -3,8 +3,10 @@ package podsecuritypolicysubjectreview
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -15,7 +17,7 @@ import (
 
 func saSCC() *kapi.SecurityContextConstraints {
 	return &kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			SelfLink: "/api/version/securitycontextconstraints/scc-sa",
 			Name:     "scc-sa",
 		},
@@ -124,7 +126,7 @@ func TestAllowed(t *testing.T) {
 
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
-		ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		obj, err := storage.Create(ctx, reviewRequest)
 		if err != nil {
 			t.Errorf("%s - Unexpected error: %v", testName, err)
@@ -235,7 +237,7 @@ func TestRequests(t *testing.T) {
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
-		ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		_, err := storage.Create(ctx, testcase.request)
 		switch {
 		case err == nil && len(testcase.errorMessage) == 0:

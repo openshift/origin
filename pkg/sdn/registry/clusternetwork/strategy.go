@@ -3,12 +3,13 @@ package clusternetwork
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/api/validation"
@@ -23,7 +24,7 @@ type sdnStrategy struct {
 // objects via the REST API.
 var Strategy = sdnStrategy{kapi.Scheme}
 
-func (sdnStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (sdnStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for sdns
 func (sdnStrategy) NamespaceScoped() bool {
@@ -34,7 +35,7 @@ func (sdnStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (sdnStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (sdnStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -42,7 +43,7 @@ func (sdnStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new sdn
-func (sdnStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (sdnStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateClusterNetwork(obj.(*api.ClusterNetwork))
 }
 
@@ -56,7 +57,7 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for a ClusterNetwork
-func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (sdnStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateClusterNetworkUpdate(obj.(*api.ClusterNetwork), old.(*api.ClusterNetwork))
 }
 

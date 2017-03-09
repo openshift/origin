@@ -9,12 +9,12 @@ import (
 	"github.com/golang/glog"
 	lru "github.com/hashicorp/golang-lru"
 
-	"k8s.io/kubernetes/pkg/admission"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/meta"
@@ -58,7 +58,7 @@ type imagePolicyPlugin struct {
 
 	integratedRegistryMatcher integratedRegistryMatcher
 
-	resolveGroupResources []unversioned.GroupResource
+	resolveGroupResources []schema.GroupResource
 
 	projectCache *cache.ProjectCache
 	resolver     imageResolver
@@ -281,7 +281,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 				return &rules.ImagePolicyAttributes{Name: ref, Image: cached.image}, nil
 			}
 		}
-		image, err := c.images.Get(ref.ID)
+		image, err := c.images.Get(ref.ID, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

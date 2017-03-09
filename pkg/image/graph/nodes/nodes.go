@@ -3,7 +3,7 @@ package nodes
 import (
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -37,7 +37,7 @@ func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imageapi.Ima
 }
 
 func FindImage(g osgraph.MutableUniqueGraph, imageName string) graph.Node {
-	return g.Find(ImageNodeName(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: imageName}}))
+	return g.Find(ImageNodeName(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: imageName}}))
 }
 
 // EnsureDockerRepositoryNode adds the named Docker repository tag reference to the graph if it does
@@ -65,7 +65,7 @@ func EnsureDockerRepositoryNode(g osgraph.MutableUniqueGraph, name, tag string) 
 // based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
 func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageStreamTag {
 	return &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      imageapi.JoinImageStreamTag(name, tag),
 		},
@@ -76,7 +76,7 @@ func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageSt
 // based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
 func MakeImageStreamTagObjectMeta2(namespace, name string) *imageapi.ImageStreamTag {
 	return &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -107,7 +107,7 @@ func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *
 // based on a full ISI object.  This can be used to properly initialize the graph without having to retrieve all ISIs
 func MakeImageStreamImageObjectMeta(namespace, name string) *imageapi.ImageStreamImage {
 	return &imageapi.ImageStreamImage{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -118,7 +118,7 @@ func MakeImageStreamImageObjectMeta(namespace, name string) *imageapi.ImageStrea
 // does not already exist.
 func EnsureImageStreamImageNode(g osgraph.MutableUniqueGraph, namespace, name string) graph.Node {
 	isi := &imageapi.ImageStreamImage{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},

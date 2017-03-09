@@ -1,6 +1,7 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,7 +14,7 @@ type RolesNamespacer interface {
 
 // RoleInterface exposes methods on Role resources.
 type RoleInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.RoleList, error)
+	List(opts metainternal.ListOptions) (*authorizationapi.RoleList, error)
 	Get(name string) (*authorizationapi.Role, error)
 	Create(role *authorizationapi.Role) (*authorizationapi.Role, error)
 	Update(role *authorizationapi.Role) (*authorizationapi.Role, error)
@@ -35,7 +36,7 @@ func newRoles(c *Client, namespace string) *roles {
 }
 
 // List returns a list of roles that match the label and field selectors.
-func (c *roles) List(opts kapi.ListOptions) (result *authorizationapi.RoleList, err error) {
+func (c *roles) List(opts metainternal.ListOptions) (result *authorizationapi.RoleList, err error) {
 	result = &authorizationapi.RoleList{}
 	err = c.r.Get().Namespace(c.ns).Resource("roles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

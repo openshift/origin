@@ -7,12 +7,13 @@ import (
 
 	"golang.org/x/net/context"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/storage"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
 )
@@ -79,7 +80,7 @@ func watchForResourceVersion(versioner storage.Versioner, watcher rest.Watcher, 
 		return err
 	}
 
-	w, err := watcher.Watch(context.TODO(), &kapi.ListOptions{ResourceVersion: previousVersion})
+	w, err := watcher.Watch(context.TODO(), &metainternal.ListOptions{ResourceVersion: previousVersion})
 	if err != nil {
 		return fmt.Errorf("error verifying resourceVersion %s: %v", resourceVersion, err)
 	}

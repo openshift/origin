@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 )
 
 func TestAnonymous(t *testing.T) {

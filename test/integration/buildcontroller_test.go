@@ -3,6 +3,7 @@ package integration
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -69,7 +70,7 @@ func TestConcurrentBuildConfigControllers(t *testing.T) {
 	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclientset.Clientset) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -86,7 +87,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
 		t.Fatal(err)

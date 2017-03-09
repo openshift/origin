@@ -1,10 +1,10 @@
 package api
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
@@ -14,8 +14,8 @@ const (
 )
 
 var (
-	SchemeGroupVersion       = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
-	LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
+	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
 	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
@@ -25,22 +25,22 @@ var (
 )
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
-func Kind(kind string) unversioned.GroupKind {
+func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
 // LegacyKind takes an unqualified kind and returns back a Group qualified GroupKind
-func LegacyKind(kind string) unversioned.GroupKind {
+func LegacyKind(kind string) schema.GroupKind {
 	return LegacySchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
 // Resource takes an unqualified resource and returns back a Group qualified GroupResource
-func Resource(resource string) unversioned.GroupResource {
+func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
 // LegacyResource takes an unqualified resource and returns back a Group qualified GroupResource
-func LegacyResource(resource string) unversioned.GroupResource {
+func LegacyResource(resource string) schema.GroupResource {
 	return LegacySchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
@@ -84,10 +84,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,
-			&unversioned.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&kapi.ListOptions{},
-			&kapi.DeleteOptions{},
-			&kapi.ExportOptions{},
+			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
+			&metainternal.ListOptions{},
+			&metainternal.DeleteOptions{},
+			&metainternal.ExportOptions{},
 		)...,
 	)
 	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)

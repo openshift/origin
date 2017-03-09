@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -130,7 +130,7 @@ func (o *NewProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 // Run implements all the necessary functionality for RequestProject.
 func (o *NewProjectOptions) Run() error {
 	// TODO eliminate this when we get better forbidden messages
-	_, err := o.Client.ProjectRequests().List(kapi.ListOptions{})
+	_, err := o.Client.ProjectRequests().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

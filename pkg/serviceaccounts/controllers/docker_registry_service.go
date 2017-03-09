@@ -9,18 +9,19 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // DockerRegistryServiceControllerOptions contains options for the DockerRegistryServiceController
@@ -52,12 +53,12 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 
 	e.serviceCache, e.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
 				return e.client.Core().Services(options.RegistryNamespace).List(opts)
 			},
-			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
 				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
 			},
 		},
@@ -78,14 +79,14 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
-	dockercfgOptions := kapi.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
+	dockercfgOptions := metav1.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)}).String()}
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
-				return e.client.Core().Secrets(kapi.NamespaceAll).List(dockercfgOptions)
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
+				return e.client.Core().Secrets(metav1.NamespaceAll).List(dockercfgOptions)
 			},
-			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
-				return e.client.Core().Secrets(kapi.NamespaceAll).Watch(dockercfgOptions)
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+				return e.client.Core().Secrets(metav1.NamespaceAll).Watch(dockercfgOptions)
 			},
 		},
 		&kapi.Secret{},
@@ -107,12 +108,12 @@ type DockerRegistryServiceController struct {
 
 	dockercfgController *DockercfgController
 
-	serviceController           *cache.Controller
+	serviceController           cache.Controller
 	serviceCache                cache.Store
 	servicesSynced              func() bool
 	syncRegistryLocationHandler func(key string) error
 
-	secretController  *cache.Controller
+	secretController  cache.Controller
 	secretCache       cache.Store
 	secretsSynced     func() bool
 	syncSecretHandler func(key string) error
@@ -228,7 +229,7 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 
 // getDockerRegistryLocations returns the dns form and the ip form of the secret
 func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string {
-	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: kapi.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
+	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: metav1.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
 	if err != nil {
 		return []string{}
 	}

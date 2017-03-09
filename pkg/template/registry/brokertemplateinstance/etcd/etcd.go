@@ -1,12 +1,14 @@
 package etcd
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
+	rest "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for brokertemplateinstances against etcd

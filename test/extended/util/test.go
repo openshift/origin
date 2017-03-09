@@ -15,12 +15,13 @@ import (
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
@@ -153,7 +154,7 @@ func setCreateTestingNSFunc(baseName string, fn e2e.CreateTestingNSFn) {
 
 // createTestingNS delegates to custom namespace creation functions if registered.
 // otherwise, it ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
-func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapi.Namespace, error) {
+func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapiv1.Namespace, error) {
 	// If a custom function exists, call it
 	if fn, exists := customCreateTestingNSFuncs[baseName]; exists {
 		return fn(baseName, c, labels)
@@ -170,14 +171,14 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
 		// add the "privileged" scc to ensure pods that explicitly
 		// request extra capabilities are not rejected
-		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "privileged")
+		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "privileged")
 		// add the "anyuid" scc to ensure pods that don't specify a
 		// uid don't get forced into a range (mimics upstream
 		// behavior)
-		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "anyuid")
+		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "anyuid")
 		// add the "hostmount-anyuid" scc to ensure pods using hostPath
 		// can execute tests
-		addE2EServiceAccountsToSCC(c, []kapi.Namespace{*ns}, "hostmount-anyuid")
+		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
@@ -185,7 +186,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		if err != nil {
 			return ns, err
 		}
-		addRoleToE2EServiceAccounts(osClient, []kapi.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+		addRoleToE2EServiceAccounts(osClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
 	// some test suites assume they can schedule to all nodes
@@ -217,7 +218,7 @@ var longRetry = wait.Backoff{Steps: 100}
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
 func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
-		ns, err := c.Core().Namespaces().Get(namespace)
+		ns, err := c.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -225,7 +226,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 			ns.Annotations = make(map[string]string)
 		}
 		ns.Annotations["openshift.io/node-selector"] = ""
-		_, err = c.Core().Namespaces().Update(ns)
+		_, err = c.CoreV1().Namespaces().Update(ns)
 		return err
 	})
 	if err != nil {
@@ -233,11 +234,11 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapi.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := c.Core().SecurityContextConstraints().Get(sccName)
+		scc, err := c.CoreV1().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -250,7 +251,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapi.Namesp
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := c.Core().SecurityContextConstraints().Update(scc); err != nil {
+		if _, err := c.CoreV1().SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}
 		return nil
@@ -260,10 +261,10 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapi.Namesp
 	}
 }
 
-func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapi.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
-			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {
+			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
 				addRole := &policy.RoleModificationOptions{
 					RoleNamespace:       "",

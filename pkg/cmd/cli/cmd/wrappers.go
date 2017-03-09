@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/create"
 	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -563,8 +563,8 @@ var (
 )
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
-func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdApply(f, out)
+func NewCmdApply(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdApply(f, out, errOut)
 	cmd.Long = applyLong
 	cmd.Example = fmt.Sprintf(applyExample, fullName)
 	return cmd

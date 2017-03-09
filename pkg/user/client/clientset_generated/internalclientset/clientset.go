@@ -3,9 +3,9 @@ package internalclientset
 import (
 	"github.com/golang/glog"
 	internalversioncore "github.com/openshift/origin/pkg/user/client/clientset_generated/internalclientset/typed/core/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	discovery "k8s.io/client-go/discovery"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	_ "k8s.io/kubernetes/plugin/pkg/client/auth"
 )
 

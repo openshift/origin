@@ -10,12 +10,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -114,8 +115,8 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 		return fmt.Errorf("could not retrieve default namespace: %v", err)
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 
@@ -141,13 +142,13 @@ func (o *NewServiceAccountTokenOptions) Validate() error {
 
 // Run creates a new token secret, waits for the service account token controller to fulfill it, then adds the token to the service account
 func (o *NewServiceAccountTokenOptions) Run() error {
-	serviceAccount, err := o.SAClient.Get(o.SAName)
+	serviceAccount, err := o.SAClient.Get(o.SAName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	tokenSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: osautil.GetTokenSecretNamePrefix(serviceAccount),
 			Namespace:    serviceAccount.Namespace,
 			Labels:       o.Labels,
@@ -188,8 +189,8 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 	// there is no provided rounding function, so we use Round(x) === Floor(x + 0.5)
 	timeoutSeconds := int64(math.Floor(timeout.Seconds() + 0.5))
 
-	options := api.ListOptions{
-		FieldSelector:   fields.SelectorFromSet(fields.Set(map[string]string{"metadata.name": token.Name})),
+	options := metav1.ListOptions{
+		FieldSelector:   fields.SelectorFromSet(fields.Set(map[string]string{"metadata.name": token.Name})).String(),
 		Watch:           true,
 		ResourceVersion: token.ResourceVersion,
 		TimeoutSeconds:  &timeoutSeconds,

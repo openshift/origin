@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"regexp"
 
+	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
+
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
-	kapi "k8s.io/kubernetes/pkg/api"
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
-	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 var ParameterNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)

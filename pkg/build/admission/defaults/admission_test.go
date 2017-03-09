@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
@@ -12,7 +13,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	"k8s.io/kubernetes/pkg/api/resource"
 )
 
 func TestProxyDefaults(t *testing.T) {

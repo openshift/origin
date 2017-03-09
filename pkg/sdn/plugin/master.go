@@ -11,21 +11,20 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type OsdnMaster struct {
-	kClient         *kclientset.Clientset
+	kClient         kclientset.Interface
 	osClient        *osclient.Client
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclientset.Clientset) error {
+func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
@@ -45,7 +44,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 
 	createConfig := false
 	updateConfig := false
-	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err == nil {
 		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
 			networkConfig.HostSubnetLength != cn.HostSubnetLength ||
@@ -55,8 +54,8 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		}
 	} else {
 		cn = &osapi.ClusterNetwork{
-			TypeMeta:   kapiunversioned.TypeMeta{Kind: "ClusterNetwork"},
-			ObjectMeta: kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+			TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
+			ObjectMeta: metav1.ObjectMeta{Name: osapi.ClusterNetworkDefault},
 		}
 		createConfig = true
 	}
@@ -134,7 +133,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each host subnet is within the cluster network
-	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
+	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
 	}
@@ -150,7 +149,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
+	services, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
