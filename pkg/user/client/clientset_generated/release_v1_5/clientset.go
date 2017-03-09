@@ -3,8 +3,8 @@ package release_v1_5
 import (
 	"github.com/golang/glog"
 	v1core "github.com/openshift/origin/pkg/user/client/clientset_generated/release_v1_5/typed/core/v1"
+	discovery "k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
-	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	_ "k8s.io/kubernetes/plugin/pkg/client/auth"
 )

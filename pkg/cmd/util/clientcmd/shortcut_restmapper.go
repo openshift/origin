@@ -1,9 +1,9 @@
 package clientcmd
 
 import (
+	"k8s.io/client-go/discovery"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped

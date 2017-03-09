@@ -3,10 +3,10 @@ package client
 import (
 	"net/url"
 
+	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 // DiscoveryClient implements the functions that discovery server-supported API groups,
