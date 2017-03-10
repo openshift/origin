@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/watch/versioned"
 
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
@@ -47,7 +46,7 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Image{},
 		&ImageList{},
 		&ImageSignature{},
@@ -58,16 +57,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageStreamTagList{},
 		&ImageStreamImage{},
 		&ImageStreamImport{},
-	}
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&metainternal.ListOptions{},
-			&kapiv1.SecretList{},
-			&metainternal.DeleteOptions{},
-			&metainternal.ExportOptions{},
-		)...,
+		&kapiv1.SecretList{},
 	)
-	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
