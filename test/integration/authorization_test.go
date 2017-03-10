@@ -115,7 +115,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 	allResources := map[schema.GroupResource]bool{}
 	for _, resources := range allResourceList {
-		version, err := metav1.ParseGroupVersion(resources.GroupVersion)
+		version, err := schema.ParseGroupVersion(resources.GroupVersion)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

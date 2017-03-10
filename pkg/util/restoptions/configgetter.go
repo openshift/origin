@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -149,7 +148,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 			continue
 		}
 
-		resource := metav1.ParseGroupResource(tokens[0])
+		resource := schema.ParseGroupResource(tokens[0])
 
 		size, err := strconv.Atoi(tokens[1])
 		if err != nil {

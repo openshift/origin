@@ -382,7 +382,7 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 		return nil, err
 	}
 	for apiVersion, v := range all {
-		gv, err := metav1.ParseGroupVersion(apiVersion)
+		gv, err := schema.ParseGroupVersion(apiVersion)
 		if err != nil {
 			continue
 		}

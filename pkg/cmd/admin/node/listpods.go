@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -65,13 +65,7 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourceP
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-<<<<<<< HEAD
-	pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
-||||||| parent of 81936a82c0... Rewrite k8s.io/apiserver/pkg/endpoints/request
-	pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
-=======
 	pods, err := l.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
->>>>>>> 81936a82c0... Rewrite k8s.io/apiserver/pkg/endpoints/request
 	if err != nil {
 		return err
 	}
@@ -97,13 +91,7 @@ func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kubectl.R
 		}
 		fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
-<<<<<<< HEAD
-		pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
-||||||| parent of 81936a82c0... Rewrite k8s.io/apiserver/pkg/endpoints/request
-		pods, err := l.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
-=======
 		pods, err := l.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
->>>>>>> 81936a82c0... Rewrite k8s.io/apiserver/pkg/endpoints/request
 		if err != nil {
 			errList = append(errList, err)
 			continue

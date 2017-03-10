@@ -223,7 +223,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 
 		var groupVersionResource schema.GroupVersionResource
 		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Kind)
-		if groupVersion, err := metav1.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
+		if groupVersion, err := schema.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
 			groupVersionResource = groupVersion.WithResource(resource)
 		} else {
 			groupVersionResource = schema.GroupVersionResource{Resource: resource}

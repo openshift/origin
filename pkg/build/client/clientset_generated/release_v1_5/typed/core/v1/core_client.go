@@ -4,6 +4,7 @@ import (
 	fmt "fmt"
 
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
 	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
@@ -52,7 +53,7 @@ func New(c restclient.Interface) *CoreV1Client {
 }
 
 func setConfigDefaults(config *restclient.Config) error {
-	gv, err := metav1.ParseGroupVersion("/v1")
+	gv, err := schema.ParseGroupVersion("/v1")
 	if err != nil {
 		return err
 	}

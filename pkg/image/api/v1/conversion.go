@@ -4,7 +4,6 @@ import (
 	"sort"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +32,7 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 		gvString = "/" + gvString
 	}
 
-	version, err := metav1.ParseGroupVersion(gvString)
+	version, err := schema.ParseGroupVersion(gvString)
 	if err != nil {
 		return err
 	}

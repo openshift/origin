@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -219,7 +218,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
 		}
-		gv, err := metav1.ParseGroupVersion(ref.APIVersion)
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +326,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 }
 
 func makeCrossGroupObjRef(ref *kapi.ObjectReference) (unidlingapi.CrossGroupObjectReference, error) {
-	gv, err := metav1.ParseGroupVersion(ref.APIVersion)
+	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return unidlingapi.CrossGroupObjectReference{}, err
 	}

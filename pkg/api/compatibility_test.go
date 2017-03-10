@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -162,7 +161,7 @@ func TestAllowedGrouplessVersion(t *testing.T) {
 		"pre012":  {Group: "", Version: "pre012"},
 	}
 	for apiVersion, expectedGroupVersion := range versions {
-		groupVersion, err := metav1.ParseGroupVersion(apiVersion)
+		groupVersion, err := schema.ParseGroupVersion(apiVersion)
 		if err != nil {
 			t.Errorf("%s: unexpected error parsing: %v", apiVersion, err)
 			continue

@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -32,7 +31,7 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	}
 
 	for _, resource := range resources {
-		gv, err := metav1.ParseGroupVersion(resource.GroupVersion)
+		gv, err := schema.ParseGroupVersion(resource.GroupVersion)
 		if err != nil {
 			continue
 		}

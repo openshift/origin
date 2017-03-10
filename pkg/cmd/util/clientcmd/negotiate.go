@@ -68,7 +68,7 @@ func serverAPIVersions(c restclient.Interface, grouplessPrefix string) ([]schema
 	// Convert to GroupVersion structs
 	serverAPIVersions := []schema.GroupVersion{}
 	for _, version := range v.Versions {
-		gv, err := metav1.ParseGroupVersion(version)
+		gv, err := schema.ParseGroupVersion(version)
 		if err != nil {
 			return []schema.GroupVersion{}, err
 		}

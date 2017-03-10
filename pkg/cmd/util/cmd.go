@@ -12,7 +12,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -59,7 +58,7 @@ func ResolveResource(defaultResource schema.GroupResource, resourceString string
 		name = parts[1]
 
 		// Allow specifying the group the same way kubectl does, as "resource.group.name"
-		groupResource := metav1.ParseGroupResource(parts[0])
+		groupResource := schema.ParseGroupResource(parts[0])
 		// normalize resource case
 		groupResource.Resource = strings.ToLower(groupResource.Resource)
 
@@ -125,7 +124,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 // TODO: print-objects should have preferred output versions
 func convertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
 	requested := kcmdutil.GetFlagString(cmd, "output-version")
-	version, err := metav1.ParseGroupVersion(requested)
+	version, err := schema.ParseGroupVersion(requested)
 	if err != nil {
 		return nil, err
 	}

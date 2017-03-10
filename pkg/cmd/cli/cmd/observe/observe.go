@@ -23,8 +23,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/healthz"
@@ -289,7 +289,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("you may only specify one argument containing the resource to observe (use '--' to separate your resource and your command)")
 	}
 
-	gr := metav1.ParseGroupResource(args[0])
+	gr := schema.ParseGroupResource(args[0])
 	if gr.Empty() {
 		return fmt.Errorf("unknown resource argument")
 	}

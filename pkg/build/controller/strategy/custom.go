@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -29,7 +30,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	codec := bs.Codec
 	if len(strategy.BuildAPIVersion) != 0 {
-		gv, err := metav1.ParseGroupVersion(strategy.BuildAPIVersion)
+		gv, err := schema.ParseGroupVersion(strategy.BuildAPIVersion)
 		if err != nil {
 			return nil, &FatalError{fmt.Sprintf("failed to parse buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err)}
 		}

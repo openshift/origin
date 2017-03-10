@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -38,7 +38,7 @@ func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 }
 
 func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build, version string) *TestPod {
-	gv, err := metav1.ParseGroupVersion(version)
+	gv, err := schema.ParseGroupVersion(version)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

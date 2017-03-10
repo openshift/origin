@@ -2,7 +2,6 @@ package clientcmd
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 )
@@ -27,7 +26,7 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 
 	availableResources := []schema.GroupVersionResource{}
 	for groupVersionString, resourceList := range apiResources {
-		currVersion, err := metav1.ParseGroupVersion(groupVersionString)
+		currVersion, err := schema.ParseGroupVersion(groupVersionString)
 		if err != nil {
 			return defaultMapper
 		}
