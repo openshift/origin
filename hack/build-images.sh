@@ -64,8 +64,11 @@ function image-build() {
 	local tag=$1
 	local dir=$2
 	local dest="${tag}"
+	local extra=
 	if [[ ! "${tag}" == *":"* ]]; then
 		dest="${tag}:latest"
+		# tag to release commit unless we specified a hardcoded tag
+		extra="${tag}:${OS_RELEASE_COMMIT}"
 	fi
 
 	local STARTTIME
@@ -73,17 +76,13 @@ function image-build() {
 	STARTTIME="$(date +%s)"
 
 	# build the image
-	if ! os::build::image "${dir}" "${dest}"; then
+	if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
 		os::log::warning "Retrying build once"
-		if ! os::build::image "${dir}" "${dest}"; then
+		if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
 			return 1
 		fi
 	fi
 
-	# tag to release commit unless we specified a hardcoded tag
-	if [[ ! "${tag}" == *":"* ]]; then
-		docker tag "${dest}" "${tag}:${OS_RELEASE_COMMIT}"
-	fi
 	# ensure the temporary contents are cleaned up
 	git clean -fdx "${dir}"
 
@@ -146,11 +145,6 @@ image "openshift/openvswitch"               images/openvswitch
 # extra images (not part of infrastructure)
 image "openshift/hello-openshift"           examples/hello-openshift
 
-echo
-echo
-echo "++ Active images"
-
-docker images | grep openshift/ | grep ${OS_RELEASE_COMMIT} | sort
 echo
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
