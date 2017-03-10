@@ -51,6 +51,7 @@ type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	reloadInterval   time.Duration
+	reloadCallbacks  []func()
 	state            map[string]ServiceAliasConfig
 	serviceUnits     map[string]ServiceUnit
 	certManager      certificateManager
@@ -99,6 +100,7 @@ type templateRouterCfg struct {
 	templates              map[string]*template.Template
 	reloadScriptPath       string
 	reloadInterval         time.Duration
+	reloadCallbacks        []func()
 	defaultCertificate     string
 	defaultCertificatePath string
 	defaultCertificateDir  string
@@ -158,6 +160,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
 		reloadInterval:         cfg.reloadInterval,
+		reloadCallbacks:        cfg.reloadCallbacks,
 		state:                  make(map[string]ServiceAliasConfig),
 		serviceUnits:           make(map[string]ServiceUnit),
 		certManager:            certManager,
@@ -384,17 +387,25 @@ func (r *templateRouter) Commit() {
 
 // commitAndReload refreshes the backend and persists the router state.
 func (r *templateRouter) commitAndReload() error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	// only state changes must be done under the lock
+	if err := func() error {
+		r.lock.Lock()
+		defer r.lock.Unlock()
 
-	glog.V(4).Infof("Writing the router state")
-	if err := r.writeState(); err != nil {
+		glog.V(4).Infof("Writing the router state")
+		if err := r.writeState(); err != nil {
+			return err
+		}
+
+		glog.V(4).Infof("Writing the router config")
+		return r.writeConfig()
+	}(); err != nil {
 		return err
 	}
 
-	glog.V(4).Infof("Writing the router config")
-	if err := r.writeConfig(); err != nil {
-		return err
+	for i, fn := range r.reloadCallbacks {
+		glog.V(4).Infof("Calling reload function %d", i)
+		fn()
 	}
 
 	glog.V(4).Infof("Reloading the router")

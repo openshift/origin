@@ -41,6 +41,7 @@ type TemplatePluginConfig struct {
 	TemplatePath           string
 	ReloadScriptPath       string
 	ReloadInterval         time.Duration
+	ReloadCallbacks        []func()
 	DefaultCertificate     string
 	DefaultCertificatePath string
 	DefaultCertificateDir  string
@@ -133,6 +134,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		templates:              templates,
 		reloadScriptPath:       cfg.ReloadScriptPath,
 		reloadInterval:         cfg.ReloadInterval,
+		reloadCallbacks:        cfg.ReloadCallbacks,
 		defaultCertificate:     cfg.DefaultCertificate,
 		defaultCertificatePath: cfg.DefaultCertificatePath,
 		defaultCertificateDir:  cfg.DefaultCertificateDir,
