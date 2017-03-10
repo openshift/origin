@@ -2,7 +2,7 @@ package latest
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

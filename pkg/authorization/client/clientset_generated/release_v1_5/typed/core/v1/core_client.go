@@ -5,9 +5,9 @@ import (
 
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
-	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
 type CoreV1Interface interface {

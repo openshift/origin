@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
