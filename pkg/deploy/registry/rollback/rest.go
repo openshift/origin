@@ -64,6 +64,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, newInvalidError(rollback, "cannot rollback an undeployed config")
 	case 1:
 		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", deployutil.LabelForDeploymentConfig(from)))
+	case rollback.Spec.Revision:
+		return nil, newInvalidError(rollback, fmt.Sprintf("version %d is already the latest", rollback.Spec.Revision))
 	}
 
 	revision := from.Status.LatestVersion - 1
