@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"strings"
 	"testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -29,7 +30,21 @@ func (a authorizationAttributesAdapter) GetAPIGroup() string {
 }
 
 func (a authorizationAttributesAdapter) GetResource() string {
-	return a.attrs.Resource
+	// to match the RequestInfoFactory assuming an in.resource of one/two/three, one==resource, two==subresource, three=nothing
+	tokens := strings.SplitN(a.attrs.Resource, "/", 2)
+	if len(tokens) >= 1 {
+		return tokens[0]
+	}
+	return ""
+}
+
+func (a authorizationAttributesAdapter) GetSubresource() string {
+	// to match the RequestInfoFactory assuming an in.resource of one/two/three, one==resource, two==subresource, three=nothing
+	tokens := strings.SplitN(a.attrs.Resource, "/", 2)
+	if len(tokens) >= 2 {
+		return tokens[1]
+	}
+	return ""
 }
 
 func (a authorizationAttributesAdapter) GetResourceName() string {

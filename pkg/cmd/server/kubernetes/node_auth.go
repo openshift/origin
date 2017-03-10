@@ -60,7 +60,8 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 		APIVersion:   "v1",
 		APIGroup:     "",
 		Verb:         apiVerb,
-		Resource:     "nodes/proxy",
+		Resource:     "nodes",
+		Subresource:  "proxy",
 		ResourceName: n.nodeName,
 		URL:          r.URL.Path,
 	}
@@ -70,16 +71,16 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	switch {
 	case isSubpath(r, "/spec"):
 		attrs.Verb = apiVerb
-		attrs.Resource = authorizationapi.NodeSpecResource
+		attrs.Subresource = authorizationapi.NodeSpecSubresource
 	case isSubpath(r, "/stats"):
 		attrs.Verb = apiVerb
-		attrs.Resource = authorizationapi.NodeStatsResource
+		attrs.Subresource = authorizationapi.NodeStatsSubresource
 	case isSubpath(r, "/metrics"):
 		attrs.Verb = apiVerb
-		attrs.Resource = authorizationapi.NodeMetricsResource
+		attrs.Subresource = authorizationapi.NodeMetricsSubresource
 	case isSubpath(r, "/logs"):
 		attrs.Verb = apiVerb
-		attrs.Resource = authorizationapi.NodeLogResource
+		attrs.Subresource = authorizationapi.NodeLogSubresource
 	}
 	// TODO: handle other things like /healthz/*? not sure if "non-resource" urls on the kubelet make sense to authorize against master non-resource URL policy
 

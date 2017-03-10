@@ -20,9 +20,7 @@ func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbid
 	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
 }
 
-func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Action) (bool, string, error) {
-	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
-
+func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, attributes Action) (bool, string, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return false, "", errors.New("no user available on context")
@@ -54,9 +52,7 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Ac
 	return a.getAllowedSubjectsFromNamespaceBindings(namespace, attributes)
 }
 
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace string, passedAttributes Action) (sets.String, sets.String, error) {
-	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
-
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace string, attributes Action) (sets.String, sets.String, error) {
 	var errs []error
 
 	roleBindings, err := a.ruleResolver.GetRoleBindings(namespace)
@@ -77,7 +73,7 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 		}
 
 		for _, rule := range role.Rules() {
-			matches, err := attributes.RuleMatches(rule)
+			matches, err := RuleMatches(attributes, rule)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -96,14 +92,12 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
 // but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
 // status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namespace string, passedAttributes Action) (bool, string, error) {
-	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
-
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namespace string, attributes Action) (bool, string, error) {
 	allRules, ruleRetrievalError := a.ruleResolver.RulesFor(user, namespace)
 
 	var errs []error
 	for _, rule := range allRules {
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := RuleMatches(attributes, rule)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -124,24 +118,6 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namesp
 		errs = append(errs, ruleRetrievalError)
 	}
 	return false, "", kerrors.NewAggregate(errs)
-}
-
-// TODO this may or may not be the behavior we want for managing rules.  As a for instance, a verb might be specified
-// that our attributes builder will never satisfy.  For now, I think gets us close.  Maybe a warning message of some kind?
-func CoerceToDefaultAuthorizationAttributes(passedAttributes Action) *DefaultAuthorizationAttributes {
-	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
-	if !ok {
-		attributes = &DefaultAuthorizationAttributes{
-			APIGroup:       passedAttributes.GetAPIGroup(),
-			Verb:           passedAttributes.GetVerb(),
-			Resource:       passedAttributes.GetResource(),
-			ResourceName:   passedAttributes.GetResourceName(),
-			NonResourceURL: passedAttributes.IsNonResourceURL(),
-			URL:            passedAttributes.GetURL(),
-		}
-	}
-
-	return attributes
 }
 
 func doesApplyToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {

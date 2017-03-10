@@ -22,6 +22,7 @@ func TestRoundTrip(t *testing.T) {
 		APIVersion:     "av",
 		APIGroup:       "ag",
 		Resource:       "r",
+		Subresource:    "sub",
 		ResourceName:   "rn",
 		NonResourceURL: true,
 		URL:            "/123",
@@ -73,6 +74,9 @@ func TestRoundTrip(t *testing.T) {
 	if oattrs.GetResource() != oattrs2.GetResource() {
 		t.Errorf("Expected %v, got %v", oattrs.GetResource(), oattrs2.GetResource())
 	}
+	if oattrs.GetSubresource() != oattrs2.GetSubresource() {
+		t.Errorf("Expected %v, got %v", oattrs.GetSubresource(), oattrs2.GetSubresource())
+	}
 
 	// Ensure origin-specific info is preserved
 	if oattrs.GetAPIVersion() != oattrs2.GetAPIVersion() {
@@ -95,7 +99,7 @@ func TestRoundTrip(t *testing.T) {
 func TestAttributeIntersection(t *testing.T) {
 	// These are the things we expect to be shared
 	// Everything in this list should be used by OriginAuthorizerAttributes
-	expectedIntersection := sets.NewString("GetVerb", "GetResource", "GetAPIGroup", "GetAPIVersion")
+	expectedIntersection := sets.NewString("GetVerb", "GetResource", "GetSubresource", "GetAPIGroup", "GetAPIVersion")
 
 	// These are the things we expect to only be in the Kubernetes interface
 	// Everything in this list should be used by OriginAuthorizerAttributes or derivative (like IsReadOnly)

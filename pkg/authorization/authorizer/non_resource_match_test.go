@@ -67,7 +67,7 @@ func (test *nonResourceMatchTest) run(t *testing.T) {
 
 	rule := authorizationapi.PolicyRule{NonResourceURLs: sets.NewString(test.matcher)}
 
-	result := attributes.nonResourceMatches(rule)
+	result := nonResourceMatches(attributes, rule)
 
 	if result != test.expectedResult {
 		t.Errorf("Expected %v, got %v", test.expectedResult, result)

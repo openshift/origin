@@ -14,6 +14,7 @@ type DefaultAuthorizationAttributes struct {
 	APIVersion     string
 	APIGroup       string
 	Resource       string
+	Subresource    string
 	ResourceName   string
 	NonResourceURL bool
 	URL            string
@@ -21,22 +22,34 @@ type DefaultAuthorizationAttributes struct {
 
 // ToDefaultAuthorizationAttributes coerces Action to DefaultAuthorizationAttributes.  Namespace is not included
 // because the authorizer takes that information on the context
-func ToDefaultAuthorizationAttributes(in authorizationapi.Action) DefaultAuthorizationAttributes {
+func ToDefaultAuthorizationAttributes(in authorizationapi.Action) Action {
+	tokens := strings.SplitN(in.Resource, "/", 2)
+	resource := ""
+	subresource := ""
+	switch {
+	case len(tokens) == 2:
+		subresource = tokens[1]
+		fallthrough
+	case len(tokens) == 1:
+		resource = tokens[0]
+	}
+
 	return DefaultAuthorizationAttributes{
 		Verb:           in.Verb,
 		APIGroup:       in.Group,
 		APIVersion:     in.Version,
-		Resource:       in.Resource,
+		Resource:       resource,
+		Subresource:    subresource,
 		ResourceName:   in.ResourceName,
 		URL:            in.Path,
 		NonResourceURL: in.IsNonResourceURL,
 	}
 }
 
-func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
+func RuleMatches(a Action, rule authorizationapi.PolicyRule) (bool, error) {
 	if a.IsNonResourceURL() {
-		if a.nonResourceMatches(rule) {
-			if a.verbMatches(rule.Verbs) {
+		if nonResourceMatches(a, rule) {
+			if verbMatches(a, rule.Verbs) {
 				return true, nil
 			}
 		}
@@ -50,12 +63,12 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 		return false, nil
 	}
 
-	if a.verbMatches(rule.Verbs) {
-		if a.apiGroupMatches(rule.APIGroups) {
+	if verbMatches(a, rule.Verbs) {
+		if apiGroupMatches(a, rule.APIGroups) {
 
 			allowedResourceTypes := authorizationapi.NormalizeResources(rule.Resources)
-			if a.resourceMatches(allowedResourceTypes) {
-				if a.nameMatches(rule.ResourceNames) {
+			if resourceMatches(a, allowedResourceTypes) {
+				if nameMatches(a, rule.ResourceNames) {
 					return true, nil
 				}
 			}
@@ -65,7 +78,7 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	return false, nil
 }
 
-func (a DefaultAuthorizationAttributes) apiGroupMatches(allowedGroups []string) bool {
+func apiGroupMatches(a Action, allowedGroups []string) bool {
 	// allowedGroups is expected to be small, so I don't feel bad about this.
 	for _, allowedGroup := range allowedGroups {
 		if allowedGroup == authorizationapi.APIGroupAll {
@@ -80,19 +93,27 @@ func (a DefaultAuthorizationAttributes) apiGroupMatches(allowedGroups []string) 
 	return false
 }
 
-func (a DefaultAuthorizationAttributes) verbMatches(verbs sets.String) bool {
+func verbMatches(a Action, verbs sets.String) bool {
 	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
-func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes sets.String) bool {
-	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
+func resourceMatches(a Action, allowedResourceTypes sets.String) bool {
+	if allowedResourceTypes.Has(authorizationapi.ResourceAll) {
+		return true
+	}
+
+	if len(a.GetSubresource()) == 0 {
+		return allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
+	}
+
+	return allowedResourceTypes.Has(strings.ToLower(a.GetResource() + "/" + a.GetSubresource()))
 }
 
 // nameMatches checks to see if the resourceName of the action is in a the specified whitelist.  An empty whitelist indicates that any name is allowed.
 // An empty string in the whitelist should only match the action's resourceName if the resourceName itself is empty string.  This behavior allows for the
 // combination of a whitelist for gets in the same rule as a list that won't have a resourceName.  I don't recommend writing such a rule, but we do
 // handle it like you'd expect: white list is respected for gets while not preventing the list you explicitly asked for.
-func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames sets.String) bool {
+func nameMatches(a Action, allowedResourceNames sets.String) bool {
 	if len(allowedResourceNames) == 0 {
 		return true
 	}
@@ -100,12 +121,8 @@ func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames sets.St
 	return allowedResourceNames.Has(a.GetResourceName())
 }
 
-func (a DefaultAuthorizationAttributes) GetVerb() string {
-	return a.Verb
-}
-
 // nonResourceMatches take the remainer of a URL and attempts to match it against a series of explicitly allowed steps that can end in a wildcard
-func (a DefaultAuthorizationAttributes) nonResourceMatches(rule authorizationapi.PolicyRule) bool {
+func nonResourceMatches(a Action, rule authorizationapi.PolicyRule) bool {
 	for allowedNonResourcePath := range rule.NonResourceURLs {
 		// if the allowed resource path ends in a wildcard, check to see if the URL starts with it
 		if strings.HasSuffix(allowedNonResourcePath, "*") {
@@ -135,6 +152,10 @@ func splitPath(thePath string) []string {
 // DefaultAuthorizationAttributes satisfies the Action interface
 var _ Action = DefaultAuthorizationAttributes{}
 
+func (a DefaultAuthorizationAttributes) GetVerb() string {
+	return a.Verb
+}
+
 func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
 	return a.APIVersion
 }
@@ -145,6 +166,10 @@ func (a DefaultAuthorizationAttributes) GetAPIGroup() string {
 
 func (a DefaultAuthorizationAttributes) GetResource() string {
 	return a.Resource
+}
+
+func (a DefaultAuthorizationAttributes) GetSubresource() string {
+	return a.Subresource
 }
 
 func (a DefaultAuthorizationAttributes) GetResourceName() string {

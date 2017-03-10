@@ -177,9 +177,10 @@ func (o *podNodeConstraints) Validate() error {
 func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (bool, error) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
 	authzAttr := authorizer.DefaultAuthorizationAttributes{
-		Verb:     "create",
-		Resource: "pods/binding",
-		APIGroup: kapi.GroupName,
+		Verb:        "create",
+		Resource:    "pods",
+		Subresource: "binding",
+		APIGroup:    kapi.GroupName,
 	}
 	if attr.GetResource().GroupResource() == kapi.Resource("pods") {
 		authzAttr.ResourceName = attr.GetName()

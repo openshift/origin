@@ -93,21 +93,19 @@ func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes autho
 }
 
 func getAction(namespace string, attributes authorizer.Action) authzapi.Action {
+	resource := attributes.GetResource()
+	if len(attributes.GetSubresource()) > 0 {
+		resource = resource + "/" + attributes.GetSubresource()
+	}
 	return authzapi.Action{
 		Namespace:    namespace,
 		Verb:         attributes.GetVerb(),
 		Group:        attributes.GetAPIGroup(),
 		Version:      attributes.GetAPIVersion(),
-		Resource:     attributes.GetResource(),
+		Resource:     resource,
 		ResourceName: attributes.GetResourceName(),
 
 		Path:             attributes.GetURL(),
 		IsNonResourceURL: attributes.IsNonResourceURL(),
-
-		// TODO: missing from authorizer.Action:
-		// Content
-
-		// TODO: missing from authzapi.Action
-		// RequestAttributes (unserializable?)
 	}
 }

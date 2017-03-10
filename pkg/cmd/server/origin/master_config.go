@@ -826,9 +826,9 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 		sets.NewString(bootstrappolicy.AuthenticatedGroup),
 		requestInfoFactory,
 	)
-	personalSARRequestInfoResolveer := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	personalSARRequestInfoResolver := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
 
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, personalSARRequestInfoResolveer)
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, personalSARRequestInfoResolver)
 	return authorizationAttributeBuilder
 }
 

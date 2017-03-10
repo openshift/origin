@@ -128,6 +128,7 @@ func cacheKey(ctx kapi.Context, a authorizer.Action) (string, error) {
 		"apiVersion":     a.GetAPIVersion(),
 		"apiGroup":       a.GetAPIGroup(),
 		"resource":       a.GetResource(),
+		"subresource":    a.GetSubresource(),
 		"resourceName":   a.GetResourceName(),
 		"nonResourceURL": a.IsNonResourceURL(),
 		"url":            a.GetURL(),

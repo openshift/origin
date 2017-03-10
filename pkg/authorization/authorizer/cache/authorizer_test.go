@@ -29,7 +29,7 @@ func TestCacheKey(t *testing.T) {
 		"empty": {
 			Context:     kapi.NewContext(),
 			Attrs:       &authorizer.DefaultAuthorizationAttributes{},
-			ExpectedKey: `{"apiGroup":"","apiVersion":"","nonResourceURL":false,"resource":"","resourceName":"","url":"","verb":""}`,
+			ExpectedKey: `{"apiGroup":"","apiVersion":"","nonResourceURL":false,"resource":"","resourceName":"","subresource":"","url":"","verb":""}`,
 		},
 		"full": {
 			Context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "myns"), &user.DefaultInfo{Name: "me", Groups: []string{"group1", "group2"}}),
@@ -38,11 +38,12 @@ func TestCacheKey(t *testing.T) {
 				APIVersion:     "av",
 				APIGroup:       "ag",
 				Resource:       "r",
+				Subresource:    "sub",
 				ResourceName:   "rn",
 				NonResourceURL: true,
 				URL:            "/abc",
 			},
-			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"url":"/abc","user":"me","verb":"v"}`,
+			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"subresource":"sub","url":"/abc","user":"me","verb":"v"}`,
 		},
 	}
 
