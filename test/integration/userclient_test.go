@@ -11,8 +11,8 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
-	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
