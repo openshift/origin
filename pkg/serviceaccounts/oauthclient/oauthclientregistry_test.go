@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -90,7 +91,7 @@ func TestGetClient(t *testing.T) {
 			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{},
 		},
@@ -128,7 +129,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{},
 		},
@@ -186,7 +187,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{
 				core.NewGetAction(routesResource, "ns-01", "route1"),
@@ -249,7 +250,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{},
 		},
@@ -307,7 +308,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{
 				core.NewGetAction(routesResource, "ns-01", "route1"),
@@ -393,10 +394,10 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{
-				core.NewListAction(routesResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
 			},
 		},
 		{
@@ -472,10 +473,10 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{
-				core.NewListAction(routesResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
 			},
 		},
 		{
@@ -533,7 +534,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []core.Action{
 				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", kapi.ListOptions{}),
+				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
 			expectedOSActions: []core.Action{
 				core.NewGetAction(routesResource, "ns-01", "route1"),

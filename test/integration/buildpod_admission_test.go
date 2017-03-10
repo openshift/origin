@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -203,7 +204,7 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset *k
 		t.Fatalf("%v", err)
 	}
 
-	watchOpt := kapi.ListOptions{
+	watchOpt := metainternal.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
 			buildapi.GetBuildPodName(build),

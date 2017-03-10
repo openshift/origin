@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -56,7 +57,7 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 //checkKibanaRoutesInOauthClient verifies the client contains the correct redirect uris
 func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.Client, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
-	routeList, err := osClient.Routes(project).List(kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(project).List(metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
 		r.Error("AGL0143", err, fmt.Sprintf("Error retrieving the logging routes: %s", err))
 		return

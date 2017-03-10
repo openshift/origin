@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -53,7 +54,7 @@ func (f *fakeRoutesDiagnostic) addRouteWith(condType routesapi.RouteIngressCondi
 	f.fakeRoutes.Items = append(f.fakeRoutes.Items, route)
 }
 
-func (f *fakeRoutesDiagnostic) routes(project string, options kapi.ListOptions) (*routesapi.RouteList, error) {
+func (f *fakeRoutesDiagnostic) routes(project string, options metainternal.ListOptions) (*routesapi.RouteList, error) {
 	value, ok := f.clienterrors[testRoutesKey]
 	if ok {
 		return nil, value

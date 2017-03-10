@@ -9,6 +9,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	watchapi "k8s.io/kubernetes/pkg/watch"
@@ -258,13 +259,13 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer buildWatch.Stop()
 
-	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(metainternal.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
@@ -503,13 +504,13 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
-	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildWatch, err := projectAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer buildWatch.Stop()
 
-	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(kapi.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildConfigWatch, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Watch(metainternal.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}

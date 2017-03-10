@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 var serviceAccountNames = sets.NewString("logging-deployer", "aggregated-logging-kibana", "aggregated-logging-curator", "aggregated-logging-elasticsearch", fluentdServiceAccountName)
@@ -17,7 +17,7 @@ properly without them.  You may need to re-run the installer.
 
 func checkServiceAccounts(d diagnosticReporter, f saAdapter, project string) {
 	d.Debug("AGL0500", fmt.Sprintf("Checking ServiceAccounts in project '%s'...", project))
-	saList, err := f.serviceAccounts(project, kapi.ListOptions{})
+	saList, err := f.serviceAccounts(project, metainternal.ListOptions{})
 	if err != nil {
 		d.Error("AGL0505", err, fmt.Sprintf("There was an error while trying to retrieve the pods for the AggregatedLogging stack: %s", err))
 		return

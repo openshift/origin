@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -139,7 +140,7 @@ func GetClientForServiceAccount(adminClient *kclientset.Clientset, clientConfig 
 	token := ""
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 		selector := fields.OneTermEqualSelector(kapi.SecretTypeField, string(kapi.SecretTypeServiceAccountToken))
-		secrets, err := adminClient.Core().Secrets(namespace).List(kapi.ListOptions{FieldSelector: selector})
+		secrets, err := adminClient.Core().Secrets(namespace).List(metainternal.ListOptions{FieldSelector: selector})
 		if err != nil {
 			return false, err
 		}
@@ -185,7 +186,7 @@ func WaitForResourceQuotaLimitSync(
 
 	expectedResourceNames := quota.ResourceNames(hardLimit)
 
-	list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
+	list, err := client.List(metainternal.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
 	if err != nil {
 		return err
 	}
@@ -198,7 +199,7 @@ func WaitForResourceQuotaLimitSync(
 	}
 
 	rv := list.ResourceVersion
-	w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
+	w, err := client.Watch(metainternal.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
 	if err != nil {
 		return err
 	}

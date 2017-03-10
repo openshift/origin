@@ -2,10 +2,10 @@ package rulevalidation
 
 import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
@@ -34,12 +34,12 @@ type AuthorizationRuleResolver interface {
 }
 
 func (a *DefaultRuleResolver) GetRoleBindings(namespace string) ([]authorizationinterfaces.RoleBinding, error) {
-	clusterBindings, clusterErr := a.clusterBindingLister.List(kapi.ListOptions{})
+	clusterBindings, clusterErr := a.clusterBindingLister.List(metainternal.ListOptions{})
 
 	var namespaceBindings *authorizationapi.PolicyBindingList
 	var namespaceErr error
 	if a.bindingLister != nil && len(namespace) > 0 {
-		namespaceBindings, namespaceErr = a.bindingLister.PolicyBindings(namespace).List(kapi.ListOptions{})
+		namespaceBindings, namespaceErr = a.bindingLister.PolicyBindings(namespace).List(metainternal.ListOptions{})
 	}
 
 	// return all loaded bindings

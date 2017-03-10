@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -22,7 +23,7 @@ func newMockServiceAccountDiagnostic(t *testing.T) *mockServiceAccountDiagnostic
 	}
 }
 
-func (m *mockServiceAccountDiagnostic) serviceAccounts(project string, options kapi.ListOptions) (*kapi.ServiceAccountList, error) {
+func (m *mockServiceAccountDiagnostic) serviceAccounts(project string, options metainternal.ListOptions) (*kapi.ServiceAccountList, error) {
 	if m.err != nil {
 		return &m.accounts, m.err
 	}

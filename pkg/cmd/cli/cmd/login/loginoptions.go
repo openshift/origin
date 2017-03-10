@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
@@ -262,7 +263,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return err
 	}
 
-	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
+	projectsList, err := oClient.Projects().List(metainternal.ListOptions{})
 	// if we're running on kube (or likely kube), just set it to "default"
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with:\n\n '%s project <projectname>'\n", o.CommandName)

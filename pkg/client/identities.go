@@ -1,6 +1,7 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -13,7 +14,7 @@ type IdentitiesInterface interface {
 
 // IdentityInterface exposes methods on identity resources.
 type IdentityInterface interface {
-	List(opts kapi.ListOptions) (*userapi.IdentityList, error)
+	List(opts metainternal.ListOptions) (*userapi.IdentityList, error)
 	Get(name string) (*userapi.Identity, error)
 	Create(identity *userapi.Identity) (*userapi.Identity, error)
 	Update(identity *userapi.Identity) (*userapi.Identity, error)
@@ -33,7 +34,7 @@ func newIdentities(c *Client) *identities {
 }
 
 // List returns a list of identities that match the label and field selectors.
-func (c *identities) List(opts kapi.ListOptions) (result *userapi.IdentityList, err error) {
+func (c *identities) List(opts metainternal.ListOptions) (result *userapi.IdentityList, err error) {
 	result = &userapi.IdentityList{}
 	err = c.r.Get().
 		Resource("identities").

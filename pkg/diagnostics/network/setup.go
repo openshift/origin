@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -78,7 +79,7 @@ func (d *NetworkDiagnostic) Cleanup() {
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {
-	podList, err := d.KubeClient.Core().Pods(nsName).List(kapi.ListOptions{})
+	podList, err := d.KubeClient.Core().Pods(nsName).List(metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -41,7 +41,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 		return nil, err
 	}
 	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
-	allGroups, err := l.client.List(kapi.ListOptions{LabelSelector: hostSelector})
+	allGroups, err := l.client.List(metainternal.ListOptions{LabelSelector: hostSelector})
 	if err != nil {
 		return nil, err
 	}

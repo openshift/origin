@@ -10,6 +10,7 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -137,7 +138,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.Deploym
 }
 
 func (d *ClusterRouter) getRouterPods(dc *deployapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
-	pods, err := d.KubeClient.Core().Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(kapi.NamespaceDefault).List(metainternal.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))
 		return nil

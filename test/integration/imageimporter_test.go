@@ -15,6 +15,7 @@ import (
 	gocontext "golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
@@ -717,7 +718,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	<-written
 
 	is := isi.Status.Import
-	w, err := c.ImageStreams(is.Namespace).Watch(kapi.ListOptions{ResourceVersion: is.ResourceVersion})
+	w, err := c.ImageStreams(is.Namespace).Watch(metainternal.ListOptions{ResourceVersion: is.ResourceVersion})
 	if err != nil {
 		t.Fatal(err)
 	}

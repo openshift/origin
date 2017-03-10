@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -27,7 +27,7 @@ func (c *FakeEgressNetworkPolicy) Get(name string) (*sdnapi.EgressNetworkPolicy,
 	return obj.(*sdnapi.EgressNetworkPolicy), err
 }
 
-func (c *FakeEgressNetworkPolicy) List(opts kapi.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
+func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(egressNetworkPoliciesResource, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
@@ -59,6 +59,6 @@ func (c *FakeEgressNetworkPolicy) Delete(name string) error {
 	return err
 }
 
-func (c *FakeEgressNetworkPolicy) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeEgressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, opts))
 }

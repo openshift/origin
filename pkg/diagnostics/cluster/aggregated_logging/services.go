@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 var loggingServices = sets.NewString("logging-es", "logging-es-cluster", "logging-es-ops", "logging-es-ops-cluster", "logging-kibana", "logging-kibana-ops")
@@ -21,7 +21,7 @@ may not matter if you chose not to install a separate logging stack to support o
 // checkServices looks to see if the aggregated logging services exist
 func checkServices(r diagnosticReporter, adapter servicesAdapter, project string) {
 	r.Debug("AGL0200", fmt.Sprintf("Checking for services in project '%s' with selector '%s'", project, loggingSelector.AsSelector()))
-	serviceList, err := adapter.services(project, kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	serviceList, err := adapter.services(project, metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
 		r.Error("AGL0205", err, fmt.Sprintf("There was an error while trying to retrieve the logging services: %s", err))
 		return

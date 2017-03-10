@@ -5,8 +5,8 @@ import (
 	"io"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/uuid"
 
@@ -150,7 +150,7 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, 
 }
 
 func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(kapi.ListOptions{})
+	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace
 }
 
 func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	uncast, err := a.Client.ClusterPolicyBindings().List(kapi.ListOptions{})
+	uncast, err := a.Client.ClusterPolicyBindings().List(metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

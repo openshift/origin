@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -90,7 +91,7 @@ func TestFrontProxy(t *testing.T) {
 	defer proxyServer.Close()
 	t.Logf("front proxy server is on %v\n", proxyServer.URL)
 
-	w, err := clusterAdminClient.Projects().Watch(kapi.ListOptions{})
+	w, err := clusterAdminClient.Projects().Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

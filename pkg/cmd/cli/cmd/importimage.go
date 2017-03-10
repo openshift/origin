@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -236,7 +237,7 @@ func (e importError) Error() string {
 }
 
 func (o *ImportImageOptions) waitForImport(resourceVersion string) (*imageapi.ImageStream, error) {
-	streamWatch, err := o.isClient.Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", o.Name), ResourceVersion: resourceVersion})
+	streamWatch, err := o.isClient.Watch(metainternal.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", o.Name), ResourceVersion: resourceVersion})
 	if err != nil {
 		return nil, err
 	}

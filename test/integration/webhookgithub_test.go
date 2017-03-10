@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -90,7 +91,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -193,7 +194,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -249,7 +250,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := osClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
+	watch, err := osClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}

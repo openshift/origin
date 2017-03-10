@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,8 +49,8 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	policyList, err := m.PolicyStorage.ListPolicies(ctx, &kapi.ListOptions{})
+func (m *VirtualStorage) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	policyList, err := m.PolicyStorage.ListPolicies(ctx, &metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 }
 
 // Delete(ctx api.Context, name string) (runtime.Object, error)
-func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
 		if kapierrors.IsNotFound(err) {

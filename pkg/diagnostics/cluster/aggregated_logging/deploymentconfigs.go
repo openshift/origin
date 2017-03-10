@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -60,7 +61,7 @@ func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapte
 	req, _ := labels.NewRequirement(loggingInfraKey, selection.Exists, nil)
 	selector := labels.NewSelector().Add(*req)
 	r.Debug("AGL0040", fmt.Sprintf("Checking for DeploymentConfigs in project '%s' with selector '%s'", project, selector))
-	dcList, err := adapter.deploymentconfigs(project, kapi.ListOptions{LabelSelector: selector})
+	dcList, err := adapter.deploymentconfigs(project, metainternal.ListOptions{LabelSelector: selector})
 	if err != nil {
 		r.Error("AGL0045", err, fmt.Sprintf("There was an error while trying to retrieve the DeploymentConfigs in project '%s': %s", project, err))
 		return
@@ -93,7 +94,7 @@ func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAda
 	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, []string{openshiftValue})
 	podSelector := labels.NewSelector().Add(*compReq, *provReq)
 	r.Debug("AGL0070", fmt.Sprintf("Getting pods that match selector '%s'", podSelector))
-	podList, err := adapter.pods(project, kapi.ListOptions{LabelSelector: podSelector})
+	podList, err := adapter.pods(project, metainternal.ListOptions{LabelSelector: podSelector})
 	if err != nil {
 		r.Error("AGL0075", err, fmt.Sprintf("There was an error while trying to retrieve the pods for the AggregatedLogging stack: %s", err))
 		return

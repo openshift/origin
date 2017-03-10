@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
@@ -67,7 +68,7 @@ func (f *fakeDaemonSetDiagnostic) addNodeWithLabel(key string, value string) {
 	f.fakeNodes.Items = append(f.fakeNodes.Items, node)
 }
 
-func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options kapi.ListOptions) (*kapisext.DaemonSetList, error) {
+func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options metainternal.ListOptions) (*kapisext.DaemonSetList, error) {
 	value, ok := f.clienterrors[testDsKey]
 	if ok {
 		return nil, value
@@ -75,7 +76,7 @@ func (f *fakeDaemonSetDiagnostic) daemonsets(project string, options kapi.ListOp
 	return &f.fakeDaemonsets, nil
 }
 
-func (f *fakeDaemonSetDiagnostic) nodes(options kapi.ListOptions) (*kapi.NodeList, error) {
+func (f *fakeDaemonSetDiagnostic) nodes(options metainternal.ListOptions) (*kapi.NodeList, error) {
 	value, ok := f.clienterrors[testNodesKey]
 	if ok {
 		return nil, value
@@ -83,7 +84,7 @@ func (f *fakeDaemonSetDiagnostic) nodes(options kapi.ListOptions) (*kapi.NodeLis
 	return &f.fakeNodes, nil
 }
 
-func (f *fakeDaemonSetDiagnostic) pods(project string, options kapi.ListOptions) (*kapi.PodList, error) {
+func (f *fakeDaemonSetDiagnostic) pods(project string, options metainternal.ListOptions) (*kapi.PodList, error) {
 	value, ok := f.clienterrors[testPodsKey]
 	if ok {
 		return nil, value

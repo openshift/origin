@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
@@ -18,7 +19,7 @@ type FakeImageStreamSecrets struct {
 
 var _ client.ImageStreamSecretInterface = &FakeImageStreamSecrets{}
 
-func (c *FakeImageStreamSecrets) Secrets(name string, options kapi.ListOptions) (*kapi.SecretList, error) {
+func (c *FakeImageStreamSecrets) Secrets(name string, options metainternal.ListOptions) (*kapi.SecretList, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(imageapi.SchemeGroupVersion.WithResource("imagestreams/secrets"), c.Namespace, name), &kapi.SecretList{})
 	if obj == nil {
 		return nil, err

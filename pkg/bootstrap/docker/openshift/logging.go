@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -91,7 +92,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Label all nodes with default fluentd label
-	nodeList, err := kubeClient.Core().Nodes().List(kapi.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(metainternal.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err).WithDetails(h.OriginLog())
 	}

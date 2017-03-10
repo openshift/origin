@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/tools/cache"
@@ -360,10 +361,10 @@ func TestHandleScenarios(t *testing.T) {
 
 		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 					return oc.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
 				},
 			},
@@ -373,10 +374,10 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		rcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 					return kc.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 				},
 			},
@@ -386,10 +387,10 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		podInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 					return kc.Core().Pods(kapi.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 					return kc.Core().Pods(kapi.NamespaceAll).Watch(options)
 				},
 			},

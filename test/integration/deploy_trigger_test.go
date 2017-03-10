@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -56,7 +57,7 @@ func TestTriggers_manual(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(kapi.ListOptions{ResourceVersion: dc.ResourceVersion})
+	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metainternal.ListOptions{ResourceVersion: dc.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -130,7 +131,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	config.Namespace = testutil.Namespace()
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkImageChangeTrigger()}
 
-	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 	}
@@ -140,7 +141,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("Couldn't create imagestream: %v", err)
 	}
 
-	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(kapi.ListOptions{})
+	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -236,7 +237,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		t.Fatalf("Couldn't create imagestream: %v", err)
 	}
 
-	imageWatch, err := oc.ImageStreams(testutil.Namespace()).Watch(kapi.ListOptions{})
+	imageWatch, err := oc.ImageStreams(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -285,7 +286,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		}
 	}
 
-	configWatch, err := oc.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
+	configWatch, err := oc.DeploymentConfigs(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs: %v", err)
 	}
@@ -421,7 +422,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	secondTrigger.ImageChangeParams.From.Name = imageapi.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
-	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 	}
@@ -434,7 +435,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("Couldn't create imagestream %q: %v", secondImageStream.Name, err)
 	}
 
-	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(kapi.ListOptions{})
+	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -581,7 +582,7 @@ func TestTriggers_configChange(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkConfigChangeTrigger()}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(kapi.ListOptions{})
+	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}

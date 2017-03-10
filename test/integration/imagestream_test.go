@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -36,7 +37,7 @@ func TestImageStreamList(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
+	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -88,7 +89,7 @@ func TestImageStreamCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", diff.ObjectDiff(expected, actual))
 	}
 
-	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
+	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

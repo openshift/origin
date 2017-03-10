@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
@@ -90,13 +91,13 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	// make sure extensions API objects cannot be listed or created
-	if _, err := legacyAutoscalers.List(kapi.ListOptions{}); !errors.IsNotFound(err) {
+	if _, err := legacyAutoscalers.List(metainternal.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing HPA, got %v", err)
 	}
 	if _, err := legacyAutoscalers.Create(validHPA); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error creating HPA, got %v", err)
 	}
-	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).List(kapiv1.ListOptions{}); !errors.IsNotFound(err) {
+	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).List(kmetav1.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing jobs, got %v", err)
 	}
 	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).Create(&extensions_v1beta1.Job{}); !errors.IsNotFound(err) {
@@ -104,13 +105,13 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	// make sure autoscaling and batch API objects can be listed and created
-	if _, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).List(kapi.ListOptions{}); err != nil {
+	if _, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 	if _, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).Create(validHPA); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
-	if _, err := projectAdminKubeClient.Batch().Jobs(projName).List(kapi.ListOptions{}); err != nil {
+	if _, err := projectAdminKubeClient.Batch().Jobs(projName).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 	if _, err := projectAdminKubeClient.Batch().Jobs(projName).Create(validJob); err != nil {
@@ -135,12 +136,12 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	// make sure the created objects got cleaned up by namespace deletion
-	if hpas, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).List(kapi.ListOptions{}); err != nil {
+	if hpas, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(projName).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	} else if len(hpas.Items) > 0 {
 		t.Fatalf("expected 0 HPA objects, got %#v", hpas.Items)
 	}
-	if jobs, err := projectAdminKubeClient.Batch().Jobs(projName).List(kapi.ListOptions{}); err != nil {
+	if jobs, err := projectAdminKubeClient.Batch().Jobs(projName).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	} else if len(jobs.Items) > 0 {
 		t.Fatalf("expected 0 Job objects, got %#v", jobs.Items)
@@ -200,13 +201,13 @@ func TestExtensionsAPIDisabled(t *testing.T) {
 	}
 
 	// make sure extensions API objects cannot be listed or created
-	if _, err := legacyAutoscalers.List(kapi.ListOptions{}); !errors.IsNotFound(err) {
+	if _, err := legacyAutoscalers.List(metainternal.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing HPA, got %v", err)
 	}
 	if _, err := legacyAutoscalers.Create(&autoscaling.HorizontalPodAutoscaler{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error creating HPA, got %v", err)
 	}
-	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).List(kapiv1.ListOptions{}); !errors.IsNotFound(err) {
+	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).List(kmetav1.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing jobs, got %v", err)
 	}
 	if _, err := projectAdminKubeClient15.Extensions().Jobs(projName).Create(&extensions_v1beta1.Job{}); !errors.IsNotFound(err) {

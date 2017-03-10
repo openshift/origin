@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/url"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,12 +23,12 @@ type BuildConfigsNamespacer interface {
 
 // BuildConfigInterface exposes methods on BuildConfig resources
 type BuildConfigInterface interface {
-	List(opts kapi.ListOptions) (*buildapi.BuildConfigList, error)
+	List(opts metainternal.ListOptions) (*buildapi.BuildConfigList, error)
 	Get(name string) (*buildapi.BuildConfig, error)
 	Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 
 	Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error)
 	InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error)
@@ -50,7 +51,7 @@ func newBuildConfigs(c *Client, namespace string) *buildConfigs {
 }
 
 // List returns a list of buildconfigs that match the label and field selectors.
-func (c *buildConfigs) List(opts kapi.ListOptions) (result *buildapi.BuildConfigList, err error) {
+func (c *buildConfigs) List(opts metainternal.ListOptions) (result *buildapi.BuildConfigList, err error) {
 	result = &buildapi.BuildConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -101,7 +102,7 @@ func (c *buildConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested buildConfigs.
-func (c *buildConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *buildConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

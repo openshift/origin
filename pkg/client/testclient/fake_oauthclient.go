@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -24,7 +24,7 @@ func (c *FakeOAuthClient) Get(name string) (*oauthapi.OAuthClient, error) {
 	return obj.(*oauthapi.OAuthClient), err
 }
 
-func (c *FakeOAuthClient) List(opts kapi.ListOptions) (*oauthapi.OAuthClientList, error) {
+func (c *FakeOAuthClient) List(opts metainternal.ListOptions) (*oauthapi.OAuthClientList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthClientsResource, opts), &oauthapi.OAuthClientList{})
 	if obj == nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (c *FakeOAuthClient) Delete(name string) error {
 	return err
 }
 
-func (c *FakeOAuthClient) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeOAuthClient) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewRootWatchAction(oAuthClientsResource, opts))
 }
 

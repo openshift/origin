@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -147,7 +148,7 @@ func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMa
 		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name)
 	}
 	if len(mapping.DockerImageRepository) != 0 {
-		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &kapi.ListOptions{})
+		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &metainternal.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

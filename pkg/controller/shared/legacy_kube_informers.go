@@ -3,6 +3,7 @@ package shared
 import (
 	"reflect"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -33,10 +34,10 @@ func (f *replicationControllerInformer) Informer() cache.SharedIndexInformer {
 	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("replicationcontrollers"))
 	if lw == nil {
 		lw = &cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.kubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return f.kubeClient.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 			},
 		}

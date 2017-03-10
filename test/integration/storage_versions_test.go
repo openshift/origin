@@ -7,6 +7,7 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,7 +35,7 @@ type legacyExtensionsAutoscaling struct {
 }
 
 // List takes label and field selectors, and returns the list of horizontalPodAutoscalers that match those selectors.
-func (c legacyExtensionsAutoscaling) List(opts kapi.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
+func (c legacyExtensionsAutoscaling) List(opts metainternal.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
 	result = &autoscaling.HorizontalPodAutoscalerList{}
 	err = c.client.Get().Namespace(c.namespace).Resource("horizontalPodAutoscalers").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -37,7 +38,7 @@ type policyLister struct {
 	namespace string
 }
 
-func (s policyLister) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	return s.registry.ListPolicies(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
 }
 
@@ -46,7 +47,7 @@ func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
 }
 
 // ListPolicies obtains a list of policies that match a selector.
-func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -152,7 +153,7 @@ func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

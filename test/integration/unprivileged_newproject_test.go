@@ -6,8 +6,8 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -53,7 +53,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	allowed, err := valerieOpenshiftClient.ProjectRequests().List(kapi.ListOptions{})
+	allowed, err := valerieOpenshiftClient.ProjectRequests().List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	_, err = valerieOpenshiftClient.ProjectRequests().List(kapi.ListOptions{})
+	_, err = valerieOpenshiftClient.ProjectRequests().List(metainternal.ListOptions{})
 	if err == nil {
 		t.Fatalf("expected error: %v", err)
 	}

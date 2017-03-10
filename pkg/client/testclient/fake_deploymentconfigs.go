@@ -1,9 +1,9 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
@@ -29,7 +29,7 @@ func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, e
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(opts kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (c *FakeDeploymentConfigs) List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(deploymentConfigsResource, c.Namespace, opts), &deployapi.DeploymentConfigList{})
 	if obj == nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeDeploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeDeploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(deploymentConfigsResource, c.Namespace, opts))
 }
 

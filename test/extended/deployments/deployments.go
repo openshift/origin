@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -819,7 +820,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			selector := labels.Set(config.Spec.Selector).AsSelector()
-			opts := kapi.ListOptions{LabelSelector: selector}
+			opts := metainternal.ListOptions{LabelSelector: selector}
 			ready := 0
 			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)

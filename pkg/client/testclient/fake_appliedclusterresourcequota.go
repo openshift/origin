@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -24,7 +24,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string) (*quotaapi.AppliedCl
 	return obj.(*quotaapi.AppliedClusterResourceQuota), err
 }
 
-func (c *FakeAppliedClusterResourceQuotas) List(opts kapi.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
+func (c *FakeAppliedClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err

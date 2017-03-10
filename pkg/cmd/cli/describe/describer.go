@@ -14,6 +14,7 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -445,7 +446,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.De
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(kapi.ListOptions{})
+	buildList, err := d.Builds(namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -837,12 +838,12 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.Descri
 		return "", err
 	}
 	resourceQuotasClient := d.kubeClient.Core().ResourceQuotas(name)
-	resourceQuotaList, err := resourceQuotasClient.List(kapi.ListOptions{})
+	resourceQuotaList, err := resourceQuotasClient.List(metainternal.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	limitRangesClient := d.kubeClient.Core().LimitRanges(name)
-	limitRangeList, err := limitRangesClient.List(kapi.ListOptions{})
+	limitRangeList, err := limitRangesClient.List(metainternal.ListOptions{})
 	if err != nil {
 		return "", err
 	}

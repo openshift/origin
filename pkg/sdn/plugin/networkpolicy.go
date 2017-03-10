@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -99,7 +100,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	namespaces, err := np.node.kClient.Namespaces().List(kapi.ListOptions{})
+	namespaces, err := np.node.kClient.Namespaces().List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 		}
 	}
 
-	policies, err := np.node.kClient.Extensions().NetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	policies, err := np.node.kClient.Extensions().NetworkPolicies(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		if kapierrs.IsForbidden(err) {
 			glog.Errorf("Unable to query NetworkPolicies (%v) - please ensure your nodes have access to view NetworkPolicy (eg, 'oadm policy reconcile-cluster-roles')", err)

@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -56,7 +56,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 		for _, namespace := range namespaces {
 			glog.V(4).Infof("checking ImageStreams %s/%s with ref %q", namespace, ref.Name, searchTag)
 			exact := false
-			streams, err := r.Client.ImageStreams(namespace).List(kapi.ListOptions{})
+			streams, err := r.Client.ImageStreams(namespace).List(metainternal.ListOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) || errors.IsForbidden(err) {
 					continue
@@ -269,7 +269,7 @@ func (r *ImageStreamByAnnotationSearcher) getImageStreams(namespace string) ([]i
 	imageStreamList, ok := r.imageStreams[namespace]
 	if !ok {
 		var err error
-		imageStreamList, err = r.Client.ImageStreams(namespace).List(kapi.ListOptions{})
+		imageStreamList, err = r.Client.ImageStreams(namespace).List(metainternal.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

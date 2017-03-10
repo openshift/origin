@@ -3,6 +3,7 @@ package instantiate
 import (
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -58,7 +59,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // CheckGracefulDelete allows a deployment config to be gracefully deleted.
-func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
+func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOptions) bool {
 	return false
 }
 

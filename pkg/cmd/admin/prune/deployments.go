@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -125,7 +126,7 @@ func (o PruneDeploymentsOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune deployments command.
 func (o PruneDeploymentsOptions) Run() error {
-	deploymentConfigList, err := o.OSClient.DeploymentConfigs(o.Namespace).List(kapi.ListOptions{})
+	deploymentConfigList, err := o.OSClient.DeploymentConfigs(o.Namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func (o PruneDeploymentsOptions) Run() error {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
+	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

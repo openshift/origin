@@ -3,6 +3,7 @@ package buildconfig
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,7 +88,7 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 }
 
 // CheckGracefulDelete allows a build config to be gracefully deleted.
-func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
+func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOptions) bool {
 	return false
 }
 

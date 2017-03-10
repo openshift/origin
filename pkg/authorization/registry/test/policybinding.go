@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -38,7 +39,7 @@ type policyBindingLister struct {
 	namespace string
 }
 
-func (s policyBindingLister) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return s.registry.ListPolicyBindings(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
 }
 
@@ -47,7 +48,7 @@ func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, 
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
-func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -153,7 +154,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

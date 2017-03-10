@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -27,7 +28,7 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 	return &ClusterPolicyBindingRegistry{bindingMap, err}
 }
 
-func (r *ClusterPolicyBindingRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (r *ClusterPolicyBindingRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return r.ListClusterPolicyBindings(kapi.NewContext(), &options)
 }
 func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
@@ -35,7 +36,7 @@ func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.Clust
 }
 
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
-func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -141,7 +142,7 @@ func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx kapi.Conte
 	return nil
 }
 
-func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

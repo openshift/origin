@@ -2,6 +2,7 @@ package appliedclusterresourcequota
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -56,7 +57,7 @@ func (r *AppliedClusterResourceQuotaREST) NewList() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuotaList{}
 }
 
-func (r *AppliedClusterResourceQuotaREST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
+func (r *AppliedClusterResourceQuotaREST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	namespace, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")

@@ -2,6 +2,7 @@ package test
 
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -60,7 +61,7 @@ func (r *UserRegistry) UpdateUser(ctx kapi.Context, u *api.User) (*api.User, err
 	return r.Update, err
 }
 
-func (r *UserRegistry) ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.UserList, error) {
+func (r *UserRegistry) ListUsers(ctx kapi.Context, options *metainternal.ListOptions) (*api.UserList, error) {
 	*r.Actions = append(*r.Actions, Action{"ListUsers", options})
 	if r.List == nil && r.ListErr == nil {
 		return &api.UserList{}, nil

@@ -1,6 +1,7 @@
 package client
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -18,12 +19,12 @@ type DeploymentConfigsNamespacer interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	List(opts kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
+	List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
 	Get(name string) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
@@ -48,7 +49,7 @@ func newDeploymentConfigs(c *Client, namespace string) *deploymentConfigs {
 }
 
 // List takes a label and field selectors, and returns the list of deploymentConfigs that match that selectors
-func (c *deploymentConfigs) List(opts kapi.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts metainternal.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -86,7 +87,7 @@ func (c *deploymentConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

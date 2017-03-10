@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -26,7 +26,7 @@ func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
 	return obj.(*authorizationapi.Role), err
 }
 
-func (c *FakeRoles) List(opts kapi.ListOptions) (*authorizationapi.RoleList, error) {
+func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err

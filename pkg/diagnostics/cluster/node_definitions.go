@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -81,7 +82,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 func (d *NodeDefinitions) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult("NodeDefinition")
 
-	nodes, err := d.KubeClient.Core().Nodes().List(kapi.ListOptions{})
+	nodes, err := d.KubeClient.Core().Nodes().List(metainternal.ListOptions{})
 	if err != nil {
 		r.Error("DClu0001", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r

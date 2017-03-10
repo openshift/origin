@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -27,7 +27,7 @@ func (c *FakePolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, 
 	return obj.(*authorizationapi.PolicyBinding), err
 }
 
-func (c *FakePolicyBindings) List(opts kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (c *FakePolicyBindings) List(opts metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(policyBindingsResource, c.Namespace, opts), &authorizationapi.PolicyBindingList{})
 	if obj == nil {
 		return nil, err
@@ -50,6 +50,6 @@ func (c *FakePolicyBindings) Delete(name string) error {
 	return err
 }
 
-func (c *FakePolicyBindings) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakePolicyBindings) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(policyBindingsResource, c.Namespace, opts))
 }

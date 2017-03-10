@@ -2,9 +2,9 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -25,7 +25,7 @@ func (i *InformerToClusterPolicyBindingLister) ClusterPolicyBindings() client.Cl
 	return i
 }
 
-func (i *InformerToClusterPolicyBindingLister) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (i *InformerToClusterPolicyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	clusterPolicyBindingList := &authorizationapi.ClusterPolicyBindingList{}
 	returnedList := i.GetIndexer().List()
 	matcher := clusterpolicybindingregistry.Matcher(oapi.ListOptionsToSelectors(&options))

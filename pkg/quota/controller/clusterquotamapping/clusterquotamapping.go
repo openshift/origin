@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -166,7 +167,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 }
 
 func (c *ClusterQuotaMappingController) syncNamespace(namespace *kapi.Namespace) error {
-	allQuotas, err1 := c.quotaLister.List(kapi.ListOptions{})
+	allQuotas, err1 := c.quotaLister.List(metainternal.ListOptions{})
 	if err1 != nil {
 		return err1
 	}

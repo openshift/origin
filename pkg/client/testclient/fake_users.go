@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -26,7 +26,7 @@ func (c *FakeUsers) Get(name string) (*userapi.User, error) {
 	return obj.(*userapi.User), err
 }
 
-func (c *FakeUsers) List(opts kapi.ListOptions) (*userapi.UserList, error) {
+func (c *FakeUsers) List(opts metainternal.ListOptions) (*userapi.UserList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(usersResource, opts), &userapi.UserList{})
 	if obj == nil {
 		return nil, err
@@ -58,6 +58,6 @@ func (c *FakeUsers) Delete(name string) error {
 	return err
 }
 
-func (c *FakeUsers) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeUsers) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewRootWatchAction(usersResource, opts))
 }

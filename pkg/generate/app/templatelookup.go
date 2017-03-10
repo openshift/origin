@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -53,7 +54,7 @@ func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatche
 			}
 			checkedNamespaces.Insert(namespace)
 
-			templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
+			templates, err := r.Client.Templates(namespace).List(metainternal.ListOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) || errors.IsForbidden(err) {
 					continue

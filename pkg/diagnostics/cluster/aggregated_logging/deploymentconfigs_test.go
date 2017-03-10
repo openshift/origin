@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -59,7 +60,7 @@ func (f *fakeDeploymentConfigsDiagnostic) addPodFor(comp string, state kapi.PodP
 	f.fakePods.Items = append(f.fakePods.Items, pod)
 }
 
-func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, options kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, options metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	f.test.Logf(">> calling deploymentconfigs: %s", f.clienterrors)
 	value, ok := f.clienterrors[testDcKey]
 	if ok {
@@ -70,7 +71,7 @@ func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, opti
 	return &f.fakeDcs, nil
 }
 
-func (f *fakeDeploymentConfigsDiagnostic) pods(project string, options kapi.ListOptions) (*kapi.PodList, error) {
+func (f *fakeDeploymentConfigsDiagnostic) pods(project string, options metainternal.ListOptions) (*kapi.PodList, error) {
 	value, ok := f.clienterrors[testDcPodsKey]
 	if ok {
 		return nil, value

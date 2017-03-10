@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -55,17 +56,17 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
+	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(metainternal.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
+	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(metainternal.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -97,7 +98,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 
 	// after the policy is deleted, we must wait for it to be cleared from the policy cache
 	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(kapi.ListOptions{})
+		_, err := client.ClusterPolicies().List(metainternal.ListOptions{})
 		if err == nil {
 			return false, nil
 		}
@@ -116,7 +117,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.ClusterPolicies().List(kapi.ListOptions{}); err != nil {
+	if _, err := client.ClusterPolicies().List(metainternal.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

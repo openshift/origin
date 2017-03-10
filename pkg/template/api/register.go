@@ -48,9 +48,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,
 			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&kapi.ListOptions{},
-			&kapi.DeleteOptions{},
-			&kapi.ExportOptions{},
+			&metainternal.ListOptions{},
+			&metainternal.DeleteOptions{},
+			&metainternal.ExportOptions{},
 			&kapi.List{},
 		)...,
 	)

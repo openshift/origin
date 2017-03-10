@@ -8,11 +8,11 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/validation"
@@ -139,8 +139,8 @@ func TestStop(t *testing.T) {
 			expected: []core.Action{
 				core.NewGetAction(buildConfigsResource, "default", configName),
 				// Since there are no builds associated with this build config, do not expect an update
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 				core.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,
@@ -150,8 +150,8 @@ func TestStop(t *testing.T) {
 			oc:       newBuildListFake(makeBuildConfig(configName, 4, false), makeBuildList(configName, 4)),
 			expected: []core.Action{
 				core.NewGetAction(buildConfigsResource, "default", configName),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 				core.NewGetAction(buildConfigsResource, "default", configName),                              // Second GET to enable conflict retry logic
 				core.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(configName, 4, true)), // Because this bc has builds, it is paused
 				core.NewDeleteAction(buildsResource, "default", "build-"+configName+"-1"),
@@ -167,8 +167,8 @@ func TestStop(t *testing.T) {
 			oc:       newBuildListFake(makeBuildConfig(longConfigNameA, 4, false), makeBuildList(longConfigNameA, 4), makeBuildList(longConfigNameB, 4)),
 			expected: []core.Action{
 				core.NewGetAction(buildConfigsResource, "default", longConfigNameA),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
 				core.NewGetAction(buildConfigsResource, "default", longConfigNameA),                              // Second GET to enable conflict retry logic
 				core.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(longConfigNameA, 4, true)), // Because this bc has builds, it is paused
 				core.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-1"),
@@ -192,8 +192,8 @@ func TestStop(t *testing.T) {
 			oc:       testclient.NewSimpleFake(makeBuildConfig(configName, 0, false)),
 			expected: []core.Action{
 				core.NewGetAction(buildConfigsResource, "default", configName),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 				core.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,

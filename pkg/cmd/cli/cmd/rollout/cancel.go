@@ -17,6 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -171,7 +172,7 @@ func (o CancelOptions) Run() error {
 }
 
 func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
-	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
 	if err != nil {
 		return nil, false, err
 	}

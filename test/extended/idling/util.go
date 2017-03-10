@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/origin/pkg/util/errors"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func waitForEndpointsAvailable(oc *exutil.CLI, serviceName string) error {
@@ -24,7 +24,7 @@ func waitForEndpointsAvailable(oc *exutil.CLI, serviceName string) error {
 func waitForNoPodsAvailable(oc *exutil.CLI) error {
 	return wait.Poll(200*time.Millisecond, 3*time.Minute, func() (bool, error) {
 		//ep, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metainternal.ListOptions{})
 		if err != nil {
 			return false, err
 		}

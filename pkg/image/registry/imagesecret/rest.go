@@ -3,6 +3,7 @@ package imagesecret
 import (
 	"fmt"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -25,13 +26,13 @@ func (r *REST) New() runtime.Object {
 }
 
 func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
-	return &kapi.ListOptions{}, false, ""
+	return &metainternal.ListOptions{}, false, ""
 }
 
 // Get retrieves all pull type secrets in the current namespace. Name is currently ignored and
 // reserved for future use.
 func (r *REST) Get(ctx kapi.Context, _ string, options runtime.Object) (runtime.Object, error) {
-	listOptions, ok := options.(*kapi.ListOptions)
+	listOptions, ok := options.(*metainternal.ListOptions)
 	if !ok {
 		return nil, fmt.Errorf("unexpected options: %v", listOptions)
 	}

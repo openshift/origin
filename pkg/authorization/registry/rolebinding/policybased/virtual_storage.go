@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,8 +56,8 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleBindingList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &kapi.ListOptions{})
+func (m *VirtualStorage) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 	return binding, nil
 }
 
-func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 		if kapierrors.IsNotFound(err) {
@@ -327,7 +328,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 }
 
 func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &kapi.ListOptions{})
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

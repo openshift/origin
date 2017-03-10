@@ -1,6 +1,7 @@
 package role
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store Roles.
 type Registry interface {
 	// ListRoles obtains list of policyRoles that match a selector.
-	ListRoles(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleList, error)
+	ListRoles(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.RoleList, error)
 	// GetRole retrieves a specific policyRole.
 	GetRole(ctx kapi.Context, id string) (*authorizationapi.Role, error)
 	// CreateRole creates a new policyRole.
@@ -45,7 +46,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListRoles(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleList, error) {
+func (s *storage) ListRoles(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.RoleList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

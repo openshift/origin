@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -74,7 +75,7 @@ func (impersonateAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes aut
 type groupCache struct {
 }
 
-func (*groupCache) ListGroups(ctx kapi.Context, options *kapi.ListOptions) (*userapi.GroupList, error) {
+func (*groupCache) ListGroups(ctx kapi.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	return &userapi.GroupList{}, nil
 }
 func (*groupCache) GetGroup(ctx kapi.Context, name string) (*userapi.Group, error) {
@@ -89,7 +90,7 @@ func (*groupCache) UpdateGroup(ctx kapi.Context, group *userapi.Group) (*userapi
 func (*groupCache) DeleteGroup(ctx kapi.Context, name string) error {
 	return nil
 }
-func (*groupCache) WatchGroups(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (*groupCache) WatchGroups(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return watch.NewFake(), nil
 }
 

@@ -1,6 +1,7 @@
 package oauthauthorizetoken
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store AuthorizeToken objects.
 type Registry interface {
 	// ListAuthorizeTokens obtains a list of authorize tokens that match a selector.
-	ListAuthorizeTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAuthorizeTokenList, error)
+	ListAuthorizeTokens(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthAuthorizeTokenList, error)
 	// GetAuthorizeToken retrieves a specific authorize token.
 	GetAuthorizeToken(ctx kapi.Context, name string) (*api.OAuthAuthorizeToken, error)
 	// CreateAuthorizeToken creates a new authorize token.
@@ -38,7 +39,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListAuthorizeTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
+func (s *storage) ListAuthorizeTokens(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
@@ -40,7 +40,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Make sure cert auth still works
-	namespaces, err := client.Core().Namespaces().List(kapi.ListOptions{})
+	namespaces, err := client.Core().Namespaces().List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -307,8 +308,8 @@ type routeLW struct {
 	namespace string
 }
 
-func (lw *routeLW) List(options kapi.ListOptions) (runtime.Object, error) {
-	opts := kapi.ListOptions{
+func (lw *routeLW) List(options metainternal.ListOptions) (runtime.Object, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector: lw.label,
 		FieldSelector: lw.field,
 	}
@@ -321,8 +322,8 @@ func (lw *routeLW) List(options kapi.ListOptions) (runtime.Object, error) {
 	return routes, nil
 }
 
-func (lw *routeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	opts := kapi.ListOptions{
+func (lw *routeLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector:   lw.label,
 		FieldSelector:   lw.field,
 		ResourceVersion: options.ResourceVersion,
@@ -338,12 +339,12 @@ type endpointsLW struct {
 	namespace string
 }
 
-func (lw *endpointsLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *endpointsLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.Endpoints(lw.namespace).List(options)
 }
 
-func (lw *endpointsLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	opts := kapi.ListOptions{
+func (lw *endpointsLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector:   lw.label,
 		FieldSelector:   lw.field,
 		ResourceVersion: options.ResourceVersion,
@@ -358,12 +359,12 @@ type nodeLW struct {
 	field  fields.Selector
 }
 
-func (lw *nodeLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *nodeLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.Nodes().List(options)
 }
 
-func (lw *nodeLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	opts := kapi.ListOptions{
+func (lw *nodeLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector:   lw.label,
 		FieldSelector:   lw.field,
 		ResourceVersion: options.ResourceVersion,
@@ -397,8 +398,8 @@ type ingressLW struct {
 	namespace string
 }
 
-func (lw *ingressLW) List(options kapi.ListOptions) (runtime.Object, error) {
-	opts := kapi.ListOptions{
+func (lw *ingressLW) List(options metainternal.ListOptions) (runtime.Object, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector: lw.label,
 		FieldSelector: lw.field,
 	}
@@ -411,8 +412,8 @@ func (lw *ingressLW) List(options kapi.ListOptions) (runtime.Object, error) {
 	return ingresses, nil
 }
 
-func (lw *ingressLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	opts := kapi.ListOptions{
+func (lw *ingressLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector:   lw.label,
 		FieldSelector:   lw.field,
 		ResourceVersion: options.ResourceVersion,
@@ -428,12 +429,12 @@ type secretLW struct {
 	namespace string
 }
 
-func (lw *secretLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *secretLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.Secrets(lw.namespace).List(options)
 }
 
-func (lw *secretLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	opts := kapi.ListOptions{
+func (lw *secretLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+	opts := metainternal.ListOptions{
 		LabelSelector:   lw.label,
 		FieldSelector:   lw.field,
 		ResourceVersion: options.ResourceVersion,

@@ -7,10 +7,10 @@ import (
 
 	log "github.com/golang/glog"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
@@ -152,7 +152,7 @@ func netnsIsMulticastEnabled(netns *osapi.NetNamespace) bool {
 }
 
 func (vmap *nodeVNIDMap) populateVNIDs() error {
-	nets, err := vmap.osClient.NetNamespaces().List(kapi.ListOptions{})
+	nets, err := vmap.osClient.NetNamespaces().List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

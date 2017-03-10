@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -37,10 +38,10 @@ func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{byUserIndexName: ByUserIndexKeys})
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return groupRegistry.ListGroups(allNamespaceContext, &options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return groupRegistry.WatchGroups(allNamespaceContext, &options)
 			},
 		},

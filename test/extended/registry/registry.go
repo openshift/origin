@@ -9,8 +9,8 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	regclient "github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -144,7 +144,7 @@ func waitForImageUpdate(oc *exutil.CLI, image *imageapi.Image) error {
 // namespaces. It also deletes shared projects.
 func deleteTestImages(oc *exutil.CLI) {
 	g.By(fmt.Sprintf("Deleting images and image streams in project %q", oc.Namespace()))
-	iss, err := oc.AdminClient().ImageStreams(oc.Namespace()).List(kapi.ListOptions{})
+	iss, err := oc.AdminClient().ImageStreams(oc.Namespace()).List(metainternal.ListOptions{})
 	if err != nil {
 		return
 	}

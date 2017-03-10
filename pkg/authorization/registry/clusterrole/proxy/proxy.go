@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -48,7 +49,7 @@ func (s *ClusterRoleStorage) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleList{}
 }
 
-func (s *ClusterRoleStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
+func (s *ClusterRoleStorage) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	ret, err := s.roleStorage.List(ctx, options)
 	if ret == nil {
 		return nil, err
@@ -64,7 +65,7 @@ func (s *ClusterRoleStorage) Get(ctx kapi.Context, name string) (runtime.Object,
 
 	return authorizationapi.ToClusterRole(ret.(*authorizationapi.Role)), err
 }
-func (s *ClusterRoleStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+func (s *ClusterRoleStorage) Delete(ctx kapi.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
 	ret, err := s.roleStorage.Delete(ctx, name, options)
 	if ret == nil {
 		return nil, err

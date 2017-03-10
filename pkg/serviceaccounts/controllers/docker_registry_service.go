@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,11 +54,11 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 
 	e.serviceCache, e.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts metainternal.ListOptions) (runtime.Object, error) {
 				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Core().Services(options.RegistryNamespace).List(opts)
 			},
-			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts metainternal.ListOptions) (watch.Interface, error) {
 				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
 			},
@@ -79,13 +80,13 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
-	dockercfgOptions := kapi.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
+	dockercfgOptions := metainternal.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts metainternal.ListOptions) (runtime.Object, error) {
 				return e.client.Core().Secrets(kapi.NamespaceAll).List(dockercfgOptions)
 			},
-			WatchFunc: func(opts kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts metainternal.ListOptions) (watch.Interface, error) {
 				return e.client.Core().Secrets(kapi.NamespaceAll).Watch(dockercfgOptions)
 			},
 		},

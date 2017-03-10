@@ -5,6 +5,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/admission"
@@ -35,7 +36,7 @@ func NewImageStreamImportEvaluator(store *oscache.StoreToImageStreamLister) kquo
 		MatchedResourceNames:       computeResources,
 		MatchesScopeFunc:           matchesScopeFunc,
 		UsageFunc:                  makeImageStreamImportAdmissionUsageFunc(store),
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+		ListFuncByNamespace: func(namespace string, options metainternal.ListOptions) ([]runtime.Object, error) {
 			return []runtime.Object{}, nil
 		},
 		ConstraintsFunc: imageStreamImportConstraintsFunc,

@@ -5,6 +5,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -65,7 +66,7 @@ func (*REST) NewList() runtime.Object {
 var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
@@ -82,7 +83,7 @@ func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
-func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *REST) Watch(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("Context is nil")
 	}

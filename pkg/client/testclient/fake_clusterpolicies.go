@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -26,7 +26,7 @@ func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy,
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(opts kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterPoliciesResource, opts), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
@@ -40,6 +40,6 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewRootWatchAction(clusterPoliciesResource, opts))
 }

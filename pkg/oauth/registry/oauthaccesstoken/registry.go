@@ -1,6 +1,7 @@
 package oauthaccesstoken
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store AccessToken objects.
 type Registry interface {
 	// ListAccessTokens obtains a list of access tokens that match a selector.
-	ListAccessTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAccessTokenList, error)
+	ListAccessTokens(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthAccessTokenList, error)
 	// GetAccessToken retrieves a specific access token.
 	GetAccessToken(ctx kapi.Context, name string) (*api.OAuthAccessToken, error)
 	// CreateAccessToken creates a new access token.
@@ -38,7 +39,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListAccessTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAccessTokenList, error) {
+func (s *storage) ListAccessTokens(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthAccessTokenList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

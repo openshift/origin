@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -41,7 +42,7 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 	if err != nil {
 		return "", err
 	}
-	watcher, err := client.Core().Endpoints(ns).Watch(kapi.ListOptions{})
+	watcher, err := client.Core().Endpoints(ns).Watch(metainternal.ListOptions{})
 	if err != nil {
 		return "", fmt.Errorf("Unexpected error: %v", err)
 	}

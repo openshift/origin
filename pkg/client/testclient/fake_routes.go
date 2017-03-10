@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -27,7 +27,7 @@ func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
 	return obj.(*routeapi.Route), err
 }
 
-func (c *FakeRoutes) List(opts kapi.ListOptions) (*routeapi.RouteList, error) {
+func (c *FakeRoutes) List(opts metainternal.ListOptions) (*routeapi.RouteList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(routesResource, c.Namespace, opts), &routeapi.RouteList{})
 	if obj == nil {
 		return nil, err
@@ -70,6 +70,6 @@ func (c *FakeRoutes) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoutes) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(routesResource, c.Namespace, opts))
 }

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -287,7 +287,7 @@ type fakePolicyGetter struct {
 	err          error
 }
 
-func (f *fakePolicyGetter) List(kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (f *fakePolicyGetter) List(metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	policy, err := f.Get("")
 	if err != nil {
 		return nil, err

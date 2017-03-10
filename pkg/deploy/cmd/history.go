@@ -6,6 +6,7 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -31,7 +32,7 @@ var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}
 
 // ViewHistory returns a description of all the history it can find for a deployment config.
 func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
-	opts := kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)}
+	opts := metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(name)}
 	deploymentList, err := h.rn.ReplicationControllers(namespace).List(opts)
 	if err != nil {
 		return "", err

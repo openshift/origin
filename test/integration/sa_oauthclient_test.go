@@ -17,6 +17,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
@@ -113,7 +114,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(kapi.ListOptions{})
+		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metainternal.ListOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -518,7 +519,7 @@ func runOAuthFlow(
 			return
 		}
 
-		_, err = whoamiClient.Builds(projectName).List(kapi.ListOptions{})
+		_, err = whoamiClient.Builds(projectName).List(metainternal.ListOptions{})
 		if expectBuildSuccess && err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return

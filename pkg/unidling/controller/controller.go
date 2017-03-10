@@ -11,6 +11,7 @@ import (
 
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -96,11 +97,11 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 	_, controller := cache.NewInformer(
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
 				return evtNS.Events(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
 				return evtNS.Events(kapi.NamespaceAll).Watch(options)
 			},

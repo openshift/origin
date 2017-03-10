@@ -1,6 +1,7 @@
 package oauthclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store OAuthClient objects.
 type Registry interface {
 	// ListClients obtains a list of clients that match a selector.
-	ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error)
+	ListClients(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error)
 	// GetClient retrieves a specific client.
 	GetClient(ctx kapi.Context, name string) (*api.OAuthClient, error)
 	// CreateClient creates a new client.
@@ -38,7 +39,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListClients(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientList, error) {
+func (s *storage) ListClients(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

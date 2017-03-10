@@ -8,7 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 	exeutil "github.com/openshift/origin/test/extended/util"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/kubernetes/pkg/apis/batch"
 )
 
@@ -38,7 +38,7 @@ var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking job status...")
-				jobs, err := oc.KubeClient().Batch().Jobs(oc.Namespace()).List(kapi.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
+				jobs, err := oc.KubeClient().Batch().Jobs(oc.Namespace()).List(metainternal.ListOptions{LabelSelector: exeutil.ParseLabelsOrDie(labels)})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				o.Expect(len(jobs.Items)).Should(o.Equal(1))

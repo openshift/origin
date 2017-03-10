@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -60,7 +61,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	}
 
 	var actualFirstSecret *kapi.Secret
-	secretWatcher1, err := clusterAdminKubeClientset.Secrets(ns).Watch(kapi.ListOptions{ResourceVersion: actualService.ResourceVersion})
+	secretWatcher1, err := clusterAdminKubeClientset.Secrets(ns).Watch(metainternal.ListOptions{ResourceVersion: actualService.ResourceVersion})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	}
 
 	var actualThirdSecret *kapi.Secret
-	secretWatcher2, err := clusterAdminKubeClientset.Secrets(ns).Watch(kapi.ListOptions{ResourceVersion: actualSecondSecret.ResourceVersion})
+	secretWatcher2, err := clusterAdminKubeClientset.Secrets(ns).Watch(metainternal.ListOptions{ResourceVersion: actualSecondSecret.ResourceVersion})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +125,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	}
 
 	var actualFifthSecret *kapi.Secret
-	secretWatcher3, err := clusterAdminKubeClientset.Secrets(ns).Watch(kapi.ListOptions{ResourceVersion: actualFourthSecret.ResourceVersion})
+	secretWatcher3, err := clusterAdminKubeClientset.Secrets(ns).Watch(metainternal.ListOptions{ResourceVersion: actualFourthSecret.ResourceVersion})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -25,7 +26,7 @@ func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error
 
 type okBuildLister struct{}
 
-func (okc *okBuildLister) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+func (okc *okBuildLister) List(namespace string, opts metainternal.ListOptions) (*buildapi.BuildList, error) {
 	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
 }
 

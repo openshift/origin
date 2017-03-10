@@ -5,6 +5,8 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -41,7 +43,7 @@ func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.
 // Stop scales a replication controller via its deployment configuration down to
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
-func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
+func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
 	// Pause the deployment configuration to prevent the new deployments from
 	// being triggered.
 	config, err := reaper.pause(namespace, name)
@@ -82,7 +84,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Clean up deployments related to the config. Even if the deployment
 	// configuration has been deleted, we want to sweep the existing replication
 	// controllers and clean them up.
-	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(name)}
+	options := metainternal.ListOptions{LabelSelector: util.ConfigSelector(name)}
 	rcList, err := reaper.kc.Core().ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return err
@@ -112,7 +114,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		}
 
 		// Delete all deployer and hook pods
-		options = kapi.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
+		options = metainternal.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
 		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(options)
 		if err != nil {
 			return err

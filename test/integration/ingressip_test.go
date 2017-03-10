@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -54,10 +55,10 @@ func TestIngressIPAllocation(t *testing.T) {
 	t.Log("start informer to watch for sentinel")
 	_, informerController := cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return kc.Core().Services(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return kc.Core().Services(kapi.NamespaceAll).Watch(options)
 			},
 		},
@@ -91,7 +92,7 @@ func TestIngressIPAllocation(t *testing.T) {
 
 	// Validate that all services of type load balancer have a unique
 	// ingress ip and corresponding external ip.
-	services, err := kc.Core().Services(kapi.NamespaceDefault).List(kapi.ListOptions{})
+	services, err := kc.Core().Services(kapi.NamespaceDefault).List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

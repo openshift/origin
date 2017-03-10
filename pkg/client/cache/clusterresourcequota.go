@@ -2,9 +2,9 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -15,7 +15,7 @@ type IndexerToClusterResourceQuotaLister struct {
 	cache.Indexer
 }
 
-func (i *IndexerToClusterResourceQuotaLister) List(options kapi.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
+func (i *IndexerToClusterResourceQuotaLister) List(options metainternal.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
 	returnedList := i.Indexer.List()
 	ret := make([]*quotaapi.ClusterResourceQuota, 0, len(returnedList))
 	matcher := clusterresourcequotaregistry.Matcher(oapi.ListOptionsToSelectors(&options))

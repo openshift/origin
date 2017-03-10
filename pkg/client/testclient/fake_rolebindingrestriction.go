@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -28,7 +28,7 @@ func (c *FakeRoleBindingRestrictions) Get(name string) (*authorizationapi.RoleBi
 	return obj.(*authorizationapi.RoleBindingRestriction), err
 }
 
-func (c *FakeRoleBindingRestrictions) List(opts kapi.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
+func (c *FakeRoleBindingRestrictions) List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(roleBindingRestritionsResource, c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
 	if obj == nil {
 		return nil, err
@@ -59,6 +59,6 @@ func (c *FakeRoleBindingRestrictions) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoleBindingRestrictions) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeRoleBindingRestrictions) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(roleBindingRestritionsResource, c.Namespace, opts))
 }

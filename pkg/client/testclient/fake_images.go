@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
@@ -29,7 +29,7 @@ func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
 	return obj.(*imageapi.Image), err
 }
 
-func (c *FakeImages) List(opts kapi.ListOptions) (*imageapi.ImageList, error) {
+func (c *FakeImages) List(opts metainternal.ListOptions) (*imageapi.ImageList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err

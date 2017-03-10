@@ -19,6 +19,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -156,7 +157,7 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 	}
 	if lrs == nil {
 		context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", repo.namespace)
-		lrs, err = repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
+		lrs, err = repo.limitClient.LimitRanges(repo.namespace).List(metainternal.ListOptions{})
 		if err != nil {
 			context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
 			return err

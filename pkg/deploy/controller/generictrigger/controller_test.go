@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,10 +24,10 @@ var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(kapi.NamespaceAll).Watch(options)
 			},
 		},
@@ -36,10 +37,10 @@ var (
 	)
 	rcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return (fake.NewSimpleClientset()).Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
 			},
 		},
@@ -49,10 +50,10 @@ var (
 	)
 	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return (&testclient.Fake{}).ImageStreams(kapi.NamespaceAll).Watch(options)
 			},
 		},

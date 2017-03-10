@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -155,7 +156,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object) (*restclien
 		if err != nil {
 			return nil, err
 		}
-		builds, err := oc.Builds(t.Namespace).List(kapi.ListOptions{})
+		builds, err := oc.Builds(t.Namespace).List(metainternal.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

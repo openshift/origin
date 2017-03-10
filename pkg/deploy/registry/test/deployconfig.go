@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/openshift/origin/pkg/deploy/api"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -58,6 +59,6 @@ func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kapi.Context, id s
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

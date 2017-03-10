@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -27,7 +27,7 @@ func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
 	return obj.(*buildapi.Build), err
 }
 
-func (c *FakeBuilds) List(opts kapi.ListOptions) (*buildapi.BuildList, error) {
+func (c *FakeBuilds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(buildsResource, c.Namespace, opts), &buildapi.BuildList{})
 	if obj == nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (c *FakeBuilds) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuilds) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeBuilds) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(buildsResource, c.Namespace, opts))
 }
 

@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -40,7 +40,7 @@ func (c *FakeOAuthAccessTokens) Get(name string) (*oauthapi.OAuthAccessToken, er
 	return obj.(*oauthapi.OAuthAccessToken), err
 }
 
-func (c *FakeOAuthAccessTokens) List(opts kapi.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
+func (c *FakeOAuthAccessTokens) List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthAccessTokensResource, opts), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err

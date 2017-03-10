@@ -8,6 +8,7 @@ import (
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -185,7 +186,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(kapi.ListOptions{})
+		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(metainternal.ListOptions{})
 		for _, policyBinding := range policyBindingList.Items {
 			for roleBindingName := range policyBinding.RoleBindings {
 				if roleBindingName == name {
@@ -212,7 +213,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	userInfo, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")

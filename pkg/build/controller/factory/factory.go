@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -428,7 +429,7 @@ type podLW struct {
 }
 
 // List lists all Pods that have a build label.
-func (lw *podLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *podLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return listPods(lw.client)
 }
 
@@ -438,7 +439,7 @@ func listPods(client kclientset.Interface) (*kapi.PodList, error) {
 	if err != nil {
 		return nil, err
 	}
-	listNew, err := client.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: sel})
+	listNew, err := client.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: sel})
 	if err != nil {
 		return nil, err
 	}
@@ -446,13 +447,13 @@ func listPods(client kclientset.Interface) (*kapi.PodList, error) {
 }
 
 // Watch watches all Pods that have a build label.
-func (lw *podLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *podLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	// FIXME: since we cannot have OR on label name we'll just get builds with new label
 	sel, err := labels.Parse(buildapi.BuildLabel)
 	if err != nil {
 		return nil, err
 	}
-	opts := kapi.ListOptions{
+	opts := metainternal.ListOptions{
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}
@@ -465,12 +466,12 @@ type buildLW struct {
 }
 
 // List lists all Builds.
-func (lw *buildLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *buildLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.Builds(kapi.NamespaceAll).List(options)
 }
 
 // Watch watches all Builds.
-func (lw *buildLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *buildLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	return lw.client.Builds(kapi.NamespaceAll).Watch(options)
 }
 
@@ -481,7 +482,7 @@ type buildDeleteLW struct {
 }
 
 // List returns an empty list but adds delete events to the store for all Builds that have been deleted but still have pods.
-func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *buildDeleteLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted builds")
 	podList, err := listPods(lw.KubeClient)
 	if err != nil {
@@ -524,7 +525,7 @@ func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) 
 }
 
 // Watch watches all Builds.
-func (lw *buildDeleteLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *buildDeleteLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	return lw.Client.Builds(kapi.NamespaceAll).Watch(options)
 }
 
@@ -534,12 +535,12 @@ type buildConfigLW struct {
 }
 
 // List lists all BuildConfigs.
-func (lw *buildConfigLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *buildConfigLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.BuildConfigs(kapi.NamespaceAll).List(options)
 }
 
 // Watch watches all BuildConfigs.
-func (lw *buildConfigLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *buildConfigLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(options)
 }
 
@@ -549,12 +550,12 @@ type imageStreamLW struct {
 }
 
 // List lists all ImageStreams.
-func (lw *imageStreamLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *imageStreamLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	return lw.client.ImageStreams(kapi.NamespaceAll).List(options)
 }
 
 // Watch watches all ImageStreams.
-func (lw *imageStreamLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *imageStreamLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	return lw.client.ImageStreams(kapi.NamespaceAll).Watch(options)
 }
 
@@ -565,7 +566,7 @@ type buildPodDeleteLW struct {
 }
 
 // List lists all Pods associated with a Build.
-func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) {
+func (lw *buildPodDeleteLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted build pods")
 	buildList, err := lw.Client.Builds(kapi.NamespaceAll).List(options)
 	if err != nil {
@@ -615,13 +616,13 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 }
 
 // Watch watches all Pods that have a build label, for deletion
-func (lw *buildPodDeleteLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
+func (lw *buildPodDeleteLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
 	// FIXME: since we cannot have OR on label name we'll just get builds with new label
 	sel, err := labels.Parse(buildapi.BuildLabel)
 	if err != nil {
 		return nil, err
 	}
-	opts := kapi.ListOptions{
+	opts := metainternal.ListOptions{
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}

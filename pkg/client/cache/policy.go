@@ -2,6 +2,7 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -30,7 +31,7 @@ type indexerToPolicyLister struct {
 	namespace string
 }
 
-func (i *indexerToPolicyLister) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (i *indexerToPolicyLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	policyList := &authorizationapi.PolicyList{}
 	matcher := policyregistry.Matcher(oapi.ListOptionsToSelectors(&options))
 

@@ -80,7 +80,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 	}
 	defer func() { // delete what we created, or notify that we couldn't
 		zero := int64(0)
-		delOpts := kapi.DeleteOptions{TypeMeta: pod.TypeMeta, GracePeriodSeconds: &zero}
+		delOpts := metav1.DeleteOptions{TypeMeta: pod.TypeMeta, GracePeriodSeconds: &zero}
 		if err := d.KubeClient.Core().Pods(d.Namespace).Delete(pod.ObjectMeta.Name, &delOpts); err != nil {
 			r.Error("DCl2002", err, fmt.Sprintf("Deleting diagnostic pod '%s' failed. Error: %s", pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
 		}

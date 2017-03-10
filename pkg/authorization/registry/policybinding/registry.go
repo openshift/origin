@@ -1,6 +1,7 @@
 package policybinding
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 // Registry is an interface for things that know how to store PolicyBindings.
 type Registry interface {
 	// ListPolicyBindings obtains list of policyBindings that match a selector.
-	ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error)
+	ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	// GetPolicyBinding retrieves a specific policyBinding.
 	GetPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.PolicyBinding, error)
 	// CreatePolicyBinding creates a new policyBinding.
@@ -25,7 +26,7 @@ type Registry interface {
 type WatchingRegistry interface {
 	Registry
 	// WatchPolicyBindings watches policyBindings.
-	WatchPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -44,7 +45,7 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (s *storage) ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func (s *storage) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authoriza
 	return err
 }
 
-func (s *storage) WatchPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 

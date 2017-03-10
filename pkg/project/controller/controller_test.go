@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -41,18 +42,18 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 
 	// TODO: we will expect a finalize namespace call after rebase
 	expectedActionSet := []core.Action{
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", kapi.ListOptions{}),
-		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", kapi.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", metainternal.ListOptions{}),
+		core.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", metainternal.ListOptions{}),
 	}
 	kubeActionSet := []core.Action{}
 	originActionSet := []core.Action{}

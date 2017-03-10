@@ -8,9 +8,9 @@ import (
 	"net/url"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -329,7 +329,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 }
 
 func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Project, error) {
-	projects, err := oClient.Projects().List(kapi.ListOptions{})
+	projects, err := oClient.Projects().List(metainternal.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
 	}
@@ -338,7 +338,7 @@ func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Pr
 		return nil, err
 	}
 
-	namespaces, err := kClient.Core().Namespaces().List(kapi.ListOptions{})
+	namespaces, err := kClient.Core().Namespaces().List(metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

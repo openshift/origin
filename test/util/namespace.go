@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -39,7 +40,7 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 }
 
 func DeleteAndWaitForNamespaceTermination(c *kclientset.Clientset, name string) error {
-	w, err := c.Core().Namespaces().Watch(kapi.ListOptions{})
+	w, err := c.Core().Namespaces().Watch(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

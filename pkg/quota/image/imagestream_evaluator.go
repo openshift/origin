@@ -1,6 +1,7 @@
 package image
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -30,7 +31,7 @@ func NewImageStreamEvaluator(store *oscache.StoreToImageStreamLister) kquota.Eva
 		MatchesScopeFunc:     generic.MatchesNoScopeFunc,
 		ConstraintsFunc:      generic.ObjectCountConstraintsFunc(imageapi.ResourceImageStreams),
 		UsageFunc:            generic.ObjectCountUsageFunc(imageapi.ResourceImageStreams),
-		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) ([]runtime.Object, error) {
+		ListFuncByNamespace: func(namespace string, options metainternal.ListOptions) ([]runtime.Object, error) {
 			list, err := store.ImageStreams(namespace).List(options.LabelSelector)
 			if err != nil {
 				return nil, err

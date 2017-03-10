@@ -2,6 +2,7 @@ package test
 
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -63,7 +64,7 @@ func (r *IdentityRegistry) UpdateIdentity(ctx kapi.Context, u *api.Identity) (*a
 	return r.Update, r.UpdateErr
 }
 
-func (r *IdentityRegistry) ListIdentities(ctx kapi.Context, options *kapi.ListOptions) (*api.IdentityList, error) {
+func (r *IdentityRegistry) ListIdentities(ctx kapi.Context, options *metainternal.ListOptions) (*api.IdentityList, error) {
 	*r.Actions = append(*r.Actions, Action{"ListIdentities", options})
 	if r.List == nil && r.ListErr == nil {
 		return &api.IdentityList{}, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
@@ -57,15 +58,15 @@ func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.Cluster
 	return d.OsClient.ClusterRoleBindings().Get(name)
 }
 
-func (d *AggregatedLogging) routes(project string, options kapi.ListOptions) (*routesapi.RouteList, error) {
+func (d *AggregatedLogging) routes(project string, options metainternal.ListOptions) (*routesapi.RouteList, error) {
 	return d.OsClient.Routes(project).List(options)
 }
 
-func (d *AggregatedLogging) serviceAccounts(project string, options kapi.ListOptions) (*kapi.ServiceAccountList, error) {
+func (d *AggregatedLogging) serviceAccounts(project string, options metainternal.ListOptions) (*kapi.ServiceAccountList, error) {
 	return d.KubeClient.Core().ServiceAccounts(project).List(options)
 }
 
-func (d *AggregatedLogging) services(project string, options kapi.ListOptions) (*kapi.ServiceList, error) {
+func (d *AggregatedLogging) services(project string, options metainternal.ListOptions) (*kapi.ServiceList, error) {
 	return d.KubeClient.Core().Services(project).List(options)
 }
 
@@ -73,18 +74,18 @@ func (d *AggregatedLogging) endpointsForService(project string, service string) 
 	return d.KubeClient.Core().Endpoints(project).Get(service)
 }
 
-func (d *AggregatedLogging) daemonsets(project string, options kapi.ListOptions) (*kapisext.DaemonSetList, error) {
-	return d.KubeClient.Extensions().DaemonSets(project).List(kapi.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
+func (d *AggregatedLogging) daemonsets(project string, options metainternal.ListOptions) (*kapisext.DaemonSetList, error) {
+	return d.KubeClient.Extensions().DaemonSets(project).List(metainternal.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
 }
 
-func (d *AggregatedLogging) nodes(options kapi.ListOptions) (*kapi.NodeList, error) {
-	return d.KubeClient.Core().Nodes().List(kapi.ListOptions{})
+func (d *AggregatedLogging) nodes(options metainternal.ListOptions) (*kapi.NodeList, error) {
+	return d.KubeClient.Core().Nodes().List(metainternal.ListOptions{})
 }
 
-func (d *AggregatedLogging) pods(project string, options kapi.ListOptions) (*kapi.PodList, error) {
+func (d *AggregatedLogging) pods(project string, options metainternal.ListOptions) (*kapi.PodList, error) {
 	return d.KubeClient.Core().Pods(project).List(options)
 }
-func (d *AggregatedLogging) deploymentconfigs(project string, options kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (d *AggregatedLogging) deploymentconfigs(project string, options metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	return d.OsClient.DeploymentConfigs(project).List(options)
 }
 
@@ -175,7 +176,7 @@ func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.Maste
 		return projectName
 	}
 
-	routeList, err := osClient.Routes(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
 		r.Error("AGL0012", err, fmt.Sprintf("There was an error while trying to find the route associated with '%s' which is probably transient: %s", loggingUrl, err))
 		return projectName

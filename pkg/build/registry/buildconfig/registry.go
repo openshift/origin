@@ -2,6 +2,7 @@ package buildconfig
 
 import (
 	"github.com/openshift/origin/pkg/build/api"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store BuildConfigs.
 type Registry interface {
 	// ListBuildConfigs obtains list of buildConfigs that match a selector.
-	ListBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (*api.BuildConfigList, error)
+	ListBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error)
 	// GetBuildConfig retrieves a specific buildConfig.
 	GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error)
 	// CreateBuildConfig creates a new buildConfig.
@@ -20,7 +21,7 @@ type Registry interface {
 	// DeleteBuildConfig deletes a buildConfig.
 	DeleteBuildConfig(ctx kapi.Context, id string) error
 	// WatchBuildConfigs watches buildConfigs.
-	WatchBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	WatchBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 // storage puts strong typing around storage calls
@@ -34,7 +35,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (*api.BuildConfigList, error) {
+func (s *storage) ListBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func (s *storage) ListBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) 
 	return obj.(*api.BuildConfigList), nil
 }
 
-func (s *storage) WatchBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 

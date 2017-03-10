@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -26,7 +26,7 @@ func (c *FakeClusterResourceQuotas) Get(name string) (*quotaapi.ClusterResourceQ
 	return obj.(*quotaapi.ClusterResourceQuota), err
 }
 
-func (c *FakeClusterResourceQuotas) List(opts kapi.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
+func (c *FakeClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(clusteResourceQuotasResource, opts), &quotaapi.ClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (c *FakeClusterResourceQuotas) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterResourceQuotas) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewRootWatchAction(clusteResourceQuotasResource, opts))
 }
 

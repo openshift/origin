@@ -1,6 +1,7 @@
 package policy
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -11,7 +12,7 @@ import (
 // Registry is an interface for things that know how to store Policies.
 type Registry interface {
 	// ListPolicies obtains list of policies that match a selector.
-	ListPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyList, error)
+	ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error)
 	// GetPolicy retrieves a specific policy.
 	GetPolicy(ctx kapi.Context, id string) (*authorizationapi.Policy, error)
 	// CreatePolicy creates a new policy.
@@ -25,7 +26,7 @@ type Registry interface {
 type WatchingRegistry interface {
 	Registry
 	// WatchPolicies watches policies.
-	WatchPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -44,7 +45,7 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (s *storage) ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func (s *storage) UpdatePolicy(ctx kapi.Context, node *authorizationapi.Policy) 
 	return err
 }
 
-func (s *storage) WatchPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 

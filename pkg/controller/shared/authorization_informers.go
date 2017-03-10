@@ -3,6 +3,7 @@ package shared
 import (
 	"reflect"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -38,10 +39,10 @@ func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicies"))
 	if lw == nil {
 		lw = &cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicies().List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return f.originClient.ClusterPolicies().Watch(options)
 			},
 		}
@@ -92,10 +93,10 @@ func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicybindings"))
 	if lw == nil {
 		lw = &cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicyBindings().List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return f.originClient.ClusterPolicyBindings().Watch(options)
 			},
 		}
@@ -146,10 +147,10 @@ func (f *policyInformer) Informer() cache.SharedIndexInformer {
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policies"))
 	if lw == nil {
 		lw = &cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.Policies(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return f.originClient.Policies(kapi.NamespaceAll).Watch(options)
 			},
 		}
@@ -200,10 +201,10 @@ func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policybindings"))
 	if lw == nil {
 		lw = &cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.PolicyBindings(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return f.originClient.PolicyBindings(kapi.NamespaceAll).Watch(options)
 			},
 		}

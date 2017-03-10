@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -225,12 +226,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.DeploymentConfigs("hammer-project").List(kapi.ListOptions{})
+	_, err = haroldClient.DeploymentConfigs("hammer-project").List(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = markClient.DeploymentConfigs("hammer-project").List(kapi.ListOptions{})
+	_, err = markClient.DeploymentConfigs("hammer-project").List(metainternal.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -255,7 +256,7 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 // if not found, it will retry up to numRetries at the specified delayInterval
 func waitForProject(t *testing.T, client client.Interface, projectName string, delayInterval time.Duration, numRetries int) {
 	for i := 0; i <= numRetries; i++ {
-		projects, err := client.Projects().List(kapi.ListOptions{})
+		projects, err := client.Projects().List(metainternal.ListOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -351,7 +352,7 @@ func TestAuthorizationResolution(t *testing.T) {
 
 	// the authorization cache may not be up to date, retry
 	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildListerClient.Builds(kapi.NamespaceDefault).List(kapi.ListOptions{})
+		_, err := buildListerClient.Builds(kapi.NamespaceDefault).List(metainternal.ListOptions{})
 		if kapierror.IsForbidden(err) {
 			return false, nil
 		}
@@ -360,11 +361,11 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(kapi.ListOptions{}); err != nil {
+	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(kapi.ListOptions{}); !kapierror.IsForbidden(err) {
+	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(metainternal.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 

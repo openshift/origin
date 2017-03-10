@@ -11,6 +11,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -305,7 +306,7 @@ type policyLister struct {
 	namespace string
 }
 
-func (s policyLister) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	return s.registry.ListPolicies(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
 }
 
@@ -326,7 +327,7 @@ type policyBindingLister struct {
 	namespace string
 }
 
-func (s policyBindingLister) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return s.registry.ListPolicyBindings(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -305,8 +306,8 @@ func (o DebugOptions) Validate() error {
 
 // SingleObject returns a ListOptions for watching a single object.
 // TODO: move to pkg/api/helpers.go upstream.
-func SingleObject(meta metav1.ObjectMeta) kapi.ListOptions {
-	return kapi.ListOptions{
+func SingleObject(meta metav1.ObjectMeta) metainternal.ListOptions {
+	return metainternal.ListOptions{
 		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name),
 		ResourceVersion: meta.ResourceVersion,
 	}

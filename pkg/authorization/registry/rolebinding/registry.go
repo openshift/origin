@@ -1,6 +1,7 @@
 package rolebinding
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store RoleBindings.
 type Registry interface {
 	// ListRoleBindings obtains list of policyRoleBindings that match a selector.
-	ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error)
+	ListRoleBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.RoleBindingList, error)
 	// GetRoleBinding retrieves a specific policyRoleBinding.
 	GetRoleBinding(ctx kapi.Context, id string) (*authorizationapi.RoleBinding, error)
 	// CreateRoleBinding creates a new policyRoleBinding.
@@ -45,7 +46,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error) {
+func (s *storage) ListRoleBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.RoleBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err

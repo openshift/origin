@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -29,7 +30,7 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 	return &ClusterPolicyRegistry{policyMap, err}
 }
 
-func (r *ClusterPolicyRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (r *ClusterPolicyRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	return r.ListClusterPolicies(kapi.NewContext(), &options)
 }
 func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolicy, error) {
@@ -37,7 +38,7 @@ func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolic
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
-func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -143,7 +144,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

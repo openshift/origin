@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -202,7 +203,7 @@ func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error
 	return r.Build, nil
 }
 
-func (r *buildWatcher) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *buildWatcher) Watch(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return r.Watcher, r.Err
 }
 

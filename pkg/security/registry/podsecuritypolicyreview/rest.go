@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/cache"
@@ -102,7 +103,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache *cache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 	//  TODO: express 'all service accounts'
-	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(kapi.ListOptions{}); err == nil {
+	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(metainternal.ListOptions{}); err == nil {
 	//	serviceAccounts = serviceAccountList.Items
 	//	return serviceAccounts, fmt.Errorf("unable to retrieve service accounts: %v", err)
 	//}

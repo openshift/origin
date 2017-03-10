@@ -6,6 +6,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,7 +87,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := e.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	pods, err := e.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}
@@ -93,22 +95,22 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
 		return nil
 	}
-	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	rss, err := e.Options.KubeClient.Extensions().ReplicaSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	rss, err := e.Options.KubeClient.Extensions().ReplicaSets(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	dss, err := e.Options.KubeClient.Extensions().DaemonSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	dss, err := e.Options.KubeClient.Extensions().DaemonSets(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	jobs, err := e.Options.KubeClient.Batch().Jobs(kapi.NamespaceAll).List(kapi.ListOptions{})
+	jobs, err := e.Options.KubeClient.Batch().Jobs(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -122,7 +124,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	firstPod := true
 	numUnmanagedPods := 0
 
-	var deleteOptions *kapi.DeleteOptions
+	var deleteOptions *metav1.DeleteOptions
 	if e.GracePeriod >= 0 {
 		deleteOptions = e.makeDeleteOptions()
 	}
@@ -195,6 +197,6 @@ Suggested options:
 }
 
 // makeDeleteOptions creates the delete options that will be used for pod evacuation.
-func (e *EvacuateOptions) makeDeleteOptions() *kapi.DeleteOptions {
-	return &kapi.DeleteOptions{GracePeriodSeconds: &e.GracePeriod}
+func (e *EvacuateOptions) makeDeleteOptions() *metav1.DeleteOptions {
+	return &metav1.DeleteOptions{GracePeriodSeconds: &e.GracePeriod}
 }

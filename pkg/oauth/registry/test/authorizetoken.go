@@ -1,6 +1,7 @@
 package test
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -13,7 +14,7 @@ type AuthorizeTokenRegistry struct {
 	DeletedAuthorizeTokenName string
 }
 
-func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
+func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx kapi.Context, options *metainternal.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
 	return r.AuthorizeTokens, r.Err
 }
 

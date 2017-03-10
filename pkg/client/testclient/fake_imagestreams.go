@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -32,7 +32,7 @@ func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) List(opts kapi.ListOptions) (*imageapi.ImageStreamList, error) {
+func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageStreamList, error) {
 	obj, err := c.Fake.Invokes(core.NewListAction(imageStreamsResource, c.Namespace, opts), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (c *FakeImageStreams) Delete(name string) error {
 	return err
 }
 
-func (c *FakeImageStreams) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *FakeImageStreams) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(core.NewWatchAction(imageStreamsResource, c.Namespace, opts))
 }
 

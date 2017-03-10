@@ -1,6 +1,7 @@
 package deployconfig
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -10,8 +11,8 @@ import (
 
 // Registry is an interface for things that know how to store DeploymentConfigs.
 type Registry interface {
-	ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
-	WatchDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	ListDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
+	WatchDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
 	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
 	CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error
 	UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error
@@ -29,7 +30,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (s *storage) ListDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func (s *storage) ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOpti
 	return obj.(*deployapi.DeploymentConfigList), nil
 }
 
-func (s *storage) WatchDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 

@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -17,7 +17,7 @@ const gitRepositoryAnnotationKey = "openshift.io/git-repository"
 func GetRepositoryBuildConfigs(c client.Interface, name string, out io.Writer) error {
 
 	ns := os.Getenv("POD_NAMESPACE")
-	buildConfigList, err := c.BuildConfigs(ns).List(kapi.ListOptions{})
+	buildConfigList, err := c.BuildConfigs(ns).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

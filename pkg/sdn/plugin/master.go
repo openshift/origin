@@ -11,6 +11,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -135,7 +136,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each host subnet is within the cluster network
-	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
+	subnets, err := master.osClient.HostSubnets().List(metainternal.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
 	}
@@ -151,7 +152,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
+	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

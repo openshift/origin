@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -102,7 +103,7 @@ type buildFilter func(buildapi.Build) bool
 // Optionally you can specify a filter function to select only builds that
 // matches your criteria.
 func BuildConfigBuilds(c buildclient.BuildLister, namespace, name string, filterFunc buildFilter) (*buildapi.BuildList, error) {
-	result, err := c.List(namespace, kapi.ListOptions{
+	result, err := c.List(namespace, metainternal.ListOptions{
 		LabelSelector: BuildConfigSelector(name),
 	})
 	if err != nil {

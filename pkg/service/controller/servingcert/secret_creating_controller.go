@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -89,10 +90,10 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 
 	sc.serviceCache, sc.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return sc.serviceClient.Services(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return sc.serviceClient.Services(kapi.NamespaceAll).Watch(options)
 			},
 		},
@@ -116,10 +117,10 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 
 	sc.secretCache, sc.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return sc.secretClient.Secrets(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return sc.secretClient.Secrets(kapi.NamespaceAll).Watch(options)
 			},
 		},

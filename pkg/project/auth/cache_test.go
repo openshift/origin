@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -27,7 +28,7 @@ func (this *MockPolicyClient) Policies(namespace string) client.PolicyLister {
 
 type MockPolicyGetter struct{}
 
-func (this MockPolicyGetter) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (this MockPolicyGetter) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	return &authorizationapi.PolicyList{}, nil
 }
 
@@ -42,7 +43,7 @@ func (this *MockPolicyClient) ClusterPolicies() client.ClusterPolicyLister {
 
 type MockClusterPolicyGetter struct{}
 
-func (this MockClusterPolicyGetter) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (this MockClusterPolicyGetter) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	return &authorizationapi.ClusterPolicyList{}, nil
 }
 
@@ -57,7 +58,7 @@ func (this *MockPolicyClient) PolicyBindings(namespace string) client.PolicyBind
 
 type MockPolicyBindingGetter struct{}
 
-func (this MockPolicyBindingGetter) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (this MockPolicyBindingGetter) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
@@ -72,7 +73,7 @@ func (this *MockPolicyClient) ClusterPolicyBindings() client.ClusterPolicyBindin
 
 type MockClusterPolicyBindingGetter struct{}
 
-func (this MockClusterPolicyBindingGetter) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (this MockClusterPolicyBindingGetter) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return &authorizationapi.ClusterPolicyBindingList{}, nil
 }
 

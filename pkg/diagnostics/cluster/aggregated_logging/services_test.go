@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
@@ -24,7 +25,7 @@ func newFakeServicesDiagnostic(t *testing.T) *fakeServicesDiagnostic {
 	}
 }
 
-func (f *fakeServicesDiagnostic) services(project string, options kapi.ListOptions) (*kapi.ServiceList, error) {
+func (f *fakeServicesDiagnostic) services(project string, options metainternal.ListOptions) (*kapi.ServiceList, error) {
 	if f.err != nil {
 		return &f.list, f.err
 	}

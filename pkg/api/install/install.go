@@ -1,6 +1,7 @@
 package install
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/conversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -25,7 +26,7 @@ import (
 	_ "github.com/openshift/origin/pkg/template/api/install"
 	_ "github.com/openshift/origin/pkg/user/api/install"
 
-	kv1 "k8s.io/kubernetes/pkg/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	watchapi "k8s.io/kubernetes/pkg/watch"
 	watchv1 "k8s.io/kubernetes/pkg/watch/versioned"
@@ -76,14 +77,14 @@ func init() {
 				return true, watchv1.Convert_watch_Event_to_versioned_Event(a, b, s)
 			}
 
-		case *kapi.ListOptions:
+		case *metainternal.ListOptions:
 			switch b := objB.(type) {
-			case *kv1.ListOptions:
+			case *metav1.ListOptions:
 				return true, kv1.Convert_api_ListOptions_To_v1_ListOptions(a, b, s)
 			}
-		case *kv1.ListOptions:
+		case *metav1.ListOptions:
 			switch b := objB.(type) {
-			case *kapi.ListOptions:
+			case *metainternal.ListOptions:
 				return true, kv1.Convert_v1_ListOptions_To_api_ListOptions(a, b, s)
 			}
 

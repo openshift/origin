@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -18,7 +19,7 @@ type BuildConfigRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (*api.BuildConfigList, error) {
+func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.BuildConfigs, r.Err
@@ -55,6 +56,6 @@ func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) err
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

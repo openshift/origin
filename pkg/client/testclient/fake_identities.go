@@ -1,8 +1,8 @@
 package testclient
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -25,7 +25,7 @@ func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
 	return obj.(*userapi.Identity), err
 }
 
-func (c *FakeIdentities) List(opts kapi.ListOptions) (*userapi.IdentityList, error) {
+func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityList, error) {
 	obj, err := c.Fake.Invokes(core.NewRootListAction(identitiesResource, opts), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err

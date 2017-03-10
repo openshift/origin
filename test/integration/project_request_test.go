@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,15 +69,15 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Watch the project, rolebindings, and configmaps
-	nswatch, err := kubeClientset.Core().Namespaces().Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns)})
+	nswatch, err := kubeClientset.Core().Namespaces().Watch(metainternal.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	policywatch, err := openshiftClient.PolicyBindings(ns).Watch(kapi.ListOptions{})
+	policywatch, err := openshiftClient.PolicyBindings(ns).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(kapi.ListOptions{})
+	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(metainternal.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

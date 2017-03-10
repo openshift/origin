@@ -23,6 +23,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -799,7 +800,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 			b.Status.Phase == buildapi.BuildPhaseError
 	}
 	for {
-		list, err := c.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
+		list, err := c.List(metainternal.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
 		if err != nil {
 			return err
 		}
@@ -813,7 +814,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 		}
 
 		rv := list.ResourceVersion
-		w, err := c.Watch(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector(), ResourceVersion: rv})
+		w, err := c.Watch(metainternal.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector(), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}

@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -1251,7 +1252,7 @@ type rcLoader struct {
 }
 
 func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ReplicationControllers(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1275,7 +1276,7 @@ type serviceLoader struct {
 }
 
 func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Services(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1299,7 +1300,7 @@ type podLoader struct {
 }
 
 func (l *podLoader) Load() error {
-	list, err := l.lister.Pods(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Pods(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1323,7 +1324,7 @@ type statefulSetLoader struct {
 }
 
 func (l *statefulSetLoader) Load() error {
-	list, err := l.lister.StatefulSets(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.StatefulSets(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1347,7 +1348,7 @@ type horizontalPodAutoscalerLoader struct {
 }
 
 func (l *horizontalPodAutoscalerLoader) Load() error {
-	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1371,7 +1372,7 @@ type serviceAccountLoader struct {
 }
 
 func (l *serviceAccountLoader) Load() error {
-	list, err := l.lister.ServiceAccounts(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ServiceAccounts(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1395,7 +1396,7 @@ type secretLoader struct {
 }
 
 func (l *secretLoader) Load() error {
-	list, err := l.lister.Secrets(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Secrets(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1419,7 +1420,7 @@ type pvcLoader struct {
 }
 
 func (l *pvcLoader) Load() error {
-	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1443,7 +1444,7 @@ type isLoader struct {
 }
 
 func (l *isLoader) Load() error {
-	list, err := l.lister.ImageStreams(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.ImageStreams(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1468,7 +1469,7 @@ type dcLoader struct {
 }
 
 func (l *dcLoader) Load() error {
-	list, err := l.lister.DeploymentConfigs(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1492,7 +1493,7 @@ type bcLoader struct {
 }
 
 func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.BuildConfigs(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1516,7 +1517,7 @@ type buildLoader struct {
 }
 
 func (l *buildLoader) Load() error {
-	list, err := l.lister.Builds(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Builds(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1540,7 +1541,7 @@ type routeLoader struct {
 }
 
 func (l *routeLoader) Load() error {
-	list, err := l.lister.Routes(l.namespace).List(kapi.ListOptions{})
+	list, err := l.lister.Routes(l.namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

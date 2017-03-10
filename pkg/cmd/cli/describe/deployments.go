@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -79,7 +80,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		)
 
 		if d.config == nil {
-			if rcs, err := d.kubeClient.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(deploymentConfig.Name)}); err == nil {
+			if rcs, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(deploymentConfig.Name)}); err == nil {
 				deploymentsHistory = make([]*kapi.ReplicationController, 0, len(rcs.Items))
 				for i := range rcs.Items {
 					deploymentsHistory = append(deploymentsHistory, &rcs.Items[i])
@@ -292,7 +293,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 
 // TODO: Move this upstream
 func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kclient kclientset.Interface, w *tabwriter.Writer) {
-	hpaList, err := kclient.Autoscaling().HorizontalPodAutoscalers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
+	hpaList, err := kclient.Autoscaling().HorizontalPodAutoscalers(namespace).List(metainternal.ListOptions{LabelSelector: labels.Everything()})
 	if err != nil {
 		return
 	}
@@ -345,7 +346,7 @@ func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclien
 }
 
 func getPodStatusForDeployment(deployment *kapi.ReplicationController, kubeClient kclientset.Interface) (running, waiting, succeeded, failed int, err error) {
-	rcPods, err := kubeClient.Core().Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: labels.Set(deployment.Spec.Selector).AsSelector()})
+	rcPods, err := kubeClient.Core().Pods(deployment.Namespace).List(metainternal.ListOptions{LabelSelector: labels.Set(deployment.Spec.Selector).AsSelector()})
 	if err != nil {
 		return
 	}
@@ -390,7 +391,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 
 	var deployments []kapi.ReplicationController
 	if d.count == -1 || d.count > 1 {
-		list, err := d.kubeClient.Core().ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+		list, err := d.kubeClient.Core().ReplicationControllers(namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
 		if err != nil && !kerrors.IsNotFound(err) {
 			return "", err
 		}

@@ -8,6 +8,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/golang/glog"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -170,7 +171,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 
 	// TODO: Cache rolebinding restrictions.
 	roleBindingRestrictionList, err := q.oclient.RoleBindingRestrictions(ns).
-		List(kapi.ListOptions{})
+		List(metainternal.ListOptions{})
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}

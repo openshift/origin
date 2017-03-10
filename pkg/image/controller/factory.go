@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -29,10 +30,10 @@ type ImportControllerFactory struct {
 // Create creates an ImportController.
 func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
 	lw := &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return f.Client.ImageStreams(kapi.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 			return f.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
 		},
 	}

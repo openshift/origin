@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -27,7 +28,7 @@ var (
 // other error state occurred. The last observed deployment state is returned.
 func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
 	fieldSelector := fields.Set{"metadata.name": observed.Name}.AsSelector()
-	options := kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: observed.ResourceVersion}
+	options := metainternal.ListOptions{FieldSelector: fieldSelector, ResourceVersion: observed.ResourceVersion}
 	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)
 	if err != nil {
 		return observed, false, err

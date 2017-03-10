@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -314,7 +315,7 @@ func (a *saOAuthClientAdapter) redirectURIsFromRoutes(namespace string, osRouteN
 	var routes []routeapi.Route
 	routeInterface := a.routeClient.Routes(namespace)
 	if osRouteNames.Len() > 1 {
-		if r, err := routeInterface.List(kapi.ListOptions{}); err == nil {
+		if r, err := routeInterface.List(metainternal.ListOptions{}); err == nil {
 			routes = r.Items
 		}
 	} else {
@@ -383,7 +384,7 @@ func getScopeRestrictionsFor(namespace, name string) []oauthapi.ScopeRestriction
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
 func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) ([]string, error) {
-	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(kapi.ListOptions{})
+	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

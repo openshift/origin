@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/registry/core/rangeallocation"
 
@@ -63,7 +63,7 @@ func (c *Repair) RunOnce() error {
 		return fmt.Errorf("unable to refresh the security allocation UID blocks: %v", err)
 	}
 
-	list, err := c.client.List(kapi.ListOptions{})
+	list, err := c.client.List(metainternal.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to refresh the security allocation UID blocks: %v", err)
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -84,19 +85,19 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 	}
 	o.out = out
 
-	allImages, err := osClient.Images().List(kapi.ListOptions{})
+	allImages, err := osClient.Images().List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := osClient.ImageStreams(namespace).List(kapi.ListOptions{})
+	allStreams, err := osClient.ImageStreams(namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Streams = allStreams
 
-	allPods, err := kClient.Core().Pods(namespace).List(kapi.ListOptions{})
+	allPods, err := kClient.Core().Pods(namespace).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}
