@@ -9,7 +9,7 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -58,7 +58,7 @@ func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig
 	if err != nil {
 		return nil, err
 	}
-	_, gvk, err := runtime.UnstructuredJSONScheme.Decode([]byte(resp.Node.Value), nil, nil)
+	_, gvk, err := unstructured.UnstructuredJSONScheme.Decode([]byte(resp.Node.Value), nil, nil)
 	return gvk, err
 }
 

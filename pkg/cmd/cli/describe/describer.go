@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -1034,7 +1035,7 @@ func (d *TemplateDescriber) Describe(namespace, name string, settings kctl.Descr
 
 func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
 	// TODO: write error?
-	_ = runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder(), runtime.UnstructuredJSONScheme)
+	_ = runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)

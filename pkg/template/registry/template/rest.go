@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -56,7 +57,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	// objects using the unstructured codec BEFORE the REST layers gets its shot at encoding to avoid a layered
 	// encode being done.
 	for i := range tpl.Objects {
-		tpl.Objects[i] = runtime.NewEncodable(runtime.UnstructuredJSONScheme, tpl.Objects[i])
+		tpl.Objects[i] = runtime.NewEncodable(unstructured.UnstructuredJSONScheme, tpl.Objects[i])
 	}
 
 	return tpl, nil

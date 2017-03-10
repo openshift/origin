@@ -15,6 +15,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestTemplate(t *testing.T) {
@@ -65,10 +66,10 @@ func TestTemplate(t *testing.T) {
 		if len(obj.Objects) != 1 {
 			t.Fatalf("unexpected object: %#v", obj)
 		}
-		if err := runtime.DecodeList(obj.Objects, runtime.UnstructuredJSONScheme); err != nil {
+		if err := runtime.DecodeList(obj.Objects, unstructured.UnstructuredJSONScheme); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		svc := obj.Objects[0].(*runtime.Unstructured).Object
+		svc := obj.Objects[0].(*unstructured.Unstructured).Object
 		spec := svc["spec"].(map[string]interface{})
 		meta := svc["metadata"].(map[string]interface{})
 		// keep existing values

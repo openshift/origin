@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
@@ -599,7 +600,7 @@ func (o *ObserveOptions) calculateArguments(delta cache.Delta) (runtime.Object, 
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		unstructured := &runtime.Unstructured{}
+		unstructured := &unstructured.Unstructured{}
 		unstructured.SetNamespace(namespace)
 		unstructured.SetName(name)
 		object = unstructured
