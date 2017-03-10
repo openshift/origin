@@ -7,18 +7,16 @@ import (
 
 	"github.com/golang/glog"
 
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	authorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
-	authzadapter "github.com/openshift/origin/pkg/authorization/authorizer/adapter"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
 	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
 	oclient "github.com/openshift/origin/pkg/client"
 )
 
-func newAuthorizerAttributesGetter(nodeName string) (kauthorizer.RequestAttributesGetter, error) {
+func newAuthorizerAttributesGetter(nodeName string) (authorizer.RequestAttributesGetter, error) {
 	return NodeAuthorizerAttributesGetter{nodeName}, nil
 }
 
@@ -37,7 +35,7 @@ func isSubpath(r *http.Request, path string) bool {
 //    /stats/*   => verb=<api verb from request>, resource=nodes/stats
 //    /metrics/* => verb=<api verb from request>, resource=nodes/metrics
 //    /logs/*    => verb=<api verb from request>, resource=nodes/log
-func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *http.Request) kauthorizer.Attributes {
+func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *http.Request) authorizer.Attributes {
 
 	namespace := ""
 
@@ -56,14 +54,17 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	}
 
 	// Default verb/resource is <apiVerb> nodes/proxy, which allows full access to the kubelet API
-	attrs := oauthorizer.DefaultAuthorizationAttributes{
-		APIVersion:   "v1",
-		APIGroup:     "",
-		Verb:         apiVerb,
-		Resource:     "nodes",
-		Subresource:  "proxy",
-		ResourceName: n.nodeName,
-		URL:          r.URL.Path,
+	attrs := authorizer.AttributesRecord{
+		User:            u,
+		APIVersion:      "v1",
+		APIGroup:        "",
+		Verb:            apiVerb,
+		Namespace:       namespace,
+		Resource:        "nodes",
+		Subresource:     "proxy",
+		Name:            n.nodeName,
+		Path:            r.URL.Path,
+		ResourceRequest: true,
 	}
 
 	// Override verb/resource for specific paths
@@ -86,12 +87,12 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 
 	glog.V(2).Infof("Node request attributes: namespace=%s, user=%#v, attrs=%#v", namespace, u, attrs)
 
-	return authzadapter.KubernetesAuthorizerAttributes(namespace, u, attrs)
+	return attrs
 }
 
-func newAuthorizer(c *oclient.Client, cacheTTL time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {
+func newAuthorizer(c *oclient.Client, cacheTTL time.Duration, cacheSize int) (authorizer.Authorizer, error) {
 	var (
-		authz oauthorizer.Authorizer
+		authz authorizer.Authorizer
 		err   error
 	)
 
@@ -109,11 +110,5 @@ func newAuthorizer(c *oclient.Client, cacheTTL time.Duration, cacheSize int) (ka
 		}
 	}
 
-	// Adapt to the Kubernetes authorizer interface
-	kauthz, err := authzadapter.NewAuthorizer(authz)
-	if err != nil {
-		return nil, err
-	}
-
-	return kauthz, nil
+	return authz, nil
 }

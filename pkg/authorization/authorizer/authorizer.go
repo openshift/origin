@@ -3,8 +3,7 @@ package authorizer
 import (
 	"errors"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -16,17 +15,16 @@ type openshiftAuthorizer struct {
 	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
-func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) Authorizer {
-	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
+func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) (authorizer.Authorizer, SubjectLocator) {
+	ret := &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
+	return ret, ret
 }
 
-func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, attributes Action) (bool, string, error) {
-	user, ok := kapi.UserFrom(ctx)
-	if !ok {
+func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+	if attributes.GetUser() == nil {
 		return false, "", errors.New("no user available on context")
 	}
-	namespace, _ := kapi.NamespaceFrom(ctx)
-	allowed, reason, err := a.authorizeWithNamespaceRules(user, namespace, attributes)
+	allowed, reason, err := a.authorizeWithNamespaceRules(attributes)
 	if allowed {
 		return true, reason, nil
 	}
@@ -35,7 +33,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, attributes Action) (bo
 		return false, "", err
 	}
 
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{user, namespace, attributes})
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{attributes})
 	if err != nil {
 		denyReason = err.Error()
 	}
@@ -47,15 +45,14 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, attributes Action) (bo
 // If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
 // This is done because policy rules are purely additive and policy determinations
 // can be made on the basis of those rules that are found.
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Action) (sets.String, sets.String, error) {
-	namespace, _ := kapi.NamespaceFrom(ctx)
-	return a.getAllowedSubjectsFromNamespaceBindings(namespace, attributes)
+func (a *openshiftAuthorizer) GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error) {
+	return a.getAllowedSubjectsFromNamespaceBindings(attributes)
 }
 
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace string, attributes Action) (sets.String, sets.String, error) {
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(attributes authorizer.Attributes) (sets.String, sets.String, error) {
 	var errs []error
 
-	roleBindings, err := a.ruleResolver.GetRoleBindings(namespace)
+	roleBindings, err := a.ruleResolver.GetRoleBindings(attributes.GetNamespace())
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -92,8 +89,8 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
 // but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
 // status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namespace string, attributes Action) (bool, string, error) {
-	allRules, ruleRetrievalError := a.ruleResolver.RulesFor(user, namespace)
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(attributes authorizer.Attributes) (bool, string, error) {
+	allRules, ruleRetrievalError := a.ruleResolver.RulesFor(attributes.GetUser(), attributes.GetNamespace())
 
 	var errs []error
 	for _, rule := range allRules {
@@ -103,12 +100,12 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namesp
 			continue
 		}
 		if matches {
-			if len(namespace) == 0 {
+			if len(attributes.GetNamespace()) == 0 {
 				return true, "allowed by cluster rule", nil
 			}
 			// not 100% accurate, because the rule may have been provided by a cluster rule. we no longer have
 			// this distinction upstream in practice.
-			return true, "allowed by rule in " + namespace, nil
+			return true, "allowed by rule in " + attributes.GetNamespace(), nil
 		}
 	}
 	if len(errs) == 0 {
@@ -118,18 +115,4 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(user user.Info, namesp
 		errs = append(errs, ruleRetrievalError)
 	}
 	return false, "", kerrors.NewAggregate(errs)
-}
-
-func doesApplyToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
-	if ruleUsers.Has(user.GetName()) {
-		return true
-	}
-
-	for _, currGroup := range user.GetGroups() {
-		if ruleGroups.Has(currGroup) {
-			return true
-		}
-	}
-
-	return false
 }

@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -24,10 +26,10 @@ type testAuthorizer struct {
 	groups sets.String
 	err    string
 
-	actualAttributes authorizer.DefaultAuthorizationAttributes
+	actualAttributes kauthorizer.Attributes
 }
 
-func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
 		return true, "", nil
@@ -35,13 +37,8 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Actio
 
 	return false, "", errors.New("Unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
-	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
-	if !ok {
-		return nil, nil, errors.New("unexpected type for test")
-	}
-
-	a.actualAttributes = attributes
+func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
+	a.actualAttributes = passedAttributes
 	if len(a.err) == 0 {
 		return a.users, a.groups, nil
 	}
@@ -75,7 +72,7 @@ func TestConflictingNamespace(t *testing.T) {
 		},
 	}
 
-	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer)))
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer, authorizer)))
 	ctx := kapi.WithNamespace(kapi.NewContext(), "bar")
 	_, err := storage.Create(ctx, reviewRequest)
 	if err == nil {
@@ -123,7 +120,7 @@ func TestNoErrors(t *testing.T) {
 }
 
 func (r *resourceAccessTest) runTest(t *testing.T) {
-	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer)))
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer, r.authorizer)))
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: r.reviewRequest.Action.Namespace,
@@ -131,9 +128,9 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 		Groups:    r.authorizer.groups,
 	}
 
-	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
+	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(nil, r.reviewRequest.Action.Namespace, r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), r.reviewRequest.Action.Namespace)
+	ctx := kapi.WithNamespace(kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{}), r.reviewRequest.Action.Namespace)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)

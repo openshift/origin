@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -15,8 +15,7 @@ import (
 func TestAuthorize(t *testing.T) {
 	testCases := []struct {
 		name                string
-		user                user.Info
-		attributes          defaultauthorizer.DefaultAuthorizationAttributes
+		attributes          kauthorizer.AttributesRecord
 		delegateAuthAllowed bool
 		expectedCalled      bool
 		expectedAllowed     bool
@@ -24,64 +23,103 @@ func TestAuthorize(t *testing.T) {
 		expectedMsg         string
 	}{
 		{
-			name:        "no user",
+			name: "no user",
+			attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedErr: `user missing from context`,
 		},
 		{
-			name:           "no extra",
-			user:           &user.DefaultInfo{},
+			name: "no extra",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{},
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedCalled: true,
 		},
 		{
-			name:           "empty extra",
-			user:           &user.DefaultInfo{Extra: map[string][]string{}},
+			name: "empty extra",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedCalled: true,
 		},
 		{
-			name:           "empty scopes",
-			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {}}},
+			name: "empty scopes",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedCalled: true,
 		},
 		{
-			name:        "bad scope",
-			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"does-not-exist"}}},
+			name: "bad scope",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"does-not-exist"}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedMsg: `scopes [does-not-exist] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
 			expectedErr: `no scope evaluator found for "does-not-exist"`,
 		},
 		{
-			name:        "bad scope 2",
-			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:dne"}}},
+			name: "bad scope 2",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:dne"}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+			},
 			expectedMsg: `scopes [user:dne] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
 			expectedErr: `unrecognized scope: user:dne`,
 		},
 		{
-			name:        "scope doesn't cover",
-			user:        &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
-			attributes:  defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", Resource: "users", ResourceName: "harold"},
+			name: "scope doesn't cover",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+				Verb:            "get", Resource: "users", Name: "harold"},
 			expectedMsg: `scopes [user:info] prevent this action; User "" cannot get users in project "ns"`,
 		},
 		{
-			name:           "scope covers",
-			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
-			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", Resource: "users", ResourceName: "~"},
+			name: "scope covers",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+				Verb:            "get", Resource: "users", Name: "~"},
 			expectedCalled: true,
 		},
 		{
-			name:           "scope covers for discovery",
-			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
-			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", NonResourceURL: true, URL: "/api"},
+			name: "scope covers for discovery",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:info"}}},
+				ResourceRequest: false,
+				Namespace:       "ns",
+				Verb:            "get", Path: "/api"},
 			expectedCalled: true,
 		},
 		{
-			name:           "user:full covers any resource",
-			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
-			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "update", Resource: "users", ResourceName: "harold"},
+			name: "user:full covers any resource",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+				ResourceRequest: true,
+				Namespace:       "ns",
+				Verb:            "update", Resource: "users", Name: "harold"},
 			expectedCalled: true,
 		},
 		{
-			name:           "user:full covers any non-resource",
-			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
-			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "post", NonResourceURL: true, URL: "/foo/bar/baz"},
+			name: "user:full covers any non-resource",
+			attributes: kauthorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+				ResourceRequest: false,
+				Namespace:       "ns",
+				Verb:            "post", Path: "/foo/bar/baz"},
 			expectedCalled: true,
 		},
 	}
@@ -90,13 +128,7 @@ func TestAuthorize(t *testing.T) {
 		delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
 		authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
 
-		ctx := kapi.WithNamespace(kapi.NewContext(), "ns")
-		if tc.user != nil {
-			ctx = kapi.WithUser(ctx, tc.user)
-
-		}
-
-		actualAllowed, actualMsg, actualErr := authorizer.Authorize(ctx, tc.attributes)
+		actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
 		switch {
 		case len(tc.expectedErr) == 0 && actualErr == nil:
 		case len(tc.expectedErr) == 0 && actualErr != nil:
@@ -125,11 +157,11 @@ type fakeAuthorizer struct {
 	called  bool
 }
 
-func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (bool, string, error) {
 	a.called = true
 	return a.allowed, "", nil
 }
 
-func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
+func (a *fakeAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }

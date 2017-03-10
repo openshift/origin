@@ -652,7 +652,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
-	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer)
+	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer, c.SubjectLocator)
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 

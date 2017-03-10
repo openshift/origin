@@ -449,11 +449,18 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 				ResourceName: streamName,
 			},
 		})
-		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
+		ctx := kapi.WithNamespace(kapi.WithUser(kapi.NewContext(), user), tagRef.From.Namespace)
 		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
-			errors = append(errors, field.Forbidden(fromPath, fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))
+			message := fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)
+			if resp != nil {
+				message = message + fmt.Sprintf(": %q %q", resp.Reason, resp.EvaluationError)
+			}
+			if err != nil {
+				message = message + fmt.Sprintf("- %v", err)
+			}
+			errors = append(errors, field.Forbidden(fromPath, message))
 			continue
 		}
 	}
