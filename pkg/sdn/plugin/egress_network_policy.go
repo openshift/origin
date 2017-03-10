@@ -7,9 +7,9 @@ import (
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {

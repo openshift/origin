@@ -15,12 +15,12 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 	"k8s.io/kubernetes/pkg/util/sysctl"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (

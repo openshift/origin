@@ -9,8 +9,8 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	regclient "github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"

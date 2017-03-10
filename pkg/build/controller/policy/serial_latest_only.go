@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"

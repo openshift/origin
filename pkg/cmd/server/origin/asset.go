@@ -25,9 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/genericapiserver"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	kversion "k8s.io/kubernetes/pkg/version"
 )
 

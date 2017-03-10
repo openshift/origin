@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/origin/pkg/util/errors"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 func waitForEndpointsAvailable(oc *exutil.CLI, serviceName string) error {

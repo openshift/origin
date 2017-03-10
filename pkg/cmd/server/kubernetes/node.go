@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
 	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -37,7 +38,6 @@ import (
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilnode "k8s.io/kubernetes/pkg/util/node"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

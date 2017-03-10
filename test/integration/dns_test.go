@@ -11,8 +11,8 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	waitutil "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	waitutil "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/miekg/dns"
 	testutil "github.com/openshift/origin/test/util"

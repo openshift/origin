@@ -9,10 +9,10 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/admission"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

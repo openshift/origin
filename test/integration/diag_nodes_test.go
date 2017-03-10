@@ -6,8 +6,8 @@ import (
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	clusterdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	diagtype "github.com/openshift/origin/pkg/diagnostics/types"
