@@ -6,7 +6,7 @@ import (
 )
 
 func TestPrivateKeysFromPEM(t *testing.T) {
-	data, err := ioutil.ReadFile("../../../images/router/haproxy-base/conf/default_pub_keys.pem")
+	data, err := ioutil.ReadFile("../../../test/testdata/router/default_pub_keys.pem")
 	if err != nil {
 		t.Fatal(err)
 	}
