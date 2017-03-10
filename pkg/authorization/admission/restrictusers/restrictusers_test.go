@@ -10,7 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	//kcache "k8s.io/kubernetes/pkg/client/cache"
+	//kcache "k8s.io/client-go/tools/cache"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 

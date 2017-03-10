@@ -6,7 +6,7 @@ import (
 	api "github.com/openshift/origin/pkg/build/api"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 // BuildLister helps list Builds.

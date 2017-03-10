@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	kubeapiv1 "k8s.io/kubernetes/pkg/api/v1"
@@ -40,7 +41,6 @@ import (
 	"k8s.io/kubernetes/pkg/healthz"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"

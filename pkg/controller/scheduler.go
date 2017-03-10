@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // Scheduler is a self-balancing, rate-limited, bucketed queue that can periodically invoke

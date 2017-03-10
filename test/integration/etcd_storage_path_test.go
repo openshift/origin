@@ -18,8 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"

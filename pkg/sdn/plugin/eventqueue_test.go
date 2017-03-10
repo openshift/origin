@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 )
 
 func testKeyFunc(obj interface{}) (string, error) {

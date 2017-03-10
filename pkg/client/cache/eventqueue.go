@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
+	kcache "k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/watch"
 )
 

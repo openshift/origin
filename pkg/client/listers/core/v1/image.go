@@ -7,7 +7,7 @@ import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 // ImageLister helps list Images.

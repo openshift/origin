@@ -12,9 +12,9 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	"k8s.io/apimachinery/pkg/fields"
+	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 

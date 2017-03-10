@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

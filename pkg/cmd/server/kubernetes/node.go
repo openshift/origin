@@ -45,7 +45,7 @@ import (
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/volume/emptydir"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 type commandExecutor interface {

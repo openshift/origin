@@ -3,8 +3,8 @@ package cache
 import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 )
 
 // IndexerToSecurityContextConstraintsLister gives a store List and Exists methods. The store must contain only SecurityContextConstraints.

@@ -5,7 +5,7 @@ import (
 	internalversioncore "github.com/openshift/origin/pkg/build/client/clientset_generated/internalclientset/typed/core/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	"k8s.io/client-go/util/flowcontrol"
 	_ "k8s.io/kubernetes/plugin/pkg/client/auth"
 )
 
