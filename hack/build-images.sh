@@ -126,14 +126,12 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
 # images that depend on scratch / centos
 image "${tag_prefix}-pod"                   images/pod
-image openshift/openvswitch                 images/openvswitch
 # images that depend on "${tag_prefix}-base"
 image "${tag_prefix}"                       images/origin
 image "${tag_prefix}-haproxy-router"        images/router/haproxy
 image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived
 image "${tag_prefix}-docker-registry"       images/dockerregistry
 image "${tag_prefix}-egress-router"         images/router/egress
-
 # images that depend on "${tag_prefix}
 image "${tag_prefix}-gitserver"             examples/gitserver
 image "${tag_prefix}-deployer"              images/deployer
@@ -141,7 +139,9 @@ image "${tag_prefix}-recycler"              images/recycler
 image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder
 image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder
 image "${tag_prefix}-f5-router"             images/router/f5
-image openshift/node                        images/node
+image "openshift/node"                      images/node
+# images that depend on "openshift/node"
+image "openshift/openvswitch"               images/openvswitch
 
 # extra images (not part of infrastructure)
 image "openshift/hello-openshift"           examples/hello-openshift
