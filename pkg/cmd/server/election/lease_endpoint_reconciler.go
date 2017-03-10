@@ -7,11 +7,11 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/endpoints"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // Leases is an interface which assists in managing the set of active masters
