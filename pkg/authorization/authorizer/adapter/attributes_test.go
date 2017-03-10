@@ -18,14 +18,13 @@ var _ = kauthorizer.Attributes(AdapterAttributes{})
 func TestRoundTrip(t *testing.T) {
 	// Start with origin attributes
 	oattrs := oauthorizer.DefaultAuthorizationAttributes{
-		Verb:              "get",
-		APIVersion:        "av",
-		APIGroup:          "ag",
-		Resource:          "r",
-		ResourceName:      "rn",
-		RequestAttributes: "ra",
-		NonResourceURL:    true,
-		URL:               "/123",
+		Verb:           "get",
+		APIVersion:     "av",
+		APIGroup:       "ag",
+		Resource:       "r",
+		ResourceName:   "rn",
+		NonResourceURL: true,
+		URL:            "/123",
 	}
 
 	// Convert to kube attributes
@@ -84,9 +83,6 @@ func TestRoundTrip(t *testing.T) {
 	}
 	if oattrs.GetResourceName() != oattrs2.GetResourceName() {
 		t.Errorf("Expected %v, got %v", oattrs.GetResourceName(), oattrs2.GetResourceName())
-	}
-	if oattrs.GetRequestAttributes() != oattrs2.GetRequestAttributes() {
-		t.Errorf("Expected %v, got %v", oattrs.GetRequestAttributes(), oattrs2.GetRequestAttributes())
 	}
 	if oattrs.IsNonResourceURL() != oattrs2.IsNonResourceURL() {
 		t.Errorf("Expected %v, got %v", oattrs.IsNonResourceURL(), oattrs2.IsNonResourceURL())

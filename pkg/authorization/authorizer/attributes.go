@@ -1,7 +1,6 @@
 package authorizer
 
 import (
-	"fmt"
 	"path"
 	"strings"
 
@@ -11,14 +10,13 @@ import (
 )
 
 type DefaultAuthorizationAttributes struct {
-	Verb              string
-	APIVersion        string
-	APIGroup          string
-	Resource          string
-	ResourceName      string
-	RequestAttributes interface{}
-	NonResourceURL    bool
-	URL               string
+	Verb           string
+	APIVersion     string
+	APIGroup       string
+	Resource       string
+	ResourceName   string
+	NonResourceURL bool
+	URL            string
 }
 
 // ToDefaultAuthorizationAttributes coerces Action to DefaultAuthorizationAttributes.  Namespace is not included
@@ -46,22 +44,18 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 		return false, nil
 	}
 
+	// attribute restriction rules are no longer respected.  We don't return an error, because it would bubble
+	// up and there nothing that a normal user can or should have to do in this situation.
+	if rule.AttributeRestrictions != nil {
+		return false, nil
+	}
+
 	if a.verbMatches(rule.Verbs) {
 		if a.apiGroupMatches(rule.APIGroups) {
 
 			allowedResourceTypes := authorizationapi.NormalizeResources(rule.Resources)
 			if a.resourceMatches(allowedResourceTypes) {
 				if a.nameMatches(rule.ResourceNames) {
-					// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
-					if rule.AttributeRestrictions != nil {
-						switch rule.AttributeRestrictions.(type) {
-						case (*authorizationapi.IsPersonalSubjectAccessReview):
-							return IsPersonalAccessReview(a)
-						default:
-							return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions)
-						}
-					}
-
 					return true, nil
 				}
 			}
@@ -155,10 +149,6 @@ func (a DefaultAuthorizationAttributes) GetResource() string {
 
 func (a DefaultAuthorizationAttributes) GetResourceName() string {
 	return a.ResourceName
-}
-
-func (a DefaultAuthorizationAttributes) GetRequestAttributes() interface{} {
-	return a.RequestAttributes
 }
 
 func (a DefaultAuthorizationAttributes) IsNonResourceURL() bool {

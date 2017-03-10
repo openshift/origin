@@ -56,7 +56,7 @@ func TestInvalidRole(t *testing.T) {
 			Resource: "buildConfigs",
 		},
 		expectedAllowed: false,
-		expectedError:   "unable to interpret:",
+		expectedReason:  `User "Brad" cannot get buildConfigs in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newInvalidExtensionPolicies()

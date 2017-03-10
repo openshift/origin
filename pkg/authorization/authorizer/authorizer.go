@@ -132,13 +132,12 @@ func CoerceToDefaultAuthorizationAttributes(passedAttributes Action) *DefaultAut
 	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
 	if !ok {
 		attributes = &DefaultAuthorizationAttributes{
-			APIGroup:          passedAttributes.GetAPIGroup(),
-			Verb:              passedAttributes.GetVerb(),
-			RequestAttributes: passedAttributes.GetRequestAttributes(),
-			Resource:          passedAttributes.GetResource(),
-			ResourceName:      passedAttributes.GetResourceName(),
-			NonResourceURL:    passedAttributes.IsNonResourceURL(),
-			URL:               passedAttributes.GetURL(),
+			APIGroup:       passedAttributes.GetAPIGroup(),
+			Verb:           passedAttributes.GetVerb(),
+			Resource:       passedAttributes.GetResource(),
+			ResourceName:   passedAttributes.GetResourceName(),
+			NonResourceURL: passedAttributes.IsNonResourceURL(),
+			URL:            passedAttributes.GetURL(),
 		}
 	}
 
