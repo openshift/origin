@@ -21,12 +21,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 

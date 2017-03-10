@@ -17,11 +17,11 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/retry"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"

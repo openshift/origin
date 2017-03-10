@@ -9,9 +9,9 @@ import (
 	etcdclient "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	knet "k8s.io/apimachinery/pkg/util/net"
 	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	restclient "k8s.io/client-go/rest"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"

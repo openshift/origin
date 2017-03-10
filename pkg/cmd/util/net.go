@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/golang/glog"
 )

@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	kapi "k8s.io/kubernetes/pkg/api"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	buildv1 "github.com/openshift/origin/pkg/build/api/v1"

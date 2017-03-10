@@ -15,8 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
+	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
-	knet "k8s.io/kubernetes/pkg/util/net"
 )
 
 const (

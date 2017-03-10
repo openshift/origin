@@ -12,9 +12,8 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/kubernetes/pkg/auth/user"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
