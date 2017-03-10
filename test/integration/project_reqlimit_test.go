@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -177,12 +178,12 @@ func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	_, oclient, _ := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}); err != nil {
 		t.Errorf("uenxpected error: %v", err)
 	}
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
+		ObjectMeta: metav1.ObjectMeta{Name: "bar"},
 	}); !apierrors.IsForbidden(err) {
 		t.Errorf("missing error: %v", err)
 	}

@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -119,7 +120,7 @@ func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) 
 }
 
 func (c *FakeDeploymentConfigs) Instantiate(inObj *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error) {
-	deployment := &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: inObj.Name}}
+	deployment := &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Name: inObj.Name}}
 	obj, err := c.Fake.Invokes(core.NewUpdateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/instantiate"), c.Namespace, deployment), deployment)
 	if obj == nil {
 		return nil, err

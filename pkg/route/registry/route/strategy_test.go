@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/route/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 )
@@ -29,7 +30,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	}
 
 	persistedRoute := &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       "foo",
 			Name:            "myroute",
 			UID:             types.UID("abc"),
@@ -93,7 +94,7 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &api.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace:       "wildcard",
 				Name:            tc.name,
 				UID:             types.UID("wild"),

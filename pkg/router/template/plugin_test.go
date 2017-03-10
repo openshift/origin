@@ -250,7 +250,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint add",
 			eventType: watch.Added,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test", //kapi.endpoints inherits the name of the service
 				},
@@ -274,7 +274,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint mod",
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -298,7 +298,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint delete",
 			eventType: watch.Deleted,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -354,7 +354,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 			name:      "Endpoint add",
 			eventType: watch.Added,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test", //kapi.endpoints inherits the name of the service
 				},
@@ -381,7 +381,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 			name:      "Endpoint mod",
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -408,7 +408,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 			name:      "Endpoint delete",
 			eventType: watch.Deleted,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -476,7 +476,7 @@ func TestHandleRoute(t *testing.T) {
 
 	//add
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: original,
 			Namespace:         "foo",
 			Name:              "test",
@@ -515,7 +515,7 @@ func TestHandleRoute(t *testing.T) {
 
 	// attempt to add a second route with a newer time, verify it is ignored
 	duplicateRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: original.Add(time.Hour)},
 			Namespace:         "foo",
 			Name:              "dupe",
@@ -645,7 +645,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 
 	//add
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: original,
 			Namespace:         "foo",
 			Name:              "test",
@@ -994,7 +994,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 
 	//add
 	route := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "test"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "test"},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
 			To: routeapi.RouteTargetReference{

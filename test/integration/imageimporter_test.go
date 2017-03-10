@@ -50,7 +50,7 @@ func TestImageStreamImport(t *testing.T) {
 
 	// can't give invalid image specs, should be invalid
 	isi, err := c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
 		Spec: api.ImageStreamImportSpec{
@@ -70,7 +70,7 @@ func TestImageStreamImport(t *testing.T) {
 
 	// import without committing
 	isi, err = c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
 		Spec: api.ImageStreamImportSpec{
@@ -89,7 +89,7 @@ func TestImageStreamImport(t *testing.T) {
 
 	// import with commit
 	isi, err = c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
 		Spec: api.ImageStreamImportSpec{
@@ -305,7 +305,7 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 	}
 
 	testImageStreamImport(t, c, imageSize, &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		Spec: api.ImageStreamImportSpec{
@@ -325,7 +325,7 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 	}
 
 	testImageStreamImport(t, c, imageSize, &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test1",
 		},
 		Spec: api.ImageStreamImportSpec{
@@ -399,7 +399,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 
 	specFn := func(insecure bool, host1, host2 string) *api.ImageStreamImport {
 		return &api.ImageStreamImport{
-			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 			Spec: api.ImageStreamImportSpec{
 				Import: true,
 				Images: []api.ImageImportSpec{
@@ -446,7 +446,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 
 		// add secrets for subsequent checks
 		_, err = kc.Core().Secrets(testutil.Namespace()).Create(&kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("secret-%d", i+1)},
 			Type:       kapi.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
 				kapi.DockerConfigJsonKey: []byte(`{"auths":{"` + host + `/test/image/":{"auth":"` + base64.StdEncoding.EncodeToString([]byte("user:password")) + `"}}}`),
@@ -552,7 +552,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	}
 
 	importSpec := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{Name: "test"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: api.ImageStreamImportSpec{
 			Import: true,
 			Repository: &api.RepositoryImportSpec{
@@ -679,7 +679,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 	// import with commit
 	isi, err := c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		Spec: api.ImageStreamImportSpec{

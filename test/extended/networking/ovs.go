@@ -11,6 +11,7 @@ import (
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -86,7 +87,7 @@ var _ = Describe("[networking] OVS", func() {
 				TypeMeta: kapimetav1.TypeMeta{
 					Kind: "Node",
 				},
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 				},
 				Spec: kapi.NodeSpec{
@@ -199,7 +200,7 @@ func doGetFlowsForNode(oc *testexutil.CLI, nodeName string) ([]string, error) {
 		TypeMeta: kapimetav1.TypeMeta{
 			Kind: "Pod",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "flow-check",
 		},
 		Spec: kapi.PodSpec{

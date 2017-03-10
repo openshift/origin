@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
@@ -82,7 +83,7 @@ func CreatePodFromImage(stream *imageapi.ImageStream, tag, ns string) *kapi.Pod 
 		imageName += ":" + tag
 	}
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   ns,
 			Labels: map[string]string{"name": ns},
 		},
@@ -111,7 +112,7 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 		return nil
 	}
 	service := &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
 		},
 		Spec: kapi.ServiceSpec{

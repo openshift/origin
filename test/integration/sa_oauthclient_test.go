@@ -17,6 +17,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
@@ -78,7 +79,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	}
 
 	promptingClient, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
-		ObjectMeta:            kapi.ObjectMeta{Name: "prompting-client"},
+		ObjectMeta:            metav1.ObjectMeta{Name: "prompting-client"},
 		Secret:                "prompting-client-secret",
 		RedirectURIs:          []string{redirectURL},
 		GrantMethod:           oauthapi.GrantHandlerPrompt,

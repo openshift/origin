@@ -3,6 +3,7 @@ package app
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -109,7 +110,7 @@ func fakeTemplates(testData map[string][]string) *templateapi.TemplateList {
 	for namespace, templateNames := range testData {
 		for _, templateName := range templateNames {
 			template := &templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      templateName,
 					Namespace: namespace,
 				},

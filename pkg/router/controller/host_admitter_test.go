@@ -112,7 +112,7 @@ func TestHostAdmit(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "allow",
 			},
@@ -220,7 +220,7 @@ func TestWildcardHostDeny(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "deny",
 			},
@@ -249,7 +249,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	oldest := metav1.Time{Time: time.Now()}
 
 	ownerRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: oldest,
 			Name:              "first",
 			Namespace:         "owner",
@@ -414,7 +414,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.createdAt,
 				Name:              tc.name,
 				Namespace:         tc.namespace,
@@ -443,7 +443,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	}
 
 	wildcardRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: oldest.Add(time.Hour)},
 			Name:              "wildcard-owner",
 			Namespace:         "owner",
@@ -467,7 +467,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	// bounce all the routes from the namespace "owner" and claim
 	// ownership of the subdomain for the namespace "bouncer".
 	bouncer := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: oldest.Add(-1 * time.Hour)},
 			Name:              "hosted",
 			Namespace:         "bouncer",
@@ -575,7 +575,7 @@ func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp met
 		policy = routeapi.WildcardPolicySubdomain
 	}
 	return &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
 		Spec: routeapi.RouteSpec{
 			Host:           host,
 			Path:           path,
@@ -776,7 +776,7 @@ func TestStatusWildcardPolicyNoOp(t *testing.T) {
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
 			Host:           "wild.test.local",
 			WildcardPolicy: routeapi.WildcardPolicySubdomain,
@@ -814,7 +814,7 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, false, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
 			Host:           "wild.test.local",
 			WildcardPolicy: "nono",

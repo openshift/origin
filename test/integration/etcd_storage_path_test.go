@@ -764,7 +764,7 @@ func TestEtcdStoragePath(t *testing.T) {
 		t.Fatalf("error creating client: %#v", err)
 	}
 
-	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: testNamespace}}); err != nil {
+	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 

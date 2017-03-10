@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -53,11 +54,11 @@ func TestProjectRequestError(t *testing.T) {
 
 	additionalObjects := []runtime.Object{
 		// Append an object that will succeed
-		&kapi.ConfigMap{ObjectMeta: kapi.ObjectMeta{Name: "configmapname"}},
+		&kapi.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname"}},
 		// Append a custom object that will fail validation
 		&kapi.ConfigMap{},
 		// Append another object that should never be created, since we short circuit
-		&kapi.ConfigMap{ObjectMeta: kapi.ObjectMeta{Name: "configmapname2"}},
+		&kapi.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmapname2"}},
 	}
 	if err := templateapi.AddObjectsToTemplate(template, additionalObjects, kapiv1.SchemeGroupVersion); err != nil {
 		t.Fatal(err)
@@ -81,7 +82,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Create project request
-	_, err = openshiftClient.ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: kapi.ObjectMeta{Name: ns}})
+	_, err = openshiftClient.ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if err == nil || err.Error() != `Internal error occurred: ConfigMap "" is invalid: metadata.name: Required value: name or generateName is required` {
 		t.Fatalf("Expected internal error creating project, got %v", err)
 	}

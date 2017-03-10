@@ -55,13 +55,13 @@ func TestRouteLessThan(t *testing.T) {
 
 	for _, tc := range tcs {
 		r1 := &Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.timestamp1,
 				UID:               tc.uid1,
 			},
 		}
 		r2 := &Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.timestamp2,
 				UID:               tc.uid2,
 			},

@@ -2,6 +2,7 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 
@@ -38,7 +39,7 @@ func (i *InformerToClusterPolicyBindingLister) List(options kapi.ListOptions) (*
 }
 
 func (i *InformerToClusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: kapi.ObjectMeta{Name: name}}
+	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetIndexer().GetByKey(key)

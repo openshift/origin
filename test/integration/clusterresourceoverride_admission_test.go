@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -68,7 +69,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 		MaxLimitRequestRatio: kapi.ResourceList{},
 	}
 	limit := &kapi.LimitRange{
-		ObjectMeta: kapi.ObjectMeta{Name: "limit"},
+		ObjectMeta: metav1.ObjectMeta{Name: "limit"},
 		Spec:       kapi.LimitRangeSpec{Limits: []kapi.LimitRangeItem{limitItem}},
 	}
 	_, err := limitHandler.Create(limit)
@@ -154,7 +155,7 @@ func testClusterResourceOverridePod(name string, memory string, cpu string) *kap
 	}
 	container := kapi.Container{Name: name, Image: "scratch", Resources: resources}
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec:       kapi.PodSpec{Containers: []kapi.Container{container}},
 	}
 	return pod

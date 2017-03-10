@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -266,7 +267,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	}
 
 	secret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: service.Namespace,
 			Name:      service.Annotations[ServingCertSecretAnnotation],
 			Annotations: map[string]string{

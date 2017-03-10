@@ -13,7 +13,7 @@ import (
 type ClusterResourceQuota struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec
@@ -72,7 +72,7 @@ type ClusterResourceQuotaList struct {
 type AppliedClusterResourceQuota struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired quota
 	Spec ClusterResourceQuotaSpec

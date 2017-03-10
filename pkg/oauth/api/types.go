@@ -7,7 +7,7 @@ import (
 
 type OAuthAccessToken struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// ClientName references the client that created this token.
 	ClientName string
@@ -36,7 +36,7 @@ type OAuthAccessToken struct {
 
 type OAuthAuthorizeToken struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// ClientName references the client that created this token.
 	ClientName string
@@ -71,7 +71,7 @@ type OAuthAuthorizeToken struct {
 
 type OAuthClient struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Secret is the unique secret associated with a client
 	Secret string
@@ -128,7 +128,7 @@ type ClusterRoleScopeRestriction struct {
 
 type OAuthClientAuthorization struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// ClientName references the client that created this authorization
 	ClientName string
@@ -170,7 +170,7 @@ type OAuthClientAuthorizationList struct {
 
 type OAuthRedirectReference struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 	Reference RedirectReference
 }
 

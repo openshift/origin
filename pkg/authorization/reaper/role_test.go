@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,7 +24,7 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "no bindings",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "role",
 				},
@@ -32,28 +33,28 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "role",
 					Namespace: "one",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role", Namespace: "one"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-2",
 						Namespace: "one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2", Namespace: "one"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-3",
 						Namespace: "one",
 					},
@@ -65,14 +66,14 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "bindings in other namespace ignored",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "role",
 					Namespace: "one",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "one",
 					},

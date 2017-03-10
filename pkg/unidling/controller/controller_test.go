@@ -11,6 +11,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployfake "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/fake"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
@@ -49,7 +50,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 	}
 
 	endpointsObj := kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "somesvc",
 			Annotations: map[string]string{
 				unidlingapi.IdledAtAnnotation:      nowTimeStr,
@@ -70,7 +71,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		for _, scale := range scales {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
 				return true, &deployapi.DeploymentConfig{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: deployapi.DeploymentConfigSpec{
@@ -88,7 +89,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 		for _, scale := range scales {
 			if scale.Kind == "ReplicationController" && objName == scale.Name {
 				return true, &kapi.ReplicationController{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: kapi.ReplicationControllerSpec{
@@ -214,7 +215,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []kextapi.Scale{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
 			TypeMeta: kmetav1.TypeMeta{
@@ -225,7 +226,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
 			TypeMeta: kmetav1.TypeMeta{
@@ -326,7 +327,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []kextapi.Scale{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
 			TypeMeta: kmetav1.TypeMeta{
@@ -337,7 +338,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
 			TypeMeta: kmetav1.TypeMeta{
@@ -434,7 +435,7 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		for _, scale := range test.scaleGets {
 			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
 				return true, &deployapi.DeploymentConfig{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: deployapi.DeploymentConfigSpec{
@@ -452,7 +453,7 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *d
 		for _, scale := range test.scaleGets {
 			if scale.Kind == "ReplicationController" && objName == scale.Name {
 				return true, &kapi.ReplicationController{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: objName,
 					},
 					Spec: kapi.ReplicationControllerSpec{
@@ -560,7 +561,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "not retry on failure to parse time",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation: "cheddar",
@@ -573,7 +574,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "not retry on failure to unmarshal target scalables",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -587,7 +588,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "remove a scalable from the list if it cannot be found (while getting)",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -601,7 +602,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -616,7 +617,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "should remove a scalable from the list if it cannot be found (while updating)",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -629,7 +630,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					TypeMeta: kmetav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -639,7 +640,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -655,7 +656,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		{
 			name: "retry on failed endpoints update",
 			endpointsGet: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somesvc",
 					Annotations: map[string]string{
 						unidlingapi.IdledAtAnnotation:      nowTime.Format(time.RFC3339),
@@ -668,7 +669,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					TypeMeta: kmetav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},
@@ -678,7 +679,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
 					Spec: kextapi.ScaleSpec{Replicas: 0},

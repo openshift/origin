@@ -123,7 +123,7 @@ func (w *userProjectWatcher) GroupMembershipChanged(namespaceName string, users,
 		select {
 		case w.cacheIncoming <- watch.Event{
 			Type:   watch.Deleted,
-			Object: projectutil.ConvertNamespace(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespaceName}}),
+			Object: projectutil.ConvertNamespace(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}),
 		}:
 		default:
 			// remove the watcher so that we wont' be notified again and block

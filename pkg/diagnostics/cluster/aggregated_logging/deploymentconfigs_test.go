@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -32,7 +33,7 @@ func newFakeDeploymentConfigsDiagnostic(t *testing.T) *fakeDeploymentConfigsDiag
 func (f *fakeDeploymentConfigsDiagnostic) addDeployConfigFor(component string) {
 	labels := map[string]string{componentKey: component}
 	dc := deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   component + "Name",
 			Labels: labels,
 		},
@@ -46,7 +47,7 @@ func (f *fakeDeploymentConfigsDiagnostic) addPodFor(comp string, state kapi.PodP
 		annotations[deployapi.DeploymentConfigAnnotation] = comp
 	}
 	pod := kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        comp,
 			Annotations: annotations,
 		},

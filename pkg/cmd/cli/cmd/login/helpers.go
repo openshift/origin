@@ -16,6 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -135,10 +136,10 @@ func whoAmI(clientConfig *restclient.Config) (*api.User, error) {
 		case len(clientConfig.BearerToken) > 0:
 			// the user has already been willing to provide the token on the CLI, so they probably
 			// don't mind using it again if they switch to and from this user
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: clientConfig.BearerToken}}, nil
+			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: clientConfig.BearerToken}}, nil
 
 		case len(clientConfig.Username) > 0:
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: clientConfig.Username}}, nil
+			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: clientConfig.Username}}, nil
 
 		}
 	}

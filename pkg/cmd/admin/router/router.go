@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -328,7 +329,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 		}
 
 		secret := &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: privkeySecretName,
 			},
 			Data: map[string][]byte{privkeyName: privkeyData},
@@ -369,7 +370,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 		}
 		// The TLSCertKey contains the pem file passed in as the default cert
 		secret := &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: certName,
 			},
 			Type: kapi.SecretTypeTLS,
@@ -735,9 +736,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	objects = append(objects,
-		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: cfg.ServiceAccount}},
+		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: cfg.ServiceAccount}},
 		&authapi.ClusterRoleBinding{
-			ObjectMeta: kapi.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
+			ObjectMeta: metav1.ObjectMeta{Name: generateRoleBindingName(cfg.Name)},
 			Subjects: []kapi.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
@@ -753,7 +754,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	)
 
 	objects = append(objects, &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: label,
 		},
@@ -768,7 +769,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 				{Type: deployapi.DeploymentTriggerOnConfigChange},
 			},
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{Labels: label},
+				ObjectMeta: metav1.ObjectMeta{Labels: label},
 				Spec: kapi.PodSpec{
 					SecurityContext: &kapi.PodSecurityContext{
 						HostNetwork: cfg.HostNetwork,

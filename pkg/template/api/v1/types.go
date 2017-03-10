@@ -12,7 +12,7 @@ import (
 type Template struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// message is an optional instructional message that will
 	// be displayed when this template is instantiated.

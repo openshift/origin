@@ -144,7 +144,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 		create = true
 		stream = &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:       isi.Name,
 				Namespace:  namespace,
 				Generation: 0,

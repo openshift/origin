@@ -3,6 +3,7 @@ package identitymapper
 import (
 	"github.com/golang/glog"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
@@ -75,7 +76,7 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, info authapi.UserIdentityInfo) (kuser.Info, error) {
 	// Build the part of the identity we know about
 	identity := &userapi.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: info.GetIdentityName(),
 		},
 		ProviderName:     info.GetProviderName(),

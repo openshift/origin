@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -43,7 +44,7 @@ func fakeDeploymentConfig(name string, containers ...containerDesc) *deployapi.D
 		specContainers = append(specContainers, container)
 	}
 	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: deployapi.DeploymentConfigSpec{
@@ -71,7 +72,7 @@ func expectedService(name string, ports ...portDesc) *kapi.Service {
 	}
 
 	return &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: kapi.ServiceSpec{

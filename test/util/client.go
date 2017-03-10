@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -96,7 +97,7 @@ func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.
 	}
 
 	token := &oauthapi.OAuthAccessToken{
-		ObjectMeta:  kapi.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
+		ObjectMeta:  metav1.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   86400,
 		Scopes:      scopes,
@@ -122,12 +123,12 @@ func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.
 }
 
 func GetClientForServiceAccount(adminClient *kclientset.Clientset, clientConfig restclient.Config, namespace, name string) (*client.Client, *kclientset.Clientset, *restclient.Config, error) {
-	_, err := adminClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespace}})
+	_, err := adminClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	if err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, nil, err
 	}
 
-	sa, err := adminClient.Core().ServiceAccounts(namespace).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: name}})
+	sa, err := adminClient.Core().ServiceAccounts(namespace).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	if kerrs.IsAlreadyExists(err) {
 		sa, err = adminClient.Core().ServiceAccounts(namespace).Get(name)
 	}

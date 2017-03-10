@@ -96,7 +96,7 @@ type okImageStreamClient struct{}
 
 func (*okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: "image/repo",
 		},
@@ -117,7 +117,7 @@ func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*im
 
 func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
 			Annotations: map[string]string{
@@ -172,7 +172,7 @@ func mockBuildPodController(build *buildapi.Build) *BuildPodController {
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "data-build-build",
 			Annotations: map[string]string{
 				buildapi.BuildAnnotation: "data-build",
@@ -723,7 +723,7 @@ func TestHandleHandleBuildDeletionOK(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -749,7 +749,7 @@ func TestHandleHandlePipelineBuildDeletionOK(t *testing.T) {
 	build.Spec.Strategy.JenkinsPipelineStrategy = &buildapi.JenkinsPipelineBuildStrategy{}
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -774,7 +774,7 @@ func TestHandleHandleBuildDeletionOKDeprecatedLabel(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil
@@ -856,7 +856,7 @@ func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
 	ctrl := BuildDeleteController{&customPodManager{
 		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
-			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{
+			return &kapi.Pod{ObjectMeta: metav1.ObjectMeta{
 				Labels:      map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)},
 				Annotations: map[string]string{buildapi.BuildAnnotation: build.Name},
 			}}, nil

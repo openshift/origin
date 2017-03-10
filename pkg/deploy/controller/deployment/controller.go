@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -294,7 +295,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	gracePeriod := int64(10)
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,

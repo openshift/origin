@@ -3,6 +3,7 @@ package podsecuritypolicysubjectreview
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -15,7 +16,7 @@ import (
 
 func saSCC() *kapi.SecurityContextConstraints {
 	return &kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			SelfLink: "/api/version/securitycontextconstraints/scc-sa",
 			Name:     "scc-sa",
 		},

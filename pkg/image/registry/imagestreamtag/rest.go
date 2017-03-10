@@ -131,7 +131,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 		// try to create the target if it doesn't exist
 		target = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      imageStreamName,
 				Namespace: namespace,
 			},
@@ -180,7 +180,7 @@ func (r *REST) Update(ctx kapi.Context, tagName string, objInfo rest.UpdatedObje
 			return nil, false, kapierrors.NewBadRequest("namespace is required on ImageStreamTags")
 		}
 		imageStream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
 				Name:      name,
 			},
@@ -328,7 +328,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	}
 
 	ist := &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         imageStream.Namespace,
 			Name:              istagName,
 			CreationTimestamp: event.Created,

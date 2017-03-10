@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	cache "k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -37,7 +38,7 @@ func TestNoErrors(t *testing.T) {
 			},
 			sccs: []*kapi.SecurityContextConstraints{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/scc-sa",
 						Name:     "scc-sa",
 					},
@@ -85,7 +86,7 @@ func TestNoErrors(t *testing.T) {
 			},
 			sccs: []*kapi.SecurityContextConstraints{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/restrictive",
 						Name:     "restrictive",
 					},
@@ -265,7 +266,7 @@ func TestSpecificSAs(t *testing.T) {
 			},
 			sccs: []*kapi.SecurityContextConstraints{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/myscc",
 						Name:     "myscc",
 					},
@@ -286,19 +287,19 @@ func TestSpecificSAs(t *testing.T) {
 			},
 			serviceAccounts: []*kapi.ServiceAccount{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-sa",
 						Namespace: "default",
 					},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "yours-sa",
 						Namespace: "default",
 					},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "our-sa",
 						Namespace: "default",
 					},
@@ -329,7 +330,7 @@ func TestSpecificSAs(t *testing.T) {
 			},
 			sccs: []*kapi.SecurityContextConstraints{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						SelfLink: "/api/version/securitycontextconstraints/myscc",
 						Name:     "myscc",
 					},
@@ -350,7 +351,7 @@ func TestSpecificSAs(t *testing.T) {
 			},
 			serviceAccounts: []*kapi.ServiceAccount{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-sa",
 						Namespace: "default",
 					},

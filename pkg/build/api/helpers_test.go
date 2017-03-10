@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"strings"
 )
@@ -16,12 +17,12 @@ func TestFilterBuilds_withEmptyArray(t *testing.T) {
 func TestFilterBuilds_withAllElementsAccepted(t *testing.T) {
 	expected := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "build1-abc",
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "build2-abc",
 			},
 		},
@@ -38,17 +39,17 @@ func TestFilterBuilds_withAllElementsAccepted(t *testing.T) {
 func TestFilterBuilds_withFilteredElements(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "skip1-abc",
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "build2-abc",
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "skip3-abc",
 			},
 		},
@@ -67,13 +68,13 @@ func TestFilterBuilds_withFilteredElements(t *testing.T) {
 func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:        "build1-abc",
 				Annotations: map[string]string{BuildConfigAnnotation: "foo"},
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build2-abc",
 				Labels: map[string]string{"bar": "baz"},
 			},
@@ -92,13 +93,13 @@ func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
 				Labels: map[string]string{BuildConfigLabel: "foo"},
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build2-abc",
 				Labels: map[string]string{"bar": "baz"},
 			},
@@ -117,13 +118,13 @@ func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
 				Labels: map[string]string{BuildConfigLabelDeprecated: "foo"},
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build2-abc",
 				Labels: map[string]string{"bar": "baz"},
 			},
@@ -142,19 +143,19 @@ func TestByBuildConfigPredicate_withBuildConfigLabelDeprecated(t *testing.T) {
 func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
 				Labels: map[string]string{BuildConfigLabel: "foo"},
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build2-abc",
 				Labels: map[string]string{"bar": "baz"},
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build3-abc",
 				Labels: map[string]string{BuildConfigLabelDeprecated: "foo"},
 			},
@@ -173,7 +174,7 @@ func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 func TestByBuildConfigPredicate_withoutBuildConfigLabels(t *testing.T) {
 	input := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
 				Labels: map[string]string{"bar": "baz"},
 			},

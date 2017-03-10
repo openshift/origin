@@ -47,7 +47,7 @@ var (
 	fakePodList = &kapi.PodList{
 		Items: []kapi.Pod{
 			{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:              "config-5-application-pod-1",
 					Namespace:         kapi.NamespaceDefault,
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 1, 0, time.UTC),
@@ -63,7 +63,7 @@ var (
 				},
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:              "config-5-application-pod-2",
 					Namespace:         kapi.NamespaceDefault,
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 3, 0, time.UTC),
@@ -137,7 +137,7 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 	} else {
 		// ...otherwise try to get the logs from the deployer pod.
 		fakeDeployer := &kapi.Pod{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      deployutil.DeployerPodNameForDeployment(obj.Name),
 				Namespace: kapi.NamespaceDefault,
 			},

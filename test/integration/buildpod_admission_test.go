@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -167,7 +168,7 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 }
 
 func buildPodAdmissionTestCustomBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
 			buildapi.BuildConfigLabel:    "mock-build-config",
 			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
@@ -182,7 +183,7 @@ func buildPodAdmissionTestCustomBuild() *buildapi.Build {
 }
 
 func buildPodAdmissionTestDockerBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
 			buildapi.BuildConfigLabel:    "mock-build-config",
 			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
@@ -278,7 +279,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 	}
 
 	_, err = clusterAdminKubeClientset.Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
 		t.Fatalf("%v", err)

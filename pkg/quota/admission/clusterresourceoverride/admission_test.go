@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -311,7 +312,7 @@ var nsIndex = 0
 func fakeNamespace(pluginEnabled bool) *kapi.Namespace {
 	nsIndex++
 	ns := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("fakeNS%d", nsIndex),
 			Annotations: map[string]string{},
 		},

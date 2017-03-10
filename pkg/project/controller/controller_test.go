@@ -22,7 +22,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	}
 	now := metav1.Now()
 	testNamespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test",
 			ResourceVersion:   "1",
 			DeletionTimestamp: &now,
@@ -76,7 +76,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 		Client:     mockOriginClient,
 	}
 	testNamespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "test",
 			ResourceVersion: "1",
 		},

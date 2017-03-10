@@ -10,6 +10,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	waitutil "k8s.io/kubernetes/pkg/util/wait"
 
@@ -97,7 +98,7 @@ func TestDNS(t *testing.T) {
 
 	for {
 		if _, err := client.Core().Services(kapi.NamespaceDefault).Create(&kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "headless",
 			},
 			Spec: kapi.ServiceSpec{
@@ -113,7 +114,7 @@ func TestDNS(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if _, err := client.Core().Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "headless",
 			},
 			Subsets: []kapi.EndpointSubset{{
@@ -131,7 +132,7 @@ func TestDNS(t *testing.T) {
 	headlessIPHash := getHash(headlessIP.String())
 
 	if _, err := client.Core().Services(kapi.NamespaceDefault).Create(&kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "headless2",
 		},
 		Spec: kapi.ServiceSpec{
@@ -142,7 +143,7 @@ func TestDNS(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if _, err := client.Core().Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "headless2",
 		},
 		Subsets: []kapi.EndpointSubset{{

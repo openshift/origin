@@ -14,7 +14,7 @@ const (
 
 type ClusterNetwork struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	Network          string
 	HostSubnetLength uint32
@@ -31,7 +31,7 @@ type ClusterNetworkList struct {
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// host may just be an IP address, resolvable hostname or a complete DNS
 	Host   string
@@ -49,7 +49,7 @@ type HostSubnetList struct {
 // NetNamespace holds the network id against its name
 type NetNamespace struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	NetName string
 	NetID   uint32
@@ -89,7 +89,7 @@ type EgressNetworkPolicySpec struct {
 // EgressNetworkPolicy describes the current egress network policy
 type EgressNetworkPolicy struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	Spec EgressNetworkPolicySpec
 }

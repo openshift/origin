@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -63,7 +64,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
 
 		obj, err := r.Store.Get(ctx, name)
@@ -75,7 +76,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			return nil, err
 		}
 
-		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+		return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 	}
 
 	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {

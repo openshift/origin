@@ -22,7 +22,7 @@ import (
 
 func defaultQuota() *quotaapi.ClusterResourceQuota {
 	return &quotaapi.ClusterResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{

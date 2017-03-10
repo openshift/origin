@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/certificates"
@@ -84,7 +85,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 	}
 
 	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("node-bootstrapper-client-%s", safeSecretName(o.NodeArgs.NodeName)),
 		},
 		Spec: certificates.CertificateSigningRequestSpec{
@@ -194,7 +195,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 	}
 
 	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("node-bootstrapper-server-%s", safeSecretName(o.NodeArgs.NodeName)),
 		},
 		Spec: certificates.CertificateSigningRequestSpec{

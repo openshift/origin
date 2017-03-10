@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -61,7 +62,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 	}
 	imageName := d.ImageTemplate.ExpandOrDie("deployer")
 	pod, err := d.KubeClient.Core().Pods(d.Namespace).Create(&kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{GenerateName: "pod-diagnostic-test-"},
+		ObjectMeta: metav1.ObjectMeta{GenerateName: "pod-diagnostic-test-"},
 		Spec: kapi.PodSpec{
 			RestartPolicy: kapi.RestartPolicyNever,
 			Containers: []kapi.Container{

@@ -23,6 +23,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -2025,7 +2026,7 @@ insteadOf = %s
 
 func builderImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "ruby",
 			Namespace:       "default",
 			ResourceVersion: "1",
@@ -2136,7 +2137,7 @@ func templateList() *templateapi.TemplateList {
 		Items: []templateapi.Template{
 			{
 				Objects: []runtime.Object{},
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "first-stored-template",
 					Namespace: "default",
 				},

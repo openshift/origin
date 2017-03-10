@@ -211,7 +211,7 @@ func (vmap *masterVNIDMap) assignVNID(osClient *osclient.Client, nsName string) 
 		// Create NetNamespace Object and update vnid map
 		netns := &osapi.NetNamespace{
 			TypeMeta:   metav1.TypeMeta{Kind: "NetNamespace"},
-			ObjectMeta: kapi.ObjectMeta{Name: nsName},
+			ObjectMeta: metav1.ObjectMeta{Name: nsName},
 			NetName:    nsName,
 			NetID:      netid,
 		}

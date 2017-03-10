@@ -17,7 +17,7 @@ import (
 type User struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// FullName is the full name of user
 	FullName string `json:"fullName,omitempty" protobuf:"bytes,2,opt,name=fullName"`
@@ -48,7 +48,7 @@ type UserList struct {
 type Identity struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ProviderName is the source of identity information
 	ProviderName string `json:"providerName" protobuf:"bytes,2,opt,name=providerName"`
@@ -77,7 +77,7 @@ type IdentityList struct {
 type UserIdentityMapping struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Identity is a reference to an identity
 	Identity kapi.ObjectReference `json:"identity,omitempty" protobuf:"bytes,2,opt,name=identity"`
@@ -98,7 +98,7 @@ func (t OptionalNames) String() string {
 type Group struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Users is the list of users in this group.
 	Users OptionalNames `json:"users" protobuf:"bytes,2,rep,name=users"`

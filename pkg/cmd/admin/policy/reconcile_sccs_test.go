@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -153,26 +154,26 @@ func TestComputeDefinitions(t *testing.T) {
 func TestComputeMetadata(t *testing.T) {
 	tests := map[string]struct {
 		union       bool
-		desired     kapi.ObjectMeta
-		actual      kapi.ObjectMeta
+		desired     metav1.ObjectMeta
+		actual      metav1.ObjectMeta
 		needsUpdate bool
-		computed    kapi.ObjectMeta
+		computed    metav1.ObjectMeta
 	}{
 		"identical with union": {
 			union: true,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: false,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
@@ -181,19 +182,19 @@ func TestComputeMetadata(t *testing.T) {
 		},
 		"identical without union": {
 			union: false,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: false,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
@@ -203,19 +204,19 @@ func TestComputeMetadata(t *testing.T) {
 
 		"missing labels and annotations with union": {
 			union: true,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a", "labelb": "b"},
 				Annotations: map[string]string{"annotationa": "a", "annotationb": "b"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: true,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
@@ -224,19 +225,19 @@ func TestComputeMetadata(t *testing.T) {
 		},
 		"missing labels and annotations without union": {
 			union: false,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a", "labelb": "b"},
 				Annotations: map[string]string{"annotationa": "a", "annotationb": "b"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: true,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
@@ -246,19 +247,19 @@ func TestComputeMetadata(t *testing.T) {
 
 		"extra labels and annotations with union": {
 			union: true,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: false,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
@@ -267,19 +268,19 @@ func TestComputeMetadata(t *testing.T) {
 		},
 		"extra labels and annotations without union": {
 			union: false,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: true,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
@@ -289,19 +290,19 @@ func TestComputeMetadata(t *testing.T) {
 
 		"disjoint labels and annotations with union": {
 			union: true,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labelb": "b"},
 				Annotations:     map[string]string{"annotationb": "b"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: true,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a", "labelb": "b"},
 				Annotations:     map[string]string{"annotationa": "a", "annotationb": "b"},
@@ -310,19 +311,19 @@ func TestComputeMetadata(t *testing.T) {
 		},
 		"disjoint labels and annotations without union": {
 			union: false,
-			desired: kapi.ObjectMeta{
+			desired: metav1.ObjectMeta{
 				Name:        "foo",
 				Labels:      map[string]string{"labela": "a"},
 				Annotations: map[string]string{"annotationa": "a"},
 			},
-			actual: kapi.ObjectMeta{
+			actual: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labelb": "b"},
 				Annotations:     map[string]string{"annotationb": "b"},
 				ResourceVersion: "2",
 			},
 			needsUpdate: true,
-			computed: kapi.ObjectMeta{
+			computed: metav1.ObjectMeta{
 				Name:            "foo",
 				Labels:          map[string]string{"labela": "a"},
 				Annotations:     map[string]string{"annotationa": "a"},
@@ -570,7 +571,7 @@ func goodSCCWithPriority(priority int32) kapi.SecurityContextConstraints {
 
 func goodSCC() kapi.SecurityContextConstraints {
 	return kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "scc-admin",
 		},
 		RunAsUser: kapi.RunAsUserStrategyOptions{

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -34,7 +35,7 @@ func TestRepair(t *testing.T) {
 	client.AddReactor("*", "*", func(a core.Action) (bool, runtime.Object, error) {
 		list := &kapi.NamespaceList{
 			Items: []kapi.Namespace{
-				{ObjectMeta: kapi.ObjectMeta{Name: "default"}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 			},
 		}
 		return true, list, nil
@@ -68,7 +69,7 @@ func TestRepairIgnoresMismatch(t *testing.T) {
 		list := &kapi.NamespaceList{
 			Items: []kapi.Namespace{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:        "default",
 						Annotations: map[string]string{security.UIDRangeAnnotation: "1/5"},
 					},

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -68,7 +69,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 	buildTriggerCauses := generateBuildTriggerInfo(revision, hookType, secret)
 	request := &buildapi.BuildRequest{
 		TriggeredBy: buildTriggerCauses,
-		ObjectMeta:  kapi.ObjectMeta{Name: name},
+		ObjectMeta:  metav1.ObjectMeta{Name: name},
 		Revision:    revision,
 		Env:         envvars,
 		DockerStrategyOptions: dockerStrategyOptions,

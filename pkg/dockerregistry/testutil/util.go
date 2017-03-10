@@ -22,6 +22,7 @@ import (
 	"github.com/docker/distribution/registry/client/transport"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -263,7 +264,7 @@ func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) cor
 // TestNewImageStreamObject returns a new image stream object filled with given values.
 func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageReference string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -301,7 +302,7 @@ func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, 
 				t.Logf("imagestreamimage get handler: returning image %s", is.Name)
 
 				isi := imageapi.ImageStreamImage{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace:         is.Namespace,
 						Name:              imageapi.MakeImageStreamImageName(name, imageID),
 						CreationTimestamp: is.ObjectMeta.CreationTimestamp,

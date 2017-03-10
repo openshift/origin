@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -221,7 +222,7 @@ func (a *saOAuthClientAdapter) GetClient(ctx kapi.Context, name string) (*oautha
 	saWantsChallenges, _ := strconv.ParseBool(sa.Annotations[OAuthWantChallengesAnnotationPrefix])
 
 	saClient := &oauthapi.OAuthClient{
-		ObjectMeta:            kapi.ObjectMeta{Name: name},
+		ObjectMeta:            metav1.ObjectMeta{Name: name},
 		ScopeRestrictions:     getScopeRestrictionsFor(saNamespace, saName),
 		AdditionalSecrets:     tokens,
 		RespondWithChallenges: saWantsChallenges,

@@ -3,6 +3,7 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -54,13 +55,13 @@ func TestValidateProcessTemplate(t *testing.T) {
 		},
 		{ // Template with name, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "templateId"},
+				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
 			},
 			true,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "templateId"},
+				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
 				Parameters: []api.Parameter{
 					*(makeParameter("", "1")),
 				},
@@ -69,7 +70,7 @@ func TestValidateProcessTemplate(t *testing.T) {
 		},
 		{ // Template with valid Parameter, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "templateId"},
+				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
 				Parameters: []api.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
@@ -78,7 +79,7 @@ func TestValidateProcessTemplate(t *testing.T) {
 		},
 		{ // Template with Item of unknown Kind, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "templateId"},
+				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
 				Parameters: []api.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
@@ -110,7 +111,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with name, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template",
 					Namespace: kapi.NamespaceDefault,
 				},
@@ -119,7 +120,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template without namespace, should fail
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "template",
 				},
 			},
@@ -127,7 +128,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with invalid name characters, should fail
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "templateId",
 					Namespace: kapi.NamespaceDefault,
 				},
@@ -136,7 +137,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
 				Parameters: []api.Parameter{
 					*(makeParameter("", "1")),
 				},
@@ -145,7 +146,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with valid Parameter, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
 				Parameters: []api.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
@@ -154,7 +155,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with empty items, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
 				Parameters: []api.Parameter{},
 				Objects:    []runtime.Object{},
 			},
@@ -162,11 +163,11 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with an item that is invalid, should pass
 			&api.Template{
-				ObjectMeta: kapi.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
 				Parameters: []api.Parameter{},
 				Objects: []runtime.Object{
 					&kapi.Service{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							GenerateName: "test",
 						},
 						Spec: kapi.ServiceSpec{

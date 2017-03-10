@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
 
@@ -78,7 +79,7 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Next create a node and leave it in NotReady state. Should get a warning
 	// about that, plus the previous error as there are still no nodes available.
-	_, err = client.Core().Nodes().Create(&kapi.Node{ObjectMeta: kapi.ObjectMeta{Name: "test-node"}})
+	_, err = client.Core().Nodes().Create(&kapi.Node{ObjectMeta: metav1.ObjectMeta{Name: "test-node"}})
 	if err != nil {
 		t.Fatalf("expected no errors creating a node: %#v", err)
 	}

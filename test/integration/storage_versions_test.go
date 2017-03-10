@@ -7,6 +7,7 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
@@ -111,7 +112,7 @@ func TestStorageVersions(t *testing.T) {
 	}
 	for name, testcase := range jobTestcases {
 		job := batch.Job{
-			ObjectMeta: kapi.ObjectMeta{Name: name + "-job"},
+			ObjectMeta: metav1.ObjectMeta{Name: name + "-job"},
 			Spec: batch.JobSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
@@ -158,7 +159,7 @@ func TestStorageVersions(t *testing.T) {
 	}
 	for name, testcase := range hpaTestcases {
 		hpa := autoscaling.HorizontalPodAutoscaler{
-			ObjectMeta: kapi.ObjectMeta{Name: name + "-hpa"},
+			ObjectMeta: metav1.ObjectMeta{Name: name + "-hpa"},
 			Spec: autoscaling.HorizontalPodAutoscalerSpec{
 				MaxReplicas:    1,
 				ScaleTargetRef: autoscaling.CrossVersionObjectReference{Kind: "ReplicationController", Name: "myrc"},

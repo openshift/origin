@@ -43,7 +43,7 @@ func newTestClient(config *deployapi.DeploymentConfig) *fake.Clientset {
 		action := a.(core.GetAction)
 		if strings.HasPrefix(action.GetName(), config.Name) && strings.HasSuffix(action.GetName(), "-deploy") {
 			return true, &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "deployer",
 				},
 				Status: kapi.PodStatus{
@@ -200,7 +200,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 
 func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -229,7 +229,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 	gracePeriod := int64(10)
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -265,7 +265,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -340,7 +340,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -398,7 +398,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -463,7 +463,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -537,7 +537,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 		},
 	}
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -617,7 +617,7 @@ func TestAcceptAvailablePods_scenarios(t *testing.T) {
 				status = kapi.ConditionFalse
 			}
 			pod := &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: podName,
 				},
 				Status: kapi.PodStatus{
@@ -670,7 +670,7 @@ func TestAcceptAvailablePods_scenarios(t *testing.T) {
 
 func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*deployapi.DeploymentConfig, *kapi.ReplicationController) {
 	config := &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
@@ -740,7 +740,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 						},
 					},
 				},
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},

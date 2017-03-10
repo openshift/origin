@@ -2,6 +2,7 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 
@@ -29,7 +30,7 @@ func (i *IndexerToClusterResourceQuotaLister) List(options kapi.ListOptions) ([]
 }
 
 func (i *IndexerToClusterResourceQuotaLister) Get(name string) (*quotaapi.ClusterResourceQuota, error) {
-	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: kapi.ObjectMeta{Name: name}}
+	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetByKey(key)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -26,12 +27,12 @@ func TestWithType(t *testing.T) {
 	out := &Generated{
 		Items: []runtime.Object{
 			&buildapi.BuildConfig{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
 			},
 			&kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
 			},
@@ -180,13 +181,13 @@ func TestImageStream(t *testing.T) {
 			name: "existing image stream",
 			r: &ImageRef{
 				Stream: &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-stream",
 					},
 				},
 			},
 			expectedIs: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "some-stream",
 				},
 			},
@@ -200,7 +201,7 @@ func TestImageStream(t *testing.T) {
 				},
 			},
 			expectedIs: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "input",
 				},
 				Spec: imageapi.ImageStreamSpec{
@@ -218,7 +219,7 @@ func TestImageStream(t *testing.T) {
 				Insecure: true,
 			},
 			expectedIs: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "insecure",
 					Annotations: map[string]string{
 						imageapi.InsecureRepositoryAnnotation: "true",
@@ -239,7 +240,7 @@ func TestImageStream(t *testing.T) {
 				OutputImage: true,
 			},
 			expectedIs: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "output",
 				},
 			},

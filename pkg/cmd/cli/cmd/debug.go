@@ -305,7 +305,7 @@ func (o DebugOptions) Validate() error {
 
 // SingleObject returns a ListOptions for watching a single object.
 // TODO: move to pkg/api/helpers.go upstream.
-func SingleObject(meta kapi.ObjectMeta) kapi.ListOptions {
+func SingleObject(meta metav1.ObjectMeta) kapi.ListOptions {
 	return kapi.ListOptions{
 		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name),
 		ResourceVersion: meta.ResourceVersion,
@@ -454,7 +454,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 // reasons.
 func (o *DebugOptions) getContainerImageViaImageStreamImport(container *kapi.Container) (*imageapi.Image, error) {
 	isi := &imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "oc-debug",
 		},
 		Spec: imageapi.ImageStreamImportSpec{

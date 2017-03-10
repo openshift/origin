@@ -11,7 +11,7 @@ import (
 // Template contains the inputs needed to produce a Config.
 type Template struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// message is an optional instructional message that will
 	// be displayed when this template is instantiated.

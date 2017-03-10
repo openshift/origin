@@ -14,6 +14,7 @@ import (
 	regapi "github.com/docker/distribution/registry/api/v2"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -128,12 +129,12 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 
 	// Upload to openshift
 	ism := imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: m.repo.namespace,
 			Name:      m.repo.name,
 		},
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: dgst.String(),
 				Annotations: map[string]string{
 					imageapi.ManagedByOpenShiftAnnotation: "true",

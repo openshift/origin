@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -102,11 +103,11 @@ func TestImageStreamReplenishmentUpdateFunc(t *testing.T) {
 			ResyncPeriod:      controller.NoResyncPeriodFunc,
 		}
 		oldIS := &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Namespace: "test", Name: "is"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "is"},
 			Status:     tc.oldISStatus,
 		}
 		newIS := &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Namespace: "test", Name: "is"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "is"},
 			Status:     tc.newISStatus,
 		}
 		updateFunc := ImageStreamReplenishmentUpdateFunc(&options)

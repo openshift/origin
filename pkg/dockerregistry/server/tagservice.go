@@ -5,6 +5,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -165,7 +166,7 @@ func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descr
 	}
 
 	ism := imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: imageStream.Namespace,
 			Name:      imageStream.Name,
 		},

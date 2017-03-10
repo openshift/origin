@@ -460,7 +460,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				NodeSelector:              bcCopy.Spec.NodeSelector,
 			},
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   buildName,
 			Labels: bcCopy.Labels,
 			OwnerReferences: []kapi.OwnerReference{
@@ -808,7 +808,7 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 
 	newBuild := &buildapi.Build{
 		Spec: buildCopy.Spec,
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            getNextBuildNameFromBuild(buildCopy, buildConfig),
 			Labels:          buildCopy.ObjectMeta.Labels,
 			Annotations:     buildCopy.ObjectMeta.Annotations,

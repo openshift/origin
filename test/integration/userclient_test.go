@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
 	"k8s.io/kubernetes/pkg/types"
@@ -37,7 +38,7 @@ func makeIdentityInfo(providerName, providerUserName string, extra map[string]st
 
 func makeUser(name string, identities ...string) *api.User {
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Identities: identities,
@@ -45,7 +46,7 @@ func makeUser(name string, identities ...string) *api.User {
 }
 func makeIdentity(providerName, providerUserName string) *api.Identity {
 	return &api.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 		},
 		ProviderName:     providerName,
@@ -60,7 +61,7 @@ func makeIdentityWithUserReference(providerName, providerUserName string, userNa
 }
 func makeMapping(user, identity string) *api.UserIdentityMapping {
 	return &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: identity},
+		ObjectMeta: metav1.ObjectMeta{Name: identity},
 		User:       kapi.ObjectReference{Name: user},
 		Identity:   kapi.ObjectReference{Name: identity},
 	}

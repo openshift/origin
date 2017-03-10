@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -201,7 +202,7 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 
 func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {

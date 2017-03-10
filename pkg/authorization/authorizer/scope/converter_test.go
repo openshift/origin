@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -117,7 +118,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 			name: "missing-role",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{}},
 				},
 			},
@@ -129,7 +130,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 			name: "mismatched-namespace",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{}},
 				},
 			},
@@ -141,7 +142,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 			name: "all-namespaces",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{}},
 				},
 			},
@@ -153,7 +154,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 			name: "matching-namespaces",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{}},
 				},
 			},
@@ -165,7 +166,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 			name: "colon-role",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin:two"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin:two"},
 					Rules:      []authorizationapi.PolicyRule{{}},
 				},
 			},
@@ -216,7 +217,7 @@ func TestEscalationProtection(t *testing.T) {
 			name: "simple match secrets",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{""}, Resources: sets.NewString("pods", "secrets")}},
 				},
 			},
@@ -227,7 +228,7 @@ func TestEscalationProtection(t *testing.T) {
 			name: "match old group secrets",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{}, Resources: sets.NewString("pods", "secrets")}},
 				},
 			},
@@ -238,7 +239,7 @@ func TestEscalationProtection(t *testing.T) {
 			name: "skip non-matching group secrets",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{"foo"}, Resources: sets.NewString("pods", "secrets")}},
 				},
 			},
@@ -249,7 +250,7 @@ func TestEscalationProtection(t *testing.T) {
 			name: "access tokens",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{"", "and-foo"}, Resources: sets.NewString("pods", "oauthaccesstokens")}},
 				},
 			},
@@ -260,7 +261,7 @@ func TestEscalationProtection(t *testing.T) {
 			name: "allow the escalation",
 			clusterRoles: []authorizationapi.ClusterRole{
 				{
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{APIGroups: []string{""}, Resources: sets.NewString("pods", "secrets")}},
 				},
 			},

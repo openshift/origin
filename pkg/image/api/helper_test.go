@@ -360,7 +360,7 @@ func TestDockerImageReferenceString(t *testing.T) {
 
 func validImageWithManifestData() Image {
 	return Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "id",
 		},
 		DockerImageManifest: `{
@@ -424,7 +424,7 @@ func validImageWithManifestData() Image {
 
 func validImageWithManifestV2Data() Image {
 	return Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "id",
 		},
 		DockerImageConfig: `{
@@ -593,7 +593,7 @@ func TestImageWithMetadata(t *testing.T) {
 		"happy path": {
 			image: validImageWithManifestData(),
 			expectedImage: Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
 				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
@@ -672,7 +672,7 @@ func TestImageWithMetadata(t *testing.T) {
 		"valid metadata size": {
 			image: validImageWithManifestV2Data(),
 			expectedImage: Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
 				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,
@@ -1211,7 +1211,7 @@ func TestUpdateTrackingTags(t *testing.T) {
 
 	for name, test := range tests {
 		stream := &ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "ns",
 				Name:      "ruby",
 			},

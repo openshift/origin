@@ -3,6 +3,7 @@ package util
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -11,7 +12,7 @@ import (
 
 func image(pullSpec string) *imageapi.Image {
 	return &imageapi.Image{
-		ObjectMeta:           kapi.ObjectMeta{Name: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
+		ObjectMeta:           metav1.ObjectMeta{Name: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
 		DockerImageReference: pullSpec,
 	}
 }
@@ -19,7 +20,7 @@ func image(pullSpec string) *imageapi.Image {
 func isimage(name, pullSpec string) *imageapi.ImageStreamImage {
 	i := image(pullSpec)
 	return &imageapi.ImageStreamImage{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
 		Image:      *i,
 	}
 }
@@ -27,7 +28,7 @@ func isimage(name, pullSpec string) *imageapi.ImageStreamImage {
 func istag(name, namespace, pullSpec string) *imageapi.ImageStreamTag {
 	i := image(pullSpec)
 	return &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Image:      *i,
 	}
 }

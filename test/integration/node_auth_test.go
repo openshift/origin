@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -79,7 +80,7 @@ func TestNodeAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	whoamiOnlyBobToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
+		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserInfo},

@@ -54,7 +54,7 @@ func podTemplateD() *kapi.PodTemplateSpec {
 
 func TestPodName(t *testing.T) {
 	deployment := &kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "testName",
 		},
 	}
@@ -166,13 +166,13 @@ func TestSort(t *testing.T) {
 	past := metav1.NewTime(present.Time.Add(-1 * time.Minute))
 	controllers := []*kapi.ReplicationController{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "past",
 				CreationTimestamp: past,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
 				CreationTimestamp: present,
 			},

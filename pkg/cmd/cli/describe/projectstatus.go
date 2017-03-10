@@ -167,7 +167,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			if !kapierrors.IsNotFound(err) {
 				return "", err
 			}
-			p = &projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}
+			p = &projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 		}
 		project = p
 		f = namespacedFormatter{currentNamespace: namespace}

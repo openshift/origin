@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -423,7 +424,7 @@ func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList,
 
 func fakeImageStream(desc *fakeImageStreamDesc) (*imageapi.ImageStream, map[string]*imageapi.ImageStreamImage) {
 	stream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      desc.name,
 			Namespace: "namespace",
 		},
@@ -482,7 +483,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			name: "image stream",
 			match: &ComponentMatch{
 				ImageStream: &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},
@@ -497,7 +498,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			name: "image stream with tag",
 			match: &ComponentMatch{
 				ImageStream: &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},

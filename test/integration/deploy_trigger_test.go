@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -123,7 +124,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: deploytest.ImageStreamName}}
+	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
@@ -151,10 +152,10 @@ func TestTriggers_imageChange(t *testing.T) {
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func() {
 		mapping := &imageapi.ImageStreamMapping{
-			ObjectMeta: kapi.ObjectMeta{Name: imageStream.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
 			Tag:        imageapi.DefaultImageTag,
 			Image: imageapi.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: updatedImage,
 				},
 				DockerImageReference: updatedPullSpec,
@@ -229,7 +230,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: deploytest.ImageStreamName}}
+	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
 	if imageStream, err = oc.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream: %v", err)
@@ -246,10 +247,10 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	mapping := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: imageStream.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
 		Tag:        imageapi.DefaultImageTag,
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
 			},
 			DockerImageReference: pullSpec,
@@ -409,8 +410,8 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: deploytest.ImageStreamName}}
-	secondImageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "sample"}}
+	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
+	secondImageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
@@ -446,10 +447,10 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func(name, tag, image, pullSpec string) {
 		mapping := &imageapi.ImageStreamMapping{
-			ObjectMeta: kapi.ObjectMeta{Name: name},
+			ObjectMeta: metav1.ObjectMeta{Name: name},
 			Tag:        tag,
 			Image: imageapi.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: image,
 				},
 				DockerImageReference: pullSpec,
@@ -698,7 +699,7 @@ func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationC
 
 func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {

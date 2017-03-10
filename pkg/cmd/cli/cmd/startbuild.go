@@ -23,6 +23,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
@@ -310,7 +311,7 @@ func (o *StartBuildOptions) Run() error {
 				Message: buildapi.BuildTriggerCauseManualMsg,
 			},
 		),
-		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 	}
 
 	if len(o.EnvVar) > 0 {
@@ -336,7 +337,7 @@ func (o *StartBuildOptions) Run() error {
 	switch {
 	case o.AsBinary:
 		request := &buildapi.BinaryBuildRequestOptions{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      o.Name,
 				Namespace: o.Namespace,
 			},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -99,7 +100,7 @@ func resourceForStrategyType(strategy buildapi.BuildStrategy) (schema.GroupResou
 	}
 }
 
-func resourceName(objectMeta kapi.ObjectMeta) string {
+func resourceName(objectMeta metav1.ObjectMeta) string {
 	if len(objectMeta.GenerateName) > 0 {
 		return objectMeta.GenerateName
 	}

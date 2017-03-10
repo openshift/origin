@@ -9,12 +9,13 @@ import (
 
 	log "github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/types"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
@@ -79,7 +80,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 
 	sub = &osapi.HostSubnet{
 		TypeMeta:   kapimetav1.TypeMeta{Kind: "HostSubnet"},
-		ObjectMeta: kapi.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
+		ObjectMeta: metav1.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
 		Host:       nodeName,
 		HostIP:     nodeIP,
 		Subnet:     sn.String(),

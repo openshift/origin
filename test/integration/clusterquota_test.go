@@ -42,7 +42,7 @@ func TestClusterQuota(t *testing.T) {
 	// time.Sleep(10 * time.Second)
 
 	cq := &quotaapi.ClusterResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: "overall"},
+		ObjectMeta: metav1.ObjectMeta{Name: "overall"},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Selector: quotaapi.ClusterResourceQuotaSelector{
 				LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},

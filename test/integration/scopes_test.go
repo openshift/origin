@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -55,7 +56,7 @@ func TestScopedTokens(t *testing.T) {
 	}
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
+		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserInfo},
@@ -177,7 +178,7 @@ func TestScopeEscalations(t *testing.T) {
 	}
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: kapi.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ObjectMeta: metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
@@ -200,7 +201,7 @@ func TestScopeEscalations(t *testing.T) {
 	}
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: kapi.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ObjectMeta: metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
@@ -237,7 +238,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 	}
 
 	client := &oauthapi.OAuthClient{
-		ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+		ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 		ScopeRestrictions: []oauthapi.ScopeRestriction{
 			{ExactValues: []string{"user:info"}},
 			{
@@ -262,7 +263,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "no scopes",
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
-				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -272,7 +273,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied literal",
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
-				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -283,7 +284,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied role",
 			fail: true,
 			obj: &oauthapi.OAuthClientAuthorization{
-				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -293,7 +294,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "ok role",
 			obj: &oauthapi.OAuthClientAuthorization{
-				ObjectMeta: kapi.ObjectMeta{Name: "testing-client"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -321,7 +322,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "no scopes",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -331,7 +332,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied literal",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -342,7 +343,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied role",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -352,7 +353,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "ok role",
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -380,7 +381,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "no scopes",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -390,7 +391,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied literal",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -401,7 +402,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "denied role",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",
@@ -411,7 +412,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "ok role",
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: kapi.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName: client.Name,
 				UserName:   "name",
 				UserUID:    "uid",

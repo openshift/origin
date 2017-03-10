@@ -1,6 +1,7 @@
 package bootstrappolicy
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
@@ -57,7 +58,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 	constraints := []kapi.SecurityContextConstraints{
 		// SecurityContextConstraintPrivileged allows all access for every field
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintPrivileged,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintPrivilegedDesc,
@@ -86,7 +87,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		// SecurityContextConstraintNonRoot does not allow host access, allocates SELinux labels
 		// and allows the user to request a specific UID or provide the default in the dockerfile.
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintNonRoot,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintNonRootDesc,
@@ -114,7 +115,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		// SecurityContextConstraintHostMountAndAnyUID is the same as the restricted scc but allows the use of the hostPath and NFS plugins, and running as any UID.
 		// Used by the PV recycler.
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintHostMountAndAnyUID,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintHostMountAndAnyUIDDesc,
@@ -143,7 +144,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		// SecurityContextConstraintHostNS allows access to everything except privileged on the host
 		// but still allocates UIDs and SELinux.
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintHostNS,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintHostNSDesc,
@@ -175,7 +176,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		},
 		// SecurityContextConstraintRestricted allows no host access and allocates UIDs and SELinux.
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintRestricted,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintRestrictedDesc,
@@ -205,7 +206,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		},
 		// SecurityContextConstraintsAnyUID allows no host access and allocates SELinux.
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintsAnyUID,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintsAnyUIDDesc,
@@ -234,7 +235,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		},
 		// SecurityContextConstraintsHostNetwork allows host network and host ports
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SecurityContextConstraintsHostNetwork,
 				Annotations: map[string]string{
 					DescriptionAnnotation: SecurityContextConstraintsHostNetworkDesc,

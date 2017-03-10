@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -56,7 +57,7 @@ func TestUpdateQuota(t *testing.T) {
 				return []*quotaapi.ClusterResourceQuota{user1, user2}
 			},
 			quotaToUpdate: &kapi.ResourceQuota{
-				ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "user-one"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "user-one"},
 				Spec: kapi.ResourceQuotaSpec{
 					Hard: kapi.ResourceList{
 						kapi.ResourcePods:    resource.MustParse("10"),
@@ -152,7 +153,7 @@ func TestUpdateQuota(t *testing.T) {
 
 func defaultQuota() *quotaapi.ClusterResourceQuota {
 	return &quotaapi.ClusterResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{
@@ -181,7 +182,7 @@ func TestGetQuota(t *testing.T) {
 				return nil
 			},
 			availableNamespaces: []*kapi.Namespace{
-				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
 			},
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
@@ -199,7 +200,7 @@ func TestGetQuota(t *testing.T) {
 				return nil
 			},
 			availableNamespaces: []*kapi.Namespace{
-				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
 			},
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
@@ -244,7 +245,7 @@ func TestGetQuota(t *testing.T) {
 				return []*quotaapi.ClusterResourceQuota{user1, user2}
 			},
 			availableNamespaces: []*kapi.Namespace{
-				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"one": "alfa"}}},
 			},
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
@@ -257,7 +258,7 @@ func TestGetQuota(t *testing.T) {
 			expectedQuotas: func() []*kapi.ResourceQuota {
 				return []*kapi.ResourceQuota{
 					{
-						ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "user-one"},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "user-one"},
 						Spec: kapi.ResourceQuotaSpec{
 							Hard: kapi.ResourceList{
 								kapi.ResourcePods:    resource.MustParse("10"),

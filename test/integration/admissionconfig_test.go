@@ -122,7 +122,7 @@ func admissionTestPod() *kapi.Pod {
 }
 
 func admissionTestBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
 			buildapi.BuildConfigLabel:    "mock-build-config",
 			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),

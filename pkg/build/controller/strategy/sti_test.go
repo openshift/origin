@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -175,7 +176,7 @@ func TestS2IBuildLongName(t *testing.T) {
 func mockSTIBuild() *buildapi.Build {
 	timeout := int64(60)
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "stiBuild",
 			Labels: map[string]string{
 				"name": "stiBuild",

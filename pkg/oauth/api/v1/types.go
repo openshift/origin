@@ -9,7 +9,7 @@ import (
 type OAuthAccessToken struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" protobuf:"bytes,2,opt,name=clientName"`
@@ -40,7 +40,7 @@ type OAuthAccessToken struct {
 type OAuthAuthorizeToken struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" protobuf:"bytes,2,opt,name=clientName"`
@@ -77,7 +77,7 @@ type OAuthAuthorizeToken struct {
 type OAuthClient struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
@@ -139,7 +139,7 @@ type ClusterRoleScopeRestriction struct {
 type OAuthClientAuthorization struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" protobuf:"bytes,2,opt,name=clientName"`
@@ -195,7 +195,7 @@ type OAuthClientAuthorizationList struct {
 type OAuthRedirectReference struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// The reference to an redirect object in the current namespace.
 	Reference RedirectReference `json:"reference,omitempty" protobuf:"bytes,2,opt,name=reference"`
 }

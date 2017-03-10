@@ -52,7 +52,7 @@ func TestSubjectCheckers(t *testing.T) {
 			Name: "system group",
 		}
 		group = userapi.Group{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "group",
 				Labels: map[string]string{"baz": "quux"},
 			},
@@ -60,18 +60,18 @@ func TestSubjectCheckers(t *testing.T) {
 		}
 		objects = []runtime.Object{
 			&userapi.User{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   "Alice",
 					Labels: map[string]string{"foo": "bar"},
 				},
 			},
 			&userapi.User{
-				ObjectMeta: kapi.ObjectMeta{Name: "Bob"},
+				ObjectMeta: metav1.ObjectMeta{Name: "Bob"},
 				Groups:     []string{"group"},
 			},
 			&group,
 			&kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 					Name:      "serviceaccount",
 					Labels:    map[string]string{"xyzzy": "thud"},

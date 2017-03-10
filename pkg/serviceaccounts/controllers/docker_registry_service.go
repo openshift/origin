@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -228,7 +229,7 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 
 // getDockerRegistryLocations returns the dns form and the ip form of the secret
 func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string {
-	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: kapi.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
+	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: metav1.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
 	if err != nil {
 		return []string{}
 	}

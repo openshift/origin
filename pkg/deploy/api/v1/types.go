@@ -22,7 +22,7 @@ import (
 type DeploymentConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`

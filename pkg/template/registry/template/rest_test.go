@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -30,7 +31,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 func TestNewRESTDefaultsName(t *testing.T) {
 	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 	})
@@ -46,7 +47,7 @@ func TestNewRESTDefaultsName(t *testing.T) {
 func TestNewRESTInvalidParameter(t *testing.T) {
 	storage := NewREST()
 	_, err := storage.Create(nil, &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		Parameters: []template.Parameter{
@@ -71,14 +72,14 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		ObjectLabels: testLabels,
 	}
 	templateObjects := []runtime.Object{
 		&kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-service",
 			},
 			Spec: kapi.ServiceSpec{
@@ -145,14 +146,14 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	storage := NewREST()
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		ObjectLabels: testLabels,
 	}
 	templateObjects := []runtime.Object{
 		&kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-service",
 			},
 			Spec: kapi.ServiceSpec{

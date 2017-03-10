@@ -3,6 +3,7 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,7 +45,7 @@ func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcd
 
 func validRoute() *api.Route {
 	return &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 		Spec: api.RouteSpec{
@@ -66,7 +67,7 @@ func TestCreate(t *testing.T) {
 		validRoute(),
 		// invalid
 		&api.Route{
-			ObjectMeta: kapi.ObjectMeta{Name: "_-a123-a_"},
+			ObjectMeta: metav1.ObjectMeta{Name: "_-a123-a_"},
 		},
 	)
 }

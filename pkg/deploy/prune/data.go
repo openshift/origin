@@ -113,7 +113,7 @@ func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*
 	}
 
 	var deploymentConfig *deployapi.DeploymentConfig
-	key := &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: controller.Namespace}}
+	key := &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: controller.Namespace}}
 	item, exists, err := d.deploymentConfigStore.Get(key)
 	if exists {
 		deploymentConfig = item.(*deployapi.DeploymentConfig)
@@ -143,7 +143,7 @@ func (d *dataSet) ListDeployments() ([]*kapi.ReplicationController, error) {
 func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *deployapi.DeploymentConfig) ([]*kapi.ReplicationController, error) {
 	results := []*kapi.ReplicationController{}
 	key := &kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   deploymentConfig.Namespace,
 			Annotations: map[string]string{deployapi.DeploymentConfigAnnotation: deploymentConfig.Name},
 		},

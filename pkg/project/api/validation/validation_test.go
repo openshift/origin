@@ -3,6 +3,7 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -19,7 +20,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing id",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						oapi.OpenShiftDescription: "This is a description",
 						oapi.OpenShiftDisplayName: "hi",
@@ -32,7 +33,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "141-.124.$",
 					Annotations: map[string]string{
 						oapi.OpenShiftDescription: "This is a description",
@@ -46,7 +47,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id uppercase",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "AA",
 				},
 			},
@@ -55,7 +56,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "valid id leading number",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "11",
 				},
 			},
@@ -64,7 +65,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id for create (< 2 characters)",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "h",
 				},
 			},
@@ -73,7 +74,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "valid id for create (2+ characters)",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "hi",
 				},
 			},
@@ -82,7 +83,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id internal dots",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "1.a.1",
 				},
 			},
@@ -91,7 +92,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "has namespace",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "foo",
 					Annotations: map[string]string{
@@ -106,7 +107,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid display name",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
@@ -121,7 +122,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "valid node selector",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
@@ -134,7 +135,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid node selector",
 			project: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
@@ -155,7 +156,7 @@ func TestValidateProject(t *testing.T) {
 	}
 
 	project := api.Project{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
 				oapi.OpenShiftDescription: "This is a description",
@@ -173,7 +174,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 	// Ensure we can update projects with short names, to make sure we can
 	// proxy updates to namespaces created outside project validation
 	project := &api.Project{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
@@ -185,7 +186,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 	}
 	updateDisplayname := &api.Project{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
@@ -209,7 +210,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 	}{
 		"change name": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "different",
 					ResourceVersion: "1",
 					Annotations:     project.Annotations,
@@ -221,7 +222,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 		"invalid displayname": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
@@ -237,7 +238,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 		"updating disallowed annotation": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
@@ -253,7 +254,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 		"delete annotation": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
@@ -268,7 +269,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 		"updating label": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations:     project.Annotations,
@@ -280,7 +281,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 		},
 		"deleting label": {
 			A: api.Project{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations:     project.Annotations,

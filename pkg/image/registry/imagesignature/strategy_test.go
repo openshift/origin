@@ -8,6 +8,7 @@ import (
 	"github.com/google/gofuzz"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 
@@ -57,7 +58,7 @@ func fuzzImageSignature(t *testing.T, signature *api.ImageSignature, seed int64)
 func TestStrategyPrepareForCreate(t *testing.T) {
 	ctx := kapi.NewDefaultContext()
 	signature := &api.ImageSignature{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "image",
 		},
 	}

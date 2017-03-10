@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -106,7 +107,7 @@ func TestInstantiateDeletingError(t *testing.T) {
 	generator := BuildGenerator{Client: Client{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 			bc := &buildapi.BuildConfig{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						buildapi.BuildConfigPausedAnnotation: "true",
 					},
@@ -163,7 +164,7 @@ func TestInstantiateBinaryRemoved(t *testing.T) {
 	client := generator.Client.(Client)
 	client.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 		bc := &buildapi.BuildConfig{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
 			Spec: buildapi.BuildConfigSpec{
@@ -338,7 +339,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	source := mocks.MockSource()
 	for _, tc := range tests {
 		bc := &buildapi.BuildConfig{
-			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+			ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault},
 			Spec: buildapi.BuildConfigSpec{
 				CommonSpec: buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
@@ -373,7 +374,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 		client.GetImageStreamFunc =
 			func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: name},
+					ObjectMeta: metav1.ObjectMeta{Name: name},
 					Status: imageapi.ImageStreamStatus{
 						DockerImageRepository: originalImage,
 						Tags: map[string]imageapi.TagEventList{
@@ -629,7 +630,7 @@ func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
 	g.Client = c
 
 	req := &buildapi.BuildRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"a_1": "a_value1",
 				// build number is set as an annotation on the generated build, so we
@@ -682,7 +683,7 @@ func TestFindImageTrigger(t *testing.T) {
 		},
 	}
 	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testbc",
 			Namespace: "bcnamespace",
 		},
@@ -798,7 +799,7 @@ func TestClone(t *testing.T) {
 		},
 		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
 			return &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build-1",
 					Namespace: kapi.NamespaceDefault,
 				},
@@ -827,7 +828,7 @@ func TestCloneError(t *testing.T) {
 
 func TestCreateBuild(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -852,7 +853,7 @@ func TestCreateBuild(t *testing.T) {
 
 func TestCreateBuildNamespaceError(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 		},
 	}
@@ -866,7 +867,7 @@ func TestCreateBuildNamespaceError(t *testing.T) {
 
 func TestCreateBuildCreateError(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -889,7 +890,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	output := mocks.MockOutput()
 	resources := mockResources()
 	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:       "test-uid",
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
@@ -982,7 +983,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 	strategy := mocks.MockSourceStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -1009,7 +1010,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imageapi.ImageStreamStatus{
 						DockerImageRepository: originalImage,
 						Tags: map[string]imageapi.TagEventList{
@@ -1028,7 +1029,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1036,7 +1037,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1061,7 +1062,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 	strategy := mockDockerStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -1088,7 +1089,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imageapi.ImageStreamStatus{
 						DockerImageRepository: originalImage,
 						Tags: map[string]imageapi.TagEventList{
@@ -1107,7 +1108,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1115,7 +1116,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1139,7 +1140,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 	strategy := mockCustomStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -1166,7 +1167,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imageapi.ImageStreamStatus{
 						DockerImageRepository: originalImage,
 						Tags: map[string]imageapi.TagEventList{
@@ -1185,7 +1186,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1193,7 +1194,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
 						DockerImageReference: originalImage + ":" + newTag,
 					},
 				}, nil
@@ -1217,7 +1218,7 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	strategy := mockDockerStrategyForImageRepository()
 	output := mocks.MockOutput()
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 			Annotations: map[string]string{
 				buildapi.BuildJenkinsStatusJSONAnnotation: "foo",
@@ -1278,7 +1279,7 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 	strategy := mockDockerStrategyForImageRepository()
 	output := mocks.MockOutput()
 	annotatedBuild := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "annotatedBuild",
 			Annotations: map[string]string{
 				buildapi.BuildCloneAnnotation: "sourceOfBuild",
@@ -1298,7 +1299,7 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 		},
 	}
 	nonAnnotatedBuild := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "nonAnnotatedBuild",
 		},
 		Spec: buildapi.BuildSpec{
@@ -1316,7 +1317,7 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 	}
 
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "buildConfigName",
 		},
 		Status: buildapi.BuildConfigStatus{
@@ -1514,7 +1515,7 @@ func TestGetNextBuildNameFromBuild(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}}, nil)
+		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: metav1.ObjectMeta{Name: tc.value}}, nil)
 		if matched, err := regexp.MatchString(tc.expected, buildName); !matched || err != nil {
 			t.Errorf("(%d) Unexpected build name, got %s expected %s", i, buildName, tc.expected)
 		}
@@ -1531,7 +1532,7 @@ func TestGetNextBuildNameFromBuildWithBuildConfig(t *testing.T) {
 		{
 			"mybuild-1",
 			&buildapi.BuildConfig{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "buildConfigName",
 				},
 				Status: buildapi.BuildConfigStatus{
@@ -1544,7 +1545,7 @@ func TestGetNextBuildNameFromBuildWithBuildConfig(t *testing.T) {
 		{
 			"mybuild-1-1426794070",
 			&buildapi.BuildConfig{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "buildConfigName",
 				},
 				Status: buildapi.BuildConfigStatus{
@@ -1556,7 +1557,7 @@ func TestGetNextBuildNameFromBuildWithBuildConfig(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}}, tc.buildConfig)
+		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: metav1.ObjectMeta{Name: tc.value}}, tc.buildConfig)
 		if matched, err := regexp.MatchString(tc.expected, buildName); !matched || err != nil {
 			t.Errorf("(%d) Unexpected build name, got %s expected %s", i, buildName, tc.expected)
 		}
@@ -1691,7 +1692,7 @@ func mockOutputWithImageName(name string) buildapi.BuildOutput {
 
 func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
@@ -1715,7 +1716,7 @@ func mockBuildGeneratorForInstantiate() *BuildGenerator {
 	c.GetImageStreamTagFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 		return &imageapi.ImageStreamTag{
 			Image: imageapi.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+				ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
 				DockerImageReference: "ref@" + name,
 			},
 		}, nil
@@ -1754,7 +1755,7 @@ func mockBuildGenerator() *BuildGenerator {
 					return &imageapi.ImageStream{}, nil
 				}
 				return &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      imageRepoName,
 						Namespace: imageRepoNamespace,
 					},
@@ -1778,7 +1779,7 @@ func mockBuildGenerator() *BuildGenerator {
 			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
 						DockerImageReference: latestDockerReference,
 					},
 				}, nil
@@ -1786,7 +1787,7 @@ func mockBuildGenerator() *BuildGenerator {
 			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{
 					Image: imageapi.Image{
-						ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
 						DockerImageReference: latestDockerReference,
 					},
 				}, nil

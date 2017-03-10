@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -54,7 +55,7 @@ type testingT interface {
 
 func mockBuild() *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "mock-build",
 			Labels: map[string]string{
 				"label1":                     "value1",
@@ -419,13 +420,13 @@ WaitLoop2:
 
 	// trigger a build by posting a new image
 	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      imageStream.Name,
 		},
 		Tag: tag,
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "ref-2-random",
 			},
 			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2-random",
@@ -726,7 +727,7 @@ func configChangeBuildConfig() *buildapi.BuildConfig {
 
 func mockImageStream2(tag string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: "test-image-trigger-repo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-image-trigger-repo"},
 
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
@@ -745,10 +746,10 @@ func mockImageStream2(tag string) *imageapi.ImageStream {
 func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.ImageStreamMapping {
 	// create a mapping to an image that doesn't exist
 	return &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: stream},
+		ObjectMeta: metav1.ObjectMeta{Name: stream},
 		Tag:        tag,
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
 			},
 			DockerImageReference: reference,
@@ -758,7 +759,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 
 func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: testutil.Namespace(),
 			Labels:    map[string]string{"testlabel": "testvalue"},

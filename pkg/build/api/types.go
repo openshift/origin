@@ -67,7 +67,7 @@ const (
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec is all the inputs used to execute the build.
 	Spec BuildSpec
@@ -782,7 +782,7 @@ type ImageLabel struct {
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -968,7 +968,7 @@ type BuildRequest struct {
 	metav1.TypeMeta
 	// TODO: build request should allow name generation via Name and GenerateName, build config
 	// name should be provided as a separate field
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision
@@ -1001,7 +1001,7 @@ type BuildRequest struct {
 
 type BinaryBuildRequestOptions struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	AsFile string
 

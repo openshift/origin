@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapirest "k8s.io/kubernetes/pkg/api/rest"
@@ -31,7 +32,7 @@ func makeUserFromSequence(sequence int) *api.User {
 	userResourceVersion := fmt.Sprintf("%d", sequence+100)
 
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
 	}
 }
 
@@ -48,7 +49,7 @@ func makeIdentityFromSequence(sequence int) *api.Identity {
 	identityResourceVersion := fmt.Sprintf("%d", sequence+200)
 
 	return &api.Identity{
-		ObjectMeta:       kapi.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
+		ObjectMeta:       metav1.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
 	}
@@ -404,7 +405,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -435,7 +436,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -468,7 +469,7 @@ func TestUpdateMissingUser(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -495,7 +496,7 @@ func TestUpdateOldUserMatches(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: identity.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: identity.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: identity.Name},
 		User:       kapi.ObjectReference{Name: user.Name},
 	}
@@ -557,7 +558,7 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 	}
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: "123"},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "123"},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -598,7 +599,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update old user")
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -638,7 +639,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update new user")
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -678,7 +679,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 	expectedErr := errors.New("Couldn't update identity")
 
 	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}

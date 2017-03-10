@@ -8,6 +8,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -45,7 +46,7 @@ func addBuild(name, bcName string, phase buildapi.BuildPhase, policy buildapi.Bu
 	parts := strings.Split(name, "-")
 	return buildapi.Build{
 		Spec: buildapi.BuildSpec{},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "test",
 			Labels: map[string]string{

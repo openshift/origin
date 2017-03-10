@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -304,7 +305,7 @@ func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildapi.BuildConfig {
 	dockerfile := "FROM foo"
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testBuildCfg",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -346,7 +347,7 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 	}
 
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -359,7 +360,7 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 
 func mockImage(name, dockerSpec string) *imageapi.Image {
 	return &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		DockerImageReference: dockerSpec,
@@ -381,7 +382,7 @@ func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildap
 
 func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *buildConfigInstantiator {
 	builderAccount := kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: kapi.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: kapi.NamespaceDefault},
 		Secrets:    []kapi.ObjectReference{},
 	}
 	instantiator := &buildConfigInstantiator{}

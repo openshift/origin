@@ -13,7 +13,7 @@ import (
 )
 
 func mockDeploymentConfig(namespace, name string) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	return &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
 func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationController {
@@ -33,7 +33,7 @@ func withStatus(item *kapi.ReplicationController, status deployapi.DeploymentSta
 }
 
 func mockDeployment(namespace, name string, deploymentConfig *deployapi.DeploymentConfig) *kapi.ReplicationController {
-	item := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
+	item := &kapi.ReplicationController{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
 	if deploymentConfig != nil {
 		item.Annotations[deployapi.DeploymentConfigAnnotation] = deploymentConfig.Name
 	}

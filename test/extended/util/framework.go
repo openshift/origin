@@ -1049,7 +1049,7 @@ func GetPodForContainer(container kapi.Container) *kapi.Pod {
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: map[string]string{"name": name},
 		},
@@ -1067,7 +1067,7 @@ func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVol
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: map[string]string{"name": name},
 		},

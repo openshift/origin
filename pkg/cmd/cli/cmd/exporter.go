@@ -44,7 +44,7 @@ type DefaultExporter struct{}
 func (e *DefaultExporter) AddExportOptions(flags *pflag.FlagSet) {
 }
 
-func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
+func exportObjectMeta(objMeta *metav1.ObjectMeta, exact bool) {
 	objMeta.UID = ""
 	if !exact {
 		objMeta.Namespace = ""

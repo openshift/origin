@@ -5,9 +5,10 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -62,7 +63,7 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 			buildapi.BuildTriggerCause{
 				Message: buildapi.BuildTriggerCauseConfigMsg,
 			}),
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      bc.Name,
 			Namespace: bc.Namespace,
 		},

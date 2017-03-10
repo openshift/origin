@@ -3,6 +3,7 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +37,7 @@ func TestStorage(t *testing.T) {
 
 func validImage() *api.Image {
 	return &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:         "foo",
 			GenerateName: "foo",
 		},
@@ -107,7 +108,7 @@ func TestDelete(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
-	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
+	image.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo"}
 	test.TestDelete(
 		validImage(),
 	)
@@ -231,7 +232,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 	}{
 		{
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 			},
 		},
@@ -248,7 +249,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 				return true
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
 			},
@@ -316,13 +317,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{{Name: "test", LayerSize: 10}},
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
 			},
@@ -353,13 +354,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifest,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
@@ -390,13 +391,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifestNoSignature,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
+				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,

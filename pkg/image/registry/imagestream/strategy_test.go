@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -79,7 +80,7 @@ func TestDockerImageRepository(t *testing.T) {
 	}{
 		"DockerImageRepository set on stream": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somerepo",
 				},
 				Spec: api.ImageStreamSpec{
@@ -90,7 +91,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"DockerImageRepository set on stream with default registry": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "somerepo",
 				},
@@ -103,7 +104,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"default namespace": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somerepo",
 				},
 			},
@@ -112,7 +113,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"nondefault namespace": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "somerepo",
 					Namespace: "somens",
 				},
@@ -122,7 +123,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"missing default registry": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "somerepo",
 					Namespace: "somens",
 				},
@@ -290,7 +291,7 @@ func TestTagVerifier(t *testing.T) {
 		}
 
 		stream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "namespace",
 				Name:      "stream",
 			},
@@ -372,7 +373,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "no limit",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -394,7 +395,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "below limit",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -417,7 +418,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed images",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -449,7 +450,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed tags",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -475,7 +476,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed images and tags",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -534,7 +535,7 @@ func TestLimitVerifier(t *testing.T) {
 		// Update must fail the exact same way
 		tc.is.ResourceVersion = "1"
 		old := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace:       "test",
 				Name:            "is",
 				ResourceVersion: "1",
@@ -1045,7 +1046,7 @@ func TestTagsChanged(t *testing.T) {
 
 	for testName, test := range tests {
 		stream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "stream",
 			},
 			Spec: api.ImageStreamSpec{
@@ -1063,7 +1064,7 @@ func TestTagsChanged(t *testing.T) {
 			previousTagHistory, _ = obj.(map[string]api.TagEventList)
 		}
 		previousStream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "stream",
 			},
 			Spec: api.ImageStreamSpec{

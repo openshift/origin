@@ -17,7 +17,7 @@ const (
 type ClusterNetwork struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Network is a CIDR string specifying the global overlay network's L3 space
 	Network string `json:"network" protobuf:"bytes,2,opt,name=network"`
@@ -43,7 +43,7 @@ type ClusterNetworkList struct {
 type HostSubnet struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Host is the name of the node. (This is the same as the object's name, but both fields must be set.)
 	Host string `json:"host" protobuf:"bytes,2,opt,name=host"`
@@ -68,7 +68,7 @@ type HostSubnetList struct {
 type NetNamespace struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
 	NetName string `json:"netname" protobuf:"bytes,2,opt,name=netname"`
@@ -121,7 +121,7 @@ type EgressNetworkPolicySpec struct {
 type EgressNetworkPolicy struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata for EgressNetworkPolicy
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is the specification of the current egress network policy
 	Spec EgressNetworkPolicySpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`

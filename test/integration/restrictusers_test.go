@@ -5,6 +5,7 @@ import (
 	//"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	//"k8s.io/kubernetes/pkg/api/unversioned"
 	//utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -50,7 +51,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	role := &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "role",
 		},
@@ -60,7 +61,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	policyBinding := &authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "policybinding",
 		},
@@ -74,7 +75,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	rolebindingAlice := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding1",
 		},
@@ -94,7 +95,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	allowAlice := &authorizationapi.RoleBindingRestriction{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-alice",
 			Namespace: "namespace",
 		},
@@ -110,7 +111,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	rolebindingAliceDup := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding2",
 		},
@@ -130,7 +131,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	rolebindingBob := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding3",
 		},
@@ -151,7 +152,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	allowBob := &authorizationapi.RoleBindingRestriction{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-bob",
 			Namespace: "namespace",
 		},

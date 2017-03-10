@@ -158,7 +158,7 @@ func TestPrintImageStream(t *testing.T) {
 func mockStreams() []*imageapi.ImageStream {
 	return []*imageapi.ImageStream{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "less-than-three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "less-than-three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
@@ -183,7 +183,7 @@ func mockStreams() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
@@ -217,7 +217,7 @@ func mockStreams() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: "more-than-three-tags"},
+			ObjectMeta: metav1.ObjectMeta{Name: "more-than-three-tags"},
 			Status: imageapi.ImageStreamStatus{
 				Tags: map[string]imageapi.TagEventList{
 					"other": {
@@ -269,7 +269,7 @@ func TestPrintTemplate(t *testing.T) {
 	}{
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 					Annotations: map[string]string{
 						"description": "description",
@@ -282,7 +282,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "long",
 					Annotations: map[string]string{
 						"description": "the long description of this template is way way way way way way way way way way way way way too long",
@@ -295,7 +295,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "multiline",
 					Annotations: map[string]string{
 						"description": "Once upon a time\nthere was a template\nwith multiple\nlines\n",
@@ -308,7 +308,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "trailingnewline",
 					Annotations: map[string]string{
 						"description": "Next line please\n",
@@ -321,7 +321,7 @@ func TestPrintTemplate(t *testing.T) {
 		},
 		{
 			templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "longmultiline",
 					Annotations: map[string]string{
 						"description": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123\n0",

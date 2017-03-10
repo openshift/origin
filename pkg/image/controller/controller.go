@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
@@ -133,7 +134,7 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 	}
 
 	isi := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       stream.Namespace,
 			ResourceVersion: stream.ResourceVersion,

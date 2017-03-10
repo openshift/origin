@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -488,10 +489,10 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 			if kerrors.IsNotFound(err) {
 				objects = append(objects,
 					// create a new service account
-					&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}},
+					&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: serviceAccountName}},
 					// grant the service account the edit role on the project (TODO: installer)
 					&authapi.RoleBinding{
-						ObjectMeta: kapi.ObjectMeta{Name: "installer-role-binding"},
+						ObjectMeta: metav1.ObjectMeta{Name: "installer-role-binding"},
 						Subjects:   []kapi.ObjectReference{{Kind: "ServiceAccount", Name: serviceAccountName}},
 						RoleRef:    kapi.ObjectReference{Name: "edit"},
 					},

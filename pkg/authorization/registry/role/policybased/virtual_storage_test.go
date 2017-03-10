@@ -23,14 +23,14 @@ import (
 func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 	return []authorizationapi.ClusterPolicy{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+			ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName},
 			Roles: map[string]*authorizationapi.ClusterRole{
 				"cluster-admin": {
-					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster-admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 				"admin": {
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 			},
@@ -40,7 +40,7 @@ func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 func testNewLocalPolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
+			ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
 			Roles:      map[string]*authorizationapi.Role{},
 		},
 	}
@@ -75,7 +75,7 @@ func TestCreateValid(t *testing.T) {
 	storage := makeLocalTestStorage()
 
 	role := &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	}
 
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
@@ -98,7 +98,7 @@ func TestUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
@@ -142,7 +142,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
@@ -187,7 +187,7 @@ func TestConflictingUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
@@ -216,7 +216,7 @@ func TestUpdateNoOp(t *testing.T) {
 	storage := makeLocalTestStorage()
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
@@ -259,7 +259,7 @@ func TestUpdateError(t *testing.T) {
 	storage := makeLocalTestStorage()
 
 	role := &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
@@ -291,7 +291,7 @@ func TestDeleteValid(t *testing.T) {
 	storage := makeLocalTestStorage()
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	storage.Create(ctx, &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	})
 
 	obj, err := storage.Delete(ctx, "my-role", nil)

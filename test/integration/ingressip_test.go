@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -200,7 +201,7 @@ func createService(kc kclientset.Interface, name string, typeLoadBalancer bool) 
 		serviceType = kapi.ServiceTypeLoadBalancer
 	}
 	service := &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "service-",
 			Name:         name,
 		},

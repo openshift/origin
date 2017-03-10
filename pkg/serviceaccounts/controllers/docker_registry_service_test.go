@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -22,7 +23,7 @@ const (
 
 var (
 	registryService = &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Name: registryName, Namespace: registryNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: registryName, Namespace: registryNamespace},
 		Spec: kapi.ServiceSpec{
 			ClusterIP: "172.16.123.123",
 			Ports:     []kapi.ServicePort{{Port: 1235}},
@@ -104,7 +105,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 	updatedSecret := make(chan bool)
 
 	newStyleDockercfgSecret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenValueAnnotation: "the-token",
@@ -193,7 +194,7 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 		t.Fatalf("unexpected err %v", err)
 	}
 	oldStyleDockercfgSecret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
@@ -270,7 +271,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	updatedSecret := make(chan bool)
 
 	oldStyleDockercfgSecret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
@@ -280,7 +281,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 		Data: map[string][]byte{kapi.DockerConfigKey: []byte("{}")},
 	}
 	tokenSecret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "sa-token-secret", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
@@ -372,7 +373,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 		t.Fatalf("unexpected err %v", err)
 	}
 	oldStyleDockercfgSecret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenValueAnnotation: "the-token",

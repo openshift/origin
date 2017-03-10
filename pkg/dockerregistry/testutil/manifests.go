@@ -21,6 +21,7 @@ import (
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/libtrust"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -337,7 +338,7 @@ func NewImageForManifest(repoName string, rawManifest string, manifestConfig str
 	}
 
 	img := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        desc.Digest.String(),
 			Annotations: annotations,
 		},

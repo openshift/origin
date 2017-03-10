@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -39,7 +40,7 @@ func NewImageStreamTagEvaluator(store *oscache.StoreToImageStreamLister, istName
 				return nil, err
 			}
 			obj = &imageapi.ImageStreamTag{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
 					Name:      id,
 				},

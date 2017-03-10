@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -24,7 +25,7 @@ func TestClusterRoleReaper(t *testing.T) {
 		{
 			name: "no bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
@@ -32,25 +33,25 @@ func TestClusterRoleReaper(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
 			bindings: []*authorizationapi.ClusterRoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-1",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-2",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "binding-3",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
@@ -98,27 +99,27 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.ClusterRole{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "role",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "ns-one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-2",
 						Namespace: "ns-one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-3",
 						Namespace: "ns-one",
 					},

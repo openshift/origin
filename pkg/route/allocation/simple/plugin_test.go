@@ -3,6 +3,7 @@ package simple
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation"
 
@@ -69,7 +70,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		{
 			name: "No Name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
 				Spec: api.RouteSpec{
@@ -83,7 +84,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		{
 			name: "No namespace",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
 				Spec: api.RouteSpec{
@@ -97,7 +98,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		{
 			name: "No service name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -106,7 +107,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		{
 			name: "Valid route",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -121,7 +122,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		{
 			name: "No host",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -165,7 +166,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		{
 			name: "No Name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
 				Spec: api.RouteSpec{
@@ -179,7 +180,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		{
 			name: "Host but no name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
 				Spec: api.RouteSpec{
@@ -191,7 +192,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		{
 			name: "No namespace",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
 				Spec: api.RouteSpec{
@@ -205,7 +206,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		{
 			name: "No service name",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -214,7 +215,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		{
 			name: "Valid route",
 			route: &api.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},

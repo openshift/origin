@@ -70,7 +70,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 
 func validImageStream() *api.ImageStream {
 	return &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 	}
@@ -80,12 +80,12 @@ const testImageID = "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a
 
 func validNewMappingWithName() *api.ImageStreamMapping {
 	return &api.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "somerepo",
 		},
 		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:        testImageID,
 				Annotations: map[string]string{api.ManagedByOpenShiftAnnotation: "true"},
 			},
@@ -156,7 +156,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	defer server.Terminate(t)
 
 	initialRepo := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
 	_, err := client.Put(
@@ -199,7 +199,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 func TestAddExistingImageWithNewTag(t *testing.T) {
 	imageID := "sha256:8d812da98d6dd61620343f1a5bf6585b34ad6ed16e5c5f7c7216a525d6aeb772"
 	existingRepo := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "somerepo",
 			Namespace: "default",
 		},
@@ -214,7 +214,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	existingImage := &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: imageID,
 		},
 		DockerImageReference: "localhost:5000/somens/somerepo@" + imageID,
@@ -251,7 +251,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	mapping := api.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "somerepo",
 		},
 		Image: *existingImage,
@@ -298,7 +298,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 	imageID := "sha256:8d812da98d6dd61620343f1a5bf6585b34ad6ed16e5c5f7c7216a525d6aeb772"
 	newRepo := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "newrepo",
 		},
@@ -310,7 +310,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		},
 	}
 	existingImage := &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        imageID,
 			Annotations: map[string]string{api.ManagedByOpenShiftAnnotation: "true"},
 		},
@@ -347,7 +347,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 	}
 
 	mapping := api.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "newrepo",
 		},
 		Image: *existingImage,
@@ -396,7 +396,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 
 func TestAddExistingImageAndTag(t *testing.T) {
 	existingRepo := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "somerepo",
 			Namespace: "default",
 		},
@@ -416,7 +416,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	}
 
 	existingImage := &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "existingImage",
 			Namespace: "default",
 		},
@@ -469,7 +469,7 @@ func TestTrackingTags(t *testing.T) {
 	defer server.Terminate(t)
 
 	stream := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "stream",
 		},
@@ -529,14 +529,14 @@ func TestTrackingTags(t *testing.T) {
 	}
 
 	image := &api.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1",
 		},
 		DockerImageReference: "foo/bar@sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1",
 	}
 
 	mapping := api.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "stream",
 		},

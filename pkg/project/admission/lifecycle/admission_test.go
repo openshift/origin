@@ -49,7 +49,7 @@ func TestAdmissionExists(t *testing.T) {
 	handler := &lifecycle{client: mockClientset}
 	handler.SetProjectCache(cache)
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
+		ObjectMeta: metav1.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{

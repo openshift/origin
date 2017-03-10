@@ -10,6 +10,7 @@ import (
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apiserver"
@@ -43,13 +44,13 @@ func TestPatchConflicts(t *testing.T) {
 	objName := "myobj"
 	ns := "patch-namespace"
 
-	if _, err := clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}}); err != nil {
+	if _, err := clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}); err != nil {
 		t.Fatalf("Error creating namespace:%v", err)
 	}
-	if _, err := clusterAdminKubeClientset.Core().Secrets(ns).Create(&kapi.Secret{ObjectMeta: kapi.ObjectMeta{Name: objName}}); err != nil {
+	if _, err := clusterAdminKubeClientset.Core().Secrets(ns).Create(&kapi.Secret{ObjectMeta: metav1.ObjectMeta{Name: objName}}); err != nil {
 		t.Fatalf("Error creating k8s resource:%v", err)
 	}
-	if _, err := clusterAdminClient.Templates(ns).Create(&templatesapi.Template{ObjectMeta: kapi.ObjectMeta{Name: objName}}); err != nil {
+	if _, err := clusterAdminClient.Templates(ns).Create(&templatesapi.Template{ObjectMeta: metav1.ObjectMeta{Name: objName}}); err != nil {
 		t.Fatalf("Error creating origin resource:%v", err)
 	}
 

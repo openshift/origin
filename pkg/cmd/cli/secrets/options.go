@@ -9,6 +9,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -169,7 +170,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 				hasNotFound = true
 				if allowNonExisting {
 					obj = &kapi.Secret{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name: secretName,
 						},
 					}

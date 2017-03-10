@@ -11,6 +11,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -56,7 +57,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	} else {
 		cn = &osapi.ClusterNetwork{
 			TypeMeta:   kapimetav1.TypeMeta{Kind: "ClusterNetwork"},
-			ObjectMeta: kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+			ObjectMeta: metav1.ObjectMeta{Name: osapi.ClusterNetworkDefault},
 		}
 		createConfig = true
 	}

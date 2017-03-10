@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -124,7 +125,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 // SetNamespace sets a new namespace
 func (c *CLI) SetNamespace(ns string) *CLI {
 	c.kubeFramework.Namespace = &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
 		},
 	}
@@ -153,7 +154,7 @@ func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[s
 
 	e2e.Logf("Creating project %q", c.Namespace())
 	_, err := c.Client().ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()},
 	})
 	if err != nil {
 		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
@@ -170,7 +171,7 @@ func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[s
 	}); err != nil {
 		return nil, err
 	}
-	return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()}}, err
+	return &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()}}, err
 }
 
 // Verbose turns on printing verbose messages when executing OpenShift commands

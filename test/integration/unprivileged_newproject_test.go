@@ -135,7 +135,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); err != nil {
+	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

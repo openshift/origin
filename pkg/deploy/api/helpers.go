@@ -30,7 +30,7 @@ func DeploymentToPodLogOptions(opts *DeploymentLogOptions) *kapi.PodLogOptions {
 // ScaleFromConfig builds a scale resource out of a deployment config.
 func ScaleFromConfig(dc *DeploymentConfig) *extensions.Scale {
 	return &extensions.Scale{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              dc.Name,
 			Namespace:         dc.Namespace,
 			UID:               dc.UID,

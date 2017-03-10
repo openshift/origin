@@ -31,7 +31,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 		return
 	}
 	event := &kapi.Event{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
 			Namespace: ref.Namespace,
 		},

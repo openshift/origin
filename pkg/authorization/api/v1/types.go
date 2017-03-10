@@ -45,7 +45,7 @@ type IsPersonalSubjectAccessReview struct {
 type Role struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Rules holds all the PolicyRules for this Role
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
@@ -66,7 +66,7 @@ func (t OptionalNames) String() string {
 type RoleBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role.
 	// This field should only be specified when supporting legacy clients and servers.
@@ -100,7 +100,7 @@ type NamedRoles []NamedRole
 type Policy struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
@@ -116,7 +116,7 @@ type NamedRoleBindings []NamedRoleBinding
 type PolicyBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
@@ -354,7 +354,7 @@ type RoleList struct {
 type ClusterRole struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
@@ -366,7 +366,7 @@ type ClusterRole struct {
 type ClusterRoleBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role.
 	// This field should only be specified when supporting legacy clients and servers.
@@ -398,7 +398,7 @@ type NamedClusterRoles []NamedClusterRole
 type ClusterPolicy struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
@@ -414,7 +414,7 @@ type NamedClusterRoleBindings []NamedClusterRoleBinding
 type ClusterPolicyBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
@@ -490,7 +490,7 @@ type RoleBindingRestriction struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the matcher.
 	Spec RoleBindingRestrictionSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`

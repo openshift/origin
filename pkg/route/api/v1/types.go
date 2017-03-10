@@ -28,7 +28,7 @@ import (
 type Route struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is the desired state of the route
 	Spec RouteSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`

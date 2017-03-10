@@ -13,7 +13,7 @@ import (
 )
 
 func mockBuildConfig(namespace, name string) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	return &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
 func withCreated(build *buildapi.Build, creationTimestamp metav1.Time) *buildapi.Build {
@@ -27,7 +27,7 @@ func withStatus(build *buildapi.Build, status buildapi.BuildPhase) *buildapi.Bui
 }
 
 func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 	if buildConfig != nil {
 		build.Status.Config = &kapi.ObjectReference{
 			Name:      buildConfig.Name,
@@ -72,13 +72,13 @@ func TestFilterBeforePredicate(t *testing.T) {
 	old := metav1.NewTime(now.Time.Add(-1 * youngerThan))
 	builds := []*buildapi.Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "old",
 				CreationTimestamp: old,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "new",
 				CreationTimestamp: now,
 			},

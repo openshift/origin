@@ -3,6 +3,7 @@ package policy
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func role(rules []authorizationapi.PolicyRule, labels map[string]string, annotations map[string]string) *authorizationapi.ClusterRole {
-	return &authorizationapi.ClusterRole{Rules: rules, ObjectMeta: kapi.ObjectMeta{Labels: labels, Annotations: annotations}}
+	return &authorizationapi.ClusterRole{Rules: rules, ObjectMeta: metav1.ObjectMeta{Labels: labels, Annotations: annotations}}
 }
 
 func rules(resources ...string) []authorizationapi.PolicyRule {

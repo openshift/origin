@@ -11,7 +11,7 @@ import (
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec is the desired behavior of the route
 	Spec RouteSpec

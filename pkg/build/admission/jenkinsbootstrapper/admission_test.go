@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
@@ -64,7 +65,7 @@ func TestAdmission(t *testing.T) {
 			attributes:     admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled: boolptr(true),
 			objects: []runtime.Object{
-				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
+				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
 			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake) string {
 				if len(kubeClient.Actions()) == 1 && kubeClient.Actions()[0].Matches("get", "services") {
@@ -77,7 +78,7 @@ func TestAdmission(t *testing.T) {
 			name:       "works on true",
 			attributes: admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			objects: []runtime.Object{
-				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
+				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
 			jenkinsEnabled: boolptr(true),
 			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake) string {
@@ -91,7 +92,7 @@ func TestAdmission(t *testing.T) {
 			name:       "enabled default",
 			attributes: admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			objects: []runtime.Object{
-				&kapi.Service{ObjectMeta: kapi.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
+				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
 			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake) string {
 				if len(kubeClient.Actions()) == 1 && kubeClient.Actions()[0].Matches("get", "services") {

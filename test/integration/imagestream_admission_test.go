@@ -7,6 +7,7 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -39,7 +40,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest, imagetest.MiscImageDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 			DockerImageReference: imageReference,
@@ -47,7 +48,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 		tag := fmt.Sprintf("tag%d", i+1)
 
 		err := client.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
 			Tag:   tag,
@@ -64,7 +65,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Logf("trying to create ImageStreamTag referencing isimage exceeding quota %v", limit)
 	ist := &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1",
 		},
 		Tag: &imageapi.TagReference{
@@ -87,7 +88,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Logf("trying to create ImageStreamTag referencing isimage below quota %v", limit)
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1",
 		},
 		Tag: &imageapi.TagReference{
@@ -112,7 +113,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Logf("trying to create ImageStreamTag exceeding quota %v", limit)
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2",
 		},
 		Tag: &imageapi.TagReference{
@@ -133,7 +134,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Log("trying to create ImageStreamTag referencing isimage already referenced")
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1again",
 		},
 		Tag: &imageapi.TagReference{
@@ -151,7 +152,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Log("trying to create ImageStreamTag in a new image stream")
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "new:misc",
 		},
 		Tag: &imageapi.TagReference{
@@ -171,7 +172,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Logf("trying to create ImageStreamTag referencing istag below quota %v", limit)
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2",
 		},
 		Tag: &imageapi.TagReference{
@@ -196,7 +197,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Logf("trying to create ImageStreamTag referencing istag exceeding quota %v", limit)
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag3",
 		},
 		Tag: &imageapi.TagReference{
@@ -217,7 +218,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	t.Log("trying to create ImageStreamTag referencing istag already referenced")
 	ist = &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2again",
 		},
 		Tag: &imageapi.TagReference{
@@ -241,7 +242,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 			DockerImageReference: imageReference,
@@ -249,7 +250,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 		tag := fmt.Sprintf("tag%d", i+1)
 
 		err := client.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
 			Tag:   tag,
@@ -356,7 +357,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	for _, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 			DockerImageReference: imageReference,
@@ -521,7 +522,7 @@ func errForbiddenWithRetry(err error) bool {
 // a first usage refresh
 func createResourceQuota(t *testing.T, rqClient kcoreclient.ResourceQuotaInterface, quotaName string, hard kapi.ResourceList) *kapi.ResourceQuota {
 	rq := &kapi.ResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: quotaName,
 		},
 		Spec: kapi.ResourceQuotaSpec{
@@ -568,7 +569,7 @@ func bumpQuota(t *testing.T, rqs kcoreclient.ResourceQuotaInterface, quotaName s
 // object will be created in current namespace.
 func createLimitRangeOfType(t *testing.T, lrClient kcoreclient.LimitRangeInterface, limitRangeName string, limitType kapi.LimitType, maxLimits kapi.ResourceList) *kapi.LimitRange {
 	lr := &kapi.LimitRange{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: limitRangeName,
 		},
 		Spec: kapi.LimitRangeSpec{
@@ -629,7 +630,7 @@ func newImageStreamWithSpecTags(name string, tags map[string]kapi.ObjectReferenc
 		specTags[tag] = imageapi.TagReference{Name: tag, From: &ref}
 	}
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec:       imageapi.ImageStreamSpec{Tags: specTags},
 	}
 

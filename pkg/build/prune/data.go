@@ -101,7 +101,7 @@ func (d *dataSet) GetBuildConfig(build *buildapi.Build) (*buildapi.BuildConfig, 
 	}
 
 	var buildConfig *buildapi.BuildConfig
-	key := &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace}}
+	key := &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace}}
 	item, exists, err := d.buildConfigStore.Get(key)
 	if exists {
 		buildConfig = item.(*buildapi.BuildConfig)

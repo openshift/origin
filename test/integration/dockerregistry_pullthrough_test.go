@@ -217,7 +217,7 @@ func TestPullThroughInsecure(t *testing.T) {
 	srvurl, _ := url.Parse(server.URL)
 
 	stream := imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      "myimagestream",
 			Annotations: map[string]string{

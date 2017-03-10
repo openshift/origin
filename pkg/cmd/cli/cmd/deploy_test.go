@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -120,7 +121,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 
 	mkpod := func(name string) kapi.Pod {
 		return kapi.Pod{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					deployapi.DeployerPodForDeploymentLabel: existingDeployment.Name,

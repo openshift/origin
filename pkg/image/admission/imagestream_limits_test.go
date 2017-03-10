@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 
@@ -373,7 +374,7 @@ func TestVerifyLimits(t *testing.T) {
 		},
 	} {
 		limitRange := &kapi.LimitRange{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test",
 				Name:      "limitrange",
 			},

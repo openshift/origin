@@ -18,6 +18,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
@@ -132,7 +133,7 @@ middleware:
 	}
 
 	stream := imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      "test",
 		},

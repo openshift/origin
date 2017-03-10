@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -43,7 +44,7 @@ type strategyTestCase struct {
 
 func makeUser(uid string, name string, identities ...string) *api.User {
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  types.UID(uid),
 		},
@@ -52,7 +53,7 @@ func makeUser(uid string, name string, identities ...string) *api.User {
 }
 func makeIdentity(uid string, providerName string, providerUserName string, userUID string, userName string) *api.Identity {
 	return &api.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 			UID:  types.UID(uid),
 		},

@@ -12,7 +12,7 @@ import (
 
 type User struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	FullName string
 
@@ -29,7 +29,7 @@ type UserList struct {
 
 type Identity struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// ProviderName is the source of identity information
 	ProviderName string
@@ -52,7 +52,7 @@ type IdentityList struct {
 
 type UserIdentityMapping struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	Identity kapi.ObjectReference
 	User     kapi.ObjectReference
@@ -61,7 +61,7 @@ type UserIdentityMapping struct {
 // Group represents a referenceable set of Users
 type Group struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	Users []string
 }

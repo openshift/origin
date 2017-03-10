@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -245,7 +246,7 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 
 func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -265,7 +266,7 @@ func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 
 func mockBuild(status api.BuildPhase, podName string, version int) *api.Build {
 	return &api.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 			Annotations: map[string]string{
 				api.BuildNumberAnnotation: strconv.Itoa(version),

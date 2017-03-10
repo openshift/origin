@@ -14,13 +14,13 @@ func TestSortBuildSliceByCreationTimestamp(t *testing.T) {
 	past := metav1.NewTime(present.Add(-time.Minute))
 	builds := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
 				CreationTimestamp: present,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "past",
 				CreationTimestamp: past,
 			},
@@ -37,13 +37,13 @@ func TestSortBuildPtrSliceByCreationTimestamp(t *testing.T) {
 	past := metav1.NewTime(present.Add(-time.Minute))
 	builds := []*Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
 				CreationTimestamp: present,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "past",
 				CreationTimestamp: past,
 			},

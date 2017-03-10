@@ -16,6 +16,7 @@ import (
 	"github.com/pborman/uuid"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
@@ -289,7 +290,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) error {
 	{
 		webConsoleClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
 			Secret:                "",
 			RespondWithChallenges: false,
 			RedirectURIs:          assetPublicAddresses,
@@ -302,7 +303,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 	{
 		browserClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftBrowserClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 			Secret:                uuid.New(),
 			RespondWithChallenges: false,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
@@ -315,7 +316,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 	{
 		cliClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
+			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 			Secret:                "",
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},

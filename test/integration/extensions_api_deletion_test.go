@@ -8,6 +8,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -55,7 +56,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	// create the extensions resources as the project admin
 	percent := int32(10)
 	hpa := autoscaling.HorizontalPodAutoscaler{
-		ObjectMeta: kapi.ObjectMeta{Name: "test-hpa"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-hpa"},
 		Spec: autoscaling.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef:                 autoscaling.CrossVersionObjectReference{Kind: "DeploymentConfig", Name: "frontend", APIVersion: "v1"},
 			MaxReplicas:                    10,
@@ -67,10 +68,10 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	}
 
 	job := batch.Job{
-		ObjectMeta: kapi.ObjectMeta{Name: "test-job"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-job"},
 		Spec: batch.JobSpec{
 			Template: kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 				Spec: kapi.PodSpec{
 					Containers:    []kapi.Container{{Name: "baz", Image: "run"}},
 					RestartPolicy: kapi.RestartPolicyOnFailure,

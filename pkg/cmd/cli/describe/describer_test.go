@@ -165,7 +165,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 	tests := []testBuild{
 		{ // 0 - build new
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhaseNew,
 				},
@@ -174,7 +174,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 1 - build pending
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhasePending,
 				},
@@ -183,7 +183,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 2 - build running
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: twoMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: twoMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp: &minuteAgo,
 					Phase:          buildapi.BuildPhaseRunning,
@@ -193,7 +193,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 3 - build completed
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -204,7 +204,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 4 - build failed
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -215,7 +215,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 5 - build error
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -226,7 +226,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 6 - build cancelled before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseCancelled,
@@ -236,7 +236,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 7 - build cancelled while running, start time is set already
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -247,7 +247,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 8 - build failed before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseFailed,
@@ -257,7 +257,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 9 - build error before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseError,
@@ -276,7 +276,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 
 func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
+		ObjectMeta: metav1.ObjectMeta{Name: "PodName"},
 		Status: kapi.PodStatus{
 			Phase: status,
 			ContainerStatuses: []kapi.ContainerStatus{

@@ -31,7 +31,7 @@ func TestImportSuccessful(t *testing.T) {
 	}{
 		"reference differs": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -69,7 +69,7 @@ func TestImportSuccessful(t *testing.T) {
 		},
 		"image differs": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -108,7 +108,7 @@ func TestImportSuccessful(t *testing.T) {
 		},
 		"empty status": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -138,7 +138,7 @@ func TestImportSuccessful(t *testing.T) {
 		// https://github.com/openshift/origin/issues/10402:
 		"only generation differ": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",

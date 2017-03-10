@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -131,7 +132,7 @@ func TestCancelBuildRun(t *testing.T) {
 		// which is a BuildRequest. It needs to be able to "update"/"get" a
 		// BuildRequest, so we stub one out here.
 		stubbedBuildRequest := &buildapi.BuildRequest{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: test.opts.Namespace,
 				Name:      build.Name,
 			},
@@ -203,7 +204,7 @@ func (c *FakeTestBuilds) Update(inObj *buildapi.Build) (*buildapi.Build, error) 
 
 func genBuild(phase buildapi.BuildPhase) *buildapi.Build {
 	build := buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ruby-ex",
 			Namespace: "test",
 		},

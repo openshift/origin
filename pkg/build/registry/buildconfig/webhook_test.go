@@ -111,7 +111,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns generic error": {
 			Name: "test",
 			Path: "secret/err",
-			Obj:  &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:  &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool {
 				return strings.Contains(err.Error(), "Internal error occurred: hook failed: test error")
 			},
@@ -120,21 +120,21 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns unauthorized for bad secret": {
 			Name:        "test",
 			Path:        "secret/errsecret",
-			Obj:         &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
 		},
 		"hook returns unauthorized for bad hook": {
 			Name:        "test",
 			Path:        "secret/errhook",
-			Obj:         &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
 		},
 		"hook returns unauthorized for missing build config": {
 			Name:        "test",
 			Path:        "secret/errhook",
-			Obj:         &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			RegErr:      fmt.Errorf("any old error"),
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
@@ -142,7 +142,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns 200 for ok hook": {
 			Name:  "test",
 			Path:  "secret/ok",
-			Obj:   &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:   &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool { return err == nil },
 			WFn: func(w *httptest.ResponseRecorder) bool {
 				return w.Code == http.StatusOK
@@ -152,7 +152,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns 200 for okenv hook": {
 			Name:  "test",
 			Path:  "secret/okenv",
-			Obj:   &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:   &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool { return err == nil },
 			WFn: func(w *httptest.ResponseRecorder) bool {
 				return w.Code == http.StatusOK
@@ -246,7 +246,7 @@ func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 }
 
 var testBuildConfig = &api.BuildConfig{
-	ObjectMeta: kapi.ObjectMeta{Name: "build100"},
+	ObjectMeta: metav1.ObjectMeta{Name: "build100"},
 	Spec: api.BuildConfigSpec{
 		Triggers: []api.BuildTriggerPolicy{
 			{

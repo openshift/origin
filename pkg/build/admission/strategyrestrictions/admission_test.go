@@ -222,7 +222,7 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 
 func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
@@ -235,7 +235,7 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 
 func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-buildconfig",
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -255,7 +255,7 @@ func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessRev
 
 func testBuildRequest(name string) runtime.Object {
 	return &buildapi.BuildRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}

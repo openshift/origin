@@ -60,7 +60,7 @@ func (f *fakeDaemonSetDiagnostic) addDaemonSetWithSelector(key string, value str
 func (f *fakeDaemonSetDiagnostic) addNodeWithLabel(key string, value string) {
 	labels := map[string]string{key: value}
 	node := kapi.Node{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
 		},
 	}

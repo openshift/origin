@@ -8,6 +8,7 @@ import (
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktypes "k8s.io/kubernetes/pkg/types"
@@ -36,7 +37,7 @@ func makePod(name, rcName string, t *testing.T) kapi.Pod {
 	}
 
 	return kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "somens",
 			Annotations: map[string]string{
@@ -48,7 +49,7 @@ func makePod(name, rcName string, t *testing.T) kapi.Pod {
 
 func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.ReplicationController {
 	rc := kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   "somens",
 			Annotations: make(map[string]string),

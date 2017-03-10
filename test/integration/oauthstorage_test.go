@@ -9,6 +9,7 @@ import (
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -121,7 +122,7 @@ func TestOAuthStorage(t *testing.T) {
 	}))
 
 	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:        kapi.ObjectMeta{Name: "test"},
+		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
 		Secret:            "secret",
 		AdditionalSecrets: []string{"secret1"},
 		RedirectURIs:      []string{assertServer.URL + "/assert"},

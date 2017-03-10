@@ -97,9 +97,9 @@ func TestGetImageStreamTag(t *testing.T) {
 		errorTargetID   string
 	}{
 		"happy path": {
-			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+			image: &api.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
 				},
@@ -130,7 +130,7 @@ func TestGetImageStreamTag(t *testing.T) {
 		},
 		"image = ''": {
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
 						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
@@ -156,9 +156,9 @@ func TestGetImageStreamTag(t *testing.T) {
 			errorTargetID:   "test",
 		},
 		"missing tag": {
-			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+			image: &api.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
 						"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
@@ -227,9 +227,9 @@ func TestGetImageStreamTag(t *testing.T) {
 
 func TestGetImageStreamTagDIR(t *testing.T) {
 	expDockerImageReference := "foo/bar/baz:latest"
-	image := &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz:different"}
+	image := &api.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz:different"}
 	repo := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "test",
 		},
@@ -280,7 +280,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		},
 		"nil tag map": {
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
 				},
@@ -289,7 +289,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		},
 		"missing tag": {
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
 				},
@@ -308,7 +308,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		},
 		"happy path": {
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace:  "default",
 					Name:       "test",
 					Generation: 2,

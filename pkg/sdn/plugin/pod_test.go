@@ -14,6 +14,7 @@ import (
 
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -105,7 +106,7 @@ func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
 			TypeMeta: kmetav1.TypeMeta{
 				Kind: "Pod",
 			},
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},

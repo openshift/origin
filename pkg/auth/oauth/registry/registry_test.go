@@ -93,13 +93,13 @@ func TestRegistryAndServer(t *testing.T) {
 	}))
 
 	validClient := &oapi.OAuthClient{
-		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
+		ObjectMeta:   metav1.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
 	}
 
 	restrictedClient := &oapi.OAuthClient{
-		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
+		ObjectMeta:   metav1.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
 		ScopeRestrictions: []oapi.ScopeRestriction{
@@ -341,7 +341,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)}},
+			ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)}},
 			ExpiresIn:  600, // 10 minutes
 		},
 	}
@@ -363,14 +363,14 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: metav1.Time{Time: time.Now()}},
+			ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.Time{Time: time.Now()}},
 			ExpiresIn:  600, // 10 minutes
 			UserName:   "foo",
 			UserUID:    string("bar"),
 		},
 	}
 	userRegistry := usertest.NewUserRegistry()
-	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: kapi.ObjectMeta{UID: "bar"}}
+	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: metav1.ObjectMeta{UID: "bar"}}
 
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 

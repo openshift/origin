@@ -23,6 +23,7 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -100,7 +101,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:               "local stat",
 			stat:               "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:       []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:       []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			expectedDescriptor: testNewDescriptorForLayer(testImages["nm/is:latest"][0].DockerImageLayers[0]),
 		},
 
@@ -110,7 +111,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/repo:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -137,7 +138,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/unmanaged:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "unmanaged",
 					},
@@ -175,7 +176,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/unmanaged:missing-layer-links"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -202,7 +203,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*etcdOnlyImages["nm/is"]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "is",
 					},
@@ -228,7 +229,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			images: []imageapi.Image{*testImages["nm/is:latest"][0]},
 			imageStreams: []imageapi.ImageStream{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "nm",
 						Name:      "repo",
 					},
@@ -251,7 +252,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:          "auth not performed",
 			stat:          "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:  []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:  []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			skipAuth:      true,
 			expectedError: fmt.Errorf("openshift.auth.completed missing from context"),
 		},
@@ -259,7 +260,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 		{
 			name:           "deferred error",
 			stat:           "nm/is@" + testImages["nm/is:latest"][0].DockerImageLayers[0].Name,
-			imageStreams:   []imageapi.ImageStream{{ObjectMeta: kapi.ObjectMeta{Namespace: "nm", Name: "is"}}},
+			imageStreams:   []imageapi.ImageStream{{ObjectMeta: metav1.ObjectMeta{Namespace: "nm", Name: "is"}}},
 			deferredErrors: deferredErrors{"nm/is": ErrOpenShiftAccessDenied},
 			expectedError:  ErrOpenShiftAccessDenied,
 		},
@@ -578,7 +579,7 @@ func storeTestImage(
 	} //TODO v2
 
 	image := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: dgst.String(),
 		},
 		DockerImageManifest:  string(payload),

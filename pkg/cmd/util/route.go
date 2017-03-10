@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -25,7 +26,7 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
 		}
 		return &api.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: routeName,
 			},
 			Spec: api.RouteSpec{
@@ -43,7 +44,7 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 	}
 
 	route := &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   routeName,
 			Labels: svc.Labels,
 		},

@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -149,7 +150,7 @@ func (e *hookExecutor) tagImages(hook *deployapi.LifecycleHook, rc *kapi.Replica
 			namespace = rc.Namespace
 		}
 		if _, err := e.tags.ImageStreamTags(namespace).Update(&imageapi.ImageStreamTag{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      action.To.Name,
 				Namespace: namespace,
 			},
@@ -376,7 +377,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	gracePeriod := int64(10)
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: namer.GetPodName(rc.Name, suffix),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: rc.Name,

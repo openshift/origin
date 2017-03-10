@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -241,7 +242,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 	if o.Restart {
 		for _, b := range builds {
-			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
+			request := &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
 			build, err := o.BuildClient.Clone(request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))

@@ -3,6 +3,7 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,7 +33,7 @@ func TestStorage(t *testing.T) {
 
 func validBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "configid"},
+		ObjectMeta: metav1.ObjectMeta{Name: "configid"},
 		Spec: api.BuildConfigSpec{
 			RunPolicy: api.BuildRunPolicySerial,
 			CommonSpec: api.CommonSpec{

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -120,7 +121,7 @@ func TestDockerBuildLongName(t *testing.T) {
 func mockDockerBuild() *buildapi.Build {
 	timeout := int64(60)
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "dockerBuild",
 			Labels: map[string]string{
 				"name": "dockerBuild",

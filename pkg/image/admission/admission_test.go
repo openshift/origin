@@ -234,7 +234,7 @@ func TestSupports(t *testing.T) {
 
 func getBaseImageWith1Layer() imageapi.Image {
 	return imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        testutil.BaseImageWith1LayerDigest,
 			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 		},
@@ -245,7 +245,7 @@ func getBaseImageWith1Layer() imageapi.Image {
 
 func getLimitRange(limit string) *kapi.LimitRange {
 	return &kapi.LimitRange{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-limit",
 			Namespace: "test",
 		},
@@ -264,7 +264,7 @@ func getLimitRange(limit string) *kapi.LimitRange {
 
 func getImageStreamMapping() *imageapi.ImageStreamMapping {
 	return &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-ism",
 			Namespace: "test",
 		},

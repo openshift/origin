@@ -298,7 +298,7 @@ func unsetIdentityUser(identity *api.Identity) bool {
 // The name and resource version of the identity mapping match the identity
 func mappingFor(user *api.User, identity *api.Identity) (*api.UserIdentityMapping, error) {
 	return &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            identity.Name,
 			ResourceVersion: identity.ResourceVersion,
 			UID:             identity.UID,

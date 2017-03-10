@@ -2,6 +2,7 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 
@@ -44,7 +45,7 @@ func (i *indexerToPolicyBindingLister) List(options kapi.ListOptions) (*authoriz
 		return policyBindingList, nil
 	}
 
-	key := &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: i.namespace}}
+	key := &authorizationapi.PolicyBinding{ObjectMeta: metav1.ObjectMeta{Namespace: i.namespace}}
 	items, err := i.Indexer.Index(cache.NamespaceIndex, key)
 	if err != nil {
 		return policyBindingList, err
@@ -60,7 +61,7 @@ func (i *indexerToPolicyBindingLister) List(options kapi.ListOptions) (*authoriz
 }
 
 func (i *indexerToPolicyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	keyObj := &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: i.namespace, Name: name}}
+	keyObj := &authorizationapi.PolicyBinding{ObjectMeta: metav1.ObjectMeta{Namespace: i.namespace, Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.Indexer.GetByKey(key)

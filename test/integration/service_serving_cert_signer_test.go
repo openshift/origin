@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -41,7 +42,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	}
 
 	service := &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-svc",
 			Annotations: map[string]string{
 				servingcert.ServingCertSecretAnnotation: "my-secret",

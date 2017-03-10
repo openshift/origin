@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -59,7 +60,7 @@ func deployerPod(deployment *kapi.ReplicationController, alternateName string, r
 	deployment.Namespace = "test"
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      deployerPodName,
 			Namespace: deployment.Namespace,
 			Labels: map[string]string{

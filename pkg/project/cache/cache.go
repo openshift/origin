@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -30,7 +31,7 @@ type ProjectCache struct {
 }
 
 func (p *ProjectCache) GetNamespace(name string) (*kapi.Namespace, error) {
-	key := &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: name}}
+	key := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
 
 	// check for namespace in the cache
 	namespaceObj, exists, err := p.Store.Get(key)

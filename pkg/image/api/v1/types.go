@@ -22,7 +22,7 @@ type ImageList struct {
 type Image struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
@@ -62,7 +62,7 @@ type ImageLayer struct {
 type ImageSignature struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Required: Describes a type of stored blob.
 	Type string `json:"type" protobuf:"bytes,2,opt,name=type"`
@@ -147,7 +147,7 @@ type ImageStreamList struct {
 type ImageStream struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec describes the desired state of this stream
 	Spec ImageStreamSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
@@ -280,7 +280,7 @@ type TagEventCondition struct {
 type ImageStreamMapping struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Image is a Docker image.
 	Image Image `json:"image" protobuf:"bytes,2,opt,name=image"`
@@ -292,7 +292,7 @@ type ImageStreamMapping struct {
 type ImageStreamTag struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
 	// if only pushes have occurred to this image stream.
@@ -325,7 +325,7 @@ type ImageStreamTagList struct {
 type ImageStreamImage struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Image associated with the ImageStream and image name.
 	Image Image `json:"image" protobuf:"bytes,2,opt,name=image"`
@@ -356,7 +356,7 @@ type DockerImageReference struct {
 type ImageStreamImport struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec is a description of the images that the user wishes to import
 	Spec ImageStreamImportSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`

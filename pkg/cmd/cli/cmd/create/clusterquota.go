@@ -94,7 +94,7 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 	}
 
 	o.ClusterQuota = &quotaapi.ClusterResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
+		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Selector: quotaapi.ClusterResourceQuotaSelector{
 				LabelSelector:      labelSelector,

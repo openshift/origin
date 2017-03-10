@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,7 +32,7 @@ var (
 
 func makeBuildConfig(configName string, version int64, deleting bool) *buildapi.BuildConfig {
 	ret := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        configName,
 			Namespace:   "default",
 			Annotations: make(map[string]string),
@@ -49,7 +50,7 @@ func makeBuildConfig(configName string, version int64, deleting bool) *buildapi.
 
 func makeBuild(configName string, version int) buildapi.Build {
 	return buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("build-%s-%d", configName, version),
 			UID:         ktypes.UID(fmt.Sprintf("build-%s-%d", configName, version)),
 			Namespace:   "default",
@@ -61,7 +62,7 @@ func makeBuild(configName string, version int) buildapi.Build {
 
 func makeDeprecatedBuild(configName string, version int) buildapi.Build {
 	return buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("build-%s-%d", configName, version),
 			UID:         ktypes.UID(fmt.Sprintf("build-%s-%d", configName, version)),
 			Namespace:   "default",

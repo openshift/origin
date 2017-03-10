@@ -34,7 +34,7 @@ type ProjectStatus struct {
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	Spec   ProjectSpec
 	Status ProjectStatus
@@ -42,7 +42,7 @@ type Project struct {
 
 type ProjectRequest struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 	DisplayName string
 	Description string
 }

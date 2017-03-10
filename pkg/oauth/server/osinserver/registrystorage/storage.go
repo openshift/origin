@@ -181,7 +181,7 @@ func (s *storage) RemoveRefresh(token string) error {
 
 func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthAuthorizeToken, error) {
 	token := &api.OAuthAuthorizeToken{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              data.Code,
 			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},
@@ -228,7 +228,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 
 func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessToken, error) {
 	token := &api.OAuthAccessToken{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              data.AccessToken,
 			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
 		},

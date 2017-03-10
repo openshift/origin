@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -161,13 +162,13 @@ func TestSyncNamespace(t *testing.T) {
 	namespaceList := kapi.NamespaceList{
 		Items: []kapi.Namespace{
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "2"},
+				ObjectMeta: metav1.ObjectMeta{Name: "bar", ResourceVersion: "2"},
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "car", ResourceVersion: "3"},
+				ObjectMeta: metav1.ObjectMeta{Name: "car", ResourceVersion: "3"},
 			},
 		},
 	}

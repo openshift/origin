@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -279,7 +280,7 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}
 
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -366,7 +367,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 	}
 
 	dc := &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: r.Name,
 		},
 		Spec: deployapi.DeploymentConfigSpec{
@@ -374,7 +375,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 			Test:     r.AsTest,
 			Selector: selector,
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: selector,
 				},
 				Spec: template,

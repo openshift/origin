@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -21,7 +22,7 @@ const (
 
 func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: kapi.NamespaceDefault,
 			//SelfLink:  "/oapi/v1/namespaces/default/deploymentconfig/config",
@@ -164,7 +165,7 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 			DNSPolicy:                     kapi.DNSClusterFirst,
 			TerminationGracePeriodSeconds: &one,
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: OkSelector(),
 		},
 	}
@@ -236,7 +237,7 @@ func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.Deploym
 func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
 	newMin := int32(min)
 	return &autoscaling.HorizontalPodAutoscaler{
-		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
 		Spec: autoscaling.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 				Name: config.Name,
@@ -258,7 +259,7 @@ func OkStreamForConfig(config *deployapi.DeploymentConfig) *imageapi.ImageStream
 		name, tag, _ := imageapi.SplitImageStreamTag(ref.Name)
 
 		return &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: ref.Namespace,
 			},

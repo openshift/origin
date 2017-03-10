@@ -3,6 +3,7 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +42,7 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	valid := validDeploymentConfig()
-	valid.ObjectMeta = kapi.ObjectMeta{}
+	valid.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		valid,
 		// invalid

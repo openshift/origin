@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -41,7 +42,7 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// create a namespace
 	namespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: "integration-test"},
+		ObjectMeta: metav1.ObjectMeta{Name: "integration-test"},
 	}
 	namespaceResult, err := kubeClientset.Core().Namespaces().Create(namespace)
 	if err != nil {
@@ -59,7 +60,7 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// now create a project
 	project = &projectapi.Project{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
 				oapi.OpenShiftDisplayName:    "Hello World",
@@ -108,7 +109,7 @@ func TestProjectMustExist(t *testing.T) {
 	}
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "pod"},
+		ObjectMeta: metav1.ObjectMeta{Name: "pod"},
 		Spec: kapi.PodSpec{
 			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
 			RestartPolicy: kapi.RestartPolicyAlways,
@@ -122,7 +123,7 @@ func TestProjectMustExist(t *testing.T) {
 	}
 
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "default",
 			Labels: map[string]string{
@@ -464,7 +465,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	roleName := "missing-role"
-	if _, err := clusterAdminClient.ClusterRoles().Create(&authorizationapi.ClusterRole{ObjectMeta: kapi.ObjectMeta{Name: roleName}}); err != nil {
+	if _, err := clusterAdminClient.ClusterRoles().Create(&authorizationapi.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}

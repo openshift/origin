@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -64,14 +65,14 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	validHPA := &autoscaling.HorizontalPodAutoscaler{
-		ObjectMeta: kapi.ObjectMeta{Name: "myjob"},
+		ObjectMeta: metav1.ObjectMeta{Name: "myjob"},
 		Spec: autoscaling.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscaling.CrossVersionObjectReference{Name: "foo", Kind: "ReplicationController"},
 			MaxReplicas:    1,
 		},
 	}
 	validJob := &batch.Job{
-		ObjectMeta: kapi.ObjectMeta{Name: "myjob"},
+		ObjectMeta: metav1.ObjectMeta{Name: "myjob"},
 		Spec: batch.JobSpec{
 			Template: kapi.PodTemplateSpec{
 				Spec: kapi.PodSpec{

@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -253,7 +254,7 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 	}
 
 	secret := &kapi.Secret{
-		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 		Type:       secretType,
 		Data:       secretData,
 	}

@@ -471,7 +471,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 // in the cache store, given a pod for the build
 func buildKey(pod *kapi.Pod) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildutil.GetBuildName(pod),
 			Namespace: pod.Namespace,
 		},

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -161,7 +162,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 
 func createNamespaceProperties() *kapi.Namespace {
 	return &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "namespace-",
 		},
 		Status: kapi.NamespaceStatus{},
@@ -170,7 +171,7 @@ func createNamespaceProperties() *kapi.Namespace {
 
 func createServiceProperties() *kapi.Service {
 	return &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "service-",
 		},
 		Spec: kapi.ServiceSpec{
@@ -184,7 +185,7 @@ func createServiceProperties() *kapi.Service {
 
 func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 	return &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Subsets: []kapi.EndpointSubset{{
@@ -200,7 +201,7 @@ func createEndpointsProperties(serviceName string) *kapi.Endpoints {
 
 func createRouteProperties(serviceName, host string) *routeapi.Route {
 	return &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "route-",
 		},
 		Spec: routeapi.RouteSpec{

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -33,7 +34,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 
 	for _, name := range nsList {
 		// Create a new namespace for network diagnostics
-		ns := &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: name}}
+		ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
 		if _, err := d.KubeClient.Core().Namespaces().Create(ns); err != nil {
 			return fmt.Errorf("Creating namespace %q failed: %v", name, err)
 		}

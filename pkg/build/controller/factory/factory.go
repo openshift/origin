@@ -506,7 +506,7 @@ func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) 
 		}
 		if build == nil {
 			deletedBuild := &buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      buildName,
 					Namespace: pod.Namespace,
 				},
@@ -597,7 +597,7 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 		}
 		if pod == nil {
 			deletedPod := &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      buildapi.GetBuildPodName(&build),
 					Namespace: build.Namespace,
 				},

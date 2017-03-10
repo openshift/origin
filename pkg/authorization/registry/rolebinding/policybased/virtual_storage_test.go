@@ -25,14 +25,14 @@ import (
 func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 	return []authorizationapi.ClusterPolicy{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+			ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.PolicyName},
 			Roles: map[string]*authorizationapi.ClusterRole{
 				"cluster-admin": {
-					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster-admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 				"admin": {
-					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 			},
@@ -43,10 +43,10 @@ func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 func testNewClusterBindings() []authorizationapi.ClusterPolicyBinding {
 	return []authorizationapi.ClusterPolicyBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.ClusterPolicyBindingName},
+			ObjectMeta: metav1.ObjectMeta{Name: authorizationapi.ClusterPolicyBindingName},
 			RoleBindings: map[string]*authorizationapi.ClusterRoleBinding{
 				"cluster-admins": {
-					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admins"},
+					ObjectMeta: metav1.ObjectMeta{Name: "cluster-admins"},
 					RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
 					Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemUserKind, Name: "system:admin"}},
 				},
@@ -57,7 +57,7 @@ func testNewClusterBindings() []authorizationapi.ClusterPolicyBinding {
 func testNewLocalBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
-			ObjectMeta:   kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("unittest"), Namespace: "unittest"},
+			ObjectMeta:   metav1.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("unittest"), Namespace: "unittest"},
 			RoleBindings: map[string]*authorizationapi.RoleBinding{},
 		},
 	}
@@ -94,7 +94,7 @@ func TestCreateValidationError(t *testing.T) {
 func TestCreateValidAutoCreateMasterPolicyBindings(t *testing.T) {
 	storage := makeTestStorage()
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
@@ -120,7 +120,7 @@ func TestCreateValid(t *testing.T) {
 	storage := makeTestStorage()
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
@@ -144,7 +144,7 @@ func TestUpdate(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -186,7 +186,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -229,7 +229,7 @@ func TestConflictingUpdate(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -256,7 +256,7 @@ func TestUpdateNoOp(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -296,7 +296,7 @@ func TestUpdateError(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -306,7 +306,7 @@ func TestUpdateError(t *testing.T) {
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
@@ -325,7 +325,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	})
 	if err != nil {
@@ -335,7 +335,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-different", ResourceVersion: original.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{Name: "my-different", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
 	}
 

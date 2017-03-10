@@ -15,7 +15,7 @@ import (
 type Build struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is all the inputs used to execute the build.
 	Spec BuildSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
@@ -693,7 +693,7 @@ type ImageLabel struct {
 type BuildConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildConfig.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -865,7 +865,7 @@ type DockerStrategyOptions struct {
 type BuildRequest struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata for BuildRequest.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,2,opt,name=revision"`
@@ -900,7 +900,7 @@ type BuildRequest struct {
 type BinaryBuildRequestOptions struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata for BinaryBuildRequestOptions.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// asFile determines if the binary should be created as a file within the source rather than extracted as an archive
 	AsFile string `json:"asFile,omitempty" protobuf:"bytes,2,opt,name=asFile"`

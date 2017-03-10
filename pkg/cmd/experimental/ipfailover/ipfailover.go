@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -192,7 +193,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	}
 
 	configList := []runtime.Object{
-		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: options.ServiceAccount}},
+		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: options.ServiceAccount}},
 	}
 
 	list.Items = append(configList, list.Items...)

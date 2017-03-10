@@ -3,6 +3,7 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/sdn/api"
@@ -19,7 +20,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Good one",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -29,7 +30,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Bad network",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -39,7 +40,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Invalid subnet length",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.30.0/24",
 				HostSubnetLength: 16,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -49,7 +50,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Bad service network",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "1172.30.0.0/16",
@@ -59,7 +60,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Service network overlaps with cluster network",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "10.20.1.0/24",
@@ -69,7 +70,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Cluster network overlaps with service network",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "10.0.0.0/8",
@@ -96,7 +97,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		{
 			name: "Good one",
 			hs: &api.HostSubnet{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
 				Host:   "abc.def.com",
@@ -108,7 +109,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		{
 			name: "Malformed HostIP",
 			hs: &api.HostSubnet{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
 				Host:   "abc.def.com",
@@ -120,7 +121,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		{
 			name: "Malformed subnet",
 			hs: &api.HostSubnet{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
 				Host:   "abc.def.com",
@@ -149,7 +150,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Empty",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -162,7 +163,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Good one",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -188,7 +189,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Bad policy",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -214,7 +215,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Bad destination",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},

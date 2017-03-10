@@ -16,6 +16,7 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -613,7 +614,7 @@ func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
 
 func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
 	pvc := &kapi.PersistentVolumeClaim{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: v.ClaimName,
 		},
 		Spec: kapi.PersistentVolumeClaimSpec{

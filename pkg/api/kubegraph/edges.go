@@ -216,7 +216,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 	for _, node := range g.NodesByKind(kubegraph.HorizontalPodAutoscalerNodeKind) {
 		hpaNode := node.(*kubegraph.HorizontalPodAutoscalerNode)
 
-		syntheticMeta := kapi.ObjectMeta{
+		syntheticMeta := metav1.ObjectMeta{
 			Name:      hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Name,
 			Namespace: hpaNode.HorizontalPodAutoscaler.Namespace,
 		}

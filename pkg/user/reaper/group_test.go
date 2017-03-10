@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -44,24 +45,24 @@ func TestGroupReaper(t *testing.T) {
 			group: "mygroup",
 			objects: []runtime.Object{
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-no-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				},
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "mygroup", Kind: "Group"}},
 				},
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-mismatched-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-mismatched-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "mygroup"}, {Name: "mygroup", Kind: "User"}, {Name: "mygroup", Kind: "Other"}},
 				},
 			},
 			expected: []interface{}{
 				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
@@ -73,24 +74,24 @@ func TestGroupReaper(t *testing.T) {
 			group: "mygroup",
 			objects: []runtime.Object{
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				},
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "mygroup", Kind: "Group"}},
 				},
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-mismatched-subject", Namespace: "ns3"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-mismatched-subject", Namespace: "ns3"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "mygroup"}, {Name: "mygroup", Kind: "User"}, {Name: "mygroup", Kind: "Other"}},
 				},
 			},
 			expected: []interface{}{
 				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
@@ -102,22 +103,22 @@ func TestGroupReaper(t *testing.T) {
 			group: "mygroup",
 			objects: []runtime.Object{
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-no-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
 					Groups:     []string{},
 				},
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{"mygroup"},
 				},
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-mismatched-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-mismatched-subjects"},
 					Users:      []string{"mygroup"},
 					Groups:     []string{"mygroup2"},
 				},
 			},
 			expected: []interface{}{
 				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},
 				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},

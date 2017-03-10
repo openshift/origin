@@ -3,6 +3,7 @@ package admission
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -19,7 +20,7 @@ import (
 func TestExecAdmit(t *testing.T) {
 	goodPod := func() *kapi.Pod {
 		return &kapi.Pod{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 			},
 			Spec: kapi.PodSpec{

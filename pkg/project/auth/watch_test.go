@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -180,7 +181,7 @@ func TestAddModifyDeleteEventsByGroup(t *testing.T) {
 func newNamespaces(names ...string) []*kapi.Namespace {
 	ret := []*kapi.Namespace{}
 	for _, name := range names {
-		ret = append(ret, &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: name}})
+		ret = append(ret, &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	}
 
 	return ret

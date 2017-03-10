@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/watch"
@@ -32,7 +33,7 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 		return err
 	}
 	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 	})
 	return err
 }

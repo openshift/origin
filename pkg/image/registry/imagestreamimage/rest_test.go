@@ -6,6 +6,7 @@ import (
 	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -113,7 +114,7 @@ func TestGet(t *testing.T) {
 		"happy path": {
 			input: "repo@id",
 			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Name:      "repo",
 				},
@@ -130,7 +131,7 @@ func TestGet(t *testing.T) {
 				},
 			},
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
 				DockerImageManifest: `{

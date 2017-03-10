@@ -427,12 +427,12 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 	// create new ImageStream
 	if o.All {
 		stream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
 		}
 	} else {
 		stream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 			Spec: imageapi.ImageStreamSpec{
 				Tags: map[string]imageapi.TagReference{
 					tag: {
@@ -458,7 +458,7 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 
 func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, bool) {
 	isi := &imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       o.Namespace,
 			ResourceVersion: stream.ResourceVersion,

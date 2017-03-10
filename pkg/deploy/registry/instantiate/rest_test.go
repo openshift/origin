@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -244,7 +245,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 
 func fakeStream(name, tag, dir, image string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: kapi.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: kapi.NamespaceDefault},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {
@@ -276,7 +277,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "no trigger [w/ podtemplate change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Triggers: []deployapi.DeploymentTriggerPolicy{},
 					Template: deploytest.OkPodTemplateChanged(),
@@ -284,7 +285,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Triggers: []deployapi.DeploymentTriggerPolicy{},
 					Template: deploytest.OkPodTemplate(),
@@ -300,14 +301,14 @@ func TestCanTrigger(t *testing.T) {
 			name: "forced updated",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 				},
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 				},
@@ -322,7 +323,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change trigger only [w/ podtemplate change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -332,7 +333,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -350,7 +351,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change trigger only [no change][initial]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -360,7 +361,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -378,7 +379,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change trigger only [no change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -388,7 +389,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -406,7 +407,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "image change trigger only [automatic=false][w/ podtemplate change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(), // Irrelevant change
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -416,7 +417,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -435,7 +436,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "image change trigger only [automatic=false][w/ image change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(), // Image has been updated in the template but automatic=false
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -445,7 +446,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -463,7 +464,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "image change trigger only [automatic=true][w/ image change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -473,7 +474,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -491,7 +492,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "image change trigger only [automatic=true][no change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -501,7 +502,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(1),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -519,7 +520,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change and image change trigger [automatic=false][initial][w/ image change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -530,7 +531,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -549,7 +550,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change and image change trigger [automatic=false][initial][no change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -560,7 +561,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -580,7 +581,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change and image change trigger [automatic=true][initial][w/ podtemplate change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(), // Pod template has changed but the image in the template is yet to be updated
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -591,7 +592,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -611,7 +612,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change and image change trigger [automatic=true][initial][w/ image change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -622,7 +623,7 @@ func TestCanTrigger(t *testing.T) {
 				Status: deploytest.OkDeploymentConfigStatus(0),
 			},
 			decoded: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplate(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -641,7 +642,7 @@ func TestCanTrigger(t *testing.T) {
 			name: "config change and image change trigger [automatic=true][no change]",
 
 			config: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "config"},
+				ObjectMeta: metav1.ObjectMeta{Name: "config"},
 				Spec: deployapi.DeploymentConfigSpec{
 					Template: deploytest.OkPodTemplateChanged(),
 					Triggers: []deployapi.DeploymentTriggerPolicy{

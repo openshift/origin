@@ -3,6 +3,7 @@ package nodeenv
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -15,7 +16,7 @@ import (
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestPodAdmission(t *testing.T) {
 	project := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testProject",
 			Namespace: "",
 		},
@@ -26,7 +27,7 @@ func TestPodAdmission(t *testing.T) {
 	mockClientset := fake.NewSimpleClientset()
 	handler := &podNodeEnvironment{client: mockClientset}
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "testPod"},
+		ObjectMeta: metav1.ObjectMeta{Name: "testPod"},
 	}
 
 	tests := []struct {

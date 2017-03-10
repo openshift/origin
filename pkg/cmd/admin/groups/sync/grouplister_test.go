@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -24,7 +25,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 	}{
 		"good": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -35,7 +36,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no url annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -43,7 +44,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no uid annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -51,13 +52,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no match: different port": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -68,13 +69,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"blacklist": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -139,7 +140,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 	}{
 		"good": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -151,7 +152,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no url annotation": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -160,7 +161,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no uid annotation": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -169,7 +170,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no match: different port": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -181,13 +182,13 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"blacklist": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",

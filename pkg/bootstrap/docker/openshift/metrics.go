@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
@@ -191,7 +192,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 
 	deadline := int64(60 * 5)
 
-	meta := kapi.ObjectMeta{
+	meta := metav1.ObjectMeta{
 		Name: metricsDeployerJobName,
 	}
 

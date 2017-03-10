@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -248,7 +249,7 @@ func templateList() *templateapi.TemplateList {
 		Items: []templateapi.Template{
 			{
 				Objects: []runtime.Object{},
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "first-stored-template",
 					Namespace: "default",
 				},
@@ -423,7 +424,7 @@ func TestBuildOutputCycleResilience(t *testing.T) {
 	config := &AppConfig{}
 
 	mockIS := &image.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "mockimagestream",
 		},
 		Spec: image.ImageStreamSpec{
@@ -439,7 +440,7 @@ func TestBuildOutputCycleResilience(t *testing.T) {
 
 	dfn := "mockdockerfilename"
 	malOutputBC := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "buildCfgWithWeirdOutputObjectRef",
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -477,7 +478,7 @@ func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
 	config := &AppConfig{}
 
 	mockIS := &image.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "mockimagestream",
 		},
 		Spec: image.ImageStreamSpec{
@@ -499,7 +500,7 @@ func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
 
 	dfn := "mockdockerfilename"
 	followingTagCycleBC := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "buildCfgWithWeirdOutputObjectRef",
 		},
 		Spec: buildapi.BuildConfigSpec{

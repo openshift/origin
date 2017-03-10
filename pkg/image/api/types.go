@@ -56,7 +56,7 @@ const (
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// The string that can be used to pull this image.
 	DockerImageReference string
@@ -100,7 +100,7 @@ const (
 // signature's content by the server. They serve just an informative purpose.
 type ImageSignature struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Required: Describes a type of stored blob.
 	Type string
@@ -196,7 +196,7 @@ type ImageStreamList struct {
 // repository on a registry.
 type ImageStream struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec describes the desired state of this stream
 	Spec ImageStreamSpec
@@ -335,7 +335,7 @@ type TagEventCondition struct {
 // well as the reference to the Docker image repository the image came from.
 type ImageStreamMapping struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// The Docker image repository the specified image is located in
 	// DEPRECATED: remove once v1beta1 support is dropped
@@ -350,7 +350,7 @@ type ImageStreamMapping struct {
 // ImageStreamTag has a .Name in the format <stream name>:<tag>.
 type ImageStreamTag struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
 	// if only pushes have occurred to this image stream.
@@ -380,7 +380,7 @@ type ImageStreamTagList struct {
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// The Image associated with the ImageStream and image name.
 	Image Image
@@ -401,7 +401,7 @@ type ImageStreamImport struct {
 	metav1.TypeMeta
 	// ObjectMeta must identify the name of the image stream to create or update. If resourceVersion
 	// or UID are set, they must match the image stream that will be loaded from the server.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec is the set of items desired to be imported
 	Spec ImageStreamImportSpec

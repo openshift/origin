@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -72,11 +73,11 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 
 	goodImage := &imageapi.Image{
-		ObjectMeta:           kapi.ObjectMeta{Name: goodSHA},
+		ObjectMeta:           metav1.ObjectMeta{Name: goodSHA},
 		DockerImageReference: "integrated.registry/goodns/goodimage:good",
 	}
 	badImage := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: badSHA,
 			Annotations: map[string]string{
 				"images.openshift.io/deny-execution": "true",
@@ -87,11 +88,11 @@ func TestDefaultPolicy(t *testing.T) {
 
 	notFoundTag := kerrors.NewNotFound(imageapi.Resource("imagestreamtags"), "")
 	goodTag := &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
 		Image:      *goodImage,
 	}
 	badTag := &imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Name: "mysql:badtag", Namespace: "repo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mysql:badtag", Namespace: "repo"},
 		Image:      *badImage,
 	}
 
@@ -309,7 +310,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	// setting a namespace annotation should allow the rule to be skipped immediately
 	store.Add(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "",
 			Name:      "default",
 			Annotations: map[string]string{
@@ -370,12 +371,12 @@ func TestAdmissionResolution(t *testing.T) {
 		case "index.docker.io/mysql:latest":
 			return &rules.ImagePolicyAttributes{
 				Name:  imageapi.DockerImageReference{Registry: "index.docker.io", Name: "mysql", Tag: "latest"},
-				Image: &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "1"}},
+				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "1"}},
 			}, nil
 		case "myregistry.com/mysql/mysql:latest":
 			return &rules.ImagePolicyAttributes{
 				Name:  imageapi.DockerImageReference{Registry: "myregistry.com", Namespace: "mysql", Name: "mysql", ID: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
-				Image: &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "2"}},
+				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "2"}},
 			}, nil
 		}
 		t.Fatalf("unexpected call to resolve image: %v", ref)
@@ -430,7 +431,7 @@ func TestAdmissionResolution(t *testing.T) {
 
 func TestAdmissionResolveImages(t *testing.T) {
 	image1 := &imageapi.Image{
-		ObjectMeta:           kapi.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+		ObjectMeta:           metav1.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		DockerImageReference: "integrated.registry/image1/image1:latest",
 	}
 
@@ -545,7 +546,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			client: testclient.NewSimpleFake(
 				&imageapi.ImageStreamTag{
-					ObjectMeta: kapi.ObjectMeta{Name: "test:other", Namespace: "default"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
 			),
@@ -581,7 +582,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			client: testclient.NewSimpleFake(
 				&imageapi.ImageStreamImage{
-					ObjectMeta: kapi.ObjectMeta{Name: "test@sha256:0000000000000000000000000000000000000000000000000000000000000001", Namespace: "default"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test@sha256:0000000000000000000000000000000000000000000000000000000000000001", Namespace: "default"},
 					Image:      *image1,
 				},
 			),

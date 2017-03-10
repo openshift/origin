@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
@@ -341,7 +342,7 @@ func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, err
 
 func testBuild() *build.Build {
 	return &build.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 		Spec: build.BuildSpec{

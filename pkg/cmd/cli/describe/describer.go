@@ -1004,7 +1004,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		meta := kapi.ObjectMeta{}
+		meta := metav1.ObjectMeta{}
 		meta.Name, _ = d.MetadataAccessor.Name(obj)
 		gvk, _, err := d.ObjectTyper.ObjectKinds(obj)
 		if err != nil {

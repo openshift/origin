@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -452,7 +453,7 @@ func ingressToRoutes(ingress *extensions.Ingress) (routes []*routeapi.Route, rou
 			}
 
 			route := &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 					// Reuse the values from ingress
 					Namespace:         ingress.Namespace,

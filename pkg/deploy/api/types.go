@@ -127,7 +127,7 @@ const (
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -114,7 +115,7 @@ func TestImageRemoveSignature(t *testing.T) {
 			t.Fatalf("creating signature %d: unexpected error: %v", i, err)
 		}
 		signature := imageapi.ImageSignature{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 			Type:    "unknown",

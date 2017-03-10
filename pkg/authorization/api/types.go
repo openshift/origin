@@ -85,7 +85,7 @@ type IsPersonalSubjectAccessReview struct {
 type Role struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Rules holds all the PolicyRules for this Role
 	Rules []PolicyRule
@@ -96,7 +96,7 @@ type Role struct {
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type RoleBinding struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Subjects hold object references of to authorize with this rule
 	Subjects []kapi.ObjectReference
@@ -115,7 +115,7 @@ type RolesByName map[string]*Role
 // one Policy document per namespace.
 type Policy struct {
 	metav1.TypeMeta
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
 	LastModified metav1.Time
@@ -131,7 +131,7 @@ type RoleBindingsByName map[string]*RoleBinding
 type PolicyBinding struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
 	LastModified metav1.Time
@@ -343,7 +343,7 @@ type RoleList struct {
 type ClusterRole struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule
@@ -355,7 +355,7 @@ type ClusterRole struct {
 type ClusterRoleBinding struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Subjects hold object references of to authorize with this rule
 	Subjects []kapi.ObjectReference
@@ -373,7 +373,7 @@ type ClusterRolesByName map[string]*ClusterRole
 type ClusterPolicy struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
 	LastModified metav1.Time
@@ -389,7 +389,7 @@ type ClusterRoleBindingsByName map[string]*ClusterRoleBinding
 type ClusterPolicyBinding struct {
 	metav1.TypeMeta
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
 	LastModified metav1.Time
@@ -449,7 +449,7 @@ type RoleBindingRestriction struct {
 	metav1.TypeMeta
 
 	// Standard object's metadata.
-	kapi.ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the matcher.
 	Spec RoleBindingRestrictionSpec

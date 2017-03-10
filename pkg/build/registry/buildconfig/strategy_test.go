@@ -3,6 +3,7 @@ package buildconfig
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -17,7 +18,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 		t.Errorf("BuildConfig should not allow create on update")
 	}
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			Triggers: []buildapi.BuildTriggerPolicy{
@@ -52,7 +53,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 		},
 	}
 	newBC := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
 			RunPolicy: buildapi.BuildRunPolicySerial,
 			Triggers: []buildapi.BuildTriggerPolicy{

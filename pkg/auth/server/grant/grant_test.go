@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	knet "k8s.io/kubernetes/pkg/util/net"
@@ -38,7 +39,7 @@ func badAuth(err error) *testAuth {
 }
 
 func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) *test.ClientRegistry {
-	client := &oapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
+	client := &oapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
 	client.Name = clientID
 	if len(literalScopes) > 0 {
 		client.ScopeRestrictions = []oapi.ScopeRestriction{{ExactValues: literalScopes}}

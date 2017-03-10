@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -388,7 +389,7 @@ func (o TagOptions) RunTag() error {
 
 			// The user wants to symlink a tag.
 			istag := &imageapi.ImageStreamTag{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      destNameAndTag,
 					Namespace: o.destNamespace[i],
 				},
@@ -476,7 +477,7 @@ func (o TagOptions) RunTag() error {
 			target, err := isc.Get(destName)
 			if kerrors.IsNotFound(err) {
 				target = &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: destName,
 					},
 				}

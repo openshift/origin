@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -324,7 +325,7 @@ func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r typ
 		r.Info("DClu1021", "Skipping creating an ImageStream to test registry service address, because you requested no API modifications.")
 		return
 	}
-	imgStream, err := d.OsClient.ImageStreams(kapi.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: kapi.ObjectMeta{GenerateName: "diagnostic-test"}})
+	imgStream, err := d.OsClient.ImageStreams(kapi.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: metav1.ObjectMeta{GenerateName: "diagnostic-test"}})
 	if err != nil {
 		r.Error("DClu1015", err, fmt.Sprintf("Creating test ImageStream failed. Error: (%T) %[1]v", err))
 		return

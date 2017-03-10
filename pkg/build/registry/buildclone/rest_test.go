@@ -3,6 +3,7 @@ package buildclone
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -20,7 +21,7 @@ func TestCreateClone(t *testing.T) {
 		},
 	}}}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: "name"}})
+	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}

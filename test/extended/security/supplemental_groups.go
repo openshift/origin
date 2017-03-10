@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -93,7 +94,7 @@ func getContainerID(p *kapi.Pod) (string, error) {
 // supGroupPod generates the pod requesting supplemental groups.
 func supGroupPod(fsGroup int64, supGroup int64) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "supplemental-groups",
 		},
 		Spec: kapi.PodSpec{
