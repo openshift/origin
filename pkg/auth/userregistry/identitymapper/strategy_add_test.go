@@ -17,8 +17,8 @@ func TestStrategyAdd(t *testing.T) {
 			CreateResponse: makeUser("bobUserUID", "bob", "idp:bob"),
 
 			ExpectedActions: []test.Action{
-				{"GetUser", "bob"},
-				{"CreateUser", makeUser("", "bob", "idp:bob")},
+				{Name: "GetUser", Object: "bob"},
+				{Name: "CreateUser", Object: makeUser("", "bob", "idp:bob")},
 			},
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: true,
@@ -32,8 +32,8 @@ func TestStrategyAdd(t *testing.T) {
 			UpdateResponse: makeUser("bobUserUID", "bob", "idp:bob"),
 
 			ExpectedActions: []test.Action{
-				{"GetUser", "bob"},
-				{"UpdateUser", makeUser("bobUserUID", "bob", "idp:bob")},
+				{Name: "GetUser", Object: "bob"},
+				{Name: "UpdateUser", Object: makeUser("bobUserUID", "bob", "idp:bob")},
 			},
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: true,
@@ -47,8 +47,8 @@ func TestStrategyAdd(t *testing.T) {
 			UpdateResponse: makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob"),
 
 			ExpectedActions: []test.Action{
-				{"GetUser", "bob"},
-				{"UpdateUser", makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob")},
+				{Name: "GetUser", Object: "bob"},
+				{Name: "UpdateUser", Object: makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob")},
 			},
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: false,

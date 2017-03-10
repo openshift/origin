@@ -60,7 +60,7 @@ func (c *Fake) AddWatchReactor(resource string, reaction core.WatchReactionFunc)
 
 // PrependWatchReactor adds a reactor to the beginning of the chain.
 func (c *Fake) PrependWatchReactor(resource string, reaction core.WatchReactionFunc) {
-	c.WatchReactionChain = append([]core.WatchReactor{&core.SimpleWatchReactor{resource, reaction}}, c.WatchReactionChain...)
+	c.WatchReactionChain = append([]core.WatchReactor{&core.SimpleWatchReactor{Resource: resource, Reaction: reaction}}, c.WatchReactionChain...)
 }
 
 // Invokes records the provided Action and then invokes the ReactFn (if provided).
