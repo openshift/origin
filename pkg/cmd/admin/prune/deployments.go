@@ -90,7 +90,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
 		o.Namespace, _, err = f.DefaultNamespace()

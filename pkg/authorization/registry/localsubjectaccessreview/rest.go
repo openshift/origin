@@ -6,7 +6,6 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -37,7 +36,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if errs := authorizationvalidation.ValidateLocalSubjectAccessReview(localSAR); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(authorizationapi.Kind(localSAR.Kind), "", errs)
 	}
-	if namespace := kapi.NamespaceValue(ctx); len(namespace) == 0 {
+	if namespace := apirequest.NamespaceValue(ctx); len(namespace) == 0 {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
 	} else if (len(localSAR.Action.Namespace) > 0) && (namespace != localSAR.Action.Namespace) {
 		return nil, field.Invalid(field.NewPath("namespace"), localSAR.Action.Namespace, fmt.Sprintf("namespace must be: %v", namespace))
@@ -50,7 +49,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		Groups: localSAR.Groups,
 		Scopes: localSAR.Scopes,
 	}
-	clusterSAR.Action.Namespace = kapi.NamespaceValue(ctx)
+	clusterSAR.Action.Namespace = apirequest.NamespaceValue(ctx)
 
-	return r.clusterSARRegistry.CreateSubjectAccessReview(kapi.WithNamespace(ctx, ""), clusterSAR)
+	return r.clusterSARRegistry.CreateSubjectAccessReview(apirequest.WithNamespace(ctx, ""), clusterSAR)
 }

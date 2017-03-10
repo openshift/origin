@@ -31,7 +31,7 @@ import (
 type impersonateAuthorizer struct{}
 
 func (impersonateAuthorizer) Authorize(ctx apirequest.Context, a authorizer.Action) (allowed bool, reason string, err error) {
-	user, exists := kapi.UserFrom(ctx)
+	user, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return false, "missing user", nil
 	}
@@ -259,7 +259,7 @@ func TestImpersonationFilter(t *testing.T) {
 
 	doNothingHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		currentCtx, _ := config.RequestContextMapper.Get(req)
-		user, exists := kapi.UserFrom(currentCtx)
+		user, exists := apirequest.UserFrom(currentCtx)
 		if !exists {
 			actualUser = nil
 			return
@@ -279,7 +279,7 @@ func TestImpersonationFilter(t *testing.T) {
 			config.RequestContextMapper.Update(req, ctx)
 			currentCtx, _ := config.RequestContextMapper.Get(req)
 
-			user, exists := kapi.UserFrom(currentCtx)
+			user, exists := apirequest.UserFrom(currentCtx)
 			if !exists {
 				actualUser = nil
 				return
@@ -299,7 +299,7 @@ func TestImpersonationFilter(t *testing.T) {
 		func() {
 			lock.Lock()
 			defer lock.Unlock()
-			ctx = kapi.WithUser(kapi.NewContext(), tc.user)
+			ctx = apirequest.WithUser(apirequest.NewContext(), tc.user)
 		}()
 
 		req, err := http.NewRequest("GET", server.URL, nil)

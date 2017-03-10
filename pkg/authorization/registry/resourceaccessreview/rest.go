@@ -7,7 +7,6 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -41,7 +40,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	// if a namespace is present on the request, then the namespace on the on the RAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
 	// the authorizer decided that a user could run an RAR against this namespace
-	if namespace := kapi.NamespaceValue(ctx); len(namespace) > 0 {
+	if namespace := apirequest.NamespaceValue(ctx); len(namespace) > 0 {
 		resourceAccessReview.Action.Namespace = namespace
 
 	} else if err := r.isAllowed(ctx, resourceAccessReview); err != nil {
@@ -50,7 +49,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, err
 	}
 
-	requestContext := kapi.WithNamespace(ctx, resourceAccessReview.Action.Namespace)
+	requestContext := apirequest.WithNamespace(ctx, resourceAccessReview.Action.Namespace)
 	attributes := authorizer.ToDefaultAuthorizationAttributes(resourceAccessReview.Action)
 	users, groups, err := r.authorizer.GetAllowedSubjects(requestContext, attributes)
 
@@ -72,7 +71,7 @@ func (r *REST) isAllowed(ctx apirequest.Context, rar *authorizationapi.ResourceA
 		Verb:     "create",
 		Resource: "localresourceaccessreviews",
 	}
-	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, rar.Action.Namespace), localRARAttributes)
+	allowed, reason, err := r.authorizer.Authorize(apirequest.WithNamespace(ctx, rar.Action.Namespace), localRARAttributes)
 
 	if err != nil {
 		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetResourceName(), err)

@@ -388,7 +388,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				)
 			}
 
-			ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+			ctx := apirequest.WithUser(kapi.NewDefaultContext(), &fakeUser{})
 			obj, err := storage.Delete(ctx, "test:latest")
 			gotError := err != nil
 			if e, a := testCase.expectError, gotError; e != a {

@@ -287,7 +287,7 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx apirequest.Context, pol
 		}
 
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace, policyBindingName)
+		policyBinding = policybindingregistry.NewEmptyPolicyBinding(apirequest.NamespaceValue(ctx), policyNamespace, policyBindingName)
 		if err := m.BindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
 			// Tolerate the policybinding having been created in the meantime
 			if !kapierrors.IsAlreadyExists(err) {

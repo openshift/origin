@@ -14,7 +14,6 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
@@ -152,7 +151,7 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	services, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -76,7 +75,7 @@ func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 
 	isi := api.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:         kapi.NamespaceValue(ctx),
+			Namespace:         apirequest.NamespaceValue(ctx),
 			Name:              api.MakeImageStreamImageName(name, imageID),
 			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
 			Annotations:       repo.Annotations,

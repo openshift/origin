@@ -37,9 +37,9 @@ func (r *REST) Get(ctx apirequest.Context, _ string, options runtime.Object) (ru
 	if !ok {
 		return nil, fmt.Errorf("unexpected options: %v", listOptions)
 	}
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
-		ns = kapi.NamespaceAll
+		ns = metav1.NamespaceAll
 	}
 	secrets, err := r.secrets.Secrets(ns).List(*listOptions)
 	if err != nil {

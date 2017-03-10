@@ -2,9 +2,9 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -75,7 +75,7 @@ func (s storeBuildConfigsNamespacer) Get(name string) (*buildapi.BuildConfig, er
 func (s storeBuildConfigsNamespacer) List(selector labels.Selector) ([]*buildapi.BuildConfig, error) {
 	configs := []*buildapi.BuildConfig{}
 
-	if s.namespace == kapi.NamespaceAll {
+	if s.namespace == metav1.NamespaceAll {
 		for _, obj := range s.indexer.List() {
 			bc := obj.(*buildapi.BuildConfig)
 			if selector.Matches(labels.Set(bc.Labels)) {

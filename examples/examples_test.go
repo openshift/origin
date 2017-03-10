@@ -185,7 +185,7 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 				return
 			}
 
-			objectMeta.Namespace = kapi.NamespaceDefault
+			objectMeta.Namespace = metav1.NamespaceDefault
 		}
 	}
 

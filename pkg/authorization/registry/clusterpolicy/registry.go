@@ -123,9 +123,9 @@ type ReadOnlyClusterPolicy struct {
 }
 
 func (s ReadOnlyClusterPolicy) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return s.ListClusterPolicies(kapi.WithNamespace(kapi.NewContext(), ""), &options)
+	return s.ListClusterPolicies(apirequest.WithNamespace(apirequest.NewContext(), ""), &options)
 }
 
 func (s ReadOnlyClusterPolicy) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return s.GetClusterPolicy(kapi.WithNamespace(kapi.NewContext(), ""), name)
+	return s.GetClusterPolicy(apirequest.WithNamespace(apirequest.NewContext(), ""), name)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user/registry/user"
@@ -21,7 +21,7 @@ type lookupIdentityMapper struct {
 
 // UserFor returns info about the user for whom identity info has been provided
 func (p *lookupIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kuser.Info, error) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 
 	mapping, err := p.mappings.GetUserIdentityMapping(ctx, info.GetIdentityName())
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
@@ -75,7 +76,7 @@ func (d *AggregatedLogging) endpointsForService(project string, service string) 
 }
 
 func (d *AggregatedLogging) daemonsets(project string, options metainternal.ListOptions) (*kapisext.DaemonSetList, error) {
-	return d.KubeClient.Extensions().DaemonSets(project).List(metainternal.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
+	return d.KubeClient.Extensions().DaemonSets(project).List(metav1.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
 }
 
 func (d *AggregatedLogging) nodes(options metainternal.ListOptions) (*kapi.NodeList, error) {
@@ -176,7 +177,7 @@ func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.Maste
 		return projectName
 	}
 
-	routeList, err := osClient.Routes(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(metav1.NamespaceAll).List(metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
 		r.Error("AGL0012", err, fmt.Sprintf("There was an error while trying to find the route associated with '%s' which is probably transient: %s", loggingUrl, err))
 		return projectName

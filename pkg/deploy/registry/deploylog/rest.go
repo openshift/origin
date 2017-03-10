@@ -42,7 +42,7 @@ type podGetter struct {
 
 // Get is responsible for retrieving the deployer pod
 func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
@@ -90,7 +90,7 @@ func (r *REST) New() runtime.Object {
 // Get returns a streamer resource with the contents of the deployment log
 func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	// Ensure we have a namespace in the context
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}

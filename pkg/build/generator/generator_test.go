@@ -340,7 +340,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	source := mocks.MockSource()
 	for _, tc := range tests {
 		bc := &buildapi.BuildConfig{
-			ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault},
 			Spec: buildapi.BuildConfigSpec{
 				CommonSpec: buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
@@ -802,7 +802,7 @@ func TestClone(t *testing.T) {
 			return &buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-build-1",
-					Namespace: kapi.NamespaceDefault,
+					Namespace: metav1.NamespaceDefault,
 				},
 			}, nil
 		},
@@ -821,7 +821,7 @@ func TestCloneError(t *testing.T) {
 		},
 	}}
 
-	_, err := generator.Clone(kapi.NewContext(), &buildapi.BuildRequest{})
+	_, err := generator.Clone(apirequest.NewContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "get-error") {
 		t.Errorf("Expected get-error, got different %v", err)
 	}
@@ -831,7 +831,7 @@ func TestCreateBuild(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 	}
 	generator := BuildGenerator{Client: Client{
@@ -860,7 +860,7 @@ func TestCreateBuildNamespaceError(t *testing.T) {
 	}
 	generator := mockBuildGenerator()
 
-	_, err := generator.createBuild(kapi.NewContext(), build)
+	_, err := generator.createBuild(apirequest.NewContext(), build)
 	if err == nil || !strings.Contains(err.Error(), "Build.Namespace") {
 		t.Errorf("Expected namespace error, got different %v", err)
 	}
@@ -870,7 +870,7 @@ func TestCreateBuildCreateError(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 	}
 	generator := BuildGenerator{Client: Client{
@@ -894,7 +894,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       "test-uid",
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -921,7 +921,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	generator := mockBuildGenerator()
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -968,7 +968,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 
 	// Test long name
 	bc.Name = strings.Repeat("a", 100)
-	build, err = generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
+	build, err = generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -986,7 +986,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1049,7 +1049,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1065,7 +1065,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1127,7 +1127,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1143,7 +1143,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1205,7 +1205,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1363,7 +1363,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1397,7 +1397,7 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1416,7 +1416,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1444,7 +1444,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1472,7 +1472,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
+	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1817,7 +1817,7 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		output := mockOutputWithImageName(imageName)
 		generator := mockBuildGenerator()
 		bc := mocks.MockBuildConfig(source, strategy, output)
-		build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
+		build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 
 		if build.Spec.Output.PushSecret == nil {
 			t.Errorf("Expected PushSecret for image '%s' to be set, got nil", imageName)

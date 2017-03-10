@@ -115,7 +115,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("a namespace must be specified to import images")
 	}
@@ -177,7 +177,7 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 		if !kapierrors.IsNotFound(err) {
 			return nil, false, err
 		}
-		namespace, ok := kapi.NamespaceFrom(ctx)
+		namespace, ok := apirequest.NamespaceFrom(ctx)
 		if !ok {
 			return nil, false, kapierrors.NewBadRequest("namespace is required on ImageStreamTags")
 		}

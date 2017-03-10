@@ -352,7 +352,7 @@ func TestAuthorizationResolution(t *testing.T) {
 
 	// the authorization cache may not be up to date, retry
 	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildListerClient.Builds(kapi.NamespaceDefault).List(metainternal.ListOptions{})
+		_, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metainternal.ListOptions{})
 		if kapierror.IsForbidden(err) {
 			return false, nil
 		}
@@ -361,11 +361,11 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.Builds(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err != nil {
+	if _, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metainternal.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.DeploymentConfigs(kapi.NamespaceDefault).List(metainternal.ListOptions{}); !kapierror.IsForbidden(err) {
+	if _, err := buildListerClient.DeploymentConfigs(metav1.NamespaceDefault).List(metainternal.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 

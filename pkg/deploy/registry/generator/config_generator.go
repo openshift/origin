@@ -125,7 +125,7 @@ func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.Deployment
 		if !ok {
 			return nil, fmt.Errorf("invalid ImageStreamTag: %s", params.From.Name)
 		}
-		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), name)
+		return g.Client.GetImageStream(apirequest.WithNamespace(apirequest.NewContext(), namespace), name)
 	}
 	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", deployutil.LabelForDeploymentConfig(config))
 }

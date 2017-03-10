@@ -40,7 +40,7 @@ type authorizeTest struct {
 
 func TestAPIGroupDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "list",
 			APIGroup: "group",
@@ -58,7 +58,7 @@ func TestAPIGroupDeny(t *testing.T) {
 
 func TestAPIGroupDefaultAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "list",
 			Resource: "pods",
@@ -75,7 +75,7 @@ func TestAPIGroupDefaultAllow(t *testing.T) {
 
 func TestAPIGroupAllAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "list",
 			APIGroup: "group",
@@ -114,7 +114,7 @@ func TestAPIGroupAllAllow(t *testing.T) {
 
 func TestAPIAllAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "list",
 			APIGroup: "group",
@@ -153,7 +153,7 @@ func TestAPIAllAllow(t *testing.T) {
 
 func TestResourceNameDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -169,7 +169,7 @@ func TestResourceNameDeny(t *testing.T) {
 
 func TestResourceNameAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -185,7 +185,7 @@ func TestResourceNameAllow(t *testing.T) {
 
 func TestClusterBindingServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: serviceaccount.MakeUsername("foo", "default")}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: serviceaccount.MakeUsername("foo", "default")}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -201,7 +201,7 @@ func TestClusterBindingServiceAccountSubject(t *testing.T) {
 
 func TestLocalBindingServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("adze", "second")}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("adze", "second")}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -219,7 +219,7 @@ func TestLocalBindingServiceAccountSubject(t *testing.T) {
 
 func TestLocalBindingOtherServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("other", "first")}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("other", "first")}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -237,7 +237,7 @@ func TestLocalBindingOtherServiceAccountSubject(t *testing.T) {
 
 func TestDeniedWithError(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roles",
@@ -265,7 +265,7 @@ func TestDeniedWithError(t *testing.T) {
 
 func TestAllowedWithMissingBinding(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roles",
@@ -292,7 +292,7 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 
 func TestHealthAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one", Groups: []string{"system:unauthenticated"}}),
+		context: apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "no-one", Groups: []string{"system:unauthenticated"}}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:           "get",
 			NonResourceURL: true,
@@ -309,7 +309,7 @@ func TestHealthAllow(t *testing.T) {
 
 func TestNonResourceAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "ClusterAdmin"}),
+		context: apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "ClusterAdmin"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:           "get",
 			NonResourceURL: true,
@@ -326,7 +326,7 @@ func TestNonResourceAllow(t *testing.T) {
 
 func TestNonResourceDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one"}),
+		context: apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "no-one"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:           "get",
 			NonResourceURL: true,
@@ -343,7 +343,7 @@ func TestNonResourceDeny(t *testing.T) {
 
 func TestHealthDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one"}),
+		context: apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "no-one"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:           "get",
 			NonResourceURL: true,
@@ -360,7 +360,7 @@ func TestHealthDeny(t *testing.T) {
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "ClusterAdmin"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "ClusterAdmin"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "deploymentConfigs",
@@ -376,7 +376,7 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "SomeYahoo"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "SomeYahoo"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -392,7 +392,7 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roles",
@@ -410,7 +410,7 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "ClusterAdmin"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "ClusterAdmin"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roles",
@@ -428,7 +428,7 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 
 func TestResourceRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "buildConfigs",
@@ -443,7 +443,7 @@ func TestResourceRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -460,7 +460,7 @@ func TestResourceRestrictionsWork(t *testing.T) {
 
 func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "BUILDCONFIGS",
@@ -475,7 +475,7 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "buildconfigs",
@@ -492,7 +492,7 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 
 func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "backsaw"), &user.DefaultInfo{Name: "Rachel"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "backsaw"), &user.DefaultInfo{Name: "Rachel"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "buildConfigs",
@@ -510,7 +510,7 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "buildConfigs",
@@ -525,7 +525,7 @@ func TestVerbRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "create",
 			Resource: "buildConfigs",

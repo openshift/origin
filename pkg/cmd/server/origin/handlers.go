@@ -77,7 +77,7 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 			return
 		}
 
-		if _, exists := kapi.NamespaceFrom(ctx); !exists {
+		if _, exists := apirequest.NamespaceFrom(ctx); !exists {
 			if requestInfo, ok := request.RequestInfoFrom(ctx); ok && requestInfo != nil {
 				// only set the namespace if the apiRequestInfo was resolved
 				// keep in mind that GetAPIRequestInfo will fail on non-api requests, so don't fail the entire http request on that
@@ -90,7 +90,7 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 					namespace = requestInfo.Name
 				}
 
-				ctx = kapi.WithNamespace(ctx, namespace)
+				ctx = apirequest.WithNamespace(ctx, namespace)
 				contextMapper.Update(req, ctx)
 			}
 		}

@@ -4,9 +4,9 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -75,7 +75,7 @@ func (s storeImageStreamsNamespacer) Get(name string) (*imageapi.ImageStream, er
 func (s storeImageStreamsNamespacer) List(selector labels.Selector) ([]*imageapi.ImageStream, error) {
 	streams := []*imageapi.ImageStream{}
 
-	if s.namespace == kapi.NamespaceAll {
+	if s.namespace == metav1.NamespaceAll {
 		for _, obj := range s.indexer.List() {
 			stream := obj.(*imageapi.ImageStream)
 			if selector.Matches(labels.Set(stream.Labels)) {

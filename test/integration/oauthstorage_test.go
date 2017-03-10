@@ -10,7 +10,7 @@ import (
 	"golang.org/x/oauth2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -121,7 +121,7 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
+	clientRegistry.CreateClient(apirequest.NewContext(), &api.OAuthClient{
 		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
 		Secret:            "secret",
 		AdditionalSecrets: []string{"secret1"},
@@ -184,7 +184,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Errorf("unexpected access token: %#v", token)
 	}
 
-	actualToken, err := accessTokenRegistry.GetAccessToken(kapi.NewContext(), token.AccessToken)
+	actualToken, err := accessTokenRegistry.GetAccessToken(apirequest.NewContext(), token.AccessToken)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
@@ -24,11 +23,11 @@ func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbid
 func (a *openshiftAuthorizer) Authorize(ctx apirequest.Context, passedAttributes Action) (bool, string, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return false, "", errors.New("no user available on context")
 	}
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 	allowed, reason, err := a.authorizeWithNamespaceRules(user, namespace, attributes)
 	if allowed {
 		return true, reason, nil
@@ -51,7 +50,7 @@ func (a *openshiftAuthorizer) Authorize(ctx apirequest.Context, passedAttributes
 // This is done because policy rules are purely additive and policy determinations
 // can be made on the basis of those rules that are found.
 func (a *openshiftAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes Action) (sets.String, sets.String, error) {
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 	return a.getAllowedSubjectsFromNamespaceBindings(namespace, attributes)
 }
 

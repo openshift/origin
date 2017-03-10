@@ -604,7 +604,7 @@ func TestValidateImageStream(t *testing.T) {
 
 func TestValidateISTUpdate(t *testing.T) {
 	old := &api.ImageStreamTag{
-		ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
 		Tag: &api.TagReference{
 			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "some/other:system"},
 		},
@@ -612,7 +612,7 @@ func TestValidateISTUpdate(t *testing.T) {
 
 	errs := ValidateImageStreamTagUpdate(
 		&api.ImageStreamTag{
-			ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two", "three": "four"}},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two", "three": "four"}},
 		},
 		old,
 	)
@@ -627,14 +627,14 @@ func TestValidateISTUpdate(t *testing.T) {
 	}{
 		"changedLabel": {
 			A: api.ImageStreamTag{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}, Labels: map[string]string{"a": "b"}},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}, Labels: map[string]string{"a": "b"}},
 			},
 			T: field.ErrorTypeInvalid,
 			F: "metadata",
 		},
 		"mismatchedAnnotations": {
 			A: api.ImageStreamTag{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
 				Tag: &api.TagReference{
 					From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "some/other:system"},
 					Annotations:     map[string]string{"one": "three"},
@@ -646,7 +646,7 @@ func TestValidateISTUpdate(t *testing.T) {
 		},
 		"tagToNameRequired": {
 			A: api.ImageStreamTag{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
 				Tag: &api.TagReference{
 					From:            &kapi.ObjectReference{Kind: "DockerImage", Name: ""},
 					ReferencePolicy: api.TagReferencePolicy{Type: api.SourceTagReferencePolicy},
@@ -657,7 +657,7 @@ func TestValidateISTUpdate(t *testing.T) {
 		},
 		"tagToKindRequired": {
 			A: api.ImageStreamTag{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo:bar", ResourceVersion: "1", Annotations: map[string]string{"one": "two"}},
 				Tag: &api.TagReference{
 					From:            &kapi.ObjectReference{Kind: "", Name: "foo/bar:biz"},
 					ReferencePolicy: api.TagReferencePolicy{Type: api.SourceTagReferencePolicy},

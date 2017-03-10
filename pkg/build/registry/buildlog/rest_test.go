@@ -63,9 +63,9 @@ func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx apirequest.Context, nodeN
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildPhase]string{
-		api.BuildPhaseComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
-		api.BuildPhaseFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
-		api.BuildPhaseRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
+		api.BuildPhaseComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
+		api.BuildPhaseFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
+		api.BuildPhaseRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
 		api.BuildPhaseNew:       "",
 		api.BuildPhasePending:   "",
 		api.BuildPhaseError:     "",
@@ -250,7 +250,7 @@ func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

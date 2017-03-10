@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -64,7 +65,7 @@ func TestCreateValidationError(t *testing.T) {
 
 	role := &authorizationapi.Role{}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "unittest")
 	_, err := storage.Create(ctx, role)
 	if err == nil {
 		t.Errorf("Expected validation error")
@@ -78,7 +79,7 @@ func TestCreateValid(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	}
 
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	obj, err := storage.Create(ctx, role)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -96,7 +97,7 @@ func TestCreateValid(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
@@ -140,7 +141,7 @@ func TestUpdate(t *testing.T) {
 
 func TestUnconditionalUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
@@ -185,7 +186,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 
 func TestConflictingUpdate(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
@@ -214,7 +215,7 @@ func TestConflictingUpdate(t *testing.T) {
 
 func TestUpdateNoOp(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	realizedRoleObj, err := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 		Rules: []authorizationapi.PolicyRule{
@@ -262,7 +263,7 @@ func TestUpdateError(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "unittest")
 	_, _, err := storage.Update(ctx, role.Name, rest.DefaultUpdatedObjectInfo(role, kapi.Scheme))
 	if err == nil {
 		t.Errorf("Missing expected error")
@@ -276,7 +277,7 @@ func TestUpdateError(t *testing.T) {
 func TestDeleteError(t *testing.T) {
 	storage := makeLocalTestStorage()
 
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, err := storage.Delete(ctx, "foo", nil)
 
 	if err == nil {
@@ -289,7 +290,7 @@ func TestDeleteError(t *testing.T) {
 
 func TestDeleteValid(t *testing.T) {
 	storage := makeLocalTestStorage()
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	})

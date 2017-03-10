@@ -6,7 +6,6 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -38,12 +37,12 @@ func (r *RemoteAuthorizer) Authorize(ctx apirequest.Context, a authorizer.Action
 	)
 
 	// Extract namespace from context
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 
 	// Extract user from context
 	user := ""
 	groups := sets.NewString()
-	userInfo, ok := kapi.UserFrom(ctx)
+	userInfo, ok := apirequest.UserFrom(ctx)
 	if ok {
 		user = userInfo.GetName()
 		groups.Insert(userInfo.GetGroups()...)
@@ -78,7 +77,7 @@ func (r *RemoteAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes
 	)
 
 	// Extract namespace from context
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 
 	if len(namespace) > 0 {
 		result, err = r.client.LocalResourceAccessReviews(namespace).Create(&authzapi.LocalResourceAccessReview{Action: getAction(namespace, attributes)})

@@ -8,7 +8,6 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -36,11 +35,11 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a SelfSubjectRulesReview: %#v", obj))
 	}
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))
 	}
-	callingUser, exists := kapi.UserFrom(ctx)
+	callingUser, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("user missing from context"))
 	}
@@ -61,7 +60,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		userToCheck.Extra[authorizationapi.ScopesKey] = rulesReview.Spec.Scopes
 	}
 
-	rules, errors := subjectrulesreview.GetEffectivePolicyRules(kapi.WithUser(ctx, userToCheck), r.ruleResolver, r.clusterPolicyGetter)
+	rules, errors := subjectrulesreview.GetEffectivePolicyRules(apirequest.WithUser(ctx, userToCheck), r.ruleResolver, r.clusterPolicyGetter)
 
 	ret := &authorizationapi.SelfSubjectRulesReview{
 		Status: authorizationapi.SubjectRulesReviewStatus{

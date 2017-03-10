@@ -49,7 +49,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if errs := securityvalidation.ValidatePodSecurityPolicyReview(pspr); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicyReview"), "", errs)
 	}
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}

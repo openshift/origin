@@ -145,7 +145,7 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return kcmdutil.UsageError(cmd, "--registry-url must be specified when --all is true")
 		}
 	}
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
 		o.Namespace, _, err = f.DefaultNamespace()
@@ -256,7 +256,7 @@ func (o PruneImagesOptions) Run() error {
 		RegistryClient:     o.RegistryClient,
 		RegistryURL:        o.RegistryUrlOverride,
 	}
-	if o.Namespace != kapi.NamespaceAll {
+	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
 	}
 	pruner := prune.NewPruner(options)

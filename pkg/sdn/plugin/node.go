@@ -250,7 +250,7 @@ func (node *OsdnNode) Start() error {
 
 	if networkChanged {
 		var pods []kapi.Pod
-		pods, err = node.GetLocalPods(kapi.NamespaceAll)
+		pods, err = node.GetLocalPods(metav1.NamespaceAll)
 		if err != nil {
 			return err
 		}

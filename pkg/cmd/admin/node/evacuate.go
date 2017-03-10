@@ -6,7 +6,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -87,7 +86,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := e.Options.KubeClient.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	pods, err := e.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}
@@ -95,22 +94,22 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
 		return nil
 	}
-	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	rcs, err := e.Options.KubeClient.Core().ReplicationControllers(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	rss, err := e.Options.KubeClient.Extensions().ReplicaSets(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	rss, err := e.Options.KubeClient.Extensions().ReplicaSets(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	dss, err := e.Options.KubeClient.Extensions().DaemonSets(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	dss, err := e.Options.KubeClient.Extensions().DaemonSets(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	jobs, err := e.Options.KubeClient.Batch().Jobs(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	jobs, err := e.Options.KubeClient.Batch().Jobs(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -138,7 +138,7 @@ func TestObjectMeta(t *testing.T) {
 		if validationInfo.IsNamespaced {
 			apiObjectMeta.Set(reflect.ValueOf(metav1.ObjectMeta{Name: getValidName(apiType)}))
 		} else {
-			apiObjectMeta.Set(reflect.ValueOf(metav1.ObjectMeta{Name: getValidName(apiType), Namespace: kapi.NamespaceDefault}))
+			apiObjectMeta.Set(reflect.ValueOf(metav1.ObjectMeta{Name: getValidName(apiType), Namespace: metav1.NamespaceDefault}))
 		}
 
 		errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))

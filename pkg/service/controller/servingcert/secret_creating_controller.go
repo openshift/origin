@@ -90,11 +90,11 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 
 	sc.serviceCache, sc.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-				return sc.serviceClient.Services(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return sc.serviceClient.Services(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-				return sc.serviceClient.Services(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return sc.serviceClient.Services(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Service{},
@@ -117,11 +117,11 @@ func NewServiceServingCertController(serviceClient kcoreclient.ServicesGetter, s
 
 	sc.secretCache, sc.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-				return sc.secretClient.Secrets(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return sc.secretClient.Secrets(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-				return sc.secretClient.Secrets(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return sc.secretClient.Secrets(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Secret{},

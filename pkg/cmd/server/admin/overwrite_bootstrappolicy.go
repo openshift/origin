@@ -12,8 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -185,7 +187,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		for _, item := range template.Objects {
 			switch t := item.(type) {
 			case *authorizationapi.Role:
-				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				ctx := apirequest.WithNamespace(apirequest.NewContext(), t.Namespace)
 				if change {
 					// Attempt to create
 					_, err := roleStorage.CreateRoleWithEscalation(ctx, t)
@@ -209,7 +211,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 					}
 				}
 			case *authorizationapi.RoleBinding:
-				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				ctx := apirequest.WithNamespace(apirequest.NewContext(), t.Namespace)
 				if change {
 					// Attempt to create
 					_, err := roleBindingStorage.CreateRoleBindingWithEscalation(ctx, t)
@@ -234,7 +236,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 				}
 
 			case *authorizationapi.ClusterRole:
-				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				ctx := apirequest.WithNamespace(apirequest.NewContext(), t.Namespace)
 				if change {
 					// Attempt to create
 					_, err := clusterRoleStorage.CreateClusterRoleWithEscalation(ctx, t)
@@ -258,7 +260,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 					}
 				}
 			case *authorizationapi.ClusterRoleBinding:
-				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				ctx := apirequest.WithNamespace(apirequest.NewContext(), t.Namespace)
 				if change {
 					// Attempt to create
 					_, err := clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, t)
@@ -307,11 +309,11 @@ type policyLister struct {
 }
 
 func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
-	return s.registry.ListPolicies(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
+	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
 func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name)
 }
 
 type policyBindingListerNamespacer struct {
@@ -328,9 +330,9 @@ type policyBindingLister struct {
 }
 
 func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	return s.registry.ListPolicyBindings(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
+	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
 func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name)
 }

@@ -114,7 +114,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 	mapping := validNewMappingWithName()
 	mapping.Namespace = "some-value"
 
-	ch, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), mapping)
+	ch, err := storage.Create(apirequest.WithNamespace(apirequest.NewContext(), "legal-name"), mapping)
 	if ch != nil {
 		t.Error("Expected a nil obj, but we got a value")
 	}
@@ -170,7 +170,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	ctx := kapi.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
+	ctx := apirequest.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
 
 	mapping := validNewMappingWithName()
 	_, err = storage.Create(ctx, mapping)
@@ -546,7 +546,7 @@ func TestTrackingTags(t *testing.T) {
 		Tag:   "2.0",
 	}
 
-	ctx := kapi.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
+	ctx := apirequest.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
 
 	_, err = storage.Create(ctx, &mapping)
 	if err != nil {

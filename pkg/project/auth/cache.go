@@ -8,6 +8,7 @@ import (
 	"time"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -256,7 +257,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 
 // synchronizePolicies synchronizes access over each policy
 func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyList, err := ac.policyNamespacer.Policies(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	policyList, err := ac.policyNamespacer.Policies(metav1.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
@@ -274,7 +275,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 
 // synchronizePolicyBindings synchronizes access over each policy binding
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyBindingList, err := ac.policyBindingNamespacer.PolicyBindings(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	policyBindingList, err := ac.policyBindingNamespacer.PolicyBindings(metav1.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(err)
 		return

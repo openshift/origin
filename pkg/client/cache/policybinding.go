@@ -5,7 +5,6 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -35,7 +34,7 @@ func (i *indexerToPolicyBindingLister) List(options metainternal.ListOptions) (*
 	policyBindingList := &authorizationapi.PolicyBindingList{}
 	matcher := policybindingregistry.Matcher(oapi.ListOptionsToSelectors(&options))
 
-	if i.namespace == kapi.NamespaceAll {
+	if i.namespace == metav1.NamespaceAll {
 		returnedList := i.Indexer.List()
 		for i := range returnedList {
 			policyBinding := returnedList[i].(*authorizationapi.PolicyBinding)

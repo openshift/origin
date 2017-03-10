@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/core/controller"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -64,7 +65,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
 	}
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 
 	switch t := obj.(type) {
 	case *kapi.Endpoints:

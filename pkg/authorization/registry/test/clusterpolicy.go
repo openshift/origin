@@ -6,8 +6,8 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -32,10 +32,10 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 }
 
 func (r *ClusterPolicyRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return r.ListClusterPolicies(kapi.NewContext(), &options)
+	return r.ListClusterPolicies(apirequest.NewContext(), &options)
 }
 func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return r.GetClusterPolicy(kapi.NewContext(), name)
+	return r.GetClusterPolicy(apirequest.NewContext(), name)
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
@@ -44,10 +44,10 @@ func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx apirequest.Context, opti
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	list := make([]authorizationapi.ClusterPolicy, 0)
 
-	if namespace == kapi.NamespaceAll {
+	if namespace == metav1.NamespaceAll {
 		for _, curr := range r.clusterPolicies {
 			for _, policy := range curr {
 				list = append(list, policy)
@@ -74,7 +74,7 @@ func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx apirequest.Context, id stri
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return nil, errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -94,7 +94,7 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx apirequest.Context, poli
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -113,7 +113,7 @@ func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx apirequest.Context, poli
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -132,7 +132,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx apirequest.Context, id s
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}

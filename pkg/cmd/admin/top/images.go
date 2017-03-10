@@ -81,7 +81,7 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 	}
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
-		namespace = kapi.NamespaceAll
+		namespace = metav1.NamespaceAll
 	}
 	o.out = out
 

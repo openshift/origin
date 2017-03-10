@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 )
@@ -20,7 +21,7 @@ func (t testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 }
 
 func TestEmptyHostDefaulting(t *testing.T) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	strategy := NewStrategy(testAllocator{})
 
 	hostlessCreatedRoute := &api.Route{}
@@ -50,7 +51,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 }
 
 func TestHostWithWildcardPolicies(t *testing.T) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	strategy := NewStrategy(testAllocator{})
 
 	tests := []struct {

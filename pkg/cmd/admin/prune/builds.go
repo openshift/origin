@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -88,7 +88,7 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
 		o.Namespace, _, err = f.DefaultNamespace()

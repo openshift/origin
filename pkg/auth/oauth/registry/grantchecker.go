@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
@@ -22,7 +22,7 @@ func NewClientAuthorizationGrantChecker(registry oauthclientauthorization.Regist
 
 func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user user.Info, grant *api.Grant) (approved bool, err error) {
 	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
-	authorization, err := c.registry.GetClientAuthorization(kapi.NewContext(), id)
+	authorization, err := c.registry.GetClientAuthorization(apirequest.NewContext(), id)
 	if errors.IsNotFound(err) {
 		return false, nil
 	}

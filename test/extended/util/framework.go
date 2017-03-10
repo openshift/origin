@@ -811,7 +811,7 @@ func WaitForRegistry(
 	if waitForDCVersion != nil {
 		latestVersion = *waitForDCVersion
 	} else {
-		dc, err := dcNamespacer.DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
+		dc, err := dcNamespacer.DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry")
 		if err != nil {
 			return err
 		}
@@ -819,7 +819,7 @@ func WaitForRegistry(
 	}
 	fmt.Fprintf(g.GinkgoWriter, "waiting for deployment of version %d to complete\n", latestVersion)
 
-	err := WaitForADeployment(kubeClient.Core().ReplicationControllers(kapi.NamespaceDefault), "docker-registry",
+	err := WaitForADeployment(kubeClient.Core().ReplicationControllers(metav1.NamespaceDefault), "docker-registry",
 		func(rc *kapi.ReplicationController) bool {
 			if !CheckDeploymentCompletedFn(rc) {
 				return false
@@ -847,7 +847,7 @@ func WaitForRegistry(
 	}
 
 	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{fmt.Sprintf("docker-registry-%d", latestVersion)})
-	pods, err := WaitForPods(kubeClient.Core().Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
+	pods, err := WaitForPods(kubeClient.Core().Pods(metav1.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
 	now := time.Now()
 	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
 	return err

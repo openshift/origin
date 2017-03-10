@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	ocache "github.com/openshift/origin/pkg/client/cache"
@@ -35,7 +34,7 @@ func (r *AppliedClusterResourceQuotaREST) New() runtime.Object {
 }
 
 func (r *AppliedClusterResourceQuotaREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")
 	}
@@ -59,7 +58,7 @@ func (r *AppliedClusterResourceQuotaREST) NewList() runtime.Object {
 }
 
 func (r *AppliedClusterResourceQuotaREST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")
 	}

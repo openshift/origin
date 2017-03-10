@@ -4,9 +4,9 @@ import (
 	"reflect"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -37,10 +37,10 @@ func (f *buildConfigInformer) Informer() cache.SharedIndexInformer {
 	informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-				return f.originClient.BuildConfigs(kapi.NamespaceAll).List(options)
+				return f.originClient.BuildConfigs(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-				return f.originClient.BuildConfigs(kapi.NamespaceAll).Watch(options)
+				return f.originClient.BuildConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		informerObj,

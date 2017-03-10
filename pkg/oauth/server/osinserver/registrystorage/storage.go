@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -98,7 +98,7 @@ func (s *storage) Close() {
 
 // GetClient loads the client by id (client_id)
 func (s *storage) GetClient(id string) (osin.Client, error) {
-	c, err := s.client.GetClient(kapi.NewContext(), id)
+	c, err := s.client.GetClient(apirequest.NewContext(), id)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, nil
@@ -114,7 +114,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.authorizetoken.CreateAuthorizeToken(kapi.NewContext(), token)
+	_, err = s.authorizetoken.CreateAuthorizeToken(apirequest.NewContext(), token)
 	return err
 }
 
@@ -122,7 +122,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
-	authorize, err := s.authorizetoken.GetAuthorizeToken(kapi.NewContext(), code)
+	authorize, err := s.authorizetoken.GetAuthorizeToken(apirequest.NewContext(), code)
 	if kerrors.IsNotFound(err) {
 		glog.V(5).Info("Authorization code not found")
 		return nil, nil
@@ -136,7 +136,7 @@ func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 // RemoveAuthorize revokes or deletes the authorization code.
 func (s *storage) RemoveAuthorize(code string) error {
 	// TODO: return no error if registry returns IsNotFound
-	return s.authorizetoken.DeleteAuthorizeToken(kapi.NewContext(), code)
+	return s.authorizetoken.DeleteAuthorizeToken(apirequest.NewContext(), code)
 }
 
 // SaveAccess writes AccessData.
@@ -146,7 +146,7 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.accesstoken.CreateAccessToken(kapi.NewContext(), token)
+	_, err = s.accesstoken.CreateAccessToken(apirequest.NewContext(), token)
 	return err
 }
 
@@ -154,7 +154,7 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
-	access, err := s.accesstoken.GetAccessToken(kapi.NewContext(), token)
+	access, err := s.accesstoken.GetAccessToken(apirequest.NewContext(), token)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
 // RemoveAccess revokes or deletes an AccessData.
 func (s *storage) RemoveAccess(token string) error {
 	// TODO: return no error if registry returns IsNotFound
-	return s.accesstoken.DeleteAccessToken(kapi.NewContext(), token)
+	return s.accesstoken.DeleteAccessToken(apirequest.NewContext(), token)
 }
 
 // LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
@@ -204,7 +204,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(kapi.NewContext(), authorize.ClientName)
+	client, err := s.client.GetClient(apirequest.NewContext(), authorize.ClientName)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.Ac
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(kapi.NewContext(), access.ClientName)
+	client, err := s.client.GetClient(apirequest.NewContext(), access.ClientName)
 	if err != nil {
 		return nil, err
 	}

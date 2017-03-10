@@ -67,8 +67,9 @@ func (*REST) NewList() runtime.Object {
 var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
+
 func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
@@ -88,7 +89,7 @@ func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) 
 	if ctx == nil {
 		return nil, fmt.Errorf("Context is nil")
 	}
-	userInfo, exists := kapi.UserFrom(ctx)
+	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, fmt.Errorf("no user")
 	}

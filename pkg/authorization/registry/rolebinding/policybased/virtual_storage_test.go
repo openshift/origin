@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -84,7 +85,7 @@ func TestCreateValidationError(t *testing.T) {
 	storage := makeTestStorage()
 	roleBinding := &authorizationapi.RoleBinding{}
 
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, err := storage.Create(ctx, roleBinding)
 	if err == nil {
 		t.Errorf("Expected validation error")
@@ -98,7 +99,7 @@ func TestCreateValidAutoCreateMasterPolicyBindings(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	obj, err := storage.Create(ctx, roleBinding)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -115,7 +116,7 @@ func TestCreateValidAutoCreateMasterPolicyBindings(t *testing.T) {
 }
 
 func TestCreateValid(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 
@@ -140,7 +141,7 @@ func TestCreateValid(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -182,7 +183,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUnconditionalUpdate(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -225,7 +226,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 }
 
 func TestConflictingUpdate(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -252,7 +253,7 @@ func TestConflictingUpdate(t *testing.T) {
 }
 
 func TestUpdateNoOp(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -292,7 +293,7 @@ func TestUpdateNoOp(t *testing.T) {
 }
 
 func TestUpdateError(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -321,7 +322,7 @@ func TestUpdateError(t *testing.T) {
 }
 
 func TestUpdateCannotChangeRoleRefError(t *testing.T) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
@@ -355,7 +356,7 @@ func TestDeleteError(t *testing.T) {
 	bindingRegistry.Err = errors.New("Sample Error")
 
 	storage := NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}), nil, authorizationapi.Resource("rolebinding"))
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, err := storage.Delete(ctx, "foo", nil)
 	if err != bindingRegistry.Err {
 		t.Errorf("unexpected error: %v", err)
@@ -365,7 +366,7 @@ func TestDeleteError(t *testing.T) {
 func TestDeleteValid(t *testing.T) {
 	storage := makeClusterTestStorage()
 
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), ""), &user.DefaultInfo{Name: "system:admin"})
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), ""), &user.DefaultInfo{Name: "system:admin"})
 	obj, err := storage.Delete(ctx, "cluster-admins", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

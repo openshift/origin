@@ -99,11 +99,11 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 			// No need to list -- we only care about new events
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
-				return evtNS.Events(kapi.NamespaceAll).List(options)
+				return evtNS.Events(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
-				return evtNS.Events(kapi.NamespaceAll).Watch(options)
+				return evtNS.Events(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Event{},

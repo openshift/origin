@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -380,7 +381,7 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
 
-		ContextNamespace: kapi.NamespaceDefault,
+		ContextNamespace: metav1.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
 		Output:         o.Output,

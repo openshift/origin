@@ -305,7 +305,7 @@ func (o ProjectOptions) RunProject() error {
 }
 
 // returns a context by the given contextName and a boolean true if the context exists
-func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapi.Context, bool) {
+func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapirequest.Context, bool) {
 	if context, contextExists := o.Config.Contexts[contextName]; !o.ProjectOnly && contextExists {
 		return context, true
 	}

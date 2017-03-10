@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 )
@@ -23,7 +24,7 @@ func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticat
 			http.Error(w, "Unable to find request context", http.StatusInternalServerError)
 			return
 		}
-		if err := contextMapper.Update(req, kapi.WithUser(ctx, user)); err != nil {
+		if err := contextMapper.Update(req, apirequest.WithUser(ctx, user)); err != nil {
 			glog.V(4).Infof("Error setting authenticated context: %v", err)
 			http.Error(w, "Unable to set authenticated request context", http.StatusInternalServerError)
 			return

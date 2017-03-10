@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -31,7 +31,7 @@ type testAuthorizer struct {
 func (a *testAuthorizer) Authorize(ctx apirequest.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
-		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(kapi.NamespaceValue(ctx)) {
+		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(apirequest.NamespaceValue(ctx)) {
 			return false, "denied initial check", nil
 		}
 
@@ -118,7 +118,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)

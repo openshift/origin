@@ -203,7 +203,7 @@ func TestGet(t *testing.T) {
 
 			ctx := kapi.NewDefaultContext()
 			if test.repo != nil {
-				ctx = kapi.WithNamespace(kapi.NewContext(), test.repo.Namespace)
+				ctx = apirequest.WithNamespace(apirequest.NewContext(), test.repo.Namespace)
 				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),

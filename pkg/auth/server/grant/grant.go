@@ -8,7 +8,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
@@ -127,7 +127,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	scopes := scope.Split(q.Get(scopeParam))
 	redirectURI := q.Get(redirectURIParam)
 
-	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
+	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -158,7 +158,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	requestedScopes := []Scope{}
 
 	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
-	if clientAuth, err := l.authregistry.GetClientAuthorization(kapi.NewContext(), clientAuthID); err == nil {
+	if clientAuth, err := l.authregistry.GetClientAuthorization(apirequest.NewContext(), clientAuthID); err == nil {
 		grantedScopeNames = clientAuth.Scopes
 	}
 
@@ -233,7 +233,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	}
 
 	clientID := req.FormValue(clientIDParam)
-	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
+	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -246,7 +246,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 
 	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
 
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	clientAuth, err := l.authregistry.GetClientAuthorization(ctx, clientAuthID)
 	if err == nil && clientAuth != nil {
 		// Add new scopes and update

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -26,7 +27,7 @@ import (
 )
 
 func TestPodNodeConstraints(t *testing.T) {
-	ns := kapi.NamespaceDefault
+	ns := metav1.NamespaceDefault
 	tests := []struct {
 		config           *api.PodNodeConstraintsConfig
 		resource         runtime.Object
@@ -121,7 +122,7 @@ func TestPodNodeConstraints(t *testing.T) {
 }
 
 func TestPodNodeConstraintsPodUpdate(t *testing.T) {
-	ns := kapi.NamespaceDefault
+	ns := metav1.NamespaceDefault
 	var expectedError error
 	errPrefix := "PodUpdate"
 	prc := NewPodNodeConstraints(testConfig())
@@ -137,7 +138,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 }
 
 func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
-	ns := kapi.NamespaceDefault
+	ns := metav1.NamespaceDefault
 	errPrefix := "ResourceQuotaTest"
 	var expectedError error
 	prc := NewPodNodeConstraints(testConfig())
@@ -153,7 +154,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 }
 
 func TestPodNodeConstraintsResources(t *testing.T) {
-	ns := kapi.NamespaceDefault
+	ns := metav1.NamespaceDefault
 	testconfigs := []struct {
 		config         *api.PodNodeConstraintsConfig
 		userinfo       user.Info
@@ -431,7 +432,7 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 
 func (a *fakeTestAuthorizer) Authorize(ctx apirequest.Context, passedAttributes authorizer.Action) (bool, string, error) {
 	a.t.Logf("Authorize: ctx: %#v", ctx)
-	ui, ok := kapi.UserFrom(ctx)
+	ui, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return false, "", fmt.Errorf("No valid UserInfo for Context")
 	}

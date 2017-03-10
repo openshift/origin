@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -64,7 +65,7 @@ func TestCreateOkDepr(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -103,7 +104,7 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -124,7 +125,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 				return nil, kerrors.NewNotFound(kapi.Resource("replicationController"), name)
 			},
 			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
+				namespace, _ := apirequest.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
@@ -136,7 +137,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -164,7 +165,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 				return deployment, nil
 			},
 			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
-				namespace, _ := kapi.NamespaceFrom(ctx)
+				namespace, _ := apirequest.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
@@ -176,7 +177,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})
@@ -212,7 +213,7 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 		},
 	})

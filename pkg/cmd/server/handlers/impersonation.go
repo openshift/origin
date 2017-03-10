@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -114,7 +115,7 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 				return
 			}
 
-			authCheckCtx := kapi.WithNamespace(ctx, subject.Namespace)
+			authCheckCtx := apirequest.WithNamespace(ctx, subject.Namespace)
 
 			allowed, reason, err := a.Authorize(authCheckCtx, actingAsAttributes)
 			if err != nil {
@@ -139,7 +140,7 @@ func ImpersonationFilter(handler http.Handler, a authorizer.Authorizer, groupCac
 		}
 		contextMapper.Update(req, kapi.WithUser(ctx, newUser))
 
-		oldUser, _ := kapi.UserFrom(ctx)
+		oldUser, _ := apirequest.UserFrom(ctx)
 		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
 
 		handler.ServeHTTP(w, req)

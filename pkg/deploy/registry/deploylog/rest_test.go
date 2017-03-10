@@ -31,7 +31,7 @@ var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int64) kapi.ReplicationController {
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(api.SchemeGroupVersion))
-	deployment.Namespace = kapi.NamespaceDefault
+	deployment.Namespace = metav1.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment
 }
@@ -50,7 +50,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "config-5-application-pod-1",
-					Namespace:         kapi.NamespaceDefault,
+					Namespace:         metav1.NamespaceDefault,
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 1, 0, time.UTC),
 					Labels:            testSelector,
 				},
@@ -66,7 +66,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "config-5-application-pod-2",
-					Namespace:         kapi.NamespaceDefault,
+					Namespace:         metav1.NamespaceDefault,
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 3, 0, time.UTC),
 					Labels:            testSelector,
 				},
@@ -140,7 +140,7 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 		fakeDeployer := &kapi.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      deployutil.DeployerPodNameForDeployment(obj.Name),
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: kapi.PodSpec{
 				Containers: []kapi.Container{

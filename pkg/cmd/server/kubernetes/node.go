@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
 	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
@@ -263,12 +264,12 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 		return
 	}
 
-	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", kapi.NamespaceAll, fields.Everything())
+	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", metav1.NamespaceAll, fields.Everything())
 	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
 	serviceReflector.Run()
 
 	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", kapi.NamespaceAll, fields.Everything())
+		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", metav1.NamespaceAll, fields.Everything())
 		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
 		endpointReflector.Run()
 
@@ -286,7 +287,7 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
 	if c.KubeletServer.ClusterDNS == "" {
-		if service, err := c.Client.Core().Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if service, err := c.Client.Core().Services(metav1.NamespaceDefault).Get("kubernetes"); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -294,7 +295,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.Client.Core().Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+		if endpoint, err := c.Client.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes"); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)

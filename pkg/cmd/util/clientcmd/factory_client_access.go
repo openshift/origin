@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -431,7 +432,7 @@ func (c defaultingClientConfig) Namespace() (string, bool, error) {
 		}
 	}
 
-	return kapi.NamespaceDefault, false, nil
+	return metav1.NamespaceDefault, false, nil
 }
 
 // ConfigAccess implements ClientConfig

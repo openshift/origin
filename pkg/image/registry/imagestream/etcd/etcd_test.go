@@ -42,7 +42,7 @@ var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
 func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	f.request = subjectAccessReview
-	f.requestNamespace = kapi.NamespaceValue(ctx)
+	f.requestNamespace = apirequest.NamespaceValue(ctx)
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
@@ -64,7 +64,7 @@ func validImageStream() *api.ImageStream {
 }
 
 func create(t *testing.T, storage *REST, obj *api.ImageStream) *api.ImageStream {
-	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+	ctx := apirequest.WithUser(kapi.NewDefaultContext(), &fakeUser{})
 	newObj, err := storage.Create(ctx, obj)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

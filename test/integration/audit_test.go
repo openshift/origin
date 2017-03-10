@@ -3,8 +3,7 @@ package integration
 import (
 	"testing"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
@@ -39,7 +38,7 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 	kubeClient, _ := setupAuditTest(t)
 	defer testutil.DumpEtcdOnFailure(t)
 
-	if _, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Watch(metainternal.ListOptions{}); err != nil {
+	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 

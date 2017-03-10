@@ -11,6 +11,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -57,7 +58,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}

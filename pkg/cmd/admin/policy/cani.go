@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -125,7 +125,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	o.RulesReviewClient = oclient
 	o.SARClient = oclient
 
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
 		o.Namespace, _, err = f.DefaultNamespace()
 		if err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -150,7 +151,7 @@ func (o *CreateKubeconfigOptions) Run() error {
 			ctx.Namespace = o.ContextNamespace
 			// rename the current context
 			cfg.CurrentContext = o.SAName
-			cfg.Contexts = map[string]*clientcmdapi.Context{
+			cfg.Contexts = map[string]*clientcmdapirequest.Context{
 				cfg.CurrentContext: ctx,
 			}
 			// use the server name

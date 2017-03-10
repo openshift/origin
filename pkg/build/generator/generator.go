@@ -643,7 +643,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx apirequest.Context, fro
 			glog.V(2).Info(err)
 			return "", err
 		}
-		stream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
+		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -665,7 +665,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx apirequest.Context, fro
 			glog.V(2).Info(err)
 			return "", err
 		}
-		stream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
+		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -697,7 +697,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Conte
 	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
-		imageStreamImage, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
+		imageStreamImage, err := g.Client.GetImageStreamImage(apirequest.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -708,7 +708,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Conte
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
 		name := strings.Split(from.Name, ":")[0]
-		is, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), name)
+		is, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
 		if err != nil {
 			err = resolveError("ImageStream", namespace, from.Name, err)
 			glog.V(2).Info(err)

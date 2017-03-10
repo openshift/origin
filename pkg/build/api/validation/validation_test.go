@@ -287,14 +287,14 @@ func newNonDefaultParameters() buildapi.BuildSpec {
 
 func TestValidateBuildUpdate(t *testing.T) {
 	old := &buildapi.Build{
-		ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 		Spec:       newDefaultParameters(),
 		Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 	}
 
 	errs := ValidateBuildUpdate(
 		&buildapi.Build{
-			ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 			Spec:       newDefaultParameters(),
 			Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 		},
@@ -312,11 +312,11 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}{
 		"changed spec": {
 			Old: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newNonDefaultParameters(),
 			},
 			T: field.ErrorTypeInvalid,
@@ -324,12 +324,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal1": {
 			Old: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseComplete},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -338,12 +338,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal2": {
 			Old: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseCancelled},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -352,12 +352,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal3": {
 			Old: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseError},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -366,12 +366,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 		},
 		"update from terminal4": {
 			Old: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseFailed},
 			},
 			Update: &buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 				Spec:       newDefaultParameters(),
 				Status:     buildapi.BuildStatus{Phase: buildapi.BuildPhaseRunning},
 			},
@@ -794,7 +794,7 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
 		string(field.ErrorTypeRequired) + "metadata.namespace": {ObjectMeta: metav1.ObjectMeta{Name: "requestName"}},
-		string(field.ErrorTypeRequired) + "metadata.name":      {ObjectMeta: metav1.ObjectMeta{Namespace: kapi.NamespaceDefault}},
+		string(field.ErrorTypeRequired) + "metadata.name":      {ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault}},
 	}
 
 	for desc, tc := range testCases {

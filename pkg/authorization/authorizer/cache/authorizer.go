@@ -13,7 +13,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -140,10 +139,10 @@ func cacheKey(ctx apirequest.Context, a authorizer.Action) (string, error) {
 		"url":            a.GetURL(),
 	}
 
-	if namespace, ok := kapi.NamespaceFrom(ctx); ok {
+	if namespace, ok := apirequest.NamespaceFrom(ctx); ok {
 		keyData["namespace"] = namespace
 	}
-	if user, ok := kapi.UserFrom(ctx); ok {
+	if user, ok := apirequest.UserFrom(ctx); ok {
 		keyData["user"] = user.GetName()
 		keyData["groups"] = user.GetGroups()
 		keyData["scopes"] = user.GetExtra()[authorizationapi.ScopesKey]

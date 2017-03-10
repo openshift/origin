@@ -9,6 +9,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
@@ -149,7 +150,7 @@ func TestGet(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	mapping, err := rest.Get(kapi.NewContext(), identity.Name)
+	mapping, err := rest.Get(apirequest.NewContext(), identity.Name)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -165,7 +166,7 @@ func TestGetMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -180,7 +181,7 @@ func TestGetIdentityWithoutUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -199,7 +200,7 @@ func TestGetMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -219,7 +220,7 @@ func TestGetUserWithoutIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -246,7 +247,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	createdMapping, err := rest.Create(kapi.NewContext(), mapping)
+	createdMapping, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -268,7 +269,7 @@ func TestCreateExists(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -291,7 +292,7 @@ func TestCreateMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -315,7 +316,7 @@ func TestCreateMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -343,7 +344,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -371,7 +372,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
 	identityRegistry.UpdateErr = errors.New("Update error")
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -411,7 +412,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -442,7 +443,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -475,7 +476,7 @@ func TestUpdateMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1)
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -502,7 +503,7 @@ func TestUpdateOldUserMatches(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -533,7 +534,7 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -564,7 +565,7 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -606,7 +607,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[unassociatedUser1.Name] = expectedErr
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	// An error cleaning up the old user shouldn't manifest as an update failure, since the mapping was successfully updated
 	if err != nil {
@@ -646,7 +647,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[associatedUser2.Name] = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -686,7 +687,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	identityRegistry.UpdateErr = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -708,7 +709,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity, associatedUser)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -723,7 +724,7 @@ func TestDeleteMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -742,7 +743,7 @@ func TestDeleteMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -765,7 +766,7 @@ func TestDeleteUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity, associatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -789,7 +790,7 @@ func TestDeleteIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity, associatedUser)
 	identityRegistry.UpdateErr = expectedErr
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
 
 	// An error cleaning up the identity reference shouldn't manifest as an update failure, since the mapping no longer exists
 	if err != nil {

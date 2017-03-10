@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -91,9 +90,9 @@ func TestAuthorize(t *testing.T) {
 		delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
 		authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
 
-		ctx := kapi.WithNamespace(kapi.NewContext(), "ns")
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), "ns")
 		if tc.user != nil {
-			ctx = kapi.WithUser(ctx, tc.user)
+			ctx = apirequest.WithUser(ctx, tc.user)
 
 		}
 

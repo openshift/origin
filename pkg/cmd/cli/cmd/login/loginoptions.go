@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
@@ -307,8 +306,8 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	default:
 		namespace := o.DefaultNamespace
 		if !projects.Has(namespace) {
-			if namespace != kapi.NamespaceDefault && projects.Has(kapi.NamespaceDefault) {
-				namespace = kapi.NamespaceDefault
+			if namespace != metav1.NamespaceDefault && projects.Has(metav1.NamespaceDefault) {
+				namespace = metav1.NamespaceDefault
 			} else {
 				namespace = projects.List()[0]
 			}

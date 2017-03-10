@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/uuid"
 
@@ -16,7 +17,7 @@ import (
 
 func TestClusterAdminUseGroup(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterAdminGroup}}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterAdminGroup}}),
 		attributes: &DefaultAuthorizationAttributes{
 			APIGroup: "extensions",
 			Verb:     "create",
@@ -33,7 +34,7 @@ func TestClusterAdminUseGroup(t *testing.T) {
 
 func TestClusterReaderUseGroup(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterReaderGroup}}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "root", Groups: []string{bootstrappolicy.ClusterReaderGroup}}),
 		attributes: &DefaultAuthorizationAttributes{
 			APIGroup: "extensions",
 			Verb:     "list",
@@ -50,7 +51,7 @@ func TestClusterReaderUseGroup(t *testing.T) {
 
 func TestInvalidRole(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "buildConfigs",
@@ -67,7 +68,7 @@ func TestInvalidRole(t *testing.T) {
 }
 func TestInvalidRoleButRuleNotUsed(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "buildConfigs",
@@ -84,7 +85,7 @@ func TestInvalidRoleButRuleNotUsed(t *testing.T) {
 }
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -103,7 +104,7 @@ func TestViewerGetAllowedKindInMallet(t *testing.T) {
 }
 func TestViewerGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -123,7 +124,7 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 
 func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "policies",
@@ -142,7 +143,7 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 }
 func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "policies",
@@ -162,7 +163,7 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 
 func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "create",
 			Resource: "pods",
@@ -181,7 +182,7 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 }
 func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "create",
 			Resource: "pods",
@@ -201,7 +202,7 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 
 func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "pods",
@@ -220,7 +221,7 @@ func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 }
 func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "pods",
@@ -240,7 +241,7 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 
 func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roleBindings",
@@ -259,7 +260,7 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 }
 func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roleBindings",
@@ -279,7 +280,7 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 
 func TestEditorGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -298,7 +299,7 @@ func TestEditorGetAllowedKindInMallet(t *testing.T) {
 }
 func TestEditorGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -318,7 +319,7 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 
 func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roleBindings",
@@ -337,7 +338,7 @@ func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 }
 func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roleBindings",
@@ -357,7 +358,7 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 
 func TestAdminUpdateStatusInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "pods/status",
@@ -376,7 +377,7 @@ func TestAdminUpdateStatusInMallet(t *testing.T) {
 }
 func TestAdminGetStatusInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods/status",
@@ -396,7 +397,7 @@ func TestAdminGetStatusInMallet(t *testing.T) {
 
 func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "policies",
@@ -415,7 +416,7 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 }
 func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "roles",
@@ -435,7 +436,7 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 
 func TestAdminGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "policies",
@@ -454,7 +455,7 @@ func TestAdminGetAllowedKindInMallet(t *testing.T) {
 }
 func TestAdminGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
+		context: apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "policies",

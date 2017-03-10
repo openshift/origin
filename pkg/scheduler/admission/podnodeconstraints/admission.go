@@ -10,6 +10,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	admission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -175,7 +176,7 @@ func (o *podNodeConstraints) Validate() error {
 
 // build LocalSubjectAccessReview struct to validate role via checkAccess
 func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (bool, error) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
+	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
 	authzAttr := authorizer.DefaultAuthorizationAttributes{
 		Verb:     "create",
 		Resource: "pods/binding",

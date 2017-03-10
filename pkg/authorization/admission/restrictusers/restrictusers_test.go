@@ -440,7 +440,7 @@ func TestAdmission(t *testing.T) {
 					Roles: map[string]*authorizationapi.Role{
 						"any": {
 							ObjectMeta: metav1.ObjectMeta{
-								Namespace: kapi.NamespaceDefault,
+								Namespace: metav1.NamespaceDefault,
 								Name:      "any",
 							},
 						},
@@ -541,7 +541,7 @@ func TestAdmission(t *testing.T) {
 					Roles: map[string]*authorizationapi.Role{
 						"any": {
 							ObjectMeta: metav1.ObjectMeta{
-								Namespace: kapi.NamespaceDefault,
+								Namespace: metav1.NamespaceDefault,
 								Name:      "any",
 							},
 						},

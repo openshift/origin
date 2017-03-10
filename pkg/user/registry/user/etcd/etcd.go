@@ -11,7 +11,6 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -52,7 +51,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 func (r *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
-		user, ok := kapi.UserFrom(ctx)
+		user, ok := apirequest.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
 			return nil, kerrs.NewForbidden(api.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}

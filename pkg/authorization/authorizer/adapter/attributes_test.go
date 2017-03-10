@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -59,7 +59,7 @@ func TestRoundTrip(t *testing.T) {
 	ctx, oattrs2 := OriginAuthorizerAttributes(kattrs)
 
 	// Ensure namespace/user info is preserved
-	if user, ok := kapi.UserFrom(ctx); !ok {
+	if user, ok := apirequest.UserFrom(ctx); !ok {
 		t.Errorf("No user in context")
 	} else if user.GetName() != "myuser" {
 		t.Errorf("Expected %v, got %v", "myuser", user.GetName())

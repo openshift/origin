@@ -52,7 +52,7 @@ func (a *browserSafeRequestInfoResolver) NewRequestInfo(req *http.Request) (*req
 	}
 
 	if ctx, hasContext := a.contextMapper.Get(req); hasContext {
-		user, hasUser := kapi.UserFrom(ctx)
+		user, hasUser := apirequest.UserFrom(ctx)
 		if hasUser && a.authenticatedGroups.HasAny(user.GetGroups()...) {
 			// An authenticated request indicates this isn't a browser page load.
 			// Browsers cannot make direct authenticated requests.

@@ -39,7 +39,7 @@ func MockBuilderSecrets() []*kapi.Secret {
 		secrets = append(secrets, &kapi.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 			Type: kapi.SecretTypeDockercfg,
 			Data: map[string][]byte{".dockercfg": conf},
@@ -63,7 +63,7 @@ func MockBuilderServiceAccount(secrets []*kapi.Secret) kcoreclient.ServiceAccoun
 	fakeObjects = append(fakeObjects, &kapi.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bootstrappolicy.BuilderServiceAccountName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Secrets: secretRefs,
 	})
@@ -74,7 +74,7 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 	return &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				"testbclabel": "testbcvalue",
 			},

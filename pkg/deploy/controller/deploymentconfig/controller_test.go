@@ -7,6 +7,7 @@ import (
 	"time"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/tools/cache"
@@ -362,10 +363,10 @@ func TestHandleScenarios(t *testing.T) {
 		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-					return oc.DeploymentConfigs(kapi.NamespaceAll).List(options)
+					return oc.DeploymentConfigs(metav1.NamespaceAll).List(options)
 				},
 				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-					return oc.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+					return oc.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&deployapi.DeploymentConfig{},
@@ -374,11 +375,11 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		rcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-					return kc.Core().ReplicationControllers(kapi.NamespaceAll).List(options)
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					return kc.Core().ReplicationControllers(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-					return kc.Core().ReplicationControllers(kapi.NamespaceAll).Watch(options)
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					return kc.Core().ReplicationControllers(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.ReplicationController{},
@@ -387,11 +388,11 @@ func TestHandleScenarios(t *testing.T) {
 		)
 		podInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
-				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-					return kc.Core().Pods(kapi.NamespaceAll).List(options)
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					return kc.Core().Pods(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-					return kc.Core().Pods(kapi.NamespaceAll).Watch(options)
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					return kc.Core().Pods(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&kapi.Pod{},

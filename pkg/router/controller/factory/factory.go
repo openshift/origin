@@ -51,7 +51,7 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 		NodeClient:     kc.Core(),
 		ResyncInterval: 10 * time.Minute,
 
-		Namespace: kapi.NamespaceAll,
+		Namespace: metav1.NamespaceAll,
 		Labels:    labels.Everything(),
 		Fields:    fields.Everything(),
 	}

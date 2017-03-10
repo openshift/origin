@@ -83,11 +83,11 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	dockercfgOptions := metainternal.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts metainternal.ListOptions) (runtime.Object, error) {
-				return e.client.Core().Secrets(kapi.NamespaceAll).List(dockercfgOptions)
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
+				return e.client.Core().Secrets(metav1.NamespaceAll).List(dockercfgOptions)
 			},
-			WatchFunc: func(opts metainternal.ListOptions) (watch.Interface, error) {
-				return e.client.Core().Secrets(kapi.NamespaceAll).Watch(dockercfgOptions)
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+				return e.client.Core().Secrets(metav1.NamespaceAll).Watch(dockercfgOptions)
 			},
 		},
 		&kapi.Secret{},

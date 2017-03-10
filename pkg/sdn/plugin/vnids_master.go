@@ -36,7 +36,7 @@ func newMasterVNIDMap(allowRenumbering bool) *masterVNIDMap {
 
 	return &masterVNIDMap{
 		netIDManager:     pnetid.NewInMemory(netIDRange),
-		adminNamespaces:  sets.NewString(kapi.NamespaceDefault),
+		adminNamespaces:  sets.NewString(metav1.NamespaceDefault),
 		ids:              make(map[string]uint32),
 		allowRenumbering: allowRenumbering,
 	}

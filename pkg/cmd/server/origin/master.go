@@ -1046,7 +1046,7 @@ type clientDeploymentInterface struct {
 
 // GetDeployment returns the deployment with the provided context and name
 func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.Core().ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
+	return c.KubeClient.Core().ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name)
 }
 
 func WithPatternsHandler(handler http.Handler, patternHandler http.Handler, patterns ...string) http.Handler {

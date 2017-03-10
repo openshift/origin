@@ -47,7 +47,7 @@ func (p *provisioningIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kus
 }
 
 func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentityInfo, allowedRetries int) (kuser.Info, error) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 
 	identity, err := p.identity.GetIdentity(ctx, info.GetIdentityName())
 

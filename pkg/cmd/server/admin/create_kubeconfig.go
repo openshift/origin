@@ -11,7 +11,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/cert"
 
@@ -95,7 +96,7 @@ func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writ
 	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", []string{"openshift.local.config/master/ca.crt"}, "Files containing signing authorities to use to verify the API server's serving certificate.")
 	flags.StringVar(&options.CertFile, "client-certificate", "", "The client cert file.")
 	flags.StringVar(&options.KeyFile, "client-key", "", "The client key file.")
-	flags.StringVar(&options.ContextNamespace, "namespace", kapi.NamespaceDefault, "Namespace for this context in .kubeconfig.")
+	flags.StringVar(&options.ContextNamespace, "namespace", metav1.NamespaceDefault, "Namespace for this context in .kubeconfig.")
 	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
 
 	// autocompletion hints
@@ -189,8 +190,8 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		CertificateAuthorityData: caData,
 	}
 
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts[contextNick] = &clientcmdapi.Context{Cluster: clusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
+	contexts := make(map[string]*clientcmdapirequest.Context)
+	contexts[contextNick] = &clientcmdapirequest.Context{Cluster: clusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
 
 	createPublic := (len(o.PublicAPIServerURL) > 0) && o.APIServerURL != o.PublicAPIServerURL
 	if createPublic {
@@ -204,7 +205,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 			Server: o.PublicAPIServerURL,
 			CertificateAuthorityData: caData,
 		}
-		contexts[publicContextNick] = &clientcmdapi.Context{Cluster: publicClusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
+		contexts[publicContextNick] = &clientcmdapirequest.Context{Cluster: publicClusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
 	}
 
 	kubeConfig := &clientcmdapi.Config{

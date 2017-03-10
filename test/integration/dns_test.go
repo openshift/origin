@@ -81,7 +81,7 @@ func TestDNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	kubernetesService, err := client.Core().Services(kapi.NamespaceDefault).Get("kubernetes")
+	kubernetesService, err := client.Core().Services(metav1.NamespaceDefault).Get("kubernetes")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestDNS(t *testing.T) {
 	}
 
 	for {
-		if _, err := client.Core().Services(kapi.NamespaceDefault).Create(&kapi.Service{
+		if _, err := client.Core().Services(metav1.NamespaceDefault).Create(&kapi.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "headless",
 			},
@@ -113,7 +113,7 @@ func TestDNS(t *testing.T) {
 			}
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if _, err := client.Core().Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
+		if _, err := client.Core().Endpoints(metav1.NamespaceDefault).Create(&kapi.Endpoints{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "headless",
 			},
@@ -131,7 +131,7 @@ func TestDNS(t *testing.T) {
 	headlessIP := net.ParseIP("172.0.0.1")
 	headlessIPHash := getHash(headlessIP.String())
 
-	if _, err := client.Core().Services(kapi.NamespaceDefault).Create(&kapi.Service{
+	if _, err := client.Core().Services(metav1.NamespaceDefault).Create(&kapi.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "headless2",
 		},
@@ -142,7 +142,7 @@ func TestDNS(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := client.Core().Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
+	if _, err := client.Core().Endpoints(metav1.NamespaceDefault).Create(&kapi.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "headless2",
 		},

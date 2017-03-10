@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestUpstreamInfoResolver(t *testing.T) {
@@ -82,13 +81,13 @@ func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 			ExpectedVerb: "unsafeproxy",
 		},
 		"unsafe proxy verb anonymous": {
-			Context:      kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}),
+			Context:      apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}),
 			RequestInfo:  request.RequestInfo{IsResourceRequest: true, Verb: "proxy", Resource: "nodes"},
 			ExpectedVerb: "unsafeproxy",
 		},
 
 		"proxy subresource authenticated": {
-			Context:             kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "bob", Groups: []string{"system:authenticated"}}),
+			Context:             apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "bob", Groups: []string{"system:authenticated"}}),
 			RequestInfo:         request.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			ExpectedVerb:        "get",
 			ExpectedSubresource: "proxy",

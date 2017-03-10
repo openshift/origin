@@ -44,7 +44,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySubjectReview: %#v", obj))
 	}
 
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}

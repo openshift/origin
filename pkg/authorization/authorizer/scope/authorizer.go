@@ -6,7 +6,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -25,7 +24,7 @@ func NewAuthorizer(delegate defaultauthorizer.Authorizer, clusterPolicyGetter cl
 }
 
 func (a *scopeAuthorizer) Authorize(ctx apirequest.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
-	user, exists := kapi.UserFrom(ctx)
+	user, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return false, "", fmt.Errorf("user missing from context")
 	}
@@ -37,7 +36,7 @@ func (a *scopeAuthorizer) Authorize(ctx apirequest.Context, passedAttributes def
 
 	nonFatalErrors := []error{}
 
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 	// scopeResolutionErrors aren't fatal.  If any of the scopes we find allow this, then the overall scope limits allow it
 	rules, err := ScopesToRules(scopes, namespace, a.clusterPolicyGetter)
 	if err != nil {

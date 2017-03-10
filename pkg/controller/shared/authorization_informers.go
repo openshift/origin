@@ -4,9 +4,9 @@ import (
 	"reflect"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -148,10 +148,10 @@ func (f *policyInformer) Informer() cache.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-				return f.originClient.Policies(kapi.NamespaceAll).List(options)
+				return f.originClient.Policies(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-				return f.originClient.Policies(kapi.NamespaceAll).Watch(options)
+				return f.originClient.Policies(metav1.NamespaceAll).Watch(options)
 			},
 		}
 	}
@@ -202,10 +202,10 @@ func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-				return f.originClient.PolicyBindings(kapi.NamespaceAll).List(options)
+				return f.originClient.PolicyBindings(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-				return f.originClient.PolicyBindings(kapi.NamespaceAll).Watch(options)
+				return f.originClient.PolicyBindings(metav1.NamespaceAll).Watch(options)
 			},
 		}
 	}

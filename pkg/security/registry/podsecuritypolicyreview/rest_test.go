@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	cache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -139,7 +140,7 @@ func TestNoErrors(t *testing.T) {
 		saCache.Indexer.Add(serviceAccount)
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
-		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		obj, err := storage.Create(ctx, testcase.request)
 		if err != nil {
 			t.Errorf("%s - Unexpected error: %v", testName, err)
@@ -224,7 +225,7 @@ func TestErrors(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace)
 
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
-		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request)
 		if err == nil {
 			t.Errorf("%s - Expected error", testName)
@@ -381,7 +382,7 @@ func TestSpecificSAs(t *testing.T) {
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
-		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request)
 		switch {
 		case err == nil && len(testcase.errorMessage) == 0:

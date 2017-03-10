@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
@@ -35,7 +36,7 @@ func reapClusterBindings(removedSubject kapi.ObjectReference, c client.ClusterRo
 
 // reapNamespacedBindings removes the subject from namespaced role bindings
 func reapNamespacedBindings(removedSubject kapi.ObjectReference, c client.RoleBindingsNamespacer) error {
-	namespacedBindings, err := c.RoleBindings(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	namespacedBindings, err := c.RoleBindings(metav1.NamespaceAll).List(metainternal.ListOptions{})
 	if err != nil {
 		return err
 	}

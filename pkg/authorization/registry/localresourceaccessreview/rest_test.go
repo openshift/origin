@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -77,7 +76,7 @@ func TestConflictingNamespace(t *testing.T) {
 	}
 
 	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer)))
-	ctx := kapi.WithNamespace(kapi.NewContext(), "bar")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "bar")
 	_, err := storage.Create(ctx, reviewRequest)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
@@ -134,7 +133,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), r.reviewRequest.Action.Namespace)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), r.reviewRequest.Action.Namespace)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)

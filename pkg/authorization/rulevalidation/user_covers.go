@@ -10,7 +10,6 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 )
@@ -18,11 +17,11 @@ import (
 func ConfirmNoEscalation(ctx apirequest.Context, resource schema.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	var ruleResolutionErrors []error
 
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return kapierrors.NewForbidden(resource, name, fmt.Errorf("no user provided in context"))
 	}
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace, _ := apirequest.NamespaceFrom(ctx)
 
 	// if a cached resolver is provided, attempt to verify coverage against the cache, then fall back to the normal
 	// path otherwise

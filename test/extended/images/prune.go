@@ -12,7 +12,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	dockerregistryserver "github.com/openshift/origin/pkg/dockerregistry/server"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -198,7 +198,7 @@ func tearDownPruneImagesTest(oc *exutil.CLI, cleanUp *cleanUpContainer) {
 func getRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 	ns := oc.Namespace()
 	defer oc.SetNamespace(ns)
-	out, err := oc.SetNamespace(kapi.NamespaceDefault).AsAdmin().Run("rsh").Args("dc/docker-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
+	out, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("rsh").Args("dc/docker-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
 	if err != nil {
 		return 0, err
 	}
@@ -218,7 +218,7 @@ func getRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 func doesRegistryAcceptSchema2(oc *exutil.CLI) (bool, error) {
 	ns := oc.Namespace()
 	defer oc.SetNamespace(ns)
-	env, err := oc.SetNamespace(kapi.NamespaceDefault).AsAdmin().Run("env").Args("dc/docker-registry", "--list").Output()
+	env, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("env").Args("dc/docker-registry", "--list").Output()
 	if err != nil {
 		return false, err
 	}
@@ -231,7 +231,7 @@ func doesRegistryAcceptSchema2(oc *exutil.CLI) (bool, error) {
 // and the function blocks until the registry is re-deployed and ready for new requests.
 func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 	ns := oc.Namespace()
-	oc = oc.SetNamespace(kapi.NamespaceDefault).AsAdmin()
+	oc = oc.SetNamespace(metav1.NamespaceDefault).AsAdmin()
 	defer oc.SetNamespace(ns)
 	env, err := oc.Run("env").Args("dc/docker-registry", "--list").Output()
 	if err != nil {
@@ -248,7 +248,7 @@ func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 		return nil
 	}
 
-	dc, err := oc.Client().DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
+	dc, err := oc.Client().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry")
 	if err != nil {
 		return err
 	}

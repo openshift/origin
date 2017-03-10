@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -42,7 +41,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	// if a namespace is present on the request, then the namespace on the on the SAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
 	// the authorizer decided that a user could run an SAR against this namespace
-	if namespace := kapi.NamespaceValue(ctx); len(namespace) > 0 {
+	if namespace := apirequest.NamespaceValue(ctx); len(namespace) > 0 {
 		subjectAccessReview.Action.Namespace = namespace
 
 	} else if err := r.isAllowed(ctx, subjectAccessReview); err != nil {
@@ -54,7 +53,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	var userToCheck *user.DefaultInfo
 	if (len(subjectAccessReview.User) == 0) && (len(subjectAccessReview.Groups) == 0) {
 		// if no user or group was specified, use the info from the context
-		ctxUser, exists := kapi.UserFrom(ctx)
+		ctxUser, exists := apirequest.UserFrom(ctx)
 		if !exists {
 			return nil, kapierrors.NewBadRequest("user missing from context")
 		}
@@ -97,7 +96,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		userToCheck.Extra[authorizationapi.ScopesKey] = subjectAccessReview.Scopes
 	}
 
-	requestContext := kapi.WithNamespace(kapi.WithUser(ctx, userToCheck), subjectAccessReview.Action.Namespace)
+	requestContext := apirequest.WithNamespace(apirequest.WithUser(ctx, userToCheck), subjectAccessReview.Action.Namespace)
 	attributes := authorizer.ToDefaultAuthorizationAttributes(subjectAccessReview.Action)
 	allowed, reason, err := r.authorizer.Authorize(requestContext, attributes)
 	response := &authorizationapi.SubjectAccessReviewResponse{
@@ -119,7 +118,7 @@ func (r *REST) isAllowed(ctx apirequest.Context, sar *authorizationapi.SubjectAc
 		Resource:          "localsubjectaccessreviews",
 		RequestAttributes: sar,
 	}
-	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, sar.Action.Namespace), localSARAttributes)
+	allowed, reason, err := r.authorizer.Authorize(apirequest.WithNamespace(ctx, sar.Action.Namespace), localSARAttributes)
 
 	if err != nil {
 		return kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), err)

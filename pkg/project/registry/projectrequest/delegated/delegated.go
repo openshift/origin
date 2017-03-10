@@ -79,7 +79,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	projectName := projectRequest.Name
 	projectAdmin := ""
 	projectRequester := ""
-	if userInfo, exists := kapi.UserFrom(ctx); exists {
+	if userInfo, exists := apirequest.UserFrom(ctx); exists {
 		projectAdmin = userInfo.GetName()
 		projectRequester = userInfo.GetName()
 	}
@@ -104,7 +104,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		}
 	}
 
-	list, err := r.openshiftClient.TemplateConfigs(kapi.NamespaceDefault).Create(template)
+	list, err := r.openshiftClient.TemplateConfigs(metav1.NamespaceDefault).Create(template)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 var _ = rest.Lister(&REST{})
 
 func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
-	userInfo, exists := kapi.UserFrom(ctx)
+	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")
 	}

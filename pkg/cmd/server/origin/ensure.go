@@ -10,6 +10,7 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
 
@@ -93,7 +94,7 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 	// Wait for the default namespace
 	var namespace *kapi.Namespace
 	for i := 0; i < 30; i++ {
-		ns, err := c.KubeClientset().Namespaces().Get(kapi.NamespaceDefault)
+		ns, err := c.KubeClientset().Namespaces().Get(metav1.NamespaceDefault)
 		if err == nil {
 			namespace = ns
 			break
@@ -102,11 +103,11 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 			time.Sleep(time.Second)
 			continue
 		}
-		glog.Errorf("Error adding service account roles to %q namespace: %v", kapi.NamespaceDefault, err)
+		glog.Errorf("Error adding service account roles to %q namespace: %v", metav1.NamespaceDefault, err)
 		return
 	}
 	if namespace == nil {
-		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", kapi.NamespaceDefault, kapi.NamespaceDefault)
+		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", metav1.NamespaceDefault, metav1.NamespaceDefault)
 		return
 	}
 
@@ -216,7 +217,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 		return
 	}
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	ctx := kapi.WithNamespace(kapi.NewContext(), "")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "")
 
 	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)

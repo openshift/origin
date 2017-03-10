@@ -10,7 +10,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/flowcontrol"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
@@ -31,10 +30,10 @@ type ImportControllerFactory struct {
 func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
 	lw := &cache.ListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-			return f.Client.ImageStreams(kapi.NamespaceAll).List(options)
+			return f.Client.ImageStreams(metav1.NamespaceAll).List(options)
 		},
 		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-			return f.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
+			return f.Client.ImageStreams(metav1.NamespaceAll).Watch(options)
 		},
 	}
 	q := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)

@@ -206,7 +206,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate.Latest = options.ImageConfig.Latest
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(kapi.NamespaceDefault).Get)
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
@@ -502,7 +502,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 		switch pluginName {
 		case lifecycle.PluginName:
 			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
-			immortalNamespaces := sets.NewString(kapi.NamespaceDefault)
+			immortalNamespaces := sets.NewString(metav1.NamespaceDefault)
 			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
 			}
@@ -727,7 +727,7 @@ func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWat
 }
 
 func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := clusterpolicyetcd.NewREST(optsGetter)
 	if err != nil {
@@ -746,7 +746,7 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 }
 
 func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := clusterpolicybindingetcd.NewREST(optsGetter)
 	if err != nil {
@@ -765,7 +765,7 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 }
 
 func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := policyetcd.NewREST(optsGetter)
 	if err != nil {
@@ -784,7 +784,7 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 }
 
 func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	storage, err := policybindingetcd.NewREST(optsGetter)
 	if err != nil {

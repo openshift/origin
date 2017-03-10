@@ -274,7 +274,7 @@ type podGetter struct {
 }
 
 func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}

@@ -24,7 +24,7 @@ func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 			//SelfLink:  "/oapi/v1/namespaces/default/deploymentconfig/config",
 		},
 		Spec:   OkDeploymentConfigSpec(),

@@ -13,7 +13,7 @@ func TestServiceResolverCacheEmpty(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(&kapi.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: kapi.ServiceSpec{
 			Ports: []kapi.ServicePort{{Port: 80}},

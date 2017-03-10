@@ -255,7 +255,7 @@ func (m *VirtualStorage) EnsurePolicy(ctx apirequest.Context) (*authorizationapi
 		}
 
 		// if we have no policy, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policy = NewEmptyPolicy(kapi.NamespaceValue(ctx))
+		policy = NewEmptyPolicy(apirequest.NamespaceValue(ctx))
 		if err := m.PolicyStorage.CreatePolicy(ctx, policy); err != nil {
 			// Tolerate the policy having been created in the meantime
 			if !kapierrors.IsAlreadyExists(err) {

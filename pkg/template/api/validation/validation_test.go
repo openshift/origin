@@ -113,7 +113,7 @@ func TestValidateTemplate(t *testing.T) {
 			&api.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template",
-					Namespace: kapi.NamespaceDefault,
+					Namespace: metav1.NamespaceDefault,
 				},
 			},
 			true,
@@ -130,14 +130,14 @@ func TestValidateTemplate(t *testing.T) {
 			&api.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "templateId",
-					Namespace: kapi.NamespaceDefault,
+					Namespace: metav1.NamespaceDefault,
 				},
 			},
 			false,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
 			&api.Template{
-				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
 				Parameters: []api.Parameter{
 					*(makeParameter("", "1")),
 				},
@@ -146,7 +146,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with valid Parameter, should pass
 			&api.Template{
-				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
 				Parameters: []api.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
@@ -155,7 +155,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with empty items, should pass
 			&api.Template{
-				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
 				Parameters: []api.Parameter{},
 				Objects:    []runtime.Object{},
 			},
@@ -163,7 +163,7 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with an item that is invalid, should pass
 			&api.Template{
-				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
 				Parameters: []api.Parameter{},
 				Objects: []runtime.Object{
 					&kapi.Service{

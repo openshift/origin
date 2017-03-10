@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -113,7 +112,7 @@ func (o *whoCanOptions) run() error {
 		return err
 	}
 
-	if resourceAccessReviewResponse.Namespace == kapi.NamespaceAll {
+	if resourceAccessReviewResponse.Namespace == metav1.NamespaceAll {
 		fmt.Printf("Namespace: <all>\n")
 	} else {
 		fmt.Printf("Namespace: %s\n", resourceAccessReviewResponse.Namespace)

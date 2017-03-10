@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -80,7 +81,7 @@ func (tc strategyTestCase) run(k string, t *testing.T) {
 	testInit := &testInitializer{}
 	strategy := tc.MakeStrategy(userRegistry, testInit)
 
-	user, err := strategy.UserForNewIdentity(kapi.NewContext(), tc.PreferredUsername, tc.Identity)
+	user, err := strategy.UserForNewIdentity(apirequest.NewContext(), tc.PreferredUsername, tc.Identity)
 	if tc.ExpectedError != (err != nil) {
 		t.Errorf("%s: Expected error=%v, got %v", k, tc.ExpectedError, err)
 		return

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -106,7 +107,7 @@ func (r *authorizerReviewer) Review(namespaceName string) (Review, error) {
 		ResourceName: namespaceName,
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespaceName)
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), namespaceName)
 	users, groups, err := r.policyChecker.GetAllowedSubjects(ctx, attributes)
 	review := &defaultReview{
 		users:  users.List(),

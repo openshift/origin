@@ -546,7 +546,7 @@ func TestGetClient(t *testing.T) {
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
 		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient.Core(), tc.kubeClient.Core(), tc.osClient, delegate, oauthapi.GrantHandlerPrompt)
-		client, err := getter.GetClient(kapi.NewContext(), tc.clientName)
+		client, err := getter.GetClient(apirequest.NewContext(), tc.clientName)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil,

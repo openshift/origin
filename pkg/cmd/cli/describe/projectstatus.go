@@ -154,7 +154,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		return "", err
 	}
 
-	allNamespaces := namespace == kapi.NamespaceAll
+	allNamespaces := namespace == metav1.NamespaceAll
 	var project *projectapi.Project
 	if !allNamespaces {
 		p, err := d.C.Projects().Get(namespace)

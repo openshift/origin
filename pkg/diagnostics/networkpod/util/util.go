@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -51,7 +51,7 @@ func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) 
 }
 
 func GetNodes(kubeClient kclientset.Interface) ([]kapi.Node, error) {
-	nodeList, err := kubeClient.Core().Nodes().List(metainternal.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Listing nodes in the cluster failed. Error: %s", err)
 	}
@@ -90,7 +90,7 @@ func GetSchedulableNodes(kubeClient kclientset.Interface) ([]kapi.Node, error) {
 }
 
 func GetLocalNode(kubeClient kclientset.Interface) (string, string, error) {
-	nodeList, err := kubeClient.Core().Nodes().List(metainternal.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return "", "", err
 	}
@@ -217,7 +217,7 @@ func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in i
 }
 
 func getSDNRunningPods(kubeClient kclientset.Interface) ([]kapi.Pod, error) {
-	podList, err := kubeClient.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{})
+	podList, err := kubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

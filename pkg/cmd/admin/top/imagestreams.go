@@ -9,7 +9,6 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -72,7 +71,7 @@ func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comma
 	}
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
-		namespace = kapi.NamespaceAll
+		namespace = metav1.NamespaceAll
 	}
 	o.out = out
 

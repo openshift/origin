@@ -5,7 +5,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -30,7 +29,7 @@ type subjectsTest struct {
 
 func TestSubjects(t *testing.T) {
 	test := &subjectsTest{
-		context: kapi.WithNamespace(kapi.NewContext(), "adze"),
+		context: apirequest.WithNamespace(apirequest.NewContext(), "adze"),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",

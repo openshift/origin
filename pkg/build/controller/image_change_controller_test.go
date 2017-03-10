@@ -308,7 +308,7 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 	return &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testBuildCfg",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -350,7 +350,7 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 	return &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: dockerImageRepo,
@@ -378,12 +378,12 @@ type buildConfigInstantiator struct {
 
 func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	i.name = request.Name
-	return i.generator.Instantiate(kapi.WithNamespace(kapi.NewContext(), namespace), request)
+	return i.generator.Instantiate(apirequest.WithNamespace(apirequest.NewContext(), namespace), request)
 }
 
 func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *buildConfigInstantiator {
 	builderAccount := kapi.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: kapi.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: metav1.NamespaceDefault},
 		Secrets:    []kapi.ObjectReference{},
 	}
 	instantiator := &buildConfigInstantiator{}

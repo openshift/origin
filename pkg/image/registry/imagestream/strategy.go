@@ -83,7 +83,7 @@ func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 }
 
 func (s Strategy) validateTagsAndLimits(ctx apirequest.Context, oldStream, newStream *api.ImageStream) error {
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return kerrors.NewForbidden(schema.GroupResource{Resource: "imagestreams"}, newStream.Name, fmt.Errorf("no user context available"))
 	}
@@ -94,7 +94,7 @@ func (s Strategy) validateTagsAndLimits(ctx apirequest.Context, oldStream, newSt
 		return kerrors.NewInvalid(schema.GroupKind{Kind: "imagestreams"}, newStream.Name, errs)
 	}
 
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		ns = newStream.Namespace
 	}
@@ -121,7 +121,7 @@ func (s Strategy) dockerImageRepository(stream *api.ImageStream) string {
 	}
 
 	if len(stream.Namespace) == 0 {
-		stream.Namespace = kapi.NamespaceDefault
+		stream.Namespace = metav1.NamespaceDefault
 	}
 	ref := api.DockerImageReference{
 		Registry:  registry,
@@ -211,7 +211,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
 			streamRefNamespace = stream.Namespace
 		}
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
-			obj, err := s.imageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
+			obj, err := s.imageStreamGetter.Get(apirequest.WithNamespace(apirequest.NewContext(), streamRefNamespace), tagRefStreamName)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					errs = append(errs, field.NotFound(fromPath.Child("name"), tagRef.From.Name))
@@ -451,7 +451,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 				ResourceName: streamName,
 			},
 		})
-		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
+		ctx := apirequest.WithNamespace(apirequest.NewContext(), tagRef.From.Namespace)
 		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
@@ -552,7 +552,7 @@ func (s StatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.
 	newIS := obj.(*api.ImageStream)
 	errs := field.ErrorList{}
 
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		ns = newIS.Namespace
 	}

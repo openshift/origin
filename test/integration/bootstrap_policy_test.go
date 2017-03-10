@@ -9,7 +9,6 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -18,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
@@ -59,21 +59,21 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(metainternal.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.Templates(metav1.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(metainternal.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreams(metav1.NamespaceDefault).List(metainternal.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if _, err := valerieOpenshiftClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreamTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreamTags(metav1.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

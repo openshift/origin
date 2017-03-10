@@ -6,7 +6,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -42,7 +41,7 @@ func (r *REST) New() runtime.Object {
 
 // Create generates a new DeploymentConfig representing a rollback.
 func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewBadRequest("namespace parameter required.")
 	}

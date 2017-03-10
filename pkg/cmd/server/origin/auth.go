@@ -20,7 +20,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -160,7 +160,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
 		glog.Fatal(err)
 	}
-	browserClient, err := clientRegistry.GetClient(kapi.NewContext(), OpenShiftBrowserClientID)
+	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 }
 
 func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects, preserveExistingSecret bool) error {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	_, err := clientRegistry.CreateClient(ctx, &client)
 	if err == nil || !kerrs.IsAlreadyExists(err) {
 		return err

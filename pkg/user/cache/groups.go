@@ -6,8 +6,8 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -33,7 +33,7 @@ func ByUserIndexKeys(obj interface{}) ([]string, error) {
 }
 
 func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
-	allNamespaceContext := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	allNamespaceContext := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{byUserIndexName: ByUserIndexKeys})
 	reflector := cache.NewReflector(

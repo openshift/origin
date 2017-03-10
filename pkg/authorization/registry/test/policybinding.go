@@ -6,8 +6,8 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -41,11 +41,11 @@ type policyBindingLister struct {
 }
 
 func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	return s.registry.ListPolicyBindings(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
+	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
 func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name)
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
@@ -54,10 +54,10 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx apirequest.Context, optio
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	list := make([]authorizationapi.PolicyBinding, 0)
 
-	if namespace == kapi.NamespaceAll {
+	if namespace == metav1.NamespaceAll {
 		for _, curr := range r.policyBindings {
 			for _, binding := range curr {
 				list = append(list, binding)
@@ -84,7 +84,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx apirequest.Context, id stri
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}
@@ -104,7 +104,7 @@ func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx apirequest.Context, poli
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
@@ -123,7 +123,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx apirequest.Context, poli
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
@@ -142,7 +142,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx apirequest.Context, id s
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}

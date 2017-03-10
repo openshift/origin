@@ -84,14 +84,14 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, err
 	}
 
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("a namespace must be specified to import images")
 	}
 
 	if r.clientFn != nil {
 		if client := r.clientFn(); client != nil {
-			ctx = kapi.WithValue(ctx, importer.ContextKeyV1RegistryClient, client)
+			ctx = apirequest.WithValue(ctx, importer.ContextKeyV1RegistryClient, client)
 		}
 	}
 

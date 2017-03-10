@@ -8,7 +8,6 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -219,7 +218,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	// we found a fully-defined context
 	project := context.Namespace
 	if project == "" {
-		project = kapi.NamespaceDefault // k8s fills this in anyway if missing from the context
+		project = metav1.NamespaceDefault // k8s fills this in anyway if missing from the context
 	}
 	msgText := contextDesc
 	if isDefaultContext {

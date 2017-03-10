@@ -96,7 +96,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	}
 	config.Status.LatestVersion++
 
-	userInfo, _ := kapi.UserFrom(ctx)
+	userInfo, _ := apirequest.UserFrom(ctx)
 	attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
 	if err := r.admit.Admit(attrs); err != nil {
 		return nil, err

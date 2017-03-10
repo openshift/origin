@@ -44,11 +44,11 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if errs := securityvalidation.ValidatePodSecurityPolicySelfSubjectReview(pspssr); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicySelfSubjectReview"), "", errs)
 	}
-	userInfo, ok := kapi.UserFrom(ctx)
+	userInfo, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("no user data associated with context"))
 	}
-	ns, ok := kapi.NamespaceFrom(ctx)
+	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}

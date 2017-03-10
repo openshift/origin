@@ -439,7 +439,7 @@ func listPods(client kclientset.Interface) (*kapi.PodList, error) {
 	if err != nil {
 		return nil, err
 	}
-	listNew, err := client.Core().Pods(kapi.NamespaceAll).List(metainternal.ListOptions{LabelSelector: sel})
+	listNew, err := client.Core().Pods(metav1.NamespaceAll).List(metainternal.ListOptions{LabelSelector: sel})
 	if err != nil {
 		return nil, err
 	}
@@ -457,7 +457,7 @@ func (lw *podLW) Watch(options metainternal.ListOptions) (watch.Interface, error
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}
-	return lw.client.Core().Pods(kapi.NamespaceAll).Watch(opts)
+	return lw.client.Core().Pods(metav1.NamespaceAll).Watch(opts)
 }
 
 // buildLW is a ListWatcher implementation for Builds.
@@ -467,12 +467,12 @@ type buildLW struct {
 
 // List lists all Builds.
 func (lw *buildLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.Builds(kapi.NamespaceAll).List(options)
+	return lw.client.Builds(metav1.NamespaceAll).List(options)
 }
 
 // Watch watches all Builds.
 func (lw *buildLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.Builds(kapi.NamespaceAll).Watch(options)
+	return lw.client.Builds(metav1.NamespaceAll).Watch(options)
 }
 
 // buildDeleteLW is a ListWatcher implementation that watches for builds being deleted
@@ -526,7 +526,7 @@ func (lw *buildDeleteLW) List(options metainternal.ListOptions) (runtime.Object,
 
 // Watch watches all Builds.
 func (lw *buildDeleteLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.Client.Builds(kapi.NamespaceAll).Watch(options)
+	return lw.Client.Builds(metav1.NamespaceAll).Watch(options)
 }
 
 // buildConfigLW is a ListWatcher implementation for BuildConfigs.
@@ -536,12 +536,12 @@ type buildConfigLW struct {
 
 // List lists all BuildConfigs.
 func (lw *buildConfigLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.BuildConfigs(kapi.NamespaceAll).List(options)
+	return lw.client.BuildConfigs(metav1.NamespaceAll).List(options)
 }
 
 // Watch watches all BuildConfigs.
 func (lw *buildConfigLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(options)
+	return lw.client.BuildConfigs(metav1.NamespaceAll).Watch(options)
 }
 
 // imageStreamLW is a ListWatcher for ImageStreams.
@@ -551,12 +551,12 @@ type imageStreamLW struct {
 
 // List lists all ImageStreams.
 func (lw *imageStreamLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.ImageStreams(kapi.NamespaceAll).List(options)
+	return lw.client.ImageStreams(metav1.NamespaceAll).List(options)
 }
 
 // Watch watches all ImageStreams.
 func (lw *imageStreamLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.ImageStreams(kapi.NamespaceAll).Watch(options)
+	return lw.client.ImageStreams(metav1.NamespaceAll).Watch(options)
 }
 
 // buildPodDeleteLW is a ListWatcher implementation that watches for Pods(that are associated with a Build) being deleted
@@ -568,7 +568,7 @@ type buildPodDeleteLW struct {
 // List lists all Pods associated with a Build.
 func (lw *buildPodDeleteLW) List(options metainternal.ListOptions) (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted build pods")
-	buildList, err := lw.Client.Builds(kapi.NamespaceAll).List(options)
+	buildList, err := lw.Client.Builds(metav1.NamespaceAll).List(options)
 	if err != nil {
 		glog.V(4).Infof("Failed to find any builds due to error %v", err)
 		return nil, err
@@ -626,7 +626,7 @@ func (lw *buildPodDeleteLW) Watch(options metainternal.ListOptions) (watch.Inter
 		LabelSelector:   sel,
 		ResourceVersion: options.ResourceVersion,
 	}
-	return lw.KubeClient.Core().Pods(kapi.NamespaceAll).Watch(opts)
+	return lw.KubeClient.Core().Pods(metav1.NamespaceAll).Watch(opts)
 }
 
 // ControllerClient implements the common interfaces needed for build controllers
