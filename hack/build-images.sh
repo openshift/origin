@@ -144,12 +144,7 @@ image "${tag_prefix}-f5-router"             images/router/f5
 image openshift/node                        images/node
 
 # extra images (not part of infrastructure)
-image openshift/hello-openshift       examples/hello-openshift
-
-ln_or_cp "${imagedir}/deployment" examples/deployment/bin
-image openshift/deployment-example:v1 examples/deployment
-ln_or_cp "${imagedir}/deployment" examples/deployment/bin
-image openshift/deployment-example:v2 examples/deployment examples/deployment/Dockerfile.v2
+image "openshift/hello-openshift"           examples/hello-openshift
 
 echo
 echo
