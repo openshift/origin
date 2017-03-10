@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -34,7 +35,7 @@ type podGetter struct {
 	kcoreclient.PodsGetter
 }
 
-func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	ns, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
@@ -60,7 +61,7 @@ func NewREST(getter rest.Getter, watcher rest.Watcher, pn kcoreclient.PodsGetter
 var _ = rest.GetterWithOptions(&REST{})
 
 // Get returns a streamer resource with the contents of the build log
-func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	buildLogOpts, ok := opts.(*api.BuildLogOptions)
 	if !ok {
 		return nil, errors.NewBadRequest("did not get an expected options.")

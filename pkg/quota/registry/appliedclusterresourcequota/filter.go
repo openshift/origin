@@ -5,6 +5,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -33,7 +34,7 @@ func (r *AppliedClusterResourceQuotaREST) New() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuota{}
 }
 
-func (r *AppliedClusterResourceQuotaREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *AppliedClusterResourceQuotaREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	namespace, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")
@@ -57,7 +58,7 @@ func (r *AppliedClusterResourceQuotaREST) NewList() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuotaList{}
 }
 
-func (r *AppliedClusterResourceQuotaREST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (r *AppliedClusterResourceQuotaREST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	namespace, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")

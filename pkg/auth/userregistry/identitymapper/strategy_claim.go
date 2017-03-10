@@ -5,7 +5,7 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -42,7 +42,7 @@ func NewStrategyClaim(user userregistry.Registry, initializer user.Initializer) 
 	return &StrategyClaim{user, initializer}
 }
 
-func (s *StrategyClaim) UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyClaim) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	persistedUser, err := s.user.GetUser(ctx, preferredUserName)
 

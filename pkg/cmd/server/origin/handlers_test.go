@@ -13,6 +13,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	"k8s.io/kubernetes/pkg/genericapiserver"
@@ -29,7 +30,7 @@ import (
 
 type impersonateAuthorizer struct{}
 
-func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allowed bool, reason string, err error) {
+func (impersonateAuthorizer) Authorize(ctx apirequest.Context, a authorizer.Action) (allowed bool, reason string, err error) {
 	user, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return false, "missing user", nil
@@ -68,29 +69,29 @@ func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (a
 	return false, "deny by default", nil
 }
 
-func (impersonateAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+func (impersonateAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }
 
 type groupCache struct {
 }
 
-func (*groupCache) ListGroups(ctx kapi.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
+func (*groupCache) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	return &userapi.GroupList{}, nil
 }
-func (*groupCache) GetGroup(ctx kapi.Context, name string) (*userapi.Group, error) {
+func (*groupCache) GetGroup(ctx apirequest.Context, name string) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) CreateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+func (*groupCache) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) UpdateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+func (*groupCache) UpdateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) DeleteGroup(ctx kapi.Context, name string) error {
+func (*groupCache) DeleteGroup(ctx apirequest.Context, name string) error {
 	return nil
 }
-func (*groupCache) WatchGroups(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (*groupCache) WatchGroups(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return watch.NewFake(), nil
 }
 
@@ -252,7 +253,7 @@ func TestImpersonationFilter(t *testing.T) {
 	config.RequestContextMapper = kapi.NewRequestContextMapper()
 	config.Authorizer = impersonateAuthorizer{}
 	config.GroupCache = usercache.NewGroupCache(&groupCache{})
-	var ctx kapi.Context
+	var ctx apirequest.Context
 	var actualUser user.Info
 	var lock sync.Mutex
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -48,11 +49,11 @@ func TestCreateOkDepr(t *testing.T) {
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
@@ -87,11 +88,11 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
@@ -119,10 +120,10 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound(kapi.Resource("replicationController"), name)
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
@@ -156,13 +157,13 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 				// invalidate the encoded config
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
@@ -196,11 +197,11 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},

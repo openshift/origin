@@ -3,7 +3,7 @@ package identitymapper
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -23,7 +23,7 @@ func NewStrategyAdd(user userregistry.Registry, initializer user.Initializer) Us
 	return &StrategyAdd{user, initializer}
 }
 
-func (s *StrategyAdd) UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyAdd) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	persistedUser, err := s.user.GetUser(ctx, preferredUserName)
 

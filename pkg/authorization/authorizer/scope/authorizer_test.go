@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -125,11 +126,11 @@ type fakeAuthorizer struct {
 	called  bool
 }
 
-func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(ctx apirequest.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
 	a.called = true
 	return a.allowed, "", nil
 }
 
-func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
+func (a *fakeAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }

@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -39,13 +40,13 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-func (s strategy) Export(ctx kapi.Context, obj runtime.Object, exact bool) error {
+func (s strategy) Export(ctx apirequest.Context, obj runtime.Object, exact bool) error {
 	s.PrepareForCreate(ctx, obj)
 	return nil
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)
 	dc.Generation = 1
 	dc.Status = api.DeploymentConfigStatus{}
@@ -58,7 +59,7 @@ func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newDc := obj.(*api.DeploymentConfig)
 	oldDc := old.(*api.DeploymentConfig)
 
@@ -89,12 +90,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new policy.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateDeploymentConfig(obj.(*api.DeploymentConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateDeploymentConfigUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
 }
 
@@ -111,7 +112,7 @@ type statusStrategy struct {
 var StatusStrategy = statusStrategy{Strategy}
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update of status.
-func (statusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newDc := obj.(*api.DeploymentConfig)
 	oldDc := old.(*api.DeploymentConfig)
 	newDc.Spec = oldDc.Spec
@@ -119,7 +120,7 @@ func (statusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object
 }
 
 // ValidateUpdate is the default update validation for an end user updating status.
-func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
 }
 

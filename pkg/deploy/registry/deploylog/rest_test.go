@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -84,7 +85,7 @@ var (
 
 type fakeConnectionInfoGetter struct{}
 
-func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx apirequest.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
 	return &kubeletclient.ConnectionInfo{
 		Scheme:   "https",
 		Hostname: "some-host",

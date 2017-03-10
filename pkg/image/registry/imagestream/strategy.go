@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -24,7 +25,7 @@ import (
 )
 
 type ResourceGetter interface {
-	Get(kapi.Context, string) (runtime.Object, error)
+	Get(apirequest.Context, string) (runtime.Object, error)
 }
 
 // Strategy implements behavior for ImageStreams.
@@ -56,7 +57,7 @@ func (s Strategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 	stream.Status = api.ImageStreamStatus{
 		DockerImageRepository: s.dockerImageRepository(stream),
@@ -71,7 +72,7 @@ func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 
 // Validate validates a new image stream and verifies the current user is
 // authorized to access any image streams newly referenced in spec.tags.
-func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	stream := obj.(*api.ImageStream)
 	var errs field.ErrorList
 	if err := s.validateTagsAndLimits(ctx, nil, stream); err != nil {
@@ -81,7 +82,7 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 	return errs
 }
 
-func (s Strategy) validateTagsAndLimits(ctx kapi.Context, oldStream, newStream *api.ImageStream) error {
+func (s Strategy) validateTagsAndLimits(ctx apirequest.Context, oldStream, newStream *api.ImageStream) error {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return kerrors.NewForbidden(schema.GroupResource{Resource: "imagestreams"}, newStream.Name, fmt.Errorf("no user context available"))
@@ -490,12 +491,12 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	ensureSpecTagGenerationsAreSet(stream, oldStream)
 }
 
-func (s Strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s Strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	s.prepareForUpdate(obj, old, true)
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	stream := obj.(*api.ImageStream)
 	oldStream := old.(*api.ImageStream)
 	var errs field.ErrorList
@@ -537,7 +538,7 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 func (StatusStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (StatusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (StatusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	oldStream := old.(*api.ImageStream)
 	stream := obj.(*api.ImageStream)
 
@@ -547,7 +548,7 @@ func (StatusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object
 	updateObservedGenerationForStatusUpdate(stream, oldStream)
 }
 
-func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s StatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	newIS := obj.(*api.ImageStream)
 	errs := field.ErrorList{}
 
@@ -604,7 +605,7 @@ func NewInternalStrategy(strategy Strategy) InternalStrategy {
 func (InternalStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s InternalStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s InternalStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
@@ -615,6 +616,6 @@ func (s InternalStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object)
 	}
 }
 
-func (s InternalStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s InternalStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	s.prepareForUpdate(obj, old, false)
 }

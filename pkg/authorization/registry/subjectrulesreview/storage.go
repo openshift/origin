@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,7 +31,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	rulesReview, ok := obj.(*authorizationapi.SubjectRulesReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a SubjectRulesReview: %#v", obj))
@@ -64,7 +65,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return ret, nil
 }
 
-func GetEffectivePolicyRules(ctx kapi.Context, ruleResolver rulevalidation.AuthorizationRuleResolver, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, []error) {
+func GetEffectivePolicyRules(ctx apirequest.Context, ruleResolver rulevalidation.AuthorizationRuleResolver, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, []error) {
 	namespace := kapi.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, []error{kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))}

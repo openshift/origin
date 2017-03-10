@@ -7,6 +7,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -54,7 +55,7 @@ func nameAndTag(id string) (name string, tag string, err error) {
 	return
 }
 
-func (r *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	imageStreams, err := r.imageStreamRegistry.ListImageStreams(ctx, options)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func (r *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtim
 }
 
 // Get retrieves an image that has been tagged by stream and tag. `id` is of the format <stream name>:<tag>.
-func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, err
@@ -106,7 +107,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return newISTag(tag, imageStream, image, false)
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	istag, ok := obj.(*imageapi.ImageStreamTag)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
@@ -164,7 +165,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return istag, nil
 }
 
-func (r *REST) Update(ctx kapi.Context, tagName string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	name, tag, err := nameAndTag(tagName)
 	if err != nil {
 		return nil, false, err
@@ -267,7 +268,7 @@ func (r *REST) Update(ctx kapi.Context, tagName string, objInfo rest.UpdatedObje
 // Delete removes a tag from a stream. `id` is of the format <stream name>:<tag>.
 // The associated image that the tag points to is *not* deleted.
 // The tag history remains intact and is not deleted.
-func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+func (r *REST) Delete(ctx apirequest.Context, id string) (runtime.Object, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, err
@@ -304,7 +305,7 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // imageFor retrieves the most recent image for a tag in a given imageStreem.
-func (r *REST) imageFor(ctx kapi.Context, tag string, imageStream *imageapi.ImageStream) (*imageapi.Image, error) {
+func (r *REST) imageFor(ctx apirequest.Context, tag string, imageStream *imageapi.ImageStream) (*imageapi.Image, error) {
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), imageapi.JoinImageStreamTag(imageStream.Name, tag))

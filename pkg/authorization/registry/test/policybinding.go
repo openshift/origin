@@ -6,6 +6,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -48,7 +49,7 @@ func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, 
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
-func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (r *PolicyBindingRegistry) ListPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -78,7 +79,7 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, options *me
 }
 
 // GetPolicyBinding retrieves a specific policyBinding.
-func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*authorizationapi.PolicyBinding, error) {
+func (r *PolicyBindingRegistry) GetPolicyBinding(ctx apirequest.Context, id string) (*authorizationapi.PolicyBinding, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -98,7 +99,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 }
 
 // CreatePolicyBinding creates a new policyBinding.
-func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -117,7 +118,7 @@ func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx kapi.Context, policyBind
 }
 
 // UpdatePolicyBinding updates a policyBinding.
-func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -136,7 +137,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBind
 }
 
 // DeletePolicyBinding deletes a policyBinding.
-func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string) error {
+func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx apirequest.Context, id string) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -154,7 +155,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

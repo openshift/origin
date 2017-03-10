@@ -14,6 +14,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -63,7 +64,7 @@ func (r *REST) NewList() runtime.Object {
 
 var _ = rest.Creater(&REST{})
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
@@ -213,7 +214,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	userInfo, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")

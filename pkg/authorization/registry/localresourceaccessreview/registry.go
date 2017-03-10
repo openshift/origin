@@ -3,15 +3,15 @@ package localresourceaccessreview
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type Registry interface {
-	CreateLocalResourceAccessReview(ctx kapi.Context, resourceAccessReview *api.LocalResourceAccessReview) (*api.ResourceAccessReviewResponse, error)
+	CreateLocalResourceAccessReview(ctx apirequest.Context, resourceAccessReview *api.LocalResourceAccessReview) (*api.ResourceAccessReviewResponse, error)
 }
 
 type Storage interface {
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
 }
 
 type storage struct {
@@ -22,7 +22,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) CreateLocalResourceAccessReview(ctx kapi.Context, resourceAccessReview *api.LocalResourceAccessReview) (*api.ResourceAccessReviewResponse, error) {
+func (s *storage) CreateLocalResourceAccessReview(ctx apirequest.Context, resourceAccessReview *api.LocalResourceAccessReview) (*api.ResourceAccessReviewResponse, error) {
 	obj, err := s.Create(ctx, resourceAccessReview)
 	if err != nil {
 		return nil, err

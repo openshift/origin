@@ -7,7 +7,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -22,21 +22,21 @@ func NewDeploymentConfigRegistry() *DeploymentConfigRegistry {
 	return &DeploymentConfigRegistry{}
 }
 
-func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
+func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx apirequest.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfigs, r.Err
 }
 
-func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx kapi.Context, id string) (*api.DeploymentConfig, error) {
+func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx apirequest.Context, id string) (*api.DeploymentConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfig, r.Err
 }
 
-func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx kapi.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context, image *api.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -44,7 +44,7 @@ func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx kapi.Context, imag
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx kapi.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx apirequest.Context, image *api.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -52,13 +52,13 @@ func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx kapi.Context, imag
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kapi.Context, id string) error {
+func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx apirequest.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -19,7 +20,7 @@ type subjectsTest struct {
 	policyRetrievalError  error
 	bindingRetrievalError error
 
-	context    kapi.Context
+	context    apirequest.Context
 	attributes *DefaultAuthorizationAttributes
 
 	expectedUsers  sets.String

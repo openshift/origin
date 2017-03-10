@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -428,7 +429,7 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 	}
 }
 
-func (a *fakeTestAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.Action) (bool, string, error) {
+func (a *fakeTestAuthorizer) Authorize(ctx apirequest.Context, passedAttributes authorizer.Action) (bool, string, error) {
 	a.t.Logf("Authorize: ctx: %#v", ctx)
 	ui, ok := kapi.UserFrom(ctx)
 	if !ok {
@@ -442,7 +443,7 @@ func (a *fakeTestAuthorizer) Authorize(ctx kapi.Context, passedAttributes author
 	return false, "", nil
 }
 
-func (a *fakeTestAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+func (a *fakeTestAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }
 

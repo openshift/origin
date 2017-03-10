@@ -2,6 +2,7 @@ package policybinding
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -12,21 +13,21 @@ import (
 // Registry is an interface for things that know how to store PolicyBindings.
 type Registry interface {
 	// ListPolicyBindings obtains list of policyBindings that match a selector.
-	ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
+	ListPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	// GetPolicyBinding retrieves a specific policyBinding.
-	GetPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.PolicyBinding, error)
+	GetPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.PolicyBinding, error)
 	// CreatePolicyBinding creates a new policyBinding.
-	CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error
+	CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error
 	// UpdatePolicyBinding updates a policyBinding.
-	UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error
+	UpdatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error
 	// DeletePolicyBinding deletes a policyBinding.
-	DeletePolicyBinding(ctx kapi.Context, name string) error
+	DeletePolicyBinding(ctx apirequest.Context, name string) error
 }
 
 type WatchingRegistry interface {
 	Registry
 	// WatchPolicyBindings watches policyBindings.
-	WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
+	WatchPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -45,7 +46,7 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (s *storage) ListPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -54,21 +55,21 @@ func (s *storage) ListPolicyBindings(ctx kapi.Context, options *metainternal.Lis
 	return obj.(*authorizationapi.PolicyBindingList), nil
 }
 
-func (s *storage) CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (s *storage) CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	_, err := s.Create(ctx, policyBinding)
 	return err
 }
 
-func (s *storage) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (s *storage) UpdatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	_, _, err := s.Update(ctx, policyBinding.Name, rest.DefaultUpdatedObjectInfo(policyBinding, kapi.Scheme))
 	return err
 }
 
-func (s *storage) WatchPolicyBindings(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.PolicyBinding, error) {
+func (s *storage) GetPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.PolicyBinding, error) {
 	obj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (s *storage) GetPolicyBinding(ctx kapi.Context, name string) (*authorizatio
 	return obj.(*authorizationapi.PolicyBinding), nil
 }
 
-func (s *storage) DeletePolicyBinding(ctx kapi.Context, name string) error {
+func (s *storage) DeletePolicyBinding(ctx apirequest.Context, name string) error {
 	_, err := s.Delete(ctx, name, nil)
 	return err
 }

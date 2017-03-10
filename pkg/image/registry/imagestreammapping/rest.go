@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -49,7 +50,7 @@ func (r *REST) New() runtime.Object {
 // with a resource conflict, the update will be retried if the newer
 // ImageStream has no tag diffs from the previous state. If tag diffs are
 // detected, the conflict error is returned.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(s.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
-func (s *REST) findStreamForMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*api.ImageStream, error) {
+func (s *REST) findStreamForMapping(ctx apirequest.Context, mapping *api.ImageStreamMapping) (*api.ImageStream, error) {
 	if len(mapping.Name) > 0 {
 		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name)
 	}

@@ -2,6 +2,7 @@ package useridentitymapping
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -11,13 +12,13 @@ import (
 // Registry is an interface implemented by things that know how to store UserIdentityMapping objects.
 type Registry interface {
 	// GetUserIdentityMapping returns a UserIdentityMapping for the named identity
-	GetUserIdentityMapping(ctx kapi.Context, name string) (*api.UserIdentityMapping, error)
+	GetUserIdentityMapping(ctx apirequest.Context, name string) (*api.UserIdentityMapping, error)
 	// CreateUserIdentityMapping associates a user and an identity
-	CreateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	CreateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
 	// UpdateUserIdentityMapping updates an associated user and identity
-	UpdateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	UpdateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
 	// DeleteUserIdentityMapping removes the user association for the named identity
-	DeleteUserIdentityMapping(ctx kapi.Context, name string) error
+	DeleteUserIdentityMapping(ctx apirequest.Context, name string) error
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -26,8 +27,8 @@ type Storage interface {
 	rest.Getter
 	rest.Deleter
 
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -41,7 +42,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetUserIdentityMapping(ctx kapi.Context, name string) (*api.UserIdentityMapping, error) {
+func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string) (*api.UserIdentityMapping, error) {
 	obj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func (s *storage) GetUserIdentityMapping(ctx kapi.Context, name string) (*api.Us
 	return obj.(*api.UserIdentityMapping), nil
 }
 
-func (s *storage) CreateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func (s *storage) CreateUserIdentityMapping(ctx kapi.Context, mapping *api.UserI
 	return obj.(*api.UserIdentityMapping), nil
 }
 
-func (s *storage) UpdateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+func (s *storage) UpdateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
 	obj, _, err := s.Update(ctx, mapping.Name, rest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func (s *storage) UpdateUserIdentityMapping(ctx kapi.Context, mapping *api.UserI
 }
 
 //
-func (s *storage) DeleteUserIdentityMapping(ctx kapi.Context, name string) error {
+func (s *storage) DeleteUserIdentityMapping(ctx apirequest.Context, name string) error {
 	_, err := s.Delete(ctx, name)
 	return err
 }

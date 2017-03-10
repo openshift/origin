@@ -2,6 +2,7 @@ package project
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -25,7 +26,7 @@ func (projectStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (projectStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (projectStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	project := obj.(*api.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
@@ -44,7 +45,7 @@ func (projectStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (projectStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (projectStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newProject := obj.(*api.Project)
 	oldProject := old.(*api.Project)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers
@@ -52,7 +53,7 @@ func (projectStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 }
 
 // Validate validates a new project.
-func (projectStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (projectStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateProject(obj.(*api.Project))
 }
 
@@ -70,6 +71,6 @@ func (projectStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (projectStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (projectStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateProjectUpdate(obj.(*api.Project), old.(*api.Project))
 }

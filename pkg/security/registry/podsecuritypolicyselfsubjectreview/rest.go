@@ -6,6 +6,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
@@ -35,7 +36,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new pspssr instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	pspssr, ok := obj.(*securityapi.PodSecurityPolicySelfSubjectReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySelfSubjectReview: %#v", obj))

@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -71,7 +72,7 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageStreamImport{}
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	isi, ok := obj.(*api.ImageStreamImport)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamImport: %#v", obj))
@@ -366,7 +367,7 @@ func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.T
 // same image), and a failure to persist the image will be summarized before we update the stream. If an image was imported by this
 // operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
-	ctx kapi.Context,
+	ctx apirequest.Context,
 	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now metav1.Time, importPolicy api.TagImportPolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {

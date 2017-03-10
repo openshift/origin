@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -33,7 +34,7 @@ import (
 
 type mockService struct{}
 
-func (mockService) ListServices(kapi.Context) (*kapi.ServiceList, error) {
+func (mockService) ListServices(apirequest.Context) (*kapi.ServiceList, error) {
 	return &kapi.ServiceList{}, nil
 }
 

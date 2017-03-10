@@ -7,6 +7,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -21,7 +22,7 @@ func init() {
 func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), id)
 			},
 		},
@@ -41,10 +42,10 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
 					imageapi.DefaultImageTag,
@@ -75,10 +76,10 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(0), nil
 			},
-			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
 					imageapi.DefaultImageTag,
@@ -113,10 +114,10 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					streamName,
 					imageapi.DefaultImageTag,
@@ -163,10 +164,10 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},
@@ -183,10 +184,10 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), name)
 			},
-			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},

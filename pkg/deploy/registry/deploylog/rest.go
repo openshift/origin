@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -40,7 +41,7 @@ type podGetter struct {
 }
 
 // Get is responsible for retrieving the deployer pod
-func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	namespace, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
@@ -87,7 +88,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Get returns a streamer resource with the contents of the deployment log
-func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	// Ensure we have a namespace in the context
 	namespace, ok := kapi.NamespaceFrom(ctx)
 	if !ok {

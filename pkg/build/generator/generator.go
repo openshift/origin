@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -53,65 +54,65 @@ type BuildGenerator struct {
 
 // GeneratorClient is the API client used by the generator
 type GeneratorClient interface {
-	GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
-	UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
-	CreateBuild(ctx kapi.Context, build *buildapi.Build) error
-	UpdateBuild(ctx kapi.Context, build *buildapi.Build) error
-	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
+	GetBuildConfig(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error)
+	UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
+	GetBuild(ctx apirequest.Context, name string) (*buildapi.Build, error)
+	CreateBuild(ctx apirequest.Context, build *buildapi.Build) error
+	UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error
+	GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
+	GetImageStreamImage(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error)
+	GetImageStreamTag(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
 // Client is an implementation of the GeneratorClient interface
 type Client struct {
-	GetBuildConfigFunc      func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
-	UpdateBuildConfigFunc   func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc            func(ctx kapi.Context, name string) (*buildapi.Build, error)
-	CreateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
-	UpdateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
-	GetImageStreamFunc      func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTagFunc   func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
+	GetBuildConfigFunc      func(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error)
+	UpdateBuildConfigFunc   func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
+	GetBuildFunc            func(ctx apirequest.Context, name string) (*buildapi.Build, error)
+	CreateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
+	UpdateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
+	GetImageStreamFunc      func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
+	GetImageStreamImageFunc func(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error)
+	GetImageStreamTagFunc   func(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
 // GetBuildConfig retrieves a named build config
-func (c Client) GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+func (c Client) GetBuildConfig(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error) {
 	return c.GetBuildConfigFunc(ctx, name)
 }
 
 // UpdateBuildConfig updates a named build config
-func (c Client) UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+func (c Client) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 	return c.UpdateBuildConfigFunc(ctx, buildConfig)
 }
 
 // GetBuild retrieves a build
-func (c Client) GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error) {
+func (c Client) GetBuild(ctx apirequest.Context, name string) (*buildapi.Build, error) {
 	return c.GetBuildFunc(ctx, name)
 }
 
 // CreateBuild creates a new build
-func (c Client) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
+func (c Client) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	return c.CreateBuildFunc(ctx, build)
 }
 
 // UpdateBuild updates a build
-func (c Client) UpdateBuild(ctx kapi.Context, build *buildapi.Build) error {
+func (c Client) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	return c.UpdateBuildFunc(ctx, build)
 }
 
 // GetImageStream retrieves a named image stream
-func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+func (c Client) GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 	return c.GetImageStreamFunc(ctx, name)
 }
 
 // GetImageStreamImage retrieves an image stream image
-func (c Client) GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+func (c Client) GetImageStreamImage(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error) {
 	return c.GetImageStreamImageFunc(ctx, name)
 }
 
 // GetImageStreamTag retrieves and image stream tag
-func (c Client) GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+func (c Client) GetImageStreamTag(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error) {
 	return c.GetImageStreamTagFunc(ctx, name)
 }
 
@@ -244,7 +245,7 @@ func updateBuildArgs(oldArgs *[]kapi.EnvVar, newArgs []kapi.EnvVar) []kapi.EnvVa
 }
 
 // Instantiate returns a new Build object based on a BuildRequest object
-func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+func (g *BuildGenerator) Instantiate(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
 	if err != nil {
@@ -327,7 +328,7 @@ func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion 
 
 // updateImageTriggers sets the LastTriggeredImageID on all the ImageChangeTriggers on the BuildConfig and
 // updates the From reference of the strategy if the strategy uses an ImageStream or ImageStreamTag reference
-func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.BuildConfig, from, triggeredBy *kapi.ObjectReference) error {
+func (g *BuildGenerator) updateImageTriggers(ctx apirequest.Context, bc *buildapi.BuildConfig, from, triggeredBy *kapi.ObjectReference) error {
 	var requestTrigger *buildapi.ImageChangeTrigger
 	if from != nil {
 		requestTrigger = findImageChangeTrigger(bc, from)
@@ -370,7 +371,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.Buil
 }
 
 // Clone returns clone of a Build
-func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+func (g *BuildGenerator) Clone(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
 	build, err := g.Client.GetBuild(ctx, request.Name)
 	if err != nil {
@@ -421,7 +422,7 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 }
 
 // createBuild is responsible for validating build object and saving it and returning newly created object
-func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error) {
+func (g *BuildGenerator) createBuild(ctx apirequest.Context, build *buildapi.Build) (*buildapi.Build, error) {
 	if !kapi.ValidNamespace(ctx, &build.ObjectMeta) {
 		return nil, errors.NewConflict(buildapi.Resource("build"), build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
 	}
@@ -438,7 +439,7 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 // the Strategy, or uses the Image field of the Strategy. If binary is provided, override
 // the current build strategy with a binary artifact for this specific build.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
-func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision, binary *buildapi.BinaryBuildSource) (*buildapi.Build, error) {
+func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision, binary *buildapi.BinaryBuildSource) (*buildapi.Build, error) {
 
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
@@ -504,7 +505,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 }
 
 // setBuildSourceImage set BuildSource Image item for new build
-func (g *BuildGenerator) setBuildSourceImage(ctx kapi.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, Source *buildapi.BuildSource) error {
+func (g *BuildGenerator) setBuildSourceImage(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, Source *buildapi.BuildSource) error {
 	var err error
 
 	strategyImageChangeTrigger := getStrategyImageChangeTrigger(bcCopy)
@@ -544,7 +545,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx kapi.Context, builderSecrets []
 }
 
 // setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStragety for new builds
-func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx kapi.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
+func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
 	var err error
 	var image string
 
@@ -625,7 +626,7 @@ func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx kapi.Cont
 
 // resolveImageStreamReference looks up the ImageStream[Tag/Image] and converts it to a
 // docker pull spec that can be used in an Image field.
-func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi.ObjectReference, defaultNamespace string) (string, error) {
+func (g *BuildGenerator) resolveImageStreamReference(ctx apirequest.Context, from kapi.ObjectReference, defaultNamespace string) (string, error) {
 	var namespace string
 	if len(from.Namespace) != 0 {
 		namespace = from.Namespace
@@ -687,7 +688,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi
 
 // resolveImageStreamDockerRepository looks up the ImageStream[Tag/Image] and converts it to a
 // the docker repository reference with no tag information
-func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, from kapi.ObjectReference, defaultNamespace string) (string, error) {
+func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Context, from kapi.ObjectReference, defaultNamespace string) (string, error) {
 	namespace := defaultNamespace
 	if len(from.Namespace) > 0 {
 		namespace = from.Namespace
@@ -729,7 +730,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx kapi.Context, fr
 
 // resolveImageSecret looks up the Secrets provided by the Service Account and
 // attempt to find a best match for given image.
-func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Secret, imageRef *kapi.ObjectReference, buildNamespace string) *kapi.LocalObjectReference {
+func (g *BuildGenerator) resolveImageSecret(ctx apirequest.Context, secrets []kapi.Secret, imageRef *kapi.ObjectReference, buildNamespace string) *kapi.LocalObjectReference {
 	if len(secrets) == 0 || imageRef == nil {
 		return nil
 	}

@@ -11,6 +11,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -24,7 +25,7 @@ import (
 
 type testPodGetter struct{}
 
-func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (p *testPodGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "pending-build":
@@ -43,7 +44,7 @@ func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, erro
 
 type fakeConnectionInfoGetter struct{}
 
-func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx apirequest.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
 	rt, err := kubeletclient.MakeTransport(&kubeletclient.KubeletClientConfig{})
 	if err != nil {
 		return nil, err
@@ -199,11 +200,11 @@ type buildWatcher struct {
 	Err     error
 }
 
-func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *buildWatcher) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	return r.Build, nil
 }
 
-func (r *buildWatcher) Watch(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *buildWatcher) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return r.Watcher, r.Err
 }
 
@@ -219,7 +220,7 @@ func (w *fakeWatch) ResultChan() <-chan watch.Event {
 	return w.Channel
 }
 
-func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi.Context, version int) (string, error) {
+func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx apirequest.Context, version int) (string, error) {
 	expectedBuild := mockBuild(BuildPhase, podPhase, version)
 	internal := &test.BuildStorage{Build: expectedBuild}
 
@@ -284,7 +285,7 @@ func mockBuild(status api.BuildPhase, podName string, version int) *api.Build {
 
 type anotherTestPodGetter struct{}
 
-func (p *anotherTestPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (p *anotherTestPodGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "bc-1-build":

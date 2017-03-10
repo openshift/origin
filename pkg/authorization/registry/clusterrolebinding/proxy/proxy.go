@@ -4,8 +4,8 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -50,7 +50,7 @@ func (s *ClusterRoleBindingStorage) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleBindingList{}
 }
 
-func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (s *ClusterRoleBindingStorage) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	ret, err := s.roleBindingStorage.List(ctx, options)
 	if ret == nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (s *ClusterRoleBindingStorage) List(ctx kapi.Context, options *metainternal
 	return authorizationapi.ToClusterRoleBindingList(ret.(*authorizationapi.RoleBindingList)), err
 }
 
-func (s *ClusterRoleBindingStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (s *ClusterRoleBindingStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	ret, err := s.roleBindingStorage.Get(ctx, name)
 	if ret == nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (s *ClusterRoleBindingStorage) Get(ctx kapi.Context, name string) (runtime.
 
 	return authorizationapi.ToClusterRoleBinding(ret.(*authorizationapi.RoleBinding)), err
 }
-func (s *ClusterRoleBindingStorage) Delete(ctx kapi.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
+func (s *ClusterRoleBindingStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
 	ret, err := s.roleBindingStorage.Delete(ctx, name, options)
 	if ret == nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *ClusterRoleBindingStorage) Delete(ctx kapi.Context, name string, option
 	return ret.(*metav1.Status), err
 }
 
-func (s *ClusterRoleBindingStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *ClusterRoleBindingStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	clusterObj := obj.(*authorizationapi.ClusterRoleBinding)
 	convertedObj := authorizationapi.ToRoleBinding(clusterObj)
 
@@ -91,7 +91,7 @@ type convertingObjectInfo struct {
 	rest.UpdatedObjectInfo
 }
 
-func (i convertingObjectInfo) UpdatedObject(ctx kapi.Context, old runtime.Object) (runtime.Object, error) {
+func (i convertingObjectInfo) UpdatedObject(ctx apirequest.Context, old runtime.Object) (runtime.Object, error) {
 	oldObj := old.(*authorizationapi.RoleBinding)
 	convertedOldObj := authorizationapi.ToClusterRoleBinding(oldObj)
 	obj, err := i.UpdatedObjectInfo.UpdatedObject(ctx, convertedOldObj)
@@ -103,7 +103,7 @@ func (i convertingObjectInfo) UpdatedObject(ctx kapi.Context, old runtime.Object
 	return convertedObj, nil
 }
 
-func (s *ClusterRoleBindingStorage) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *ClusterRoleBindingStorage) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	ret, created, err := s.roleBindingStorage.Update(ctx, name, convertingObjectInfo{objInfo})
 	if ret == nil {
 		return nil, created, err
@@ -112,13 +112,13 @@ func (s *ClusterRoleBindingStorage) Update(ctx kapi.Context, name string, objInf
 	return authorizationapi.ToClusterRoleBinding(ret.(*authorizationapi.RoleBinding)), created, err
 }
 
-func (m *ClusterRoleBindingStorage) CreateClusterRoleBindingWithEscalation(ctx kapi.Context, obj *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error) {
+func (m *ClusterRoleBindingStorage) CreateClusterRoleBindingWithEscalation(ctx apirequest.Context, obj *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error) {
 	in := authorizationapi.ToRoleBinding(obj)
 	ret, err := m.roleBindingStorage.CreateRoleBindingWithEscalation(ctx, in)
 	return authorizationapi.ToClusterRoleBinding(ret), err
 }
 
-func (m *ClusterRoleBindingStorage) UpdateClusterRoleBindingWithEscalation(ctx kapi.Context, obj *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, bool, error) {
+func (m *ClusterRoleBindingStorage) UpdateClusterRoleBindingWithEscalation(ctx apirequest.Context, obj *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, bool, error) {
 	in := authorizationapi.ToRoleBinding(obj)
 	ret, created, err := m.roleBindingStorage.UpdateRoleBindingWithEscalation(ctx, in)
 	return authorizationapi.ToClusterRoleBinding(ret), created, err

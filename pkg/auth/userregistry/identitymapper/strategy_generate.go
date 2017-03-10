@@ -6,7 +6,7 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -43,7 +43,7 @@ func NewStrategyGenerate(user userregistry.Registry, initializer user.Initialize
 	return &StrategyGenerate{user, DefaultGenerator, initializer}
 }
 
-func (s *StrategyGenerate) UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyGenerate) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	// Iterate through the max allowed generated usernames
 	// If an existing user references this identity, associate the identity with that user and return

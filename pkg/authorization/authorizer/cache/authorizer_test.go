@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -20,7 +21,7 @@ func TestAuthorizer(t *testing.T) {
 
 func TestCacheKey(t *testing.T) {
 	tests := map[string]struct {
-		Context kapi.Context
+		Context apirequest.Context
 		Attrs   authorizer.Action
 
 		ExpectedKey string

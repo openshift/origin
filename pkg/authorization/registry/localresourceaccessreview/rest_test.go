@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -27,7 +28,7 @@ type testAuthorizer struct {
 	actualAttributes authorizer.DefaultAuthorizationAttributes
 }
 
-func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(ctx apirequest.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
 		return true, "", nil
@@ -35,7 +36,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Actio
 
 	return false, "", errors.New("Unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx apirequest.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
 	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")

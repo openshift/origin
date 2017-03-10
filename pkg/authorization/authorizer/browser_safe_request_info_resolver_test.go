@@ -54,7 +54,7 @@ func TestUpstreamInfoResolver(t *testing.T) {
 func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 	testcases := map[string]struct {
 		RequestInfo request.RequestInfo
-		Context     kapi.Context
+		Context     apirequest.Context
 		Host        string
 		Headers     http.Header
 
@@ -128,13 +128,13 @@ func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 }
 
 type testContextMapper struct {
-	context kapi.Context
+	context apirequest.Context
 }
 
-func (t *testContextMapper) Get(req *http.Request) (kapi.Context, bool) {
+func (t *testContextMapper) Get(req *http.Request) (apirequest.Context, bool) {
 	return t.context, t.context != nil
 }
-func (t *testContextMapper) Update(req *http.Request, ctx kapi.Context) error {
+func (t *testContextMapper) Update(req *http.Request, ctx apirequest.Context) error {
 	return nil
 }
 

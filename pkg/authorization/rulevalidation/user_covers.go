@@ -9,12 +9,13 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 )
 
-func ConfirmNoEscalation(ctx kapi.Context, resource schema.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
+func ConfirmNoEscalation(ctx apirequest.Context, resource schema.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	var ruleResolutionErrors []error
 
 	user, ok := kapi.UserFrom(ctx)

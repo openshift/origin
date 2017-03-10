@@ -7,6 +7,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,7 +31,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	subjectAccessReview, ok := obj.(*authorizationapi.SubjectAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
@@ -112,7 +113,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // isAllowed checks to see if the current user has rights to issue a LocalSubjectAccessReview on the namespace they're attempting to access
-func (r *REST) isAllowed(ctx kapi.Context, sar *authorizationapi.SubjectAccessReview) error {
+func (r *REST) isAllowed(ctx apirequest.Context, sar *authorizationapi.SubjectAccessReview) error {
 	localSARAttributes := authorizer.DefaultAuthorizationAttributes{
 		Verb:              "create",
 		Resource:          "localsubjectaccessreviews",

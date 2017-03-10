@@ -3,7 +3,7 @@ package test
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -33,7 +33,7 @@ func NewUserRegistry() *UserRegistry {
 	}
 }
 
-func (r *UserRegistry) GetUser(ctx kapi.Context, name string) (*api.User, error) {
+func (r *UserRegistry) GetUser(ctx apirequest.Context, name string) (*api.User, error) {
 	*r.Actions = append(*r.Actions, Action{"GetUser", name})
 	if user, ok := r.Get[name]; ok {
 		return user, nil
@@ -44,7 +44,7 @@ func (r *UserRegistry) GetUser(ctx kapi.Context, name string) (*api.User, error)
 	return nil, kerrs.NewNotFound(api.Resource("user"), name)
 }
 
-func (r *UserRegistry) CreateUser(ctx kapi.Context, u *api.User) (*api.User, error) {
+func (r *UserRegistry) CreateUser(ctx apirequest.Context, u *api.User) (*api.User, error) {
 	*r.Actions = append(*r.Actions, Action{"CreateUser", u})
 	if r.Create == nil && r.CreateErr == nil {
 		return u, nil
@@ -52,7 +52,7 @@ func (r *UserRegistry) CreateUser(ctx kapi.Context, u *api.User) (*api.User, err
 	return r.Create, r.CreateErr
 }
 
-func (r *UserRegistry) UpdateUser(ctx kapi.Context, u *api.User) (*api.User, error) {
+func (r *UserRegistry) UpdateUser(ctx apirequest.Context, u *api.User) (*api.User, error) {
 	*r.Actions = append(*r.Actions, Action{"UpdateUser", u})
 	err, _ := r.UpdateErr[u.Name]
 	if r.Update == nil && err == nil {
@@ -61,7 +61,7 @@ func (r *UserRegistry) UpdateUser(ctx kapi.Context, u *api.User) (*api.User, err
 	return r.Update, err
 }
 
-func (r *UserRegistry) ListUsers(ctx kapi.Context, options *metainternal.ListOptions) (*api.UserList, error) {
+func (r *UserRegistry) ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error) {
 	*r.Actions = append(*r.Actions, Action{"ListUsers", options})
 	if r.List == nil && r.ListErr == nil {
 		return &api.UserList{}, nil

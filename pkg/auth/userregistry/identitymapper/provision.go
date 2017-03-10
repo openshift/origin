@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -18,7 +19,7 @@ import (
 // The preferredUserName is available to the strategies
 type UserForNewIdentityGetter interface {
 	// UserForNewIdentity returns a persisted User object for the given Identity, creating it if needed
-	UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error)
+	UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error)
 }
 
 var _ = authapi.UserIdentityMapper(&provisioningIdentityMapper{})
@@ -73,7 +74,7 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 }
 
 // createIdentityAndMapping creates an identity with a valid user reference for the given identity info
-func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, info authapi.UserIdentityInfo) (kuser.Info, error) {
+func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Context, info authapi.UserIdentityInfo) (kuser.Info, error) {
 	// Build the part of the identity we know about
 	identity := &userapi.Identity{
 		ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +107,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 	}, nil
 }
 
-func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *userapi.Identity) (kuser.Info, error) {
+func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity *userapi.Identity) (kuser.Info, error) {
 	if len(identity.User.Name) == 0 {
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}

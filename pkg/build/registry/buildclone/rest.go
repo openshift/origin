@@ -2,8 +2,8 @@ package buildclone
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/generator"
@@ -26,7 +26,7 @@ func (s *CloneREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from an existing build
-func (s *CloneREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *CloneREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}

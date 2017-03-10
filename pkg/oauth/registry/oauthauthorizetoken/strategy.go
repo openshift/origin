@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -31,7 +32,7 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -42,7 +43,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -50,7 +51,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new token
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	token := obj.(*api.OAuthAuthorizeToken)
 	validationErrors := validation.ValidateAuthorizeToken(token)
 
@@ -66,7 +67,7 @@ func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 }
 
 // ValidateUpdate validates an update
-func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	oldToken := old.(*api.OAuthAuthorizeToken)
 	newToken := obj.(*api.OAuthAuthorizeToken)
 	return validation.ValidateAuthorizeTokenUpdate(newToken, oldToken)

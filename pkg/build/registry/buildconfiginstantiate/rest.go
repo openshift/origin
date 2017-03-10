@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -49,7 +50,7 @@ func (s *InstantiateREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from a build configuration
-func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *InstantiateREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func (s *BinaryInstantiateREST) New() runtime.Object {
 }
 
 // Connect returns a ConnectHandler that will handle the request/response for a request
-func (r *BinaryInstantiateREST) Connect(ctx kapi.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+func (r *BinaryInstantiateREST) Connect(ctx apirequest.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	return &binaryInstantiateHandler{
 		r:         r,
 		responder: responder,
@@ -115,7 +116,7 @@ type binaryInstantiateHandler struct {
 	r *BinaryInstantiateREST
 
 	responder rest.Responder
-	ctx       kapi.Context
+	ctx       apirequest.Context
 	name      string
 	options   *buildapi.BinaryBuildRequestOptions
 }
@@ -272,7 +273,7 @@ type podGetter struct {
 	podsNamespacer kcoreclient.PodsGetter
 }
 
-func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	ns, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")

@@ -2,7 +2,7 @@ package restrictusers
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	watch "k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -13,21 +13,21 @@ type groupCache struct {
 }
 
 // GroupCache uses only ListGroups and WatchGroups.  Other methods can be stubs.
-func (groupCache *groupCache) ListGroups(ctx kapi.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
+func (groupCache *groupCache) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	return &userapi.GroupList{Items: groupCache.groups}, nil
 }
-func (groupCache *groupCache) GetGroup(ctx kapi.Context, name string) (*userapi.Group, error) {
+func (groupCache *groupCache) GetGroup(ctx apirequest.Context, name string) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) CreateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+func (*groupCache) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) UpdateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+func (*groupCache) UpdateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	return nil, nil
 }
-func (*groupCache) DeleteGroup(ctx kapi.Context, name string) error {
+func (*groupCache) DeleteGroup(ctx apirequest.Context, name string) error {
 	return nil
 }
-func (*groupCache) WatchGroups(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (*groupCache) WatchGroups(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return watch.NewFake(), nil
 }

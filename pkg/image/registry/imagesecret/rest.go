@@ -5,6 +5,7 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -31,7 +32,7 @@ func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
 
 // Get retrieves all pull type secrets in the current namespace. Name is currently ignored and
 // reserved for future use.
-func (r *REST) Get(ctx kapi.Context, _ string, options runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, _ string, options runtime.Object) (runtime.Object, error) {
 	listOptions, ok := options.(*metainternal.ListOptions)
 	if !ok {
 		return nil, fmt.Errorf("unexpected options: %v", listOptions)

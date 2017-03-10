@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -27,7 +28,7 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -41,7 +42,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -51,7 +52,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	auth := obj.(*api.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorization(auth)
 
@@ -67,7 +68,7 @@ func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 }
 
 // ValidateUpdate validates a client auth update
-func (s strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+func (s strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	clientAuth := obj.(*api.OAuthClientAuthorization)
 	oldClientAuth := old.(*api.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorizationUpdate(clientAuth, oldClientAuth)

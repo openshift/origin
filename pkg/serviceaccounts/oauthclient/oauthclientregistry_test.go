@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -582,7 +583,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) GetClient(ctx kapi.Context, name string) (*oauthapi.OAuthClient, error) {
+func (d *fakeDelegate) GetClient(ctx apirequest.Context, name string) (*oauthapi.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }

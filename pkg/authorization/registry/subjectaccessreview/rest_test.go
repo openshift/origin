@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -33,7 +34,7 @@ type testAuthorizer struct {
 	actualUserInfo   user.Info
 }
 
-func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.Action) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(ctx apirequest.Context, passedAttributes authorizer.Action) (allowed bool, reason string, err error) {
 	a.actualUserInfo, _ = kapi.UserFrom(ctx)
 
 	// allow the initial check for "can I run this SAR at all"
@@ -57,7 +58,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer
 	}
 	return a.allowed, a.reason, errors.New(a.err)
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx apirequest.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
 	return sets.String{}, sets.String{}, nil
 }
 

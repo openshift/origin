@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
@@ -1044,7 +1045,7 @@ type clientDeploymentInterface struct {
 }
 
 // GetDeployment returns the deployment with the provided context and name
-func (c clientDeploymentInterface) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 	return c.KubeClient.Core().ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
 }
 

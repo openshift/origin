@@ -5,6 +5,7 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,7 +31,7 @@ func NewAuthorizer(client RemoteAuthorizerClient) (authorizer.Authorizer, error)
 	return &RemoteAuthorizer{client}, nil
 }
 
-func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (bool, string, error) {
+func (r *RemoteAuthorizer) Authorize(ctx apirequest.Context, a authorizer.Action) (bool, string, error) {
 	var (
 		result *authzapi.SubjectAccessReviewResponse
 		err    error
@@ -70,7 +71,7 @@ func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (boo
 	return result.Allowed, result.Reason, nil
 }
 
-func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+func (r *RemoteAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	var (
 		result *authzapi.ResourceAccessReviewResponse
 		err    error

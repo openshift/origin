@@ -8,6 +8,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -66,7 +67,7 @@ func (*REST) NewList() runtime.Object {
 var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
@@ -83,7 +84,7 @@ func (s *REST) List(ctx kapi.Context, options *metainternal.ListOptions) (runtim
 	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
-func (s *REST) Watch(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("Context is nil")
 	}
@@ -109,7 +110,7 @@ func (s *REST) Watch(ctx kapi.Context, options *metainternal.ListOptions) (watch
 var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
-func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (s *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	namespace, err := s.client.Get(name)
 	if err != nil {
 		return nil, err
@@ -120,7 +121,7 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	project, ok := obj.(*api.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
@@ -139,7 +140,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	oldObj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, false, err
@@ -171,7 +172,7 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 var _ = rest.Deleter(&REST{})
 
 // Delete deletes a Project specified by its name
-func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
+func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
 	return &metav1.Status{Status: metav1.StatusSuccess}, s.client.Delete(name, nil)
 }
 

@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/client"
@@ -32,7 +32,7 @@ type WebHook struct {
 }
 
 // ServeHTTP implements rest.HookHandler
-func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx kapi.Context, name, subpath string) error {
+func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
 	parts := strings.Split(subpath, "/")
 	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))

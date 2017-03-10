@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 
@@ -21,7 +22,7 @@ type AdapterAttributes struct {
 
 // OriginAuthorizerAttributes adapts Kubernetes authorization attributes to Origin authorization attributes
 // Note that some info (like resourceName, apiVersion, apiGroup) is not available from the Kubernetes attributes
-func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oauthorizer.Action) {
+func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (apirequest.Context, oauthorizer.Action) {
 	// Build a context to hold the namespace and user info
 	ctx := kapi.NewContext()
 	ctx = kapi.WithNamespace(ctx, kattrs.GetNamespace())

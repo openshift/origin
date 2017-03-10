@@ -196,7 +196,7 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 }
 
 // FindExistingContextName finds the nickname for the passed context
-func FindExistingContextName(haystack clientcmdapi.Config, needle clientcmdapi.Context) string {
+func FindExistingContextName(haystack clientcmdapi.Config, needle clientcmdapirequest.Context) string {
 	for key, context := range haystack.Contexts {
 		context.LocationOfOrigin = ""
 		if reflect.DeepEqual(context, needle) {

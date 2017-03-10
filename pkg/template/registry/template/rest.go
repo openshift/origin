@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -34,7 +34,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create processes a Template and creates a new list of objects
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.NewBadRequest("not a template")

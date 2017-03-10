@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -44,7 +45,7 @@ type fakeSubjectAccessReviewRegistry struct {
 
 var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	return nil, nil
 }
 
@@ -590,19 +591,19 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 	rest := &REST{
 		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
-			createImage: func(ctx kapi.Context, image *api.Image) error {
+			createImage: func(ctx apirequest.Context, image *api.Image) error {
 				return nil
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx kapi.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
 				return validImageStream(), nil
 			},
-			listImageStreams: func(ctx kapi.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
+			listImageStreams: func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
 				s := validImageStream()
 				return &api.ImageStreamList{Items: []api.ImageStream{*s}}, nil
 			},
-			updateImageStreamStatus: func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+			updateImageStreamStatus: func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 				return nil, errors.NewServiceUnavailable("unrecoverable error")
 			},
 		},
@@ -624,12 +625,12 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 	rest := &REST{
 		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
-			createImage: func(ctx kapi.Context, image *api.Image) error {
+			createImage: func(ctx apirequest.Context, image *api.Image) error {
 				return nil
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx kapi.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
 				stream := validImageStream()
 				stream.Status = api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
@@ -638,7 +639,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 				}
 				return stream, nil
 			},
-			updateImageStreamStatus: func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+			updateImageStreamStatus: func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 				// For the first update call, return a conflict to cause a retry of an
 				// image stream whose tags haven't changed.
 				if firstUpdate {
@@ -667,12 +668,12 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 	rest := &REST{
 		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
-			createImage: func(ctx kapi.Context, image *api.Image) error {
+			createImage: func(ctx apirequest.Context, image *api.Image) error {
 				return nil
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx kapi.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
 				// For the first get, return a stream with a latest tag pointing to "original"
 				if firstGet {
 					firstGet = false
@@ -693,7 +694,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 				}
 				return stream, nil
 			},
-			updateImageStreamStatus: func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+			updateImageStreamStatus: func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 				// For the first update, return a conflict so that the stream
 				// get/compare is retried.
 				if firstUpdate {
@@ -717,65 +718,65 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 }
 
 type fakeImageRegistry struct {
-	listImages  func(ctx kapi.Context, options *metainternal.ListOptions) (*api.ImageList, error)
-	getImage    func(ctx kapi.Context, id string) (*api.Image, error)
-	createImage func(ctx kapi.Context, image *api.Image) error
-	deleteImage func(ctx kapi.Context, id string) error
-	watchImages func(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
-	updateImage func(ctx kapi.Context, image *api.Image) (*api.Image, error)
+	listImages  func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error)
+	getImage    func(ctx apirequest.Context, id string) (*api.Image, error)
+	createImage func(ctx apirequest.Context, image *api.Image) error
+	deleteImage func(ctx apirequest.Context, id string) error
+	watchImages func(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
+	updateImage func(ctx apirequest.Context, image *api.Image) (*api.Image, error)
 }
 
-func (f *fakeImageRegistry) ListImages(ctx kapi.Context, options *metainternal.ListOptions) (*api.ImageList, error) {
+func (f *fakeImageRegistry) ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error) {
 	return f.listImages(ctx, options)
 }
-func (f *fakeImageRegistry) GetImage(ctx kapi.Context, id string) (*api.Image, error) {
+func (f *fakeImageRegistry) GetImage(ctx apirequest.Context, id string) (*api.Image, error) {
 	return f.getImage(ctx, id)
 }
-func (f *fakeImageRegistry) CreateImage(ctx kapi.Context, image *api.Image) error {
+func (f *fakeImageRegistry) CreateImage(ctx apirequest.Context, image *api.Image) error {
 	return f.createImage(ctx, image)
 }
-func (f *fakeImageRegistry) DeleteImage(ctx kapi.Context, id string) error {
+func (f *fakeImageRegistry) DeleteImage(ctx apirequest.Context, id string) error {
 	return f.deleteImage(ctx, id)
 }
-func (f *fakeImageRegistry) WatchImages(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (f *fakeImageRegistry) WatchImages(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return f.watchImages(ctx, options)
 }
-func (f *fakeImageRegistry) UpdateImage(ctx kapi.Context, image *api.Image) (*api.Image, error) {
+func (f *fakeImageRegistry) UpdateImage(ctx apirequest.Context, image *api.Image) (*api.Image, error) {
 	return f.updateImage(ctx, image)
 }
 
 type fakeImageStreamRegistry struct {
-	listImageStreams        func(ctx kapi.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error)
-	getImageStream          func(ctx kapi.Context, id string) (*api.ImageStream, error)
-	createImageStream       func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	updateImageStream       func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	updateImageStreamSpec   func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	updateImageStreamStatus func(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	deleteImageStream       func(ctx kapi.Context, id string) (*metav1.Status, error)
-	watchImageStreams       func(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
+	listImageStreams        func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error)
+	getImageStream          func(ctx apirequest.Context, id string) (*api.ImageStream, error)
+	createImageStream       func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	updateImageStream       func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	updateImageStreamSpec   func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	updateImageStreamStatus func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	deleteImageStream       func(ctx apirequest.Context, id string) (*metav1.Status, error)
+	watchImageStreams       func(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
-func (f *fakeImageStreamRegistry) ListImageStreams(ctx kapi.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
+func (f *fakeImageStreamRegistry) ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
 	return f.listImageStreams(ctx, options)
 }
-func (f *fakeImageStreamRegistry) GetImageStream(ctx kapi.Context, id string) (*api.ImageStream, error) {
+func (f *fakeImageStreamRegistry) GetImageStream(ctx apirequest.Context, id string) (*api.ImageStream, error) {
 	return f.getImageStream(ctx, id)
 }
-func (f *fakeImageStreamRegistry) CreateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+func (f *fakeImageStreamRegistry) CreateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.createImageStream(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.updateImageStream(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStreamSpec(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStreamSpec(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.updateImageStreamSpec(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error) {
+func (f *fakeImageStreamRegistry) UpdateImageStreamStatus(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.updateImageStreamStatus(ctx, repo)
 }
-func (f *fakeImageStreamRegistry) DeleteImageStream(ctx kapi.Context, id string) (*metav1.Status, error) {
+func (f *fakeImageStreamRegistry) DeleteImageStream(ctx apirequest.Context, id string) (*metav1.Status, error) {
 	return f.deleteImageStream(ctx, id)
 }
-func (f *fakeImageStreamRegistry) WatchImageStreams(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (f *fakeImageStreamRegistry) WatchImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return f.watchImageStreams(ctx, options)
 }

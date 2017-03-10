@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -23,7 +24,7 @@ type DeploymentConfigGenerator struct {
 
 // Generate returns a potential future DeploymentConfig based on the DeploymentConfig specified
 // by namespace and name. Returns a RESTful error.
-func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+func (g *DeploymentConfigGenerator) Generate(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 	config, err := g.Client.GetDeploymentConfig(ctx, name)
 	if err != nil {
 		return nil, err
@@ -130,27 +131,27 @@ func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.Deployment
 }
 
 type GeneratorClient interface {
-	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
+	GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
+	GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
 	// LEGACY: used, to scan all repositories for a DockerImageReference.  Will be removed
 	// when we drop support for reference by DockerImageReference.
-	ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error)
+	ListImageStreams(ctx apirequest.Context) (*imageapi.ImageStreamList, error)
 }
 
 type Client struct {
-	DCFn   func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-	ISFn   func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	LISFn  func(ctx kapi.Context) (*imageapi.ImageStreamList, error)
-	LISFn2 func(ctx kapi.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error)
+	DCFn   func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
+	ISFn   func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
+	LISFn  func(ctx apirequest.Context) (*imageapi.ImageStreamList, error)
+	LISFn2 func(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error)
 }
 
-func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 	return c.DCFn(ctx, name)
 }
-func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+func (c Client) GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 	return c.ISFn(ctx, name)
 }
-func (c Client) ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
+func (c Client) ListImageStreams(ctx apirequest.Context) (*imageapi.ImageStreamList, error) {
 	if c.LISFn2 != nil {
 		return c.LISFn2(ctx, &metainternal.ListOptions{})
 	}

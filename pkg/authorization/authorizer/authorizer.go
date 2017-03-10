@@ -6,6 +6,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -20,7 +21,7 @@ func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbid
 	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
 }
 
-func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Action) (bool, string, error) {
+func (a *openshiftAuthorizer) Authorize(ctx apirequest.Context, passedAttributes Action) (bool, string, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	user, ok := kapi.UserFrom(ctx)
@@ -49,7 +50,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Actio
 // If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
 // This is done because policy rules are purely additive and policy determinations
 // can be made on the basis of those rules that are found.
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Action) (sets.String, sets.String, error) {
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes Action) (sets.String, sets.String, error) {
 	namespace, _ := kapi.NamespaceFrom(ctx)
 	return a.getAllowedSubjectsFromNamespaceBindings(namespace, attributes)
 }

@@ -5,7 +5,7 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -19,33 +19,33 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx kapi.Context, options *metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx apirequest.Context, options *metainternal.ListOptions) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err
 }
 
-func (r *BuildRegistry) GetBuild(ctx kapi.Context, id string) (*buildapi.Build, error) {
+func (r *BuildRegistry) GetBuild(ctx apirequest.Context, id string) (*buildapi.Build, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Build, r.Err
 }
 
-func (r *BuildRegistry) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
+func (r *BuildRegistry) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	r.Lock()
 	defer r.Unlock()
 	r.Build = build
 	return r.Err
 }
 
-func (r *BuildRegistry) UpdateBuild(ctx kapi.Context, build *buildapi.Build) error {
+func (r *BuildRegistry) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	r.Lock()
 	defer r.Unlock()
 	r.Build = build
 	return r.Err
 }
 
-func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
+func (r *BuildRegistry) DeleteBuild(ctx apirequest.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.DeletedBuildID = id
@@ -53,7 +53,7 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }
 
@@ -64,7 +64,7 @@ type BuildStorage struct {
 	sync.Mutex
 }
 
-func (r *BuildStorage) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+func (r *BuildStorage) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
 	// TODO: Use the list of builds in all of the rest registry calls
@@ -88,7 +88,7 @@ func (r *BuildStorageWithOptions) NewGetOptions() (runtime.Object, bool, string)
 	return nil, false, ""
 }
 
-func (r *BuildStorageWithOptions) Get(ctx kapi.Context, id string, opts runtime.Object) (runtime.Object, error) {
+func (r *BuildStorageWithOptions) Get(ctx apirequest.Context, id string, opts runtime.Object) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Build, r.Err

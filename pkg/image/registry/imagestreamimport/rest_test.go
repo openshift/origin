@@ -5,6 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -16,7 +17,7 @@ func (_ fakeImageCreater) New() runtime.Object {
 	return nil
 }
 
-func (_ fakeImageCreater) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	return obj, nil
 }
 

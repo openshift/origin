@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -48,7 +49,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 }
 
 // Get retrieves the item from etcd.
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
 		user, ok := kapi.UserFrom(ctx)

@@ -6,12 +6,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type Authorizer interface {
-	Authorize(ctx kapi.Context, a Action) (allowed bool, reason string, err error)
-	GetAllowedSubjects(ctx kapi.Context, attributes Action) (sets.String, sets.String, error)
+	Authorize(ctx apirequest.Context, a Action) (allowed bool, reason string, err error)
+	GetAllowedSubjects(ctx apirequest.Context, attributes Action) (sets.String, sets.String, error)
 }
 
 type AuthorizationAttributeBuilder interface {

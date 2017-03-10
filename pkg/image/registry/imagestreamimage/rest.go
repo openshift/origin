@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -42,7 +43,7 @@ func parseNameAndID(input string) (name string, id string, err error) {
 
 // Get retrieves an image by ID that has previously been tagged into an image stream.
 // `id` is of the form <repo name>@<image id>.
-func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 	name, imageID, err := parseNameAndID(id)
 	if err != nil {
 		return nil, err

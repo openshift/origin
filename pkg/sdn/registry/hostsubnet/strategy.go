@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -23,7 +24,7 @@ type sdnStrategy struct {
 // objects via the REST API.
 var Strategy = sdnStrategy{kapi.Scheme}
 
-func (sdnStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (sdnStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // Canonicalize normalizes the object after validation.
 func (sdnStrategy) Canonicalize(obj runtime.Object) {
@@ -38,11 +39,11 @@ func (sdnStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (sdnStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (sdnStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new sdn
-func (sdnStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (sdnStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateHostSubnet(obj.(*api.HostSubnet))
 }
 
@@ -56,7 +57,7 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for a HostSubnet
-func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (sdnStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateHostSubnetUpdate(obj.(*api.HostSubnet), old.(*api.HostSubnet))
 }
 

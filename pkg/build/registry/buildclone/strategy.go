@@ -2,6 +2,7 @@ package buildclone
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -28,11 +29,11 @@ func (s strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new role.
-func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return buildvalidation.ValidateBuildRequest(obj.(*buildapi.BuildRequest))
 }
 

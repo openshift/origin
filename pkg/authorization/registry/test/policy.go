@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -47,7 +48,7 @@ func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
 }
 
 // ListPolicies obtains a list of policies that match a selector.
-func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
+func (r *PolicyRegistry) ListPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -77,7 +78,7 @@ func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, options *metainternal.Li
 }
 
 // GetPolicy retrieves a specific policy.
-func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationapi.Policy, error) {
+func (r *PolicyRegistry) GetPolicy(ctx apirequest.Context, id string) (*authorizationapi.Policy, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -97,7 +98,7 @@ func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationa
 }
 
 // CreatePolicy creates a new policy.
-func (r *PolicyRegistry) CreatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error {
+func (r *PolicyRegistry) CreatePolicy(ctx apirequest.Context, policy *authorizationapi.Policy) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -116,7 +117,7 @@ func (r *PolicyRegistry) CreatePolicy(ctx kapi.Context, policy *authorizationapi
 }
 
 // UpdatePolicy updates a policy.
-func (r *PolicyRegistry) UpdatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error {
+func (r *PolicyRegistry) UpdatePolicy(ctx apirequest.Context, policy *authorizationapi.Policy) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -135,7 +136,7 @@ func (r *PolicyRegistry) UpdatePolicy(ctx kapi.Context, policy *authorizationapi
 }
 
 // DeletePolicy deletes a policy.
-func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
+func (r *PolicyRegistry) DeletePolicy(ctx apirequest.Context, id string) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -153,7 +154,7 @@ func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *PolicyRegistry) WatchPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

@@ -6,6 +6,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -38,7 +39,7 @@ func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolic
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
-func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -68,7 +69,7 @@ func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *m
 }
 
 // GetClusterPolicy retrieves a specific policy.
-func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx kapi.Context, id string) (*authorizationapi.ClusterPolicy, error) {
+func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx apirequest.Context, id string) (*authorizationapi.ClusterPolicy, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -88,7 +89,7 @@ func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx kapi.Context, id string) (*
 }
 
 // CreateClusterPolicy creates a new policy.
-func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx apirequest.Context, policy *authorizationapi.ClusterPolicy) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -107,7 +108,7 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *au
 }
 
 // UpdateClusterPolicy updates a policy.
-func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx apirequest.Context, policy *authorizationapi.ClusterPolicy) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -126,7 +127,7 @@ func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx kapi.Context, policy *au
 }
 
 // DeleteClusterPolicy deletes a policy.
-func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string) error {
+func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx apirequest.Context, id string) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -144,7 +145,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

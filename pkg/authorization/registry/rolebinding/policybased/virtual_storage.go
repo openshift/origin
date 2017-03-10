@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -56,7 +57,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 	return &authorizationapi.RoleBindingList{}
 }
 
-func (m *VirtualStorage) List(ctx kapi.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (m *VirtualStorage) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &metainternal.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *metainternal.ListOption
 	return roleBindingList, nil
 }
 
-func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (m *VirtualStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 	if kapierrors.IsNotFound(err) {
 		return nil, kapierrors.NewNotFound(m.Resource, name)
@@ -94,7 +95,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 	return binding, nil
 }
 
-func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
+func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 		if kapierrors.IsNotFound(err) {
@@ -119,15 +120,15 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *metav1.D
 	return &metav1.Status{Status: metav1.StatusSuccess}, nil
 }
 
-func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	return m.createRoleBinding(ctx, obj, false)
 }
 
-func (m *VirtualStorage) CreateRoleBindingWithEscalation(ctx kapi.Context, obj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
+func (m *VirtualStorage) CreateRoleBindingWithEscalation(ctx apirequest.Context, obj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
 	return m.createRoleBinding(ctx, obj, true)
 }
 
-func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.RoleBinding, error) {
+func (m *VirtualStorage) createRoleBinding(ctx apirequest.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.RoleBinding, error) {
 	// Copy object before passing to BeforeCreate, since it mutates
 	objCopy, err := kapi.Scheme.DeepCopy(obj)
 	if err != nil {
@@ -171,14 +172,14 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 	return roleBinding, nil
 }
 
-func (m *VirtualStorage) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (m *VirtualStorage) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return m.updateRoleBinding(ctx, name, objInfo, false)
 }
-func (m *VirtualStorage) UpdateRoleBindingWithEscalation(ctx kapi.Context, obj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
+func (m *VirtualStorage) UpdateRoleBindingWithEscalation(ctx apirequest.Context, obj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
 	return m.updateRoleBinding(ctx, obj.Name, rest.DefaultUpdatedObjectInfo(obj, kapi.Scheme), true)
 }
 
-func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo, allowEscalation bool) (*authorizationapi.RoleBinding, bool, error) {
+func (m *VirtualStorage) updateRoleBinding(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, allowEscalation bool) (*authorizationapi.RoleBinding, bool, error) {
 	var updatedRoleBinding *authorizationapi.RoleBinding
 	var roleBindingConflicted = false
 
@@ -268,7 +269,7 @@ func (m *VirtualStorage) roleForEscalationCheck(binding authorizationinterfaces.
 	return m.RuleResolver.GetRole(binding)
 }
 
-func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
+func (m *VirtualStorage) confirmNoEscalation(ctx apirequest.Context, roleBinding *authorizationapi.RoleBinding) error {
 	modifyingRole, err := m.roleForEscalationCheck(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
 	if err != nil {
 		return err
@@ -278,7 +279,7 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
-func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNamespace, policyBindingName string) (*authorizationapi.PolicyBinding, error) {
+func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx apirequest.Context, policyNamespace, policyBindingName string) (*authorizationapi.PolicyBinding, error) {
 	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
@@ -308,7 +309,7 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNam
 }
 
 // getPolicyBindingForPolicy returns a PolicyBinding that points to the specified policyNamespace.  It will autocreate ONLY if policyNamespace equals the master namespace
-func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNamespace string, allowAutoProvision bool) (*authorizationapi.PolicyBinding, error) {
+func (m *VirtualStorage) getPolicyBindingForPolicy(ctx apirequest.Context, policyNamespace string, allowAutoProvision bool) (*authorizationapi.PolicyBinding, error) {
 	// we can autocreate a PolicyBinding object if the RoleBinding is for the master namespace OR if we've been explicitly told to create the policying binding.
 	// the latter happens during priming
 	if (policyNamespace == "") || allowAutoProvision {
@@ -327,7 +328,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 	return policyBinding, nil
 }
 
-func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
+func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx apirequest.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
 	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, &metainternal.ListOptions{})
 	if err != nil {
 		return nil, err

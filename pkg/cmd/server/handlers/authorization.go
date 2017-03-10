@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -29,13 +30,13 @@ func NewBypassAuthorizer(auth authorizer.Authorizer, paths ...string) authorizer
 	return bypassAuthorizer{paths: sets.NewString(paths...), authorizer: auth}
 }
 
-func (a bypassAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
+func (a bypassAuthorizer) Authorize(ctx apirequest.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
 	if attributes.IsNonResourceURL() && a.paths.Has(attributes.GetURL()) {
 		return true, "always allowed", nil
 	}
 	return a.authorizer.Authorize(ctx, attributes)
 }
-func (a bypassAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+func (a bypassAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	return a.authorizer.GetAllowedSubjects(ctx, attributes)
 }
 

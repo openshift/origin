@@ -2,10 +2,10 @@ package etcd
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -77,12 +77,12 @@ func (r *StatusREST) New() runtime.Object {
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.
-func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *StatusREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	return r.store.Get(ctx, name)
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }
 
@@ -96,11 +96,11 @@ func (r *InternalREST) New() runtime.Object {
 }
 
 // Create alters both the spec and status of the object.
-func (r *InternalREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *InternalREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	return r.store.Create(ctx, obj)
 }
 
 // Update alters both the spec and status of the object.
-func (r *InternalREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *InternalREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }

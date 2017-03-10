@@ -2,6 +2,7 @@ package policy
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/watch"
@@ -12,21 +13,21 @@ import (
 // Registry is an interface for things that know how to store Policies.
 type Registry interface {
 	// ListPolicies obtains list of policies that match a selector.
-	ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error)
+	ListPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error)
 	// GetPolicy retrieves a specific policy.
-	GetPolicy(ctx kapi.Context, id string) (*authorizationapi.Policy, error)
+	GetPolicy(ctx apirequest.Context, id string) (*authorizationapi.Policy, error)
 	// CreatePolicy creates a new policy.
-	CreatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error
+	CreatePolicy(ctx apirequest.Context, policy *authorizationapi.Policy) error
 	// UpdatePolicy updates a policy.
-	UpdatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error
+	UpdatePolicy(ctx apirequest.Context, policy *authorizationapi.Policy) error
 	// DeletePolicy deletes a policy.
-	DeletePolicy(ctx kapi.Context, id string) error
+	DeletePolicy(ctx apirequest.Context, id string) error
 }
 
 type WatchingRegistry interface {
 	Registry
 	// WatchPolicies watches policies.
-	WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error)
+	WatchPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -45,7 +46,7 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListPolicies(ctx kapi.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
+func (s *storage) ListPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -54,21 +55,21 @@ func (s *storage) ListPolicies(ctx kapi.Context, options *metainternal.ListOptio
 	return obj.(*authorizationapi.PolicyList), nil
 }
 
-func (s *storage) CreatePolicy(ctx kapi.Context, node *authorizationapi.Policy) error {
+func (s *storage) CreatePolicy(ctx apirequest.Context, node *authorizationapi.Policy) error {
 	_, err := s.Create(ctx, node)
 	return err
 }
 
-func (s *storage) UpdatePolicy(ctx kapi.Context, node *authorizationapi.Policy) error {
+func (s *storage) UpdatePolicy(ctx apirequest.Context, node *authorizationapi.Policy) error {
 	_, _, err := s.Update(ctx, node.Name, rest.DefaultUpdatedObjectInfo(node, kapi.Scheme))
 	return err
 }
 
-func (s *storage) WatchPolicies(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Policy, error) {
+func (s *storage) GetPolicy(ctx apirequest.Context, name string) (*authorizationapi.Policy, error) {
 	obj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (s *storage) GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Po
 	return obj.(*authorizationapi.Policy), nil
 }
 
-func (s *storage) DeletePolicy(ctx kapi.Context, name string) error {
+func (s *storage) DeletePolicy(ctx apirequest.Context, name string) error {
 	_, err := s.Delete(ctx, name, nil)
 	return err
 }

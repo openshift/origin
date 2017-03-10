@@ -8,6 +8,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -391,26 +392,26 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 		Secrets:         fake.NewSimpleClientset().Core(),
 		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 				return instantiator.buildConfigUpdater.Update(buildConfig)
 			},
-			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 				instantiator.newBuild = build
 				return instantiator.err
 			},
-			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx apirequest.Context, name string) (*buildapi.Build, error) {
 				return instantiator.newBuild, nil
 			},
-			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{Image: *image}, nil
 			},
-			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{Image: *image}, nil
 			},
 		}}

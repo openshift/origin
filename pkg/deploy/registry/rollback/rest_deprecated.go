@@ -5,6 +5,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -22,24 +23,24 @@ type DeprecatedREST struct {
 // GeneratorClient defines a local interface to a rollback generator for testability.
 type GeneratorClient interface {
 	GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-	GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error)
-	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
+	GetDeployment(ctx apirequest.Context, name string) (*kapi.ReplicationController, error)
+	GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
 }
 
 // Client provides an implementation of Generator client
 type Client struct {
 	GRFn func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-	RCFn func(ctx kapi.Context, name string) (*kapi.ReplicationController, error)
-	DCFn func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
+	RCFn func(ctx apirequest.Context, name string) (*kapi.ReplicationController, error)
+	DCFn func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
 }
 
 // GetDeployment returns the deploymentConfig with the provided context and name
-func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
 	return c.DCFn(ctx, name)
 }
 
 // GetDeployment returns the deployment with the provided context and name
-func (c Client) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
+func (c Client) GetDeployment(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
 	return c.RCFn(ctx, name)
 }
 
@@ -62,7 +63,7 @@ func (s *DeprecatedREST) New() runtime.Object {
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (s *DeprecatedREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *DeprecatedREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
 	if !ok {
 		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))

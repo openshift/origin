@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -66,7 +67,7 @@ type fakeSubjectAccessReviewRegistry struct {
 
 var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	f.request = subjectAccessReview
 	f.requestNamespace = kapi.NamespaceValue(ctx)
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
@@ -552,7 +553,7 @@ type fakeImageStreamGetter struct {
 	stream *api.ImageStream
 }
 
-func (f *fakeImageStreamGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (f *fakeImageStreamGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	return f.stream, nil
 }
 

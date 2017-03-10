@@ -5,10 +5,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
@@ -69,7 +69,7 @@ func (r *ScaleREST) New() runtime.Object {
 }
 
 // Get retrieves (computes) the Scale subresource for the given DeploymentConfig name.
-func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *ScaleREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
-func (r *ScaleREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
@@ -121,11 +121,11 @@ func (r *StatusREST) New() runtime.Object {
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.
-func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *StatusREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
 	return r.store.Get(ctx, name)
 }
 
 // Update alters the status subset of an deploymentConfig.
-func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }

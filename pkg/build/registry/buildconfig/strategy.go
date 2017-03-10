@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -38,7 +39,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	bc := obj.(*api.BuildConfig)
 	dropUnknownTriggers(bc)
 }
@@ -48,7 +49,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newBC := obj.(*api.BuildConfig)
 	oldBC := old.(*api.BuildConfig)
 	dropUnknownTriggers(newBC)
@@ -60,12 +61,12 @@ func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 }
 
 // Validate validates a new policy.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateBuildConfig(obj.(*api.BuildConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBuildConfigUpdate(obj.(*api.BuildConfig), old.(*api.BuildConfig))
 }
 

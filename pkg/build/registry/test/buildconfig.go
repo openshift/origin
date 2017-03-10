@@ -5,7 +5,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -19,13 +19,13 @@ type BuildConfigRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error) {
+func (r *BuildConfigRegistry) ListBuildConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.BuildConfigs, r.Err
 }
 
-func (r *BuildConfigRegistry) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error) {
+func (r *BuildConfigRegistry) GetBuildConfig(ctx apirequest.Context, id string) (*api.BuildConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.BuildConfig != nil && r.BuildConfig.Name == id {
@@ -34,21 +34,21 @@ func (r *BuildConfigRegistry) GetBuildConfig(ctx kapi.Context, id string) (*api.
 	return nil, kapierrors.NewNotFound(api.Resource("buildconfig"), id)
 }
 
-func (r *BuildConfigRegistry) CreateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+func (r *BuildConfigRegistry) CreateBuildConfig(ctx apirequest.Context, config *api.BuildConfig) error {
 	r.Lock()
 	defer r.Unlock()
 	r.BuildConfig = config
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+func (r *BuildConfigRegistry) UpdateBuildConfig(ctx apirequest.Context, config *api.BuildConfig) error {
 	r.Lock()
 	defer r.Unlock()
 	r.BuildConfig = config
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) error {
+func (r *BuildConfigRegistry) DeleteBuildConfig(ctx apirequest.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.DeletedConfigID = id
@@ -56,6 +56,6 @@ func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) err
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *BuildConfigRegistry) WatchBuildConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

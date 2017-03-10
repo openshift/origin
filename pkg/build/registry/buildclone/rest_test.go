@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -13,10 +14,10 @@ import (
 
 func TestCreateClone(t *testing.T) {
 	rest := CloneREST{&generator.BuildGenerator{Client: generator.Client{
-		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+		CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 			return nil
 		},
-		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+		GetBuildFunc: func(ctx apirequest.Context, name string) (*buildapi.Build, error) {
 			return &buildapi.Build{}, nil
 		},
 	}}}
