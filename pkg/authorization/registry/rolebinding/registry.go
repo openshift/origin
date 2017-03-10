@@ -1,8 +1,8 @@
 package rolebinding
 
 import (
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

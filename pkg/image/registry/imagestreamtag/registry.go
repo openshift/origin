@@ -2,8 +2,8 @@ package imagestreamtag
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/image/api"
 )

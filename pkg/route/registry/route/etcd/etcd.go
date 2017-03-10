@@ -3,9 +3,9 @@ package etcd
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapirest "k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"

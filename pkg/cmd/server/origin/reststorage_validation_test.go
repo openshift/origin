@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/apiserver/pkg/registry/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"

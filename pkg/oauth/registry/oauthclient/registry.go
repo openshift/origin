@@ -1,8 +1,8 @@
 package oauthclient
 
 import (
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )

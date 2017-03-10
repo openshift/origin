@@ -2,8 +2,8 @@ package imagestreamimage
 
 import (
 	"github.com/openshift/origin/pkg/image/api"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 )
 
 // Registry is an interface for things that know how to store ImageStreamImage objects.

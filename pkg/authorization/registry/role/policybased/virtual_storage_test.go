@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/authorization/api/install"

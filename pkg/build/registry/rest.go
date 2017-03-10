@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
