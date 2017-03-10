@@ -93,12 +93,18 @@ func TestParseRepository(t *testing.T) {
 			User:   url.User("git"),
 			Path:   "/repository.git",
 		},
+		"example.com:3000": {
+			Scheme: "ssh",
+			Host:   "example.com",
+			Path:   "3000",
+		},
 	}
 
 	for scenario, want := range tests {
 		got, err := ParseRepository(scenario)
 		if err != nil {
 			t.Errorf("ParseRepository returned err: %v", err)
+			continue
 		}
 
 		// go1.5 added the RawPath field to url.URL; it is not a field we need to manipulate with the
@@ -112,6 +118,19 @@ func TestParseRepository(t *testing.T) {
 			(got.User == nil && want.User != nil) ||
 			(got.User != nil && want.User == nil) {
 			t.Errorf("%s: got %#v, want %#v", scenario, *got, want)
+		}
+	}
+}
+
+func TestParseRepositoryError(t *testing.T) {
+	invalidRepos := []string{
+		"invalid-repo",
+		"git@example.com/foo",
+	}
+	for _, s := range invalidRepos {
+		uri, err := ParseRepository(s)
+		if err == nil {
+			t.Errorf("%s: got %v, want error", s, uri)
 		}
 	}
 }
