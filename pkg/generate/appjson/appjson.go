@@ -10,9 +10,9 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
