@@ -37,6 +37,9 @@ type OsdnProxy struct {
 	lock         sync.Mutex
 	firewall     map[string]*proxyFirewallItem
 	allEndpoints []kapi.Endpoints
+
+	idLock sync.Mutex
+	ids    map[string]uint32
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
@@ -48,6 +51,7 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 	return &OsdnProxy{
 		kClient:  kClient,
 		osClient: osClient,
+		ids:      make(map[string]uint32),
 		firewall: make(map[string]*proxyFirewallItem),
 	}, nil
 }
@@ -71,6 +75,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	}
 
 	go utilwait.Forever(proxy.watchEgressNetworkPolicies, 0)
+	go utilwait.Forever(proxy.watchNetNamespaces, 0)
 	return nil
 }
 
@@ -93,8 +98,43 @@ func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 	})
 }
 
+// TODO: Abstract common code shared between proxy and node
+func (proxy *OsdnProxy) watchNetNamespaces() {
+	RunEventQueue(proxy.osClient, NetNamespaces, func(delta cache.Delta) error {
+		netns := delta.Object.(*osapi.NetNamespace)
+		name := netns.ObjectMeta.Name
+
+		glog.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, name)
+		proxy.idLock.Lock()
+		defer proxy.idLock.Unlock()
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
+			proxy.ids[name] = netns.NetID
+		case cache.Deleted:
+			delete(proxy.ids, name)
+		}
+		return nil
+	})
+}
+
+func (proxy *OsdnProxy) isNamespaceGlobal(ns string) bool {
+	proxy.idLock.Lock()
+	defer proxy.idLock.Unlock()
+
+	if proxy.ids[ns] == osapi.GlobalVNID {
+		return true
+	}
+	return false
+}
+
 func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPolicy) {
 	ns := policy.Namespace
+	if proxy.isNamespaceGlobal(ns) {
+		// Firewall not allowed for global namespaces
+		glog.Errorf("EgressNetworkPolicy in global network namespace (%s) is not allowed (%s); ignoring firewall rules", ns, policy.Name)
+		return
+	}
+
 	firewall := make([]firewallItem, len(policy.Spec.Egress))
 	for i, rule := range policy.Spec.Egress {
 		_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
