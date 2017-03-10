@@ -75,7 +75,9 @@ function image-build() {
 	# build the image
 	if ! os::build::image "${dir}" "${dest}"; then
 		os::log::warning "Retrying build once"
-		os::build::image "${dir}" "${dest}"
+		if ! os::build::image "${dir}" "${dest}"; then
+			return 1
+		fi
 	fi
 
 	# tag to release commit unless we specified a hardcoded tag
