@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	template "github.com/openshift/origin/pkg/template/api"
 

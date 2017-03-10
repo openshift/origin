@@ -3,7 +3,7 @@ package unionrequest
 import (
 	"net/http"
 
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/user"

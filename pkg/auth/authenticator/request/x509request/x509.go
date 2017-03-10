@@ -8,9 +8,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/auth/user"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain

@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"

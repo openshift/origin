@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/generate"
 
-	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 // IsComponentReference returns true if the provided string appears to be a reference to a source repository

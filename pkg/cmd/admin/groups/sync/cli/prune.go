@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
