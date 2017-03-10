@@ -1,9 +1,9 @@
 package ratelimiter
 
 import (
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 

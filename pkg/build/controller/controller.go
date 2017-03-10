@@ -7,11 +7,11 @@ import (
 
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"

@@ -8,10 +8,10 @@ import (
 	"golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/storage"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"

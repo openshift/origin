@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/golang-lru"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/auth/user"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )

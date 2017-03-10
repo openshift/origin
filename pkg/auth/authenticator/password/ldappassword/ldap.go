@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/auth/user"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"

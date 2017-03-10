@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/client/retry"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"

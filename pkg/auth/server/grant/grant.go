@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strings"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"

@@ -8,8 +8,8 @@ import (
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )

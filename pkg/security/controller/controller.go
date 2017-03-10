@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/mcs"
