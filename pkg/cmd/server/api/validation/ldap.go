@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/cmd/server/api"

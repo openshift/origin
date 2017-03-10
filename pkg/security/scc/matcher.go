@@ -7,12 +7,12 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"

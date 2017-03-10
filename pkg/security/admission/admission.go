@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/golang/glog"
 )

@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 type WrappingValidator struct {
