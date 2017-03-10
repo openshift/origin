@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/gofuzz"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 
 	"github.com/openshift/origin/pkg/api/v1"

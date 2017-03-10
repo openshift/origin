@@ -9,9 +9,9 @@ import (
 	"github.com/pborman/uuid"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apiserver"
 
 	templatesapi "github.com/openshift/origin/pkg/template/api"

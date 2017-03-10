@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestParseImageStreamImageName(t *testing.T) {

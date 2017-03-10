@@ -2,10 +2,10 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
+	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
 	watch "k8s.io/kubernetes/pkg/watch"
 )
 

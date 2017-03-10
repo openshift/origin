@@ -59,7 +59,7 @@ func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
 }
 
 func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
-	if meta, err := kapi.ObjectMetaFor(obj); err == nil {
+	if meta, err := metav1.ObjectMetaFor(obj); err == nil {
 		exportObjectMeta(meta, exact)
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)

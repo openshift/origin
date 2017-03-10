@@ -7,9 +7,9 @@ import (
 
 	log "github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	osclient "github.com/openshift/origin/pkg/client"

@@ -1,9 +1,9 @@
 package api
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"text/tabwriter"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 

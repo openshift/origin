@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"

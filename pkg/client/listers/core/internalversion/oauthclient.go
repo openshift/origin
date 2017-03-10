@@ -5,8 +5,8 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/oauth/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 // OAuthClientLister helps list OAuthClients.

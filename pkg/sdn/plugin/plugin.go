@@ -3,11 +3,11 @@ package plugin
 import (
 	"fmt"
 
+	utilsets "k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
-	utilsets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 )

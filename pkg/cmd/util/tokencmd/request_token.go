@@ -12,9 +12,9 @@ import (
 	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	restclient "k8s.io/client-go/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
 )
 
 // CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth

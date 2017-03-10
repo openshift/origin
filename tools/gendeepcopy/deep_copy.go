@@ -35,7 +35,7 @@ func main() {
 		"k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
 		"k8s.io/apimachinery/pkg/runtime",
 		"k8s.io/kubernetes/pkg/util/intstr",
-		"k8s.io/kubernetes/pkg/util/sets",
+		"k8s.io/apimachinery/pkg/util/sets",
 		"github.com/openshift/origin/pkg/authorization/api/v1",
 		"github.com/openshift/origin/pkg/authorization/api",
 		"github.com/openshift/origin/pkg/build/api/v1",

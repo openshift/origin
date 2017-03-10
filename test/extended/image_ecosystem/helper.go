@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/apimachinery/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

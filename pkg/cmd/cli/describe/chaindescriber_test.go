@@ -7,8 +7,8 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"

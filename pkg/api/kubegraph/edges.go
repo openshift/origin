@@ -7,10 +7,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -131,7 +131,7 @@ func AddMountedSecretEdges(g osgraph.Graph, podSpec *kubegraph.PodSpecNode) {
 	containerNode := osgraph.GetTopLevelContainerNode(g, podSpec)
 	containerObj := g.GraphDescriber.Object(containerNode)
 
-	meta, err := kapi.ObjectMetaFor(containerObj.(runtime.Object))
+	meta, err := metav1.ObjectMetaFor(containerObj.(runtime.Object))
 	if err != nil {
 		// this should never happen.  it means that a podSpec is owned by a top level container that is not a runtime.Object
 		panic(err)
@@ -185,7 +185,7 @@ func AddRequestedServiceAccountEdges(g osgraph.Graph, podSpecNode *kubegraph.Pod
 	containerNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
 	containerObj := g.GraphDescriber.Object(containerNode)
 
-	meta, err := kapi.ObjectMetaFor(containerObj.(runtime.Object))
+	meta, err := metav1.ObjectMetaFor(containerObj.(runtime.Object))
 	if err != nil {
 		panic(err)
 	}

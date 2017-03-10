@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"

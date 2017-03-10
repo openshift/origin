@@ -3,9 +3,9 @@ package aggregated_logging
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const daemonSetNoLabeledNodes = `

@@ -10,8 +10,8 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"

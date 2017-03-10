@@ -15,16 +15,16 @@ import (
 
 type TestConfig struct {
 	metav1.TypeMeta `json:",inline"`
-	Item1                string   `json:"item1"`
-	Item2                []string `json:"item2"`
+	Item1           string   `json:"item1"`
+	Item2           []string `json:"item2"`
 }
 
 func (obj *TestConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
 
 type TestConfigV1 struct {
 	metav1.TypeMeta `json:",inline"`
-	Item1                string   `json:"item1"`
-	Item2                []string `json:"item2"`
+	Item1           string   `json:"item1"`
+	Item2           []string `json:"item2"`
 }
 
 func (obj *TestConfigV1) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }

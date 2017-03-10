@@ -9,8 +9,8 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/golang/glog"
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"

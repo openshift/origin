@@ -3,8 +3,8 @@ package install
 import (
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/meta"
 
 	"github.com/openshift/origin/pkg/build/admission/overrides/api"
 	"github.com/openshift/origin/pkg/build/admission/overrides/api/v1"

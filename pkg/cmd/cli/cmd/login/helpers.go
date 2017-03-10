@@ -16,10 +16,10 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 )
 

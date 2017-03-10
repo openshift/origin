@@ -1,8 +1,8 @@
 package client
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )

@@ -9,8 +9,8 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	sets "k8s.io/apimachinery/pkg/util/sets"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	sets "k8s.io/kubernetes/pkg/util/sets"
 )
 
 func init() {

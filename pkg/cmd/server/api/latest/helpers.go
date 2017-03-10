@@ -11,7 +11,7 @@ import (
 	"github.com/ghodss/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	kyaml "k8s.io/kubernetes/pkg/util/yaml"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

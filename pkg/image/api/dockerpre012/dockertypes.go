@@ -9,17 +9,17 @@ import (
 type DockerImage struct {
 	metav1.TypeMeta `json:",inline"`
 
-	ID              string           `json:"id"`
-	Parent          string           `json:"parent,omitempty"`
-	Comment         string           `json:"comment,omitempty"`
-	Created         metav1.Time `json:"created"`
-	Container       string           `json:"container,omitempty"`
-	ContainerConfig DockerConfig     `json:"container_config,omitempty"`
-	DockerVersion   string           `json:"docker_version,omitempty"`
-	Author          string           `json:"author,omitempty"`
-	Config          *DockerConfig    `json:"config,omitempty"`
-	Architecture    string           `json:"architecture,omitempty"`
-	Size            int64            `json:"size,omitempty"`
+	ID              string        `json:"id"`
+	Parent          string        `json:"parent,omitempty"`
+	Comment         string        `json:"comment,omitempty"`
+	Created         metav1.Time   `json:"created"`
+	Container       string        `json:"container,omitempty"`
+	ContainerConfig DockerConfig  `json:"container_config,omitempty"`
+	DockerVersion   string        `json:"docker_version,omitempty"`
+	Author          string        `json:"author,omitempty"`
+	Config          *DockerConfig `json:"config,omitempty"`
+	Architecture    string        `json:"architecture,omitempty"`
+	Size            int64         `json:"size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.

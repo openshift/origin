@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"

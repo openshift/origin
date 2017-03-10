@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"

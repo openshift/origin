@@ -3,8 +3,8 @@ package diagnostics
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	clientdiags "github.com/openshift/origin/pkg/diagnostics/client"
 	networkdiags "github.com/openshift/origin/pkg/diagnostics/network"

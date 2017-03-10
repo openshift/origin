@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"reflect"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to

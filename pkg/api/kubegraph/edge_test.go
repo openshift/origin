@@ -80,7 +80,7 @@ func namespaceFor(node graph.Node) (string, error) {
 	obj := node.(objectifier).Object()
 	switch t := obj.(type) {
 	case runtime.Object:
-		meta, err := kapi.ObjectMetaFor(t)
+		meta, err := metav1.ObjectMetaFor(t)
 		if err != nil {
 			return "", err
 		}

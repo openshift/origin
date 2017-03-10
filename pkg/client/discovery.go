@@ -4,9 +4,9 @@ import (
 	"net/url"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DiscoveryClient implements the functions that discovery server-supported API groups,

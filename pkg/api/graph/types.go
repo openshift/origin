@@ -5,8 +5,8 @@ import (
 
 	"github.com/gonum/graph"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 func GetUniqueRuntimeObjectNodeName(nodeKind string, obj runtime.Object) UniqueName {
-	meta, err := kapi.ObjectMetaFor(obj)
+	meta, err := metav1.ObjectMetaFor(obj)
 	if err != nil {
 		panic(err)
 	}

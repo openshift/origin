@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/api/validation/path"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"

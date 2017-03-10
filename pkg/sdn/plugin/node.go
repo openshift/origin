@@ -20,11 +20,11 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 	kwait "k8s.io/kubernetes/pkg/util/wait"

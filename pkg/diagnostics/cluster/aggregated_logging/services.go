@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 var loggingServices = sets.NewString("logging-es", "logging-es-cluster", "logging-es-ops", "logging-es-ops-cluster", "logging-kibana", "logging-kibana-ops")

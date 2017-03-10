@@ -458,7 +458,7 @@ func objectMetaData(raw interface{}) (runtime.Object, *kapi.ObjectMeta, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("%#v is not a runtime.Object", raw)
 	}
-	meta, err := kapi.ObjectMetaFor(obj)
+	meta, err := metav1.ObjectMetaFor(obj)
 	if err != nil {
 		return nil, nil, err
 	}

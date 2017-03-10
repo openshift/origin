@@ -9,8 +9,9 @@ import (
 	"text/tabwriter"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -18,7 +19,6 @@ import (
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -1220,7 +1220,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if !ok {
 			continue
 		}
-		meta, err := kapi.ObjectMetaFor(actualPod)
+		meta, err := metav1.ObjectMetaFor(actualPod)
 		if err != nil {
 			return nil, err
 		}

@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
@@ -66,11 +66,11 @@ func TestKubeletDefaults(t *testing.T) {
 			EnableServer:                true,
 			EvictionHard:                "memory.available<100Mi",
 			FileCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // overridden
-			HealthzBindAddress:          "127.0.0.1",                                      // disabled
-			HealthzPort:                 10248,                                            // disabled
-			HostNetworkSources:          []string{"*"},                                    // overridden
-			HostPIDSources:              []string{"*"},                                    // overridden
-			HostIPCSources:              []string{"*"},                                    // overridden
+			HealthzBindAddress:          "127.0.0.1",                                 // disabled
+			HealthzPort:                 10248,                                       // disabled
+			HostNetworkSources:          []string{"*"},                               // overridden
+			HostPIDSources:              []string{"*"},                               // overridden
+			HostIPCSources:              []string{"*"},                               // overridden
 			HTTPCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // disabled
 			ImageMinimumGCAge:           metav1.Duration{Duration: 120 * time.Second},
 			ImageGCHighThresholdPercent: 85,

@@ -2,8 +2,8 @@ package api
 
 import (
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 func ListOptionsToSelectors(options *kapi.ListOptions) (labels.Selector, fields.Selector) {
