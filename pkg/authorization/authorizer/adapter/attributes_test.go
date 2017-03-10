@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )

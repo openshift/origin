@@ -3,7 +3,7 @@ package adapter
 import (
 	"github.com/golang/glog"
 
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )
