@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
 	testutil "github.com/openshift/origin/test/util/api"

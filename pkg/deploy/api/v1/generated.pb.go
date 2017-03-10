@@ -42,7 +42,7 @@ import math "math"
 import k8s_io_kubernetes_pkg_api_unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 
-import k8s_io_kubernetes_pkg_util_intstr "k8s.io/kubernetes/pkg/util/intstr"
+import k8s_io_kubernetes_pkg_util_intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 import strings "strings"
 import reflect "reflect"
