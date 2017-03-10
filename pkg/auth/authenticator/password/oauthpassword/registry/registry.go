@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/oauth/client"
+	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type OAuthAccessTokenSource interface {

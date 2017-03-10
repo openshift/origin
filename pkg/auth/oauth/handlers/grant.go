@@ -11,7 +11,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/auth/api"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"

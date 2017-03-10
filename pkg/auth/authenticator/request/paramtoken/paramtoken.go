@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // Authenticator provides a way to authenticate tokens provided as a parameter

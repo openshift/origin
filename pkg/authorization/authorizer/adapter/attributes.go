@@ -3,9 +3,9 @@ package adapter
 import (
 	"strings"
 
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
 
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 )

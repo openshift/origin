@@ -2,7 +2,7 @@ package denypassword
 
 import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // denyPasswordAuthenticator denies all password requests

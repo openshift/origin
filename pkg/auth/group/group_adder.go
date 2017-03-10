@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // GroupAdder wraps a request authenticator, and adds the specified groups to the returned user when authentication succeeds

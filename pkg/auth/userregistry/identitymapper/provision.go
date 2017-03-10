@@ -5,8 +5,8 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"

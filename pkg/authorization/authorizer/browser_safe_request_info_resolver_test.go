@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 func TestUpstreamInfoResolver(t *testing.T) {

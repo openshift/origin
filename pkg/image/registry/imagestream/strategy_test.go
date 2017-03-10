@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 

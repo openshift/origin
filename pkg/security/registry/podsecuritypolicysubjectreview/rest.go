@@ -8,8 +8,8 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"

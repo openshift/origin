@@ -1,8 +1,8 @@
 package remotemaster
 
 import (
+	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/auth/user"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"

@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"

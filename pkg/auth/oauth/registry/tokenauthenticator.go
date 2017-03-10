@@ -9,8 +9,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/pkg/api"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
 )
 
 type TokenAuthenticator struct {

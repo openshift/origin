@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	usertest "github.com/openshift/origin/pkg/user/registry/test"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type testHandlers struct {

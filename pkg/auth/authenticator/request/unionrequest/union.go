@@ -6,7 +6,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // TODO remove this in favor of kubernetes types

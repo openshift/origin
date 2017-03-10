@@ -3,8 +3,8 @@ package identitymapper
 import (
 	"fmt"
 
+	kuser "k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user/registry/user"

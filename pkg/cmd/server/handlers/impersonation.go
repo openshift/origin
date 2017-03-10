@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 

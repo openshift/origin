@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
