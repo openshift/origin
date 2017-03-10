@@ -111,7 +111,7 @@ func init() {
 				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
 
-			return newRepositoryWithClient(registryOSClient, kClient.Core(), kClient.Core(), ctx, repo, options)
+			return newRepositoryWithClient(ctx, registryOSClient, kClient.Core(), kClient.Core(), repo, options)
 		},
 	)
 
@@ -158,10 +158,10 @@ type repository struct {
 
 // newRepositoryWithClient returns a new repository middleware.
 func newRepositoryWithClient(
+	ctx context.Context,
 	registryOSClient client.Interface,
 	quotaClient kcoreclient.ResourceQuotasGetter,
 	limitClient kcoreclient.LimitRangesGetter,
-	ctx context.Context,
 	repo distribution.Repository,
 	options map[string]interface{},
 ) (distribution.Repository, error) {
@@ -465,10 +465,10 @@ func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, ca
 }
 
 func (r *repository) checkPendingErrors(ctx context.Context) error {
-	return checkPendingErrors(context.GetLogger(r.ctx), ctx, r.namespace, r.name)
+	return checkPendingErrors(ctx, context.GetLogger(r.ctx), r.namespace, r.name)
 }
 
-func checkPendingErrors(logger context.Logger, ctx context.Context, namespace, name string) error {
+func checkPendingErrors(ctx context.Context, logger context.Logger, namespace, name string) error {
 	if !AuthPerformed(ctx) {
 		return fmt.Errorf("openshift.auth.completed missing from context")
 	}

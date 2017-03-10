@@ -3,6 +3,7 @@ package authorizer
 import (
 	"testing"
 
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 )
 
@@ -10,12 +11,13 @@ func TestDefaultForbiddenMessages(t *testing.T) {
 	messageResolver := NewForbiddenMessageResolver("")
 
 	apiForbidden, err := messageResolver.defaultForbiddenMessageMaker.MakeMessage(MessageContext{
-		User:      &user.DefaultInfo{Name: "chris"},
-		Namespace: "foo",
-		Attributes: DefaultAuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "pods",
-			ResourceName: "hammer",
+		Attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "get",
+			Resource:        "pods",
+			Name:            "hammer",
 		},
 	})
 	if err != nil {
@@ -29,12 +31,12 @@ func TestDefaultForbiddenMessages(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:           "post",
-				NonResourceURL: true,
-				URL:            "/anything",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: false,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "post",
+				Path:            "/anything",
 			},
 		},
 		`User "chris" cannot "post" on "/anything"`,
@@ -44,10 +46,11 @@ func TestDefaultForbiddenMessages(t *testing.T) {
 func TestProjectRequestForbiddenMessage(t *testing.T) {
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "projectrequests",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "create",
+				Resource:        "projectrequests",
 			},
 		},
 		DefaultProjectRequestForbidden,
@@ -57,11 +60,12 @@ func TestProjectRequestForbiddenMessage(t *testing.T) {
 func TestNamespacedForbiddenMessage(t *testing.T) {
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "create",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot create builds in project "foo"`,
@@ -69,11 +73,12 @@ func TestNamespacedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "get",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "get",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot get builds in project "foo"`,
@@ -81,11 +86,12 @@ func TestNamespacedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "list",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "list",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot list builds in project "foo"`,
@@ -93,11 +99,12 @@ func TestNamespacedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "update",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "update",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot update builds in project "foo"`,
@@ -105,11 +112,12 @@ func TestNamespacedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "delete",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Namespace:       "foo",
+				Verb:            "delete",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot delete builds in project "foo"`,
@@ -120,10 +128,11 @@ func TestNamespacedForbiddenMessage(t *testing.T) {
 func TestRootScopedForbiddenMessage(t *testing.T) {
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "create",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot create builds at the cluster scope`,
@@ -131,10 +140,11 @@ func TestRootScopedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "get",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "get",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot get builds at the cluster scope`,
@@ -142,10 +152,11 @@ func TestRootScopedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "list",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "list",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot list all builds in the cluster`,
@@ -153,10 +164,11 @@ func TestRootScopedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "update",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "update",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot update builds at the cluster scope`,
@@ -164,10 +176,11 @@ func TestRootScopedForbiddenMessage(t *testing.T) {
 
 	messageTest{
 		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "delete",
-				Resource: "builds",
+			Attributes: kauthorizer.AttributesRecord{
+				ResourceRequest: true,
+				User:            &user.DefaultInfo{Name: "chris"},
+				Verb:            "delete",
+				Resource:        "builds",
 			},
 		},
 		`User "chris" cannot delete builds at the cluster scope`,

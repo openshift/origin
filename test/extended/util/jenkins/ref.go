@@ -22,7 +22,9 @@ import (
 )
 
 const (
-	useLocalPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_IMAGE"
+	UseLocalPluginSnapshotEnvVarName       = "USE_SNAPSHOT_JENKINS_IMAGE"
+	UseLocalClientPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_CLIENT_IMAGE"
+	UseLocalSyncPluginSnapshotEnvVarName   = "USE_SNAPSHOT_JENKINS_SYNC_IMAGE"
 )
 
 // JenkinsRef represents a Jenkins instance running on an OpenShift server
@@ -340,7 +342,7 @@ func FindJenkinsPod(oc *exutil.CLI) *kapi.Pod {
 }
 
 // pulls in a jenkins image built from a PR change for one of our plugins
-func SetupSnapshotImage(localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) ([]string, bool) {
+func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) ([]string, bool) {
 	tag := []string{localImageName}
 	hexIDs, err := exutil.DumpAndReturnTagging(tag)
 
@@ -348,7 +350,7 @@ func SetupSnapshotImage(localImageName, snapshotImageStream string, newAppArgs [
 	// SNAPSHOT_JENKINS_IMAGE environment variable, try to use the local image. Inform them
 	// either about which image is being used in case their test fails.
 	snapshotImagePresent := len(hexIDs) > 0 && err == nil
-	useSnapshotImage := os.Getenv(useLocalPluginSnapshotEnvVarName) != ""
+	useSnapshotImage := os.Getenv(envVarName) != ""
 
 	if useSnapshotImage {
 		g.By("Creating a snapshot Jenkins imagestream and overridding the default Jenkins imagestream")
@@ -357,12 +359,11 @@ func SetupSnapshotImage(localImageName, snapshotImageStream string, newAppArgs [
 		ginkgolog("")
 		ginkgolog("")
 		ginkgolog("IMPORTANT: You are testing a local jenkins snapshot image.")
-		ginkgolog("In order to target the official image stream, you must unset %s before running extended tests.", useLocalPluginSnapshotEnvVarName)
+		ginkgolog("In order to target the official image stream, you must unset %s before running extended tests.", envVarName)
 		ginkgolog("")
 		ginkgolog("")
 
 		// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
-		snapshotImageStream := "jenkins-plugin-snapshot-test"
 		err = oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localImageName), "--to", snapshotImageStream).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -382,7 +383,7 @@ func SetupSnapshotImage(localImageName, snapshotImageStream string, newAppArgs [
 			ginkgolog("")
 			ginkgolog("")
 			ginkgolog("IMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
-			ginkgolog("In order to target your local image, you must set %s to some value before running extended tests.", useLocalPluginSnapshotEnvVarName)
+			ginkgolog("In order to target your local image, you must set %s to some value before running extended tests.", envVarName)
 			ginkgolog("")
 			ginkgolog("")
 		}

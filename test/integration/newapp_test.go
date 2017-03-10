@@ -1929,7 +1929,12 @@ func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) 
 	}
 
 	// Set initial repo contents
-	gitRepo := git.NewRepository()
+	gitRepo := git.NewRepositoryWithEnv([]string{
+		"GIT_AUTHOR_NAME=developer",
+		"GIT_AUTHOR_EMAIL=developer@example.com",
+		"GIT_COMMITTER_NAME=developer",
+		"GIT_COMMITTER_EMAIL=developer@example.com",
+	})
 	if err = gitRepo.Init(initialRepoDir, false); err != nil {
 		t.Fatalf("%v", err)
 	}

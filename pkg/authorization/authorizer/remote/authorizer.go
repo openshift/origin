@@ -3,12 +3,11 @@ package remote
 import (
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	oclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -26,24 +25,22 @@ type RemoteAuthorizerClient interface {
 	oclient.LocalResourceAccessReviewsNamespacer
 }
 
-func NewAuthorizer(client RemoteAuthorizerClient) (authorizer.Authorizer, error) {
+func NewAuthorizer(client RemoteAuthorizerClient) (kauthorizer.Authorizer, error) {
 	return &RemoteAuthorizer{client}, nil
 }
 
-func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (bool, string, error) {
+func (r *RemoteAuthorizer) Authorize(a kauthorizer.Attributes) (bool, string, error) {
 	var (
 		result *authzapi.SubjectAccessReviewResponse
 		err    error
 	)
 
-	// Extract namespace from context
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace := a.GetNamespace()
 
-	// Extract user from context
 	user := ""
 	groups := sets.NewString()
-	userInfo, ok := kapi.UserFrom(ctx)
-	if ok {
+	userInfo := a.GetUser()
+	if userInfo != nil {
 		user = userInfo.GetName()
 		groups.Insert(userInfo.GetGroups()...)
 	}
@@ -70,14 +67,13 @@ func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (boo
 	return result.Allowed, result.Reason, nil
 }
 
-func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+func (r *RemoteAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	var (
 		result *authzapi.ResourceAccessReviewResponse
 		err    error
 	)
 
-	// Extract namespace from context
-	namespace, _ := kapi.NamespaceFrom(ctx)
+	namespace := attributes.GetNamespace()
 
 	if len(namespace) > 0 {
 		result, err = r.client.LocalResourceAccessReviews(namespace).Create(&authzapi.LocalResourceAccessReview{Action: getAction(namespace, attributes)})
@@ -92,22 +88,20 @@ func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes autho
 	return result.Users, result.Groups, nil
 }
 
-func getAction(namespace string, attributes authorizer.Action) authzapi.Action {
+func getAction(namespace string, attributes kauthorizer.Attributes) authzapi.Action {
+	resource := attributes.GetResource()
+	if len(attributes.GetSubresource()) > 0 {
+		resource = resource + "/" + attributes.GetSubresource()
+	}
 	return authzapi.Action{
 		Namespace:    namespace,
 		Verb:         attributes.GetVerb(),
 		Group:        attributes.GetAPIGroup(),
 		Version:      attributes.GetAPIVersion(),
-		Resource:     attributes.GetResource(),
-		ResourceName: attributes.GetResourceName(),
+		Resource:     resource,
+		ResourceName: attributes.GetName(),
 
-		Path:             attributes.GetURL(),
-		IsNonResourceURL: attributes.IsNonResourceURL(),
-
-		// TODO: missing from authorizer.Action:
-		// Content
-
-		// TODO: missing from authzapi.Action
-		// RequestAttributes (unserializable?)
+		Path:             attributes.GetPath(),
+		IsNonResourceURL: !attributes.IsResourceRequest(),
 	}
 }

@@ -7,11 +7,9 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
-
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 func TestAuthorizer(t *testing.T) {
@@ -20,40 +18,34 @@ func TestAuthorizer(t *testing.T) {
 
 func TestCacheKey(t *testing.T) {
 	tests := map[string]struct {
-		Context kapi.Context
-		Attrs   authorizer.Action
+		Attrs authorizer.Attributes
 
 		ExpectedKey string
 		ExpectedErr bool
 	}{
-		"uncacheable request attributes": {
-			Context:     kapi.NewContext(),
-			Attrs:       &authorizer.DefaultAuthorizationAttributes{RequestAttributes: true},
-			ExpectedErr: true,
-		},
 		"empty": {
-			Context:     kapi.NewContext(),
-			Attrs:       &authorizer.DefaultAuthorizationAttributes{},
-			ExpectedKey: `{"apiGroup":"","apiVersion":"","nonResourceURL":false,"resource":"","resourceName":"","url":"","verb":""}`,
+			Attrs:       authorizer.AttributesRecord{},
+			ExpectedKey: `{"apiGroup":"","apiVersion":"","name":"","namespace":"","path":"","readOnly":false,"resource":"","resourceRequest":false,"subresource":"","verb":""}`,
 		},
 		"full": {
-			Context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "myns"), &user.DefaultInfo{Name: "me", Groups: []string{"group1", "group2"}}),
-			Attrs: &authorizer.DefaultAuthorizationAttributes{
-				Verb:              "v",
-				APIVersion:        "av",
-				APIGroup:          "ag",
-				Resource:          "r",
-				ResourceName:      "rn",
-				RequestAttributes: nil,
-				NonResourceURL:    true,
-				URL:               "/abc",
+			Attrs: authorizer.AttributesRecord{
+				User:            &user.DefaultInfo{Name: "me", Groups: []string{"group1", "group2"}},
+				Verb:            "v",
+				Namespace:       "myns",
+				APIVersion:      "av",
+				APIGroup:        "ag",
+				Resource:        "r",
+				Subresource:     "sub",
+				Name:            "rn",
+				ResourceRequest: true,
+				Path:            "/abc",
 			},
-			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"url":"/abc","user":"me","verb":"v"}`,
+			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"name":"rn","namespace":"myns","path":"/abc","readOnly":false,"resource":"r","resourceRequest":true,"scopes":null,"subresource":"sub","user":"me","verb":"v"}`,
 		},
 	}
 
 	for k, tc := range tests {
-		key, err := cacheKey(tc.Context, tc.Attrs)
+		key, err := cacheKey(tc.Attrs)
 		if tc.ExpectedErr != (err != nil) {
 			t.Errorf("%s: expected err=%v, got %v", k, tc.ExpectedErr, err)
 		}
@@ -64,7 +56,7 @@ func TestCacheKey(t *testing.T) {
 }
 
 func TestCacheKeyFields(t *testing.T) {
-	keyJSON, err := cacheKey(kapi.NewContext(), &authorizer.DefaultAuthorizationAttributes{})
+	keyJSON, err := cacheKey(authorizer.AttributesRecord{User: &user.DefaultInfo{Name: "me"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,16 +69,13 @@ func TestCacheKeyFields(t *testing.T) {
 		keys.Insert(strings.ToLower(k))
 	}
 
-	// These are results we don't expect to be in the cache key
-	expectedMissingKeys := sets.NewString("requestattributes")
-
-	attrType := reflect.TypeOf((*authorizer.Action)(nil)).Elem()
+	attrType := reflect.TypeOf((*authorizer.AttributesRecord)(nil)).Elem()
 	for i := 0; i < attrType.NumMethod(); i++ {
 		name := attrType.Method(i).Name
 		name = strings.TrimPrefix(name, "Get")
 		name = strings.TrimPrefix(name, "Is")
 		name = strings.ToLower(name)
-		if !keys.Has(name) && !expectedMissingKeys.Has(name) {
+		if !keys.Has(name) {
 			t.Errorf("computed cache is missing an entry for %s", attrType.Method(i).Name)
 		}
 	}

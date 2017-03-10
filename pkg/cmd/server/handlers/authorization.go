@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -20,27 +21,24 @@ import (
 
 type bypassAuthorizer struct {
 	paths      sets.String
-	authorizer authorizer.Authorizer
+	authorizer kauthorizer.Authorizer
 }
 
 // NewBypassAuthorizer creates an Authorizer that always allows the exact paths described, and delegates to the nested
 // authorizer for everything else.
-func NewBypassAuthorizer(auth authorizer.Authorizer, paths ...string) authorizer.Authorizer {
+func NewBypassAuthorizer(auth kauthorizer.Authorizer, paths ...string) kauthorizer.Authorizer {
 	return bypassAuthorizer{paths: sets.NewString(paths...), authorizer: auth}
 }
 
-func (a bypassAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Action) (allowed bool, reason string, err error) {
-	if attributes.IsNonResourceURL() && a.paths.Has(attributes.GetURL()) {
+func (a bypassAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
+	if !attributes.IsResourceRequest() && a.paths.Has(attributes.GetPath()) {
 		return true, "always allowed", nil
 	}
-	return a.authorizer.Authorize(ctx, attributes)
-}
-func (a bypassAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
-	return a.authorizer.GetAllowedSubjects(ctx, attributes)
+	return a.authorizer.Authorize(attributes)
 }
 
 // AuthorizationFilter imposes normal authorization rules
-func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
+func AuthorizationFilter(handler http.Handler, authorizer kauthorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
@@ -52,13 +50,7 @@ func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer,
 			return
 		}
 
-		ctx, exists := contextMapper.Get(req)
-		if !exists {
-			Forbidden("context not found", attributes, w, req)
-			return
-		}
-
-		allowed, reason, err := authorizer.Authorize(ctx, attributes)
+		allowed, reason, err := authorizer.Authorize(attributes)
 		if err != nil {
 			Forbidden(err.Error(), attributes, w, req)
 			return
@@ -73,7 +65,7 @@ func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer,
 }
 
 // Forbidden renders a simple forbidden error to the response
-func Forbidden(reason string, attributes authorizer.Action, w http.ResponseWriter, req *http.Request) {
+func Forbidden(reason string, attributes kauthorizer.Attributes, w http.ResponseWriter, req *http.Request) {
 	kind := ""
 	resource := ""
 	group := ""
@@ -89,7 +81,7 @@ func Forbidden(reason string, attributes authorizer.Action, w http.ResponseWrite
 		if len(attributes.GetAPIGroup()) > 0 {
 			kind = attributes.GetAPIGroup() + "." + kind
 		}
-		name = attributes.GetResourceName()
+		name = attributes.GetName()
 	}
 
 	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).

@@ -2,27 +2,23 @@ package cache
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/hashicorp/golang-lru"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 type CacheAuthorizer struct {
-	authorizer authorizer.Authorizer
+	authorizer kauthorizer.Authorizer
 
-	authorizeCache       *lru.Cache
-	allowedSubjectsCache *lru.Cache
+	authorizeCache *lru.Cache
 
 	ttl time.Duration
 	now func() time.Time
@@ -35,36 +31,25 @@ type authorizeCacheRecord struct {
 	err     error
 }
 
-type allowedSubjectsCacheRecord struct {
-	created time.Time
-	users   sets.String
-	groups  sets.String
-}
-
 // NewAuthorizer returns an authorizer that caches the results of the given authorizer
-func NewAuthorizer(a authorizer.Authorizer, ttl time.Duration, cacheSize int) (authorizer.Authorizer, error) {
+func NewAuthorizer(a kauthorizer.Authorizer, ttl time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {
 	authorizeCache, err := lru.New(cacheSize)
 	if err != nil {
 		return nil, err
 	}
-	allowedSubjectsCache, err := lru.New(cacheSize)
-	if err != nil {
-		return nil, err
-	}
 	return &CacheAuthorizer{
-		authorizer:           a,
-		authorizeCache:       authorizeCache,
-		allowedSubjectsCache: allowedSubjectsCache,
-		ttl:                  ttl,
-		now:                  time.Now,
+		authorizer:     a,
+		authorizeCache: authorizeCache,
+		ttl:            ttl,
+		now:            time.Now,
 	}, nil
 }
 
-func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allowed bool, reason string, err error) {
-	key, err := cacheKey(ctx, a)
+func (c *CacheAuthorizer) Authorize(a kauthorizer.Attributes) (allowed bool, reason string, err error) {
+	key, err := cacheKey(a)
 	if err != nil {
 		glog.V(5).Infof("could not build cache key for %#v: %v", a, err)
-		return c.authorizer.Authorize(ctx, a)
+		return c.authorizer.Authorize(a)
 	}
 
 	if value, hit := c.authorizeCache.Get(key); hit {
@@ -81,7 +66,7 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allo
 		}
 	}
 
-	allowed, reason, err = c.authorizer.Authorize(ctx, a)
+	allowed, reason, err = c.authorizer.Authorize(a)
 
 	// Don't cache results if there was an error unrelated to authorization
 	// TODO: figure out a better way to determine this
@@ -92,57 +77,21 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allo
 	return allowed, reason, err
 }
 
-func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
-	key, err := cacheKey(ctx, attributes)
-	if err != nil {
-		glog.V(5).Infof("could not build cache key for %#v: %v", attributes, err)
-		return c.authorizer.GetAllowedSubjects(ctx, attributes)
-	}
-
-	if value, hit := c.allowedSubjectsCache.Get(key); hit {
-		switch record := value.(type) {
-		case *allowedSubjectsCacheRecord:
-			if record.created.Add(c.ttl).After(c.now()) {
-				return record.users, record.groups, nil
-			} else {
-				glog.V(5).Infof("cache record expired for %s", key)
-				c.allowedSubjectsCache.Remove(key)
-			}
-		default:
-			utilruntime.HandleError(fmt.Errorf("invalid cache record type for key %s: %#v", key, record))
-		}
-	}
-
-	users, groups, err := c.authorizer.GetAllowedSubjects(ctx, attributes)
-
-	// Don't cache results if there was an error
-	if err == nil {
-		c.allowedSubjectsCache.Add(key, &allowedSubjectsCacheRecord{created: c.now(), users: users, groups: groups})
-	}
-
-	return users, groups, err
-}
-
-func cacheKey(ctx kapi.Context, a authorizer.Action) (string, error) {
-	if a.GetRequestAttributes() != nil {
-		// TODO: see if we can serialize this?
-		return "", errors.New("cannot cache request attributes")
-	}
-
+func cacheKey(a kauthorizer.Attributes) (string, error) {
 	keyData := map[string]interface{}{
-		"verb":           a.GetVerb(),
-		"apiVersion":     a.GetAPIVersion(),
-		"apiGroup":       a.GetAPIGroup(),
-		"resource":       a.GetResource(),
-		"resourceName":   a.GetResourceName(),
-		"nonResourceURL": a.IsNonResourceURL(),
-		"url":            a.GetURL(),
+		"verb":            a.GetVerb(),
+		"apiVersion":      a.GetAPIVersion(),
+		"apiGroup":        a.GetAPIGroup(),
+		"resource":        a.GetResource(),
+		"subresource":     a.GetSubresource(),
+		"name":            a.GetName(),
+		"readOnly":        a.IsReadOnly(),
+		"resourceRequest": a.IsResourceRequest(),
+		"path":            a.GetPath(),
+		"namespace":       a.GetNamespace(),
 	}
 
-	if namespace, ok := kapi.NamespaceFrom(ctx); ok {
-		keyData["namespace"] = namespace
-	}
-	if user, ok := kapi.UserFrom(ctx); ok {
+	if user := a.GetUser(); user != nil {
 		keyData["user"] = user.GetName()
 		keyData["groups"] = user.GetGroups()
 		keyData["scopes"] = user.GetExtra()[authorizationapi.ScopesKey]

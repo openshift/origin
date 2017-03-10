@@ -6,6 +6,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,12 +17,13 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	authorizer authorizer.Authorizer
+	authorizer     kauthorizer.Authorizer
+	subjectLocator authorizer.SubjectLocator
 }
 
 // NewREST creates a new REST for policies.
-func NewREST(authorizer authorizer.Authorizer) *REST {
-	return &REST{authorizer}
+func NewREST(authorizer kauthorizer.Authorizer, subjectLocator authorizer.SubjectLocator) *REST {
+	return &REST{authorizer, subjectLocator}
 }
 
 // New creates a new ResourceAccessReview object
@@ -37,21 +40,26 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if errs := authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview); len(errs) > 0 {
 		return nil, kapierrors.NewInvalid(authorizationapi.Kind(resourceAccessReview.Kind), "", errs)
 	}
+
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return nil, kapierrors.NewInternalError(errors.New("missing user on request"))
+	}
+
 	// if a namespace is present on the request, then the namespace on the on the RAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
 	// the authorizer decided that a user could run an RAR against this namespace
 	if namespace := kapi.NamespaceValue(ctx); len(namespace) > 0 {
 		resourceAccessReview.Action.Namespace = namespace
 
-	} else if err := r.isAllowed(ctx, resourceAccessReview); err != nil {
+	} else if err := r.isAllowed(user, resourceAccessReview); err != nil {
 		// this check is mutually exclusive to the condition above.  localSAR and localRAR both clear the namespace before delegating their calls
 		// We only need to check if the RAR is allowed **again** if the authorizer didn't already approve the request for a legacy call.
 		return nil, err
 	}
 
-	requestContext := kapi.WithNamespace(ctx, resourceAccessReview.Action.Namespace)
-	attributes := authorizer.ToDefaultAuthorizationAttributes(resourceAccessReview.Action)
-	users, groups, err := r.authorizer.GetAllowedSubjects(requestContext, attributes)
+	attributes := authorizer.ToDefaultAuthorizationAttributes(nil, resourceAccessReview.Action.Namespace, resourceAccessReview.Action)
+	users, groups, err := r.subjectLocator.GetAllowedSubjects(attributes)
 
 	response := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: resourceAccessReview.Action.Namespace,
@@ -66,18 +74,21 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // isAllowed checks to see if the current user has rights to issue a LocalSubjectAccessReview on the namespace they're attempting to access
-func (r *REST) isAllowed(ctx kapi.Context, rar *authorizationapi.ResourceAccessReview) error {
-	localRARAttributes := authorizer.DefaultAuthorizationAttributes{
-		Verb:     "create",
-		Resource: "localresourceaccessreviews",
+func (r *REST) isAllowed(user user.Info, rar *authorizationapi.ResourceAccessReview) error {
+	localRARAttributes := kauthorizer.AttributesRecord{
+		User:            user,
+		Verb:            "create",
+		Namespace:       rar.Action.Namespace,
+		Resource:        "localresourceaccessreviews",
+		ResourceRequest: true,
 	}
-	allowed, reason, err := r.authorizer.Authorize(kapi.WithNamespace(ctx, rar.Action.Namespace), localRARAttributes)
+	allowed, reason, err := r.authorizer.Authorize(localRARAttributes)
 
 	if err != nil {
-		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetResourceName(), err)
+		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), err)
 	}
 	if !allowed {
-		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetResourceName(), errors.New("") /*discarded*/)
+		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), errors.New("") /*discarded*/)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}

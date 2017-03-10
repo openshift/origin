@@ -18,6 +18,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/group"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -98,9 +99,10 @@ type MasterConfig struct {
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
 
-	RuleResolver  rulevalidation.AuthorizationRuleResolver
-	Authenticator authenticator.Request
-	Authorizer    authorizer.Authorizer
+	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	Authenticator  authenticator.Request
+	Authorizer     kauthorizer.Authorizer
+	SubjectLocator authorizer.SubjectLocator
 
 	// TODO(sttts): replace AuthorizationAttributeBuilder with kapiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
@@ -230,7 +232,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		informerFactory.ClusterPolicies().Lister().ClusterPolicies(),
 		informerFactory.ClusterPolicyBindings().Lister().ClusterPolicyBindings(),
 	)
-	authorizer := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
+	authorizer, subjectLocator := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
@@ -273,10 +275,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RuleResolver:                  ruleResolver,
 		Authenticator:                 authenticator,
 		Authorizer:                    authorizer,
+		SubjectLocator:                subjectLocator,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		GroupCache:                    groupCache,
-		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClientset, informerFactory),
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(subjectLocator, privilegedLoopbackKubeClientset, informerFactory),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -698,9 +701,9 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	}), nil
 }
 
-func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		projectauth.NewAuthorizerReviewer(authorizer),
+		projectauth.NewAuthorizerReviewer(subjectLocator),
 		kubeClient.Core().Namespaces(),
 		informerFactory.ClusterPolicies().Lister(),
 		informerFactory.ClusterPolicyBindings().Lister(),
@@ -810,11 +813,11 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}, nil
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) authorizer.Authorizer {
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, messageMaker)
+	roleBasedAuthorizer, subjectLocator := authorizer.NewAuthorizer(ruleResolver, messageMaker)
 	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, informerFactory.ClusterPolicies().Lister().ClusterPolicies(), messageMaker)
-	return scopeLimitedAuthorizer
+	return scopeLimitedAuthorizer, subjectLocator
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
@@ -826,8 +829,10 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 		sets.NewString(bootstrappolicy.AuthenticatedGroup),
 		requestInfoFactory,
 	)
+	personalSARRequestInfoResolver := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	projectRequestInfoResolver := authorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
 
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, browserSafeRequestInfoResolver)
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, projectRequestInfoResolver)
 	return authorizationAttributeBuilder
 }
 
