@@ -414,11 +414,16 @@ func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) 
 		if cfg.StatsPort > 0 {
 			healthzPort = cfg.StatsPort
 		}
+		// https://bugzilla.redhat.com/show_bug.cgi?id=1430729
+		// Because firewall rules may prevent access to healthz port under misconfigured environments,
+		// using the standard http port in liveness check as a temporary solution.
+		healthzPort = 80
 
 		// https://bugzilla.redhat.com/show_bug.cgi?id=1405440
 		// To avoid the failure of HTTP requests due to connection limit in high load scenarios,
 		// a TCP connection check can be used to check whether the HAProxy process is alive or not.
 		// This is the most lightweight & cheapest TRUE solution to the BUG.
+		// TODO: Change to loopback TCPSocketAction once it is supported by kubernetes
 		probe.Handler.TCPSocket = &kapi.TCPSocketAction{
 			Port: intstr.IntOrString{
 				Type:   intstr.Int,
