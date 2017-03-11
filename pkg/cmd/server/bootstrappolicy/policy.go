@@ -815,6 +815,22 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.DiscoveryRule,
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: PersistentVolumeProvisionerRoleName,
+				Annotations: map[string]string{
+					roleSystemOnly: roleIsSystemOnly,
+				},
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("get", "list", "watch", "create", "delete").Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),
+				// update is needed in addition to read access for setting lock annotations on PVCs
+				authorizationapi.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
+				// Needed for watching provisioning success and failure events
+				authorizationapi.NewRule("create", "update", "patch", "watch").Groups(kapiGroup).Resources("events").RuleOrDie(),
+			},
+		},
 
 		{
 			ObjectMeta: kapi.ObjectMeta{
