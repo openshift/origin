@@ -5,27 +5,25 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/group"
 	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 
-	oauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	authncache "github.com/openshift/origin/pkg/auth/authenticator/token/cache"
 	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotetokenreview"
-	"github.com/openshift/origin/pkg/auth/group"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 // NewRemoteAuthenticator creates an authenticator that checks the provided remote endpoint for tokens, allows any linked clientCAs to be checked, and caches
 // responses as indicated.  If no authentication is possible, the user will be system:anonymous.
 func NewRemoteAuthenticator(authenticationClient unversionedauthentication.TokenReviewsGetter, clientCAs *x509.CertPool, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
-	authenticators := []oauthenticator.Request{}
+	authenticators := []authenticator.Request{}
 
 	// API token auth
 	var (
-		tokenAuthenticator oauthenticator.Token
+		tokenAuthenticator authenticator.Token
 		err                error
 	)
 	// Authenticate against the remote master
@@ -50,17 +48,12 @@ func NewRemoteAuthenticator(authenticationClient unversionedauthentication.Token
 		authenticators = append(authenticators, certauth)
 	}
 
-	ret := &unionrequest.Authenticator{
-		// Anonymous requests will pass the token and cert checks without errors
-		// Bad tokens or bad certs will produce errors, in which case we should not continue to authenticate them as "system:anonymous"
-		FailOnError: true,
-		Handlers: []oauthenticator.Request{
-			// Add the "system:authenticated" group to users that pass token/cert authentication
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
-			// Fall back to the "system:anonymous" user
-			anonymous.NewAuthenticator(),
-		},
-	}
-
-	return ret, nil
+	// Anonymous requests will pass the token and cert checks without errors
+	// Bad tokens or bad certs will produce errors, in which case we should not continue to authenticate them as "system:anonymous"
+	return union.NewFailOnError(
+		// Add the "system:authenticated" group to users that pass token/cert authentication
+		group.NewAuthenticatedGroupAdder(union.New(authenticators...)),
+		// Fall back to the "system:anonymous" user
+		anonymous.NewAuthenticator(),
+	), nil
 }

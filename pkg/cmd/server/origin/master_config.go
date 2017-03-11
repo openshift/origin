@@ -18,6 +18,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
+	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/group"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -36,12 +37,11 @@ import (
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/headerrequest"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -651,11 +651,11 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+			group.NewGroupAdder(union.New(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
 	if len(tokenAuthenticators) > 0 {
-		authenticators = append(authenticators, unionrequest.NewUnionAuthentication(tokenAuthenticators...))
+		authenticators = append(authenticators, union.New(tokenAuthenticators...))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
@@ -668,10 +668,10 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
-	resultingAuthenticator := &unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}
+	resultingAuthenticator := union.NewFailOnError(authenticators...)
 
 	topLevelAuthenticators := []authenticator.Request{}
-	//	if we have a front proxy providing authentication configuration, wire it up and it should come first
+	// if we have a front proxy providing authentication configuration, wire it up and it should come first
 	if config.AuthConfig.RequestHeader != nil {
 		requestHeaderAuthenticator, err := headerrequest.NewSecure(
 			config.AuthConfig.RequestHeader.ClientCA,
@@ -683,10 +683,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		if err != nil {
 			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
 		}
-		topLevelAuthenticators = append(topLevelAuthenticators, &unionrequest.Authenticator{
-			FailOnError: false,
-			Handlers:    []authenticator.Request{requestHeaderAuthenticator, resultingAuthenticator},
-		})
+		topLevelAuthenticators = append(topLevelAuthenticators, union.New(requestHeaderAuthenticator, resultingAuthenticator))
 
 	} else {
 		topLevelAuthenticators = append(topLevelAuthenticators, resultingAuthenticator)
@@ -695,10 +692,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return group.NewAuthenticatedGroupAdder(&unionrequest.Authenticator{
-		FailOnError: true,
-		Handlers:    topLevelAuthenticators,
-	}), nil
+	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
 func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
