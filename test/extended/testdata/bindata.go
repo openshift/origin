@@ -94,6 +94,7 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
+// test/extended/testdata/router-metrics.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -5421,6 +5422,128 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterMetricsYaml = []byte(`apiVersion: v1
+kind: List
+items:
+# a route that has multiple weighted services that it points to
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: weightedroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: weighted.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 50
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 50
+    ports:
+    - targetPort: 8080
+
+# a route that has multiple services but all weights are zero
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: zeroweightroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: zeroweight.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 0
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 0
+    ports:
+    - targetPort: 8080
+
+# two services that can be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints1
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+    ports:
+    - port: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints2
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+    ports:
+    - port: 8080
+# two pods that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-2
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterMetricsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterMetricsYaml, nil
+}
+
+func testExtendedTestdataRouterMetricsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterMetricsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
@@ -5791,6 +5914,7 @@ objects:
     labels:
       test: scoped-router
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: router
       image: ${IMAGE}
@@ -5818,6 +5942,7 @@ objects:
     labels:
       test: router-override
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: router
       image: ${IMAGE}
@@ -5899,6 +6024,7 @@ objects:
       test: router
       endpoints: router
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: test
       image: openshift/hello-openshift
@@ -8880,6 +9006,7 @@ objects:
     labels:
       test: weighted-router
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: router
       image: ${IMAGE}
@@ -8986,6 +9113,7 @@ objects:
       test: weightedrouter1
       endpoints: weightedrouter1
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: test
       image: openshift/hello-openshift
@@ -9002,6 +9130,7 @@ objects:
       test: weightedrouter2
       endpoints: weightedrouter2
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: test
       image: openshift/hello-openshift
@@ -18661,6 +18790,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -18999,6 +19129,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
+				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
 				"run_policy": &bintree{nil, map[string]*bintree{
 					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
