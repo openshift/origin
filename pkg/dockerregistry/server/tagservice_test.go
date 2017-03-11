@@ -11,8 +11,6 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
 
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
@@ -63,15 +61,8 @@ func TestTagGet(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
+
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
@@ -162,14 +153,6 @@ func TestTagGetWithoutImageStream(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
 
 	serverURL, _ := url.Parse("docker.io/centos")
@@ -209,15 +192,8 @@ func TestTagCreation(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
+
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
@@ -292,14 +268,6 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
 
 	serverURL, _ := url.Parse("docker.io/centos")
@@ -336,15 +304,8 @@ func TestTagDeletion(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
+
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
@@ -433,14 +394,6 @@ func TestTagDeletionWithoutImageStream(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
 
 	serverURL, _ := url.Parse("docker.io/centos")
@@ -477,15 +430,8 @@ func TestTagGetAll(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
+
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
@@ -552,14 +498,6 @@ func TestTagGetAllWithoutImageStream(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
 
 	serverURL, _ := url.Parse("docker.io/centos")
@@ -596,15 +534,8 @@ func TestTagLookup(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
-
 	ctx := context.Background()
+
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
@@ -688,14 +619,6 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 	client := &testclient.Fake{}
-
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
 
 	ctx := context.Background()
 

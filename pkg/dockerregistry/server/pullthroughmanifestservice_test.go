@@ -17,8 +17,6 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -63,14 +61,6 @@ func TestPullthroughManifests(t *testing.T) {
 
 	log.SetLevel(log.DebugLevel)
 	client := &testclient.Fake{}
-
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
 
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
@@ -381,21 +371,13 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 	} {
 		client := &testclient.Fake{}
 
-		// TODO: get rid of those nasty global vars
-		backupRegistryClient := DefaultRegistryClient
-		DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-		defer func() {
-			// set it back once this test finishes to make other unit tests working again
-			DefaultRegistryClient = backupRegistryClient
-		}()
-
 		tc.imageStreamInit(client)
 
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
-		ctx = WithRepository(ctx, repo)
+		ctx = withRepository(ctx, repo)
 
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,

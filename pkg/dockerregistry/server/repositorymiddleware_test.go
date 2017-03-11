@@ -282,10 +282,10 @@ func TestRepositoryBlobStat(t *testing.T) {
 
 		ctx := context.Background()
 		if !tc.skipAuth {
-			ctx = WithAuthPerformed(ctx)
+			ctx = withAuthPerformed(ctx)
 		}
 		if tc.deferredErrors != nil {
-			ctx = WithDeferredErrors(ctx, tc.deferredErrors)
+			ctx = withDeferredErrors(ctx, tc.deferredErrors)
 		}
 
 		client := &testclient.Fake{}
@@ -330,7 +330,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	const blobRepoCacheTTL = time.Millisecond * 500
 
 	quotaEnforcing = &quotaEnforcingConfig{}
-	ctx := WithAuthPerformed(context.Background())
+	ctx := withAuthPerformed(context.Background())
 
 	// this driver holds all the testing blobs in memory during the whole test run
 	driver := inmemory.New()

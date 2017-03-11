@@ -39,6 +39,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
@@ -57,10 +58,25 @@ func Execute(configFile io.Reader) {
 	if err != nil {
 		log.Fatalf("error configuring logger: %v", err)
 	}
+
+	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+	ctx = server.WithRegistryClient(ctx, registryClient)
+
 	log.Infof("version=%s", version.Version)
 	// inject a logger into the uuid library. warns us if there is a problem
 	// with uuid generation under low entropy.
 	uuid.Loggerf = context.GetLogger(ctx).Warnf
+
+	// add parameters for the auth middleware
+	if config.Auth.Type() == server.OpenShiftAuth {
+		if config.Auth[server.OpenShiftAuth] == nil {
+			config.Auth[server.OpenShiftAuth] = make(configuration.Parameters)
+		}
+		config.Auth[server.OpenShiftAuth][server.AccessControllerOptionParams] = server.AccessControllerParams{
+			Logger:           context.GetLogger(ctx),
+			SafeClientConfig: registryClient.SafeClientConfig(),
+		}
+	}
 
 	app := handlers.NewApp(ctx, config)
 
@@ -70,7 +86,7 @@ func Execute(configFile io.Reader) {
 		if err != nil {
 			log.Fatalf("error setting up token auth: %s", err)
 		}
-		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, server.DefaultRegistryClient)).GetError()
+		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, registryClient)).GetError()
 		if err != nil {
 			log.Fatalf("error setting up token endpoint at %q: %v", tokenRealm.Path, err)
 		}

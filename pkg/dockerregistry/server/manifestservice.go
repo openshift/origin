@@ -65,13 +65,13 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		ref = ref.DockerClientDefaults().AsRepository()
 	}
 
-	manifest, err := m.manifests.Get(WithRepository(ctx, m.repo), dgst, options...)
+	manifest, err := m.manifests.Get(withRepository(ctx, m.repo), dgst, options...)
 	switch err.(type) {
 	case distribution.ErrManifestUnknownRevision:
 		break
 	case nil:
 		m.repo.rememberLayersOfManifest(dgst, manifest, ref.Exact())
-		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, true)
+		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, true)
 		return manifest, nil
 	default:
 		context.GetLogger(m.ctx).Errorf("unable to get manifest from storage: %v", err)
@@ -89,7 +89,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 
 	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
 	if err == nil {
-		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, false)
+		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, false)
 	}
 
 	return manifest, err
@@ -114,11 +114,11 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	}
 
 	// in order to stat the referenced blobs, repository need to be set on the context
-	if err := mh.Verify(WithRepository(ctx, m.repo), false); err != nil {
+	if err := mh.Verify(withRepository(ctx, m.repo), false); err != nil {
 		return "", err
 	}
 
-	_, err = m.manifests.Put(WithRepository(ctx, m.repo), manifest, options...)
+	_, err = m.manifests.Put(withRepository(ctx, m.repo), manifest, options...)
 	if err != nil {
 		return "", err
 	}
@@ -208,7 +208,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 // the content related to the manifest in the registry's storage (signatures).
 func (m *manifestService) Delete(ctx context.Context, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*manifestService).Delete")
-	return m.manifests.Delete(WithRepository(ctx, m.repo), dgst)
+	return m.manifests.Delete(withRepository(ctx, m.repo), dgst)
 }
 
 // manifestInflight tracks currently downloading manifests
