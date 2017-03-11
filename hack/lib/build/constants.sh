@@ -26,7 +26,6 @@ readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   examples/hello-openshift
-  examples/deployment
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 

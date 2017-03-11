@@ -15,10 +15,10 @@ elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
 fi
 commit="$( git rev-parse ${tag} )"
 
-# Ensure that the build is using the latest public base images
-docker pull "openshift/origin-base:latest"
+# Ensure that the build is using the latest release image
 docker pull "${OS_BUILD_ENV_IMAGE}"
 
+hack/build-base-images.sh
 OS_GIT_COMMIT="${commit}" hack/build-release.sh
 hack/build-images.sh
 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh

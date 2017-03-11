@@ -46,10 +46,10 @@ os::cmd::expect_success_and_text 'oadm router --dry-run --host-network=false --h
 # mount tls crt as secret
 os::cmd::expect_success_and_not_text 'oadm router --dry-run --host-network=false --host-ports=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'
 os::cmd::expect_failure_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=${KUBECONFIG} -o yaml" 'the default cert must contain a private key'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'value: /etc/pki/tls/private/tls.crt'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.key:'
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'tls.crt: '
-os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=images/router/haproxy-base/conf/default_pub_keys.pem -o yaml" 'type: kubernetes.io/tls'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=test/testdata/router/default_pub_keys.pem -o yaml" 'value: /etc/pki/tls/private/tls.crt'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=test/testdata/router/default_pub_keys.pem -o yaml" 'tls.key:'
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=test/testdata/router/default_pub_keys.pem -o yaml" 'tls.crt: '
+os::cmd::expect_success_and_text "oadm router --dry-run --host-network=false --host-ports=false --default-cert=test/testdata/router/default_pub_keys.pem -o yaml" 'type: kubernetes.io/tls'
 # upgrade the router to have access to host networks
 os::cmd::expect_success "oadm policy add-scc-to-user privileged -z router"
 # uses localhost for probes

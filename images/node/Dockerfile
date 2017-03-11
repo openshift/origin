@@ -15,6 +15,8 @@ COPY opt/cni/bin/* /opt/cni/bin/
 COPY etc/cni/net.d/* /etc/cni/net.d/
 COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
 COPY scripts/* /usr/local/bin/
+COPY system-container/system-container-wrapper.sh /usr/local/bin/
+COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
 RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproject.org/coprs/maxamillion/origin-next/repo/epel-7/maxamillion-origin-next-epel-7.repo && \
     INSTALL_PKGS="libmnl libnetfilter_conntrack conntrack-tools openvswitch \
@@ -24,16 +26,11 @@ RUN curl -L -o /etc/yum.repos.d/origin-next-epel-7.repo https://copr.fedoraproje
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
-    mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d && \
-    chmod +x /usr/local/bin/* /usr/bin/openshift-* /opt/cni/bin/*
+    mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d
 
 LABEL io.k8s.display-name="OpenShift Origin Node" \
       io.k8s.description="This is a component of OpenShift Origin and contains the software for individual nodes when using SDN."
 VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
-
-# files required to run as a system container
-COPY system-container/system-container-wrapper.sh /usr/local/bin
-COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
 ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]
