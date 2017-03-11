@@ -598,7 +598,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	// is just used for the key name and not for the record/route name.
 	// This also helps the use case for the key used as a router config
 	// file name.
-	return fmt.Sprintf("%s_%s", route.Namespace, name)
+	return fmt.Sprintf("%s:%s", route.Namespace, name)
 }
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.

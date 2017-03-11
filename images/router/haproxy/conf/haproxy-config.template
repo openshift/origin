@@ -127,7 +127,7 @@ frontend public
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_http_%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
+  use_backend be_http:%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
 
   default_backend openshift_default
 
@@ -142,7 +142,7 @@ frontend public_ssl
   # if the connection is SNI and the route is a passthrough don't use the termination backend, just use the tcp backend
   acl sni req.ssl_sni -m found
   acl sni_passthrough req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_sni_passthrough.map) -m found
-  use_backend be_tcp_%[req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
+  use_backend be_tcp:%[req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
 
   # if the route is SNI and NOT passthrough enter the termination flow
   use_backend be_sni if sni
@@ -174,13 +174,13 @@ frontend fe_sni
   acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
 
   # Search from most specific to general path (host case).
-  use_backend be_secure_%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
@@ -208,13 +208,13 @@ frontend fe_no_sni
   acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
 
   # Search from most specific to general path (host case).
-  use_backend be_secure_%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
@@ -230,17 +230,17 @@ backend openshift_default
 
 ##-------------- app level backends ----------------
 {{/*
-       1. If termination is not set: This is plain http -> http.  Create a be_http_<service> backend.
+       1. If termination is not set: This is plain http -> http.  Create a be_http:<service> backend.
           Incoming http traffic is terminated and sent as http to the pods.
 
-       2. If termination is type 'edge': This is https -> http.  Create a be_edge_http_<service> backend.
+       2. If termination is type 'edge': This is https -> http.  Create a be_edge_http:<service> backend.
           Incoming https traffic is terminated and sent as http to the pods.
 
-       3. If termination is type 'reencrypt': This is https -> https.  Create a be_secure_<service> backend.
+       3. If termination is type 'reencrypt': This is https -> https.  Create a be_secure:<service> backend.
           Incoming https traffic is terminated and then sent as https to the pods.
 
        4. If termination is type 'passthrough': This is https (or any SNI TLS connection) passthrough.
-          Create a be_tcp_<service> backend.
+          Create a be_tcp:<service> backend.
           Incoming traffic is inspected to get the hostname from the SNI header, but then all traffic is
           passed through to the backend pod by just looking at the TCP headers.
 */}}
@@ -249,11 +249,11 @@ backend openshift_default
     {{- if (eq $cfg.TLSTermination "") }}
 
 # Plain http backend
-backend be_http_{{$cfgIdx}}
+backend be_http:{{$cfgIdx}}
     {{- else }}
 
 # Plain http backend but request is TLS, terminated at edge
-backend be_edge_http_{{$cfgIdx}}
+backend be_edge_http:{{$cfgIdx}}
     {{- end }}
   mode http
   option redispatch
@@ -340,7 +340,7 @@ backend be_edge_http_{{$cfgIdx}}
   {{- if eq $cfg.TLSTermination "passthrough" }}
 
 # Secure backend, pass through
-backend be_tcp_{{$cfgIdx}}
+backend be_tcp:{{$cfgIdx}}
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
 {{- end }}
@@ -409,7 +409,7 @@ backend be_tcp_{{$cfgIdx}}
   {{- if eq $cfg.TLSTermination "reencrypt" }}
 
 # Secure backend which requires re-encryption
-backend be_secure_{{$cfgIdx}}
+backend be_secure:{{$cfgIdx}}
   mode http
   option redispatch
     {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
@@ -516,7 +516,7 @@ backend be_secure_{{$cfgIdx}}
 
 {{/*
     os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
-                        by attaching a prefix (be_http_) by use_backend statements if acls are matched.
+                        by attaching a prefix (be_http:) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
@@ -547,9 +547,9 @@ backend be_secure_{{$cfgIdx}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
 {{         if (eq $cfg.TLSTermination "edge") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http_{{$idx}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
 {{         else -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure_{{$idx}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure:{{$idx}}
 {{         end -}}
 {{       end -}}
 {{     end -}}
@@ -571,7 +571,7 @@ backend be_secure_{{$cfgIdx}}
 
 {{/*
     os_tcp_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
-                        by attaching a prefix (be_tcp_ or be_secure_) by use_backend statements if acls are matched.
+                        by attaching a prefix (be_tcp: or be_secure:) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
 {{     range $idx, $cfg := .State -}}
