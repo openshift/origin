@@ -12,6 +12,11 @@ unset KUBECONFIG
 os::util::environment::use_sudo
 os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
+
 function cleanup()
 {
 	out=$?
@@ -48,6 +53,7 @@ function cleanup()
 
 	delete_empty_logs
 	truncate_large_logs
+	os::test::junit::generate_oscmd_report
 	set -e
 
 	os::log::info "Exiting"
