@@ -285,16 +285,17 @@ readonly -f os::util::environment::setup_server_vars
 #  - export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY
 function os::util::environment::setup_images_vars() {
     # Use either the latest release built images, or latest.
+    IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
     if [[ -z "${USE_IMAGES-}" ]]; then
         TAG='latest'
         export TAG
-        USE_IMAGES="openshift/origin-\${component}:latest"
+        USE_IMAGES="${IMAGE_PREFIX}-\${component}:latest"
         export USE_IMAGES
 
         if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
             TAG="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
             export TAG
-            USE_IMAGES="openshift/origin-\${component}:${TAG}"
+            USE_IMAGES="${IMAGE_PREFIX}-\${component}:${TAG}"
             export USE_IMAGES
         fi
     fi
