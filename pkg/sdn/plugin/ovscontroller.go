@@ -178,6 +178,103 @@ func (oc *ovsController) NewTransaction() ovs.Transaction {
 	return oc.ovs.NewTransaction()
 }
 
+func (oc *ovsController) ensureOvsPort(hostVeth string) (int, error) {
+	return oc.ovs.AddPort(hostVeth, -1)
+}
+
+func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC string, vnid uint32) error {
+	otx := oc.ovs.NewTransaction()
+
+	// ARP/IP traffic from container
+	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, podMAC, vnid)
+	otx.AddFlow("table=20, priority=100, in_port=%d, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, vnid)
+
+	// ARP request/response to container (not isolated)
+	otx.AddFlow("table=40, priority=100, arp, nw_dst=%s, actions=output:%d", podIP, ofport)
+
+	// IP traffic to container
+	otx.AddFlow("table=70, priority=100, ip, nw_dst=%s, actions=load:%d->NXM_NX_REG1[], load:%d->NXM_NX_REG2[], goto_table:80", podIP, vnid, ofport)
+
+	return otx.EndTransaction()
+}
+
+func (oc *ovsController) cleanupPodFlows(podIP string) error {
+	otx := oc.ovs.NewTransaction()
+	otx.DeleteFlows("ip, nw_dst=%s", podIP)
+	otx.DeleteFlows("ip, nw_src=%s", podIP)
+	otx.DeleteFlows("arp, nw_dst=%s", podIP)
+	otx.DeleteFlows("arp, nw_src=%s", podIP)
+	return otx.EndTransaction()
+}
+
+func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC string, vnid uint32) (int, error) {
+	ofport, err := oc.ensureOvsPort(hostVeth)
+	if err != nil {
+		return -1, err
+	}
+	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, vnid)
+}
+
+func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS int64) error {
+	// note pod ingress == OVS egress and vice versa
+
+	qos, err := oc.ovs.Get("port", hostVeth, "qos")
+	if err != nil {
+		return err
+	}
+	if qos != "[]" {
+		err = oc.ovs.Clear("port", hostVeth, "qos")
+		if err != nil {
+			return err
+		}
+		err = oc.ovs.Destroy("qos", qos)
+		if err != nil {
+			return err
+		}
+	}
+
+	if ingressBPS > 0 {
+		qos, err := oc.ovs.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ingressBPS))
+		if err != nil {
+			return err
+		}
+		err = oc.ovs.Set("port", hostVeth, fmt.Sprintf("qos=%s", qos))
+		if err != nil {
+			return err
+		}
+	}
+	if egressBPS > 0 {
+		// ingress_policing_rate is in Kbps
+		err := oc.ovs.Set("interface", hostVeth, fmt.Sprintf("ingress_policing_rate=%d", egressBPS/1024))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (oc *ovsController) UpdatePod(hostVeth, podIP, podMAC string, vnid uint32) error {
+	ofport, err := oc.ensureOvsPort(hostVeth)
+	if err != nil {
+		return err
+	}
+	err = oc.cleanupPodFlows(podIP)
+	if err != nil {
+		return err
+	}
+	return oc.setupPodFlows(ofport, podIP, podMAC, vnid)
+}
+
+func (oc *ovsController) TearDownPod(hostVeth, podIP string) error {
+	err := oc.cleanupPodFlows(podIP)
+	if err != nil {
+		return err
+	}
+	_ = oc.SetPodBandwidth(hostVeth, -1, -1)
+	return oc.ovs.DeletePort(hostVeth)
+}
+
 func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	names := make([]string, len(policies))
 	for i, policy := range policies {

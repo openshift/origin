@@ -134,7 +134,7 @@ func TestOVSHostSubnet(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.DeleteHostSubnetRules(&hs)
@@ -148,7 +148,7 @@ func TestOVSHostSubnet(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows) // no changes
 
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
 
@@ -195,7 +195,7 @@ func TestOVSService(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.DeleteServiceRules(&svc)
@@ -209,7 +209,94 @@ func TestOVSService(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows) // no changes
 
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
+	}
+}
+
+func TestOVSPod(t *testing.T) {
+	ovsif, oc, origFlows := setup(t)
+
+	// Add
+	ofport, err := oc.SetUpPod("veth1", "10.128.0.2", "11:22:33:44:55:66", 42)
+	if err != nil {
+		t.Fatalf("Unexpected error adding pod rules: %v", err)
+	}
+
+	flows, err := ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "ip", "10.128.0.2", "42->NXM_NX_REG0"},
+		},
+		flowChange{
+			kind:    flowAdded,
+			match:   []string{"table=40", "arp", "10.128.0.2", fmt.Sprintf("output:%d", ofport)},
+			noMatch: []string{"reg0=42"},
+		},
+		flowChange{
+			kind:    flowAdded,
+			match:   []string{"table=70", "ip", "10.128.0.2", "42->NXM_NX_REG1", fmt.Sprintf("%d->NXM_NX_REG2", ofport)},
+			noMatch: []string{"reg0=42"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
+	}
+
+	// Update
+	err = oc.UpdatePod("veth1", "10.128.0.2", "11:22:33:44:55:66", 43)
+	if err != nil {
+		t.Fatalf("Unexpected error adding pod rules: %v", err)
+	}
+
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "ip", "10.128.0.2", "43->NXM_NX_REG0"},
+		},
+		flowChange{
+			kind:    flowAdded,
+			match:   []string{"table=40", "arp", "10.128.0.2", fmt.Sprintf("output:%d", ofport)},
+			noMatch: []string{"reg0=43"},
+		},
+		flowChange{
+			kind:    flowAdded,
+			match:   []string{"table=70", "ip", "10.128.0.2", "43->NXM_NX_REG1", fmt.Sprintf("%d->NXM_NX_REG2", ofport)},
+			noMatch: []string{"reg0=43"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
+	}
+
+	// Delete
+	err = oc.TearDownPod("veth1", "10.128.0.2")
+	if err != nil {
+		t.Fatalf("Unexpected error deleting pod rules: %v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows) // no changes
+
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
 
@@ -236,7 +323,7 @@ func TestOVSMulticast(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.UpdateLocalMulticastFlows(88, false, []int{7, 8})
@@ -250,7 +337,7 @@ func TestOVSMulticast(t *testing.T) {
 	}
 	err = assertFlowChanges(lastFlows, flows) // no changes
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.UpdateLocalMulticastFlows(99, false, []int{4, 5})
@@ -263,7 +350,7 @@ func TestOVSMulticast(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows) // no changes
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// VXLAN
@@ -287,7 +374,7 @@ func TestOVSMulticast(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.UpdateVXLANMulticastFlows([]string{"192.168.1.5", "192.168.1.3"})
@@ -311,7 +398,7 @@ func TestOVSMulticast(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.UpdateVXLANMulticastFlows([]string{})
@@ -324,7 +411,7 @@ func TestOVSMulticast(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows) // no changes
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
 
@@ -467,7 +554,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Set one EgressNetworkPolicy on VNID 43
@@ -494,7 +581,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Change VNID 42 from ENP1 to ENP2
@@ -521,7 +608,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Drop EgressNetworkPolicy from VNID 43
@@ -544,7 +631,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Set no EgressNetworkPolicy on VNID 0
@@ -567,7 +654,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Set no EgressNetworkPolicy on a shared namespace
@@ -590,7 +677,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// ERROR CASES
@@ -615,7 +702,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Can't set non-empty ENP in a shared namespace
@@ -642,7 +729,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Can't set multiple policies
@@ -673,7 +760,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// CLEARING ERRORS
@@ -701,7 +788,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	err = oc.UpdateEgressNetworkPolicyRules(
@@ -723,6 +810,6 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %v\nNew: %v", err, origFlows, flows)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
