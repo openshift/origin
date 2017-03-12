@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -92,6 +93,10 @@ type templateRouter struct {
 	synced bool
 	// whether a state change has occurred
 	stateChanged bool
+	// metricReload tracks reloads
+	metricReload prometheus.Summary
+	// metricWriteConfig tracks writing config
+	metricWriteConfig prometheus.Summary
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -174,6 +179,17 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
 		bindPortsAfterSync:     cfg.bindPortsAfterSync,
+
+		metricReload: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace: "template_router",
+			Name:      "reload_seconds",
+			Help:      "Measures the time spent reloading the router in seconds.",
+		})).(prometheus.Summary),
+		metricWriteConfig: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace: "template_router",
+			Name:      "write_config_seconds",
+			Help:      "Measures the time spent writing out the router configuration to disk in seconds.",
+		})).(prometheus.Summary),
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
@@ -398,7 +414,10 @@ func (r *templateRouter) commitAndReload() error {
 		}
 
 		glog.V(4).Infof("Writing the router config")
-		return r.writeConfig()
+		reloadStart := time.Now()
+		err := r.writeConfig()
+		r.metricWriteConfig.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+		return err
 	}(); err != nil {
 		return err
 	}
@@ -409,7 +428,10 @@ func (r *templateRouter) commitAndReload() error {
 	}
 
 	glog.V(4).Infof("Reloading the router")
-	if err := r.reloadRouter(); err != nil {
+	reloadStart := time.Now()
+	err := r.reloadRouter()
+	r.metricReload.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+	if err != nil {
 		return err
 	}
 
