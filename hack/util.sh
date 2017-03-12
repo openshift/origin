@@ -86,6 +86,7 @@ function find_files() {
 		-o -wholename './pkg/assets/*/bindata.go' \
 		-o -wholename './pkg/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
+		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \
