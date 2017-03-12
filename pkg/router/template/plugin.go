@@ -271,7 +271,6 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 			}
 			for _, a := range s.Addresses {
 				ep := Endpoint{
-					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
 					IP:   a.IP,
 					Port: strconv.Itoa(int(p.Port)),
 
@@ -281,15 +280,21 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 				}
 				if a.TargetRef != nil {
 					ep.TargetName = a.TargetRef.Name
+					if a.TargetRef.Kind == "Pod" {
+						ep.ID = fmt.Sprintf("pod:%s:%s:%s:%d", ep.TargetName, endpoints.Name, a.IP, p.Port)
+					} else {
+						ep.ID = fmt.Sprintf("ept:%s:%s:%d", endpoints.Name, a.IP, p.Port)
+					}
 				} else {
 					ep.TargetName = ep.IP
+					ep.ID = fmt.Sprintf("ept:%s:%s:%d", endpoints.Name, a.IP, p.Port)
 				}
 
 				// IdHash contains an obfuscated internal IP address
 				// that is the value passed in the cookie. The IP address
 				// is made more difficult to extract by including other
 				// internal information in the hash.
-				s := ep.ID + ep.TargetName + ep.PortName
+				s := ep.ID
 				ep.IdHash = fmt.Sprintf("%x", md5.Sum([]byte(s)))
 
 				out = append(out, ep)

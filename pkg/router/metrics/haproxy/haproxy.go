@@ -28,7 +28,8 @@ const (
 	// HAProxy 1.4
 	// # pxname,svname,qcur,qmax,scur,smax,slim,stot,bin,bout,dreq,dresp,ereq,econ,eresp,wretr,wredis,status,weight,act,bck,chkfail,chkdown,lastchg,downtime,qlimit,pid,iid,sid,throttle,lbtot,tracked,type,rate,rate_lim,rate_max,check_status,check_code,check_duration,hrsp_1xx,hrsp_2xx,hrsp_3xx,hrsp_4xx,hrsp_5xx,hrsp_other,hanafail,req_rate,req_rate_max,req_tot,cli_abrt,srv_abrt,
 	// HAProxy 1.5
-	// pxname,svname,qcur,qmax,scur,smax,slim,stot,bin,bout,dreq,dresp,ereq,econ,eresp,wretr,wredis,status,weight,act,bck,chkfail,chkdown,lastchg,downtime,qlimit,pid,iid,sid,throttle,lbtot,tracked,type,rate,rate_lim,rate_max,check_status,check_code,check_duration,hrsp_1xx,hrsp_2xx,hrsp_3xx,hrsp_4xx,hrsp_5xx,hrsp_other,hanafail,req_rate,req_rate_max,req_tot,cli_abrt,srv_abrt,comp_in,comp_out,comp_byp,comp_rsp,lastsess,
+	// These columns are part of the stable API for HAProxy and are documented here: https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#9.1
+	// pxname,svname,qcur,qmax,scur,smax,slim,stot,bin,bout,dreq,dresp,ereq,econ,eresp,wretr,wredis,status,weight,act,bck,chkfail,chkdown,lastchg,downtime,qlimit,pid,iid,sid,throttle,lbtot,tracked,type,rate,rate_lim,rate_max,check_status,check_code,check_duration,hrsp_1xx,hrsp_2xx,hrsp_3xx,hrsp_4xx,hrsp_5xx,hrsp_other,hanafail,req_rate,req_rate_max,req_tot,cli_abrt,srv_abrt,comp_in,comp_out,comp_byp,comp_rsp,lastsess,last_chk,last_agt,qtime,ctime,rtime,ttime
 	expectedCsvFieldCount = 52
 	statusField           = 17
 
@@ -40,8 +41,8 @@ const (
 
 var (
 	frontendLabelNames = []string{"frontend"}
-	backendLabelNames  = []string{"backend"}
-	serverLabelNames   = []string{"backend", "server"}
+	backendLabelNames  = []string{"backend", "namespace", "route"}
+	serverLabelNames   = []string{"server", "namespace", "route", "pod", "service"}
 )
 
 func newFrontendMetric(metricName string, docString string, constLabels prometheus.Labels) *prometheus.GaugeVec {
@@ -91,8 +92,9 @@ func (m metrics) Names() []int {
 	return keys
 }
 
-// defaultSelectedMetrics is the list of metrics included by default
-var defaultSelectedMetrics = []int{2, 4, 5, 7, 8, 9, 13, 14, 17, 21, 24, 33, 35, 40, 43}
+// defaultSelectedMetrics is the list of metrics included by default. These metrics are a subset
+// of the metrics exposed by haproxy_exporter by default for performance reasons.
+var defaultSelectedMetrics = []int{2, 4, 5, 7, 8, 9, 13, 14, 17, 21, 24, 33, 35, 40, 43, 60}
 
 // Exporter collects HAProxy stats from the given URI and exports them using
 // the prometheus metrics package.
@@ -194,8 +196,9 @@ func NewExporter(opts PrometheusOptions) (*Exporter, error) {
 			43: newFrontendMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "5xx"}),
 			44: newFrontendMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "other"}),
 			48: newFrontendMetric("http_requests_total", "Total HTTP requests.", nil),
+			60: newFrontendMetric("http_average_response_latency_milliseconds", "Average response latency of the last 1024 requests in milliseconds.", nil),
 		}),
-		reducedBackendExports: map[int]struct{}{2: struct{}{}, 3: struct{}{}, 7: struct{}{}, 17: struct{}{}},
+		reducedBackendExports: map[int]struct{}{2: {}, 3: {}, 7: {}, 17: {}},
 		backendMetrics: filterMetrics(opts.ExportedMetrics, metrics{
 			2:  newBackendMetric("current_queue", "Current number of queued requests not assigned to any server.", nil),
 			3:  newBackendMetric("max_queue", "Maximum observed number of queued requests not assigned to any server.", nil),
@@ -219,6 +222,7 @@ func NewExporter(opts PrometheusOptions) (*Exporter, error) {
 			42: newBackendMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "4xx"}),
 			43: newBackendMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "5xx"}),
 			44: newBackendMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "other"}),
+			60: newBackendMetric("http_average_response_latency_milliseconds", "Average response latency of the last 1024 requests in milliseconds.", nil),
 		}),
 		serverMetrics: filterMetrics(opts.ExportedMetrics, metrics{
 			2:  newServerMetric("current_queue", "Current number of queued requests assigned to this server.", nil),
@@ -246,6 +250,7 @@ func NewExporter(opts PrometheusOptions) (*Exporter, error) {
 			42: newServerMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "4xx"}),
 			43: newServerMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "5xx"}),
 			44: newServerMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "other"}),
+			60: newServerMetric("http_average_response_latency_milliseconds", "Average response latency of the last 1024 requests in milliseconds.", nil),
 		}),
 	}, nil
 }
@@ -390,7 +395,7 @@ loop:
 
 		// consider ourselves broken, and refuse to parse anything else
 		if len(row) < expectedCsvFieldCount {
-			utilruntime.HandleError(fmt.Errorf("wrong CSV field count in metrics row %d: %d vs. %d", row, len(row), expectedCsvFieldCount))
+			utilruntime.HandleError(fmt.Errorf("wrong CSV field count in metrics row %d: %d vs. %d", rows, len(row), expectedCsvFieldCount))
 			e.csvParseFailures.Inc()
 			return
 		}
@@ -452,10 +457,74 @@ func (e *Exporter) parseRow(csvRow []string) {
 	case frontendType:
 		e.exportCsvFields(e.frontendMetrics, csvRow, pxname)
 	case backendType:
-		e.exportCsvFields(e.backendMetrics, csvRow, pxname)
+		if mode, value, ok := knownBackendSegment(pxname); ok {
+			if namespace, name, ok := parseNameSegment(value); ok {
+				e.exportCsvFields(e.backendMetrics, csvRow, mode, namespace, name)
+				return
+			}
+		}
+		e.exportCsvFields(e.backendMetrics, csvRow, "other/"+pxname, "", "")
 	case serverType:
-		e.exportCsvFields(e.serverMetrics, csvRow, pxname, svname)
+		pod, service, server, _ := knownServerSegment(svname)
+
+		if _, value, ok := knownBackendSegment(pxname); ok {
+			if namespace, name, ok := parseNameSegment(value); ok {
+				e.exportCsvFields(e.serverMetrics, csvRow, server, namespace, name, pod, service)
+				return
+			}
+		}
+		e.exportCsvFields(e.serverMetrics, csvRow, server, "", "", pod, service)
 	}
+}
+
+// knownServerSegment takes a server name that has a known prefix and returns
+// the pod, service, and simpler service name label for that type. If the prefix does not
+// match false is returned.
+func knownServerSegment(value string) (string, string, string, bool) {
+	if i := strings.Index(value, ":"); i != -1 {
+		switch value[:i] {
+		case "ept":
+			if service, server, ok := parseNameSegment(value[i+1:]); ok {
+				return "", service, server, true
+			}
+		case "pod":
+			if pod, remainder, ok := parseNameSegment(value[i+1:]); ok {
+				if service, server, ok := parseNameSegment(remainder); ok {
+					return pod, service, server, true
+				}
+			}
+		}
+	}
+	return "", "", value, false
+}
+
+// knownBackendSegment takes a backend name that has a known prefix and returns
+// the preferred metric label for that type and the remainder. If the prefix does not
+// match false is returned.
+func knownBackendSegment(value string) (string, string, bool) {
+	if i := strings.Index(value, ":"); i != -1 {
+		switch value[:i] {
+		case "be_http":
+			return "http", value[i+1:], true
+		case "be_edge_http":
+			return "https-edge", value[i+1:], true
+		case "be_secure":
+			return "https", value[i+1:], true
+		case "be_tcp":
+			return "tcp", value[i+1:], true
+		}
+	}
+	return "", "", false
+}
+
+// parseNameSegment splits a name by the first colon and returns both segments. If
+// no colon is found it returns false.
+func parseNameSegment(value string) (string, string, bool) {
+	i := strings.Index(value, ":")
+	if i == -1 {
+		return "", "", false
+	}
+	return value[:i], value[i+1:], true
 }
 
 func parseStatusField(value string) int64 {
