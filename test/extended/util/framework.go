@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -40,6 +42,7 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
+	"github.com/openshift/origin/test/extended/testdata"
 )
 
 const pvPrefix = "pv-"
@@ -1175,12 +1178,6 @@ func KubeConfigPath() string {
 	return os.Getenv("KUBECONFIG")
 }
 
-// ExtendedTestPath returns absolute path to extended tests directory
-func ExtendedTestPath() string {
-	// can't use gomega in this method since it is used outside of It()
-	return os.Getenv("EXTENDED_TEST_PATH")
-}
-
 //ArtifactDirPath returns the value of ARTIFACT_DIR environment variable
 func ArtifactDirPath() string {
 	path := os.Getenv("ARTIFACT_DIR")
@@ -1195,10 +1192,61 @@ func ArtifactPath(elem ...string) string {
 	return filepath.Join(append([]string{ArtifactDirPath()}, elem...)...)
 }
 
-// FixturePath returns absolute path to given fixture file
-// The path is relative to EXTENDED_TEST_PATH (./test/extended/*)
+var (
+	fixtureDirLock sync.Once
+	fixtureDir     string
+)
+
+// FixturePath returns an absolute path to a fixture file in test/extended/testdata/,
+// test/integration/, or examples/.
 func FixturePath(elem ...string) string {
-	return filepath.Join(append([]string{ExtendedTestPath()}, elem...)...)
+	switch {
+	case len(elem) == 0:
+		panic("must specify path")
+	case len(elem) > 3 && elem[0] == ".." && elem[1] == ".." && elem[2] == "examples":
+		elem = elem[2:]
+	case len(elem) > 3 && elem[0] == ".." && elem[1] == "integration":
+		elem = append([]string{"test"}, elem[1:]...)
+	case elem[0] == "testdata":
+		elem = append([]string{"test", "extended"}, elem...)
+	default:
+		panic(fmt.Sprintf("Fixtures must be in test/extended/testdata or examples not %s", path.Join(elem...)))
+	}
+	fixtureDirLock.Do(func() {
+		dir, err := ioutil.TempDir("", "fixture-testdata-dir")
+		if err != nil {
+			panic(err)
+		}
+		fixtureDir = dir
+	})
+	relativePath := path.Join(elem...)
+	fullPath := path.Join(fixtureDir, relativePath)
+	if err := testdata.RestoreAsset(fixtureDir, relativePath); err != nil {
+		if err := testdata.RestoreAssets(fixtureDir, relativePath); err != nil {
+			panic(err)
+		}
+		if err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
+			if err := os.Chmod(path, 0640); err != nil {
+				return err
+			}
+			if stat, err := os.Lstat(path); err == nil && stat.IsDir() {
+				return os.Chmod(path, 0755)
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+	} else {
+		if err := os.Chmod(fullPath, 0640); err != nil {
+			panic(err)
+		}
+	}
+
+	p, err := filepath.Abs(fullPath)
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
 
 // FetchURL grabs the output from the specified url and returns it.
