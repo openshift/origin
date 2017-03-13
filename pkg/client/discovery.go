@@ -45,19 +45,19 @@ func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (r
 }
 
 // ServerResources returns the supported resources for all groups and versions.
-func (d *DiscoveryClient) ServerResources() (map[string]*metav1.APIResourceList, error) {
+func (d *DiscoveryClient) ServerResources() ([]*metav1.APIResourceList, error) {
 	apiGroups, err := d.ServerGroups()
 	if err != nil {
 		return nil, err
 	}
 	groupVersions := metav1.ExtractGroupVersions(apiGroups)
-	result := map[string]*metav1.APIResourceList{}
+	result := []*metav1.APIResourceList{}
 	for _, groupVersion := range groupVersions {
 		resources, err := d.ServerResourcesForGroupVersion(groupVersion)
 		if err != nil {
 			return nil, err
 		}
-		result[groupVersion] = resources
+		result = append(result, resources)
 	}
 	return result, nil
 }
