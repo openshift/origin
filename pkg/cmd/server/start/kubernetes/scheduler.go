@@ -16,7 +16,7 @@ import (
 const schedulerLong = `
 Start Kubernetes scheduler
 
-This command launches an instance of the Kubernetes controller-manager (kube-controller-manager).`
+This command launches an instance of the Kubernetes scheduler (kube-scheduler).`
 
 // NewSchedulerCommand provides a CLI handler for the 'scheduler' command
 func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
