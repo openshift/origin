@@ -114,7 +114,7 @@ type MasterConfig struct {
 	LimitVerifier                 imageadmission.LimitVerifier
 
 	// RequestContextMapper maps requests to contexts
-	RequestContextMapper kapi.RequestContextMapper
+	RequestContextMapper apirequest.RequestContextMapper
 
 	AdmissionControl admission.Interface
 
@@ -810,7 +810,7 @@ func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, inform
 	return scopeLimitedAuthorizer
 }
 
-func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
+func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
 	// Default API request info factory
 	requestInfoFactory := &request.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately

@@ -25,6 +25,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
@@ -203,7 +204,7 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 // TODO this function's parameters need to be refactored
 func BuildKubernetesMasterConfig(
 	options configapi.MasterConfig,
-	requestContextMapper kapi.RequestContextMapper,
+	requestContextMapper apirequest.RequestContextMapper,
 	kubeClient kclientset.Interface,
 	informers shared.InformerFactory,
 	admissionControl admission.Interface,

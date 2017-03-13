@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type browserSafeRequestInfoResolver struct {
@@ -14,13 +13,13 @@ type browserSafeRequestInfoResolver struct {
 
 	// contextMapper is used to look up the context corresponding to a request
 	// to obtain the user associated with the request
-	contextMapper kapi.RequestContextMapper
+	contextMapper apirequest.RequestContextMapper
 
 	// list of groups, any of which indicate the request is authenticated
 	authenticatedGroups sets.String
 }
 
-func NewBrowserSafeRequestInfoResolver(contextMapper kapi.RequestContextMapper, authenticatedGroups sets.String, infoFactory RequestInfoFactory) RequestInfoFactory {
+func NewBrowserSafeRequestInfoResolver(contextMapper apirequest.RequestContextMapper, authenticatedGroups sets.String, infoFactory RequestInfoFactory) RequestInfoFactory {
 	return &browserSafeRequestInfoResolver{
 		contextMapper:       contextMapper,
 		authenticatedGroups: authenticatedGroups,
@@ -28,7 +27,7 @@ func NewBrowserSafeRequestInfoResolver(contextMapper kapi.RequestContextMapper, 
 	}
 }
 
-func (a *browserSafeRequestInfoResolver) NewRequestInfo(req *http.Request) (*request.RequestInfo, error) {
+func (a *browserSafeRequestInfoResolver) NewRequestInfo(req *http.Request) (*apirequest.RequestInfo, error) {
 	requestInfo, err := a.infoFactory.NewRequestInfo(req)
 	if err != nil {
 		return requestInfo, err

@@ -6,12 +6,11 @@ import (
 	"github.com/golang/glog"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 )
 
 // AuthenticationHandlerFilter creates a filter object that will enforce authentication directly
-func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper kapi.RequestContextMapper) http.Handler {
+func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper apirequest.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		user, ok, err := authenticator.AuthenticateRequest(req)
 		if err != nil || !ok {

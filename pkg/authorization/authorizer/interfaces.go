@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/apiserver/pkg/endpoints/request"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type Authorizer interface {
@@ -18,7 +18,7 @@ type AuthorizationAttributeBuilder interface {
 }
 
 type RequestInfoFactory interface {
-	NewRequestInfo(req *http.Request) (*request.RequestInfo, error)
+	NewRequestInfo(req *http.Request) (*apirequest.RequestInfo, error)
 }
 
 type Action interface {

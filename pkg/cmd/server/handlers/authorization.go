@@ -41,7 +41,7 @@ func (a bypassAuthorizer) GetAllowedSubjects(ctx apirequest.Context, attributes 
 }
 
 // AuthorizationFilter imposes normal authorization rules
-func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper kapi.RequestContextMapper) http.Handler {
+func AuthorizationFilter(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder, contextMapper apirequest.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {

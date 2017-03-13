@@ -1007,7 +1007,7 @@ func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGr
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
-func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
+func (c *MasterConfig) getRequestContextMapper() apirequest.RequestContextMapper {
 	if c.RequestContextMapper == nil {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}

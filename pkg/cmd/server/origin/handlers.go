@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
@@ -69,7 +68,7 @@ func cacheControlFilter(handler http.Handler, value string) http.Handler {
 
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
-func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
+func namespacingFilter(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)
 		if !ok {
@@ -125,7 +124,7 @@ func (f *userAgentFilter) matches(verb, userAgent string) bool {
 
 // versionSkewFilter adds a filter that may deny requests from skewed
 // oc clients, since we know that those clients will strip unknown fields which can lead to unexpected outcomes
-func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
+func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
 	filterConfig := c.Options.PolicyConfig.UserAgentMatchingConfig
 	if len(filterConfig.RequiredClients) == 0 && len(filterConfig.DeniedClients) == 0 {
 		return handler

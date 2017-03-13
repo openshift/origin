@@ -4,15 +4,15 @@ import (
 	"net/http"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type openshiftAuthorizationAttributeBuilder struct {
-	contextMapper kapi.RequestContextMapper
+	contextMapper apirequest.RequestContextMapper
 	infoFactory   RequestInfoFactory
 }
 
-func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoFactory RequestInfoFactory) AuthorizationAttributeBuilder {
+func NewAuthorizationAttributeBuilder(contextMapper apirequest.RequestContextMapper, infoFactory RequestInfoFactory) AuthorizationAttributeBuilder {
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoFactory}
 }
 
