@@ -107,12 +107,14 @@ readonly -f os::util::environment::setup_all_server_vars
 #  - export PATH
 function os::util::environment::update_path_var() {
     local prefix
-    prefix="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):"
+    if os::util::find::system_binary 'go' >/dev/null 2>&1; then
+        prefix+="${OS_OUTPUT_BINPATH}/$(os::util::host_platform):"
+    fi
     if [[ -n "${GOPATH:-}" ]]; then
         prefix+="${GOPATH}/bin:"
     fi
 
-    PATH="${prefix}:${PATH}"
+    PATH="${prefix}${PATH}"
     export PATH
 }
 readonly -f os::util::environment::update_path_var
