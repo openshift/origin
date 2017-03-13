@@ -1,7 +1,6 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,4 +37,4 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	)
 }
 
-func (obj *ImagePolicyConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *ImagePolicyConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

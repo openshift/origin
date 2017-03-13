@@ -7,6 +7,7 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apinachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -17,7 +18,7 @@ type FakeLabelsResource struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 }
 
-func (obj *FakeLabelsResource) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *FakeLabelsResource) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string

@@ -186,7 +186,7 @@ func TestBuildAdmission(t *testing.T) {
 
 type fakeObject struct{}
 
-func (*fakeObject) GetObjectKind() metav1.ObjectKind { return nil }
+func (*fakeObject) GetObjectKind() schema.ObjectKind { return nil }
 
 func fakeUser() user.Info {
 	return &user.DefaultInfo{

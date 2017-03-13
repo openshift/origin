@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apinachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -29,7 +30,7 @@ type TestPluginConfig struct {
 	Data            string `json:"data"`
 }
 
-func (obj *TestPluginConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *TestPluginConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclientset.Clientset, *client.Client) {
 	testutil.RequireEtcd(t)

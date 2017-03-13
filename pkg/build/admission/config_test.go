@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -36,10 +37,10 @@ type OtherTestConfig2V2 struct {
 	Thing string `json:"thing"`
 }
 
-func (obj *TestConfig) GetObjectKind() metav1.ObjectKind         { return &obj.TypeMeta }
-func (obj *TestConfigV1) GetObjectKind() metav1.ObjectKind       { return &obj.TypeMeta }
-func (obj *OtherTestConfig2) GetObjectKind() metav1.ObjectKind   { return &obj.TypeMeta }
-func (obj *OtherTestConfig2V2) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfig) GetObjectKind() schema.ObjectKind         { return &obj.TypeMeta }
+func (obj *TestConfigV1) GetObjectKind() schema.ObjectKind       { return &obj.TypeMeta }
+func (obj *OtherTestConfig2) GetObjectKind() schema.ObjectKind   { return &obj.TypeMeta }
+func (obj *OtherTestConfig2V2) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestReadPluginConfig(t *testing.T) {
 	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestConfig{})

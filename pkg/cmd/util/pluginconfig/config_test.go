@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apinachinery/pkg/runtime/schema"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -19,7 +20,7 @@ type TestConfig struct {
 	Item2           []string `json:"item2"`
 }
 
-func (obj *TestConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 type TestConfigV1 struct {
 	metav1.TypeMeta `json:",inline"`
@@ -27,7 +28,7 @@ type TestConfigV1 struct {
 	Item2           []string `json:"item2"`
 }
 
-func (obj *TestConfigV1) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfigV1) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestGetPluginConfig(t *testing.T) {
 	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})

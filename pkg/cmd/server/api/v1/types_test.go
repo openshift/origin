@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apinachinery/pkg/runtime/schema"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -636,7 +637,7 @@ type AdmissionPluginTestConfig struct {
 	Data string `json:"data"`
 }
 
-func (obj *AdmissionPluginTestConfig) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *AdmissionPluginTestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestMasterConfig(t *testing.T) {
 	internal.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &AdmissionPluginTestConfig{})

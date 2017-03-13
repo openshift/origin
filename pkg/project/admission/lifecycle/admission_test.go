@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apinachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,7 +24,7 @@ type UnknownObject struct {
 	metav1.TypeMeta
 }
 
-func (obj *UnknownObject) GetObjectKind() metav1.ObjectKind { return &obj.TypeMeta }
+func (obj *UnknownObject) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 // TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
