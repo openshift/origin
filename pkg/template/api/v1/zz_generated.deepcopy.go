@@ -5,11 +5,10 @@
 package v1
 
 import (
-	reflect "reflect"
-
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	reflect "reflect"
 )
 
 func init() {
@@ -30,13 +29,7 @@ func DeepCopy_v1_Parameter(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*Parameter)
 		out := out.(*Parameter)
-		out.Name = in.Name
-		out.DisplayName = in.DisplayName
-		out.Description = in.Description
-		out.Value = in.Value
-		out.Generate = in.Generate
-		out.From = in.From
-		out.Required = in.Required
+		*out = *in
 		return nil
 	}
 }
@@ -45,30 +38,27 @@ func DeepCopy_v1_Template(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*Template)
 		out := out.(*Template)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.Message = in.Message
 		if in.Objects != nil {
 			in, out := &in.Objects, &out.Objects
 			*out = make([]runtime.RawExtension, len(*in))
 			for i := range *in {
-				if err := runtime.DeepCopy_runtime_RawExtension(&(*in)[i], &(*out)[i], c); err != nil {
+				if newVal, err := c.DeepCopy(&(*in)[i]); err != nil {
 					return err
+				} else {
+					(*out)[i] = *newVal.(*runtime.RawExtension)
 				}
 			}
-		} else {
-			out.Objects = nil
 		}
 		if in.Parameters != nil {
 			in, out := &in.Parameters, &out.Parameters
 			*out = make([]Parameter, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Parameters = nil
+			copy(*out, *in)
 		}
 		if in.ObjectLabels != nil {
 			in, out := &in.ObjectLabels, &out.ObjectLabels
@@ -76,8 +66,6 @@ func DeepCopy_v1_Template(in interface{}, out interface{}, c *conversion.Cloner)
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.ObjectLabels = nil
 		}
 		return nil
 	}
@@ -87,8 +75,7 @@ func DeepCopy_v1_TemplateList(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*TemplateList)
 		out := out.(*TemplateList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Template, len(*in))
@@ -97,8 +84,6 @@ func DeepCopy_v1_TemplateList(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
