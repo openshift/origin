@@ -1,7 +1,6 @@
 package api
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -76,6 +75,5 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageStreamImport{},
 		&kapi.SecretList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
