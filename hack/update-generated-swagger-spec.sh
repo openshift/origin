@@ -58,7 +58,7 @@ generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
 oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
-os::util::sed -r 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
+os::util::sed -E 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
 printf '\n' >> "${generated_file}"
 
 # Copy all protobuf generated specs into the api/protobuf-spec directory
