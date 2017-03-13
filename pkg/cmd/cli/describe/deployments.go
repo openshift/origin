@@ -16,7 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rcutils "k8s.io/kubernetes/pkg/controller/replication"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
+	kprinters "k8s.io/kubernetes/pkg/printers"
+	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -58,7 +59,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclientset.In
 }
 
 // Describe returns the description of a DeploymentConfig
-func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	var deploymentConfig *deployapi.DeploymentConfig
 	if d.config != nil {
 		// If a deployment config is already provided use that.
@@ -147,7 +148,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])
 				}
 				fmt.Fprintln(out)
-				kctl.DescribeEvents(latestDeploymentEvents, out)
+				kinternalprinters.DescribeEvents(latestDeploymentEvents, out)
 			}
 		}
 		return nil
@@ -286,7 +287,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 
 	// Pod template
 	fmt.Fprintf(w, "Template:\n")
-	kctl.DescribePodTemplate(spec.Template, w)
+	kinternalprinters.DescribePodTemplate(spec.Template, w)
 
 	return nil
 }

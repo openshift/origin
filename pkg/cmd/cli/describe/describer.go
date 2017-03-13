@@ -23,6 +23,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
+	kprinters "k8s.io/kubernetes/pkg/printers"
+	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -39,8 +41,8 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-func describerMap(c *client.Client, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kctl.Describer {
-	m := map[schema.GroupKind]kctl.Describer{
+func describerMap(c *client.Client, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kprinters.Describer {
+	m := map[schema.GroupKind]kprinters.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
 		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{c, kclient, nil},
@@ -90,7 +92,7 @@ func describerMap(c *client.Client, kclient kclientset.Interface, host string, w
 // DescribableResources lists all of the resource types we can describe
 func DescribableResources() []string {
 	// Include describable resources in kubernetes
-	keys := kctl.DescribableResources()
+	keys := kinternalprinters.DescribableResources()
 
 	for k := range describerMap(nil, nil, "", false) {
 		resource := strings.ToLower(k.Kind)
@@ -100,7 +102,7 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind schema.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kctl.Describer, bool) {
+func DescriberFor(kind schema.GroupKind, c *client.Client, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
 	f, ok := describerMap(c, kclient, host, true)[kind]
 	if ok {
 		return f, true
@@ -115,7 +117,7 @@ type BuildDescriber struct {
 }
 
 // Describe returns the description of a build
-func (d *BuildDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.osClient.Builds(namespace)
 	build, err := c.Get(name)
 	if err != nil {
@@ -163,7 +165,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
 		if settings.ShowEvents {
-			kctl.DescribeEvents(events, out)
+			kinternalprinters.DescribeEvents(events, out)
 		}
 
 		return nil
@@ -441,7 +443,7 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 }
 
 // Describe returns the description of a buildConfig
-func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
 	if err != nil {
@@ -487,7 +489,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.De
 			events, _ := d.kubeClient.Core().Events(namespace).Search(buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
-				kctl.DescribeEvents(events, out)
+				kinternalprinters.DescribeEvents(events, out)
 			}
 		}
 		return nil
@@ -499,7 +501,7 @@ type OAuthAccessTokenDescriber struct {
 	client.Interface
 }
 
-func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.OAuthAccessTokens()
 	oAuthAccessToken, err := c.Get(name)
 	if err != nil {
@@ -527,7 +529,7 @@ type ImageDescriber struct {
 }
 
 // Describe returns the description of an image
-func (d *ImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Images()
 	image, err := c.Get(name)
 	if err != nil {
@@ -627,7 +629,7 @@ type ImageStreamTagDescriber struct {
 }
 
 // Describe returns the description of an imageStreamTag
-func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
 	repo, tag, err := imageapi.ParseImageStreamTagName(name)
 	if err != nil {
@@ -651,7 +653,7 @@ type ImageStreamImageDescriber struct {
 }
 
 // Describe returns the description of an imageStreamImage
-func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
 	repo, id, err := imageapi.ParseImageStreamImageName(name)
 	if err != nil {
@@ -671,7 +673,7 @@ type ImageStreamDescriber struct {
 }
 
 // Describe returns the description of an imageStream
-func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ImageStreams(namespace)
 	imageStream, err := c.Get(name)
 	if err != nil {
@@ -698,7 +700,7 @@ type routeEndpointInfo struct {
 }
 
 // Describe returns the description of a route
-func (d *RouteDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Routes(namespace)
 	route, err := c.Get(name)
 	if err != nil {
@@ -832,7 +834,7 @@ type ProjectDescriber struct {
 }
 
 // Describe returns the description of a project
-func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	projectsClient := d.osClient.Projects()
 	project, err := projectsClient.Get(name)
 	if err != nil {
@@ -949,7 +951,7 @@ type TemplateDescriber struct {
 	client.Interface
 	meta.MetadataAccessor
 	runtime.ObjectTyper
-	kctl.ObjectDescriber
+	kprinters.ObjectDescriber
 }
 
 // DescribeMessage prints the message that will be parameter substituted and displayed to the
@@ -1024,7 +1026,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 }
 
 // Describe returns the description of a template
-func (d *TemplateDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *TemplateDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Templates(namespace)
 	template, err := c.Get(name)
 	if err != nil {
@@ -1059,7 +1061,7 @@ type IdentityDescriber struct {
 }
 
 // Describe returns the description of an identity
-func (d *IdentityDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *IdentityDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -1107,7 +1109,7 @@ type UserIdentityMappingDescriber struct {
 }
 
 // Describe returns the description of a userIdentity
-func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.UserIdentityMappings()
 
 	mapping, err := c.Get(name)
@@ -1130,7 +1132,7 @@ type UserDescriber struct {
 }
 
 // Describe returns the description of a user
-func (d *UserDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *UserDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -1179,7 +1181,7 @@ type GroupDescriber struct {
 }
 
 // Describe returns the description of a group
-func (d *GroupDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *GroupDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	group, err := d.c.Get(name)
 	if err != nil {
 		return "", err
@@ -1212,7 +1214,7 @@ type PolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *PolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *PolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Policies(namespace)
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1271,7 +1273,7 @@ type RoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *RoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *RoleDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Roles(namespace)
 	role, err := c.Get(name)
 	if err != nil {
@@ -1301,7 +1303,7 @@ type PolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.PolicyBindings(namespace)
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1341,7 +1343,7 @@ type RoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *RoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *RoleBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.RoleBindings(namespace)
 	roleBinding, err := c.Get(name)
 	if err != nil {
@@ -1398,7 +1400,7 @@ type ClusterPolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterPolicies()
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1413,7 +1415,7 @@ type ClusterRoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterRoles()
 	role, err := c.Get(name)
 	if err != nil {
@@ -1429,7 +1431,7 @@ type ClusterPolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterPolicyBindings()
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1445,7 +1447,7 @@ type ClusterRoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterRoleBindings()
 	roleBinding, err := c.Get(name)
 	if err != nil {
@@ -1511,7 +1513,7 @@ type ClusterQuotaDescriber struct {
 	client.Interface
 }
 
-func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	quota, err := d.ClusterResourceQuotas().Get(name)
 	if err != nil {
 		return "", err
@@ -1569,7 +1571,7 @@ type AppliedClusterQuotaDescriber struct {
 	client.Interface
 }
 
-func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	quota, err := d.AppliedClusterResourceQuotas(namespace).Get(name)
 	if err != nil {
 		return "", err
@@ -1582,7 +1584,7 @@ type ClusterNetworkDescriber struct {
 }
 
 // Describe returns the description of a ClusterNetwork
-func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	cn, err := d.ClusterNetwork().Get(name)
 	if err != nil {
 		return "", err
@@ -1602,7 +1604,7 @@ type HostSubnetDescriber struct {
 }
 
 // Describe returns the description of a HostSubnet
-func (d *HostSubnetDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	hs, err := d.HostSubnets().Get(name)
 	if err != nil {
 		return "", err
@@ -1621,7 +1623,7 @@ type NetNamespaceDescriber struct {
 }
 
 // Describe returns the description of a NetNamespace
-func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	netns, err := d.NetNamespaces().Get(name)
 	if err != nil {
 		return "", err
@@ -1639,7 +1641,7 @@ type EgressNetworkPolicyDescriber struct {
 }
 
 // Describe returns the description of an EgressNetworkPolicy
-func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.osClient.EgressNetworkPolicies(namespace)
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1659,7 +1661,7 @@ type RoleBindingRestrictionDescriber struct {
 }
 
 // Describe returns the description of a RoleBindingRestriction.
-func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	rbr, err := d.RoleBindingRestrictions(namespace).Get(name)
 	if err != nil {
 		return "", err
