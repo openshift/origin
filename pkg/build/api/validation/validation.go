@@ -576,6 +576,18 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 		} else {
 			allErrs = append(allErrs, validateWebHook(trigger.GitHubWebHook, fldPath.Child("github"), false)...)
 		}
+	case buildapi.GitLabWebHookBuildTriggerType:
+		if trigger.GitLabWebHook == nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("gitlab"), ""))
+		} else {
+			allErrs = append(allErrs, validateWebHook(trigger.GitLabWebHook, fldPath.Child("gitlab"), false)...)
+		}
+	case buildapi.BitbucketWebHookBuildTriggerType:
+		if trigger.BitbucketWebHook == nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("bitbucket"), ""))
+		} else {
+			allErrs = append(allErrs, validateWebHook(trigger.BitbucketWebHook, fldPath.Child("bitbucket"), false)...)
+		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
 			allErrs = append(allErrs, field.Required(fldPath.Child("generic"), ""))

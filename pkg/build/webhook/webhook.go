@@ -61,17 +61,29 @@ func FindTriggerPolicy(triggerType buildapi.BuildTriggerType, config *buildapi.B
 // defined webhook secrets and if it is valid, returns its information.
 func ValidateWebHookSecret(webHookTriggers []buildapi.BuildTriggerPolicy, secret string) (*buildapi.WebHookTrigger, error) {
 	for _, trigger := range webHookTriggers {
-		if trigger.Type == buildapi.GenericWebHookBuildTriggerType {
+		switch trigger.Type {
+		case buildapi.GenericWebHookBuildTriggerType:
 			if !hmac.Equal([]byte(trigger.GenericWebHook.Secret), []byte(secret)) {
 				continue
 			}
 			return trigger.GenericWebHook, nil
-		}
-		if trigger.Type == buildapi.GitHubWebHookBuildTriggerType {
+		case buildapi.GitHubWebHookBuildTriggerType:
 			if !hmac.Equal([]byte(trigger.GitHubWebHook.Secret), []byte(secret)) {
 				continue
 			}
 			return trigger.GitHubWebHook, nil
+
+		case buildapi.GitLabWebHookBuildTriggerType:
+			if !hmac.Equal([]byte(trigger.GitLabWebHook.Secret), []byte(secret)) {
+				continue
+			}
+			return trigger.GitLabWebHook, nil
+
+		case buildapi.BitbucketWebHookBuildTriggerType:
+			if !hmac.Equal([]byte(trigger.BitbucketWebHook.Secret), []byte(secret)) {
+				continue
+			}
+			return trigger.BitbucketWebHook, nil
 		}
 	}
 	return nil, ErrSecretMismatch

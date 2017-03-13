@@ -593,9 +593,11 @@ func isInvalidTriggerError(err error) bool {
 // type that is not in the whitelist for an older server.
 func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	triggerTypeWhiteList := map[buildapi.BuildTriggerType]struct{}{
-		buildapi.GitHubWebHookBuildTriggerType:  {},
-		buildapi.GenericWebHookBuildTriggerType: {},
-		buildapi.ImageChangeBuildTriggerType:    {},
+		buildapi.GitHubWebHookBuildTriggerType:    {},
+		buildapi.GenericWebHookBuildTriggerType:   {},
+		buildapi.ImageChangeBuildTriggerType:      {},
+		buildapi.GitLabWebHookBuildTriggerType:    {},
+		buildapi.BitbucketWebHookBuildTriggerType: {},
 	}
 	if buildapi.IsKindOrLegacy("BuildConfig", info.Mapping.GroupVersionKind.GroupKind()) && isInvalidTriggerError(err) {
 		bc, ok := info.Object.(*buildapi.BuildConfig)

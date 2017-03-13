@@ -128,11 +128,13 @@ type CommonSpec struct {
 }
 
 const (
-	BuildTriggerCauseManualMsg  = "Manually triggered"
-	BuildTriggerCauseConfigMsg  = "Build configuration change"
-	BuildTriggerCauseImageMsg   = "Image change"
-	BuildTriggerCauseGithubMsg  = "GitHub WebHook"
-	BuildTriggerCauseGenericMsg = "Generic WebHook"
+	BuildTriggerCauseManualMsg    = "Manually triggered"
+	BuildTriggerCauseConfigMsg    = "Build configuration change"
+	BuildTriggerCauseImageMsg     = "Image change"
+	BuildTriggerCauseGithubMsg    = "GitHub WebHook"
+	BuildTriggerCauseGenericMsg   = "Generic WebHook"
+	BuildTriggerCauseGitLabMsg    = "GitLab WebHook"
+	BuildTriggerCauseBitbucketMsg = "Bitbucket WebHook"
 )
 
 // BuildTriggerCause holds information about a triggered build. It is used for
@@ -155,6 +157,14 @@ type BuildTriggerCause struct {
 	// ImageChangeBuild stores information about an imagechange event that
 	// triggered a new build.
 	ImageChangeBuild *ImageChangeCause
+
+	// GitLabWebHook represents data for a GitLab webhook that fired a specific
+	// build.
+	GitLabWebHook *GitLabWebHookCause
+
+	// BitbucketWebHook represents data for a Bitbucket webhook that fired a
+	// specific build.
+	BitbucketWebHook *BitbucketWebHookCause
 }
 
 // GenericWebHookCause holds information about a generic WebHook that
@@ -176,6 +186,29 @@ type GitHubWebHookCause struct {
 
 	// Secret is the obfuscated webhook secret that triggered a build.
 	Secret string
+}
+
+// CommonWebHookCause factors out the identical format of these webhook
+// causes into struct so we can share it in the specific causes;  it is too late for
+// GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.
+type CommonWebHookCause struct {
+	// Revision is the git source revision information of the trigger.
+	Revision *SourceRevision
+
+	// Secret is the obfuscated webhook secret that triggered a build.
+	Secret string
+}
+
+// GitLabWebHookCause has information about a GitLab webhook that triggered a
+// build.
+type GitLabWebHookCause struct {
+	CommonWebHookCause
+}
+
+// BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
+// build.
+type BitbucketWebHookCause struct {
+	CommonWebHookCause
 }
 
 // ImageChangeCause contains information about the image that triggered a
@@ -898,6 +931,13 @@ type BuildTriggerPolicy struct {
 
 	// ImageChange contains parameters for an ImageChange type of trigger
 	ImageChange *ImageChangeTrigger
+
+	// GitLabWebHook contains the parameters for a GitLab webhook type of trigger
+	GitLabWebHook *WebHookTrigger
+
+	// BitbucketWebHook contains the parameters for a Bitbucket webhook type of
+	// trigger
+	BitbucketWebHook *WebHookTrigger
 }
 
 // BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
@@ -909,6 +949,8 @@ var KnownTriggerTypes = sets.NewString(
 	string(GenericWebHookBuildTriggerType),
 	string(ImageChangeBuildTriggerType),
 	string(ConfigChangeBuildTriggerType),
+	string(GitLabWebHookBuildTriggerType),
+	string(BitbucketWebHookBuildTriggerType),
 )
 
 const (
@@ -921,6 +963,14 @@ const (
 	// generic webhook invocations
 	GenericWebHookBuildTriggerType           BuildTriggerType = "Generic"
 	GenericWebHookBuildTriggerTypeDeprecated BuildTriggerType = "generic"
+
+	// GitLabWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitLab webhook invocations
+	GitLabWebHookBuildTriggerType BuildTriggerType = "GitLab"
+
+	// BitbucketWebHookBuildTriggerType represents a trigger that launches builds on
+	// Bitbucket webhook invocations
+	BitbucketWebHookBuildTriggerType BuildTriggerType = "Bitbucket"
 
 	// ImageChangeBuildTriggerType represents a trigger that launches builds on
 	// availability of a new version of an image

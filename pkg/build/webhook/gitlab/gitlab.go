@@ -1,4 +1,4 @@
-package github
+package gitlab
 
 import (
 	"encoding/json"
@@ -15,30 +15,32 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
-// WebHook used for processing github webhook requests.
+// WebHook used for processing gitlab webhook requests.
 type WebHook struct{}
 
-// New returns github webhook plugin.
+// New returns gitlab webhook plugin.
 func New() *WebHook {
 	return &WebHook{}
 }
 
+// NOTE - unlike github, there is no separate commiter, just the author
 type commit struct {
-	ID        string                `json:"id,omitempty"`
-	Author    api.SourceControlUser `json:"author,omitempty"`
-	Committer api.SourceControlUser `json:"committer,omitempty"`
-	Message   string                `json:"message,omitempty"`
+	ID      string                `json:"id,omitempty"`
+	Author  api.SourceControlUser `json:"author,omitempty"`
+	Message string                `json:"message,omitempty"`
 }
 
+// NOTE - unlike github, the head commit is not highlighted ... only the commit array is provided,
+// where the last commit is the latest commit
 type pushEvent struct {
-	Ref        string `json:"ref,omitempty"`
-	After      string `json:"after,omitempty"`
-	HeadCommit commit `json:"head_commit,omitempty"`
+	Ref     string   `json:"ref,omitempty"`
+	After   string   `json:"after,omitempty"`
+	Commits []commit `json:"commits,omitempty"`
 }
 
-// Extract services webhooks from github.com
+// Extract services webhooks from GitLab server
 func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *api.DockerStrategyOptions, proceed bool, err error) {
-	triggers, err := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
+	triggers, err := webhook.FindTriggerPolicy(api.GitLabWebHookBuildTriggerType, buildCfg)
 	if err != nil {
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
@@ -53,11 +55,8 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
 	method := getEvent(req.Header)
-	if method != "ping" && method != "push" {
-		return revision, envvars, dockerStrategyOptions, proceed, errors.NewBadRequest(fmt.Sprintf("Unknown X-GitHub-Event or X-Gogs-Event %s", method))
-	}
-	if method == "ping" {
-		return revision, envvars, dockerStrategyOptions, proceed, err
+	if method != "Push Hook" {
+		return revision, envvars, dockerStrategyOptions, proceed, errors.NewBadRequest(fmt.Sprintf("Unknown X-Gitlab-Event %s", method))
 	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -72,12 +71,14 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
 
+	lastCommit := event.Commits[len(event.Commits)-1]
+
 	revision = &api.SourceRevision{
 		Git: &api.GitSourceRevision{
-			Commit:    event.HeadCommit.ID,
-			Author:    event.HeadCommit.Author,
-			Committer: event.HeadCommit.Committer,
-			Message:   event.HeadCommit.Message,
+			Commit:    lastCommit.ID,
+			Author:    lastCommit.Author,
+			Committer: lastCommit.Author,
+			Message:   lastCommit.Message,
 		},
 	}
 	return revision, envvars, dockerStrategyOptions, true, err
@@ -96,15 +97,11 @@ func verifyRequest(req *http.Request) error {
 		return errors.NewBadRequest(fmt.Sprintf("unsupported Content-Type %s", contentType))
 	}
 	if len(getEvent(req.Header)) == 0 {
-		return errors.NewBadRequest("missing X-GitHub-Event or X-Gogs-Event")
+		return errors.NewBadRequest("missing X-Gitlab-Event")
 	}
 	return nil
 }
 
 func getEvent(header http.Header) string {
-	event := header.Get("X-GitHub-Event")
-	if len(event) == 0 {
-		event = header.Get("X-Gogs-Event")
-	}
-	return event
+	return header.Get("X-Gitlab-Event")
 }

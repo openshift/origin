@@ -55,6 +55,42 @@ func newBuildConfig() *api.BuildConfig {
 						Secret: "secret202",
 					},
 				},
+				{
+					Type: api.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &api.WebHookTrigger{
+						Secret: "secret301",
+					},
+				},
+				{
+					Type: api.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &api.WebHookTrigger{
+						Secret: "secret300",
+					},
+				},
+				{
+					Type: api.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &api.WebHookTrigger{
+						Secret: "secret302",
+					},
+				},
+				{
+					Type: api.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &api.WebHookTrigger{
+						Secret: "secret401",
+					},
+				},
+				{
+					Type: api.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &api.WebHookTrigger{
+						Secret: "secret400",
+					},
+				},
+				{
+					Type: api.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &api.WebHookTrigger{
+						Secret: "secret402",
+					},
+				},
 			},
 		},
 	}
@@ -126,6 +162,40 @@ func TestFindTriggerPolicyMatchedGithubWebHook(t *testing.T) {
 	}
 }
 
+func TestFindTriggerPolicyMatchedGitLabWebHook(t *testing.T) {
+	buildConfig := newBuildConfig()
+	triggers, err := FindTriggerPolicy(api.GitLabWebHookBuildTriggerType, buildConfig)
+
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	if triggers == nil {
+		t.Error("Expected a slice of matched 'triggers', got nil")
+	}
+
+	if len(triggers) != 3 {
+		t.Errorf("Expected a slice of 3 matched triggers, got %d", len(triggers))
+	}
+}
+
+func TestFindTriggerPolicyMatchedBitbucketWebHook(t *testing.T) {
+	buildConfig := newBuildConfig()
+	triggers, err := FindTriggerPolicy(api.BitbucketWebHookBuildTriggerType, buildConfig)
+
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	if triggers == nil {
+		t.Error("Expected a slice of matched 'triggers', got nil")
+	}
+
+	if len(triggers) != 3 {
+		t.Errorf("Expected a slice of 3 matched triggers, got %d", len(triggers))
+	}
+}
+
 func TestValidateWrongWebHookSecretError(t *testing.T) {
 	buildConfig := newBuildConfig()
 	_, err := ValidateWebHookSecret(buildConfig.Spec.Triggers, "wrongsecret")
@@ -152,6 +222,40 @@ func TestValidateMatchGenericWebHookSecret(t *testing.T) {
 
 func TestValidateMatchGitHubWebHookSecret(t *testing.T) {
 	secret := "secret201"
+	buildconfig := newBuildConfig()
+	trigger, err := ValidateWebHookSecret(buildconfig.Spec.Triggers, secret)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	if trigger.Secret != secret {
+		t.Errorf("Expected returned 'secret'(%s) to match %s", trigger.Secret, secret)
+	}
+
+	if trigger.AllowEnv {
+		t.Errorf("Expected AllowEnv to be false for %s", secret)
+	}
+}
+
+func TestValidateMatchGitLabWebHookSecret(t *testing.T) {
+	secret := "secret301"
+	buildconfig := newBuildConfig()
+	trigger, err := ValidateWebHookSecret(buildconfig.Spec.Triggers, secret)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	if trigger.Secret != secret {
+		t.Errorf("Expected returned 'secret'(%s) to match %s", trigger.Secret, secret)
+	}
+
+	if trigger.AllowEnv {
+		t.Errorf("Expected AllowEnv to be false for %s", secret)
+	}
+}
+
+func TestValidateMatchBitbucketWebHookSecret(t *testing.T) {
+	secret := "secret401"
 	buildconfig := newBuildConfig()
 	trigger, err := ValidateWebHookSecret(buildconfig.Spec.Triggers, secret)
 	if err != nil {

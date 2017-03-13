@@ -52,6 +52,12 @@ message BinaryBuildSource {
   optional string asFile = 1;
 }
 
+// BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
+// build.
+message BitbucketWebHookCause {
+  optional CommonWebHookCause commonSpec = 1;
+}
+
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 message Build {
@@ -469,6 +475,14 @@ message BuildTriggerCause {
   // imageChangeBuild stores information about an imagechange event
   // that triggered a new build.
   optional ImageChangeCause imageChangeBuild = 4;
+
+  // GitLabWebHook represents data for a GitLab webhook that fired a specific
+  // build.
+  optional GitLabWebHookCause gitlabWebHook = 5;
+
+  // BitbucketWebHook represents data for a Bitbucket webhook that fired a
+  // specific build.
+  optional BitbucketWebHookCause bitbucketWebHook = 6;
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
@@ -484,6 +498,13 @@ message BuildTriggerPolicy {
 
   // imageChange contains parameters for an ImageChange type of trigger
   optional ImageChangeTrigger imageChange = 4;
+
+  // GitLabWebHook contains the parameters for a GitLab webhook type of trigger
+  optional WebHookTrigger gitlab = 5;
+
+  // BitbucketWebHook contains the parameters for a Bitbucket webhook type of
+  // trigger
+  optional WebHookTrigger bitbucket = 6;
 }
 
 // CommonSpec encapsulates all the inputs necessary to represent a build.
@@ -524,6 +545,17 @@ message CommonSpec {
   // If set to an empty map or a map with any values, default build nodeselector values
   // are ignored.
   optional OptionalNodeSelector nodeSelector = 9;
+}
+
+// CommonWebHookCause factors out the identical format of these webhook
+// causes into struct so we can share it in the specific causes;  it is too late for
+// GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.
+message CommonWebHookCause {
+  // Revision is the git source revision information of the trigger.
+  optional SourceRevision revision = 1;
+
+  // Secret is the obfuscated webhook secret that triggered a build.
+  optional string secret = 2;
 }
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -661,6 +693,12 @@ message GitInfo {
   optional GitBuildSource gitBuildSource = 1;
 
   optional GitSourceRevision gitSourceRevision = 2;
+}
+
+// GitLabWebHookCause has information about a GitLab webhook that triggered a
+// build.
+message GitLabWebHookCause {
+  optional CommonWebHookCause commonSpec = 1;
 }
 
 // GitSourceRevision is the commit information from a git source for a build

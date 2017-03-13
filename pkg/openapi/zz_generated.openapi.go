@@ -7666,6 +7666,30 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		Dependencies: []string{
 			"v1.ObjectMeta", "v1.ObjectReference"},
 	},
+	"v1.BitbucketWebHookCause": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
+				Properties: map[string]spec.Schema{
+					"revision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Revision is the git source revision information of the trigger.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.SourceRevision"),
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Secret is the obfuscated webhook secret that triggered a build.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"v1.SourceRevision"},
+	},
 	"v1.BrokerTemplateInstance": {
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -8723,11 +8747,23 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.ImageChangeCause"),
 						},
 					},
+					"gitlabWebHook": {
+						SchemaProps: spec.SchemaProps{
+							Description: "GitLabWebHook represents data for a GitLab webhook that fired a specific build.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.GitLabWebHookCause"),
+						},
+					},
+					"bitbucketWebHook": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.BitbucketWebHookCause"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"v1.GenericWebHookCause", "v1.GitHubWebHookCause", "v1.ImageChangeCause"},
+			"v1.BitbucketWebHookCause", "v1.GenericWebHookCause", "v1.GitHubWebHookCause", "v1.GitLabWebHookCause", "v1.ImageChangeCause"},
 	},
 	"v1.BuildTriggerPolicy": {
 		Schema: spec.Schema{
@@ -8757,6 +8793,18 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 						SchemaProps: spec.SchemaProps{
 							Description: "imageChange contains parameters for an ImageChange type of trigger",
 							Ref:         spec.MustCreateRef("#/definitions/v1.ImageChangeTrigger"),
+						},
+					},
+					"gitlab": {
+						SchemaProps: spec.SchemaProps{
+							Description: "GitLabWebHook contains the parameters for a GitLab webhook type of trigger",
+							Ref:         spec.MustCreateRef("#/definitions/v1.WebHookTrigger"),
+						},
+					},
+					"bitbucket": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger",
+							Ref:         spec.MustCreateRef("#/definitions/v1.WebHookTrigger"),
 						},
 					},
 				},
@@ -9710,6 +9758,30 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		},
 		Dependencies: []string{
 			"v1.BuildOutput", "v1.BuildPostCommitSpec", "v1.BuildSource", "v1.BuildStrategy", "v1.ResourceRequirements", "v1.SourceRevision"},
+	},
+	"v1.CommonWebHookCause": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CommonWebHookCause factors out the identical format of these webhook causes into struct so we can share it in the specific causes;  it is too late for GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.",
+				Properties: map[string]spec.Schema{
+					"revision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Revision is the git source revision information of the trigger.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.SourceRevision"),
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Secret is the obfuscated webhook secret that triggered a build.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"v1.SourceRevision"},
 	},
 	"v1.ComponentCondition": {
 		Schema: spec.Schema{
@@ -12849,6 +12921,30 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		},
 		Dependencies: []string{
 			"v1.SourceControlUser"},
+	},
+	"v1.GitLabWebHookCause": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
+				Properties: map[string]spec.Schema{
+					"revision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Revision is the git source revision information of the trigger.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.SourceRevision"),
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Secret is the obfuscated webhook secret that triggered a build.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"v1.SourceRevision"},
 	},
 	"v1.GitRepoVolumeSource": {
 		Schema: spec.Schema{

@@ -114,6 +114,28 @@ func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secre
 					Secret:   hiddenSecret,
 				},
 			})
+	case hookType == "gitlab":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseGitLabMsg,
+				GitLabWebHook: &buildapi.GitLabWebHookCause{
+					CommonWebHookCause: buildapi.CommonWebHookCause{
+						Revision: revision,
+						Secret:   hiddenSecret,
+					},
+				},
+			})
+	case hookType == "bitbucket":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseBitbucketMsg,
+				BitbucketWebHook: &buildapi.BitbucketWebHookCause{
+					CommonWebHookCause: buildapi.CommonWebHookCause{
+						Revision: revision,
+						Secret:   hiddenSecret,
+					},
+				},
+			})
 	}
 	return buildTriggerCauses
 }

@@ -22,6 +22,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BinaryBuildRequestOptions, InType: reflect.TypeOf(&BinaryBuildRequestOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BinaryBuildSource, InType: reflect.TypeOf(&BinaryBuildSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BitbucketWebHookCause, InType: reflect.TypeOf(&BitbucketWebHookCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Build, InType: reflect.TypeOf(&Build{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BuildConfig, InType: reflect.TypeOf(&BuildConfig{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BuildConfigList, InType: reflect.TypeOf(&BuildConfigList{})},
@@ -42,6 +43,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BuildTriggerCause, InType: reflect.TypeOf(&BuildTriggerCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_BuildTriggerPolicy, InType: reflect.TypeOf(&BuildTriggerPolicy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_CommonSpec, InType: reflect.TypeOf(&CommonSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_CommonWebHookCause, InType: reflect.TypeOf(&CommonWebHookCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_CustomBuildStrategy, InType: reflect.TypeOf(&CustomBuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DockerBuildStrategy, InType: reflect.TypeOf(&DockerBuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DockerStrategyOptions, InType: reflect.TypeOf(&DockerStrategyOptions{})},
@@ -50,6 +52,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitBuildSource, InType: reflect.TypeOf(&GitBuildSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitHubWebHookCause, InType: reflect.TypeOf(&GitHubWebHookCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitInfo, InType: reflect.TypeOf(&GitInfo{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitLabWebHookCause, InType: reflect.TypeOf(&GitLabWebHookCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitRefInfo, InType: reflect.TypeOf(&GitRefInfo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitSourceRevision, InType: reflect.TypeOf(&GitSourceRevision{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageChangeCause, InType: reflect.TypeOf(&ImageChangeCause{})},
@@ -92,6 +95,17 @@ func DeepCopy_api_BinaryBuildSource(in interface{}, out interface{}, c *conversi
 		in := in.(*BinaryBuildSource)
 		out := out.(*BinaryBuildSource)
 		out.AsFile = in.AsFile
+		return nil
+	}
+}
+
+func DeepCopy_api_BitbucketWebHookCause(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BitbucketWebHookCause)
+		out := out.(*BitbucketWebHookCause)
+		if err := DeepCopy_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
+			return err
+		}
 		return nil
 	}
 }
@@ -615,6 +629,24 @@ func DeepCopy_api_BuildTriggerCause(in interface{}, out interface{}, c *conversi
 		} else {
 			out.ImageChangeBuild = nil
 		}
+		if in.GitLabWebHook != nil {
+			in, out := &in.GitLabWebHook, &out.GitLabWebHook
+			*out = new(GitLabWebHookCause)
+			if err := DeepCopy_api_GitLabWebHookCause(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.GitLabWebHook = nil
+		}
+		if in.BitbucketWebHook != nil {
+			in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
+			*out = new(BitbucketWebHookCause)
+			if err := DeepCopy_api_BitbucketWebHookCause(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.BitbucketWebHook = nil
+		}
 		return nil
 	}
 }
@@ -646,6 +678,20 @@ func DeepCopy_api_BuildTriggerPolicy(in interface{}, out interface{}, c *convers
 			}
 		} else {
 			out.ImageChange = nil
+		}
+		if in.GitLabWebHook != nil {
+			in, out := &in.GitLabWebHook, &out.GitLabWebHook
+			*out = new(WebHookTrigger)
+			**out = **in
+		} else {
+			out.GitLabWebHook = nil
+		}
+		if in.BitbucketWebHook != nil {
+			in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
+			*out = new(WebHookTrigger)
+			**out = **in
+		} else {
+			out.BitbucketWebHook = nil
 		}
 		return nil
 	}
@@ -696,6 +742,24 @@ func DeepCopy_api_CommonSpec(in interface{}, out interface{}, c *conversion.Clon
 		} else {
 			out.NodeSelector = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_api_CommonWebHookCause(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*CommonWebHookCause)
+		out := out.(*CommonWebHookCause)
+		if in.Revision != nil {
+			in, out := &in.Revision, &out.Revision
+			*out = new(SourceRevision)
+			if err := DeepCopy_api_SourceRevision(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.Revision = nil
+		}
+		out.Secret = in.Secret
 		return nil
 	}
 }
@@ -916,6 +980,17 @@ func DeepCopy_api_GitInfo(in interface{}, out interface{}, c *conversion.Cloner)
 			}
 		} else {
 			out.Refs = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_GitLabWebHookCause(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*GitLabWebHookCause)
+		out := out.(*GitLabWebHookCause)
+		if err := DeepCopy_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
+			return err
 		}
 		return nil
 	}

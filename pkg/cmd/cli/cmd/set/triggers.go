@@ -99,6 +99,8 @@ type TriggersOptions struct {
 	FromGitHub          *bool
 	FromWebHook         *bool
 	FromWebHookAllowEnv *bool
+	FromGitLab          *bool
+	FromBitbucket       *bool
 	FromImage           string
 	// FromImageNamespace is the namespace for the FromImage
 	FromImageNamespace string
@@ -144,6 +146,8 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	options.FromGitHub = cmd.Flags().Bool("from-github", false, "If true, a GitHub webhook - a secret value will be generated automatically")
 	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "If true, a generic webhook - a secret value will be generated automatically")
 	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "If true, a generic webhook which can provide environment variables - a secret value will be generated automatically")
+	options.FromGitLab = cmd.Flags().Bool("from-gitlab", false, "If true, a GitLab webhook - a secret value will be generated automatically")
+	options.FromBitbucket = cmd.Flags().Bool("from-bitbucket", false, "If true, a Bitbucket webhook - a secret value will be generated automatically")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -174,6 +178,12 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	}
 	if !cmd.Flags().Lookup("from-webhook-allow-env").Changed {
 		o.FromWebHookAllowEnv = nil
+	}
+	if !cmd.Flags().Lookup("from-gitlab").Changed {
+		o.FromGitLab = nil
+	}
+	if !cmd.Flags().Lookup("from-bitbucket").Changed {
+		o.FromBitbucket = nil
 	}
 
 	if len(o.FromImage) > 0 {
@@ -235,6 +245,12 @@ func (o *TriggersOptions) count() int {
 		count++
 	}
 	if o.FromWebHookAllowEnv != nil {
+		count++
+	}
+	if o.FromGitLab != nil {
+		count++
+	}
+	if o.FromBitbucket != nil {
 		count++
 	}
 	if len(o.FromImage) > 0 {
@@ -353,6 +369,12 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 			for _, s := range triggers.GitHubWebHooks {
 				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "github", s, "")
 			}
+			for _, s := range triggers.GitLabWebHooks {
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "gitlab", s, "")
+			}
+			for _, s := range triggers.BitbucketWebHooks {
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "bitbucket", s, "")
+			}
 			return nil
 		})
 		if err != nil {
@@ -393,6 +415,12 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		}
 		if o.FromGitHub != nil && *o.FromGitHub {
 			triggers.GitHubWebHooks = nil
+		}
+		if o.FromGitLab != nil && *o.FromGitLab {
+			triggers.GitLabWebHooks = nil
+		}
+		if o.FromBitbucket != nil && *o.FromBitbucket {
+			triggers.BitbucketWebHooks = nil
 		}
 		return
 	}
@@ -443,6 +471,12 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 	if o.FromGitHub != nil && *o.FromGitHub {
 		triggers.GitHubWebHooks = []string{app.GenerateSecret(20)}
 	}
+	if o.FromGitLab != nil && *o.FromGitLab {
+		triggers.GitLabWebHooks = []string{app.GenerateSecret(20)}
+	}
+	if o.FromBitbucket != nil && *o.FromBitbucket {
+		triggers.BitbucketWebHooks = []string{app.GenerateSecret(20)}
+	}
 }
 
 // ImageChangeTrigger represents the capabilities present in deployment config and build
@@ -460,11 +494,13 @@ type ImageChangeTrigger struct {
 
 // TriggerDefinition is the abstract representation of triggers for builds and deploymnet configs.
 type TriggerDefinition struct {
-	ConfigChange     bool
-	ImageChange      []ImageChangeTrigger
-	WebHooks         []string
-	WebHooksAllowEnv bool
-	GitHubWebHooks   []string
+	ConfigChange      bool
+	ImageChange       []ImageChangeTrigger
+	WebHooks          []string
+	WebHooksAllowEnv  bool
+	GitHubWebHooks    []string
+	GitLabWebHooks    []string
+	BitbucketWebHooks []string
 }
 
 // defaultNamespace returns an empty string if the provided namespace matches the default namespace, or
@@ -508,6 +544,10 @@ func NewBuildConfigTriggers(config *buildapi.BuildConfig) *TriggerDefinition {
 			t.WebHooksAllowEnv = trigger.GenericWebHook.AllowEnv
 		case buildapi.GitHubWebHookBuildTriggerType:
 			t.GitHubWebHooks = append(t.GitHubWebHooks, trigger.GitHubWebHook.Secret)
+		case buildapi.GitLabWebHookBuildTriggerType:
+			t.GitLabWebHooks = append(t.GitLabWebHooks, trigger.GitLabWebHook.Secret)
+		case buildapi.BitbucketWebHookBuildTriggerType:
+			t.BitbucketWebHooks = append(t.BitbucketWebHooks, trigger.BitbucketWebHook.Secret)
 		case buildapi.ImageChangeBuildTriggerType:
 			if trigger.ImageChange.From == nil {
 				if strategyTrigger := strategyTrigger(config); strategyTrigger != nil {
@@ -543,6 +583,12 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		}
 		if len(t.WebHooks) > 0 {
 			return fmt.Errorf("deployment configs do not support web hooks")
+		}
+		if len(t.GitLabWebHooks) > 0 {
+			return fmt.Errorf("deployment configs do not support GitLab web hooks")
+		}
+		if len(t.BitbucketWebHooks) > 0 {
+			return fmt.Errorf("deployment configs do not support Bitbucket web hooks")
 		}
 
 		existingTriggers := filterDeploymentTriggers(c.Spec.Triggers, deployapi.DeploymentTriggerOnConfigChange)
@@ -598,6 +644,22 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
 				Type: buildapi.GitHubWebHookBuildTriggerType,
 				GitHubWebHook: &buildapi.WebHookTrigger{
+					Secret: trigger,
+				},
+			})
+		}
+		for _, trigger := range t.GitLabWebHooks {
+			triggers = append(triggers, buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &buildapi.WebHookTrigger{
+					Secret: trigger,
+				},
+			})
+		}
+		for _, trigger := range t.BitbucketWebHooks {
+			triggers = append(triggers, buildapi.BuildTriggerPolicy{
+				Type: buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &buildapi.WebHookTrigger{
 					Secret: trigger,
 				},
 			})
