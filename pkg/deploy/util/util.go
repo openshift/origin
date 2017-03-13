@@ -368,7 +368,7 @@ func GetAvailablePods(pods []*api.Pod, minReadySeconds int32) int32 {
 	available := int32(0)
 	for i := range pods {
 		pod := pods[i]
-		if kdeplutil.IsPodAvailable(pod, minReadySeconds, time.Now()) {
+		if api.IsPodAvailable(pod, minReadySeconds, metav1.NewTime(time.Now())) {
 			available++
 		}
 	}
