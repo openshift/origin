@@ -455,9 +455,12 @@ func ImageWithMetadata(image *Image) error {
 	case 2:
 		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 
+		if len(image.DockerImageConfig) == 0 {
+			return fmt.Errorf("dockerImageConfig must not be empty for manifest schema 2")
+		}
 		config := DockerImageConfig{}
 		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
-			return err
+			return fmt.Errorf("failed to parse dockerImageConfig: %v", err)
 		}
 
 		image.DockerImageLayers = make([]ImageLayer, len(manifest.Layers))

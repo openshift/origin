@@ -291,7 +291,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("Run testPullThroughStatBlob (%s == true)...", imageapi.InsecureRepositoryAnnotation)
+	t.Logf("Run testPullThroughStatBlob (%s == true, spec.tags[%q].importPolicy.insecure == true)...", imageapi.InsecureRepositoryAnnotation, repotag)
 	for digest := range descriptors {
 		if err := testPullThroughStatBlob(&stream, user, token, digest); err != nil {
 			t.Fatal(err)
@@ -309,10 +309,31 @@ func TestPullThroughInsecure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("Run testPullThroughStatBlob (%s == false)...", imageapi.InsecureRepositoryAnnotation)
+	t.Logf("Run testPullThroughStatBlob (%s == false, spec.tags[%q].importPolicy.insecure == true)...", imageapi.InsecureRepositoryAnnotation, repotag)
+	for digest := range descriptors {
+		if err := testPullThroughStatBlob(&stream, user, token, digest); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	istream, err = adminClient.ImageStreams(stream.Namespace).Get(stream.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagRef := istream.Spec.Tags[repotag]
+	tagRef.ImportPolicy.Insecure = false
+	istream.Spec.Tags[repotag] = tagRef
+	_, err = adminClient.ImageStreams(istream.Namespace).Update(istream)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Run testPullThroughStatBlob (%s == false, spec.tags[%q].importPolicy.insecure == false)...", imageapi.InsecureRepositoryAnnotation, repotag)
 	for digest := range descriptors {
 		if err := testPullThroughStatBlob(&stream, user, token, digest); err == nil {
 			t.Fatal("unexpexted access to insecure blobs")
+		} else {
+			t.Logf("%#+v", err)
 		}
 	}
 }
