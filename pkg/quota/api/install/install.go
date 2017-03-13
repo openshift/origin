@@ -72,7 +72,7 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString("ClusterResourceQuota")
 	ignoredKinds := sets.NewString()
 
-	return kapi.NewDefaultRESTMapper(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
+	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped, kapi.Scheme)
 }
 
 // interfacesFor returns the default Codec and ResourceVersioner for a given version

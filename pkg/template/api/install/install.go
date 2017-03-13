@@ -93,7 +93,7 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	}
 	rootScoped := sets.NewString()
 	ignoredKinds := sets.NewString()
-	return kapi.NewDefaultRESTMapper(worstToBestGroupVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
+	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped, kapi.Scheme)
 }
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
