@@ -30,6 +30,7 @@ import (
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildpodcontroller "github.com/openshift/origin/pkg/build/controller/buildpod"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -289,17 +290,12 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 
 // RunBuildPodController starts the build/pod status sync loop for build status
 func (c *MasterConfig) RunBuildPodController() {
+	buildInfomer := c.Informers.Builds().Informer()
+	podInformer := c.Informers.KubernetesInformers().Pods().Informer()
 	osclient, kclient := c.BuildPodControllerClients()
-	factory := buildcontrollerfactory.BuildPodControllerFactory{
-		OSClient:     osclient,
-		KubeClient:   kclient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
-		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
-	}
-	controller := factory.Create()
-	controller.Run()
-	deletecontroller := factory.CreateDeleteController()
-	deletecontroller.Run()
+
+	controller := buildpodcontroller.NewBuildPodController(buildInfomer, podInformer, kclient, osclient)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
