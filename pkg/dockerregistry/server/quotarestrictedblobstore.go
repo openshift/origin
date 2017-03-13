@@ -20,6 +20,7 @@ import (
 	"github.com/docker/distribution/context"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
@@ -136,6 +137,33 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 	return bw.BlobWriter.Commit(ctx, provisional)
 }
 
+// getLimitRangeList returns list of limit ranges for namespace.
+func getLimitRangeList(ctx context.Context, limitClient kcoreclient.LimitRangesGetter, namespace string) (*kapi.LimitRangeList, error) {
+	if !quotaEnforcing.projectCacheDisabled {
+		obj, exists, _ := quotaEnforcing.limitRanges.get(namespace)
+		if exists {
+			return obj.(*kapi.LimitRangeList), nil
+		}
+	}
+
+	context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", namespace)
+
+	lrs, err := limitClient.LimitRanges(namespace).List(kapi.ListOptions{})
+	if err != nil {
+		context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
+		return nil, err
+	}
+
+	if !quotaEnforcing.projectCacheDisabled {
+		err = quotaEnforcing.limitRanges.add(namespace, lrs)
+		if err != nil {
+			context.GetLogger(ctx).Errorf("failed to cache limit range list: %v", err)
+		}
+	}
+
+	return lrs, nil
+}
+
 // admitBlobWrite checks whether the blob does not exceed image limit ranges if set. Returns ErrAccessDenied
 // error if the limit is exceeded.
 func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
@@ -143,30 +171,9 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 		return nil
 	}
 
-	var (
-		lrs *kapi.LimitRangeList
-		err error
-	)
-
-	if !quotaEnforcing.projectCacheDisabled {
-		obj, exists, _ := quotaEnforcing.limitRanges.get(repo.namespace)
-		if exists {
-			lrs = obj.(*kapi.LimitRangeList)
-		}
-	}
-	if lrs == nil {
-		context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", repo.namespace)
-		lrs, err = repo.limitClient.LimitRanges(repo.namespace).List(kapi.ListOptions{})
-		if err != nil {
-			context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
-			return err
-		}
-		if !quotaEnforcing.projectCacheDisabled {
-			err = quotaEnforcing.limitRanges.add(repo.namespace, lrs)
-			if err != nil {
-				context.GetLogger(ctx).Errorf("failed to cache limit range list: %v", err)
-			}
-		}
+	lrs, err := getLimitRangeList(ctx, repo.limitClient, repo.namespace)
+	if err != nil {
+		return err
 	}
 
 	for _, limitrange := range lrs.Items {
