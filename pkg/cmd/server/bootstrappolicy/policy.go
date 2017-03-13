@@ -26,11 +26,10 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	kapi "github.com/openshift/origin/pkg/sdn/api"
+	networkapi "github.com/openshift/origin/pkg/sdn/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	networmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (

@@ -150,12 +150,12 @@ func (d *discoveryRESTMapper) RESTMapping(gk schema.GroupKind, versions ...strin
 	return delegate.RESTMapping(gk, versions...)
 }
 
-func (d *discoveryRESTMapper) RESTMappings(gk schema.GroupKind) ([]*meta.RESTMapping, error) {
+func (d *discoveryRESTMapper) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
 	delegate, err := d.getDelegate()
 	if err != nil {
 		return nil, err
 	}
-	return delegate.RESTMappings(gk)
+	return delegate.RESTMappings(gk, versions...)
 }
 
 func (d *discoveryRESTMapper) AliasesForResource(resource string) ([]string, bool) {

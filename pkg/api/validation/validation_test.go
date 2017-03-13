@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/validation/path"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/pkg/api/validation/path"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	ktypes "k8s.io/kubernetes/pkg/types"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -41,7 +41,7 @@ func TestNilPath(t *testing.T) {
 }
 
 func TestNameFunc(t *testing.T) {
-	const nameRulesMessage = `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`
+	const nameRulesMessage = `a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')`
 
 	for apiType, validationInfo := range Validator.typeToValidator {
 		if !validationInfo.HasObjectMeta {

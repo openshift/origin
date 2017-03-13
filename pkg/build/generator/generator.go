@@ -12,7 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -423,10 +425,10 @@ func (g *BuildGenerator) Clone(ctx apirequest.Context, request *buildapi.BuildRe
 
 // createBuild is responsible for validating build object and saving it and returning newly created object
 func (g *BuildGenerator) createBuild(ctx apirequest.Context, build *buildapi.Build) (*buildapi.Build, error) {
-	if !kapi.ValidNamespace(ctx, &build.ObjectMeta) {
+	if !rest.ValidNamespace(ctx, &build.ObjectMeta) {
 		return nil, errors.NewConflict(buildapi.Resource("build"), build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
 	}
-	kapi.FillObjectMetaSystemFields(ctx, &build.ObjectMeta)
+	rest.FillObjectMetaSystemFields(ctx, &build.ObjectMeta)
 	err := g.Client.CreateBuild(ctx, build)
 	if err != nil {
 		return nil, err
@@ -742,7 +744,13 @@ func (g *BuildGenerator) resolveImageSecret(ctx apirequest.Context, secrets []ka
 		return nil
 	}
 	for _, secret := range secrets {
-		keyring, err := credentialprovider.MakeDockerKeyring([]kapi.Secret{secret}, &emptyKeyring)
+		secretsv1 := make([]kapiv1.Secret, 1)
+		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
 		if err != nil {
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

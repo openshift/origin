@@ -12,17 +12,17 @@ import (
 
 	"github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/meta"
+	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/protobuf"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/types"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
@@ -58,7 +58,7 @@ var codecsToTest = []func(version schema.GroupVersion, item runtime.Object) (run
 }
 
 func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
-	f := apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed))
+	f := apitesting.FuzzerFor(nil, rand.NewSource(seed))
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
@@ -384,8 +384,8 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					}
 				}
 				if c.RandBool() {
-					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
-					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
+					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64() >> 33))
+					params.MaxSurge = intstr.FromInt(int(c.RandUint64() >> 33))
 				} else {
 					params.MaxSurge = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
