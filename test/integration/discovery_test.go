@@ -54,7 +54,15 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 		}
 	}
 
-	discoveredGroupVersions := sets.StringKeySet(resources)
+	discoveredGroupVersions := sets.NewString()
+	for _, resource := range resources {
+		gv, err := schema.ParseGroupVersion(resource.GroupVersion)
+		if err != nil {
+			t.Errorf("Error parsing gv %q: %v", resource.GroupVersion, err)
+			continue
+		}
+		discoveredGroupVersions.Insert(gv.String())
+	}
 	if !reflect.DeepEqual(discoveredGroupVersions, expectedGroupVersions) {
 		t.Fatalf("Expected %#v, got %#v", expectedGroupVersions.List(), discoveredGroupVersions.List())
 	}
