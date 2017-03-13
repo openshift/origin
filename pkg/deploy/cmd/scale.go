@@ -49,7 +49,7 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		if err != nil {
 			return err
 		}
-		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
+		rc, err := scaler.rcClient.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc), metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func controllerHasSpecifiedReplicas(c kclientset.Interface, controller *kapi.Rep
 	desiredGeneration := controller.Generation
 
 	return func() (bool, error) {
-		ctrl, err := c.Core().ReplicationControllers(controller.Namespace).Get(controller.Name)
+		ctrl, err := c.Core().ReplicationControllers(controller.Namespace).Get(controller.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
