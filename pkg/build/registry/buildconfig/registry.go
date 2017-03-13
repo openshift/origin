@@ -3,6 +3,7 @@ package buildconfig
 import (
 	"github.com/openshift/origin/pkg/build/api"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -14,7 +15,7 @@ type Registry interface {
 	// ListBuildConfigs obtains list of buildConfigs that match a selector.
 	ListBuildConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error)
 	// GetBuildConfig retrieves a specific buildConfig.
-	GetBuildConfig(ctx apirequest.Context, id string) (*api.BuildConfig, error)
+	GetBuildConfig(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.BuildConfig, error)
 	// CreateBuildConfig creates a new buildConfig.
 	CreateBuildConfig(ctx apirequest.Context, buildConfig *api.BuildConfig) error
 	// UpdateBuildConfig updates a buildConfig.
@@ -48,8 +49,8 @@ func (s *storage) WatchBuildConfigs(ctx apirequest.Context, options *metainterna
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetBuildConfig(ctx apirequest.Context, name string) (*api.BuildConfig, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.BuildConfig, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

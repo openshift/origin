@@ -2,6 +2,7 @@ package oauthaccesstoken
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
@@ -13,7 +14,7 @@ type Registry interface {
 	// ListAccessTokens obtains a list of access tokens that match a selector.
 	ListAccessTokens(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthAccessTokenList, error)
 	// GetAccessToken retrieves a specific access token.
-	GetAccessToken(ctx apirequest.Context, name string) (*api.OAuthAccessToken, error)
+	GetAccessToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthAccessToken, error)
 	// CreateAccessToken creates a new access token.
 	CreateAccessToken(ctx apirequest.Context, token *api.OAuthAccessToken) (*api.OAuthAccessToken, error)
 	// DeleteAccessToken deletes an access token.
@@ -47,8 +48,8 @@ func (s *storage) ListAccessTokens(ctx apirequest.Context, options *metainternal
 	return obj.(*api.OAuthAccessTokenList), nil
 }
 
-func (s *storage) GetAccessToken(ctx apirequest.Context, name string) (*api.OAuthAccessToken, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetAccessToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthAccessToken, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

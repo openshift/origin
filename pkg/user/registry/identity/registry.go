@@ -2,6 +2,7 @@ package identity
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListIdentities obtains a list of Identities having labels which match selector.
 	ListIdentities(ctx apirequest.Context, options *metainternal.ListOptions) (*api.IdentityList, error)
 	// GetIdentity returns a specific Identity
-	GetIdentity(ctx apirequest.Context, name string) (*api.Identity, error)
+	GetIdentity(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Identity, error)
 	// CreateIdentity creates a Identity
 	CreateIdentity(ctx apirequest.Context, Identity *api.Identity) (*api.Identity, error)
 	// UpdateIdentity updates an existing Identity
@@ -56,8 +57,8 @@ func (s *storage) ListIdentities(ctx apirequest.Context, options *metainternal.L
 	return obj.(*api.IdentityList), nil
 }
 
-func (s *storage) GetIdentity(ctx apirequest.Context, name string) (*api.Identity, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetIdentity(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Identity, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

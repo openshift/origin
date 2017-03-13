@@ -2,6 +2,7 @@ package policy
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListPolicies obtains list of policies that match a selector.
 	ListPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error)
 	// GetPolicy retrieves a specific policy.
-	GetPolicy(ctx apirequest.Context, id string) (*authorizationapi.Policy, error)
+	GetPolicy(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.Policy, error)
 	// CreatePolicy creates a new policy.
 	CreatePolicy(ctx apirequest.Context, policy *authorizationapi.Policy) error
 	// UpdatePolicy updates a policy.
@@ -69,8 +70,8 @@ func (s *storage) WatchPolicies(ctx apirequest.Context, options *metainternal.Li
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetPolicy(ctx apirequest.Context, name string) (*authorizationapi.Policy, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetPolicy(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.Policy, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

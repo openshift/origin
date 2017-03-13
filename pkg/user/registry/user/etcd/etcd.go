@@ -48,7 +48,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 }
 
 // Get retrieves the item from etcd.
-func (r *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
 		user, ok := apirequest.UserFrom(ctx)
@@ -67,7 +67,7 @@ func (r *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) 
 			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
 
-		obj, err := r.Store.Get(ctx, name)
+		obj, err := r.Store.Get(ctx, name, options)
 		if err == nil {
 			return obj, nil
 		}
@@ -83,5 +83,5 @@ func (r *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) 
 		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
 	}
 
-	return r.Store.Get(ctx, name)
+	return r.Store.Get(ctx, name, options)
 }

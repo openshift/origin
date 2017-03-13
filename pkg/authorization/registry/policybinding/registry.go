@@ -2,6 +2,7 @@ package policybinding
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListPolicyBindings obtains list of policyBindings that match a selector.
 	ListPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error)
 	// GetPolicyBinding retrieves a specific policyBinding.
-	GetPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.PolicyBinding, error)
+	GetPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.PolicyBinding, error)
 	// CreatePolicyBinding creates a new policyBinding.
 	CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error
 	// UpdatePolicyBinding updates a policyBinding.
@@ -69,8 +70,8 @@ func (s *storage) WatchPolicyBindings(ctx apirequest.Context, options *metainter
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.PolicyBinding, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

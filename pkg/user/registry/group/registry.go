@@ -2,6 +2,7 @@ package group
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListGroups obtains a list of groups having labels which match selector.
 	ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*api.GroupList, error)
 	// GetGroup returns a specific group
-	GetGroup(ctx apirequest.Context, name string) (*api.Group, error)
+	GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Group, error)
 	// CreateGroup creates a group
 	CreateGroup(ctx apirequest.Context, group *api.Group) (*api.Group, error)
 	// UpdateGroup updates an existing group
@@ -50,8 +51,8 @@ func (s *storage) ListGroups(ctx apirequest.Context, options *metainternal.ListO
 	return obj.(*api.GroupList), nil
 }
 
-func (s *storage) GetGroup(ctx apirequest.Context, name string) (*api.Group, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Group, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

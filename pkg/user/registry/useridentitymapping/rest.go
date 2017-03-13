@@ -125,7 +125,7 @@ func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceC
 	}
 
 	// Get new user
-	newUser, err := s.userRegistry.GetUser(ctx, mapping.User.Name)
+	newUser, err := s.userRegistry.GetUser(ctx, mapping.User.Name, &metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
 		errs := field.ErrorList{field.Invalid(field.NewPath("user", "name"), mapping.User.Name, "referenced user does not exist")}
 		return nil, false, kerrs.NewInvalid(api.Kind("UserIdentityMapping"), mapping.Name, errs)
@@ -206,7 +206,7 @@ func (s *REST) getRelatedObjects(ctx apirequest.Context, name string) (
 	mappingErr = kerrs.NewNotFound(api.Resource("useridentitymapping"), name)
 
 	// Get identity
-	identity, identityErr = s.identityRegistry.GetIdentity(ctx, name)
+	identity, identityErr = s.identityRegistry.GetIdentity(ctx, name, &metav1.GetOptions{})
 	if identityErr != nil {
 		return
 	}
@@ -215,7 +215,7 @@ func (s *REST) getRelatedObjects(ctx apirequest.Context, name string) (
 	}
 
 	// Get user
-	user, userErr = s.userRegistry.GetUser(ctx, identity.User.Name)
+	user, userErr = s.userRegistry.GetUser(ctx, identity.User.Name, &metav1.GetOptions{})
 	if userErr != nil {
 		return
 	}

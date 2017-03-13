@@ -2,6 +2,7 @@ package role
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ type Registry interface {
 	// ListRoles obtains list of policyRoles that match a selector.
 	ListRoles(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.RoleList, error)
 	// GetRole retrieves a specific policyRole.
-	GetRole(ctx apirequest.Context, id string) (*authorizationapi.Role, error)
+	GetRole(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.Role, error)
 	// CreateRole creates a new policyRole.
 	CreateRole(ctx apirequest.Context, policyRole *authorizationapi.Role) (*authorizationapi.Role, error)
 	// UpdateRole updates a policyRole.
@@ -66,8 +67,8 @@ func (s *storage) UpdateRole(ctx apirequest.Context, role *authorizationapi.Role
 	return obj.(*authorizationapi.Role), created, err
 }
 
-func (s *storage) GetRole(ctx apirequest.Context, name string) (*authorizationapi.Role, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetRole(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.Role, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

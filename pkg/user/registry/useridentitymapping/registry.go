@@ -1,6 +1,7 @@
 package useridentitymapping
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -12,7 +13,7 @@ import (
 // Registry is an interface implemented by things that know how to store UserIdentityMapping objects.
 type Registry interface {
 	// GetUserIdentityMapping returns a UserIdentityMapping for the named identity
-	GetUserIdentityMapping(ctx apirequest.Context, name string) (*api.UserIdentityMapping, error)
+	GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.UserIdentityMapping, error)
 	// CreateUserIdentityMapping associates a user and an identity
 	CreateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
 	// UpdateUserIdentityMapping updates an associated user and identity
@@ -42,8 +43,8 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string) (*api.UserIdentityMapping, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.UserIdentityMapping, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

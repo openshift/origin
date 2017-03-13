@@ -2,6 +2,7 @@ package user
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListUsers obtains a list of users having labels which match selector.
 	ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error)
 	// GetUser returns a specific user
-	GetUser(ctx apirequest.Context, name string) (*api.User, error)
+	GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error)
 	// CreateUser creates a user
 	CreateUser(ctx apirequest.Context, user *api.User) (*api.User, error)
 	// UpdateUser updates an existing user
@@ -51,8 +52,8 @@ func (s *storage) ListUsers(ctx apirequest.Context, options *metainternal.ListOp
 	return obj.(*api.UserList), nil
 }
 
-func (s *storage) GetUser(ctx apirequest.Context, name string) (*api.User, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

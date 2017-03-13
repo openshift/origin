@@ -2,6 +2,7 @@ package clusterrole
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ type Registry interface {
 	// ListClusterRoles obtains list of policyClusterRoles that match a selector.
 	ListClusterRoles(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterRoleList, error)
 	// GetClusterRole retrieves a specific policyClusterRole.
-	GetClusterRole(ctx apirequest.Context, id string) (*authorizationapi.ClusterRole, error)
+	GetClusterRole(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.ClusterRole, error)
 	// CreateClusterRole creates a new policyClusterRole.
 	CreateClusterRole(ctx apirequest.Context, policyClusterRole *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
 	// UpdateClusterRole updates a policyClusterRole.
@@ -73,8 +74,8 @@ func (s *storage) UpdateClusterRole(ctx apirequest.Context, node *authorizationa
 	return obj.(*authorizationapi.ClusterRole), created, err
 }
 
-func (s *storage) GetClusterRole(ctx apirequest.Context, name string) (*authorizationapi.ClusterRole, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClusterRole(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.ClusterRole, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

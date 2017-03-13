@@ -2,6 +2,7 @@ package clusterrolebinding
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ type Registry interface {
 	// ListRoleBindings obtains list of policyRoleBindings that match a selector.
 	ListRoleBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.RoleBindingList, error)
 	// GetRoleBinding retrieves a specific policyRoleBinding.
-	GetRoleBinding(ctx apirequest.Context, id string) (*authorizationapi.RoleBinding, error)
+	GetRoleBinding(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.RoleBinding, error)
 	// CreateRoleBinding creates a new policyRoleBinding.
 	CreateRoleBinding(ctx apirequest.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	// UpdateRoleBinding updates a policyRoleBinding.
@@ -72,8 +73,8 @@ func (s *storage) UpdateRoleBinding(ctx apirequest.Context, binding *authorizati
 	return obj.(*authorizationapi.RoleBinding), created, err
 }
 
-func (s *storage) GetRoleBinding(ctx apirequest.Context, name string) (*authorizationapi.RoleBinding, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetRoleBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.RoleBinding, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

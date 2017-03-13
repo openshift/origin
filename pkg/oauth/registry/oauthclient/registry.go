@@ -2,6 +2,7 @@ package oauthclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ type Registry interface {
 	// ListClients obtains a list of clients that match a selector.
 	ListClients(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error)
 	// GetClient retrieves a specific client.
-	GetClient(ctx apirequest.Context, name string) (*api.OAuthClient, error)
+	GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error)
 	// CreateClient creates a new client.
 	CreateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error)
 	// UpdateClient updates a client.
@@ -26,7 +27,7 @@ type Registry interface {
 // Getter exposes a way to get a specific client.  This is useful for other registries to get scope limitations
 // on particular clients.   This interface will make its easier to write a future cache on it
 type Getter interface {
-	GetClient(ctx apirequest.Context, name string) (*api.OAuthClient, error)
+	GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error)
 }
 
 // storage puts strong typing around storage calls
@@ -48,8 +49,8 @@ func (s *storage) ListClients(ctx apirequest.Context, options *metainternal.List
 	return obj.(*api.OAuthClientList), nil
 }
 
-func (s *storage) GetClient(ctx apirequest.Context, name string) (*api.OAuthClient, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

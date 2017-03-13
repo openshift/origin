@@ -70,7 +70,8 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 	if errs := validation.ValidateBuildLogOptions(buildLogOpts); len(errs) > 0 {
 		return nil, errors.NewInvalid(api.Kind("BuildLogOptions"), "", errs)
 	}
-	obj, err := r.Getter.Get(ctx, name)
+	// TODO(rebase-1.6) should we bubble the GetOptions up?
+	obj, err := r.Getter.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

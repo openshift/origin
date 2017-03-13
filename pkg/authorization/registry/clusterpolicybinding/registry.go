@@ -2,6 +2,7 @@ package clusterpolicybinding
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -16,7 +17,7 @@ type Registry interface {
 	// ListClusterPolicyBindings obtains list of policyBindings that match a selector.
 	ListClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	// GetClusterPolicyBinding retrieves a specific policyBinding.
-	GetClusterPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.ClusterPolicyBinding, error)
+	GetClusterPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 	// CreateClusterPolicyBinding creates a new policyBinding.
 	CreateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error
 	// UpdateClusterPolicyBinding updates a policyBinding.
@@ -75,8 +76,8 @@ func (s *storage) WatchClusterPolicyBindings(ctx apirequest.Context, options *me
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetClusterPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClusterPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +110,8 @@ func (s *simulatedStorage) UpdatePolicyBinding(ctx apirequest.Context, policyBin
 	return s.clusterRegistry.UpdateClusterPolicyBinding(ctx, authorizationapi.ToClusterPolicyBinding(policyBinding))
 }
 
-func (s *simulatedStorage) GetPolicyBinding(ctx apirequest.Context, name string) (*authorizationapi.PolicyBinding, error) {
-	ret, err := s.clusterRegistry.GetClusterPolicyBinding(ctx, name)
+func (s *simulatedStorage) GetPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+	ret, err := s.clusterRegistry.GetClusterPolicyBinding(ctx, name, options)
 	return authorizationapi.ToPolicyBinding(ret), err
 }
 

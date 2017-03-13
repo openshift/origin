@@ -2,6 +2,7 @@ package build
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -15,7 +16,7 @@ type Registry interface {
 	// ListBuilds obtains list of builds that match a selector.
 	ListBuilds(ctx apirequest.Context, options *metainternal.ListOptions) (*api.BuildList, error)
 	// GetBuild retrieves a specific build.
-	GetBuild(ctx apirequest.Context, id string) (*api.Build, error)
+	GetBuild(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.Build, error)
 	// CreateBuild creates a new build.
 	CreateBuild(ctx apirequest.Context, build *api.Build) error
 	// UpdateBuild updates a build.
@@ -49,8 +50,8 @@ func (s *storage) WatchBuilds(ctx apirequest.Context, options *metainternal.List
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetBuild(ctx apirequest.Context, name string) (*api.Build, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Build, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}

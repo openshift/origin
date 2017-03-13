@@ -2,6 +2,7 @@ package deployconfig
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -14,7 +15,7 @@ import (
 type Registry interface {
 	ListDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
 	WatchDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
-	GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
+	GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
 	CreateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error
 	UpdateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error
 	DeleteDeploymentConfig(ctx apirequest.Context, name string) error
@@ -43,8 +44,8 @@ func (s *storage) WatchDeploymentConfigs(ctx apirequest.Context, options *metain
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
