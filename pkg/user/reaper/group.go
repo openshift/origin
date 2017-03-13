@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -49,7 +48,7 @@ func (r *GroupReaper) Stop(namespace, name string, timeout time.Duration, graceP
 	}
 
 	// Remove the group from sccs
-	sccs, err := r.sccClient.SecurityContextConstraints().List(metainternal.ListOptions{})
+	sccs, err := r.sccClient.SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

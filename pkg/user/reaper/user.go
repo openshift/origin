@@ -55,7 +55,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	// Remove the user from sccs
-	sccs, err := r.sccClient.SecurityContextConstraints().List(metainternal.ListOptions{})
+	sccs, err := r.sccClient.SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
